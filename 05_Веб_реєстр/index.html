@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Реєстр роз'яснень НСЗУ</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-copy">
+      <div class="overline">Локальна бібліотека документів</div>
+      <h1>Роз'яснення НСЗУ</h1>
+      <p>Знайдіть документ за темою, пакетом, номером, датою або словом з тексту. Перегляньте зміст, джерело і пов'язані матеріали в одному місці.</p>
+    </div>
+    <div class="stats" id="stats" aria-label="Статистика реєстру"></div>
+  </header>
+
+  <main class="layout">
+    <section class="browser" aria-label="Пошук документів">
+      <div class="search-panel">
+        <label class="search">
+          <span>Пошук</span>
+          <input id="search" type="search" placeholder="Наприклад: паліативна допомога, ЕМЗ, інсульт..." autocomplete="off">
+        </label>
+        <div class="filters">
+          <label>Напрям
+            <select id="direction"><option value="">Усі напрями</option></select>
+          </label>
+          <label>Пакет / група
+            <select id="package"><option value="">Усі пакети</option></select>
+          </label>
+          <label>Рік
+            <select id="year"><option value="">Усі роки</option></select>
+          </label>
+          <label>Дата документа
+            <select id="documentDate"><option value="">Усі дати</option></select>
+          </label>
+          <label>Номер документа
+            <select id="documentNumber"><option value="">Усі номери</option></select>
+          </label>
+          <label>Формат
+            <select id="format"><option value="">Усі формати</option></select>
+          </label>
+          <label>Текст
+            <select id="quality">
+              <option value="">Усі документи</option>
+              <option value="ocr">Розпізнані скани</option>
+              <option value="text">З машинним текстом</option>
+            </select>
+          </label>
+        </div>
+        <div class="results-summary">
+          <span id="resultCount">Оберіть фільтр або введіть запит</span>
+          <button id="reset" type="button">Очистити фільтри</button>
+        </div>
+      </div>
+      <div class="cards" id="cards"></div>
+    </section>
+
+    <aside class="detail empty" id="detail" aria-live="polite">
+      <div class="empty-state">
+        <div class="empty-icon">i</div>
+        <h2>Оберіть документ</h2>
+        <p>Тут з'явиться коротка інформація, кнопки відкриття та пов'язані матеріали.</p>
+      </div>
+    </aside>
+  </main>
+
+  <template id="cardTemplate">
+    <button class="document-card" type="button">
+      <span class="card-tags"></span>
+      <strong></strong>
+      <span class="card-subtitle"></span>
+    </button>
+  </template>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
