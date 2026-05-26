@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Навігатор постанови № 1808 | НСЗУ</title>
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="resolution.css">
+</head>
+<body>
+  <header class="hero resolution-hero">
+    <div class="hero-copy">
+      <div class="overline">Програма медичних гарантій 2026</div>
+      <nav class="section-switch" aria-label="Розділи сайту">
+        <a href="../index.html">Роз'яснення</a>
+        <a href="../pakety/index.html">Пакети 2026</a>
+        <a class="active" href="index.html" aria-current="page">Постанова 1808</a>
+      </nav>
+      <h1>Навігатор постанови № 1808</h1>
+      <p>Тарифи, коефіцієнти, правила оплати, строки та зв'язки з пакетами ПМГ 2026 і роз'ясненнями НСЗУ.</p>
+    </div>
+    <div class="stats" id="resolutionStats" aria-label="Статистика постанови"></div>
+  </header>
+
+  <main class="resolution-layout">
+    <section class="resolution-browser" aria-label="Пошук норм постанови">
+      <div class="search-panel resolution-search">
+        <label class="search">
+          <span>Пошук у постанові</span>
+          <input id="resolutionSearch" type="search" placeholder="Наприклад: 8735, коефіцієнт, паліативна, до 1 липня..." autocomplete="off">
+        </label>
+        <div class="type-filters" id="typeFilters" aria-label="Типи норм"></div>
+        <div class="results-summary">
+          <span id="resolutionCount"></span>
+          <button id="clearResolution" type="button">Очистити</button>
+        </div>
+      </div>
+      <div class="resolution-cards" id="resolutionCards"></div>
+    </section>
+    <aside class="resolution-outline" id="resolutionOutline" aria-live="polite"></aside>
+    <article class="resolution-reader" id="resolutionReader" aria-live="polite"></article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <img class="footer-marks" src="../assets/footer-marks.svg" alt="Державний знак України та знак НСЗУ">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Навігатор створено для доступу до нормативних правил реалізації Програми медичних гарантій 2026.</p>
+      </div>
+    </div>
+  </footer>
+  <script src="resolution.js?v=20260526" defer></script>
+</body>
+</html>

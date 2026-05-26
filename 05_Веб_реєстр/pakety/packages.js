@@ -1,6 +1,7 @@
 const packageState = {
   data: null,
   explanations: [],
+  resolution: null,
   visible: [],
   selected: null,
   selectedUnit: null,
@@ -162,6 +163,18 @@ function readerRelated(pkg) {
   ).join("");
 }
 
+function readerResolution(pkg) {
+  if (!packageState.resolution) return "<p>Завантажуємо тарифні норми постанови...</p>";
+  const links = packageState.resolution?.package_links?.[pkg.number] || [];
+  if (!links.length) return "<p>Тарифні норми для цього пакета не визначено.</p>";
+  return links.map((link) => {
+    const labels = link.types.slice(0, 3).map((type) => packageState.resolution.type_labels[type] || type).join(", ");
+    return `<a class="law-related-link" href="../postanova/index.html?node=${encodeURIComponent(link.id)}&package=${encodeURIComponent(pkg.number)}">
+      <strong>${escapeHtml(link.title)}</strong><span>${escapeHtml(labels)} · стор. ${link.page}</span>
+    </a>`;
+  }).join("");
+}
+
 function renderReader() {
   const container = byId("packageReader");
   const pkg = packageState.selected;
@@ -186,6 +199,10 @@ function renderReader() {
       <a class="action primary" href="${encodeURI(pkg.source_href)}" target="_blank">Відкрити оригінал DOCX</a>
       <a class="action" href="../index.html?package=${encodeURIComponent((pkg.related_document_ids.length && packageState.explanations.find((doc) => doc.id === pkg.related_document_ids[0])?.package) || "")}">До реєстру роз'яснень</a>
     </div>
+    <section class="related-explanations resolution-connections">
+      <h3>Оплата за постановою № 1808</h3>
+      ${readerResolution(pkg)}
+    </section>
     <section class="related-explanations">
       <h3>Пов'язані роз'яснення</h3>
       ${readerRelated(pkg)}
@@ -213,6 +230,13 @@ async function initPackages() {
     applyPackageFilters();
   });
   applyPackageFilters();
+  fetch("../postanova/data/resolution_1808.json")
+    .then((response) => response.json())
+    .then((payload) => {
+      packageState.resolution = payload;
+      renderReader();
+    })
+    .catch((error) => console.warn("Не вдалося підвантажити норми постанови.", error));
 }
 
 initPackages().catch(() => {

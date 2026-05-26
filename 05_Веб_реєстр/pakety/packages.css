@@ -189,6 +189,22 @@ mark { padding: 0 2px; border-radius: 3px; color: inherit; background: #ffe69a; 
   text-decoration: none;
 }
 .related-link:hover { border-color: rgba(0,111,201,.38); background: #f7fbff; }
+.law-related-link {
+  display: block;
+  margin-bottom: 7px;
+  padding: 10px 11px;
+  border: 1px solid #d5e5f3;
+  border-radius: 10px;
+  color: var(--ink);
+  background: #f5faff;
+  font-size: 12px;
+  line-height: 1.42;
+  text-decoration: none;
+}
+.law-related-link strong, .law-related-link span { display: block; }
+.law-related-link span { margin-top: 5px; color: var(--muted); font-size: 11px; }
+.law-related-link:hover { border-color: rgba(0,111,201,.45); background: #eaf4fc; }
+.resolution-connections { border-top-color: #d5e5f3; }
 .reader-empty { display: grid; place-items: center; color: var(--muted); text-align: center; }
 @media (max-width: 1180px) {
   .packages-layout { grid-template-columns: minmax(280px, .9fr) minmax(450px, 1.1fr); }
