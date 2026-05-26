@@ -264,6 +264,14 @@ async function init() {
     ["search", "direction", "package", "year", "documentDate", "documentNumber", "format", "quality"].forEach((id) => { el(id).value = ""; });
     applyFilters();
   });
+  const params = new URLSearchParams(location.search);
+  const initialPackage = params.get("package") || "";
+  const initialQuery = params.get("q") || "";
+  if (initialQuery) el("search").value = initialQuery;
+  refreshFilterMenus();
+  if (initialPackage && Array.from(el("package").options).some((option) => option.value === initialPackage)) {
+    el("package").value = initialPackage;
+  }
   applyFilters();
 }
 

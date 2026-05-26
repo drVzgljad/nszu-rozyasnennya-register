@@ -39,6 +39,27 @@ body {
   text-transform: uppercase;
   letter-spacing: .13em;
 }
+.section-switch {
+  display: inline-flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  padding: 4px;
+  border: 1px solid rgba(0,111,201,.13);
+  border-radius: 12px;
+  background: rgba(255,255,255,.72);
+}
+.section-switch a {
+  padding: 9px 15px;
+  border-radius: 9px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.section-switch a.active {
+  color: #fff;
+  background: var(--accent);
+}
 
 h1 {
   margin: 0 0 12px;

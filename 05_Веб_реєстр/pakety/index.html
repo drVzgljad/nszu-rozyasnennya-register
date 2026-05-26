@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Пакетний навігатор 26 | НСЗУ</title>
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="packages.css">
+</head>
+<body>
+  <header class="hero package-hero">
+    <div class="hero-copy">
+      <div class="overline">Програма медичних гарантій 2026</div>
+      <nav class="section-switch" aria-label="Розділи сайту">
+        <a href="../index.html">Роз'яснення</a>
+        <a class="active" href="index.html" aria-current="page">Пакети 2026</a>
+      </nav>
+      <h1>Пакетний навігатор 26</h1>
+      <p>Знайдіть пакет, вимогу, спеціаліста або обладнання. Відкривайте конкретні пункти умов закупівлі й пов'язані роз'яснення.</p>
+    </div>
+    <div class="stats" id="packageStats" aria-label="Статистика пакетів"></div>
+  </header>
+
+  <main class="packages-layout">
+    <section class="package-browser" aria-label="Пошук пакетів">
+      <div class="search-panel package-search">
+        <label class="search">
+          <span>Пошук у пакетах</span>
+          <input id="packageSearch" type="search" placeholder="Наприклад: ШВЛ, паліативна, стаціонарно..." autocomplete="off">
+        </label>
+        <div class="tag-filters" id="tagFilters" aria-label="Фільтри умов"></div>
+        <div class="results-summary">
+          <span id="packageCount"></span>
+          <button id="clearPackages" type="button">Очистити</button>
+        </div>
+      </div>
+      <div class="package-cards" id="packageCards"></div>
+    </section>
+
+    <aside class="package-outline" id="packageOutline" aria-live="polite"></aside>
+    <article class="package-reader" id="packageReader" aria-live="polite"></article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <img class="footer-marks" src="../assets/footer-marks.svg" alt="Державний знак України та знак НСЗУ">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Навігатор створено для швидкого доступу до вимог пакетів Програми медичних гарантій 2026.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="packages.js" defer></script>
+</body>
+</html>
