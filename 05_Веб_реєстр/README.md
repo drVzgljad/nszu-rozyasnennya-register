@@ -21,6 +21,9 @@
 `pakety/build_packages_data.py`.
 
 Сторінка `postanova/index.html` читає індекс
-`postanova/data/resolution_1808.json`, який створюється з PDF постанови скриптом
-`postanova/build_resolution_data.py`. Контрольовані прив'язки тарифних глав і
-додатків до пакетів зберігаються у `postanova/data/package_resolution_links.json`.
+`postanova/data/resolution_1808.json`, який створюється скриптом
+`postanova/build_resolution_data.py`: структура і офіційна нумерація беруться
+з HTM постанови, а PDF використовується для переходів на сторінки джерела.
+Постанова та затверджений нею Порядок індексуються окремими частинами.
+Контрольовані прив'язки тарифних глав і додатків до пакетів зберігаються у
+`postanova/data/package_resolution_links.json`.

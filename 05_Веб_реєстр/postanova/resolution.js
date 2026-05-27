@@ -34,6 +34,10 @@ function kindLabel(node) {
   return "Розділ";
 }
 
+function sourceLabel(node) {
+  return node.legal_document || "Порядок";
+}
+
 function typeLabels(node) {
   return node.types.map((type) => resolutionState.data.type_labels[type] || type);
 }
@@ -63,7 +67,7 @@ function renderStats() {
   byId("resolutionStats").innerHTML = [
     [counts.chapters, "глави"],
     [counts.appendices, "додатки"],
-    [resolutionState.data.document.page_count, "сторінки"],
+    [counts.resolution_items, "пункти постанови"],
   ].map(([value, label]) => `<div class="stat"><strong>${value}</strong><span>${label}</span></div>`).join("");
 }
 
@@ -111,7 +115,7 @@ function renderCards() {
     const context = node.package_numbers.length ? `Пакети: ${node.package_numbers.join(", ")}` : `Стор. ${node.page_start}`;
     const match = query && firstMatchedParagraph(node, query) ? " · збіг у пункті" : "";
     return `<button class="resolution-card ${node.id === resolutionState.selected?.id ? "active" : ""}" data-node="${node.id}">
-      <span class="card-kind">${kindLabel(node)}</span>
+      <span class="card-kind">${escapeHtml(sourceLabel(node))} · ${kindLabel(node)}</span>
       <strong>${escapeHtml(node.title)}</strong>
       <small>${escapeHtml(context + match)}</small>
     </button>`;
@@ -139,10 +143,10 @@ function renderOutline() {
   }
   const pages = node.page_start === node.page_end ? `стор. ${node.page_start}` : `стор. ${node.page_start}-${node.page_end}`;
   const paragraphs = node.items.map((item) =>
-    `<button class="paragraph-link ${item.id === resolutionState.selectedParagraph ? "active" : ""}" data-paragraph="${item.id}">Пункт ${escapeHtml(item.number)} <span>стор. ${item.page}</span></button>`
+    `<button class="paragraph-link ${item.id === resolutionState.selectedParagraph ? "active" : ""}" data-paragraph="${item.id}">Пункт ${escapeHtml(item.marker || `${item.number}.`)} <span>стор. ${item.page}</span></button>`
   ).join("");
   container.innerHTML = `
-    <div class="outline-label">${kindLabel(node)}</div>
+    <div class="outline-label">${escapeHtml(sourceLabel(node))} · ${kindLabel(node)}</div>
     <h2>${escapeHtml(node.title)}</h2>
     <p class="source-pages">${pages}</p>
     <div class="norm-tags">${typeLabels(node).map((label) => `<span class="norm-tag">${escapeHtml(label)}</span>`).join("")}</div>
@@ -183,11 +187,11 @@ function renderReader() {
   const query = queryText();
   const page = node.items.find((item) => item.id === resolutionState.selectedParagraph)?.page || node.page_start;
   const content = node.items.length
-    ? `<ol class="law-items">${node.items.map((item) => `<li class="${item.id === resolutionState.selectedParagraph ? "selected" : ""}">${highlight(item.text.replace(/^\d+\.\s*/, ""), query)}</li>`).join("")}</ol>`
+    ? `<div class="law-items">${node.items.map((item) => `<div class="law-item ${item.id === resolutionState.selectedParagraph ? "selected" : ""}">${highlight(item.text, query)}</div>`).join("")}</div>`
     : `<p class="law-text">${highlight(node.text, query)}</p>`;
   container.innerHTML = `
     <h2>${escapeHtml(node.title)}</h2>
-    <p class="law-context">Редакція від ${escapeHtml(resolutionState.data.document.edition_date)} · Джерело: постанова КМУ № ${escapeHtml(resolutionState.data.document.number)}</p>
+    <p class="law-context">${escapeHtml(sourceLabel(node))} · редакція від ${escapeHtml(resolutionState.data.document.edition_date)} · постанова КМУ № ${escapeHtml(resolutionState.data.document.number)}</p>
     <div class="norm-summary">
       <div><span>Тип норми</span><strong>${escapeHtml(typeLabels(node).join(", "))}</strong></div>
       <div><span>Сторінки джерела</span><strong>${node.page_start === node.page_end ? node.page_start : `${node.page_start}-${node.page_end}`}</strong></div>
@@ -195,6 +199,7 @@ function renderReader() {
     ${content}
     <div class="law-actions">
       <a class="action primary" href="${resolutionState.data.document.source_href}#page=${page}" target="_blank">Відкрити PDF, стор. ${page}</a>
+      <a class="action" href="${resolutionState.data.document.source_html_href}" target="_blank">Відкрити офіційний HTM</a>
     </div>
     <section class="law-links">
       <h3>Пов'язані пакети</h3>
@@ -204,7 +209,7 @@ function renderReader() {
       <h3>Пов'язані роз'яснення</h3>
       ${relatedExplanations(node)}
     </section>`;
-  container.querySelector(".law-items li.selected")?.scrollIntoView({ block: "nearest" });
+  container.querySelector(".law-item.selected")?.scrollIntoView({ block: "nearest" });
 }
 
 async function initResolution() {

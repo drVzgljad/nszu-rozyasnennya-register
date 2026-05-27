@@ -86,10 +86,10 @@
 .norm-summary div { padding: 11px 12px; border-radius: 11px; background: var(--soft); }
 .norm-summary span { display: block; color: var(--muted); font-size: 11px; }
 .norm-summary strong { display: block; margin-top: 4px; font-size: 13px; line-height: 1.35; }
-.law-text, .law-items li { color: #253b52; font-size: 14px; line-height: 1.62; }
-.law-items { margin: 0; padding-left: 23px; }
-.law-items li { margin-bottom: 13px; padding-left: 5px; }
-.law-items li.selected { margin-left: -5px; padding: 10px 10px 10px 14px; border-left: 3px solid var(--accent); border-radius: 5px; background: #f3f8fd; }
+.law-text, .law-item { color: #253b52; font-size: 14px; line-height: 1.62; }
+.law-items { margin: 0; }
+.law-item { margin-bottom: 13px; }
+.law-item.selected { margin-left: -5px; padding: 10px 10px 10px 14px; border-left: 3px solid var(--accent); border-radius: 5px; background: #f3f8fd; }
 .law-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 23px 0; }
 .law-links { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); }
 .law-links h3 { margin: 0 0 10px; font-size: 15px; }
