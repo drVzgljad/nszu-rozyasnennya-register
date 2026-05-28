@@ -133,6 +133,111 @@
 .law-items { margin: 0; }
 .law-item { margin-bottom: 13px; }
 .law-item.selected { margin-left: -5px; padding: 10px 10px 10px 14px; border-left: 3px solid var(--accent); border-radius: 5px; background: #f3f8fd; }
+.appendix-content { margin-top: 4px; }
+.appendix-intro {
+  margin: 0 0 16px;
+  padding: 13px 15px;
+  border: 1px solid #dbe8f3;
+  border-radius: 14px;
+  color: #253b52;
+  background: #f7fbff;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.appendix-package-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 9px;
+  margin-bottom: 17px;
+}
+.appendix-package-card {
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #fff;
+}
+.appendix-package-card strong {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--accent-dark);
+  font-size: 12px;
+  line-height: 1.35;
+}
+.appendix-package-card span {
+  display: block;
+  color: #4e6075;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.appendix-table-wrap {
+  max-height: 64vh;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+.appendix-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  line-height: 1.42;
+}
+.appendix-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 11px;
+  color: #fff;
+  background: var(--accent-dark);
+  text-align: left;
+}
+.appendix-table td {
+  padding: 9px 11px;
+  border-top: 1px solid #e4edf5;
+  vertical-align: top;
+}
+.appendix-table td:first-child {
+  width: 82px;
+  color: var(--accent-dark);
+  background: #f4f9ff;
+}
+.appendix-table tr:hover td { background: #f8fbff; }
+.coef-pill {
+  display: inline-block;
+  margin: 0 4px 4px 0;
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: #14415f;
+  background: #eaf4fc;
+  font-weight: 700;
+}
+.formula-box {
+  margin: 13px 0 14px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  color: var(--accent-dark);
+  background: #eef7ff;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.35;
+  text-align: center;
+}
+.definition-list {
+  display: grid;
+  gap: 8px;
+}
+.definition-row {
+  display: grid;
+  grid-template-columns: minmax(90px, .32fr) minmax(0, 1fr);
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+.definition-row strong { color: var(--accent-dark); }
+.definition-row span { color: #253b52; font-size: 13px; line-height: 1.5; }
+.appendix-approved { margin-top: 14px; color: var(--muted); font-size: 12px; line-height: 1.45; }
 .law-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 23px 0; }
 .law-links { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line); }
 .law-links h3 { margin: 0 0 10px; font-size: 15px; }
@@ -160,4 +265,5 @@ mark { padding: 0 2px; border-radius: 3px; color: inherit; background: #ffe69a; 
   .resolution-cards { max-height: 43vh; margin-bottom: 14px; }
   .resolution-outline, .resolution-reader { position: static; min-height: 0; margin-bottom: 14px; }
   .norm-summary { grid-template-columns: 1fr; }
+  .definition-row { grid-template-columns: 1fr; }
 }

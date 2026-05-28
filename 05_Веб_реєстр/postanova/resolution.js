@@ -233,6 +233,104 @@ function relatedExplanations(node) {
   ).join("");
 }
 
+function splitAppendixTable(text) {
+  const codePattern = /\b[A-ZА-ЯІЇЄҐ][0-9]{2}[A-ZА-ЯІЇЄҐ]?(?:-\d{2})?\b/g;
+  const headerIndex = text.search(/Діагностично-споріднені групи\s+Назва медичної послуги/i);
+  const searchStart = headerIndex >= 0 ? headerIndex : 0;
+  const tableText = text.slice(searchStart);
+  const firstCode = tableText.search(codePattern);
+  if (firstCode < 0) return { intro: text, rows: [] };
+
+  const intro = text.slice(0, searchStart + firstCode).trim();
+  const body = tableText.slice(firstCode);
+  const matches = [...body.matchAll(codePattern)].filter((match) => /^[A-ZА-ЯІЇЄҐ]\d/.test(match[0]));
+  const rows = matches.map((match, index) => {
+    const next = matches[index + 1];
+    const segment = body.slice(match.index + match[0].length, next ? next.index : body.length).trim();
+    const coeffMatch = segment.match(/((?:\d+,\d+)(?:\s+\d+,\d+)*)\s*$/);
+    const coeffs = coeffMatch ? coeffMatch[1].split(/\s+/) : [];
+    const title = (coeffMatch ? segment.slice(0, coeffMatch.index) : segment).trim();
+    return { code: match[0], title, coeffs };
+  }).filter((row) => row.title || row.coeffs.length);
+  return { intro, rows };
+}
+
+function renderAppendixPackages(intro, query) {
+  const blocks = intro.split(/(?=Пакет [“"])/).map((part) => part.trim()).filter(Boolean);
+  if (blocks.length < 2) return `<p class="appendix-intro">${highlight(intro, query)}</p>`;
+
+  const preamble = blocks[0].startsWith("Пакет ") ? "" : blocks.shift();
+  const cards = blocks.map((block) => {
+    const [name, ...rest] = block.split(/\s+-\s+/);
+    const groups = rest.join(" - ");
+    return `<div class="appendix-package-card">
+      <strong>${highlight(name, query)}</strong>
+      ${groups ? `<span>${highlight(groups, query)}</span>` : ""}
+    </div>`;
+  }).join("");
+  return `
+    ${preamble ? `<p class="appendix-intro">${highlight(preamble, query)}</p>` : ""}
+    <div class="appendix-package-grid">${cards}</div>
+  `;
+}
+
+function renderAppendixTable(rows, query) {
+  if (!rows.length) return "";
+  return `<div class="appendix-table-wrap" role="region" aria-label="Таблиця додатка">
+    <table class="appendix-table">
+      <thead>
+        <tr>
+          <th>Код</th>
+          <th>Назва медичної послуги</th>
+          <th>Коефіцієнти</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((row) => `<tr>
+          <td><strong>${escapeHtml(row.code)}</strong></td>
+          <td>${highlight(row.title, query)}</td>
+          <td>${row.coeffs.map((value) => `<span class="coef-pill">${escapeHtml(value)}</span>`).join("")}</td>
+        </tr>`).join("")}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function renderFormulaAppendix(text, query) {
+  const formulaMatch = text.match(/розраховується за такою формулою:\s*(.+?),\s*де\s+(.+?)(?:\s+ЗАТВЕРДЖЕНО|$)/i);
+  if (!formulaMatch) return `<p class="law-text">${highlight(text, query)}</p>`;
+
+  const before = text.slice(0, formulaMatch.index + "розраховується за такою формулою:".length).trim();
+  const formula = formulaMatch[1].trim();
+  const definitions = formulaMatch[2].split(/;\s*/).map((part) => part.replace(/\.$/, "").trim()).filter(Boolean);
+  const approved = text.match(/ЗАТВЕРДЖЕНО.+$/);
+  return `
+    <p class="appendix-intro">${highlight(before, query)}</p>
+    <div class="formula-box">${highlight(formula, query)}</div>
+    <div class="definition-list">
+      ${definitions.map((entry) => {
+        const parts = entry.split(/\s+-\s+/);
+        return `<div class="definition-row">
+          <strong>${highlight(parts.shift() || "", query)}</strong>
+          <span>${highlight(parts.join(" - "), query)}</span>
+        </div>`;
+      }).join("")}
+    </div>
+    ${approved ? `<p class="appendix-approved">${highlight(approved[0], query)}</p>` : ""}
+  `;
+}
+
+function renderAppendixContent(node, query) {
+  if (node.id === "appendix-3") return renderFormulaAppendix(node.text, query);
+  const parsed = splitAppendixTable(node.text);
+  return `
+    <div class="appendix-content">
+      ${renderAppendixPackages(parsed.intro, query)}
+      ${renderAppendixTable(parsed.rows, query)}
+    </div>
+  `;
+}
+
 function renderReader() {
   const node = resolutionState.selected;
   const container = byId("resolutionReader");
@@ -242,9 +340,11 @@ function renderReader() {
   }
   const query = queryText();
   const page = node.items.find((item) => item.id === resolutionState.selectedParagraph)?.page || node.page_start;
-  const content = node.items.length
-    ? `<div class="law-items">${node.items.map((item) => `<div class="law-item ${item.id === resolutionState.selectedParagraph ? "selected" : ""}">${highlight(item.text, query)}</div>`).join("")}</div>`
-    : `<p class="law-text">${highlight(node.text, query)}</p>`;
+  const content = node.kind === "appendix"
+    ? renderAppendixContent(node, query)
+    : node.items.length
+      ? `<div class="law-items">${node.items.map((item) => `<div class="law-item ${item.id === resolutionState.selectedParagraph ? "selected" : ""}">${highlight(item.text, query)}</div>`).join("")}</div>`
+      : `<p class="law-text">${highlight(node.text, query)}</p>`;
   container.innerHTML = `
     <h2>${escapeHtml(node.title)}</h2>
     <p class="law-context">${escapeHtml(sourceLabel(node))} · редакція від ${escapeHtml(resolutionState.data.document.edition_date)} · постанова КМУ № ${escapeHtml(resolutionState.data.document.number)}</p>
