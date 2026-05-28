@@ -266,6 +266,35 @@ mark { padding: 0 2px; border-radius: 3px; color: inherit; background: #ffe69a; 
   font-size: 13px;
   line-height: 1.45;
 }
+.report-copy-box {
+  margin-top: 16px;
+  padding-top: 15px;
+  border-top: 1px solid var(--line);
+}
+.report-copy-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 9px;
+}
+.report-copy-head h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.report-copy-box textarea {
+  width: 100%;
+  min-height: 170px;
+  max-height: 32vh;
+  padding: 12px 13px;
+  border: 1px solid #cddbe7;
+  border-radius: 13px;
+  color: var(--ink);
+  background: var(--soft);
+  font: 13px/1.45 "Segoe UI", Arial, sans-serif;
+  resize: vertical;
+}
 .report-results {
   display: flex;
   flex-direction: column;

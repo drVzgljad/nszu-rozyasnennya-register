@@ -85,6 +85,42 @@ function renderStats(matches) {
   ].map(([value, label]) => `<div class="stat"><strong>${value}</strong><span>${label}</span></div>`).join("");
 }
 
+function reportCounts(matches) {
+  return {
+    packages: matches.length,
+    sections: matches.reduce((total, entry) => total + entry.sections.length, 0),
+    items: matches.reduce((total, entry) =>
+      total + entry.sections.reduce((count, section) => count + section.itemMatches.length, 0), 0),
+  };
+}
+
+function buildSummary(query, matches) {
+  if (!query) return "";
+  const counts = reportCounts(matches);
+  const lines = [
+    "Звіт пошуку в пакетах ПМГ 2026",
+    `Запит: ${query}`,
+    `Підрозділ: ${reportState.section || "усі підрозділи"}`,
+    `Знайдено: ${counts.packages} пакетів; ${counts.sections} розділів; ${counts.items} пунктів.`,
+    "",
+  ];
+  matches.forEach(({ pkg, sections }) => {
+    lines.push(`Пакет ${pkg.number}. ${pkg.title}`);
+    sections.forEach(({ unit, section, headingMatches, itemMatches }) => {
+      if (unit.label) lines.push(`  ${unit.label}`);
+      lines.push(`  ${section.label}`);
+      if (headingMatches && section.source_heading) lines.push(`  Заголовок: ${section.source_heading}`);
+      if (itemMatches.length) {
+        itemMatches.forEach(({ item, index }) => lines.push(`  ${index + 1}. ${item}`));
+      } else {
+        lines.push("  Збіг знайдено у назві розділу.");
+      }
+      lines.push("");
+    });
+  });
+  return lines.join("\n").trim();
+}
+
 function renderReport() {
   const query = reportById("reportSearch").value.trim();
   const currentParams = new URLSearchParams(location.search);
@@ -98,15 +134,37 @@ function renderReport() {
 
   if (!query) {
     renderStats([]);
+    reportById("reportSummary").value = "";
     reportById("reportResults").innerHTML = '<div class="no-results">Введіть запит, щоб сформувати звіт.</div>';
     return;
   }
 
   const matches = matchingReport(query, tag);
   renderStats(matches);
+  reportById("reportSummary").value = buildSummary(query, matches);
   reportById("reportResults").innerHTML = matches.length
     ? matches.map(({ pkg, sections }) => renderPackageResult(pkg, sections, query)).join("")
     : '<div class="no-results">За цим запитом збігів у пакетах не знайдено.</div>';
+}
+
+async function copySummary() {
+  const summary = reportById("reportSummary").value.trim();
+  const button = reportById("copyReportSummary");
+  if (!summary) return;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(summary);
+    } else {
+      reportById("reportSummary").select();
+      document.execCommand("copy");
+    }
+    button.textContent = "Скопійовано";
+    window.setTimeout(() => { button.textContent = "Копіювати зведення"; }, 1300);
+  } catch (error) {
+    console.warn("Не вдалося скопіювати зведення.", error);
+    button.textContent = "Не скопійовано";
+    window.setTimeout(() => { button.textContent = "Копіювати зведення"; }, 1300);
+  }
 }
 
 function renderPackageResult(pkg, sections, query) {
@@ -141,6 +199,7 @@ async function initReport() {
   reportState.section = params.get("section") || "";
   renderSectionFilter();
   reportById("buildReport").addEventListener("click", renderReport);
+  reportById("copyReportSummary").addEventListener("click", copySummary);
   reportById("reportSearch").addEventListener("keydown", (event) => {
     if (event.key === "Enter") renderReport();
   });
