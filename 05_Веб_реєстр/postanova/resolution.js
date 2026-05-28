@@ -38,6 +38,16 @@ function sourceLabel(node) {
   return node.legal_document || "Порядок";
 }
 
+function shortParagraphTitle(item) {
+  const marker = item.marker || `${item.number}.`;
+  const text = String(item.text || "")
+    .replace(new RegExp(`^\\s*${marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*`), "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!text) return `Пункт ${marker}`;
+  return text.length > 86 ? `${text.slice(0, 86).trim()}...` : text;
+}
+
 function typeLabels(node) {
   return node.types.map((type) => resolutionState.data.type_labels[type] || type);
 }
@@ -142,9 +152,17 @@ function renderOutline() {
     return;
   }
   const pages = node.page_start === node.page_end ? `стор. ${node.page_start}` : `стор. ${node.page_start}-${node.page_end}`;
-  const paragraphs = node.items.map((item) =>
-    `<button class="paragraph-link ${item.id === resolutionState.selectedParagraph ? "active" : ""}" data-paragraph="${item.id}">Пункт ${escapeHtml(item.marker || `${item.number}.`)} <span>стор. ${item.page}</span></button>`
-  ).join("");
+  const paragraphs = node.items.map((item) => {
+    const marker = item.marker || `${item.number}.`;
+    const title = shortParagraphTitle(item);
+    return `<div class="paragraph-row ${item.id === resolutionState.selectedParagraph ? "active" : ""}">
+      <button class="paragraph-link" data-paragraph="${item.id}">
+        <span class="paragraph-main"><strong>${escapeHtml(marker)}</strong> ${escapeHtml(title)}</span>
+        <span class="paragraph-page">стор. ${item.page}</span>
+      </button>
+      <button class="copy-fragment" type="button" data-copy-paragraph="${item.id}" title="Копіювати текст пункту" aria-label="Копіювати текст пункту ${escapeHtml(marker)}">⧉</button>
+    </div>`;
+  }).join("");
   container.innerHTML = `
     <div class="outline-label">${escapeHtml(sourceLabel(node))} · ${kindLabel(node)}</div>
     <h2>${escapeHtml(node.title)}</h2>
@@ -159,6 +177,44 @@ function renderOutline() {
       updateUrl();
     });
   });
+  container.querySelectorAll("[data-copy-paragraph]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const item = node.items.find((entry) => entry.id === button.dataset.copyParagraph);
+      if (item) copyFragment(item.text, button);
+    });
+  });
+}
+
+async function copyFragment(text, button) {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const area = document.createElement("textarea");
+      area.value = text;
+      area.setAttribute("readonly", "");
+      area.style.position = "fixed";
+      area.style.left = "-9999px";
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand("copy");
+      area.remove();
+    }
+    button.classList.add("copied");
+    button.textContent = "✓";
+    window.setTimeout(() => {
+      button.classList.remove("copied");
+      button.textContent = "⧉";
+    }, 1200);
+  } catch (error) {
+    console.warn("Не вдалося скопіювати фрагмент.", error);
+    button.classList.add("copy-error");
+    button.textContent = "!";
+    window.setTimeout(() => {
+      button.classList.remove("copy-error");
+      button.textContent = "⧉";
+    }, 1200);
+  }
 }
 
 function relatedPackages(node) {

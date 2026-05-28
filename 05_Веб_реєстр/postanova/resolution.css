@@ -62,10 +62,18 @@
   font-size: 11px;
   font-weight: 700;
 }
-.paragraph-link {
-  display: block;
-  width: 100%;
+.paragraph-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 34px;
+  gap: 5px;
+  align-items: stretch;
   margin-bottom: 5px;
+}
+.paragraph-link {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  width: 100%;
   padding: 9px 10px;
   border: 0;
   border-radius: 9px;
@@ -77,8 +85,39 @@
   text-align: left;
   cursor: pointer;
 }
-.paragraph-link:hover, .paragraph-link.active { color: var(--accent-dark); background: #edf6fd; }
-.paragraph-link span { float: right; color: var(--muted); font-size: 11px; }
+.paragraph-row:hover .paragraph-link,
+.paragraph-row.active .paragraph-link { color: var(--accent-dark); background: #edf6fd; }
+.paragraph-main {
+  min-width: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.paragraph-main strong { margin-right: 4px; color: var(--accent-dark); }
+.paragraph-page {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.copy-fragment {
+  border: 1px solid #d8e6f1;
+  border-radius: 9px;
+  color: var(--accent-dark);
+  background: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.copy-fragment:hover,
+.copy-fragment:focus {
+  border-color: rgba(0,111,201,.42);
+  background: #edf6fd;
+  outline: none;
+}
+.copy-fragment.copied { color: #116b5f; background: #e7f5f1; }
+.copy-fragment.copy-error { color: #8a3b18; background: #fff2e8; }
 .resolution-reader h2 { margin: 0 0 7px; font-size: 26px; line-height: 1.22; letter-spacing: -.03em; }
 .law-context { margin: 0 0 18px; color: var(--muted); font-size: 13px; }
 .norm-summary {
