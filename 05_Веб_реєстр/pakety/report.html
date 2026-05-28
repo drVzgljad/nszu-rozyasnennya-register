@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Звіт пошуку в пакетах | НСЗУ</title>
+  <link rel="stylesheet" href="../styles.css?v=20260528">
+  <link rel="stylesheet" href="packages.css?v=20260528b">
+</head>
+<body id="top">
+  <header class="hero package-hero">
+    <div class="hero-copy">
+      <div class="overline">Програма медичних гарантій 2026</div>
+      <nav class="section-switch" aria-label="Розділи сайту">
+        <a href="../index.html">Роз'яснення</a>
+        <a href="index.html">Пакети 2026</a>
+        <a href="../postanova/index.html">Постанова 1808</a>
+      </nav>
+      <h1>Звіт пошуку в пакетах</h1>
+      <p>Окрема сторінка з усіма пакетами, розділами та повними пунктами, де знайдено пошуковий запит.</p>
+    </div>
+    <div class="stats" id="reportStats" aria-label="Статистика звіту"></div>
+  </header>
+
+  <main class="report-layout">
+    <section class="report-panel">
+      <label class="search">
+        <span>Пошуковий запит</span>
+        <input id="reportSearch" type="search" placeholder="Наприклад: рентген установка" autocomplete="off">
+      </label>
+      <div class="report-actions">
+        <button class="action primary" id="buildReport" type="button">Сформувати звіт</button>
+        <a class="action" id="backToPackages" href="index.html">Назад до пакетів</a>
+      </div>
+      <p class="report-hint">У звіт потрапляють повні пункти умов закупівлі та заголовки розділів, де є збіг.</p>
+    </section>
+    <section class="report-results" id="reportResults" aria-live="polite"></section>
+  </main>
+
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <script src="report.js?v=20260528b" defer></script>
+</body>
+</html>

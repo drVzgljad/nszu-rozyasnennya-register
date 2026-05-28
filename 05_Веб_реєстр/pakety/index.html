@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Пакетний навігатор 26 | НСЗУ</title>
   <link rel="stylesheet" href="../styles.css?v=20260528">
-  <link rel="stylesheet" href="packages.css?v=20260528">
+  <link rel="stylesheet" href="packages.css?v=20260528b">
 </head>
 <body id="top">
   <header class="hero package-hero">
@@ -32,7 +32,10 @@
         <div class="tag-filters" id="tagFilters" aria-label="Фільтри умов"></div>
         <div class="results-summary">
           <span id="packageCount"></span>
-          <button id="clearPackages" type="button">Очистити</button>
+          <span class="package-search-actions">
+            <a class="report-link disabled" id="packageReportLink" href="report.html" aria-disabled="true">Звіт пошуку</a>
+            <button id="clearPackages" type="button">Очистити</button>
+          </span>
         </div>
       </div>
       <div class="package-cards" id="packageCards"></div>
@@ -53,6 +56,6 @@
   </footer>
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
-  <script src="packages.js?v=20260526" defer></script>
+  <script src="packages.js?v=20260528b" defer></script>
 </body>
 </html>
