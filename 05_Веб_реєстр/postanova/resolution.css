@@ -202,14 +202,18 @@
   background: #f4f9ff;
 }
 .appendix-table tr:hover td { background: #f8fbff; }
-.coef-pill {
-  display: inline-block;
-  margin: 0 4px 4px 0;
-  padding: 3px 7px;
-  border-radius: 999px;
+.coef-cell {
+  min-width: 105px;
+  text-align: right;
+  white-space: nowrap;
+}
+.coef-value {
   color: #14415f;
-  background: #eaf4fc;
   font-weight: 700;
+}
+.coef-empty {
+  color: #9baabd;
+  font-weight: 600;
 }
 .formula-box {
   margin: 13px 0 14px;

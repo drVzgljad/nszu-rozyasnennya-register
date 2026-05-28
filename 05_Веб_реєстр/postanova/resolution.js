@@ -274,22 +274,44 @@ function renderAppendixPackages(intro, query) {
   `;
 }
 
-function renderAppendixTable(rows, query) {
+function appendixColumns(nodeId) {
+  if (nodeId === "appendix-1") {
+    return [
+      "Ваговий коефіцієнт",
+      "Додатковий коефіцієнт за допомогу дітям",
+      "Додатковий коефіцієнт за лікування травм",
+    ];
+  }
+  if (nodeId === "appendix-2") {
+    return [
+      "Ваговий коефіцієнт за ДСГ",
+      "Додатковий коефіцієнт за допомогу дітям",
+    ];
+  }
+  return ["Коефіцієнти"];
+}
+
+function renderCoeffCell(value) {
+  return value ? `<span class="coef-value">${escapeHtml(value)}</span>` : '<span class="coef-empty">—</span>';
+}
+
+function renderAppendixTable(nodeId, rows, query) {
   if (!rows.length) return "";
+  const columns = appendixColumns(nodeId);
   return `<div class="appendix-table-wrap" role="region" aria-label="Таблиця додатка">
     <table class="appendix-table">
       <thead>
         <tr>
           <th>Код</th>
           <th>Назва медичної послуги</th>
-          <th>Коефіцієнти</th>
+          ${columns.map((label) => `<th>${escapeHtml(label)}</th>`).join("")}
         </tr>
       </thead>
       <tbody>
         ${rows.map((row) => `<tr>
           <td><strong>${escapeHtml(row.code)}</strong></td>
           <td>${highlight(row.title, query)}</td>
-          <td>${row.coeffs.map((value) => `<span class="coef-pill">${escapeHtml(value)}</span>`).join("")}</td>
+          ${columns.map((_, index) => `<td class="coef-cell">${renderCoeffCell(row.coeffs[index])}</td>`).join("")}
         </tr>`).join("")}
       </tbody>
     </table>
@@ -326,7 +348,7 @@ function renderAppendixContent(node, query) {
   return `
     <div class="appendix-content">
       ${renderAppendixPackages(parsed.intro, query)}
-      ${renderAppendixTable(parsed.rows, query)}
+      ${renderAppendixTable(node.id, parsed.rows, query)}
     </div>
   `;
 }
