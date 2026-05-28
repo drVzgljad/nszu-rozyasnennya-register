@@ -370,6 +370,31 @@ select {
   font-size: 14px;
   line-height: 1.5;
 }
+.back-to-top {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 92px;
+  padding: 11px 14px;
+  border: 1px solid rgba(255,255,255,.68);
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(0,111,201,.92);
+  box-shadow: 0 12px 28px rgba(12, 45, 78, .18);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.back-to-top:hover,
+.back-to-top:focus {
+  background: var(--accent-dark);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0,111,201,.18), 0 12px 28px rgba(12,45,78,.18);
+}
 
 @media (max-width: 1040px) {
   .hero { display: block; padding: 28px 20px; }
@@ -390,4 +415,11 @@ select {
   }
   .footer-marks { width: 92px; }
   .footer-department { font-size: 16px; }
+  .back-to-top {
+    left: 12px;
+    bottom: 12px;
+    min-width: 82px;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
 }
