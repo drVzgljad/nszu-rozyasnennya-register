@@ -25,7 +25,35 @@ function highlight(value, query) {
 }
 
 function queryText() {
-  return byId("resolutionSearch").value.trim().toLowerCase();
+  return byId("resolutionSearch").value.trim();
+}
+
+const codeLookalikes = {
+  а: "a", в: "b", с: "c", е: "e", н: "h", і: "i", ї: "i", к: "k",
+  м: "m", о: "o", р: "p", т: "t", х: "x", у: "y",
+};
+
+function normalizeSearch(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/[авсеніїкмортху]/g, (char) => codeLookalikes[char] || char)
+    .replace(/(\d)\.(\d)/g, "$1,$2")
+    .replace(/[’ʼ`´]/g, "'")
+    .replace(/[‐‑‒–—−]/g, "-")
+    .replace(/[^a-z0-9а-яіїєґ'’,-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function searchTerms(query) {
+  return normalizeSearch(query).split(" ").filter(Boolean);
+}
+
+function matchesQuery(value, query) {
+  const terms = searchTerms(query);
+  if (!terms.length) return true;
+  const index = normalizeSearch(value);
+  return terms.every((term) => index.includes(term));
 }
 
 function kindLabel(node) {
@@ -53,12 +81,16 @@ function typeLabels(node) {
 }
 
 function searchableText(node) {
-  return [
+  return normalizeSearch([
     node.title,
     node.text,
+    sourceLabel(node),
+    kindLabel(node),
+    ...typeLabels(node),
+    ...node.package_numbers,
     ...node.items.map((item) => item.text),
     ...node.related_packages.map((pkg) => pkg.title),
-  ].join(" ").toLowerCase();
+  ].join(" "));
 }
 
 function updateUrl() {
@@ -96,13 +128,13 @@ function renderTypes() {
 
 function firstMatchedParagraph(node, query) {
   if (!query) return "";
-  return node.items.find((item) => item.text.toLowerCase().includes(query))?.id || "";
+  return node.items.find((item) => matchesQuery(item.text, query))?.id || "";
 }
 
 function applyFilters() {
   const query = queryText();
   resolutionState.visible = resolutionState.nodes.filter((node) =>
-    (!query || searchableText(node).includes(query)) &&
+    (!query || searchTerms(query).every((term) => searchableText(node).includes(term))) &&
     (!resolutionState.type || node.types.includes(resolutionState.type)) &&
     (!resolutionState.packageNumber || node.package_numbers.includes(resolutionState.packageNumber))
   );
