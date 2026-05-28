@@ -254,6 +254,12 @@ mark { padding: 0 2px; border-radius: 3px; color: inherit; background: #ffe69a; 
   gap: 9px;
   margin-top: 14px;
 }
+.report-section-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 14px;
+}
 .report-hint {
   margin: 12px 0 0;
   color: var(--muted);

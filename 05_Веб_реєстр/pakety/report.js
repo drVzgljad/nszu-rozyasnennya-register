@@ -1,4 +1,4 @@
-const reportState = { data: null };
+const reportState = { data: null, section: "" };
 const reportById = (id) => document.getElementById(id);
 
 function escapeHtml(value) {
@@ -38,6 +38,7 @@ function matchingReport(query, tag = "") {
   if (!terms.length) return [];
   return reportState.data.packages.filter((pkg) => !tag || pkg.tags.includes(tag)).map((pkg) => {
     const sections = pkg.units.flatMap((unit) => unit.sections.map((section) => {
+      if (reportState.section && section.label !== reportState.section) return null;
       const headingMatches = matchesSearch(section.source_heading, terms);
       const itemMatches = section.items
         .map((item, index) => ({ item, index }))
@@ -49,13 +50,37 @@ function matchingReport(query, tag = "") {
   }).filter(Boolean);
 }
 
+function sectionLabels() {
+  return [...new Set(reportState.data.packages.flatMap((pkg) =>
+    pkg.units.flatMap((unit) => unit.sections.map((section) => section.label))
+  ))].sort((left, right) => left.localeCompare(right, "uk"));
+}
+
+function renderSectionFilter() {
+  const container = reportById("reportSectionFilter");
+  const labels = sectionLabels();
+  container.innerHTML = [
+    `<button class="filter-chip ${!reportState.section ? "active" : ""}" data-section="">Усі підрозділи</button>`,
+    ...labels.map((label) =>
+      `<button class="filter-chip ${reportState.section === label ? "active" : ""}" data-section="${escapeHtml(label)}">${escapeHtml(label)}</button>`
+    ),
+  ].join("");
+  container.querySelectorAll("[data-section]").forEach((button) => {
+    button.addEventListener("click", () => {
+      reportState.section = button.dataset.section;
+      renderReport();
+      renderSectionFilter();
+    });
+  });
+}
+
 function renderStats(matches) {
   const sectionCount = matches.reduce((total, entry) => total + entry.sections.length, 0);
   const itemCount = matches.reduce((total, entry) =>
     total + entry.sections.reduce((count, section) => count + section.itemMatches.length, 0), 0);
   reportById("reportStats").innerHTML = [
     [matches.length, "пакетів"],
-    [sectionCount, "розділів"],
+    [sectionCount, reportState.section ? "обраних розділів" : "розділів"],
     [itemCount, "пунктів"],
   ].map(([value, label]) => `<div class="stat"><strong>${value}</strong><span>${label}</span></div>`).join("");
 }
@@ -67,6 +92,7 @@ function renderReport() {
   const params = new URLSearchParams();
   if (query) params.set("q", query);
   if (tag) params.set("tag", tag);
+  if (reportState.section) params.set("section", reportState.section);
   history.replaceState(null, "", `${location.pathname}${query ? `?${params}` : ""}`);
   reportById("backToPackages").href = query ? `index.html?q=${encodeURIComponent(query)}` : "index.html";
 
@@ -112,6 +138,8 @@ async function initReport() {
   reportState.data = await response.json();
   const params = new URLSearchParams(location.search);
   reportById("reportSearch").value = params.get("q") || "";
+  reportState.section = params.get("section") || "";
+  renderSectionFilter();
   reportById("buildReport").addEventListener("click", renderReport);
   reportById("reportSearch").addEventListener("keydown", (event) => {
     if (event.key === "Enter") renderReport();
