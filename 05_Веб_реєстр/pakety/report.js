@@ -7,15 +7,6 @@ function escapeHtml(value) {
     .replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 }
 
-function highlight(value, query) {
-  const escaped = escapeHtml(value);
-  if (!query) return escaped;
-  const terms = searchTerms(query);
-  if (!terms.length) return escaped;
-  const safe = terms.map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
-  return escaped.replace(new RegExp(`(${safe})`, "gi"), "<mark>$1</mark>");
-}
-
 function normalize(value) {
   return String(value || "").toLowerCase().replace(/\s+/g, " ").trim();
 }
@@ -135,16 +126,12 @@ function renderReport() {
   if (!query) {
     renderStats([]);
     reportById("reportSummary").value = "";
-    reportById("reportResults").innerHTML = '<div class="no-results">Введіть запит, щоб сформувати звіт.</div>';
     return;
   }
 
   const matches = matchingReport(query, tag);
   renderStats(matches);
   reportById("reportSummary").value = buildSummary(query, matches);
-  reportById("reportResults").innerHTML = matches.length
-    ? matches.map(({ pkg, sections }) => renderPackageResult(pkg, sections, query)).join("")
-    : '<div class="no-results">За цим запитом збігів у пакетах не знайдено.</div>';
 }
 
 async function copySummary() {
@@ -167,30 +154,6 @@ async function copySummary() {
   }
 }
 
-function renderPackageResult(pkg, sections, query) {
-  const sectionsHtml = sections.map(({ unit, section, headingMatches, itemMatches }) => `
-    <section class="report-section">
-      ${unit.label ? `<div class="unit-heading">${escapeHtml(unit.label)}</div>` : ""}
-      <h3>${escapeHtml(section.label)}</h3>
-      ${section.source_heading ? `<div class="source-heading ${headingMatches ? "report-match" : ""}">${highlight(section.source_heading, query)}</div>` : ""}
-      ${itemMatches.length ? `<ol class="requirement-list">
-        ${itemMatches.map(({ item, index }) => `<li value="${index + 1}">${highlight(item, query)}</li>`).join("")}
-      </ol>` : '<p class="report-note">Збіг знайдено у назві розділу.</p>'}
-    </section>
-  `).join("");
-  return `
-    <article class="report-package">
-      <div class="report-package-header">
-        <span class="package-number">${escapeHtml(pkg.number)}</span>
-        <div>
-          <h2>${escapeHtml(pkg.title)}</h2>
-          <a href="index.html?package=${encodeURIComponent(pkg.number)}&q=${encodeURIComponent(query)}">Відкрити пакет у навігаторі</a>
-        </div>
-      </div>
-      ${sectionsHtml}
-    </article>`;
-}
-
 async function initReport() {
   const response = await fetch("data/packages_2026.json");
   reportState.data = await response.json();
@@ -208,5 +171,5 @@ async function initReport() {
 
 initReport().catch((error) => {
   console.error("Не вдалося сформувати звіт пошуку.", error);
-  reportById("reportResults").innerHTML = `<div class="no-results">Не вдалося завантажити дані пакетів.<br><small>${escapeHtml(error.message)}</small></div>`;
+  reportById("reportSummary").value = `Не вдалося завантажити дані пакетів.\n${error.message}`;
 });

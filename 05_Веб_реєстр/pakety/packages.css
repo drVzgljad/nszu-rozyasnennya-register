@@ -234,17 +234,13 @@ mark { padding: 0 2px; border-radius: 3px; color: inherit; background: #ffe69a; 
   margin: 0 auto;
   padding: 22px 24px 44px;
 }
-.report-panel,
-.report-package {
+.report-panel {
   border: 1px solid var(--line);
   border-radius: 20px;
   background: #fff;
   box-shadow: var(--shadow);
 }
 .report-panel {
-  position: sticky;
-  top: 0;
-  z-index: 10;
   padding: 18px;
   margin-bottom: 16px;
 }
@@ -285,8 +281,8 @@ mark { padding: 0 2px; border-radius: 3px; color: inherit; background: #ffe69a; 
 }
 .report-copy-box textarea {
   width: 100%;
-  min-height: 170px;
-  max-height: 32vh;
+  min-height: 360px;
+  max-height: 62vh;
   padding: 12px 13px;
   border: 1px solid #cddbe7;
   border-radius: 13px;
@@ -294,49 +290,6 @@ mark { padding: 0 2px; border-radius: 3px; color: inherit; background: #ffe69a; 
   background: var(--soft);
   font: 13px/1.45 "Segoe UI", Arial, sans-serif;
   resize: vertical;
-}
-.report-results {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.report-package {
-  padding: 20px;
-}
-.report-package-header {
-  display: flex;
-  gap: 13px;
-  align-items: flex-start;
-  margin-bottom: 18px;
-}
-.report-package-header h2 {
-  margin: 0 0 6px;
-  font-size: 22px;
-  line-height: 1.25;
-}
-.report-package-header a {
-  color: var(--accent-dark);
-  font-size: 13px;
-  font-weight: 700;
-  text-decoration: none;
-}
-.report-package-header a:hover { text-decoration: underline; }
-.report-section {
-  margin-top: 17px;
-  padding-top: 15px;
-  border-top: 1px solid var(--line);
-}
-.report-section h3 {
-  margin: 0 0 10px;
-  font-size: 17px;
-}
-.report-match {
-  border: 1px solid rgba(0,111,201,.16);
-}
-.report-note {
-  margin: 0;
-  color: var(--muted);
-  font-size: 13px;
 }
 @media (max-width: 1180px) {
   .packages-layout { grid-template-columns: minmax(280px, .9fr) minmax(450px, 1.1fr); }
