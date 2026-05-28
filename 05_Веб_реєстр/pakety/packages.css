@@ -1,6 +1,7 @@
 .package-hero .hero-copy { max-width: 760px; }
 .section-switch {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 4px;
   margin-bottom: 20px;
   padding: 4px;
@@ -19,6 +20,17 @@
 .section-switch a.active {
   color: #fff;
   background: var(--accent);
+}
+.section-switch a.report-nav-cta {
+  margin-left: 6px;
+  padding-inline: 18px;
+  color: #fff;
+  background: linear-gradient(135deg, #006fc9, #00a3d7);
+  box-shadow: 0 8px 18px rgba(0,111,201,.22);
+}
+.section-switch a.report-nav-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(0,111,201,.28);
 }
 .packages-layout {
   display: grid;
@@ -39,19 +51,6 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-}
-.report-link {
-  color: var(--accent-dark);
-  font-size: 13px;
-  font-weight: 700;
-  text-decoration: none;
-}
-.report-link:hover { text-decoration: underline; }
-.report-link.disabled {
-  color: #9baabd;
-  cursor: default;
-  pointer-events: none;
-  text-decoration: none;
 }
 .tag-filters {
   display: flex;

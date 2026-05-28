@@ -55,15 +55,11 @@ function updateReportLink(query = queryText()) {
   if (!link) return;
   if (!query) {
     link.href = "report.html";
-    link.classList.add("disabled");
-    link.setAttribute("aria-disabled", "true");
     return;
   }
   const params = new URLSearchParams({ q: query });
   if (packageState.tag) params.set("tag", packageState.tag);
   link.href = `report.html?${params}`;
-  link.classList.remove("disabled");
-  link.setAttribute("aria-disabled", "false");
 }
 
 function renderStats() {
@@ -241,9 +237,6 @@ async function initPackages() {
   const initial = packageState.data.packages.find((pkg) => pkg.number === params.get("package")) || packageState.data.packages[0];
   selectPackage(initial, params.get("section") || "", params.get("unit") || "");
   byId("packageSearch").addEventListener("input", applyPackageFilters);
-  byId("packageReportLink")?.addEventListener("click", (event) => {
-    if (!queryText()) event.preventDefault();
-  });
   byId("clearPackages").addEventListener("click", () => {
     byId("packageSearch").value = "";
     packageState.tag = "";
