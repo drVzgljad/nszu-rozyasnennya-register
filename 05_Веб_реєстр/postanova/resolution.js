@@ -20,7 +20,12 @@ function escapeHtml(value) {
 function highlight(value, query) {
   const escaped = escapeHtml(value);
   if (!query) return escaped;
-  const safe = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const terms = [query, ...searchTerms(query)].filter(Boolean);
+  const safe = [...new Set(terms)]
+    .sort((left, right) => right.length - left.length)
+    .map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("|");
+  if (!safe) return escaped;
   return escaped.replace(new RegExp(`(${safe})`, "gi"), "<mark>$1</mark>");
 }
 
@@ -128,7 +133,23 @@ function renderTypes() {
 
 function firstMatchedParagraph(node, query) {
   if (!query) return "";
+  if (node.kind === "appendix") return firstMatchedAppendixRow(node, query)?.id || "";
   return node.items.find((item) => matchesQuery(item.text, query))?.id || "";
+}
+
+function appendixRows(node) {
+  if (!node || node.kind !== "appendix" || node.id === "appendix-3") return [];
+  if (!node._appendixRows) node._appendixRows = splitAppendixTable(node.text).rows.map((row, index) => ({
+    ...row,
+    id: `${node.id}-row-${index + 1}`,
+    searchText: [row.code, row.title, ...row.coeffs].join(" "),
+  }));
+  return node._appendixRows;
+}
+
+function firstMatchedAppendixRow(node, query) {
+  if (!query) return null;
+  return appendixRows(node).find((row) => matchesQuery(row.searchText, query)) || null;
 }
 
 function applyFilters() {
@@ -184,6 +205,10 @@ function renderOutline() {
     return;
   }
   const pages = node.page_start === node.page_end ? `стор. ${node.page_start}` : `стор. ${node.page_start}-${node.page_end}`;
+  if (node.kind === "appendix") {
+    renderAppendixOutline(node, container, pages);
+    return;
+  }
   const paragraphs = node.items.map((item) => {
     const marker = item.marker || `${item.number}.`;
     const title = shortParagraphTitle(item);
@@ -213,6 +238,50 @@ function renderOutline() {
     button.addEventListener("click", () => {
       const item = node.items.find((entry) => entry.id === button.dataset.copyParagraph);
       if (item) copyFragment(item.text, button);
+    });
+  });
+}
+
+function renderAppendixOutline(node, container, pages) {
+  const query = queryText();
+  const rows = appendixRows(node);
+  const matchedRows = query ? rows.filter((row) => matchesQuery(row.searchText, query)) : rows;
+  const rowLimit = query ? 80 : 60;
+  const rowHtml = matchedRows.slice(0, rowLimit).map((row) => `
+    <div class="paragraph-row appendix-outline-row ${row.id === resolutionState.selectedParagraph ? "active" : ""}">
+      <button class="paragraph-link" data-appendix-row="${row.id}">
+        <span class="paragraph-main">
+          <strong>${highlight(row.code, query)}</strong>
+          ${highlight(row.title, query)}
+          <span class="appendix-outline-coefs">${row.coeffs.map((value) => highlight(value, query)).join(" · ")}</span>
+        </span>
+      </button>
+      <button class="copy-fragment" type="button" data-copy-appendix-row="${row.id}" title="Копіювати рядок додатка" aria-label="Копіювати рядок додатка ${escapeHtml(row.code)}">⧉</button>
+    </div>
+  `).join("");
+  const appendixNote = rows.length
+    ? `<p class="source-pages">${query ? `Знайдено рядків: ${matchedRows.length} з ${rows.length}` : `Рядків у таблиці: ${rows.length}`}. ${pages}</p>`
+    : `<p class="source-pages">${pages}</p>`;
+  container.innerHTML = `
+    <div class="outline-label">${escapeHtml(sourceLabel(node))} · ${kindLabel(node)}</div>
+    <h2>${escapeHtml(node.title)}</h2>
+    ${appendixNote}
+    <div class="norm-tags">${typeLabels(node).map((label) => `<span class="norm-tag">${escapeHtml(label)}</span>`).join("")}</div>
+    ${rowHtml || "<p>У цьому додатку немає табличних рядків для навігації.</p>"}
+    ${matchedRows.length > rowLimit ? `<p class="source-pages">Показано перші ${rowLimit} рядків. Уточніть пошук, щоб звузити перелік.</p>` : ""}
+  `;
+  container.querySelectorAll("[data-appendix-row]").forEach((button) => {
+    button.addEventListener("click", () => {
+      resolutionState.selectedParagraph = button.dataset.appendixRow;
+      renderOutline();
+      renderReader();
+      updateUrl();
+    });
+  });
+  container.querySelectorAll("[data-copy-appendix-row]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const row = rows.find((entry) => entry.id === button.dataset.copyAppendixRow);
+      if (row) copyFragment([row.code, row.title, ...row.coeffs].filter(Boolean).join(" | "), button);
     });
   });
 }
@@ -323,11 +392,11 @@ function appendixColumns(nodeId) {
   return ["Коефіцієнти"];
 }
 
-function renderCoeffCell(value) {
-  return value ? `<span class="coef-value">${escapeHtml(value)}</span>` : '<span class="coef-empty">—</span>';
+function renderCoeffCell(value, query) {
+  return value ? `<span class="coef-value">${highlight(value, query)}</span>` : '<span class="coef-empty">—</span>';
 }
 
-function renderAppendixTable(nodeId, rows, query) {
+function renderAppendixTable(nodeId, rows, query, selectedRowId = "") {
   if (!rows.length) return "";
   const columns = appendixColumns(nodeId);
   return `<div class="appendix-table-wrap" role="region" aria-label="Таблиця додатка">
@@ -340,11 +409,14 @@ function renderAppendixTable(nodeId, rows, query) {
         </tr>
       </thead>
       <tbody>
-        ${rows.map((row) => `<tr>
+        ${rows.map((row, index) => {
+          const rowId = row.id || `${nodeId}-row-${index + 1}`;
+          return `<tr id="${escapeHtml(rowId)}" class="${rowId === selectedRowId ? "selected" : ""}">
           <td><strong>${escapeHtml(row.code)}</strong></td>
           <td>${highlight(row.title, query)}</td>
-          ${columns.map((_, index) => `<td class="coef-cell">${renderCoeffCell(row.coeffs[index])}</td>`).join("")}
-        </tr>`).join("")}
+          ${columns.map((_, index) => `<td class="coef-cell">${renderCoeffCell(row.coeffs[index], query)}</td>`).join("")}
+        </tr>`;
+        }).join("")}
       </tbody>
     </table>
   </div>`;
@@ -377,10 +449,11 @@ function renderFormulaAppendix(text, query) {
 function renderAppendixContent(node, query) {
   if (node.id === "appendix-3") return renderFormulaAppendix(node.text, query);
   const parsed = splitAppendixTable(node.text);
+  const rows = appendixRows(node).length ? appendixRows(node) : parsed.rows;
   return `
     <div class="appendix-content">
       ${renderAppendixPackages(parsed.intro, query)}
-      ${renderAppendixTable(node.id, parsed.rows, query)}
+      ${renderAppendixTable(node.id, rows, query, resolutionState.selectedParagraph)}
     </div>
   `;
 }

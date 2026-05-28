@@ -95,6 +95,14 @@
   -webkit-box-orient: vertical;
 }
 .paragraph-main strong { margin-right: 4px; color: var(--accent-dark); }
+.appendix-outline-row .paragraph-link { align-items: flex-start; }
+.appendix-outline-coefs {
+  display: block;
+  margin-top: 4px;
+  color: #48637d;
+  font-size: 12px;
+  font-weight: 700;
+}
 .paragraph-page {
   flex-shrink: 0;
   color: var(--muted);
@@ -202,6 +210,13 @@
   background: #f4f9ff;
 }
 .appendix-table tr:hover td { background: #f8fbff; }
+.appendix-table tr.selected td {
+  background: #fff8e6;
+  box-shadow: inset 0 1px 0 #f1d899, inset 0 -1px 0 #f1d899;
+}
+.appendix-table tr.selected td:first-child {
+  border-left: 3px solid #d59a00;
+}
 .coef-cell {
   min-width: 105px;
   text-align: right;
