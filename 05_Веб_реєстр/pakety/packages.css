@@ -186,15 +186,29 @@
 }
 .requirement-list {
   margin: 0;
-  padding-left: 22px;
+  padding: 0;
   color: #253b52;
 }
-.requirement-list li {
+.requirement-item {
+  display: grid;
+  grid-template-columns: minmax(34px, auto) 1fr;
+  gap: 9px;
   margin: 0 0 10px;
-  padding-left: 4px;
   font-size: 14px;
   line-height: 1.58;
 }
+.requirement-marker {
+  color: var(--accent-dark);
+  font-weight: 700;
+  text-align: right;
+  white-space: nowrap;
+}
+.requirement-text { min-width: 0; }
+.requirement-item.level-1 { margin-left: 22px; }
+.requirement-item.level-2 { margin-left: 44px; }
+.requirement-item.level-3,
+.requirement-item.level-4,
+.requirement-item.level-5 { margin-left: 60px; }
 mark { padding: 0 2px; border-radius: 3px; color: inherit; background: #ffe69a; }
 .package-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0; }
 .related-explanations { margin-top: 25px; padding-top: 18px; border-top: 1px solid var(--line); }

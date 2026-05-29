@@ -24,6 +24,18 @@ function matchesSearch(value, terms) {
   return terms.every((term) => text.includes(term));
 }
 
+function itemText(item) {
+  return typeof item === "string" ? item : item?.text || "";
+}
+
+function itemMarker(item) {
+  return typeof item === "string" ? "" : item?.marker || "";
+}
+
+function itemSearchText(item) {
+  return `${itemMarker(item)} ${itemText(item)}`.trim();
+}
+
 function matchingReport(query, tag = "") {
   const terms = searchTerms(query);
   if (!terms.length) return [];
@@ -33,7 +45,7 @@ function matchingReport(query, tag = "") {
       const headingMatches = matchesSearch(section.source_heading, terms);
       const itemMatches = section.items
         .map((item, index) => ({ item, index }))
-        .filter(({ item }) => matchesSearch(item, terms));
+        .filter(({ item }) => matchesSearch(itemSearchText(item), terms));
       if (!headingMatches && !itemMatches.length) return null;
       return { unit, section, headingMatches, itemMatches };
     })).filter(Boolean);
@@ -102,7 +114,10 @@ function buildSummary(query, matches) {
       lines.push(`  ${section.label}`);
       if (headingMatches && section.source_heading) lines.push(`  Заголовок: ${section.source_heading}`);
       if (itemMatches.length) {
-        itemMatches.forEach(({ item, index }) => lines.push(`  ${index + 1}. ${item}`));
+        itemMatches.forEach(({ item, index }) => {
+          const marker = itemMarker(item) || `${index + 1}.`;
+          lines.push(`  ${marker} ${itemText(item)}`);
+        });
       } else {
         lines.push("  Збіг знайдено у назві розділу.");
       }

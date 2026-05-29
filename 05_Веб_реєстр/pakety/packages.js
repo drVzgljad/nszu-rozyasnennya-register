@@ -28,6 +28,31 @@ function queryText() {
   return byId("packageSearch").value.trim().toLowerCase();
 }
 
+function itemText(item) {
+  return typeof item === "string" ? item : item?.text || "";
+}
+
+function itemMarker(item) {
+  return typeof item === "string" ? "" : item?.marker || "";
+}
+
+function itemLevel(item) {
+  return typeof item === "string" ? 0 : Number(item?.level || 0);
+}
+
+function itemSearchText(item) {
+  return `${itemMarker(item)} ${itemText(item)}`.trim();
+}
+
+function renderRequirementItem(item, query) {
+  const marker = itemMarker(item);
+  const level = Math.min(itemLevel(item), 5);
+  return `<div class="requirement-item level-${level}">
+    <span class="requirement-marker">${escapeHtml(marker)}</span>
+    <span class="requirement-text">${highlight(itemText(item), query)}</span>
+  </div>`;
+}
+
 function allSections(pkg) {
   return pkg.units.flatMap((unit) => unit.sections.map((section) => ({ unit, section })));
 }
@@ -35,7 +60,7 @@ function allSections(pkg) {
 function firstMatch(pkg, query) {
   if (!query) return allSections(pkg)[0];
   return allSections(pkg).find(({ section }) =>
-    `${section.source_heading} ${section.items.join(" ")}`.toLowerCase().includes(query)
+    `${section.source_heading} ${section.items.map(itemSearchText).join(" ")}`.toLowerCase().includes(query)
   ) || allSections(pkg)[0];
 }
 
@@ -201,7 +226,7 @@ function renderReader() {
   const query = queryText();
   const context = pkg.units.length > 1 ? packageState.selectedUnit.label : `Пакет ${pkg.number}`;
   const items = section.items.length
-    ? `<ol class="requirement-list">${section.items.map((item) => `<li>${highlight(item, query)}</li>`).join("")}</ol>`
+    ? `<div class="requirement-list">${section.items.map((item) => renderRequirementItem(item, query)).join("")}</div>`
     : "<p>Окремі пункти у цьому розділі не виділено.</p>";
   container.innerHTML = `
     <h2>${escapeHtml(section.label)}</h2>
