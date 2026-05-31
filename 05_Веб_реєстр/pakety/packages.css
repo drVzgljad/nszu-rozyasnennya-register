@@ -1,39 +1,5 @@
 .package-hero .hero-copy { max-width: 1200px; }
-.section-switch {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 20px;
-  padding: 4px;
-  border: 1px solid rgba(0,111,201,.13);
-  border-radius: 12px;
-  background: rgba(255,255,255,.72);
-}
-.section-switch a {
-  padding: 9px 15px;
-  border-radius: 9px;
-  color: var(--muted);
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-}
-.section-switch a.active {
-  color: #fff;
-  background: var(--accent);
-}
-.section-switch a.report-nav-cta {
-  display: inline-flex;
-  align-items: center;
-  margin-left: 6px;
-  padding-inline: 18px;
-  color: #fff;
-  background: linear-gradient(135deg, #4a8fc7, #54ad84);
-  box-shadow: 0 8px 18px rgba(74,143,199,.22);
-}
-.section-switch a.report-nav-cta:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 22px rgba(74,143,199,.28);
-}
+
 .packages-layout {
   display: grid;
   grid-template-columns: minmax(290px, .72fr) minmax(250px, .62fr) minmax(430px, 1.16fr);
