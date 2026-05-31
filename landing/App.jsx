@@ -148,7 +148,11 @@ function App() {
             }}>Шукати</button>
           </div>
           <div className="hero-tags">
-            <span>Роз'яснення НСЗУ</span><span>Пакети 2026</span><span>Постанова 1808</span><span>Наказ 377</span><span>Машина пошуку</span>
+            <a href="../05_Веб_реєстр/index.html">Роз'яснення НСЗУ</a>
+            <a href="../05_Веб_реєстр/pakety/index.html">Пакети 2026</a>
+            <a href="../05_Веб_реєстр/postanova/index.html">Постанова 1808</a>
+            <a href="../05_Веб_реєстр/algorithms/index.html">Наказ 377</a>
+            <a href="../05_Веб_реєстр/pakety/report.html">Машина пошуку</a>
           </div>
 
           <div className="stat-strip">
