@@ -31,10 +31,9 @@ function formatStatus(status) {
   const lower = s.toLowerCase();
   const takCount = (lower.match(/так/g) || []).length;
   const forPkg4 = lower.includes("для 4 пакету") ? " (тільки пакет 4)" : "";
-  const parts = [];
-  if (takCount >= 1) parts.push("Діти");
-  if (takCount >= 2) parts.push("дорослі (крім Y36 та Y96)");
-  return parts.length ? parts.join(", ") + forPkg4 : s;
+  if (takCount >= 2) return "Діти та дорослі (крім Y36 та Y96)" + forPkg4;
+  if (takCount === 1) return "Застосовується" + forPkg4;
+  return s;
 }
 
 function setMobileTab(tab) {
