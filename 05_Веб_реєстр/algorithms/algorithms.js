@@ -92,9 +92,14 @@ function renderCards() {
   const query = byId("algorithmSearch").value.trim();
   byId("algorithmCards").innerHTML = algorithmState.visible.map((record) => `
     <button class="algorithm-card ${record.id === algorithmState.selected?.id ? "active" : ""}" type="button" data-id="${escapeHtml(record.id)}">
-      <em>${escapeHtml(record.source_title)}</em>
-      <strong><span class="algorithm-code">${escapeHtml(record.code)}</span>${highlight(record.name, query)}</strong>
-      <span>${escapeHtml(record.status || "Статус у таблиці не виділено")} · стор. ${record.page}</span>
+      <span class="algorithm-card-main">
+        <span class="algorithm-code">${escapeHtml(record.code)}</span>
+        <span class="algorithm-card-copy">
+          <em>${escapeHtml(record.source_title)}</em>
+          <strong>${highlight(record.name, query)}</strong>
+          <span>${escapeHtml(record.status || "Статус у таблиці не виділено")} · стор. ${record.page}</span>
+        </span>
+      </span>
     </button>
   `).join("") || '<div class="no-results">За цим запитом кодів не знайдено. Спробуйте код, частину назви або очистіть фільтри.</div>';
   byId("algorithmCards").querySelectorAll("[data-id]").forEach((button) => {

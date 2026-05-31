@@ -57,7 +57,7 @@
 .source-card,
 .algorithm-card {
   width: 100%;
-  padding: 12px;
+  padding: 13px;
   border: 1px solid var(--line);
   border-radius: 14px;
   color: var(--ink);
@@ -69,13 +69,14 @@
 .algorithm-card:hover,
 .algorithm-card.active {
   border-color: rgba(0,111,201,.42);
-  background: #f5faff;
+  background: #f7fbff;
 }
 .source-card strong,
 .algorithm-card strong {
   display: block;
-  font-size: 13px;
-  line-height: 1.35;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.42;
 }
 .source-card span,
 .algorithm-card span {
@@ -101,16 +102,32 @@
   max-height: calc(100vh - 32px);
   overflow: auto;
 }
+.algorithm-card-main {
+  display: grid;
+  grid-template-columns: 82px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+.algorithm-card-copy {
+  min-width: 0;
+}
 .algorithm-code {
-  display: inline-grid;
+  display: grid;
   place-items: center;
-  min-width: 62px;
-  margin-right: 8px;
-  padding: 6px 8px;
-  border-radius: 10px;
-  color: #fff;
-  background: var(--accent);
-  font-weight: 800;
+  min-height: 42px;
+  padding: 8px 6px;
+  border: 1px solid rgba(0,111,201,.2);
+  border-radius: 12px;
+  color: var(--accent-dark);
+  background: #eaf4fc;
+  font-size: 15px;
+  font-weight: 850;
+  letter-spacing: .01em;
+  white-space: nowrap;
+}
+.algorithm-card.active .algorithm-code {
+  border-color: rgba(0,111,201,.42);
+  background: #dcefff;
 }
 .algorithm-reader {
   min-height: calc(100vh - 170px);
@@ -196,4 +213,15 @@ mark { padding: 0 2px; border-radius: 3px; color: inherit; background: #ffe69a; 
   .algorithm-browser,
   .algorithm-results,
   .algorithm-reader { position: static; max-height: none; }
+}
+@media (max-width: 520px) {
+  .algorithm-card-main {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+  .algorithm-code {
+    justify-self: start;
+    min-height: 0;
+    min-width: 78px;
+  }
 }
