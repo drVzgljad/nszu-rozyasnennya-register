@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>НавиПМГ26 | Алгоритми та правила</title>
   <link rel="stylesheet" href="../styles.css?v=20260531a">
-  <link rel="stylesheet" href="algorithms.css?v=20260601b">
+  <link rel="stylesheet" href="algorithms.css?v=20260601c">
 </head>
 <body id="top">
   <header class="hero algorithms-hero">
@@ -28,7 +28,13 @@
     <div class="stats" id="algorithmStats" aria-label="Статистика алгоритмів"></div>
   </header>
 
-  <main class="algorithms-layout">
+  <nav class="mobile-tabs" id="mobileTabs" aria-label="Навігація між панелями">
+    <button class="mobile-tab active" data-tab="browser" type="button">Пошук</button>
+    <button class="mobile-tab" data-tab="results" type="button">Результати <span id="mobileCount"></span></button>
+    <button class="mobile-tab" data-tab="reader" type="button">Деталі</button>
+  </nav>
+
+  <main class="algorithms-layout" data-active="browser">
     <section class="algorithm-browser" aria-label="Пошук алгоритмів та правил">
       <div class="search-panel algorithm-search">
         <label class="search">
@@ -74,6 +80,6 @@
   </footer>
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
-  <script src="algorithms.js?v=20260601d" defer></script>
+  <script src="algorithms.js?v=20260601e" defer></script>
 </body>
 </html>

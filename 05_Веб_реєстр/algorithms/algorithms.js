@@ -37,6 +37,13 @@ function formatStatus(status) {
   return parts.length ? parts.join(", ") + forPkg4 : s;
 }
 
+function setMobileTab(tab) {
+  document.querySelector(".algorithms-layout").dataset.active = tab;
+  document.querySelectorAll(".mobile-tab").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.tab === tab);
+  });
+}
+
 function queryText() {
   return normalize(byId("algorithmSearch").value);
 }
@@ -85,6 +92,8 @@ function applyFilters() {
   const packageValue = byId("packageFilter").value;
   algorithmState.visible = algorithmState.data.records.filter((record) => recordMatches(record, query, source, packageValue));
   byId("algorithmCount").textContent = `Знайдено: ${algorithmState.visible.length} з ${algorithmState.data.records_count}`;
+  const mobileCount = byId("mobileCount");
+  if (mobileCount) mobileCount.textContent = algorithmState.visible.length;
   if (!algorithmState.visible.some((record) => record.id === algorithmState.selected?.id)) {
     algorithmState.selected = algorithmState.visible[0] || null;
   }
@@ -126,6 +135,7 @@ function renderCards() {
       renderCards();
       renderReader();
       updateUrl();
+      if (window.innerWidth <= 1180) setMobileTab("reader");
     });
   });
 }
@@ -227,6 +237,9 @@ async function initAlgorithms() {
     byId("sourceFilter").value = "";
     byId("packageFilter").value = "";
     applyFilters();
+  });
+  document.querySelectorAll(".mobile-tab").forEach((btn) => {
+    btn.addEventListener("click", () => setMobileTab(btn.dataset.tab));
   });
   applyFilters();
   const code = params.get("code");
