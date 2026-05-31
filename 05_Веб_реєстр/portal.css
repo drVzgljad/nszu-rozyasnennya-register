@@ -125,8 +125,9 @@ body {
 
 /* Auth slot in top bar — reset section-switch chrome */
 .top-auth {
-  margin: 0; padding: 0; border: none; background: none; gap: 0;
+  margin: 0 0 0 12px; padding: 0; border: none; background: none; gap: 8px;
   display: inline-flex;
+  align-items: center;
 }
 .top-auth .auth-nav-btn {
   border-color: rgba(47,107,158,.35);
