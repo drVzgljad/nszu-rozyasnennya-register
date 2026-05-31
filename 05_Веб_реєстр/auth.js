@@ -79,6 +79,44 @@ function applyAccess() {
     el.style.display = hasAccess(el.dataset.role) ? '' : 'none';
   });
 
+  // Dynamic navigation links injection
+  const pathParts = window.location.pathname.split('/');
+  const isInSubdir = pathParts.some(part => [
+    'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms'
+  ].includes(part.toLowerCase()));
+  const prefix = isInSubdir ? '../' : './';
+
+  const navContainer = document.querySelector('nav.section-switch:not(.top-auth)') || document.querySelector('.top-nav');
+  if (navContainer) {
+    // Clean up existing dynamic nav items first
+    navContainer.querySelectorAll('.dynamic-nav-item').forEach(el => el.remove());
+
+    const navItems = [
+      { id: 'nav-zoz-questions', text: 'Питання ЗОЗ', path: 'zoz-questions/index.html', role: 'registered', match: 'zoz-questions' },
+      { id: 'nav-pmg-proposals', text: 'Пропозиції ПМГ', path: 'pmg-proposals/index.html', role: 'registered', match: 'pmg-proposals' },
+      { id: 'nav-news', text: 'Новини', path: 'news/index.html', role: 'full', match: 'news' },
+      { id: 'nav-chat', text: 'Живий чат', path: 'chat/index.html', role: 'full', match: 'chat' }
+    ];
+
+    navItems.forEach(item => {
+      if (hasAccess(item.role)) {
+        const a = document.createElement('a');
+        a.id = item.id;
+        a.className = 'dynamic-nav-item';
+        a.href = prefix + item.path;
+        a.textContent = item.text;
+        
+        // Check if active
+        if (window.location.pathname.toLowerCase().includes(item.match)) {
+          a.classList.add('active');
+          a.setAttribute('aria-current', 'page');
+        }
+        
+        navContainer.appendChild(a);
+      }
+    });
+  }
+
   // Page-level guard
   const required = document.body.dataset.requiredRole;
   if (required && !hasAccess(required)) {

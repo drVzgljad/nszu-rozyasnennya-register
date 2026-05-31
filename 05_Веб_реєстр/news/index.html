@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>НавиПМГ26 | Аналітичні Новини</title>
+  <link rel="stylesheet" href="../styles.css?v=20260531e">
+  <link rel="stylesheet" href="news.css">
+  <link rel="stylesheet" href="../auth.css?v=2">
+  <script type="module" src="../auth.js"></script>
+</head>
+<body id="top" data-required-role="full">
+  <header class="hero news-hero">
+    <div class="hero-copy">
+      <div class="overline">Експертний вісник ПМГ</div>
+      <div class="header-nav-row">
+        <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+          <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+          <div class="brand-text">
+            <div class="brand-name">НавиПМГ26</div>
+            <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
+          </div>
+        </a>
+        <nav class="section-switch" aria-label="Розділи сайту">
+          <a href="../rozjasnennya.html">Роз'яснення</a>
+          <a href="../pakety/index.html">Пакети 2026</a>
+          <a href="../postanova/index.html">Постанова 1808</a>
+          <a href="../algorithms/index.html">Алгоритми та правила</a>
+        </nav>
+        <div class="auth-container"></div>
+      </div>
+      <h1>Новини та Аналітика</h1>
+      <p>Ексклюзивні аналітичні звіти, оперативні новини контрактування та роз'яснення змін нормативно-правової бази від Департаменту.</p>
+    </div>
+    <div class="stats" id="newsStats" aria-label="Статистика новин"></div>
+  </header>
+
+  <main class="news-layout">
+    <section class="news-browser" aria-label="Стрічка новин">
+      <div class="search-panel news-search">
+        <label class="search">
+          <span>Пошук у новинах</span>
+          <input id="newsSearch" type="search" placeholder="Наприклад: звіт, зміни тарифів, роз'яснення..." autocomplete="off">
+        </label>
+        <div class="results-summary">
+          <span id="newsCount">Завантаження новин...</span>
+        </div>
+      </div>
+
+      <div class="news-grid" id="newsGrid"></div>
+    </section>
+
+    <!-- Side detail panel for news read -->
+    <aside class="news-panel-side" id="newsPanelSide" aria-live="polite">
+      <div class="empty-state" id="panelEmptyState">
+        <div class="empty-icon">📰</div>
+        <h2>Оберіть новину</h2>
+        <p>Виберіть статтю зі стрічки новин для детального перегляду її повного змісту.</p>
+      </div>
+
+      <div class="news-detail-viewer" id="newsDetailViewer" style="display:none">
+        <button class="action back-btn" id="closeNewsBtn" type="button">← Назад до списку</button>
+        <img class="detail-cover" id="detCover" src="" alt="" style="display:none">
+        <div class="detail-tags" id="detTags"></div>
+        <h2 id="detTitle">Назва новини</h2>
+        <p class="detail-date" id="detDate">Дата публікації...</p>
+        
+        <div class="news-content-body" id="detContent">Зміст новини...</div>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Реєстр розроблено силами Департаменту без зовнішнього сприяння та проєктів.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="news.js" defer></script>
+</body>
+</html>

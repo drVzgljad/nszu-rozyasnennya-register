@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>НавиПМГ26 | Пропозиції за ПМГ</title>
+  <link rel="stylesheet" href="../styles.css?v=20260531e">
+  <link rel="stylesheet" href="proposals.css">
+  <link rel="stylesheet" href="../auth.css?v=2">
+  <script type="module" src="../auth.js"></script>
+</head>
+<body id="top" data-required-role="registered">
+  <header class="hero proposals-hero">
+    <div class="hero-copy">
+      <div class="overline">Зворотний зв'язок ЗОЗ</div>
+      <div class="header-nav-row">
+        <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+          <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+          <div class="brand-text">
+            <div class="brand-name">НавиПМГ26</div>
+            <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
+          </div>
+        </a>
+        <nav class="section-switch" aria-label="Розділи сайту">
+          <a href="../rozjasnennya.html">Роз'яснення</a>
+          <a href="../pakety/index.html">Пакети 2026</a>
+          <a href="../postanova/index.html">Постанова 1808</a>
+          <a href="../algorithms/index.html">Алгоритми та правила</a>
+        </nav>
+        <div class="auth-container"></div>
+      </div>
+      <h1>Пропозиції до Програми медичних гарантій 2026</h1>
+      <p>Сформулюйте та подайте свої пропозиції щодо змін умов закупівлі чи специфікацій ПМГ-2026, або підтримайте ініціативи колег.</p>
+    </div>
+    <div class="stats" id="proposalsStats" aria-label="Статистика пропозицій"></div>
+  </header>
+
+  <main class="proposals-layout">
+    <section class="proposals-browser" aria-label="Пошук пропозицій">
+      <div class="search-panel proposals-search">
+        <label class="search">
+          <span>Пошук серед пропозицій</span>
+          <input id="proposalSearch" type="search" placeholder="Наприклад: офтальмологія, реабілітація, обладнання..." autocomplete="off">
+        </label>
+        <div class="proposals-filters">
+          <label>Пакет ПМГ
+            <select id="packageFilter">
+              <option value="">Усі пакети</option>
+              <!-- Populated dynamically via JS -->
+            </select>
+          </label>
+        </div>
+        <div class="results-summary">
+          <span id="proposalCount">Завантаження пропозицій...</span>
+          <button id="addProposalBtn" class="action primary" type="button">Подати пропозицію</button>
+        </div>
+      </div>
+
+      <div class="proposal-cards" id="proposalCards"></div>
+    </section>
+
+    <!-- Side details or Proposal Form -->
+    <aside class="proposal-panel-side" id="proposalPanelSide" aria-live="polite">
+      <!-- Default empty state -->
+      <div class="empty-state" id="panelEmptyState">
+        <div class="empty-icon">✓</div>
+        <h2>Оберіть пропозицію</h2>
+        <p>Тут з'явиться повний опис пропозиції, інформація про автора та кнопка голосування.</p>
+      </div>
+
+      <!-- Proposal Form (Hidden by default) -->
+      <div class="proposal-form-container" id="proposalFormContainer" style="display:none">
+        <h2>Подати нову пропозицію</h2>
+        <p class="form-lead">Вкажіть назву, детальний опис та виберіть пакет ПМГ, до якого відноситься пропозиція.</p>
+        <form id="newProposalForm">
+          <div class="form-field">
+            <label for="pPackage">Пакет ПМГ</label>
+            <select id="pPackage" required>
+              <!-- Populated dynamically via JS -->
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="pTitle">Заголовок пропозиції</label>
+            <input type="text" id="pTitle" required placeholder="Коротко опишіть суть (наприклад: Спрощення вимог до анестезіологів)" autocomplete="off">
+          </div>
+          <div class="form-field">
+            <label for="pDesc">Опис пропозиції</label>
+            <textarea id="pDesc" required placeholder="Детально опишіть обґрунтування змін, посилання на нормативні акти чи статистику..." rows="7"></textarea>
+          </div>
+          <div class="form-actions">
+            <button class="action primary" type="submit" id="submitProposalBtn">Опублікувати пропозицію</button>
+            <button class="action" type="button" id="cancelProposalBtn">Скасувати</button>
+          </div>
+          <div class="form-status" id="formStatus"></div>
+        </form>
+      </div>
+
+      <!-- Proposal Detail Viewer (Hidden by default) -->
+      <div class="proposal-detail-viewer" id="proposalDetailViewer" style="display:none">
+        <div class="detail-package-badge" id="detPackage">Пакет 0</div>
+        <h2 id="detProposalTitle">Суть пропозиції</h2>
+        <p class="detail-author" id="detAuthor">Автор: ...</p>
+        
+        <div class="section-title">Обґрунтування та опис зміни</div>
+        <div class="excerpt proposal-body" id="detDesc">Опис пропозиції...</div>
+
+        <div class="voting-section">
+          <div class="vote-status-box">
+            <span class="vote-count-label">Підтримали пропозицію: <strong id="detVoteCount">0</strong></span>
+            <button class="action primary vote-btn" id="voteBtn" type="button">👍 Підтримати</button>
+          </div>
+          <div class="vote-status-msg" id="voteStatusMsg"></div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Реєстр розроблено силами Департаменту без зовнішнього сприяння та проєктів.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="proposals.js" defer></script>
+</body>
+</html>

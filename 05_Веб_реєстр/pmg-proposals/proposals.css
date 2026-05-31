@@ -1,0 +1,242 @@
+/* Proposals Layout */
+.proposals-layout {
+  display: grid;
+  grid-template-columns: minmax(470px, 1fr) minmax(450px, 1.15fr);
+  gap: 20px;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 22px 24px 32px;
+  align-items: start;
+}
+
+.proposals-browser {
+  position: sticky;
+  top: 18px;
+}
+
+.proposals-search {
+  margin-bottom: 14px;
+  padding: 18px;
+}
+
+.proposals-filters {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 9px;
+  margin-top: 14px;
+}
+
+.proposals-filters label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.proposal-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  max-height: calc(100vh - 315px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+/* Proposal Card Styling */
+.proposal-card {
+  width: 100%;
+  padding: 16px;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+
+.proposal-card:hover, .proposal-card.active {
+  border-color: rgba(0, 111, 201, 0.4);
+  background: #f5faff;
+  box-shadow: 0 7px 17px rgba(18, 79, 128, 0.08);
+}
+
+.proposal-card-content {
+  flex: 1;
+  min-width: 0;
+  margin-right: 16px;
+}
+
+.proposal-card strong {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.proposal-card p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* Vote Counter Badge inside card */
+.proposal-card-votes {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--accent-dark);
+}
+
+.proposal-card-votes span {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* Side Panel Side */
+.proposal-panel-side {
+  position: sticky;
+  top: 18px;
+  min-height: calc(100vh - 170px);
+  padding: 27px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+}
+
+/* Form container */
+.proposal-form-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.proposal-form-container h2 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  letter-spacing: -.03em;
+}
+
+.proposal-form-container input[type="text"] {
+  width: 100%;
+  padding: 12px;
+  font: inherit;
+  font-size: 14.5px;
+  color: var(--ink);
+  border: 1.5px solid #cddbe7;
+  border-radius: 11px;
+  outline: none;
+  background: var(--soft);
+  transition: border-color .15s;
+}
+
+.proposal-form-container input[type="text"]:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0, 111, 201, 0.12);
+}
+
+/* Detail Viewer */
+.proposal-detail-viewer {
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-package-badge {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-size: 11.5px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.proposal-detail-viewer h2 {
+  margin: 0 0 6px;
+  font-size: 24px;
+  line-height: 1.25;
+  letter-spacing: -.02em;
+}
+
+.proposal-body {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: #364b63;
+  margin-bottom: 24px;
+  white-space: pre-wrap;
+}
+
+/* Voting Area */
+.voting-section {
+  padding-top: 20px;
+  border-top: 1px dashed var(--line);
+}
+
+.vote-status-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--soft);
+  border: 1px solid var(--line);
+}
+
+.vote-count-label {
+  font-size: 14.5px;
+  color: var(--ink);
+}
+
+.vote-count-label strong {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--accent-dark);
+  margin-left: 4px;
+}
+
+.vote-btn {
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.vote-status-msg {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+}
+
+@media (max-width: 1040px) {
+  .proposals-layout {
+    display: block;
+    padding: 16px;
+  }
+  
+  .proposal-cards {
+    max-height: 50vh;
+    margin-bottom: 16px;
+  }
+  
+  .proposal-panel-side {
+    position: static;
+    min-height: auto;
+  }
+}

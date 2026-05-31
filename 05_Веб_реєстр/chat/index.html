@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>НавиПМГ26 | Живий чат Департаменту</title>
+  <link rel="stylesheet" href="../styles.css?v=20260531e">
+  <link rel="stylesheet" href="chat.css">
+  <link rel="stylesheet" href="../auth.css?v=2">
+  <script type="module" src="../auth.js"></script>
+</head>
+<body id="top" data-required-role="full">
+  <header class="hero chat-hero">
+    <div class="hero-copy">
+      <div class="overline">Оперативний зв'язок НСЗУ</div>
+      <div class="header-nav-row">
+        <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+          <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+          <div class="brand-text">
+            <div class="brand-name">НавиПМГ26</div>
+            <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
+          </div>
+        </a>
+        <nav class="section-switch" aria-label="Розділи сайту">
+          <a href="../rozjasnennya.html">Роз'яснення</a>
+          <a href="../pakety/index.html">Пакети 2026</a>
+          <a href="../postanova/index.html">Постанова 1808</a>
+          <a href="../algorithms/index.html">Алгоритми та правила</a>
+        </nav>
+        <div class="auth-container"></div>
+      </div>
+      <h1>Живий чат Департаменту</h1>
+      <p>Спілкування з експертами Департаменту стратегії та колегами в реальному часі. Ставте запитання та отримуйте оперативні відповіді.</p>
+    </div>
+    <div class="stats" id="chatStats" aria-label="Статистика чату"></div>
+  </header>
+
+  <main class="chat-layout">
+    <!-- Left sidebar with info/instructions -->
+    <aside class="chat-sidebar">
+      <div class="chat-info-card">
+        <h3>Правила спілкування</h3>
+        <ul>
+          <li>Будьте ввічливими та поважайте колег.</li>
+          <li>Формулюйте питання чітко, вказуйте пакет ПМГ або статтю.</li>
+          <li>Уникайте публікації конфіденційних персональних даних пацієнтів.</li>
+          <li>Повідомлення транслюються в реальному часі для всіх користувачів з повним доступом.</li>
+        </ul>
+      </div>
+      <div class="chat-info-card connection-status-card">
+        <h3>Статус підключення</h3>
+        <div class="status-indicator">
+          <span class="status-dot offline" id="statusDot"></span>
+          <span class="status-text" id="statusText">Підключення...</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Right area: the Chat itself -->
+    <section class="chat-window" aria-label="Вікно повідомлень">
+      <div class="chat-messages-wrapper" id="chatMessagesWrapper">
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-system-message">Завантаження повідомлень...</div>
+        </div>
+      </div>
+      <form class="chat-input-panel" id="chatInputForm">
+        <input type="text" id="chatMessageInput" placeholder="Введіть повідомлення експертам департаменту..." autocomplete="off" required>
+        <button class="action primary send-btn" type="submit" id="sendBtn">
+          <span>Надіслати</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </form>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Реєстр розроблено силами Департаменту без зовнішнього сприяння та проєктів.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="chat.js" defer></script>
+</body>
+</html>
