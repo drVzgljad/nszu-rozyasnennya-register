@@ -3,101 +3,220 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>НавиПМГ26 | швидкий помічник</title>
-  <link rel="stylesheet" href="styles.css?v=20260531b">
+  <title>Портал експертної інформації ПМГ 2026 — НавиПМГ26</title>
+  <link rel="stylesheet" href="portal.css?v=1">
   <link rel="stylesheet" href="auth.css?v=1">
   <script type="module" src="auth.js"></script>
 </head>
 <body>
-  <header class="hero">
-    <div class="hero-copy">
-      <div class="overline">Локальна бібліотека документів</div>
-      <div class="brand-lockup" aria-label="Загальна назва сервісу">
-        <div class="brand-name">НавиПМГ26</div>
-        <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
-      </div>
-      <nav class="section-switch" aria-label="Розділи сайту">
-        <a class="active" href="index.html" aria-current="page">Роз'яснення</a>
-        <a href="pakety/index.html">Пакети 2026</a>
-        <a href="postanova/index.html">Постанова 1808</a>
-        <a class="report-nav-cta" href="pakety/report.html">Машина пошуку</a>
-        <a href="algorithms/index.html">Алгоритми та правила</a>
+<div class="portal">
+
+  <!-- ── Top bar ─────────────────────────────────────── -->
+  <header class="top">
+    <div class="wrap top-inner">
+      <a class="lockup" href="index.html" aria-label="На головну">
+        <img class="shield" src="assets/nszu-shield.svg" alt="" aria-hidden="true" style="width:44px;height:auto">
+        <span class="wm">
+          <span class="wm-1">Портал експертної інформації</span>
+          <span class="wm-2">Програма медичних гарантій 2026</span>
+        </span>
+      </a>
+      <div class="top-spacer"></div>
+      <nav class="top-nav" aria-label="Головне меню">
+        <a href="#hub">Розділи</a>
+        <a href="#dept">Про портал</a>
+        <a href="rozjasnennya.html">Реєстр</a>
       </nav>
-      <h1>Роз'яснення НСЗУ</h1>
-      <p>Знайдіть документ за темою, пакетом, номером, датою або словом з тексту. Перегляньте зміст, джерело і пов'язані матеріали в одному місці.</p>
+      <!-- auth.js inject point -->
+      <nav class="section-switch top-auth" aria-label="Авторизація"></nav>
+      <span class="agency-chip">
+        <img src="assets/nszu-shield.svg" alt="">НСЗУ
+      </span>
     </div>
-    <div class="stats" id="stats" aria-label="Статистика реєстру"></div>
   </header>
 
-  <main class="layout">
-    <section class="browser" aria-label="Пошук документів">
-      <div class="search-panel">
-        <label class="search">
-          <span>Пошук</span>
-          <input id="search" type="search" placeholder="Наприклад: паліативна допомога, ЕМЗ, інсульт..." autocomplete="off">
-        </label>
-        <div class="filters">
-          <label>Напрям
-            <select id="direction"><option value="">Усі напрями</option></select>
-          </label>
-          <label>Пакет / група
-            <select id="package"><option value="">Усі пакети</option></select>
-          </label>
-          <label>Рік
-            <select id="year"><option value="">Усі роки</option></select>
-          </label>
-          <label>Дата документа
-            <select id="documentDate"><option value="">Усі дати</option></select>
-          </label>
-          <label>Номер документа
-            <select id="documentNumber"><option value="">Усі номери</option></select>
-          </label>
-          <label>Формат
-            <select id="format"><option value="">Усі формати</option></select>
-          </label>
-          <label>Текст
-            <select id="quality">
-              <option value="">Усі документи</option>
-              <option value="ocr">Розпізнані скани</option>
-              <option value="text">З машинним текстом</option>
-            </select>
-          </label>
-        </div>
-        <div class="results-summary">
-          <span id="resultCount">Оберіть фільтр або введіть запит</span>
-          <button id="reset" type="button">Очистити фільтри</button>
+  <!-- ── Hero ────────────────────────────────────────── -->
+  <section class="hero" id="top">
+    <div class="plus-field" aria-hidden="true"></div>
+    <div class="wrap hero-inner">
+      <span class="eyebrow">
+        <span class="dot" aria-hidden="true"></span>
+        Експертна інформація для надавачів послуг
+      </span>
+      <h1>
+        Усі правила <span class="accent">ПМГ&nbsp;2026</span> —<br>
+        в одному <span class="accent-2">довідковому</span> порталі
+      </h1>
+      <p class="hero-lead">
+        Роз'яснення, пакети, постанова та алгоритми Програми медичних гарантій —
+        зібрані, проіндексовані й готові до цитування. Знайдіть відповідь
+        за хвилину, а не за годину.
+      </p>
+      <div class="hero-search">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+          stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="M21 21l-4.3-4.3"></path>
+        </svg>
+        <input type="search" id="hero-q"
+          placeholder="Наприклад: паліативна допомога, ШВЛ, наказ 377, тариф…"
+          aria-label="Пошук по порталу"
+          onkeydown="if(event.key==='Enter') goSearch()">
+        <button class="btn btn-primary" onclick="goSearch()">Шукати</button>
+      </div>
+      <div class="hero-tags" aria-label="Теги">
+        <span>Роз'яснення НСЗУ</span>
+        <span>Пакети 2026</span>
+        <span>Постанова 1808</span>
+        <span>Наказ 377</span>
+        <span>Машина пошуку</span>
+      </div>
+      <div class="stat-strip" aria-label="Статистика порталу">
+        <div class="cell"><div class="num">171</div><div class="cap">документ у бібліотеці</div></div>
+        <div class="cell"><div class="num">46</div><div class="cap">пакетів ПМГ-2026</div></div>
+        <div class="cell"><div class="num">29</div><div class="cap">напрямів медичної допомоги</div></div>
+        <div class="cell"><div class="num">2026</div><div class="cap">редакція програми</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Hub grid ─────────────────────────────────────── -->
+  <section class="hub" id="hub">
+    <div class="wrap">
+      <div class="section-head">
+        <div>
+          <h2>Розділи порталу</h2>
+          <p>П'ять інструментів, що працюють разом над одним документним архівом.</p>
         </div>
       </div>
-      <div class="cards" id="cards"></div>
-    </section>
+      <div class="hub-grid">
 
-    <aside class="detail empty" id="detail" aria-live="polite">
-      <div class="empty-state">
-        <div class="empty-icon">i</div>
-        <h2>Оберіть документ</h2>
-        <p>Тут з'явиться коротка інформація, кнопки відкриття та пов'язані матеріали.</p>
+        <!-- Роз'яснення — feature card -->
+        <a class="hub-card span-3 feature" href="rozjasnennya.html">
+          <span class="badge-tile">
+            <img class="shield" src="assets/nszu-shield.svg" alt="" aria-hidden="true">
+          </span>
+          <h3>Роз'яснення</h3>
+          <p>Офіційні роз'яснення НСЗУ за темою, пакетом, номером, датою або словом
+             з тексту — зі змістом, джерелом і пов'язаними матеріалами.</p>
+          <div class="meta">Відкрити <span class="count">171 документ</span></div>
+        </a>
+
+        <!-- Пакети 2026 -->
+        <a class="hub-card span-3" href="pakety/index.html">
+          <span class="num-badge g">46</span>
+          <h3>Пакети 2026</h3>
+          <p>Навігатор по 46 пакетах Програми медичних гарантій: специфікації, умови
+             закупівлі, вимоги до спеціалістів та обладнання.</p>
+          <div class="meta">Відкрити <span class="count">46 пакетів</span></div>
+        </a>
+
+        <!-- Постанова 1808 -->
+        <a class="hub-card span-2" href="postanova/index.html">
+          <span class="num-badge">1808</span>
+          <h3>Постанова 1808</h3>
+          <p>Проіндексовані пункти постанови та Порядку: тарифи, коефіцієнти,
+             правила оплати й строки.</p>
+          <div class="meta">Відкрити <span class="count">Тарифи й коефіцієнти</span></div>
+        </a>
+
+        <!-- Алгоритми та правила -->
+        <a class="hub-card span-2" href="algorithms/index.html">
+          <span class="num-badge g">377</span>
+          <h3>Алгоритми та правила</h3>
+          <p>Пошук за наказом № 377: коди НК 025, діагнози,
+             амбулаторно-асоційовані стани.</p>
+          <div class="meta">Відкрити <span class="count">Наказ № 377</span></div>
+        </a>
+
+        <!-- Машина пошуку — тільки для зареєстрованих -->
+        <a class="hub-card span-2" href="pakety/report.html" data-role="registered" id="hub-search-card">
+          <span class="badge-tile">
+            <img class="shield" src="assets/nszu-shield.svg" alt="" aria-hidden="true">
+          </span>
+          <h3>Машина пошуку</h3>
+          <p>Зберіть знайдені вимоги пакетів в один готовий до копіювання текст.</p>
+          <div class="meta">Відкрити <span class="count">Збірка відповіді</span></div>
+        </a>
+
       </div>
-    </aside>
-  </main>
+    </div>
+  </section>
 
-  <template id="cardTemplate">
-    <button class="document-card" type="button">
-      <span class="card-tags"></span>
-      <strong></strong>
-      <span class="card-subtitle"></span>
-    </button>
-  </template>
+  <!-- ── Department ───────────────────────────────────── -->
+  <section class="dept" id="dept">
+    <div class="wrap dept-inner">
+      <div>
+        <h2>Зроблено в Департаменті — для тих, хто працює з програмою</h2>
+        <p>Портал експертної інформації розроблено силами Департаменту стратегії
+           універсального охоплення населення медичними послугами, щоб контрактні
+           спеціалісти, лікарі та керівники закладів знаходили норму, вимогу чи
+           тариф за секунди.</p>
+        <p>Уся інформація походить з офіційного архіву документів НСЗУ та
+           оновлюється разом із програмою.</p>
+        <div class="pills">
+          <span>Без зовнішнього сприяння</span>
+          <span>Офіційні джерела</span>
+          <span>Готові до цитування</span>
+        </div>
+      </div>
+      <div class="dept-card">
+        <div class="lab">Належність порталу</div>
+        <h3>Департамент стратегії університального охоплення населення медичними послугами</h3>
+        <div class="org">
+          <img src="assets/nszu-shield.svg" alt="Знак НСЗУ">
+          <div>
+            <strong>НСЗУ</strong>
+            <span>Національна служба здоров'я України</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  <footer class="site-footer">
-    <div class="footer-inner">
-      <div class="footer-copy">
-        <div class="footer-agency">НСЗУ</div>
-        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
-        <p>Реєстр розроблено силами Департаменту без зовнішнього сприяння та проєктів.</p>
+  <!-- ── Footer ───────────────────────────────────────── -->
+  <footer class="p-footer">
+    <div class="wrap">
+      <div class="p-foot-grid">
+        <div>
+          <div class="f-lockup">
+            <img class="shield" src="assets/nszu-shield.svg" alt="" aria-hidden="true"
+              style="width:44px;height:auto">
+            <span class="wm">
+              <span class="wm-1">Портал експертної інформації</span>
+              <span class="wm-2">Програма медичних гарантій 2026</span>
+            </span>
+          </div>
+          <p>Довідковий портал за Програмою медичних гарантій 2026 року.</p>
+        </div>
+        <div class="f-col">
+          <h4>Розділи</h4>
+          <a href="rozjasnennya.html">Роз'яснення</a>
+          <a href="pakety/index.html">Пакети 2026</a>
+          <a href="postanova/index.html">Постанова 1808</a>
+          <a href="algorithms/index.html">Алгоритми та правила</a>
+        </div>
+        <div class="f-col">
+          <h4>Належність</h4>
+          <a href="#dept">Департамент стратегії</a>
+          <a href="#dept">НСЗУ</a>
+          <a href="#top">Про портал</a>
+        </div>
+      </div>
+      <div class="p-foot-base">
+        <span>© 2026 НСЗУ · Департамент стратегії універсального охоплення населення медичними послугами</span>
+        <span>Розроблено силами Департаменту</span>
       </div>
     </div>
   </footer>
 
-  <script src="app.js" defer></script>
+</div><!-- /.portal -->
+
+<script>
+  function goSearch() {
+    const q = document.getElementById('hero-q').value.trim();
+    window.location.href = q ? 'rozjasnennya.html?q=' + encodeURIComponent(q) : 'rozjasnennya.html';
+  }
+</script>
 </body>
 </html>
