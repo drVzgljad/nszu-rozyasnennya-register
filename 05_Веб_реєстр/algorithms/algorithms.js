@@ -25,15 +25,13 @@ function highlight(value, query) {
   return escaped.replace(new RegExp(`(${safe})`, "gi"), "<mark>$1</mark>");
 }
 
-function formatStatus(status) {
-  const s = (status || "").trim();
-  if (!s) return "";
-  const lower = s.toLowerCase();
-  const takCount = (lower.match(/так/g) || []).length;
-  const forPkg4 = lower.includes("для 4 пакету") ? " (тільки пакет 4)" : "";
-  if (takCount >= 2) return "Діти та дорослі (крім Y36 та Y96)" + forPkg4;
-  if (takCount === 1) return "Застосовується" + forPkg4;
-  return s;
+function formatStatus(record) {
+  const parts = [];
+  if (record.children) parts.push("Діти");
+  if (record.adults) parts.push("дорослі (крім Y36 та Y96)");
+  if (!parts.length) return "";
+  const pkg = record.pkg4_only ? ` (тільки пакет ${escapeHtml(record.pkg4_only)})` : "";
+  return parts.join(", ") + pkg;
 }
 
 function setMobileTab(tab) {
@@ -123,7 +121,7 @@ function renderCards() {
             <span class="algorithm-badge">ЗМІНА ${EFFECTIVE_DATE}</span>
           </span>
           <strong>${highlight(record.name, query)}</strong>
-          <span>${escapeHtml(record.status || "Статус у таблиці не виділено")} · стор. ${record.page}</span>
+          <span>${formatStatus(record) ? formatStatus(record) + " · " : ""}стор. ${record.page}</span>
         </span>
       </span>
     </button>
@@ -141,7 +139,7 @@ function renderCards() {
 
 function summaryText(record) {
   const packages = (record.packages || []).length ? `Пакет/правило: ${record.packages.join(", ")}.` : "";
-  const status = formatStatus(record.status) ? `Застосовується до: ${formatStatus(record.status)}.` : "";
+  const status = formatStatus(record) ? `Застосовується до: ${formatStatus(record)}.` : "";
   return [
     `Код ${record.code}: ${record.name}.`,
     `Джерело: ${record.document_title}, стор. ${record.page}.`,
@@ -175,7 +173,7 @@ function renderReader() {
     </div>
     <div class="algorithm-text-box">
       <strong>${escapeHtml(record.name)}</strong>
-      ${formatStatus(record.status) ? `<p>Застосовується до: ${escapeHtml(formatStatus(record.status))}</p>` : ""}
+      ${formatStatus(record) ? `<p>Застосовується до: ${escapeHtml(formatStatus(record))}</p>` : ""}
     </div>
     ${compareUrl ? `
     <div class="algorithm-compare-hint">

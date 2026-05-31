@@ -15,6 +15,7 @@ DATA_DIR = OUTPUT_DIR / "data"
 
 CODE_RE = re.compile(r"^[A-ZА-Я]\d{2}(?:\.\d{1,2})?\b")
 INLINE_CODE_RE = re.compile(r"\b[A-ZА-Я]\d{2}(?:\.\d{1,2})?\b")
+TAK_RE = re.compile(r"так(?:,\s*для\s*(\d+)\s*пакет[ау]?)?", re.I)
 
 SOURCE_META = {
     "Додаток 3": {
@@ -85,6 +86,15 @@ def pdf_pages(path):
     return pages
 
 
+def parse_age_flags(status_str):
+    """Перший 'так' = Діти, другий 'так' = Дорослі. Нема 'так' = не застосовується."""
+    taks = list(TAK_RE.finditer(status_str or ""))
+    children = len(taks) >= 1
+    adults = len(taks) >= 2
+    pkg4_only = next((m.group(1) for m in taks if m.group(1)), None)
+    return children, adults, pkg4_only
+
+
 def split_status(name_with_status):
     value = clean(name_with_status)
     match = re.search(r"\s+(так(?:,\s*для\s*\d+\s*пакет[ау]?)?(?:\s+так(?:,\s*для\s*\d+\s*пакет[ау]?)?)?)\s*$", value, re.I)
@@ -119,7 +129,7 @@ def parse_records(path, meta, pages):
                     "id": f"{meta['id']}-{code.lower().replace('.', '-')}-{len(records) + 1}",
                     "code": code,
                     "name": name,
-                    "status": status,
+                    "_status_raw": status,
                     "source_id": meta["id"],
                     "source_title": meta["short_title"],
                     "document_title": meta["title"],
@@ -132,7 +142,7 @@ def parse_records(path, meta, pages):
                 continue
             if current and not line.startswith(("СЕД АСКОД", "ДОКУМЕНТ №", "Сертифікат", "Підписувач")):
                 current["name"] = clean(f"{current['name']} {line}")
-                current["name"], current["status"] = split_status(f"{current['name']} {current['status']}")
+                current["name"], current["_status_raw"] = split_status(f"{current['name']} {current['_status_raw']}")
     if current:
         records.append(current)
 
@@ -143,11 +153,19 @@ def parse_records(path, meta, pages):
         if key in seen or not record["name"]:
             continue
         seen.add(key)
+        children, adults, pkg4_only = parse_age_flags(record.pop("_status_raw", ""))
+        record["children"] = children
+        record["adults"] = adults
+        record["pkg4_only"] = pkg4_only
+        age_text = " ".join(filter(None, [
+            "Діти" if children else "",
+            "Дорослі" if adults else "",
+        ]))
         record["search_text"] = clean(
             " ".join([
                 record["code"],
                 record["name"],
-                record["status"],
+                age_text,
                 record["source_title"],
                 record["document_title"],
                 " ".join(record["packages"]),
