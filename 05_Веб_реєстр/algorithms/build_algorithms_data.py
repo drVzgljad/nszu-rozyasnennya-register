@@ -36,7 +36,7 @@ SOURCE_META = {
     "ЗМІНИ": {
         "id": "order-changes",
         "kind": "order",
-        "title": "Зміни до наказу НСЗУ від 15.05.2025 № 377",
+        "title": "Зміни до наказу НСЗУ від 15.05.2026 № 377",
         "short_title": "Наказ про зміни",
         "description": "Проєкт змін до наказу про алгоритми і правила визначення послуг за пакетами ПМГ.",
         "packages": [],
@@ -157,6 +157,11 @@ def parse_records(path, meta, pages):
     return unique
 
 
+def find_comparison_pages(code, comparison_pages):
+    pattern = re.compile(r"\b" + re.escape(code) + r"\b")
+    return [p["page"] for p in comparison_pages if pattern.search(p["text"])]
+
+
 def document_record(path, meta, pages):
     full_text = clean(" ".join(page["clean"] for page in pages))
     codes = sorted(set(INLINE_CODE_RE.findall(full_text)))
@@ -184,17 +189,30 @@ def main():
 
     documents = []
     records = []
+    all_pages = {}
     for source_file in sorted(SOURCE_DIR.glob("*.pdf")):
         meta = source_meta(source_file)
         target = DOCS_DIR / normalize_filename(source_file)
         shutil.copy2(source_file, target)
         pages = pdf_pages(source_file)
+        all_pages[meta["id"]] = pages
         documents.append(document_record(source_file, meta, pages))
         records.extend(parse_records(source_file, meta, pages))
+
+    comparison_doc = next((d for d in documents if d["id"] == "comparison-table"), None)
+    comparison_pages = all_pages.get("comparison-table", [])
+    if comparison_pages:
+        for record in records:
+            found = find_comparison_pages(record["code"], comparison_pages)
+            record["comparison_page"] = found[0] if found else None
+    else:
+        for record in records:
+            record["comparison_page"] = None
 
     payload = {
         "generated": "2026-05-31",
         "title": "Алгоритми та правила за наказом № 377",
+        "comparison_href": comparison_doc["href"] if comparison_doc else None,
         "documents_count": len(documents),
         "records_count": len(records),
         "documents": documents,
