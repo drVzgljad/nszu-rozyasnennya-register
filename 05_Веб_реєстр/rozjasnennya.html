@@ -1,9 +1,9 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="uk">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>РќР°РІРёРџРњР“26 | С€РІРёРґРєРёР№ РїРѕРјС–С‡РЅРёРє</title>
+  <title>НавиПМГ26 | швидкий помічник</title>
   <link rel="stylesheet" href="styles.css?v=20260531d">
   <link rel="stylesheet" href="auth.css?v=1">
   <script type="module" src="auth.js"></script>
@@ -11,64 +11,64 @@
 <body>
   <header class="hero">
     <div class="hero-copy">
-      <div class="overline">Р›РѕРєР°Р»СЊРЅР° Р±С–Р±Р»С–РѕС‚РµРєР° РґРѕРєСѓРјРµРЅС‚С–РІ</div>
-      <a class="brand-lockup" href="index.html" aria-label="РќР° РіРѕР»РѕРІРЅСѓ вЂ” РџРѕСЂС‚Р°Р»">
+      <div class="overline">Локальна бібліотека документів</div>
+      <a class="brand-lockup" href="index.html" aria-label="На головну — Портал">
         <img class="brand-shield" src="assets/nszu-shield.svg" alt="" aria-hidden="true">
         <div class="brand-text">
-          <div class="brand-name">РќР°РІРёРџРњР“26</div>
-          <div class="brand-subtitle">С€РІРёРґРєРёР№ РїРѕРјС–С‡РЅРёРє Р· СЂРѕР·'СЏСЃРЅРµРЅСЊ, РїР°РєРµС‚С–РІ С– РїРѕСЃС‚Р°РЅРѕРІРё</div>
+          <div class="brand-name">НавиПМГ26</div>
+          <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
         </div>
       </a>
-      <nav class="section-switch" aria-label="Р РѕР·РґС–Р»Рё СЃР°Р№С‚Сѓ">
-        <a class="active" href="rozjasnennya.html" aria-current="page">Р РѕР·'СЏСЃРЅРµРЅРЅСЏ</a>
-        <a href="pakety/index.html">РџР°РєРµС‚Рё 2026</a>
-        <a href="postanova/index.html">РџРѕСЃС‚Р°РЅРѕРІР° 1808</a>
-        <a class="report-nav-cta" href="pakety/report.html">РњР°С€РёРЅР° РїРѕС€СѓРєСѓ</a>
-        <a href="algorithms/index.html">РђР»РіРѕСЂРёС‚РјРё С‚Р° РїСЂР°РІРёР»Р°</a>
+      <nav class="section-switch" aria-label="Розділи сайту">
+        <a class="active" href="rozjasnennya.html" aria-current="page">Роз'яснення</a>
+        <a href="pakety/index.html">Пакети 2026</a>
+        <a href="postanova/index.html">Постанова 1808</a>
+        <a class="report-nav-cta" href="pakety/report.html">Машина пошуку</a>
+        <a href="algorithms/index.html">Алгоритми та правила</a>
       </nav>
-      <h1>Р РѕР·'СЏСЃРЅРµРЅРЅСЏ РќРЎР—РЈ</h1>
-      <p>Р—РЅР°Р№РґС–С‚СЊ РґРѕРєСѓРјРµРЅС‚ Р·Р° С‚РµРјРѕСЋ, РїР°РєРµС‚РѕРј, РЅРѕРјРµСЂРѕРј, РґР°С‚РѕСЋ Р°Р±Рѕ СЃР»РѕРІРѕРј Р· С‚РµРєСЃС‚Сѓ. РџРµСЂРµРіР»СЏРЅСЊС‚Рµ Р·РјС–СЃС‚, РґР¶РµСЂРµР»Рѕ С– РїРѕРІ'СЏР·Р°РЅС– РјР°С‚РµСЂС–Р°Р»Рё РІ РѕРґРЅРѕРјСѓ РјС–СЃС†С–.</p>
+      <h1>Роз'яснення НСЗУ</h1>
+      <p>Знайдіть документ за темою, пакетом, номером, датою або словом з тексту. Перегляньте зміст, джерело і пов'язані матеріали в одному місці.</p>
     </div>
-    <div class="stats" id="stats" aria-label="РЎС‚Р°С‚РёСЃС‚РёРєР° СЂРµС”СЃС‚СЂСѓ"></div>
+    <div class="stats" id="stats" aria-label="Статистика реєстру"></div>
   </header>
 
   <main class="layout">
-    <section class="browser" aria-label="РџРѕС€СѓРє РґРѕРєСѓРјРµРЅС‚С–РІ">
+    <section class="browser" aria-label="Пошук документів">
       <div class="search-panel">
         <label class="search">
-          <span>РџРѕС€СѓРє</span>
-          <input id="search" type="search" placeholder="РќР°РїСЂРёРєР»Р°Рґ: РїР°Р»С–Р°С‚РёРІРЅР° РґРѕРїРѕРјРѕРіР°, Р•РњР—, С–РЅСЃСѓР»СЊС‚..." autocomplete="off">
+          <span>Пошук</span>
+          <input id="search" type="search" placeholder="Наприклад: паліативна допомога, ЕМЗ, інсульт..." autocomplete="off">
         </label>
         <div class="filters">
-          <label>РќР°РїСЂСЏРј
-            <select id="direction"><option value="">РЈСЃС– РЅР°РїСЂСЏРјРё</option></select>
+          <label>Напрям
+            <select id="direction"><option value="">Усі напрями</option></select>
           </label>
-          <label>РџР°РєРµС‚ / РіСЂСѓРїР°
-            <select id="package"><option value="">РЈСЃС– РїР°РєРµС‚Рё</option></select>
+          <label>Пакет / група
+            <select id="package"><option value="">Усі пакети</option></select>
           </label>
-          <label>Р С–Рє
-            <select id="year"><option value="">РЈСЃС– СЂРѕРєРё</option></select>
+          <label>Рік
+            <select id="year"><option value="">Усі роки</option></select>
           </label>
-          <label>Р”Р°С‚Р° РґРѕРєСѓРјРµРЅС‚Р°
-            <select id="documentDate"><option value="">РЈСЃС– РґР°С‚Рё</option></select>
+          <label>Дата документа
+            <select id="documentDate"><option value="">Усі дати</option></select>
           </label>
-          <label>РќРѕРјРµСЂ РґРѕРєСѓРјРµРЅС‚Р°
-            <select id="documentNumber"><option value="">РЈСЃС– РЅРѕРјРµСЂРё</option></select>
+          <label>Номер документа
+            <select id="documentNumber"><option value="">Усі номери</option></select>
           </label>
-          <label>Р¤РѕСЂРјР°С‚
-            <select id="format"><option value="">РЈСЃС– С„РѕСЂРјР°С‚Рё</option></select>
+          <label>Формат
+            <select id="format"><option value="">Усі формати</option></select>
           </label>
-          <label>РўРµРєСЃС‚
+          <label>Текст
             <select id="quality">
-              <option value="">РЈСЃС– РґРѕРєСѓРјРµРЅС‚Рё</option>
-              <option value="ocr">Р РѕР·РїС–Р·РЅР°РЅС– СЃРєР°РЅРё</option>
-              <option value="text">Р— РјР°С€РёРЅРЅРёРј С‚РµРєСЃС‚РѕРј</option>
+              <option value="">Усі документи</option>
+              <option value="ocr">Розпізнані скани</option>
+              <option value="text">З машинним текстом</option>
             </select>
           </label>
         </div>
         <div class="results-summary">
-          <span id="resultCount">РћР±РµСЂС–С‚СЊ С„С–Р»СЊС‚СЂ Р°Р±Рѕ РІРІРµРґС–С‚СЊ Р·Р°РїРёС‚</span>
-          <button id="reset" type="button">РћС‡РёСЃС‚РёС‚Рё С„С–Р»СЊС‚СЂРё</button>
+          <span id="resultCount">Оберіть фільтр або введіть запит</span>
+          <button id="reset" type="button">Очистити фільтри</button>
         </div>
       </div>
       <div class="cards" id="cards"></div>
@@ -77,8 +77,8 @@
     <aside class="detail empty" id="detail" aria-live="polite">
       <div class="empty-state">
         <div class="empty-icon">i</div>
-        <h2>РћР±РµСЂС–С‚СЊ РґРѕРєСѓРјРµРЅС‚</h2>
-        <p>РўСѓС‚ Р·'СЏРІРёС‚СЊСЃСЏ РєРѕСЂРѕС‚РєР° С–РЅС„РѕСЂРјР°С†С–СЏ, РєРЅРѕРїРєРё РІС–РґРєСЂРёС‚С‚СЏ С‚Р° РїРѕРІ'СЏР·Р°РЅС– РјР°С‚РµСЂС–Р°Р»Рё.</p>
+        <h2>Оберіть документ</h2>
+        <p>Тут з'явиться коротка інформація, кнопки відкриття та пов'язані матеріали.</p>
       </div>
     </aside>
   </main>
@@ -94,9 +94,9 @@
   <footer class="site-footer">
     <div class="footer-inner">
       <div class="footer-copy">
-        <div class="footer-agency">РќРЎР—РЈ</div>
-        <div class="footer-department">Р”РµРїР°СЂС‚Р°РјРµРЅС‚ СЃС‚СЂР°С‚РµРіС–С— СѓРЅС–РІРµСЂСЃР°Р»СЊРЅРѕРіРѕ РѕС…РѕРїР»РµРЅРЅСЏ РЅР°СЃРµР»РµРЅРЅСЏ РјРµРґРёС‡РЅРёРјРё РїРѕСЃР»СѓРіР°РјРё</div>
-        <p>Р РµС”СЃС‚СЂ СЂРѕР·СЂРѕР±Р»РµРЅРѕ СЃРёР»Р°РјРё Р”РµРїР°СЂС‚Р°РјРµРЅС‚Сѓ Р±РµР· Р·РѕРІРЅС–С€РЅСЊРѕРіРѕ СЃРїСЂРёСЏРЅРЅСЏ С‚Р° РїСЂРѕС”РєС‚С–РІ.</p>
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Реєстр розроблено силами Департаменту без зовнішнього сприяння та проєктів.</p>
       </div>
     </div>
   </footer>

@@ -1,9 +1,9 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="uk">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>РќР°РІРёРџРњР“26 | РђР»РіРѕСЂРёС‚РјРё С‚Р° РїСЂР°РІРёР»Р°</title>
+  <title>НавиПМГ26 | Алгоритми та правила</title>
   <link rel="stylesheet" href="../styles.css?v=20260531d">
   <link rel="stylesheet" href="algorithms.css?v=20260601c">
   <link rel="stylesheet" href="../auth.css?v=1">
@@ -12,79 +12,79 @@
 <body id="top">
   <header class="hero algorithms-hero">
     <div class="hero-copy">
-      <div class="overline">РќР°РєР°Р· РќРЎР—РЈ в„– 377</div>
-      <a class="brand-lockup" href="../index.html" aria-label="РќР° РіРѕР»РѕРІРЅСѓ вЂ” РџРѕСЂС‚Р°Р»">
+      <div class="overline">Наказ НСЗУ № 377</div>
+      <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
         <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
         <div class="brand-text">
-          <div class="brand-name">РќР°РІРёРџРњР“26</div>
-          <div class="brand-subtitle">С€РІРёРґРєРёР№ РїРѕРјС–С‡РЅРёРє Р· СЂРѕР·'СЏСЃРЅРµРЅСЊ, РїР°РєРµС‚С–РІ, РїРѕСЃС‚Р°РЅРѕРІРё С‚Р° РїСЂР°РІРёР»</div>
+          <div class="brand-name">НавиПМГ26</div>
+          <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів, постанови та правил</div>
         </div>
       </a>
-      <nav class="section-switch" aria-label="Р РѕР·РґС–Р»Рё СЃР°Р№С‚Сѓ">
-        <a href="../rozjasnennya.html">Р РѕР·'СЏСЃРЅРµРЅРЅСЏ</a>
-        <a href="../pakety/index.html">РџР°РєРµС‚Рё 2026</a>
-        <a href="../postanova/index.html">РџРѕСЃС‚Р°РЅРѕРІР° 1808</a>
-        <a class="report-nav-cta" href="../pakety/report.html">РњР°С€РёРЅР° РїРѕС€СѓРєСѓ</a>
-        <a class="active" href="index.html" aria-current="page">РђР»РіРѕСЂРёС‚РјРё С‚Р° РїСЂР°РІРёР»Р°</a>
+      <nav class="section-switch" aria-label="Розділи сайту">
+        <a href="../rozjasnennya.html">Роз'яснення</a>
+        <a href="../pakety/index.html">Пакети 2026</a>
+        <a href="../postanova/index.html">Постанова 1808</a>
+        <a class="report-nav-cta" href="../pakety/report.html">Машина пошуку</a>
+        <a class="active" href="index.html" aria-current="page">Алгоритми та правила</a>
       </nav>
-      <h1>РђР»РіРѕСЂРёС‚РјРё С‚Р° РїСЂР°РІРёР»Р°</h1>
-      <p>РџРѕС€СѓРє Р·Р° РєРѕРґР°РјРё РќРљ 025, РЅР°Р·РІР°РјРё РґС–Р°РіРЅРѕР·С–РІ, Р°РјР±СѓР»Р°С‚РѕСЂРЅРѕ-Р°СЃРѕС†С–Р№РѕРІР°РЅРёРјРё СЃС‚Р°РЅР°РјРё С‚Р° РїСЂР°РІРёР»Р°РјРё РЅР°РєР°Р·Сѓ в„– 377. РџРµСЂС€РёР№ СЂРѕР±РѕС‡РёР№ С€Р°СЂ: С€РІРёРґРєРѕ Р·РЅР°Р№С‚Рё РєРѕРґ, РґР¶РµСЂРµР»Рѕ, СЃС‚РѕСЂС–РЅРєСѓ PDF С– СЃРєРѕРїС–СЋРІР°С‚Рё РІРёСЃРЅРѕРІРѕРє.</p>
+      <h1>Алгоритми та правила</h1>
+      <p>Пошук за кодами НК 025, назвами діагнозів, амбулаторно-асоційованими станами та правилами наказу № 377. Перший робочий шар: швидко знайти код, джерело, сторінку PDF і скопіювати висновок.</p>
     </div>
-    <div class="stats" id="algorithmStats" aria-label="РЎС‚Р°С‚РёСЃС‚РёРєР° Р°Р»РіРѕСЂРёС‚РјС–РІ"></div>
+    <div class="stats" id="algorithmStats" aria-label="Статистика алгоритмів"></div>
   </header>
 
-  <nav class="mobile-tabs" id="mobileTabs" aria-label="РќР°РІС–РіР°С†С–СЏ РјС–Р¶ РїР°РЅРµР»СЏРјРё">
-    <button class="mobile-tab active" data-tab="browser" type="button">РџРѕС€СѓРє</button>
-    <button class="mobile-tab" data-tab="results" type="button">Р РµР·СѓР»СЊС‚Р°С‚Рё <span id="mobileCount"></span></button>
-    <button class="mobile-tab" data-tab="reader" type="button">Р”РµС‚Р°Р»С–</button>
+  <nav class="mobile-tabs" id="mobileTabs" aria-label="Навігація між панелями">
+    <button class="mobile-tab active" data-tab="browser" type="button">Пошук</button>
+    <button class="mobile-tab" data-tab="results" type="button">Результати <span id="mobileCount"></span></button>
+    <button class="mobile-tab" data-tab="reader" type="button">Деталі</button>
   </nav>
 
   <main class="algorithms-layout" data-active="browser">
-    <section class="algorithm-browser" aria-label="РџРѕС€СѓРє Р°Р»РіРѕСЂРёС‚РјС–РІ С‚Р° РїСЂР°РІРёР»">
+    <section class="algorithm-browser" aria-label="Пошук алгоритмів та правил">
       <div class="search-panel algorithm-search">
         <label class="search">
-          <span>РџРѕС€СѓРє Сѓ РєРѕРґР°С… С– РїСЂР°РІРёР»Р°С…</span>
-          <input id="algorithmSearch" type="search" placeholder="РќР°РїСЂРёРєР»Р°Рґ: A08.0, Z00.1, СЂРѕС‚Р°РІС–СЂСѓСЃ, РїСЂРѕС„С–Р»Р°РєС‚РёРєР°..." autocomplete="off">
+          <span>Пошук у кодах і правилах</span>
+          <input id="algorithmSearch" type="search" placeholder="Наприклад: A08.0, Z00.1, ротавірус, профілактика..." autocomplete="off">
         </label>
         <div class="algorithm-filters">
-          <label>Р”Р¶РµСЂРµР»Рѕ
-            <select id="sourceFilter"><option value="">РЈСЃС– РґР¶РµСЂРµР»Р°</option></select>
+          <label>Джерело
+            <select id="sourceFilter"><option value="">Усі джерела</option></select>
           </label>
-          <label>РџР°РєРµС‚ / РїСЂР°РІРёР»Рѕ
-            <select id="packageFilter"><option value="">РЈСЃС– РїР°РєРµС‚Рё</option></select>
+          <label>Пакет / правило
+            <select id="packageFilter"><option value="">Усі пакети</option></select>
           </label>
         </div>
         <div class="results-summary">
           <span id="algorithmCount"></span>
-          <button id="clearAlgorithms" type="button">РћС‡РёСЃС‚РёС‚Рё</button>
+          <button id="clearAlgorithms" type="button">Очистити</button>
         </div>
       </div>
       <div class="source-panel">
-        <h2>Р”Р¶РµСЂРµР»Р°</h2>
+        <h2>Джерела</h2>
         <div id="sourceCards" class="source-cards"></div>
       </div>
     </section>
 
-    <section class="algorithm-results" aria-label="Р—РЅР°Р№РґРµРЅС– РєРѕРґРё">
+    <section class="algorithm-results" aria-label="Знайдені коди">
       <div class="algorithm-cards" id="algorithmCards"></div>
     </section>
 
     <article class="algorithm-reader reader-empty" id="algorithmReader" aria-live="polite">
-      <p>РћР±РµСЂС–С‚СЊ РєРѕРґ Р°Р±Рѕ РїСЂР°РІРёР»Рѕ, С‰РѕР± РїРѕР±Р°С‡РёС‚Рё РґРµС‚Р°Р»С– Р№ СЃС„РѕСЂРјСѓРІР°С‚Рё С‚РµРєСЃС‚ РґР»СЏ РєРѕРїС–СЋРІР°РЅРЅСЏ.</p>
+      <p>Оберіть код або правило, щоб побачити деталі й сформувати текст для копіювання.</p>
     </article>
   </main>
 
   <footer class="site-footer">
     <div class="footer-inner">
       <div class="footer-copy">
-        <div class="footer-agency">РќРЎР—РЈ</div>
-        <div class="footer-department">Р”РµРїР°СЂС‚Р°РјРµРЅС‚ СЃС‚СЂР°С‚РµРіС–С— СѓРЅС–РІРµСЂСЃР°Р»СЊРЅРѕРіРѕ РѕС…РѕРїР»РµРЅРЅСЏ РЅР°СЃРµР»РµРЅРЅСЏ РјРµРґРёС‡РЅРёРјРё РїРѕСЃР»СѓРіР°РјРё</div>
-        <p>Р РѕР·РґС–Р» СЃС‚РІРѕСЂРµРЅРѕ РґР»СЏ С€РІРёРґРєРѕС— РЅР°РІС–РіР°С†С–С— РЅР°РєР°Р·РѕРј в„– 377, РґРѕРґР°С‚РєР°РјРё С‚Р° РїРѕСЂС–РІРЅСЏР»СЊРЅРёРјРё РјР°С‚РµСЂС–Р°Р»Р°РјРё.</p>
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Розділ створено для швидкої навігації наказом № 377, додатками та порівняльними матеріалами.</p>
       </div>
     </div>
   </footer>
 
-  <a class="back-to-top" href="#top" aria-label="РџРѕРІРµСЂРЅСѓС‚РёСЃСЏ РЅР° РїРѕС‡Р°С‚РѕРє СЃС‚РѕСЂС–РЅРєРё">в†‘ Р’РµСЂС…</a>
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
   <script src="algorithms.js?v=20260601g" defer></script>
 </body>
 </html>
