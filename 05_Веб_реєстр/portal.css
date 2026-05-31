@@ -207,10 +207,19 @@ body {
 .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 16px 30px rgba(54,124,160,.32); }
 
 .hero-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
-.hero-tags span {
+.hero-tags a {
   padding: 7px 13px; border-radius: var(--pr-pill);
   background: rgba(255,255,255,.66); border: 1px solid var(--p-line);
   font-size: 13px; font-weight: 600; color: var(--p-muted);
+  text-decoration: none;
+  transition: background .15s, color .15s, border-color .15s, transform .15s;
+}
+.hero-tags a:hover {
+  background: #fff;
+  color: var(--accent-deep);
+  border-color: var(--b-200);
+  transform: translateY(-1px);
+  box-shadow: var(--p-shadow-sm);
 }
 
 /* Stat strip */
