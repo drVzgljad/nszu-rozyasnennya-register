@@ -38,17 +38,38 @@ function applyAccess() {
   const badge = document.getElementById('auth-role-badge');
   if (badge) {
     badge.className = 'auth-role-badge';
+    // Fail-safe inline styles to bypass browser cache of auth.css
+    badge.style.display = 'inline-flex';
+    badge.style.alignItems = 'center';
+    badge.style.padding = '6px 10px';
+    badge.style.borderRadius = '8px';
+    badge.style.fontSize = '11px';
+    badge.style.fontWeight = '700';
+    badge.style.textTransform = 'uppercase';
+    badge.style.letterSpacing = '0.05em';
+    badge.style.whiteSpace = 'nowrap';
+    badge.style.lineHeight = '1';
+
     if (user) {
       if (role === 'full') {
         badge.textContent = 'Повний доступ';
         badge.classList.add('role-full');
+        badge.style.background = '#e9f7f3';
+        badge.style.color = '#08705e';
+        badge.style.border = '1px solid rgba(84, 173, 132, 0.25)';
       } else {
         badge.textContent = 'Базовий доступ';
         badge.classList.add('role-registered');
+        badge.style.background = '#eef6fc';
+        badge.style.color = '#2f6b9e';
+        badge.style.border = '1px solid rgba(74, 143, 199, 0.2)';
       }
     } else {
       badge.textContent = 'Гість';
       badge.classList.add('role-guest');
+      badge.style.background = '#f2f8fb';
+      badge.style.color = '#647688';
+      badge.style.border = '1px solid #e3edf3';
     }
   }
 
