@@ -27,12 +27,12 @@
   margin-left: 6px;
   padding-inline: 18px;
   color: #fff;
-  background: linear-gradient(135deg, #006fc9, #00a3d7);
-  box-shadow: 0 8px 18px rgba(0,111,201,.22);
+  background: linear-gradient(135deg, #4a8fc7, #54ad84);
+  box-shadow: 0 8px 18px rgba(74,143,199,.22);
 }
 .section-switch a.report-nav-cta:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 22px rgba(0,111,201,.28);
+  box-shadow: 0 10px 22px rgba(74,143,199,.28);
 }
 .packages-layout {
   display: grid;

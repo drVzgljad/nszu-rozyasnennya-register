@@ -1,58 +1,61 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="uk">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>НавиПМГ26 | Машина пошуку</title>
-  <link rel="stylesheet" href="../styles.css?v=20260531b">
-  <link rel="stylesheet" href="packages.css?v=20260529a">
+  <title>РќР°РІРёРџРњР“26 | РњР°С€РёРЅР° РїРѕС€СѓРєСѓ</title>
+  <link rel="stylesheet" href="../styles.css?v=20260531c">
+  <link rel="stylesheet" href="packages.css?v=20260531c">
   <link rel="stylesheet" href="../auth.css?v=1">
   <script type="module" src="../auth.js"></script>
 </head>
 <body id="top" data-required-role="registered">
   <header class="hero package-hero">
     <div class="hero-copy">
-      <div class="overline">Програма медичних гарантій 2026</div>
-      <div class="brand-lockup" aria-label="Загальна назва сервісу">
-        <div class="brand-name">НавиПМГ26</div>
-        <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
-      </div>
-      <nav class="section-switch" aria-label="Розділи сайту">
-        <a href="../rozjasnennya.html">Роз'яснення</a>
-        <a href="index.html">Пакети 2026</a>
-        <a href="../postanova/index.html">Постанова 1808</a>
-        <a class="report-nav-cta" href="report.html" aria-current="page">Машина пошуку</a>
-        <a href="../algorithms/index.html">Алгоритми та правила</a>
+      <div class="overline">РџСЂРѕРіСЂР°РјР° РјРµРґРёС‡РЅРёС… РіР°СЂР°РЅС‚С–Р№ 2026</div>
+      <a class="brand-lockup" href="../index.html" aria-label="РќР° РіРѕР»РѕРІРЅСѓ вЂ” РџРѕСЂС‚Р°Р»">
+        <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+        <div class="brand-text">
+          <div class="brand-name">РќР°РІРёРџРњР“26</div>
+          <div class="brand-subtitle">С€РІРёРґРєРёР№ РїРѕРјС–С‡РЅРёРє Р· СЂРѕР·'СЏСЃРЅРµРЅСЊ, РїР°РєРµС‚С–РІ С– РїРѕСЃС‚Р°РЅРѕРІРё</div>
+        </div>
+      </a>
+      <nav class="section-switch" aria-label="Р РѕР·РґС–Р»Рё СЃР°Р№С‚Сѓ">
+        <a href="../rozjasnennya.html">Р РѕР·'СЏСЃРЅРµРЅРЅСЏ</a>
+        <a href="index.html">РџР°РєРµС‚Рё 2026</a>
+        <a href="../postanova/index.html">РџРѕСЃС‚Р°РЅРѕРІР° 1808</a>
+        <a class="report-nav-cta" href="report.html" aria-current="page">РњР°С€РёРЅР° РїРѕС€СѓРєСѓ</a>
+        <a href="../algorithms/index.html">РђР»РіРѕСЂРёС‚РјРё С‚Р° РїСЂР°РІРёР»Р°</a>
       </nav>
-      <h1>Звіт пошуку в пакетах</h1>
-      <p>Окрема сторінка з усіма пакетами, розділами та повними пунктами, де знайдено пошуковий запит.</p>
+      <h1>Р—РІС–С‚ РїРѕС€СѓРєСѓ РІ РїР°РєРµС‚Р°С…</h1>
+      <p>РћРєСЂРµРјР° СЃС‚РѕСЂС–РЅРєР° Р· СѓСЃС–РјР° РїР°РєРµС‚Р°РјРё, СЂРѕР·РґС–Р»Р°РјРё С‚Р° РїРѕРІРЅРёРјРё РїСѓРЅРєС‚Р°РјРё, РґРµ Р·РЅР°Р№РґРµРЅРѕ РїРѕС€СѓРєРѕРІРёР№ Р·Р°РїРёС‚.</p>
     </div>
-    <div class="stats" id="reportStats" aria-label="Статистика звіту"></div>
+    <div class="stats" id="reportStats" aria-label="РЎС‚Р°С‚РёСЃС‚РёРєР° Р·РІС–С‚Сѓ"></div>
   </header>
 
   <main class="report-layout">
     <section class="report-panel">
       <label class="search">
-        <span>Пошуковий запит</span>
-        <input id="reportSearch" type="search" placeholder="Наприклад: рентген установка" autocomplete="off">
+        <span>РџРѕС€СѓРєРѕРІРёР№ Р·Р°РїРёС‚</span>
+        <input id="reportSearch" type="search" placeholder="РќР°РїСЂРёРєР»Р°Рґ: СЂРµРЅС‚РіРµРЅ СѓСЃС‚Р°РЅРѕРІРєР°" autocomplete="off">
       </label>
       <div class="report-actions">
-        <button class="action primary" id="buildReport" type="button">Сформувати звіт</button>
-        <a class="action" id="backToPackages" href="index.html">Назад до пакетів</a>
+        <button class="action primary" id="buildReport" type="button">РЎС„РѕСЂРјСѓРІР°С‚Рё Р·РІС–С‚</button>
+        <a class="action" id="backToPackages" href="index.html">РќР°Р·Р°Рґ РґРѕ РїР°РєРµС‚С–РІ</a>
       </div>
-      <div class="report-section-filter" id="reportSectionFilter" aria-label="Фільтр за підрозділами пакетів"></div>
-      <p class="report-hint">У звіт потрапляють повні пункти умов закупівлі та заголовки розділів, де є збіг.</p>
-      <section class="report-copy-box" aria-label="Зведення для копіювання">
+      <div class="report-section-filter" id="reportSectionFilter" aria-label="Р¤С–Р»СЊС‚СЂ Р·Р° РїС–РґСЂРѕР·РґС–Р»Р°РјРё РїР°РєРµС‚С–РІ"></div>
+      <p class="report-hint">РЈ Р·РІС–С‚ РїРѕС‚СЂР°РїР»СЏСЋС‚СЊ РїРѕРІРЅС– РїСѓРЅРєС‚Рё СѓРјРѕРІ Р·Р°РєСѓРїС–РІР»С– С‚Р° Р·Р°РіРѕР»РѕРІРєРё СЂРѕР·РґС–Р»С–РІ, РґРµ С” Р·Р±С–Рі.</p>
+      <section class="report-copy-box" aria-label="Р—РІРµРґРµРЅРЅСЏ РґР»СЏ РєРѕРїС–СЋРІР°РЅРЅСЏ">
         <div class="report-copy-head">
-          <h2>Зведення для копіювання</h2>
-          <button class="action" id="copyReportSummary" type="button">Копіювати зведення</button>
+          <h2>Р—РІРµРґРµРЅРЅСЏ РґР»СЏ РєРѕРїС–СЋРІР°РЅРЅСЏ</h2>
+          <button class="action" id="copyReportSummary" type="button">РљРѕРїС–СЋРІР°С‚Рё Р·РІРµРґРµРЅРЅСЏ</button>
         </div>
-        <textarea id="reportSummary" readonly placeholder="Після формування звіту тут з'явиться акумульований текст для копіювання."></textarea>
+        <textarea id="reportSummary" readonly placeholder="РџС–СЃР»СЏ С„РѕСЂРјСѓРІР°РЅРЅСЏ Р·РІС–С‚Сѓ С‚СѓС‚ Р·'СЏРІРёС‚СЊСЃСЏ Р°РєСѓРјСѓР»СЊРѕРІР°РЅРёР№ С‚РµРєСЃС‚ РґР»СЏ РєРѕРїС–СЋРІР°РЅРЅСЏ."></textarea>
       </section>
     </section>
   </main>
 
-  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <a class="back-to-top" href="#top" aria-label="РџРѕРІРµСЂРЅСѓС‚РёСЃСЏ РЅР° РїРѕС‡Р°С‚РѕРє СЃС‚РѕСЂС–РЅРєРё">в†‘ Р’РµСЂС…</a>
   <script src="report.js?v=20260529a" defer></script>
 </body>
 </html>
