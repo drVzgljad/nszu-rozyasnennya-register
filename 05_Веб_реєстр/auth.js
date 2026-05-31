@@ -34,6 +34,24 @@ function applyAccess() {
     }
   }
 
+  // Update role badge next to the button
+  const badge = document.getElementById('auth-role-badge');
+  if (badge) {
+    badge.className = 'auth-role-badge';
+    if (user) {
+      if (role === 'full') {
+        badge.textContent = 'Повний доступ';
+        badge.classList.add('role-full');
+      } else {
+        badge.textContent = 'Базовий доступ';
+        badge.classList.add('role-registered');
+      }
+    } else {
+      badge.textContent = 'Гість';
+      badge.classList.add('role-guest');
+    }
+  }
+
   // Show/hide role-gated elements
   document.querySelectorAll('[data-role]').forEach(el => {
     el.style.display = hasAccess(el.dataset.role) ? '' : 'none';
@@ -124,9 +142,16 @@ async function onRegister(e) {
 }
 
 function inject() {
-  // Auth button inside nav
+  // Auth elements inside nav/container
   const container = document.querySelector('.auth-container') || document.querySelector('nav.section-switch');
   if (container) {
+    // Role badge indicator
+    const badge = document.createElement('span');
+    badge.id = 'auth-role-badge';
+    badge.className = 'auth-role-badge role-guest';
+    badge.textContent = 'Гість';
+    container.appendChild(badge);
+
     const btn = document.createElement('button');
     btn.id = 'auth-nav-btn';
     btn.className = 'auth-nav-btn';

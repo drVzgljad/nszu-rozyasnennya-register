@@ -20,6 +20,35 @@
   border-color: var(--accent);
 }
 
+/* ── Role badge ──────────────────────────────────── */
+.auth-role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  line-height: 1;
+}
+.auth-role-badge.role-guest {
+  background: var(--soft, #f2f8fb);
+  color: var(--muted, #647688);
+  border: 1px solid var(--line, #e3edf3);
+}
+.auth-role-badge.role-registered {
+  background: #eef6fc;
+  color: var(--accent-dark, #2f6b9e);
+  border: 1px solid rgba(74, 143, 199, 0.2);
+}
+.auth-role-badge.role-full {
+  background: #e9f7f3;
+  color: #08705e;
+  border: 1px solid rgba(84, 173, 132, 0.25);
+}
+
 /* ── Modal overlay ───────────────────────────────── */
 .auth-overlay {
   position: fixed;
