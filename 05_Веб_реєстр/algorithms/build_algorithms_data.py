@@ -82,16 +82,55 @@ def pdf_pages(path):
     pages = []
     for index, page in enumerate(reader.pages, start=1):
         text = page.extract_text() or ""
-        pages.append({"page": index, "text": text, "clean": clean(text)})
+        try:
+            layout = page.extract_text(extraction_mode="layout") or ""
+        except Exception:
+            layout = text
+        pages.append({"page": index, "text": text, "layout": layout, "clean": clean(text)})
     return pages
 
 
-def parse_age_flags(status_str):
-    """Перший 'так' = Діти, другий 'так' = Дорослі. Нема 'так' = не застосовується."""
-    taks = list(TAK_RE.finditer(status_str or ""))
-    children = len(taks) >= 1
-    adults = len(taks) >= 2
-    pkg4_only = next((m.group(1) for m in taks if m.group(1)), None)
+def detect_column_boundary(pages):
+    """Знаходить межу між колонками 'Діти' та 'Дорослі'.
+    Метод 1: заголовок на одному рядку.
+    Метод 2: середня між першим і другим 'так' у рядках з двома 'так'.
+    """
+    # Метод 1: заголовок на одному рядку
+    for page in pages:
+        for line in page["layout"].splitlines():
+            lower = line.lower()
+            if "діти" in lower and "дорослі" in lower:
+                pos_children = lower.index("діти")
+                pos_adults = lower.index("дорослі")
+                if pos_adults > pos_children:
+                    return (pos_children + pos_adults) // 2
+
+    # Метод 2: аналіз рядків де є рівно два 'так'
+    pairs = []
+    for page in pages:
+        for line in page["layout"].splitlines():
+            ms = list(re.finditer(r"так", line, re.I))
+            if len(ms) == 2:
+                pairs.append((ms[0].start(), ms[1].start()))
+    if pairs:
+        avg1 = sum(p[0] for p in pairs) / len(pairs)
+        avg2 = sum(p[1] for p in pairs) / len(pairs)
+        return int((avg1 + avg2) / 2)
+
+    return None
+
+
+def parse_age_from_layout(layout_line, boundary):
+    """По позиції 'так' у рядку визначає колонку: ліво від межі = Діти, право = Дорослі."""
+    children, adults = False, False
+    pkg4_only = None
+    for m in re.finditer(r"так(?:,\s*для\s*(\d+)\s*пакет[ау]?)?", layout_line, re.I):
+        if boundary is None or m.start() < boundary:
+            children = True
+        else:
+            adults = True
+        if m.group(1):
+            pkg4_only = m.group(1)
     return children, adults, pkg4_only
 
 
@@ -109,9 +148,17 @@ def parse_records(path, meta, pages):
     if meta["id"] not in {"appendix-3", "appendix-4"}:
         return []
 
+    boundary = detect_column_boundary(pages) if meta["id"] == "appendix-3" else None
+
     records = []
     current = None
+    current_layout_lines = []  # всі layout-рядки для поточного запису
+
     for page in pages:
+        layout_lines = page["layout"].splitlines()
+        # Будуємо індекс layout рядків по очищеному тексту для зіставлення
+        layout_clean_map = {clean(ll): ll for ll in layout_lines if clean(ll)}
+
         for raw_line in page["text"].splitlines():
             line = clean(raw_line)
             if not line:
@@ -119,17 +166,25 @@ def parse_records(path, meta, pages):
             match = CODE_RE.match(line)
             if match:
                 code = match.group(0)
-                rest = clean(line[match.end() :])
+                rest = clean(line[match.end():])
                 if code in {"Y36", "Y96"} and rest.casefold().startswith("та "):
                     continue
                 if current:
+                    # Визначаємо вікові групи по всіх layout-рядках запису
+                    combined_layout = " ".join(current_layout_lines)
+                    children, adults, pkg4_only = parse_age_from_layout(combined_layout, boundary)
+                    current["children"] = children
+                    current["adults"] = adults
+                    current["pkg4_only"] = pkg4_only
                     records.append(current)
-                name, status = split_status(rest)
+                name, _ = split_status(rest)
                 current = {
                     "id": f"{meta['id']}-{code.lower().replace('.', '-')}-{len(records) + 1}",
                     "code": code,
                     "name": name,
-                    "_status_raw": status,
+                    "children": False,
+                    "adults": False,
+                    "pkg4_only": None,
                     "source_id": meta["id"],
                     "source_title": meta["short_title"],
                     "document_title": meta["title"],
@@ -139,11 +194,19 @@ def parse_records(path, meta, pages):
                     "href": f"docs/{normalize_filename(path)}#page={page['page']}",
                     "search_text": "",
                 }
+                current_layout_lines = [layout_clean_map.get(line, raw_line)]
                 continue
             if current and not line.startswith(("СЕД АСКОД", "ДОКУМЕНТ №", "Сертифікат", "Підписувач")):
-                current["name"] = clean(f"{current['name']} {line}")
-                current["name"], current["_status_raw"] = split_status(f"{current['name']} {current['_status_raw']}")
+                name_only, _ = split_status(line)
+                current["name"] = clean(f"{current['name']} {name_only}")
+                if line in layout_clean_map:
+                    current_layout_lines.append(layout_clean_map[line])
     if current:
+        combined_layout = " ".join(current_layout_lines)
+        children, adults, pkg4_only = parse_age_from_layout(combined_layout, boundary)
+        current["children"] = children
+        current["adults"] = adults
+        current["pkg4_only"] = pkg4_only
         records.append(current)
 
     unique = []
@@ -153,13 +216,9 @@ def parse_records(path, meta, pages):
         if key in seen or not record["name"]:
             continue
         seen.add(key)
-        children, adults, pkg4_only = parse_age_flags(record.pop("_status_raw", ""))
-        record["children"] = children
-        record["adults"] = adults
-        record["pkg4_only"] = pkg4_only
         age_text = " ".join(filter(None, [
-            "Діти" if children else "",
-            "Дорослі" if adults else "",
+            "Діти" if record["children"] else "",
+            "Дорослі" if record["adults"] else "",
         ]))
         record["search_text"] = clean(
             " ".join([
