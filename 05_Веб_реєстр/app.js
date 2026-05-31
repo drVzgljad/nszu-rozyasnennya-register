@@ -208,7 +208,7 @@ function selectDocument(id) {
   renderCards();
   renderDetail(documentInfo);
   if (window.innerWidth <= 1040) {
-    el("detail").scrollIntoView({ behavior: "smooth" });
+    el("detail").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 }
 

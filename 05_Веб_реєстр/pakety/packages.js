@@ -147,7 +147,7 @@ function renderCards() {
     card.addEventListener("click", () => {
       selectPackage(packageState.data.packages.find((pkg) => pkg.number === card.dataset.package));
       if (window.innerWidth <= 820) {
-        byId("packageOutline").scrollIntoView({ behavior: "smooth" });
+        byId("packageOutline").scrollIntoView({ behavior: "smooth", block: "start" });
       }
     });
   });
@@ -196,7 +196,7 @@ function renderOutline() {
       renderReader();
       updateUrl();
       if (window.innerWidth <= 820) {
-        byId("packageReader").scrollIntoView({ behavior: "smooth" });
+        byId("packageReader").scrollIntoView({ behavior: "smooth", block: "start" });
       }
     });
   });

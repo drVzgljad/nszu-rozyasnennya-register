@@ -189,7 +189,7 @@ function renderCards() {
     button.addEventListener("click", () => {
       selectNode(resolutionState.nodes.find((node) => node.id === button.dataset.node));
       if (window.innerWidth <= 840) {
-        byId("resolutionOutline").scrollIntoView({ behavior: "smooth" });
+        byId("resolutionOutline").scrollIntoView({ behavior: "smooth", block: "start" });
       }
     });
   });
@@ -240,7 +240,7 @@ function renderOutline() {
       renderReader();
       updateUrl();
       if (window.innerWidth <= 840) {
-        byId("resolutionReader").scrollIntoView({ behavior: "smooth" });
+        byId("resolutionReader").scrollIntoView({ behavior: "smooth", block: "start" });
       }
     });
   });
@@ -287,7 +287,7 @@ function renderAppendixOutline(node, container, pages) {
       renderReader();
       updateUrl();
       if (window.innerWidth <= 840) {
-        byId("resolutionReader").scrollIntoView({ behavior: "smooth" });
+        byId("resolutionReader").scrollIntoView({ behavior: "smooth", block: "start" });
       }
     });
   });
