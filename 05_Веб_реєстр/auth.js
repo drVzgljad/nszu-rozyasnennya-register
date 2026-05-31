@@ -125,8 +125,8 @@ async function onRegister(e) {
 
 function inject() {
   // Auth button inside nav
-  const nav = document.querySelector('nav.section-switch');
-  if (nav) {
+  const container = document.querySelector('.auth-container') || document.querySelector('nav.section-switch');
+  if (container) {
     const btn = document.createElement('button');
     btn.id = 'auth-nav-btn';
     btn.className = 'auth-nav-btn';
@@ -135,7 +135,7 @@ function inject() {
       if (btn.classList.contains('is-signed-in')) sb.auth.signOut();
       else openModal();
     });
-    nav.appendChild(btn);
+    container.appendChild(btn);
   }
 
   // Modal + access denied
