@@ -34,7 +34,10 @@ body {
   border-bottom: 1px solid var(--line);
 }
 
-.hero-copy { max-width: 710px; }
+.hero-copy { max-width: 1050px; width: 100%; }
+.hero-copy h1,
+.hero-copy p,
+.hero-copy .overline { max-width: 710px; }
 .overline {
   margin-bottom: 12px;
   color: var(--accent-dark);
