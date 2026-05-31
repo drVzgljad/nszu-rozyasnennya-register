@@ -1,4 +1,4 @@
-.algorithms-hero .hero-copy { max-width: 1050px; }
+.algorithms-hero .hero-copy { max-width: 1200px; }
 .algorithms-layout {
   display: grid;
   grid-template-columns: minmax(300px, .7fr) minmax(360px, .85fr) minmax(430px, 1.05fr);

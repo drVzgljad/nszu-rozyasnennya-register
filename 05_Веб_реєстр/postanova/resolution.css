@@ -1,4 +1,4 @@
-.resolution-hero .hero-copy { max-width: 1050px; }
+.resolution-hero .hero-copy { max-width: 1200px; }
 .resolution-layout {
   display: grid;
   grid-template-columns: minmax(300px, .72fr) minmax(275px, .65fr) minmax(460px, 1.18fr);
