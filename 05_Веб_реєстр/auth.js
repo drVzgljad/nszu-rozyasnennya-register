@@ -24,7 +24,8 @@ function applyAccess() {
   const btn = document.getElementById('auth-nav-btn');
   if (btn) {
     if (user) {
-      btn.textContent = user.email.split('@')[0];
+      const displayName = user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0];
+      btn.textContent = displayName;
       btn.classList.add('is-signed-in');
       btn.title = 'Натисніть для виходу';
     } else {
