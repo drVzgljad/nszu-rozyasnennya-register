@@ -386,3 +386,24 @@ body {
   .stat-strip .cell { border-right: 0 !important; border-bottom: 1px solid var(--p-line); }
   .stat-strip .cell:last-child { border-bottom: 0; }
 }
+@media (max-width: 600px) {
+  .top-inner {
+    height: 64px;
+    gap: 8px;
+  }
+  .agency-chip {
+    display: none;
+  }
+  .wm-2 {
+    display: none;
+  }
+  .wm-1 {
+    font-size: 13.5px;
+  }
+  .lockup {
+    gap: 8px;
+  }
+  .shield {
+    width: 32px !important;
+  }
+}

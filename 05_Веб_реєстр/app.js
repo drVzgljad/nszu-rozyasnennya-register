@@ -20,7 +20,7 @@ const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => 
 }[char]));
 
 function humanize(value) {
-  return value.replaceAll("-", " ");
+  return value.replace(/-/g, " ");
 }
 
 function formatDate(value) {
@@ -76,7 +76,8 @@ function refreshFilterMenus() {
           ? right.localeCompare(left)
           : definition.display(left).localeCompare(definition.display(right), "uk")
       );
-      select.replaceChildren(new Option(definition.allLabel, ""));
+      select.innerHTML = "";
+      select.appendChild(new Option(definition.allLabel, ""));
       options.forEach((value) => {
         select.add(new Option(`${definition.display(value)} (${counts.get(value)})`, value));
       });
@@ -155,7 +156,7 @@ function searchScore(doc, query) {
 
 function renderCards(isBlank = false) {
   const container = el("cards");
-  container.replaceChildren();
+  container.innerHTML = "";
   if (isBlank) return;
   if (!state.visible.length) {
     container.innerHTML = '<div class="no-results">За цими умовами документів не знайдено. Спробуйте коротше слово або очистіть фільтри.</div>';
@@ -168,7 +169,7 @@ function renderCards(isBlank = false) {
       `<span class="tag">${escapeHtml(doc.document_date_display || doc.year)}</span><span class="tag file">${escapeHtml(doc.format)}</span>`;
     card.querySelector("strong").textContent = doc.title;
     card.querySelector(".card-subtitle").textContent =
-      `${doc.direction.replaceAll("-", " ")} | ${doc.package.replaceAll("-", " ")}`;
+      `${doc.direction.replace(/-/g, " ")} | ${doc.package.replace(/-/g, " ")}`;
     card.addEventListener("click", () => selectDocument(doc.id));
     container.appendChild(card);
   });
@@ -206,6 +207,9 @@ function selectDocument(id) {
   state.selected = documentInfo;
   renderCards();
   renderDetail(documentInfo);
+  if (window.innerWidth <= 1040) {
+    el("detail").scrollIntoView({ behavior: "smooth" });
+  }
 }
 
 function renderDetail(doc) {
@@ -221,8 +225,8 @@ function renderDetail(doc) {
   }).join("");
   detail.innerHTML = `
     <div class="detail-header">
-      <span class="label">${escapeHtml(doc.direction.replaceAll("-", " "))}</span>
-      <span class="label">${escapeHtml(doc.package.replaceAll("-", " "))}</span>
+      <span class="label">${escapeHtml(doc.direction.replace(/-/g, " "))}</span>
+      <span class="label">${escapeHtml(doc.package.replace(/-/g, " "))}</span>
       ${doc.ocr ? '<span class="label ocr">OCR зі скану</span>' : ""}
       ${duplicates}
       <h2>${escapeHtml(doc.title)}</h2>

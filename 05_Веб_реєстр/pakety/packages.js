@@ -13,8 +13,10 @@ const byId = (id) => document.getElementById(id);
 
 function escapeHtml(value) {
   return String(value || "")
-    .replaceAll("&", "&amp;").replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function highlight(value, query) {
@@ -142,7 +144,12 @@ function renderCards() {
     </button>`;
   }).join("") || '<div class="no-results">За цим запитом пакетів не знайдено.</div>';
   byId("packageCards").querySelectorAll("[data-package]").forEach((card) => {
-    card.addEventListener("click", () => selectPackage(packageState.data.packages.find((pkg) => pkg.number === card.dataset.package)));
+    card.addEventListener("click", () => {
+      selectPackage(packageState.data.packages.find((pkg) => pkg.number === card.dataset.package));
+      if (window.innerWidth <= 820) {
+        byId("packageOutline").scrollIntoView({ behavior: "smooth" });
+      }
+    });
   });
 }
 
@@ -188,6 +195,9 @@ function renderOutline() {
       renderOutline();
       renderReader();
       updateUrl();
+      if (window.innerWidth <= 820) {
+        byId("packageReader").scrollIntoView({ behavior: "smooth" });
+      }
     });
   });
   container.querySelector(".outline-link.active")?.scrollIntoView({ block: "nearest" });

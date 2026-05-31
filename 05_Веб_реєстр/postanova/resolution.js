@@ -13,8 +13,10 @@ const byId = (id) => document.getElementById(id);
 
 function escapeHtml(value) {
   return String(value || "")
-    .replaceAll("&", "&amp;").replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 function highlight(value, query) {
@@ -184,7 +186,12 @@ function renderCards() {
     </button>`;
   }).join("") || '<div class="no-results">За цим запитом норм не знайдено.</div>';
   byId("resolutionCards").querySelectorAll("[data-node]").forEach((button) => {
-    button.addEventListener("click", () => selectNode(resolutionState.nodes.find((node) => node.id === button.dataset.node)));
+    button.addEventListener("click", () => {
+      selectNode(resolutionState.nodes.find((node) => node.id === button.dataset.node));
+      if (window.innerWidth <= 840) {
+        byId("resolutionOutline").scrollIntoView({ behavior: "smooth" });
+      }
+    });
   });
 }
 
@@ -232,6 +239,9 @@ function renderOutline() {
       renderOutline();
       renderReader();
       updateUrl();
+      if (window.innerWidth <= 840) {
+        byId("resolutionReader").scrollIntoView({ behavior: "smooth" });
+      }
     });
   });
   container.querySelectorAll("[data-copy-paragraph]").forEach((button) => {
@@ -276,6 +286,9 @@ function renderAppendixOutline(node, container, pages) {
       renderOutline();
       renderReader();
       updateUrl();
+      if (window.innerWidth <= 840) {
+        byId("resolutionReader").scrollIntoView({ behavior: "smooth" });
+      }
     });
   });
   container.querySelectorAll("[data-copy-appendix-row]").forEach((button) => {
