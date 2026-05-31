@@ -22,6 +22,8 @@
   background: var(--accent);
 }
 .section-switch a.report-nav-cta {
+  display: inline-flex;
+  align-items: center;
   margin-left: 6px;
   padding-inline: 18px;
   color: #fff;
