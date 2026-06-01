@@ -253,3 +253,36 @@
     height: 60vh;
   }
 }
+
+/* Online users list and items */
+.online-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.online-user-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.3;
+}
+.online-user-item .online-indicator-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #2ecc71;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(46, 204, 113, 0.4);
+}
+.online-user-item.system {
+  color: var(--muted);
+  font-weight: 400;
+  font-style: italic;
+}
+

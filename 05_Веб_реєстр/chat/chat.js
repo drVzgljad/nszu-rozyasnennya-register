@@ -162,7 +162,17 @@ async function handleSendMessage(e) {
 }
 
 function setupRealtime() {
-  realtimeChannel = sb.channel('public:chat_messages')
+  const profileName = currentUser?.user_metadata?.full_name || currentUser?.email.split('@')[0] || "Користувач";
+
+  realtimeChannel = sb.channel('public:chat_messages', {
+    config: {
+      presence: {
+        key: currentUser?.id || 'anonymous'
+      }
+    }
+  });
+
+  realtimeChannel
     .on('postgres_changes', { 
       event: 'INSERT', 
       schema: 'public', 
@@ -177,8 +187,19 @@ function setupRealtime() {
         triggerIncomingAlert(newMsg);
       }
     })
-    .subscribe((status) => {
+    .on('presence', { event: 'sync' }, () => {
+      const state = realtimeChannel.presenceState();
+      updateOnlineUsersList(state);
+    })
+    .subscribe(async (status) => {
       updateConnectionStatus(status);
+      if (status === 'SUBSCRIBED' && currentUser) {
+        await realtimeChannel.track({
+          user_id: currentUser.id,
+          user_name: profileName,
+          online_at: new Date().toISOString()
+        });
+      }
     });
 }
 
@@ -254,16 +275,22 @@ function initNotificationSetup() {
   btn.addEventListener('click', async () => {
     if (Notification.permission === 'default') {
       const permission = await Notification.requestPermission();
-      updateNotificationButtonState();
       if (permission === 'granted') {
+        localStorage.setItem('chat_notifications_enabled', 'true');
         playNotificationSound();
         new Notification("Сповіщення активовано!", {
           body: "Ви будете отримувати повідомлення про нові репліки в чаті.",
           icon: "../assets/nszu-shield.svg"
         });
       }
+      updateNotificationButtonState();
     } else if (Notification.permission === 'granted') {
-      playNotificationSound();
+      const currentlyMuted = localStorage.getItem('chat_notifications_enabled') === 'false';
+      localStorage.setItem('chat_notifications_enabled', currentlyMuted ? 'true' : 'false');
+      updateNotificationButtonState();
+      if (currentlyMuted) {
+        playNotificationSound();
+      }
     } else {
       alert("Доступ до сповіщень заблоковано в налаштуваннях браузера. Будь ласка, дозвольте їх вручну у налаштуваннях сайту.");
     }
@@ -275,12 +302,20 @@ function updateNotificationButtonState() {
   if (!btn) return;
 
   const label = btn.querySelector('span') || btn;
+  const isMuted = localStorage.getItem('chat_notifications_enabled') === 'false';
 
   if (Notification.permission === 'granted') {
-    label.textContent = 'Сповіщення увімкнено';
-    btn.style.background = '#e9f7f3';
-    btn.style.color = '#08705e';
-    btn.style.borderColor = 'rgba(84, 173, 132, 0.25)';
+    if (isMuted) {
+      label.textContent = 'Сповіщення вимкнено (Muted)';
+      btn.style.background = '#f2f8fb';
+      btn.style.color = 'var(--muted, #647688)';
+      btn.style.borderColor = 'var(--line, #dde6ee)';
+    } else {
+      label.textContent = 'Сповіщення увімкнено';
+      btn.style.background = '#e9f7f3';
+      btn.style.color = '#08705e';
+      btn.style.borderColor = 'rgba(84, 173, 132, 0.25)';
+    }
   } else if (Notification.permission === 'denied') {
     label.textContent = 'Доступ заблоковано';
     btn.style.background = '#fdf2f2';
@@ -333,6 +368,10 @@ function playNotificationSound() {
 function triggerIncomingAlert(msg) {
   if (!currentUser || msg.user_id === currentUser.id) return; // Ignore own messages
 
+  // Check if user muted notifications in localStorage
+  const isMuted = localStorage.getItem('chat_notifications_enabled') === 'false';
+  if (isMuted) return;
+
   // Play notification sound
   playNotificationSound();
 
@@ -351,6 +390,43 @@ function triggerIncomingAlert(msg) {
       notification.close();
     };
   }
+}
+
+/* ── Supabase Presence List ──────────────────────── */
+
+function updateOnlineUsersList(state) {
+  const container = byId('onlineUsersList');
+  const countEl = byId('onlineCount');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  const onlineUsers = [];
+  Object.keys(state).forEach(key => {
+    const userPresences = state[key];
+    if (userPresences && userPresences.length > 0) {
+      onlineUsers.push(userPresences[0]);
+    }
+  });
+
+  if (countEl) {
+    countEl.textContent = onlineUsers.length;
+  }
+
+  if (onlineUsers.length === 0) {
+    container.innerHTML = '<div class="online-user-item system">Нікого немає у чаті</div>';
+    return;
+  }
+
+  onlineUsers.forEach(u => {
+    const item = document.createElement('div');
+    item.className = 'online-user-item';
+    item.innerHTML = `
+      <span class="online-indicator-dot"></span>
+      <span>${escapeHtml(u.user_name || "Користувач")}</span>
+    `;
+    container.appendChild(item);
+  });
 }
 
 document.addEventListener("DOMContentLoaded", init);
