@@ -705,8 +705,23 @@ function renderMessageText(text) {
       const size = lastSpace !== -1 ? fileDesc.substring(lastSpace + 1, fileDesc.length - 1).trim() : '';
       
       const ext = name.split('.').pop().toLowerCase();
+      
+      // If it's an image, render preview
+      if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext)) {
+        return `
+          <div class="chat-image-preview-container">
+            <a href="${url}" target="_blank" rel="noopener">
+              <img src="${url}" alt="${escapeHtml(name)}" class="chat-inline-image" loading="lazy">
+            </a>
+            <div class="chat-image-meta">
+              <span class="chat-image-name" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
+              <span class="chat-image-size">${escapeHtml(size)}</span>
+            </div>
+          </div>
+        `;
+      }
+      
       let icon = '📄';
-      if (['jpg', 'jpeg', 'png', 'gif', 'svg'].includes(ext)) icon = '🖼️';
       if (['pdf'].includes(ext)) icon = '📕';
       if (['doc', 'docx'].includes(ext)) icon = '📘';
       if (['xls', 'xlsx', 'csv'].includes(ext)) icon = '📗';

@@ -383,4 +383,51 @@
   opacity: 0.7;
 }
 
+/* Image Preview in Chat */
+.chat-image-preview-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 320px;
+  margin-top: 6px;
+}
+.chat-inline-image {
+  max-width: 100%;
+  max-height: 240px;
+  border-radius: 12px;
+  border: 1px solid var(--line, #dde6ee);
+  object-fit: cover;
+  display: block;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  cursor: zoom-in;
+}
+.chat-inline-image:hover {
+  transform: scale(1.02);
+  opacity: 0.95;
+}
+.chat-msg.msg-sent .chat-inline-image {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.chat-image-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  opacity: 0.8;
+  padding: 0 4px;
+}
+.chat-msg.msg-sent .chat-image-meta {
+  color: rgba(255, 255, 255, 0.9);
+}
+.chat-image-name {
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 200px;
+}
+.chat-image-size {
+  opacity: 0.7;
+}
+
 
