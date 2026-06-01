@@ -154,7 +154,55 @@ CREATE INDEX IF NOT EXISTS idx_chat_messages_recipient ON public.chat_messages(r
 -- Видаляємо стару політику вибірки
 DROP POLICY IF EXISTS "Full access users can read chat" ON public.chat_messages;
 
--- Створюємо оновлену політику вибірки, що обмежує доступ до приватних повідомлень
+-- 5. ДОДАВАННЯ ПРИВАТНИХ ПОВІДОМЛЕНЬ ТА ГРУПОВИХ ЧАТІВ
+-- Додаємо стовпчик recipient_id для приватних повідомлень
+ALTER TABLE public.chat_messages ADD COLUMN IF NOT EXISTS recipient_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
+CREATE INDEX IF NOT EXISTS idx_chat_messages_recipient ON public.chat_messages(recipient_id);
+
+-- Створюємо таблицю групових чатів
+CREATE TABLE IF NOT EXISTS public.chat_rooms (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  name TEXT NOT NULL,
+  member_ids UUID[] NOT NULL,
+  created_by UUID REFERENCES auth.users(id) ON DELETE CASCADE
+);
+
+-- Увімкнення RLS для кімнат
+ALTER TABLE public.chat_rooms ENABLE ROW LEVEL SECURITY;
+
+-- Додавання до Realtime публікації
+ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_rooms;
+
+-- Політика читання кімнат: користувач повинен бути в масиві членів
+CREATE POLICY "Users can view rooms they are members of" ON public.chat_rooms
+  FOR SELECT
+  TO authenticated
+  USING (
+    auth.uid() = ANY(member_ids) AND
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role = 'full'
+    )
+  );
+
+-- Політика створення кімнат
+CREATE POLICY "Users can create rooms" ON public.chat_rooms
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    auth.uid() = created_by AND
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role = 'full'
+    )
+  );
+
+-- Додаємо стовпчик room_id в повідомлення чату
+ALTER TABLE public.chat_messages ADD COLUMN IF NOT EXISTS room_id UUID REFERENCES public.chat_rooms(id) ON DELETE CASCADE;
+CREATE INDEX IF NOT EXISTS idx_chat_messages_room ON public.chat_messages(room_id);
+
+-- Створюємо оновлену політику вибірки повідомлень, що дозволяє читання групових та приватних повідомлень
 CREATE POLICY "Full access users can read chat" ON public.chat_messages
   FOR SELECT
   TO authenticated
@@ -163,8 +211,10 @@ CREATE POLICY "Full access users can read chat" ON public.chat_messages
       SELECT 1 FROM public.profiles
       WHERE id = auth.uid() AND role = 'full'
     ) AND (
-      recipient_id IS NULL OR 
-      user_id = auth.uid() OR 
-      recipient_id = auth.uid()
+      (room_id IS NULL AND (recipient_id IS NULL OR user_id = auth.uid() OR recipient_id = auth.uid())) OR
+      (room_id IS NOT NULL AND EXISTS (
+        SELECT 1 FROM public.chat_rooms r
+        WHERE r.id = room_id AND auth.uid() = ANY(r.member_ids)
+      ))
     )
   );

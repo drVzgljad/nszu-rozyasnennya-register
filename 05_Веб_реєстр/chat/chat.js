@@ -7,9 +7,10 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentUser = null;
 let chatMessages = [];
 let realtimeChannel = null;
-let activeChat = { type: 'group' }; // { type: 'group' } or { type: 'private', userId: '...', userName: '...' }
+let activeChat = { type: 'group' }; // { type: 'group' }, { type: 'private', userId: '...', userName: '...' } or { type: 'room', roomId: '...', roomName: '...' }
 let knownUsers = {}; // userId -> userName mapping for offline/active DM lists
-let unreadCounts = {}; // userId -> number of unread messages
+let unreadCounts = {}; // userId or roomId -> number of unread messages
+let chatRooms = []; // Custom private group rooms representing multi-user DMs
 
 const byId = (id) => document.getElementById(id);
 
@@ -31,6 +32,9 @@ async function init() {
 
   // Load historical messages
   await loadMessages();
+
+  // Load custom group rooms
+  await loadRooms();
 
   // Setup Realtime subscription
   setupRealtime();
@@ -72,6 +76,15 @@ async function init() {
   if (mainGroupChannel) {
     mainGroupChannel.addEventListener("click", () => selectChannel({ type: 'group' }));
   }
+
+  // Group creation modal triggers
+  const openGroupBtn = byId("openCreateGroupBtn");
+  const closeGroupBtn = byId("closeGroupModalBtn");
+  const submitGroupBtn = byId("submitCreateGroupBtn");
+  
+  if (openGroupBtn) openGroupBtn.addEventListener("click", openCreateGroupModal);
+  if (closeGroupBtn) closeGroupBtn.addEventListener("click", closeCreateGroupModal);
+  if (submitGroupBtn) submitGroupBtn.addEventListener("click", handleCreateGroupSubmit);
 
   // Handle page unloading to unsubscribe
   window.addEventListener('beforeunload', () => {
@@ -121,15 +134,25 @@ function renderMessages() {
 
   const filtered = chatMessages.filter(msg => {
     if (activeChat.type === 'group') {
-      return !msg.recipient_id;
+      return !msg.recipient_id && !msg.room_id;
+    } else if (activeChat.type === 'room') {
+      return msg.room_id === activeChat.roomId;
     } else {
-      return (msg.user_id === currentUser.id && msg.recipient_id === activeChat.userId) ||
-             (msg.user_id === activeChat.userId && msg.recipient_id === currentUser.id);
+      return !msg.room_id && (
+             (msg.user_id === currentUser.id && msg.recipient_id === activeChat.userId) ||
+             (msg.user_id === activeChat.userId && msg.recipient_id === currentUser.id)
+      );
     }
   });
 
   if (filtered.length === 0) {
-    container.innerHTML = `<div class="chat-system-message">${activeChat.type === 'group' ? 'Повідомлень немає. Будьте першим, хто напише!' : 'Немає повідомлень у цьому діалозі. Напишіть щось приватне!'}</div>`;
+    let emptyText = 'Повідомлень немає. Будьте першим, хто напише!';
+    if (activeChat.type === 'room') {
+      emptyText = 'Немає повідомлень у цій групі. Почніть обговорення!';
+    } else if (activeChat.type === 'private') {
+      emptyText = 'Немає повідомлень у цьому діалозі. Напишіть щось приватне!';
+    }
+    container.innerHTML = `<div class="chat-system-message">${emptyText}</div>`;
     return;
   }
 
@@ -334,6 +357,8 @@ async function handleSendMessage(e) {
     };
     if (activeChat.type === 'private') {
       insertPayload.recipient_id = activeChat.userId;
+    } else if (activeChat.type === 'room') {
+      insertPayload.room_id = activeChat.roomId;
     }
 
     const { data, error } = await sb.from('chat_messages').insert(insertPayload).select();
@@ -356,10 +381,13 @@ async function handleSendMessage(e) {
           
           let belongsToActive = false;
           if (activeChat.type === 'group') {
-            belongsToActive = !insertedMsg.recipient_id;
+            belongsToActive = !insertedMsg.recipient_id && !insertedMsg.room_id;
+          } else if (activeChat.type === 'room') {
+            belongsToActive = insertedMsg.room_id === activeChat.roomId;
           } else {
-            belongsToActive = (insertedMsg.user_id === currentUser.id && insertedMsg.recipient_id === activeChat.userId) ||
-                              (insertedMsg.user_id === activeChat.userId && insertedMsg.recipient_id === currentUser.id);
+            belongsToActive = !insertedMsg.room_id && (
+                              (insertedMsg.user_id === currentUser.id && insertedMsg.recipient_id === activeChat.userId) ||
+                              (insertedMsg.user_id === activeChat.userId && insertedMsg.recipient_id === currentUser.id));
           }
 
           if (belongsToActive) {
@@ -402,19 +430,27 @@ function setupRealtime() {
 
           let belongsToActive = false;
           if (activeChat.type === 'group') {
-            belongsToActive = !newMsg.recipient_id;
+            belongsToActive = !newMsg.recipient_id && !newMsg.room_id;
+          } else if (activeChat.type === 'room') {
+            belongsToActive = newMsg.room_id === activeChat.roomId;
           } else {
-            belongsToActive = (newMsg.user_id === currentUser.id && newMsg.recipient_id === activeChat.userId) ||
-                              (newMsg.user_id === activeChat.userId && newMsg.recipient_id === currentUser.id);
+            belongsToActive = !newMsg.room_id && (
+                              (newMsg.user_id === currentUser.id && newMsg.recipient_id === activeChat.userId) ||
+                              (newMsg.user_id === activeChat.userId && newMsg.recipient_id === currentUser.id));
           }
 
           if (belongsToActive) {
             appendMessageElement(newMsg, true);
           } else {
             // Incoming private DM for us from someone else
-            if (newMsg.recipient_id === currentUser.id) {
+            if (newMsg.recipient_id === currentUser.id && newMsg.user_id !== currentUser.id) {
               const senderId = newMsg.user_id;
               unreadCounts[senderId] = (unreadCounts[senderId] || 0) + 1;
+              playNotificationSound();
+              triggerIncomingAlert(newMsg);
+            } else if (newMsg.room_id && newMsg.user_id !== currentUser.id) {
+              // Message in some room
+              unreadCounts[newMsg.room_id] = (unreadCounts[newMsg.room_id] || 0) + 1;
               playNotificationSound();
               triggerIncomingAlert(newMsg);
             }
@@ -494,6 +530,52 @@ function setupRealtime() {
           if (el) el.remove();
           renderStats();
           renderPinnedMessages();
+        }
+      }
+    })
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'chat_rooms'
+    }, payload => {
+      const { eventType, new: newRoom, old: oldRoom } = payload;
+      if (eventType === 'INSERT') {
+        if (!chatRooms.some(r => r.id === newRoom.id)) {
+          chatRooms.push(newRoom);
+          renderDialoguesList();
+          // If we created this room, select it!
+          if (newRoom.created_by === currentUser.id) {
+            selectChannel({
+              type: 'room',
+              roomId: newRoom.id,
+              roomName: newRoom.name
+            });
+          } else {
+            playNotificationSound();
+          }
+        }
+      } else if (eventType === 'UPDATE') {
+        const idx = chatRooms.findIndex(r => r.id === newRoom.id);
+        if (idx !== -1) {
+          chatRooms[idx] = newRoom;
+          if (activeChat.type === 'room' && activeChat.roomId === newRoom.id) {
+            activeChat.roomName = newRoom.name;
+            const headerTitle = document.querySelector(".chat-header-title");
+            if (headerTitle) {
+              headerTitle.textContent = "Груповий чат: " + newRoom.name;
+            }
+          }
+          renderDialoguesList();
+        }
+      } else if (eventType === 'DELETE') {
+        const idx = chatRooms.findIndex(r => r.id === oldRoom.id);
+        if (idx !== -1) {
+          chatRooms.splice(idx, 1);
+          if (activeChat.type === 'room' && activeChat.roomId === oldRoom.id) {
+            selectChannel({ type: 'group' });
+          } else {
+            renderDialoguesList();
+          }
         }
       }
     })
@@ -867,11 +949,18 @@ async function handleFileUpload(e) {
   // Send formatted message
   const fileMsg = `📎 [Файл: ${originalName} (${formatBytes(file.size)})](${publicUrl})`;
   
-  const { data: insertData, error: sendError } = await sb.from('chat_messages').insert({
+  const filePayload = {
     user_id: currentUser.id,
     user_name: profileName,
     message_text: fileMsg
-  }).select();
+  };
+  if (activeChat.type === 'private') {
+    filePayload.recipient_id = activeChat.userId;
+  } else if (activeChat.type === 'room') {
+    filePayload.room_id = activeChat.roomId;
+  }
+
+  const { data: insertData, error: sendError } = await sb.from('chat_messages').insert(filePayload).select();
 
   if (progressMsg) progressMsg.remove();
 
@@ -884,8 +973,23 @@ async function handleFileUpload(e) {
       const insertedMsg = insertData[0];
       if (!chatMessages.some(m => m.id === insertedMsg.id)) {
         chatMessages.push(insertedMsg);
-        appendMessageElement(insertedMsg, true);
+        
+        let belongsToActive = false;
+        if (activeChat.type === 'group') {
+          belongsToActive = !insertedMsg.recipient_id && !insertedMsg.room_id;
+        } else if (activeChat.type === 'room') {
+          belongsToActive = insertedMsg.room_id === activeChat.roomId;
+        } else {
+          belongsToActive = !insertedMsg.room_id && (
+                            (insertedMsg.user_id === currentUser.id && insertedMsg.recipient_id === activeChat.userId) ||
+                            (insertedMsg.user_id === activeChat.userId && insertedMsg.recipient_id === currentUser.id));
+        }
+
+        if (belongsToActive) {
+          appendMessageElement(insertedMsg, true);
+        }
         renderStats();
+        renderDialoguesList();
       }
     }
   }
@@ -1012,8 +1116,22 @@ function renderPinnedMessages() {
   const list = byId("pinnedMessagesList");
   if (!list) return;
 
-  const pinned = chatMessages.filter(m => m.is_top);
-  
+  const pinned = chatMessages.filter(msg => {
+    if (msg.is_top) {
+      if (activeChat.type === 'group') {
+        return !msg.recipient_id && !msg.room_id;
+      } else if (activeChat.type === 'room') {
+        return msg.room_id === activeChat.roomId;
+      } else {
+        return !msg.room_id && (
+               (msg.user_id === currentUser.id && msg.recipient_id === activeChat.userId) ||
+               (msg.user_id === activeChat.userId && msg.recipient_id === currentUser.id)
+        );
+      }
+    }
+    return false;
+  });
+
   if (pinned.length === 0) {
     list.innerHTML = `
       <div class="pinned-placeholder" style="font-size: 12.5px; color: var(--muted); line-height: 1.45; font-style: italic;">
@@ -1267,6 +1385,8 @@ function selectChannel(channel) {
   // Clear unread counts for this channel
   if (channel.type === 'private') {
     unreadCounts[channel.userId] = 0;
+  } else if (channel.type === 'room') {
+    unreadCounts[channel.roomId] = 0;
   }
 
   // Update Header Title
@@ -1274,13 +1394,28 @@ function selectChannel(channel) {
   if (headerTitle) {
     if (channel.type === 'group') {
       headerTitle.textContent = "Робочий чат Департаменту";
+    } else if (channel.type === 'room') {
+      headerTitle.textContent = "Груповий чат: " + channel.roomName;
     } else {
       headerTitle.textContent = "Приватний чат з " + channel.userName;
     }
   }
 
-  // Render messages and updates Dialogues list active styling
+  // Update Input Placeholder
+  const input = byId("chatMessageInput");
+  if (input) {
+    if (channel.type === 'group') {
+      input.placeholder = "Введіть повідомлення експертам департаменту...";
+    } else if (channel.type === 'room') {
+      input.placeholder = `Надіслати у групу ${channel.roomName}...`;
+    } else {
+      input.placeholder = `Надіслати приватне повідомлення для ${channel.userName}...`;
+    }
+  }
+
+  // Render messages, pinned messages and updates Dialogues list active styling
   renderMessages();
+  renderPinnedMessages();
   renderDialoguesList();
   
   // Reset scroll
@@ -1300,10 +1435,37 @@ function renderDialoguesList() {
     list.appendChild(mainGroup);
   }
 
+  // Render group rooms
+  chatRooms.forEach(room => {
+    const item = document.createElement("div");
+    const isActive = activeChat.type === 'room' && activeChat.roomId === room.id;
+    item.className = `channel-item ${isActive ? 'active' : ''}`;
+    item.dataset.type = "room";
+    item.dataset.roomId = room.id;
+
+    const unreadCount = unreadCounts[room.id] || 0;
+
+    item.innerHTML = `
+      <span class="channel-icon">👥</span>
+      <span class="channel-name">${escapeHtml(room.name)}</span>
+      ${unreadCount > 0 ? `<span class="unread-badge">🔴 ${unreadCount}</span>` : ''}
+    `;
+
+    item.addEventListener("click", () => {
+      selectChannel({
+        type: 'room',
+        roomId: room.id,
+        roomName: room.name
+      });
+    });
+
+    list.appendChild(item);
+  });
+
   // Find all private dialogue userIds from chatMessages
   const dialogueUserIds = new Set();
   chatMessages.forEach(m => {
-    if (m.recipient_id) {
+    if (m.recipient_id && !m.room_id) {
       if (m.user_id === currentUser.id) {
         dialogueUserIds.add(m.recipient_id);
       } else if (m.recipient_id === currentUser.id) {
@@ -1343,6 +1505,116 @@ function renderDialoguesList() {
 
     list.appendChild(item);
   });
+}
+
+async function loadRooms() {
+  const { data, error } = await sb
+    .from('chat_rooms')
+    .select('*');
+  
+  if (error) {
+    console.error('Error loading chat rooms:', error);
+    return;
+  }
+  chatRooms = data || [];
+  renderDialoguesList();
+}
+
+function openCreateGroupModal() {
+  const modal = byId("createGroupModal");
+  if (!modal) return;
+
+  // Clear inputs
+  const nameInput = byId("newGroupNameInput");
+  if (nameInput) nameInput.value = "";
+
+  // Populate checkboxes
+  const membersList = byId("modalMembersList");
+  if (membersList) {
+    membersList.innerHTML = "";
+
+    // We can list all users in knownUsers (excluding currentUser)
+    const userIds = Object.keys(knownUsers).filter(id => id !== currentUser.id);
+
+    if (userIds.length === 0) {
+      membersList.innerHTML = '<div style="font-size: 13px; color: var(--muted); text-align: center; padding: 10px;">Немає інших відомих користувачів. Напишіть спочатку в загальний чат, щоб користувачі з\'явилися в списку.</div>';
+    } else {
+      userIds.forEach(userId => {
+        const userName = knownUsers[userId];
+        const div = document.createElement("label");
+        div.className = "modal-member-checkbox-item";
+        div.innerHTML = `
+          <input type="checkbox" value="${userId}">
+          <span>${escapeHtml(userName)}</span>
+        `;
+        membersList.appendChild(div);
+      });
+    }
+  }
+
+  modal.style.display = "flex";
+}
+
+function closeCreateGroupModal() {
+  const modal = byId("createGroupModal");
+  if (modal) {
+    modal.style.display = "none";
+  }
+}
+
+async function handleCreateGroupSubmit() {
+  const nameInput = byId("newGroupNameInput");
+  if (!nameInput) return;
+
+  const roomName = nameInput.value.trim();
+  if (!roomName) {
+    alert("Будь ласка, введіть назву групи.");
+    return;
+  }
+
+  // Get selected members
+  const checkboxes = document.querySelectorAll('#modalMembersList input[type="checkbox"]:checked');
+  const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+
+  // Creator MUST be in member_ids
+  if (!selectedIds.includes(currentUser.id)) {
+    selectedIds.push(currentUser.id);
+  }
+
+  // Submit to Supabase
+  const submitBtn = byId("submitCreateGroupBtn");
+  if (submitBtn) submitBtn.disabled = true;
+
+  const { data, error } = await sb
+    .from('chat_rooms')
+    .insert({
+      name: roomName,
+      member_ids: selectedIds,
+      created_by: currentUser.id
+    })
+    .select();
+
+  if (submitBtn) submitBtn.disabled = false;
+
+  if (error) {
+    console.error("Error creating group room:", error);
+    alert("Не вдалося створити групу: " + error.message);
+  } else {
+    closeCreateGroupModal();
+    if (data && data.length > 0) {
+      const newRoom = data[0];
+      // Optimistic update if realtime is slow
+      if (!chatRooms.some(r => r.id === newRoom.id)) {
+        chatRooms.push(newRoom);
+        renderDialoguesList();
+        selectChannel({
+          type: 'room',
+          roomId: newRoom.id,
+          roomName: newRoom.name
+        });
+      }
+    }
+  }
 }
 
 document.addEventListener("DOMContentLoaded", init);
