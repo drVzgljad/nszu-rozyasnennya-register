@@ -31,6 +31,9 @@ async function init() {
     form.addEventListener("submit", handleSendMessage);
   }
 
+  // Setup desktop notifications
+  initNotificationSetup();
+
   // Handle page unloading to unsubscribe
   window.addEventListener('beforeunload', () => {
     if (realtimeChannel) {
@@ -171,6 +174,7 @@ function setupRealtime() {
         chatMessages.push(newMsg);
         appendMessageElement(newMsg, true);
         renderStats();
+        triggerIncomingAlert(newMsg);
       }
     })
     .subscribe((status) => {
@@ -232,6 +236,121 @@ function formatTime(isoString) {
     hour: "2-digit",
     minute: "2-digit"
   });
+}
+
+/* ── Desktop & Audio Notifications ──────────────── */
+
+function initNotificationSetup() {
+  if (!('Notification' in window)) return;
+  
+  const card = byId('notificationCard');
+  if (card) card.style.display = '';
+
+  const btn = byId('enableNotificationsBtn');
+  if (!btn) return;
+
+  updateNotificationButtonState();
+
+  btn.addEventListener('click', async () => {
+    if (Notification.permission === 'default') {
+      const permission = await Notification.requestPermission();
+      updateNotificationButtonState();
+      if (permission === 'granted') {
+        playNotificationSound();
+        new Notification("Сповіщення активовано!", {
+          body: "Ви будете отримувати повідомлення про нові репліки в чаті.",
+          icon: "../assets/nszu-shield.svg"
+        });
+      }
+    } else if (Notification.permission === 'granted') {
+      playNotificationSound();
+    } else {
+      alert("Доступ до сповіщень заблоковано в налаштуваннях браузера. Будь ласка, дозвольте їх вручну у налаштуваннях сайту.");
+    }
+  });
+}
+
+function updateNotificationButtonState() {
+  const btn = byId('enableNotificationsBtn');
+  if (!btn) return;
+
+  const label = btn.querySelector('span') || btn;
+
+  if (Notification.permission === 'granted') {
+    label.textContent = 'Сповіщення увімкнено';
+    btn.style.background = '#e9f7f3';
+    btn.style.color = '#08705e';
+    btn.style.borderColor = 'rgba(84, 173, 132, 0.25)';
+  } else if (Notification.permission === 'denied') {
+    label.textContent = 'Доступ заблоковано';
+    btn.style.background = '#fdf2f2';
+    btn.style.color = '#c0392b';
+    btn.style.borderColor = 'rgba(192, 57, 43, 0.2)';
+  } else {
+    label.textContent = 'Увімкнути сповіщення';
+    btn.style.background = '#fff';
+    btn.style.color = 'var(--accent-dark)';
+    btn.style.borderColor = 'rgba(0,111,201,.22)';
+  }
+}
+
+function playNotificationSound() {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.12);
+    
+    setTimeout(() => {
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(880, ctx.currentTime); // A5
+      gain2.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+      
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start();
+      osc2.stop(ctx.currentTime + 0.18);
+    }, 70);
+  } catch (e) {
+    console.error("Audio beep error:", e);
+  }
+}
+
+function triggerIncomingAlert(msg) {
+  if (!currentUser || msg.user_id === currentUser.id) return; // Ignore own messages
+
+  // Play notification sound
+  playNotificationSound();
+
+  // Show desktop notification if page is not active
+  const isTabHidden = document.hidden || !document.hasFocus();
+  if (isTabHidden && Notification.permission === 'granted') {
+    const notification = new Notification(`Нове повідомлення від ${msg.user_name || "Користувач"}`, {
+      body: msg.message_text,
+      icon: "../assets/nszu-shield.svg",
+      tag: "chat-activity",
+      renotify: true
+    });
+    
+    notification.onclick = () => {
+      window.focus();
+      notification.close();
+    };
+  }
 }
 
 document.addEventListener("DOMContentLoaded", init);
