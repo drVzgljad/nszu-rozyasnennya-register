@@ -520,7 +520,7 @@ function initNotificationSetup() {
         playNotificationSound();
         new Notification("Сповіщення активовано!", {
           body: "Ви будете отримувати повідомлення про нові репліки в чаті.",
-          icon: "../assets/nszu-shield.svg"
+          icon: "../assets/icon-192.png"
         });
       }
       updateNotificationButtonState();
@@ -620,7 +620,7 @@ function triggerIncomingAlert(msg) {
   if (isTabHidden && Notification.permission === 'granted') {
     const notification = new Notification(`Нове повідомлення від ${msg.user_name || "Користувач"}`, {
       body: msg.message_text,
-      icon: "../assets/nszu-shield.svg",
+      icon: "../assets/icon-192.png",
       tag: "chat-activity",
       renotify: true
     });
