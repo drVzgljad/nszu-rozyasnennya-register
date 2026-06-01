@@ -164,7 +164,7 @@ async function handleSendMessage(e) {
 function setupRealtime() {
   const profileName = currentUser?.user_metadata?.full_name || currentUser?.email.split('@')[0] || "Користувач";
 
-  realtimeChannel = sb.channel('public:chat_messages', {
+  realtimeChannel = sb.channel('chat_room', {
     config: {
       presence: {
         key: currentUser?.id || 'anonymous'
