@@ -85,36 +85,96 @@ function applyAccess() {
     'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms'
   ].includes(part.toLowerCase()));
   const prefix = isInSubdir ? '../' : './';
+  const currentPath = window.location.pathname.toLowerCase();
+
+  function isActive(itemPath) {
+    const normalized = itemPath.replace(/^\.\.\/|^\.\//, '');
+    const segments = normalized.split('/');
+    
+    if (normalized === 'index.html') {
+      const isSub = ['pakety', 'postanova', 'algorithms', 'zoz-questions', 'pmg-proposals', 'news', 'chat', 'rozjasnennya.html'].some(s => currentPath.includes(s));
+      return !isSub && (currentPath.endsWith('/') || currentPath.endsWith('index.html'));
+    }
+    
+    if (normalized === 'rozjasnennya.html') {
+      return currentPath.includes('rozjasnennya.html');
+    }
+    
+    if (normalized === 'pakety/report.html') {
+      return currentPath.includes('report.html');
+    }
+    
+    if (normalized === 'pakety/index.html') {
+      return currentPath.includes('/pakety/') && !currentPath.includes('report.html');
+    }
+    
+    return currentPath.includes(segments[0]);
+  }
 
   const navContainer = document.querySelector('nav.section-switch:not(.top-auth)') || document.querySelector('.top-nav');
   if (navContainer) {
-    // Clean up existing dynamic nav items first
-    navContainer.querySelectorAll('.dynamic-nav-item').forEach(el => el.remove());
+    navContainer.innerHTML = ''; // Rebuild dynamically
 
-    const navItems = [
-      { id: 'nav-zoz-questions', text: 'Питання ЗОЗ', path: 'zoz-questions/index.html', role: 'registered', match: 'zoz-questions' },
-      { id: 'nav-pmg-proposals', text: 'Пропозиції ПМГ', path: 'pmg-proposals/index.html', role: 'registered', match: 'pmg-proposals' },
-      { id: 'nav-news', text: 'Новини', path: 'news/index.html', role: 'full', match: 'news' },
-      { id: 'nav-chat', text: 'Живий чат', path: 'chat/index.html', role: 'full', match: 'chat' }
+    const coreItems = [
+      { text: 'Головна', path: 'index.html' },
+      { text: 'Реєстр', path: 'rozjasnennya.html' },
+      { text: 'Пакети 2026', path: 'pakety/index.html' },
+      { text: 'Постанова 1808', path: 'postanova/index.html' },
+      { text: 'Алгоритми та правила', path: 'algorithms/index.html' }
     ];
 
-    navItems.forEach(item => {
-      if (hasAccess(item.role)) {
-        const a = document.createElement('a');
-        a.id = item.id;
-        a.className = 'dynamic-nav-item';
-        a.href = prefix + item.path;
-        a.textContent = item.text;
-        
-        // Check if active
-        if (window.location.pathname.toLowerCase().includes(item.match)) {
-          a.classList.add('active');
-          a.setAttribute('aria-current', 'page');
-        }
-        
-        navContainer.appendChild(a);
+    const dropdownItems = [
+      { text: 'Машина пошуку', path: 'pakety/report.html', role: 'registered' },
+      { text: 'Питання ЗОЗ', path: 'zoz-questions/index.html', role: 'registered' },
+      { text: 'Пропозиції ПМГ', path: 'pmg-proposals/index.html', role: 'registered' },
+      { text: 'Новини', path: 'news/index.html', role: 'full' },
+      { text: 'Живий чат', path: 'chat/index.html', role: 'full' }
+    ];
+
+    // 1. Core navigation tabs
+    coreItems.forEach(item => {
+      const a = document.createElement('a');
+      a.href = prefix + item.path;
+      a.textContent = item.text;
+      if (isActive(item.path)) {
+        a.classList.add('active');
+        a.setAttribute('aria-current', 'page');
       }
+      navContainer.appendChild(a);
     });
+
+    // 2. Dropdown menu for role-gated items
+    const isDropdownActive = dropdownItems.some(item => isActive(item.path));
+    
+    const dropdownDiv = document.createElement('div');
+    dropdownDiv.className = 'nav-dropdown';
+    
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'nav-dropdown-btn';
+    if (isDropdownActive) btn.classList.add('active');
+    btn.innerHTML = `Сервіси <span class="nav-dropdown-arrow">▼</span>`;
+    
+    const menuDiv = document.createElement('div');
+    menuDiv.className = 'nav-dropdown-menu';
+    
+    dropdownItems.forEach(item => {
+      const a = document.createElement('a');
+      a.href = prefix + item.path;
+      
+      const hasPermission = hasAccess(item.role);
+      a.innerHTML = `<span>${item.text}</span> ${hasPermission ? '' : '<span class="lock-icon">🔒</span>'}`;
+      
+      if (isActive(item.path)) {
+        a.classList.add('active');
+        a.setAttribute('aria-current', 'page');
+      }
+      menuDiv.appendChild(a);
+    });
+    
+    dropdownDiv.appendChild(btn);
+    dropdownDiv.appendChild(menuDiv);
+    navContainer.appendChild(dropdownDiv);
   }
 
   // Page-level guard

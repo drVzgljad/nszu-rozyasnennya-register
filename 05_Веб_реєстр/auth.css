@@ -199,3 +199,106 @@
   font-size: 15px;
   line-height: 1.55;
 }
+
+/* ── Navigation dropdown menu ────────────────────── */
+.nav-dropdown {
+  position: relative;
+  display: inline-block;
+}
+.nav-dropdown-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 15px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted, #647688);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s, color .15s;
+}
+/* Active styling if a page inside dropdown is active */
+.nav-dropdown-btn.active {
+  color: #fff !important;
+  background: var(--accent, #4a8fc7) !important;
+}
+.nav-dropdown-btn:hover:not(.active) {
+  color: var(--accent-dark, #2f6b9e);
+  background: var(--accent-soft, #eef6fc);
+}
+.nav-dropdown-arrow {
+  font-size: 8px;
+  transition: transform .2s ease;
+  display: inline-block;
+}
+.nav-dropdown:hover .nav-dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+/* Dropdown menu container */
+.nav-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 6px;
+  min-width: 210px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--line, #dde6ee);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(14, 30, 55, 0.12);
+  padding: 6px;
+  display: none;
+  z-index: 100;
+  animation: navDropdownFade .2s ease;
+}
+.nav-dropdown:hover .nav-dropdown-menu,
+.nav-dropdown-menu.show {
+  display: block;
+}
+
+@keyframes navDropdownFade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Dropdown items */
+.nav-dropdown-menu a {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px !important;
+  border-radius: 8px !important;
+  color: var(--ink, #1f3347) !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  background: transparent !important;
+  transition: background .15s, color .15s !important;
+  border: none !important;
+  margin: 0 !important;
+}
+.nav-dropdown-menu a:hover {
+  background: var(--soft, #f2f8fb) !important;
+  color: var(--accent-dark, #2f6b9e) !important;
+}
+.nav-dropdown-menu a.active {
+  background: var(--accent-soft, #eef6fc) !important;
+  color: var(--accent-dark, #2f6b9e) !important;
+}
+.nav-dropdown-menu .lock-icon {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+/* Force nowrap for all nav items on one line */
+.top-nav a, .section-switch a, .nav-dropdown-btn {
+  white-space: nowrap;
+}
+

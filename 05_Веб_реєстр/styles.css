@@ -438,11 +438,22 @@ select {
 /* Header nav row layout */
 .header-nav-row {
   display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+  width: 100%;
+}
+.nav-row-1 {
+  display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 24px;
+  width: 100%;
+}
+.nav-row-2 {
+  display: flex;
+  align-items: center;
   width: 100%;
 }
 .header-nav-row .brand-lockup {
@@ -484,7 +495,6 @@ select {
   box-shadow: 0 8px 18px rgba(74,143,199,.28);
 }
 .header-nav-row .auth-container {
-  margin-left: auto;
   display: inline-flex;
 }
 .header-nav-row .auth-container .auth-nav-btn {
@@ -507,14 +517,6 @@ select {
 }
 
 @media (max-width: 1040px) {
-  .header-nav-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-  .header-nav-row .auth-container {
-    margin-left: 0;
-  }
   .hero { display: block; padding: 28px 20px; }
   .stats { margin-top: 22px; }
   .layout { display: block; padding: 16px; }
