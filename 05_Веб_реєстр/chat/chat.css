@@ -753,6 +753,7 @@ body.is-popup-window .chat-window {
 
 body.is-popup-window .chat-window-header {
   border-bottom: 1px solid var(--line);
+  cursor: move !important;
 }
 
 body.is-popup-window #pipToggleBtn {

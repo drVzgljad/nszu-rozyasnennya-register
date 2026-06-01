@@ -15,6 +15,7 @@ async function init() {
   if (urlParams.get('mode') === 'popup') {
     document.body.classList.add('is-popup-window');
     document.title = "Робочий чат Департаменту";
+    makePopupDraggable();
   }
 
   // Check auth session
@@ -1107,6 +1108,68 @@ function showPopupOverlay() {
 
     win.appendChild(overlay);
   }
+}
+
+function makePopupDraggable() {
+  const handle = byId("chatWindowHeader");
+  if (!handle) return;
+
+  let startX = 0;
+  let startY = 0;
+
+  function onMouseDown(e) {
+    if (e.target.closest('.chat-header-btn')) return;
+    startX = e.screenX;
+    startY = e.screenY;
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }
+
+  function onMouseMove(e) {
+    const dx = e.screenX - startX;
+    const dy = e.screenY - startY;
+    
+    window.moveBy(dx, dy);
+
+    startX = e.screenX;
+    startY = e.screenY;
+  }
+
+  function onMouseUp() {
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+  }
+
+  // Touch support
+  function onTouchStart(e) {
+    if (e.target.closest('.chat-header-btn')) return;
+    const touch = e.touches[0];
+    startX = touch.screenX;
+    startY = touch.screenY;
+
+    document.addEventListener('touchmove', onTouchMove, { passive: false });
+    document.addEventListener('touchend', onTouchEnd);
+  }
+
+  function onTouchMove(e) {
+    const touch = e.touches[0];
+    const dx = touch.screenX - startX;
+    const dy = touch.screenY - startY;
+
+    window.moveBy(dx, dy);
+
+    startX = touch.screenX;
+    startY = touch.screenY;
+  }
+
+  function onTouchEnd() {
+    document.removeEventListener('touchmove', onTouchMove);
+    document.removeEventListener('touchend', onTouchEnd);
+  }
+
+  handle.addEventListener('mousedown', onMouseDown);
+  handle.addEventListener('touchstart', onTouchStart);
 }
 
 document.addEventListener("DOMContentLoaded", init);
