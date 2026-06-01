@@ -446,4 +446,76 @@
   text-align: left;
 }
 
+/* Pinned Messages Sidebar styling */
+.pinned-messages-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.pinned-message-item {
+  background: var(--soft, #f2f8fb);
+  border: 1px solid var(--line, #dde6ee);
+  border-radius: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pinned-message-item:hover {
+  border-color: var(--accent, #4a8fc7);
+  background-color: #fff;
+  box-shadow: 0 4px 10px rgba(14, 30, 55, 0.05);
+}
+.pinned-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
+}
+.pinned-item-author {
+  font-weight: 700;
+  color: var(--accent-dark, #2f6b9e);
+}
+.unpin-item-btn {
+  background: none;
+  border: none;
+  font-size: 10px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  opacity: 0.5;
+  transition: opacity 0.15s, background 0.15s;
+}
+.unpin-item-btn:hover {
+  opacity: 1;
+  background: rgba(183, 58, 46, 0.1);
+}
+.pinned-item-body {
+  font-size: 12.5px;
+  color: var(--ink);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  line-height: 1.3;
+}
+
+/* Highlight Flash Animation when navigating to pinned messages */
+@keyframes highlightFlash {
+  0% { background-color: rgba(246, 229, 166, 0.6); box-shadow: 0 0 16px rgba(246, 229, 166, 0.8); }
+  100% { background-color: transparent; box-shadow: none; }
+}
+.chat-msg.highlight-flash .chat-msg-bubble {
+  animation: highlightFlash 1.5s ease-out;
+}
+
+/* Active status for Pin hover actions */
+.chat-action-btn.pin-btn.is-active {
+  background: rgba(74, 143, 199, 0.15);
+}
+
 

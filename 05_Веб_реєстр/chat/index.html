@@ -37,14 +37,11 @@
   <main class="chat-layout">
     <!-- Left sidebar with info/instructions -->
     <aside class="chat-sidebar">
-      <div class="chat-info-card">
-        <h3>Правила спілкування</h3>
-        <ul>
-          <li>Будьте ввічливими та поважайте колег.</li>
-          <li>Формулюйте питання чітко, вказуйте пакет ПМГ або статтю.</li>
-          <li>Уникайте публікації конфіденційних персональних даних пацієнтів.</li>
-          <li>Повідомлення транслюються в реальному часі для всіх користувачів з повним доступом.</li>
-        </ul>
+      <div class="chat-info-card pinned-messages-card" id="pinnedMessagesCard">
+        <h3>Важливі оголошення 📌</h3>
+        <div class="pinned-messages-list" id="pinnedMessagesList">
+          <div class="pinned-placeholder" style="font-size: 12.5px; color: var(--muted); line-height: 1.45; font-style: italic;">Немає закріплених оголошень. Наведіть на повідомлення та натисніть 📌, щоб додати його сюди.</div>
+        </div>
       </div>
       <div class="chat-info-card connection-status-card">
         <h3>Статус підключення</h3>

@@ -80,6 +80,7 @@ async function loadMessages() {
   chatMessages = data || [];
   renderMessages();
   renderStats();
+  renderPinnedMessages();
 }
 
 function renderMessages() {
@@ -137,15 +138,27 @@ function appendMessageElement(msg, scroll = true) {
     <div class="chat-msg-meta">
       <span class="sender-name">${escapeHtml(msg.user_name || "Користувач")}</span>
       <span class="msg-time">${formatTime(msg.created_at)}</span>
+      ${msg.is_top ? '<span class="pinned-badge" title="Закріплено як ТОП" style="font-size: 10px; color: var(--accent-dark, #2f6b9e); font-weight: 700; margin-left: 8px; background: rgba(74, 143, 199, 0.12); padding: 2px 6px; border-radius: 6px; display: inline-flex; align-items: center; gap: 3px;">📌 Важливе</span>' : ''}
     </div>
     <div class="chat-msg-bubble">${renderMessageText(msg.message_text)}</div>
   `;
 
-  // Attach hover action controls for the user's own messages
+  // Attach hover action controls
+  const actionsDiv = document.createElement("div");
+  actionsDiv.className = "chat-msg-actions";
+  let hasActions = false;
+
+  // Pin/Unpin action button (visible on all messages)
+  const pinBtn = document.createElement("button");
+  pinBtn.type = "button";
+  pinBtn.className = `chat-action-btn pin-btn ${msg.is_top ? 'is-active' : ''}`;
+  pinBtn.title = msg.is_top ? "Відкріпити" : "Закріпити як ТОП";
+  pinBtn.textContent = "📌";
+  pinBtn.addEventListener("click", () => togglePinMessage(msg.id, msg.is_top));
+  actionsDiv.appendChild(pinBtn);
+  hasActions = true;
+
   if (isMe) {
-    const actionsDiv = document.createElement("div");
-    actionsDiv.className = "chat-msg-actions";
-    
     const editBtn = document.createElement("button");
     editBtn.type = "button";
     editBtn.className = "chat-action-btn edit-btn";
@@ -162,6 +175,9 @@ function appendMessageElement(msg, scroll = true) {
     
     actionsDiv.appendChild(editBtn);
     actionsDiv.appendChild(deleteBtn);
+  }
+
+  if (hasActions) {
     msgDiv.appendChild(actionsDiv);
   }
 
@@ -328,13 +344,33 @@ function setupRealtime() {
             const useLargeEmoji = isEmojiOnly && emojiCount > 0 && emojiCount <= 3;
             el.classList.toggle('msg-only-emojis', useLargeEmoji);
 
+            // Toggle pin button state
+            const pinBtn = el.querySelector('.pin-btn');
+            if (pinBtn) {
+              pinBtn.className = `chat-action-btn pin-btn ${newMsg.is_top ? 'is-active' : ''}`;
+              pinBtn.title = newMsg.is_top ? "Відкріпити" : "Закріпити як ТОП";
+            }
+
             const bubble = el.querySelector('.chat-msg-bubble');
             if (bubble) {
               bubble.innerHTML = renderMessageText(newMsg.message_text);
-              
-              // Add a (ред.) label if not already present
-              const meta = el.querySelector('.chat-msg-meta');
-              if (meta && !meta.querySelector('.edited-label')) {
+            }
+
+            const meta = el.querySelector('.chat-msg-meta');
+            if (meta) {
+              const badge = meta.querySelector('.pinned-badge');
+              if (newMsg.is_top && !badge) {
+                const span = document.createElement('span');
+                span.className = 'pinned-badge';
+                span.title = 'Закріплено як ТОП';
+                span.style.cssText = 'font-size: 10px; color: var(--accent-dark, #2f6b9e); font-weight: 700; margin-left: 8px; background: rgba(74, 143, 199, 0.12); padding: 2px 6px; border-radius: 6px; display: inline-flex; align-items: center; gap: 3px;';
+                span.textContent = '📌 Важливе';
+                meta.appendChild(span);
+              } else if (!newMsg.is_top && badge) {
+                badge.remove();
+              }
+
+              if (!meta.querySelector('.edited-label')) {
                 const span = document.createElement('span');
                 span.className = 'edited-label';
                 span.style.cssText = 'font-size: 10px; opacity: 0.6; margin-left: 6px; font-style: italic;';
@@ -343,6 +379,7 @@ function setupRealtime() {
               }
             }
           }
+          renderPinnedMessages();
         }
       } else if (eventType === 'DELETE') {
         const idx = chatMessages.findIndex(m => m.id === oldMsg.id);
@@ -353,6 +390,7 @@ function setupRealtime() {
           const el = document.querySelector(`.chat-msg[data-id="${oldMsg.id}"]`);
           if (el) el.remove();
           renderStats();
+          renderPinnedMessages();
         }
       }
     })
@@ -844,6 +882,125 @@ function initEmojiPicker() {
       popup.style.display = 'none';
     }
   });
+}
+
+/* ── Pinned/Top Messages Left Panel Logic ────────── */
+
+function renderPinnedMessages() {
+  const list = byId("pinnedMessagesList");
+  if (!list) return;
+
+  const pinned = chatMessages.filter(m => m.is_top);
+  
+  if (pinned.length === 0) {
+    list.innerHTML = `
+      <div class="pinned-placeholder" style="font-size: 12.5px; color: var(--muted); line-height: 1.45; font-style: italic;">
+        Немає закріплених оголошень. Наведіть на повідомлення та натисніть 📌, щоб додати його сюди.
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML = "";
+  pinned.forEach(msg => {
+    const item = document.createElement("div");
+    item.className = "pinned-message-item";
+    item.dataset.id = msg.id;
+    
+    let textPreview = msg.message_text;
+    if (textPreview.startsWith('📎 [Файл:')) {
+      const match = textPreview.match(/📎 \[Файл:\s*([^\]]+)\]/);
+      textPreview = match ? `📎 Файл: ${match[1]}` : '📎 Файл';
+    }
+    if (textPreview.length > 55) {
+      textPreview = textPreview.substring(0, 55) + "...";
+    }
+
+    item.innerHTML = `
+      <div class="pinned-item-header">
+        <span class="pinned-item-author">${escapeHtml(msg.user_name || "Користувач")}</span>
+        <button type="button" class="unpin-item-btn" title="Відкріпити">❌</button>
+      </div>
+      <div class="pinned-item-body">${escapeHtml(textPreview)}</div>
+    `;
+
+    item.addEventListener("click", (e) => {
+      if (e.target.classList.contains("unpin-item-btn")) {
+        e.stopPropagation();
+        togglePinMessage(msg.id, true);
+        return;
+      }
+      scrollToMessage(msg.id);
+    });
+
+    list.appendChild(item);
+  });
+}
+
+async function togglePinMessage(id, currentIsTop) {
+  const nextIsTop = !currentIsTop;
+
+  const { data, error } = await sb
+    .from('chat_messages')
+    .update({ is_top: nextIsTop })
+    .eq('id', id)
+    .select();
+
+  if (error) {
+    console.error("Error toggling pin status:", error);
+    alert("Не вдалося змінити статус закріплення: " + error.message);
+  } else if (!data || data.length === 0) {
+    console.warn('Pin toggle affected 0 rows. Check RLS policies.');
+    alert("Помилка: не вдалося змінити статус закріплення. Перевірте дозволи (RLS політика).");
+  } else {
+    // Immediate local UI update fallback
+    const idx = chatMessages.findIndex(m => m.id === id);
+    if (idx !== -1) {
+      chatMessages[idx].is_top = nextIsTop;
+    }
+    
+    // Toggle class on message DOM
+    const el = document.querySelector(`.chat-msg[data-id="${id}"]`);
+    if (el) {
+      const pinBtn = el.querySelector('.pin-btn');
+      if (pinBtn) {
+        pinBtn.className = `chat-action-btn pin-btn ${nextIsTop ? 'is-active' : ''}`;
+        pinBtn.title = nextIsTop ? "Відкріпити" : "Закріпити як ТОП";
+      }
+      
+      // Update badge
+      const meta = el.querySelector('.chat-msg-meta');
+      if (meta) {
+        const badge = meta.querySelector('.pinned-badge');
+        if (nextIsTop && !badge) {
+          const span = document.createElement('span');
+          span.className = 'pinned-badge';
+          span.title = 'Закріплено як ТОП';
+          span.style.cssText = 'font-size: 10px; color: var(--accent-dark, #2f6b9e); font-weight: 700; margin-left: 8px; background: rgba(74, 143, 199, 0.12); padding: 2px 6px; border-radius: 6px; display: inline-flex; align-items: center; gap: 3px;';
+          span.textContent = '📌 Важливе';
+          meta.appendChild(span);
+        } else if (!nextIsTop && badge) {
+          badge.remove();
+        }
+      }
+    }
+    
+    // Re-render pinned list
+    renderPinnedMessages();
+  }
+}
+
+function scrollToMessage(id) {
+  const el = document.querySelector(`.chat-msg[data-id="${id}"]`);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    // Flash highlight effect
+    el.classList.add('highlight-flash');
+    setTimeout(() => el.classList.remove('highlight-flash'), 1500);
+  } else {
+    alert("Повідомлення не знайдено в поточній історії.");
+  }
 }
 
 document.addEventListener("DOMContentLoaded", init);
