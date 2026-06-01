@@ -34,6 +34,9 @@ async function init() {
   // Setup desktop notifications
   initNotificationSetup();
 
+  // Setup emoji picker
+  initEmojiPicker();
+
   // Handle page unloading to unsubscribe
   window.addEventListener('beforeunload', () => {
     if (realtimeChannel) {
@@ -426,6 +429,66 @@ function updateOnlineUsersList(state) {
       <span>${escapeHtml(u.user_name || "Користувач")}</span>
     `;
     container.appendChild(item);
+  });
+}
+
+/* ── Emoji Picker Panel ──────────────────────────── */
+
+function initEmojiPicker() {
+  const trigger = byId('emojiTriggerBtn');
+  const popup = byId('emojiPickerPopup');
+  const input = byId('chatMessageInput');
+  
+  if (!trigger || !popup || !input) return;
+
+  const popularEmojis = [
+    '😀', '😂', '😊', '😉', '😎', '😍', '🤔', '🤷', '🤦',
+    '👍', '👎', '👏', '🙌', '🎉', '🔥', '🚀', '💡', '💬',
+    '❓', '❗', '✅', '❌', '🤝', '💻', '🩺', '💊', '🩹', 
+    '🏥', '🚑', '📢', '✍️', '📅', '⏳', '🏥', '⚕️', '🩺'
+  ];
+
+  const grid = popup.querySelector('.emoji-grid');
+  if (grid) {
+    grid.innerHTML = '';
+    const uniqueEmojis = [...new Set(popularEmojis)];
+    uniqueEmojis.forEach(emoji => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'emoji-btn';
+      btn.textContent = emoji;
+      btn.style.cssText = 'background: none; border: none; font-size: 20px; padding: 4px; cursor: pointer; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: background 0.15s;';
+      
+      btn.addEventListener('mouseenter', () => btn.style.background = 'rgba(74, 143, 199, 0.15)');
+      btn.addEventListener('mouseleave', () => btn.style.background = 'none');
+      
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        
+        const start = input.selectionStart;
+        const end = input.selectionEnd;
+        const text = input.value;
+        input.value = text.substring(0, start) + emoji + text.substring(end);
+        
+        input.selectionStart = input.selectionEnd = start + emoji.length;
+        input.focus();
+        
+        popup.style.display = 'none';
+      });
+      grid.appendChild(btn);
+    });
+  }
+
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isHidden = popup.style.display === 'none';
+    popup.style.display = isHidden ? 'block' : 'none';
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!popup.contains(e.target) && e.target !== trigger) {
+      popup.style.display = 'none';
+    }
   });
 }
 
