@@ -221,11 +221,11 @@ async function handleSendMessage(e) {
   } else {
     const profileName = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
 
-    const { error } = await sb.from('chat_messages').insert({
+    const { data, error } = await sb.from('chat_messages').insert({
       user_id: currentUser.id,
       user_name: profileName,
       message_text: text
-    });
+    }).select();
 
     input.disabled = false;
     sendBtn.disabled = false;
@@ -236,6 +236,16 @@ async function handleSendMessage(e) {
     } else {
       input.value = "";
       input.focus();
+
+      // Optimistic rendering fallback: if Realtime hasn't rendered it yet
+      if (data && data.length > 0) {
+        const insertedMsg = data[0];
+        if (!chatMessages.some(m => m.id === insertedMsg.id)) {
+          chatMessages.push(insertedMsg);
+          appendMessageElement(insertedMsg, true);
+          renderStats();
+        }
+      }
     }
   }
 }
