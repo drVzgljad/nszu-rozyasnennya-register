@@ -128,7 +128,7 @@ function applyAccess() {
       { text: 'Питання ЗОЗ', path: 'zoz-questions/index.html', role: 'registered' },
       { text: 'Пропозиції ПМГ', path: 'pmg-proposals/index.html', role: 'registered' },
       { text: 'Новини', path: 'news/index.html', role: 'full' },
-      { text: 'Живий чат', path: 'chat/index.html', role: 'full' }
+      { text: 'Робочий чат', path: 'chat/index.html', role: 'full' }
     ];
 
     // 1. Core navigation tabs

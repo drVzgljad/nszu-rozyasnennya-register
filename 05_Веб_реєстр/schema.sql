@@ -83,7 +83,7 @@ CREATE POLICY "Full access users can view news" ON public.news
   );
 
 
--- 4. СТВОРЕННЯ ТАБЛИЦІ ЖИВОГО ЧАТУ (Тільки для повного доступу 'full')
+-- 4. СТВОРЕННЯ ТАБЛИЦІ РОБОЧОГО ЧАТУ (Тільки для повного доступу 'full')
 CREATE TABLE IF NOT EXISTS public.chat_messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
