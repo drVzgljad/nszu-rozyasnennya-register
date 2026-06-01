@@ -143,3 +143,28 @@ CREATE POLICY "Full access users can delete their own messages" ON public.chat_m
 
 -- Додавання таблиці чату до публікації реального часу для Realtime
 ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;
+
+-- 5. ДОДАВАННЯ ПРИВАТНИХ ПОВІДОМЛЕНЬ (ДІАЛОГІВ)
+-- Додаємо стовпчик recipient_id для приватних повідомлень
+ALTER TABLE public.chat_messages ADD COLUMN IF NOT EXISTS recipient_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
+
+-- Створюємо індекс для прискорення пошуку приватних діалогів
+CREATE INDEX IF NOT EXISTS idx_chat_messages_recipient ON public.chat_messages(recipient_id);
+
+-- Видаляємо стару політику вибірки
+DROP POLICY IF EXISTS "Full access users can read chat" ON public.chat_messages;
+
+-- Створюємо оновлену політику вибірки, що обмежує доступ до приватних повідомлень
+CREATE POLICY "Full access users can read chat" ON public.chat_messages
+  FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role = 'full'
+    ) AND (
+      recipient_id IS NULL OR 
+      user_id = auth.uid() OR 
+      recipient_id = auth.uid()
+    )
+  );

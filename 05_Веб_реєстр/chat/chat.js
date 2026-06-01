@@ -7,6 +7,9 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentUser = null;
 let chatMessages = [];
 let realtimeChannel = null;
+let activeChat = { type: 'group' }; // { type: 'group' } or { type: 'private', userId: '...', userName: '...' }
+let knownUsers = {}; // userId -> userName mapping for offline/active DM lists
+let unreadCounts = {}; // userId -> number of unread messages
 
 const byId = (id) => document.getElementById(id);
 
@@ -64,6 +67,12 @@ async function init() {
     pipToggle.addEventListener("click", togglePipMode);
   }
 
+  // Setup click handler for General Chat item
+  const mainGroupChannel = byId("channelGroupMain");
+  if (mainGroupChannel) {
+    mainGroupChannel.addEventListener("click", () => selectChannel({ type: 'group' }));
+  }
+
   // Handle page unloading to unsubscribe
   window.addEventListener('beforeunload', () => {
     if (realtimeChannel) {
@@ -91,9 +100,18 @@ async function loadMessages() {
   }
 
   chatMessages = data || [];
+
+  // Extract known user names from historical messages
+  chatMessages.forEach(msg => {
+    if (msg.user_id && msg.user_name) {
+      knownUsers[msg.user_id] = msg.user_name;
+    }
+  });
+
   renderMessages();
   renderStats();
   renderPinnedMessages();
+  renderDialoguesList();
 }
 
 function renderMessages() {
@@ -101,12 +119,21 @@ function renderMessages() {
   if (!container) return;
   container.innerHTML = "";
 
-  if (chatMessages.length === 0) {
-    container.innerHTML = '<div class="chat-system-message">Повідомлень немає. Будьте першим, хто напише!</div>';
+  const filtered = chatMessages.filter(msg => {
+    if (activeChat.type === 'group') {
+      return !msg.recipient_id;
+    } else {
+      return (msg.user_id === currentUser.id && msg.recipient_id === activeChat.userId) ||
+             (msg.user_id === activeChat.userId && msg.recipient_id === currentUser.id);
+    }
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="chat-system-message">${activeChat.type === 'group' ? 'Повідомлень немає. Будьте першим, хто напише!' : 'Немає повідомлень у цьому діалозі. Напишіть щось приватне!'}</div>`;
     return;
   }
 
-  chatMessages.forEach(msg => {
+  filtered.forEach(msg => {
     appendMessageElement(msg, false); // don't scroll each, we scroll once at the end
   });
 
@@ -171,15 +198,17 @@ function appendMessageElement(msg, scroll = true) {
   actionsDiv.className = "chat-msg-actions";
   let hasActions = false;
 
-  // Pin/Unpin action button (visible on all messages)
-  const pinBtn = document.createElement("button");
-  pinBtn.type = "button";
-  pinBtn.className = `chat-action-btn pin-btn ${msg.is_top ? 'is-active' : ''}`;
-  pinBtn.title = msg.is_top ? "Відкріпити" : "Закріпити як ТОП";
-  pinBtn.textContent = "📌";
-  pinBtn.addEventListener("click", () => togglePinMessage(msg.id, msg.is_top));
-  actionsDiv.appendChild(pinBtn);
-  hasActions = true;
+  // Pin/Unpin action button (visible on public group messages only)
+  if (!msg.recipient_id) {
+    const pinBtn = document.createElement("button");
+    pinBtn.type = "button";
+    pinBtn.className = `chat-action-btn pin-btn ${msg.is_top ? 'is-active' : ''}`;
+    pinBtn.title = msg.is_top ? "Відкріпити" : "Закріпити як ТОП";
+    pinBtn.textContent = "📌";
+    pinBtn.addEventListener("click", () => togglePinMessage(msg.id, msg.is_top));
+    actionsDiv.appendChild(pinBtn);
+    hasActions = true;
+  }
 
   if (isMe) {
     const editBtn = document.createElement("button");
@@ -298,11 +327,16 @@ async function handleSendMessage(e) {
   } else {
     const profileName = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
 
-    const { data, error } = await sb.from('chat_messages').insert({
+    const insertPayload = {
       user_id: currentUser.id,
       user_name: profileName,
       message_text: text
-    }).select();
+    };
+    if (activeChat.type === 'private') {
+      insertPayload.recipient_id = activeChat.userId;
+    }
+
+    const { data, error } = await sb.from('chat_messages').insert(insertPayload).select();
 
     input.disabled = false;
     sendBtn.disabled = false;
@@ -319,8 +353,20 @@ async function handleSendMessage(e) {
         const insertedMsg = data[0];
         if (!chatMessages.some(m => m.id === insertedMsg.id)) {
           chatMessages.push(insertedMsg);
-          appendMessageElement(insertedMsg, true);
+          
+          let belongsToActive = false;
+          if (activeChat.type === 'group') {
+            belongsToActive = !insertedMsg.recipient_id;
+          } else {
+            belongsToActive = (insertedMsg.user_id === currentUser.id && insertedMsg.recipient_id === activeChat.userId) ||
+                              (insertedMsg.user_id === activeChat.userId && insertedMsg.recipient_id === currentUser.id);
+          }
+
+          if (belongsToActive) {
+            appendMessageElement(insertedMsg, true);
+          }
           renderStats();
+          renderDialoguesList();
         }
       }
     }
@@ -349,9 +395,33 @@ function setupRealtime() {
       if (eventType === 'INSERT') {
         if (!chatMessages.some(m => m.id === newMsg.id)) {
           chatMessages.push(newMsg);
-          appendMessageElement(newMsg, true);
+          
+          if (newMsg.user_id && newMsg.user_name) {
+            knownUsers[newMsg.user_id] = newMsg.user_name;
+          }
+
+          let belongsToActive = false;
+          if (activeChat.type === 'group') {
+            belongsToActive = !newMsg.recipient_id;
+          } else {
+            belongsToActive = (newMsg.user_id === currentUser.id && newMsg.recipient_id === activeChat.userId) ||
+                              (newMsg.user_id === activeChat.userId && newMsg.recipient_id === currentUser.id);
+          }
+
+          if (belongsToActive) {
+            appendMessageElement(newMsg, true);
+          } else {
+            // Incoming private DM for us from someone else
+            if (newMsg.recipient_id === currentUser.id) {
+              const senderId = newMsg.user_id;
+              unreadCounts[senderId] = (unreadCounts[senderId] || 0) + 1;
+              playNotificationSound();
+              triggerIncomingAlert(newMsg);
+            }
+          }
+
           renderStats();
-          triggerIncomingAlert(newMsg);
+          renderDialoguesList();
         }
       } else if (eventType === 'UPDATE') {
         const idx = chatMessages.findIndex(m => m.id === newMsg.id);
@@ -659,12 +729,31 @@ function updateOnlineUsersList(state) {
   }
 
   onlineUsers.forEach(u => {
+    const isMe = currentUser && u.user_id === currentUser.id;
+
+    // Save to known users list
+    if (u.user_id && u.user_name) {
+      knownUsers[u.user_id] = u.user_name;
+    }
+
     const item = document.createElement('div');
     item.className = 'online-user-item';
     item.innerHTML = `
       <span class="online-indicator-dot"></span>
-      <span>${escapeHtml(u.user_name || "Користувач")}</span>
+      <span>${escapeHtml(u.user_name || "Користувач")}${isMe ? ' (Ви)' : ''}</span>
     `;
+
+    if (!isMe && u.user_id) {
+      item.title = "Надіслати приватне повідомлення";
+      item.addEventListener('click', () => {
+        selectChannel({
+          type: 'private',
+          userId: u.user_id,
+          userName: u.user_name || "Користувач"
+        });
+      });
+    }
+
     container.appendChild(item);
   });
 }
@@ -1170,6 +1259,90 @@ function makePopupDraggable() {
 
   handle.addEventListener('mousedown', onMouseDown);
   handle.addEventListener('touchstart', onTouchStart);
+}
+
+function selectChannel(channel) {
+  activeChat = channel;
+
+  // Clear unread counts for this channel
+  if (channel.type === 'private') {
+    unreadCounts[channel.userId] = 0;
+  }
+
+  // Update Header Title
+  const headerTitle = document.querySelector(".chat-header-title");
+  if (headerTitle) {
+    if (channel.type === 'group') {
+      headerTitle.textContent = "Робочий чат Департаменту";
+    } else {
+      headerTitle.textContent = "Приватний чат з " + channel.userName;
+    }
+  }
+
+  // Render messages and updates Dialogues list active styling
+  renderMessages();
+  renderDialoguesList();
+  
+  // Reset scroll
+  scrollToBottom();
+}
+
+function renderDialoguesList() {
+  const list = byId("channelsList");
+  if (!list) return;
+
+  // Clear everything except General main channel item
+  const mainGroup = byId("channelGroupMain");
+  list.innerHTML = "";
+  if (mainGroup) {
+    // Restore main channel and toggle active class
+    mainGroup.className = `channel-item ${activeChat.type === 'group' ? 'active' : ''}`;
+    list.appendChild(mainGroup);
+  }
+
+  // Find all private dialogue userIds from chatMessages
+  const dialogueUserIds = new Set();
+  chatMessages.forEach(m => {
+    if (m.recipient_id) {
+      if (m.user_id === currentUser.id) {
+        dialogueUserIds.add(m.recipient_id);
+      } else if (m.recipient_id === currentUser.id) {
+        dialogueUserIds.add(m.user_id);
+      }
+    }
+  });
+
+  // Render each private dialogue channel item
+  dialogueUserIds.forEach(userId => {
+    // Skip rendering if userId matches current user
+    if (currentUser && userId === currentUser.id) return;
+
+    const userName = knownUsers[userId] || "Користувач";
+    const item = document.createElement("div");
+    
+    const isActive = activeChat.type === 'private' && activeChat.userId === userId;
+    item.className = `channel-item ${isActive ? 'active' : ''}`;
+    item.dataset.type = "private";
+    item.dataset.userId = userId;
+
+    const unreadCount = unreadCounts[userId] || 0;
+    
+    item.innerHTML = `
+      <span class="channel-icon">👤</span>
+      <span class="channel-name">${escapeHtml(userName)}</span>
+      ${unreadCount > 0 ? `<span class="unread-badge">🔴 ${unreadCount}</span>` : ''}
+    `;
+
+    item.addEventListener("click", () => {
+      selectChannel({
+        type: 'private',
+        userId: userId,
+        userName: userName
+      });
+    });
+
+    list.appendChild(item);
+  });
 }
 
 document.addEventListener("DOMContentLoaded", init);
