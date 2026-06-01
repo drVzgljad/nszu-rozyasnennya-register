@@ -183,10 +183,11 @@ async function handleSendMessage(e) {
   sendBtn.disabled = true;
 
   if (editingMessageId) {
-    const { error } = await sb
+    const { data, error } = await sb
       .from('chat_messages')
       .update({ message_text: text })
-      .eq('id', editingMessageId);
+      .eq('id', editingMessageId)
+      .select();
 
     input.disabled = false;
     sendBtn.disabled = false;
@@ -194,7 +195,27 @@ async function handleSendMessage(e) {
     if (error) {
       console.error('Error updating message:', error);
       alert("Не вдалося оновити повідомлення: " + error.message);
+    } else if (!data || data.length === 0) {
+      console.warn('Update affected 0 rows. Check RLS policies.');
+      alert("Помилка: не вдалося оновити повідомлення. Перевірте дозволи (RLS політика).");
     } else {
+      // Immediate local UI update fallback
+      const idx = chatMessages.findIndex(m => m.id === editingMessageId);
+      if (idx !== -1) {
+        chatMessages[idx].message_text = text;
+      }
+      const bubble = document.querySelector(`.chat-msg[data-id="${editingMessageId}"] .chat-msg-bubble`);
+      if (bubble) {
+        bubble.innerHTML = renderMessageText(text);
+        const meta = document.querySelector(`.chat-msg[data-id="${editingMessageId}"] .chat-msg-meta`);
+        if (meta && !meta.querySelector('.edited-label')) {
+          const span = document.createElement('span');
+          span.className = 'edited-label';
+          span.style.cssText = 'font-size: 10px; opacity: 0.6; margin-left: 6px; font-style: italic;';
+          span.textContent = '(ред.)';
+          meta.appendChild(span);
+        }
+      }
       cancelEditing();
     }
   } else {
@@ -560,10 +581,27 @@ function cancelEditing() {
 async function deleteMessage(id) {
   if (!confirm("Ви впевнені, що хочете видалити це повідомлення для всіх?")) return;
   
-  const { error } = await sb.from('chat_messages').delete().eq('id', id);
+  const { data, error } = await sb
+    .from('chat_messages')
+    .delete()
+    .eq('id', id)
+    .select();
+
   if (error) {
     console.error("Error deleting message:", error);
     alert("Не вдалося видалити повідомлення: " + error.message);
+  } else if (!data || data.length === 0) {
+    console.warn('Delete affected 0 rows. Check RLS policies.');
+    alert("Помилка: не вдалося видалити повідомлення. Перевірте дозволи (RLS політика).");
+  } else {
+    // Immediate local UI update fallback
+    const idx = chatMessages.findIndex(m => m.id === id);
+    if (idx !== -1) {
+      chatMessages.splice(idx, 1);
+    }
+    const el = document.querySelector(`.chat-msg[data-id="${id}"]`);
+    if (el) el.remove();
+    renderStats();
   }
 }
 
