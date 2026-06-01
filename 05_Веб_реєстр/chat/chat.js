@@ -51,6 +51,12 @@ async function init() {
     cancelBtn.addEventListener("click", cancelEditing);
   }
 
+  // PIP Mode Toggle
+  const pipToggle = byId("pipToggleBtn");
+  if (pipToggle) {
+    pipToggle.addEventListener("click", togglePipMode);
+  }
+
   // Handle page unloading to unsubscribe
   window.addEventListener('beforeunload', () => {
     if (realtimeChannel) {
@@ -1018,9 +1024,137 @@ function scrollToMessage(id) {
     // Flash highlight effect
     el.classList.add('highlight-flash');
     setTimeout(() => el.classList.remove('highlight-flash'), 1500);
-  } else {
+      } else {
     alert("Повідомлення не знайдено в поточній історії.");
   }
+}
+
+/* ── Picture-in-Picture Floating Chat Logic ──────── */
+let isPipMode = false;
+let dragStartHandler = null;
+
+function togglePipMode() {
+  const win = byId("chatWindow");
+  const btn = byId("pipToggleBtn");
+  if (!win || !btn) return;
+
+  isPipMode = !isPipMode;
+  win.classList.toggle("pip-mode", isPipMode);
+  
+  if (isPipMode) {
+    btn.textContent = "🗗"; // Restore icon
+    btn.title = "Розгорнути чат";
+    win.style.left = "";
+    win.style.top = "";
+    win.style.bottom = "24px";
+    win.style.right = "24px";
+    
+    makeDraggable(win, byId("chatWindowHeader"));
+  } else {
+    btn.textContent = "🗖"; // Minimize icon
+    btn.title = "Згорнути у плаваюче вікно";
+    win.style.left = "";
+    win.style.top = "";
+    win.style.bottom = "";
+    win.style.right = "";
+    win.style.transform = "";
+    
+    destroyDraggable(win, byId("chatWindowHeader"));
+  }
+  
+  setTimeout(scrollToBottom, 150);
+}
+
+function makeDraggable(element, handle) {
+  let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+  
+  dragStartHandler = function(e) {
+    e = e || window.event;
+    if (e.target.closest('.chat-header-btn')) return;
+    
+    e.preventDefault();
+    pos3 = e.clientX;
+    pos4 = e.clientY;
+    
+    document.onmouseup = closeDragElement;
+    document.onmousemove = elementDrag;
+    
+    element.classList.add("dragging");
+  };
+  
+  // Touch support for mobile dragging
+  let touchStartHandler = function(e) {
+    if (e.target.closest('.chat-header-btn')) return;
+    const touch = e.touches[0];
+    pos3 = touch.clientX;
+    pos4 = touch.clientY;
+    
+    document.ontouchend = closeDragElement;
+    document.ontouchmove = elementTouchDrag;
+    
+    element.classList.add("dragging");
+  };
+  
+  handle.onmousedown = dragStartHandler;
+  handle.ontouchstart = touchStartHandler;
+  
+  function elementDrag(e) {
+    e = e || window.event;
+    e.preventDefault();
+    pos1 = pos3 - e.clientX;
+    pos2 = pos4 - e.clientY;
+    pos3 = e.clientX;
+    pos4 = e.clientY;
+    
+    const newTop = element.offsetTop - pos2;
+    const newLeft = element.offsetLeft - pos1;
+    
+    const maxLeft = window.innerWidth - element.offsetWidth - 10;
+    const maxTop = window.innerHeight - element.offsetHeight - 10;
+    
+    element.style.top = Math.max(10, Math.min(newTop, maxTop)) + "px";
+    element.style.left = Math.max(10, Math.min(newLeft, maxLeft)) + "px";
+    element.style.bottom = "auto";
+    element.style.right = "auto";
+  }
+  
+  function elementTouchDrag(e) {
+    const touch = e.touches[0];
+    pos1 = pos3 - touch.clientX;
+    pos2 = pos4 - touch.clientY;
+    pos3 = touch.clientX;
+    pos4 = touch.clientY;
+    
+    const newTop = element.offsetTop - pos2;
+    const newLeft = element.offsetLeft - pos1;
+    
+    const maxLeft = window.innerWidth - element.offsetWidth - 10;
+    const maxTop = window.innerHeight - element.offsetHeight - 10;
+    
+    element.style.top = Math.max(10, Math.min(newTop, maxTop)) + "px";
+    element.style.left = Math.max(10, Math.min(newLeft, maxLeft)) + "px";
+    element.style.bottom = "auto";
+    element.style.right = "auto";
+  }
+  
+  function closeDragElement() {
+    document.onmouseup = null;
+    document.onmousemove = null;
+    document.ontouchend = null;
+    document.ontouchmove = null;
+    element.classList.remove("dragging");
+  }
+}
+
+function destroyDraggable(element, handle) {
+  if (handle) {
+    handle.onmousedown = null;
+    handle.ontouchstart = null;
+  }
+  document.onmouseup = null;
+  document.onmousemove = null;
+  document.ontouchend = null;
+  document.ontouchmove = null;
 }
 
 document.addEventListener("DOMContentLoaded", init);

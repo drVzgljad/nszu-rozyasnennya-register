@@ -68,7 +68,16 @@
     </aside>
 
     <!-- Right area: the Chat itself -->
-    <section class="chat-window" aria-label="Вікно повідомлень">
+    <section class="chat-window" aria-label="Вікно повідомлень" id="chatWindow">
+      <div class="chat-window-header" id="chatWindowHeader">
+        <div class="chat-header-info">
+          <span class="chat-header-dot"></span>
+          <span class="chat-header-title">Робочий чат Департаменту</span>
+        </div>
+        <div class="chat-header-actions">
+          <button type="button" id="pipToggleBtn" class="chat-header-btn" title="Згорнути у плаваюче вікно">🗖</button>
+        </div>
+      </div>
       <div class="chat-messages-wrapper" id="chatMessagesWrapper">
         <div class="chat-messages" id="chatMessages">
           <div class="chat-system-message">Завантаження повідомлень...</div>
