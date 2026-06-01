@@ -155,13 +155,14 @@ function appendMessageElement(msg, scroll = true) {
 
 function showSystemMessage(text) {
   const container = byId("chatMessages");
-  if (!container) return;
+  if (!container) return null;
   
   const msgDiv = document.createElement("div");
   msgDiv.className = "chat-system-message";
   msgDiv.textContent = text;
   container.appendChild(msgDiv);
   scrollToBottom();
+  return msgDiv;
 }
 
 function scrollToBottom() {
@@ -633,7 +634,7 @@ async function handleFileUpload(e) {
   const originalName = file.name;
   
   // Show uploading system message
-  showSystemMessage(`Завантаження файлу "${originalName}"...`);
+  const progressMsg = showSystemMessage(`Завантаження файлу "${originalName}"...`);
   
   const ext = originalName.split('.').pop();
   // Unique random name in storage to prevent collisions
@@ -648,13 +649,7 @@ async function handleFileUpload(e) {
   if (error) {
     console.error("Storage upload error:", error);
     alert("Помилка завантаження файлу. Переконайтеся, що в консолі вашого Supabase створено ПУБЛІЧНИЙ бакет з назвою 'chat-attachments'.\nДеталі: " + error.message);
-    
-    // Remove uploading message
-    const msgContainer = byId("chatMessages");
-    if (msgContainer) {
-      const items = msgContainer.querySelectorAll(".chat-system-message");
-      if (items.length > 0) items[items.length - 1].remove();
-    }
+    if (progressMsg) progressMsg.remove();
     return;
   }
 
@@ -666,15 +661,27 @@ async function handleFileUpload(e) {
   // Send formatted message
   const fileMsg = `📎 [Файл: ${originalName} (${formatBytes(file.size)})](${publicUrl})`;
   
-  const { error: sendError } = await sb.from('chat_messages').insert({
+  const { data: insertData, error: sendError } = await sb.from('chat_messages').insert({
     user_id: currentUser.id,
     user_name: profileName,
     message_text: fileMsg
-  });
+  }).select();
+
+  if (progressMsg) progressMsg.remove();
 
   if (sendError) {
     console.error("Error sending file link message:", sendError);
     alert("Файл завантажено, але не вдалося надіслати повідомлення: " + sendError.message);
+  } else {
+    // Optimistic rendering fallback: if Realtime hasn't rendered it yet
+    if (insertData && insertData.length > 0) {
+      const insertedMsg = insertData[0];
+      if (!chatMessages.some(m => m.id === insertedMsg.id)) {
+        chatMessages.push(insertedMsg);
+        appendMessageElement(insertedMsg, true);
+        renderStats();
+      }
+    }
   }
 }
 
