@@ -101,10 +101,15 @@ function renderMessages() {
 }
 
 function isOnlyEmojis(str) {
-  const clean = str.replace(/\s+/g, '');
-  if (!clean) return false;
-  const emojiRegex = /^[\p{Extended_Pictographic}\u200d\ufe0f\u{1F3FB}-\u{1F3FF}\u20e3]+$/u;
-  return emojiRegex.test(clean);
+  try {
+    const clean = str.replace(/\s+/g, '');
+    if (!clean) return false;
+    const emojiRegex = /^[\p{Extended_Pictographic}\u200d\ufe0f\u{1F3FB}-\u{1F3FF}\u20e3]+$/u;
+    return emojiRegex.test(clean);
+  } catch (e) {
+    console.warn("isOnlyEmojis regex failed or unsupported in this browser:", e);
+    return false;
+  }
 }
 
 function appendMessageElement(msg, scroll = true) {
@@ -120,15 +125,20 @@ function appendMessageElement(msg, scroll = true) {
   const isMe = currentUser && msg.user_id === currentUser.id;
   
   // Detect if message is 1-3 emojis only
-  const trimmedText = (msg.message_text || "").trim();
-  const isEmojiOnly = isOnlyEmojis(trimmedText);
-  let emojiCount = 0;
-  if (isEmojiOnly) {
-    const cleanText = trimmedText.replace(/\s+/g, '');
-    const emojis = [...cleanText.matchAll(/[\p{Extended_Pictographic}]/gu)];
-    emojiCount = emojis.length;
+  let useLargeEmoji = false;
+  try {
+    const trimmedText = (msg.message_text || "").trim();
+    const isEmojiOnly = isOnlyEmojis(trimmedText);
+    let emojiCount = 0;
+    if (isEmojiOnly) {
+      const cleanText = trimmedText.replace(/\s+/g, '');
+      const emojis = [...cleanText.matchAll(/[\p{Extended_Pictographic}]/gu)];
+      emojiCount = emojis.length;
+    }
+    useLargeEmoji = isEmojiOnly && emojiCount > 0 && emojiCount <= 3;
+  } catch (e) {
+    console.warn("Emoji count calculation failed:", e);
   }
-  const useLargeEmoji = isEmojiOnly && emojiCount > 0 && emojiCount <= 3;
 
   const msgDiv = document.createElement("div");
   msgDiv.className = `chat-msg ${isMe ? 'msg-sent' : 'msg-received'} ${useLargeEmoji ? 'msg-only-emojis' : ''}`;
@@ -242,14 +252,19 @@ async function handleSendMessage(e) {
       }
       const el = document.querySelector(`.chat-msg[data-id="${editingMessageId}"]`);
       if (el) {
-        const isEmojiOnly = isOnlyEmojis(text);
-        let emojiCount = 0;
-        if (isEmojiOnly) {
-          const cleanText = text.replace(/\s+/g, '');
-          const emojis = [...cleanText.matchAll(/[\p{Extended_Pictographic}]/gu)];
-          emojiCount = emojis.length;
+        let useLargeEmoji = false;
+        try {
+          const isEmojiOnly = isOnlyEmojis(text);
+          let emojiCount = 0;
+          if (isEmojiOnly) {
+            const cleanText = text.replace(/\s+/g, '');
+            const emojis = [...cleanText.matchAll(/[\p{Extended_Pictographic}]/gu)];
+            emojiCount = emojis.length;
+          }
+          useLargeEmoji = isEmojiOnly && emojiCount > 0 && emojiCount <= 3;
+        } catch (e) {
+          console.warn("Emoji parsing failed in edit fallback:", e);
         }
-        const useLargeEmoji = isEmojiOnly && emojiCount > 0 && emojiCount <= 3;
         el.classList.toggle('msg-only-emojis', useLargeEmoji);
 
         const bubble = el.querySelector('.chat-msg-bubble');
@@ -333,15 +348,20 @@ function setupRealtime() {
           // Find element in UI and update
           const el = document.querySelector(`.chat-msg[data-id="${newMsg.id}"]`);
           if (el) {
-            const trimmedText = (newMsg.message_text || "").trim();
-            const isEmojiOnly = isOnlyEmojis(trimmedText);
-            let emojiCount = 0;
-            if (isEmojiOnly) {
-              const cleanText = trimmedText.replace(/\s+/g, '');
-              const emojis = [...cleanText.matchAll(/[\p{Extended_Pictographic}]/gu)];
-              emojiCount = emojis.length;
+            let useLargeEmoji = false;
+            try {
+              const trimmedText = (newMsg.message_text || "").trim();
+              const isEmojiOnly = isOnlyEmojis(trimmedText);
+              let emojiCount = 0;
+              if (isEmojiOnly) {
+                const cleanText = trimmedText.replace(/\s+/g, '');
+                const emojis = [...cleanText.matchAll(/[\p{Extended_Pictographic}]/gu)];
+                emojiCount = emojis.length;
+              }
+              useLargeEmoji = isEmojiOnly && emojiCount > 0 && emojiCount <= 3;
+            } catch (e) {
+              console.warn("Emoji parsing failed in UPDATE handler:", e);
             }
-            const useLargeEmoji = isEmojiOnly && emojiCount > 0 && emojiCount <= 3;
             el.classList.toggle('msg-only-emojis', useLargeEmoji);
 
             // Toggle pin button state
