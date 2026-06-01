@@ -1099,6 +1099,10 @@ function showPopupOverlay() {
       if (popupRef && !popupRef.closed) {
         popupRef.close();
       }
+      const chatWin = byId("chatWindow");
+      if (chatWin) {
+        chatWin.classList.remove("popup-active");
+      }
     });
 
     win.appendChild(overlay);

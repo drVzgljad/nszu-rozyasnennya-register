@@ -764,7 +764,11 @@ body.is-popup-window #pipToggleBtn {
   position: relative;
 }
 
-.chat-popup-overlay {
+.chat-window .chat-popup-overlay {
+  display: none;
+}
+
+.chat-window.popup-active .chat-popup-overlay {
   position: absolute;
   top: 0;
   left: 0;
