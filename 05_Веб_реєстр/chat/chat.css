@@ -430,4 +430,20 @@
   opacity: 0.7;
 }
 
+/* Emojis Only - Large display with no background bubble */
+.chat-msg.msg-only-emojis .chat-msg-bubble {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 4px 8px !important;
+  font-size: 46px !important;
+  line-height: 1.15 !important;
+}
+.chat-msg.msg-only-emojis.msg-sent .chat-msg-bubble {
+  text-align: right;
+}
+.chat-msg.msg-only-emojis.msg-received .chat-msg-bubble {
+  text-align: left;
+}
+
 

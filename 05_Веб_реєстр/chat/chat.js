@@ -99,6 +99,13 @@ function renderMessages() {
   scrollToBottom();
 }
 
+function isOnlyEmojis(str) {
+  const clean = str.replace(/\s+/g, '');
+  if (!clean) return false;
+  const emojiRegex = /^[\p{Extended_Pictographic}\u200d\ufe0f\u{1F3FB}-\u{1F3FF}\u20e3]+$/u;
+  return emojiRegex.test(clean);
+}
+
 function appendMessageElement(msg, scroll = true) {
   const container = byId("chatMessages");
   if (!container) return;
@@ -110,8 +117,20 @@ function appendMessageElement(msg, scroll = true) {
   }
 
   const isMe = currentUser && msg.user_id === currentUser.id;
+  
+  // Detect if message is 1-3 emojis only
+  const trimmedText = (msg.message_text || "").trim();
+  const isEmojiOnly = isOnlyEmojis(trimmedText);
+  let emojiCount = 0;
+  if (isEmojiOnly) {
+    const cleanText = trimmedText.replace(/\s+/g, '');
+    const emojis = [...cleanText.matchAll(/[\p{Extended_Pictographic}]/gu)];
+    emojiCount = emojis.length;
+  }
+  const useLargeEmoji = isEmojiOnly && emojiCount > 0 && emojiCount <= 3;
+
   const msgDiv = document.createElement("div");
-  msgDiv.className = `chat-msg ${isMe ? 'msg-sent' : 'msg-received'}`;
+  msgDiv.className = `chat-msg ${isMe ? 'msg-sent' : 'msg-received'} ${useLargeEmoji ? 'msg-only-emojis' : ''}`;
   msgDiv.dataset.id = msg.id;
 
   msgDiv.innerHTML = `
@@ -205,16 +224,29 @@ async function handleSendMessage(e) {
       if (idx !== -1) {
         chatMessages[idx].message_text = text;
       }
-      const bubble = document.querySelector(`.chat-msg[data-id="${editingMessageId}"] .chat-msg-bubble`);
-      if (bubble) {
-        bubble.innerHTML = renderMessageText(text);
-        const meta = document.querySelector(`.chat-msg[data-id="${editingMessageId}"] .chat-msg-meta`);
-        if (meta && !meta.querySelector('.edited-label')) {
-          const span = document.createElement('span');
-          span.className = 'edited-label';
-          span.style.cssText = 'font-size: 10px; opacity: 0.6; margin-left: 6px; font-style: italic;';
-          span.textContent = '(ред.)';
-          meta.appendChild(span);
+      const el = document.querySelector(`.chat-msg[data-id="${editingMessageId}"]`);
+      if (el) {
+        const isEmojiOnly = isOnlyEmojis(text);
+        let emojiCount = 0;
+        if (isEmojiOnly) {
+          const cleanText = text.replace(/\s+/g, '');
+          const emojis = [...cleanText.matchAll(/[\p{Extended_Pictographic}]/gu)];
+          emojiCount = emojis.length;
+        }
+        const useLargeEmoji = isEmojiOnly && emojiCount > 0 && emojiCount <= 3;
+        el.classList.toggle('msg-only-emojis', useLargeEmoji);
+
+        const bubble = el.querySelector('.chat-msg-bubble');
+        if (bubble) {
+          bubble.innerHTML = renderMessageText(text);
+          const meta = el.querySelector('.chat-msg-meta');
+          if (meta && !meta.querySelector('.edited-label')) {
+            const span = document.createElement('span');
+            span.className = 'edited-label';
+            span.style.cssText = 'font-size: 10px; opacity: 0.6; margin-left: 6px; font-style: italic;';
+            span.textContent = '(ред.)';
+            meta.appendChild(span);
+          }
         }
       }
       cancelEditing();
@@ -283,18 +315,32 @@ function setupRealtime() {
           chatMessages[idx] = newMsg;
           
           // Find element in UI and update
-          const bubble = document.querySelector(`.chat-msg[data-id="${newMsg.id}"] .chat-msg-bubble`);
-          if (bubble) {
-            bubble.innerHTML = renderMessageText(newMsg.message_text);
-            
-            // Add a (ред.) label if not already present
-            const meta = document.querySelector(`.chat-msg[data-id="${newMsg.id}"] .chat-msg-meta`);
-            if (meta && !meta.querySelector('.edited-label')) {
-              const span = document.createElement('span');
-              span.className = 'edited-label';
-              span.style.cssText = 'font-size: 10px; opacity: 0.6; margin-left: 6px; font-style: italic;';
-              span.textContent = '(ред.)';
-              meta.appendChild(span);
+          const el = document.querySelector(`.chat-msg[data-id="${newMsg.id}"]`);
+          if (el) {
+            const trimmedText = (newMsg.message_text || "").trim();
+            const isEmojiOnly = isOnlyEmojis(trimmedText);
+            let emojiCount = 0;
+            if (isEmojiOnly) {
+              const cleanText = trimmedText.replace(/\s+/g, '');
+              const emojis = [...cleanText.matchAll(/[\p{Extended_Pictographic}]/gu)];
+              emojiCount = emojis.length;
+            }
+            const useLargeEmoji = isEmojiOnly && emojiCount > 0 && emojiCount <= 3;
+            el.classList.toggle('msg-only-emojis', useLargeEmoji);
+
+            const bubble = el.querySelector('.chat-msg-bubble');
+            if (bubble) {
+              bubble.innerHTML = renderMessageText(newMsg.message_text);
+              
+              // Add a (ред.) label if not already present
+              const meta = el.querySelector('.chat-msg-meta');
+              if (meta && !meta.querySelector('.edited-label')) {
+                const span = document.createElement('span');
+                span.className = 'edited-label';
+                span.style.cssText = 'font-size: 10px; opacity: 0.6; margin-left: 6px; font-style: italic;';
+                span.textContent = '(ред.)';
+                meta.appendChild(span);
+              }
             }
           }
         }
