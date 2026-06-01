@@ -4,6 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>НавиПМГ26 | Робочий чат Департаменту</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="stylesheet" href="../styles.css?v=20260531e">
   <link rel="stylesheet" href="chat.css">
   <link rel="stylesheet" href="../auth.css?v=2">
@@ -127,5 +131,14 @@
   </footer>
 
   <script type="module" src="chat.js" defer></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('Service Worker registered successfully!', reg))
+          .catch(err => console.error('Service Worker registration failed!', err));
+      });
+    }
+  </script>
 </body>
 </html>
