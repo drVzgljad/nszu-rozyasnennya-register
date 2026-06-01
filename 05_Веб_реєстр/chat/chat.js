@@ -37,6 +37,20 @@ async function init() {
   // Setup emoji picker
   initEmojiPicker();
 
+  // File attachments event handlers
+  const fileBtn = byId("attachFileBtn");
+  const fileInput = byId("chatFileInput");
+  if (fileBtn && fileInput) {
+    fileBtn.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", handleFileUpload);
+  }
+
+  // Cancel edit button handler
+  const cancelBtn = byId("cancelEditBtn");
+  if (cancelBtn) {
+    cancelBtn.addEventListener("click", cancelEditing);
+  }
+
   // Handle page unloading to unsubscribe
   window.addEventListener('beforeunload', () => {
     if (realtimeChannel) {
@@ -105,8 +119,32 @@ function appendMessageElement(msg, scroll = true) {
       <span class="sender-name">${escapeHtml(msg.user_name || "Користувач")}</span>
       <span class="msg-time">${formatTime(msg.created_at)}</span>
     </div>
-    <div class="chat-msg-bubble">${escapeHtml(msg.message_text)}</div>
+    <div class="chat-msg-bubble">${renderMessageText(msg.message_text)}</div>
   `;
+
+  // Attach hover action controls for the user's own messages
+  if (isMe) {
+    const actionsDiv = document.createElement("div");
+    actionsDiv.className = "chat-msg-actions";
+    
+    const editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.className = "chat-action-btn edit-btn";
+    editBtn.title = "Редагувати";
+    editBtn.textContent = "✏️";
+    editBtn.addEventListener("click", () => startEditing(msg.id, msg.message_text));
+    
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "chat-action-btn delete-btn";
+    deleteBtn.title = "Видалити";
+    deleteBtn.textContent = "🗑️";
+    deleteBtn.addEventListener("click", () => deleteMessage(msg.id));
+    
+    actionsDiv.appendChild(editBtn);
+    actionsDiv.appendChild(deleteBtn);
+    msgDiv.appendChild(actionsDiv);
+  }
 
   container.appendChild(msgDiv);
 
@@ -144,23 +182,40 @@ async function handleSendMessage(e) {
   input.disabled = true;
   sendBtn.disabled = true;
 
-  const profileName = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
+  if (editingMessageId) {
+    const { error } = await sb
+      .from('chat_messages')
+      .update({ message_text: text })
+      .eq('id', editingMessageId);
 
-  const { error } = await sb.from('chat_messages').insert({
-    user_id: currentUser.id,
-    user_name: profileName,
-    message_text: text
-  });
+    input.disabled = false;
+    sendBtn.disabled = false;
 
-  input.disabled = false;
-  sendBtn.disabled = false;
-
-  if (error) {
-    console.error('Error sending message:', error);
-    showSystemMessage("Помилка надсилання повідомлення: " + error.message);
+    if (error) {
+      console.error('Error updating message:', error);
+      alert("Не вдалося оновити повідомлення: " + error.message);
+    } else {
+      cancelEditing();
+    }
   } else {
-    input.value = "";
-    input.focus();
+    const profileName = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
+
+    const { error } = await sb.from('chat_messages').insert({
+      user_id: currentUser.id,
+      user_name: profileName,
+      message_text: text
+    });
+
+    input.disabled = false;
+    sendBtn.disabled = false;
+
+    if (error) {
+      console.error('Error sending message:', error);
+      showSystemMessage("Помилка надсилання повідомлення: " + error.message);
+    } else {
+      input.value = "";
+      input.focus();
+    }
   }
 }
 
@@ -177,17 +232,50 @@ function setupRealtime() {
 
   realtimeChannel
     .on('postgres_changes', { 
-      event: 'INSERT', 
+      event: '*', 
       schema: 'public', 
       table: 'chat_messages' 
     }, payload => {
-      const newMsg = payload.new;
-      // Avoid duplicate appending if loaded already
-      if (!chatMessages.some(m => m.id === newMsg.id)) {
-        chatMessages.push(newMsg);
-        appendMessageElement(newMsg, true);
-        renderStats();
-        triggerIncomingAlert(newMsg);
+      const { eventType, new: newMsg, old: oldMsg } = payload;
+      
+      if (eventType === 'INSERT') {
+        if (!chatMessages.some(m => m.id === newMsg.id)) {
+          chatMessages.push(newMsg);
+          appendMessageElement(newMsg, true);
+          renderStats();
+          triggerIncomingAlert(newMsg);
+        }
+      } else if (eventType === 'UPDATE') {
+        const idx = chatMessages.findIndex(m => m.id === newMsg.id);
+        if (idx !== -1) {
+          chatMessages[idx] = newMsg;
+          
+          // Find element in UI and update
+          const bubble = document.querySelector(`.chat-msg[data-id="${newMsg.id}"] .chat-msg-bubble`);
+          if (bubble) {
+            bubble.innerHTML = renderMessageText(newMsg.message_text);
+            
+            // Add a (ред.) label if not already present
+            const meta = document.querySelector(`.chat-msg[data-id="${newMsg.id}"] .chat-msg-meta`);
+            if (meta && !meta.querySelector('.edited-label')) {
+              const span = document.createElement('span');
+              span.className = 'edited-label';
+              span.style.cssText = 'font-size: 10px; opacity: 0.6; margin-left: 6px; font-style: italic;';
+              span.textContent = '(ред.)';
+              meta.appendChild(span);
+            }
+          }
+        }
+      } else if (eventType === 'DELETE') {
+        const idx = chatMessages.findIndex(m => m.id === oldMsg.id);
+        if (idx !== -1) {
+          chatMessages.splice(idx, 1);
+          
+          // Remove from UI
+          const el = document.querySelector(`.chat-msg[data-id="${oldMsg.id}"]`);
+          if (el) el.remove();
+          renderStats();
+        }
       }
     })
     .on('presence', { event: 'sync' }, () => {
@@ -430,6 +518,156 @@ function updateOnlineUsersList(state) {
     `;
     container.appendChild(item);
   });
+}
+
+/* ── Message Editing & Deletion ──────────────────── */
+
+let editingMessageId = null;
+
+function startEditing(id, text) {
+  if (text.startsWith('📎 [Файл:')) {
+    alert("Файли не можна редагувати, їх можна лише видалити.");
+    return;
+  }
+  
+  editingMessageId = id;
+  const input = byId("chatMessageInput");
+  const banner = byId("chatEditBanner");
+  const sendBtn = byId("sendBtn");
+  
+  if (input && banner && sendBtn) {
+    input.value = text;
+    banner.style.display = "flex";
+    banner.querySelector("span").textContent = `Редагування повідомлення: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`;
+    sendBtn.querySelector("span").textContent = "Зберегти";
+    input.focus();
+  }
+}
+
+function cancelEditing() {
+  editingMessageId = null;
+  const input = byId("chatMessageInput");
+  const banner = byId("chatEditBanner");
+  const sendBtn = byId("sendBtn");
+  
+  if (input && banner && sendBtn) {
+    input.value = "";
+    banner.style.display = "none";
+    sendBtn.querySelector("span").textContent = "Надіслати";
+  }
+}
+
+async function deleteMessage(id) {
+  if (!confirm("Ви впевнені, що хочете видалити це повідомлення для всіх?")) return;
+  
+  const { error } = await sb.from('chat_messages').delete().eq('id', id);
+  if (error) {
+    console.error("Error deleting message:", error);
+    alert("Не вдалося видалити повідомлення: " + error.message);
+  }
+}
+
+/* ── File Uploads (Supabase Storage) ──────────────── */
+
+async function handleFileUpload(e) {
+  const fileInput = e.target;
+  const file = fileInput.files[0];
+  if (!file || !currentUser) return;
+
+  // 10MB limit
+  if (file.size > 10 * 1024 * 1024) {
+    alert("Розмір файлу не повинен перевищувати 10 МБ.");
+    fileInput.value = "";
+    return;
+  }
+
+  const profileName = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
+  const originalName = file.name;
+  
+  // Show uploading system message
+  showSystemMessage(`Завантаження файлу "${originalName}"...`);
+  
+  const ext = originalName.split('.').pop();
+  // Unique random name in storage to prevent collisions
+  const uniqueName = `${crypto.randomUUID()}.${ext}`;
+
+  const { data, error } = await sb.storage
+    .from('chat-attachments')
+    .upload(uniqueName, file);
+
+  fileInput.value = ""; // Reset input
+
+  if (error) {
+    console.error("Storage upload error:", error);
+    alert("Помилка завантаження файлу. Переконайтеся, що в консолі вашого Supabase створено ПУБЛІЧНИЙ бакет з назвою 'chat-attachments'.\nДеталі: " + error.message);
+    
+    // Remove uploading message
+    const msgContainer = byId("chatMessages");
+    if (msgContainer) {
+      const items = msgContainer.querySelectorAll(".chat-system-message");
+      if (items.length > 0) items[items.length - 1].remove();
+    }
+    return;
+  }
+
+  // Get public URL
+  const { data: { publicUrl } } = sb.storage
+    .from('chat-attachments')
+    .getPublicUrl(uniqueName);
+
+  // Send formatted message
+  const fileMsg = `📎 [Файл: ${originalName} (${formatBytes(file.size)})](${publicUrl})`;
+  
+  const { error: sendError } = await sb.from('chat_messages').insert({
+    user_id: currentUser.id,
+    user_name: profileName,
+    message_text: fileMsg
+  });
+
+  if (sendError) {
+    console.error("Error sending file link message:", sendError);
+    alert("Файл завантажено, але не вдалося надіслати повідомлення: " + sendError.message);
+  }
+}
+
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function renderMessageText(text) {
+  if (text.startsWith('📎 [Файл:')) {
+    const match = text.match(/📎 \[Файл:\s*([^\]]+)\]\(([^)]+)\)/);
+    if (match) {
+      const fileDesc = match[1];
+      const url = match[2];
+      
+      const lastSpace = fileDesc.lastIndexOf('(');
+      const name = lastSpace !== -1 ? fileDesc.substring(0, lastSpace).trim() : fileDesc;
+      const size = lastSpace !== -1 ? fileDesc.substring(lastSpace + 1, fileDesc.length - 1).trim() : '';
+      
+      const ext = name.split('.').pop().toLowerCase();
+      let icon = '📄';
+      if (['jpg', 'jpeg', 'png', 'gif', 'svg'].includes(ext)) icon = '🖼️';
+      if (['pdf'].includes(ext)) icon = '📕';
+      if (['doc', 'docx'].includes(ext)) icon = '📘';
+      if (['xls', 'xlsx', 'csv'].includes(ext)) icon = '📗';
+      
+      return `
+        <a href="${url}" target="_blank" rel="noopener" class="chat-file-card">
+          <span class="chat-file-icon">${icon}</span>
+          <span class="chat-file-info">
+            <span class="chat-file-name" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
+            <span class="chat-file-size">${escapeHtml(size || 'Завантажити')}</span>
+          </span>
+        </a>
+      `;
+    }
+  }
+  return escapeHtml(text).replace(/\n/g, '<br>');
 }
 
 /* ── Emoji Picker Panel ──────────────────────────── */

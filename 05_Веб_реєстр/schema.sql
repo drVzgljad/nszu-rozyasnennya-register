@@ -114,5 +114,31 @@ CREATE POLICY "Full access users can send chat messages" ON public.chat_messages
     )
   );
 
+-- Редагувати свої повідомлення можуть тільки користувачі з роллю 'full'
+CREATE POLICY "Full access users can update their own messages" ON public.chat_messages
+  FOR UPDATE USING (
+    auth.uid() = user_id AND
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role = 'full'
+    )
+  ) WITH CHECK (
+    auth.uid() = user_id AND
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role = 'full'
+    )
+  );
+
+-- Видаляти свої повідомлення можуть тільки користувачі з роллю 'full'
+CREATE POLICY "Full access users can delete their own messages" ON public.chat_messages
+  FOR DELETE USING (
+    auth.uid() = user_id AND
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role = 'full'
+    )
+  );
+
 -- Додавання таблиці чату до публікації реального часу для Realtime
 ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;
