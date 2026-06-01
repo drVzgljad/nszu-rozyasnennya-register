@@ -718,4 +718,91 @@
   width: 250px;
 }
 
+/* ── Popup Window Modes and Active Overlay styling ── */
+
+body.is-popup-window {
+  background: var(--surface) !important;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+body.is-popup-window .chat-hero,
+body.is-popup-window .chat-sidebar,
+body.is-popup-window .site-footer {
+  display: none !important;
+}
+
+body.is-popup-window .chat-layout {
+  padding: 0 !important;
+  margin: 0 !important;
+  display: block !important;
+  max-width: none !important;
+  height: 100vh !important;
+  width: 100vw !important;
+}
+
+body.is-popup-window .chat-window {
+  border: none !important;
+  border-radius: 0 !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
+  width: 100vw !important;
+  box-shadow: none !important;
+}
+
+body.is-popup-window .chat-window-header {
+  border-bottom: 1px solid var(--line);
+}
+
+body.is-popup-window #pipToggleBtn {
+  display: none !important; /* Hide popup button in popup itself */
+}
+
+/* Main window blur overlay when popup is active */
+.chat-window {
+  position: relative;
+}
+
+.chat-popup-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  text-align: center;
+  padding: 24px;
+  animation: overlayFadeIn 0.25s ease-out;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.chat-popup-overlay-content {
+  max-width: 320px;
+  animation: overlaySlideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes overlaySlideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Hide message list and input when popup active in main window */
+.chat-window.popup-active .chat-messages-wrapper,
+.chat-window.popup-active .chat-input-panel,
+.chat-window.popup-active #chatEditBanner {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 

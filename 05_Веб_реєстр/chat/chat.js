@@ -11,6 +11,12 @@ let realtimeChannel = null;
 const byId = (id) => document.getElementById(id);
 
 async function init() {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('mode') === 'popup') {
+    document.body.classList.add('is-popup-window');
+    document.title = "Робочий чат Департаменту";
+  }
+
   // Check auth session
   const { data: { session } } = await sb.auth.getSession();
   if (!session) {
@@ -1030,131 +1036,73 @@ function scrollToMessage(id) {
 }
 
 /* ── Picture-in-Picture Floating Chat Logic ──────── */
-let isPipMode = false;
-let dragStartHandler = null;
+let popupRef = null;
 
 function togglePipMode() {
+  if (popupRef && !popupRef.closed) {
+    popupRef.focus();
+    return;
+  }
+
+  const popupWidth = 430;
+  const popupHeight = 620;
+  const left = (screen.width - popupWidth) / 2;
+  const top = (screen.height - popupHeight) / 2;
+
+  const popupUrl = new URL(window.location.href);
+  popupUrl.searchParams.set('mode', 'popup');
+
+  popupRef = window.open(
+    popupUrl.toString(),
+    'chat_popup',
+    `width=${popupWidth},height=${popupHeight},left=${left},top=${top},menubar=no,status=no,toolbar=no,location=no,resizable=yes`
+  );
+
+  if (popupRef) {
+    const chatWin = byId("chatWindow");
+    if (chatWin) {
+      chatWin.classList.add("popup-active");
+      showPopupOverlay();
+    }
+
+    const timer = setInterval(() => {
+      if (!popupRef || popupRef.closed) {
+        clearInterval(timer);
+        if (chatWin) {
+          chatWin.classList.remove("popup-active");
+        }
+      }
+    }, 1000);
+  }
+}
+
+function showPopupOverlay() {
   const win = byId("chatWindow");
-  const btn = byId("pipToggleBtn");
-  if (!win || !btn) return;
+  if (!win) return;
 
-  isPipMode = !isPipMode;
-  win.classList.toggle("pip-mode", isPipMode);
-  
-  if (isPipMode) {
-    btn.textContent = "🗗"; // Restore icon
-    btn.title = "Розгорнути чат";
-    win.style.left = "";
-    win.style.top = "";
-    win.style.bottom = "24px";
-    win.style.right = "24px";
-    
-    makeDraggable(win, byId("chatWindowHeader"));
-  } else {
-    btn.textContent = "🗖"; // Minimize icon
-    btn.title = "Згорнути у плаваюче вікно";
-    win.style.left = "";
-    win.style.top = "";
-    win.style.bottom = "";
-    win.style.right = "";
-    win.style.transform = "";
-    
-    destroyDraggable(win, byId("chatWindowHeader"));
-  }
-  
-  setTimeout(scrollToBottom, 150);
-}
+  let overlay = win.querySelector(".chat-popup-overlay");
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.className = "chat-popup-overlay";
+    overlay.innerHTML = `
+      <div class="chat-popup-overlay-content">
+        <span style="font-size: 40px; margin-bottom: 12px; display: block;">↗️</span>
+        <h3 style="margin: 0 0 8px; font-size: 17px; font-weight: 700; color: var(--ink);">Чат відкрито в окремому вікні</h3>
+        <p style="margin: 0; font-size: 13px; color: var(--muted); line-height: 1.45;">Ви можете переміщати його по всьому екрану та згортати основне вікно.</p>
+        <button type="button" class="action primary restore-chat-btn" style="margin-top: 16px; padding: 10px 20px; font-size: 13.5px; font-weight: 700; border-radius: 12px; cursor: pointer;">
+          Повернути чат сюди
+        </button>
+      </div>
+    `;
 
-function makeDraggable(element, handle) {
-  let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-  
-  dragStartHandler = function(e) {
-    e = e || window.event;
-    if (e.target.closest('.chat-header-btn')) return;
-    
-    e.preventDefault();
-    pos3 = e.clientX;
-    pos4 = e.clientY;
-    
-    document.onmouseup = closeDragElement;
-    document.onmousemove = elementDrag;
-    
-    element.classList.add("dragging");
-  };
-  
-  // Touch support for mobile dragging
-  let touchStartHandler = function(e) {
-    if (e.target.closest('.chat-header-btn')) return;
-    const touch = e.touches[0];
-    pos3 = touch.clientX;
-    pos4 = touch.clientY;
-    
-    document.ontouchend = closeDragElement;
-    document.ontouchmove = elementTouchDrag;
-    
-    element.classList.add("dragging");
-  };
-  
-  handle.onmousedown = dragStartHandler;
-  handle.ontouchstart = touchStartHandler;
-  
-  function elementDrag(e) {
-    e = e || window.event;
-    e.preventDefault();
-    pos1 = pos3 - e.clientX;
-    pos2 = pos4 - e.clientY;
-    pos3 = e.clientX;
-    pos4 = e.clientY;
-    
-    const newTop = element.offsetTop - pos2;
-    const newLeft = element.offsetLeft - pos1;
-    
-    const maxLeft = window.innerWidth - element.offsetWidth - 10;
-    const maxTop = window.innerHeight - element.offsetHeight - 10;
-    
-    element.style.top = Math.max(10, Math.min(newTop, maxTop)) + "px";
-    element.style.left = Math.max(10, Math.min(newLeft, maxLeft)) + "px";
-    element.style.bottom = "auto";
-    element.style.right = "auto";
-  }
-  
-  function elementTouchDrag(e) {
-    const touch = e.touches[0];
-    pos1 = pos3 - touch.clientX;
-    pos2 = pos4 - touch.clientY;
-    pos3 = touch.clientX;
-    pos4 = touch.clientY;
-    
-    const newTop = element.offsetTop - pos2;
-    const newLeft = element.offsetLeft - pos1;
-    
-    const maxLeft = window.innerWidth - element.offsetWidth - 10;
-    const maxTop = window.innerHeight - element.offsetHeight - 10;
-    
-    element.style.top = Math.max(10, Math.min(newTop, maxTop)) + "px";
-    element.style.left = Math.max(10, Math.min(newLeft, maxLeft)) + "px";
-    element.style.bottom = "auto";
-    element.style.right = "auto";
-  }
-  
-  function closeDragElement() {
-    document.onmouseup = null;
-    document.onmousemove = null;
-    document.ontouchend = null;
-    document.ontouchmove = null;
-    element.classList.remove("dragging");
-  }
-}
+    overlay.querySelector(".restore-chat-btn").addEventListener("click", () => {
+      if (popupRef && !popupRef.closed) {
+        popupRef.close();
+      }
+    });
 
-function destroyDraggable(element, handle) {
-  if (handle) {
-    handle.onmousedown = null;
-    handle.ontouchstart = null;
+    win.appendChild(overlay);
   }
-  document.onmouseup = null;
-  document.onmousemove = null;
-  document.ontouchend = null;
-  document.ontouchmove = null;
 }
 
 document.addEventListener("DOMContentLoaded", init);
