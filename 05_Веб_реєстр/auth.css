@@ -205,6 +205,17 @@
   position: relative;
   display: inline-block;
 }
+/* Hover bridge to cover the 6px gap and keep the hover active */
+.nav-dropdown::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background: transparent;
+  display: block;
+}
 .nav-dropdown-btn {
   display: inline-flex;
   align-items: center;
@@ -298,7 +309,118 @@
 }
 
 /* Force nowrap for all nav items on one line */
-.top-nav a, .section-switch a, .nav-dropdown-btn {
+.top-nav a, .section-switch a, .nav-dropdown-btn, .nav-chat-btn, .auth-chat-btn {
   white-space: nowrap;
+}
+
+/* ── Standalone Chat Button ──────────────────────── */
+.nav-chat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 15px;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s, box-shadow 0.15s;
+  margin-left: 8px;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.top-nav .nav-chat-btn {
+  border-radius: 999px; /* Pill for landing page */
+}
+
+.section-switch .nav-chat-btn {
+  border-radius: 9px; /* Rounded for search page switch */
+}
+
+/* Active state (when user is inside /chat/ directory) */
+.nav-chat-btn.active {
+  background: var(--accent, #4a8fc7) !important;
+  color: #fff !important;
+  border: 1px solid var(--accent, #4a8fc7) !important;
+  box-shadow: 0 4px 12px rgba(74, 143, 199, 0.25);
+}
+
+/* Unlocked state (guest / registered / full, not active, user has full access) */
+.nav-chat-btn:not(.active) {
+  background: var(--warm, #eef8f1);
+  color: var(--teal-dark, #3a8462);
+  border: 1.5px solid rgba(84, 173, 132, 0.25);
+}
+.nav-chat-btn:not(.active):hover {
+  background: #e1f3e7;
+  color: #276246;
+  border-color: rgba(84, 173, 132, 0.45);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(58, 132, 98, 0.12);
+}
+
+/* Locked state (user does not have full access) */
+.nav-chat-btn.is-locked:not(.active) {
+  background: #f7fafc;
+  color: var(--muted, #647688);
+  border: 1.5px solid var(--line, #e3edf3);
+}
+.nav-chat-btn.is-locked:not(.active):hover {
+  background: #f0f4f8;
+  color: var(--accent-dark, #2f6b9e);
+  border-color: rgba(74, 143, 199, 0.35);
+}
+.nav-chat-btn .lock-icon {
+  font-size: 11px;
+  margin-left: 2px;
+  opacity: 0.8;
+}
+
+/* ── Top Nav Bar Chat Button ─────────────────────── */
+.auth-chat-btn {
+  margin-left: 8px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+/* Unlocked chat button in top nav */
+.auth-chat-btn:not(.is-locked) {
+  background: var(--warm, #eef8f1);
+  color: var(--teal-dark, #3a8462);
+  border: 1.5px solid rgba(84, 173, 132, 0.3);
+}
+.auth-chat-btn:not(.is-locked):hover {
+  background: #e1f3e7;
+  color: #276246;
+  border-color: rgba(84, 173, 132, 0.5);
+  transform: translateY(-1px);
+}
+
+/* Locked chat button in top nav */
+.auth-chat-btn.is-locked {
+  background: #f7fafc;
+  color: var(--muted, #647688);
+  border: 1.5px solid var(--line, #e3edf3);
+}
+.auth-chat-btn.is-locked:hover {
+  background: #f0f4f8;
+  color: var(--accent-dark, #2f6b9e);
+  border-color: rgba(74, 143, 199, 0.35);
+  transform: translateY(-1px);
+}
+.auth-chat-btn .lock-icon {
+  font-size: 11px;
+  margin-left: 2px;
+  opacity: 0.8;
 }
 

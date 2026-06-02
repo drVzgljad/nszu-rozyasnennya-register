@@ -21,6 +21,13 @@ async function fetchRole() {
 }
 
 function applyAccess() {
+  const pathParts = window.location.pathname.split('/');
+  const isInSubdir = pathParts.some(part => [
+    'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms'
+  ].includes(part.toLowerCase()));
+  const prefix = isInSubdir ? '../' : './';
+  const currentPath = window.location.pathname.toLowerCase();
+
   const btn = document.getElementById('auth-nav-btn');
   if (btn) {
     if (user) {
@@ -80,13 +87,6 @@ function applyAccess() {
   });
 
   // Dynamic navigation links injection
-  const pathParts = window.location.pathname.split('/');
-  const isInSubdir = pathParts.some(part => [
-    'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms'
-  ].includes(part.toLowerCase()));
-  const prefix = isInSubdir ? '../' : './';
-  const currentPath = window.location.pathname.toLowerCase();
-
   function isActive(itemPath) {
     const normalized = itemPath.replace(/^\.\.\/|^\.\//, '');
     const segments = normalized.split('/');
@@ -120,22 +120,52 @@ function applyAccess() {
       { text: 'Реєстр', path: 'rozjasnennya.html' },
       { text: 'Пакети 2026', path: 'pakety/index.html' },
       { text: 'Постанова 1808', path: 'postanova/index.html' },
-      { text: 'Алгоритми та правила', path: 'algorithms/index.html' }
+      { text: 'Алгоритми та правила', path: 'algorithms/index.html' },
+      { text: 'Робочий чат', path: 'chat/index.html', isChat: true }
     ];
 
     const dropdownItems = [
       { text: 'Машина пошуку', path: 'pakety/report.html', role: 'registered' },
       { text: 'Питання ЗОЗ', path: 'zoz-questions/index.html', role: 'registered' },
       { text: 'Пропозиції ПМГ', path: 'pmg-proposals/index.html', role: 'registered' },
-      { text: 'Новини', path: 'news/index.html', role: 'full' },
-      { text: 'Робочий чат', path: 'chat/index.html', role: 'full' }
+      { text: 'Новини', path: 'news/index.html', role: 'full' }
     ];
 
     // 1. Core navigation tabs
     coreItems.forEach(item => {
       const a = document.createElement('a');
       a.href = prefix + item.path;
-      a.textContent = item.text;
+      
+      if (item.isChat) {
+        a.className = 'nav-chat-btn';
+        const hasChatAccess = hasAccess('full');
+        if (!hasChatAccess) {
+          a.classList.add('is-locked');
+          a.innerHTML = `<span>${item.text}</span> <span class="lock-icon">🔒</span>`;
+          a.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!user) {
+              openModal('login');
+            } else {
+              const overlay = document.getElementById('access-denied-overlay');
+              if (overlay) {
+                const msg = document.getElementById('access-denied-msg');
+                if (msg) {
+                  msg.textContent = 'Робочий чат доступний лише для користувачів з повним доступом.';
+                }
+                overlay.style.display = 'flex';
+              } else {
+                alert('Робочий чат доступний лише для користувачів з повним доступом.');
+              }
+            }
+          });
+        } else {
+          a.textContent = item.text;
+        }
+      } else {
+        a.textContent = item.text;
+      }
+
       if (isActive(item.path)) {
         a.classList.add('active');
         a.setAttribute('aria-current', 'page');
@@ -271,6 +301,13 @@ function inject() {
     badge.className = 'auth-role-badge role-guest';
     badge.textContent = 'Гість';
     container.appendChild(badge);
+
+    // Standalone Chat button in top nav
+    const topChatBtn = document.createElement('a');
+    topChatBtn.id = 'auth-chat-btn';
+    topChatBtn.className = 'auth-chat-btn';
+    topChatBtn.textContent = 'Робочий чат';
+    container.appendChild(topChatBtn);
 
     const btn = document.createElement('button');
     btn.id = 'auth-nav-btn';
