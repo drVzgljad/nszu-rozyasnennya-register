@@ -20,15 +20,21 @@ function escapeHtml(val) {
 }
 
 // Build dropdown options dynamically based on initial dataset
-defOptions = () => {
+const defOptions = () => {
   const oblasts = new Set();
   const packages = new Set();
   const ownerships = new Set();
 
   state.data.contracts.forEach(c => {
     if (c.oblast) oblasts.add(c.oblast);
-    if (c.package_num) packages.add(c.package_num);
     if (c.ownership) ownerships.add(c.ownership);
+    
+    // Extract packages from list
+    if (c.packages && Array.isArray(c.packages)) {
+      c.packages.forEach(p => {
+        if (p.package_num) packages.add(p.package_num);
+      });
+    }
   });
 
   // Populate Oblast selector
@@ -44,9 +50,8 @@ defOptions = () => {
     if (!isNaN(na) && !isNaN(nb)) return na - nb;
     return a.localeCompare(b);
   }).forEach(pkg => {
-    // Find package name to display
-    const match = state.data.contracts.find(c => c.package_num === pkg);
-    const label = match ? `Пакет ${pkg} — ${match.package_name.substring(0, 45)}...` : `Пакет ${pkg}`;
+    const meta = state.data.package_metadata[pkg];
+    const label = meta ? `Пакет ${pkg} — ${meta.package_name.substring(0, 45)}...` : `Пакет ${pkg}`;
     packageSelect.add(new Option(label, pkg));
   });
 
@@ -76,15 +81,21 @@ function applyFilters() {
         c.contract_slug.toLowerCase().includes(query) ||
         c.settlement.toLowerCase().includes(query) ||
         c.oblast.toLowerCase().includes(query) ||
-        c.package_num.includes(query) ||
-        c.package_name.toLowerCase().includes(query)
+        c.packages.some(p => {
+          const meta = state.data.package_metadata[p.package_num] || {};
+          return (
+            p.package_num.includes(query) ||
+            (meta.package_name && meta.package_name.toLowerCase().includes(query)) ||
+            (meta.direction && meta.direction.toLowerCase().includes(query))
+          );
+        })
       );
       if (!matchText) return false;
     }
 
     // Dropdowns
     if (oblast && c.oblast !== oblast) return false;
-    if (pkg && c.package_num !== pkg) return false;
+    if (pkg && !c.packages.some(p => p.package_num === pkg)) return false;
     if (ownership && c.ownership !== ownership) return false;
     if (network && c.network_type !== network) return false;
 
@@ -93,7 +104,20 @@ function applyFilters() {
 
   // Update summary metrics
   const uniqueProviders = new Set(state.filtered.map(c => c.edrpou)).size;
-  const sumTotal = state.filtered.reduce((acc, curr) => acc + curr.sum, 0);
+  
+  // Calculate total sum of filtered contracts
+  // Note: if user filtered by package, do we show total contract sum or only the package sum?
+  // Showing only matching package sum is more accurate when filtering by package, otherwise contract sum.
+  let sumTotal = 0;
+  if (pkg) {
+    state.filtered.forEach(c => {
+      c.packages.forEach(p => {
+        if (p.package_num === pkg) sumTotal += p.sum;
+      });
+    });
+  } else {
+    sumTotal = state.filtered.reduce((acc, curr) => acc + curr.sum, 0);
+  }
   
   el("resultsCount").textContent = `Знайдено: ${state.filtered.length} договорі(в) у ${uniqueProviders} надавачів`;
   
@@ -102,7 +126,6 @@ function applyFilters() {
 
   // Handle side view sync
   if (state.filtered.length > 0) {
-    // If current selection is no longer in filtered, select first
     const isStillVisible = state.selected && state.filtered.some(c => c.id === state.selected.id);
     if (!isStillVisible) {
       selectContract(state.filtered[0].id);
@@ -112,7 +135,7 @@ function applyFilters() {
   }
 }
 
-// Render cards
+// Render cards (with 250 limit to avoid DOM freezing)
 function renderCards() {
   const container = el("contractCards");
   container.innerHTML = "";
@@ -122,7 +145,10 @@ function renderCards() {
     return;
   }
 
-  state.filtered.forEach(c => {
+  const limit = 250;
+  const itemsToRender = state.filtered.slice(0, limit);
+
+  itemsToRender.forEach(c => {
     const card = document.createElement("button");
     card.type = "button";
     card.className = "document-card contract-card";
@@ -130,11 +156,13 @@ function renderCards() {
       card.classList.add("active");
     }
 
-    // Network status badge helper
     let netClass = "";
     if (c.network_type === "Надкластерний") netClass = "nadklaster";
     else if (c.network_type === "Кластерний") netClass = "klaster";
     else if (c.network_type === "Загальний") netClass = "general";
+
+    // Show package numbers contracted under this provider
+    const pkgStr = c.packages.map(p => p.package_num).join(", ");
 
     card.innerHTML = `
       <div class="contract-card-header">
@@ -147,13 +175,25 @@ function renderCards() {
       <strong class="contract-card-title" title="${escapeHtml(c.provider_name)}">${escapeHtml(c.provider_name)}</strong>
       <div class="contract-card-footer">
         <span>📍 ${escapeHtml(c.settlement)} (${escapeHtml(c.oblast)})</span>
-        <span class="package-badge-mini">Пакет ${escapeHtml(c.package_num)}</span>
+        <span class="package-badge-mini" title="Пакети: ${escapeHtml(pkgStr)}">Пакет(и): ${escapeHtml(pkgStr)}</span>
       </div>
     `;
 
     card.addEventListener("click", () => selectContract(c.id));
     container.appendChild(card);
   });
+
+  if (state.filtered.length > limit) {
+    const note = document.createElement("div");
+    note.className = "no-results";
+    note.style.border = "none";
+    note.style.background = "var(--accent-soft)";
+    note.style.color = "var(--accent-dark)";
+    note.style.fontSize = "13px";
+    note.style.padding = "14px";
+    note.textContent = `Показано перші ${limit} з ${state.filtered.length} результатів. Будь ласка, уточніть пошук для перегляду решти.`;
+    container.appendChild(note);
+  }
 }
 
 // Select specific contract and show details
@@ -179,7 +219,6 @@ function selectContract(id) {
   // Parse locations if any
   let locationsHtml = "";
   if (contract.locations) {
-    // Usually locations are split by semicolons or commas
     const addressList = contract.locations.split(/;\s*|\n+/).filter(x => x.trim().length > 0);
     locationsHtml = addressList.map(addr => `
       <div class="mnp-location-item">${escapeHtml(addr)}</div>
@@ -188,11 +227,33 @@ function selectContract(id) {
     locationsHtml = "<p class='text-muted'>Місця надання послуг не вказані.</p>";
   }
 
-  // Network badge helper class
   let netBadgeClass = "";
   if (contract.network_type === "Надкластерний") netBadgeClass = "nadklaster";
   else if (contract.network_type === "Кластерний") netBadgeClass = "klaster";
   else if (contract.network_type === "Загальний") netBadgeClass = "general";
+
+  // Build packages list rendering
+  const packagesHtml = contract.packages.map(p => {
+    const meta = state.data.package_metadata[p.package_num] || {
+      package_name: "Невідомий пакет",
+      direction: "Невідомо",
+      help_type: "Невідомо"
+    };
+    return `
+      <div class="details-grid-item span-2" style="background: var(--accent-soft); border-left: 3px solid var(--accent); margin-bottom: 2px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%; gap: 10px;">
+          <span style="color: var(--accent-dark); font-weight: 700; font-size: 11px;">Пакет № ${escapeHtml(p.package_num)}</span>
+          <strong style="color: var(--teal-dark); font-size: 13.5px; white-space: nowrap;">${formatCurrency(p.sum)}</strong>
+        </div>
+        <strong style="color: var(--ink); font-size: 13px; margin-top: 4px; display: block; font-weight: 600;">${escapeHtml(meta.package_name)}</strong>
+        <div style="font-size: 11px; color: var(--muted); margin-top: 6px; display: flex; flex-wrap: wrap; gap: 10px;">
+          <span>Напрям: <strong>${escapeHtml(meta.direction)}</strong></span>
+          <span>Вид: <strong>${escapeHtml(meta.help_type)}</strong></span>
+          <span>Коеф. пакета: <strong>${escapeHtml(p.has_extra_coef_package)}</strong></span>
+        </div>
+      </div>
+    `;
+  }).join("");
 
   content.innerHTML = `
     <div class="detail-header-card">
@@ -234,10 +295,6 @@ function selectContract(id) {
         <strong>з ${escapeHtml(contract.start_date)} до ${escapeHtml(contract.end_date)}</strong>
       </div>
       <div class="details-grid-item span-2">
-        <span>Програма фінансування</span>
-        <strong>${escapeHtml(contract.financing_program)}</strong>
-      </div>
-      <div class="details-grid-item span-2">
         <span>Керівник закладу</span>
         <strong>${escapeHtml(contract.leader_title)} — ${escapeHtml(contract.leader_name)}</strong>
       </div>
@@ -255,33 +312,17 @@ function selectContract(id) {
       </div>
     </div>
 
-    <div class="section-title">Пакет медичних послуг</div>
-    <div class="details-list-grid">
-      <div class="details-grid-item span-2" style="background: var(--accent-soft);">
-        <span style="color: var(--accent-dark);">Пакет № ${escapeHtml(contract.package_num)}</span>
-        <strong style="color: var(--accent-dark); font-size: 14.5px;">${escapeHtml(contract.package_name)}</strong>
-      </div>
-      <div class="details-grid-item">
-        <span>Напрям допомоги</span>
-        <strong>${escapeHtml(contract.direction)}</strong>
-      </div>
-      <div class="details-grid-item">
-        <span>Вид допомоги</span>
-        <strong>${escapeHtml(contract.help_type)}</strong>
-      </div>
+    <div class="section-title">Пакет(и) медичних послуг за договором</div>
+    <div class="mnp-packages-container" style="display: flex; flex-direction: column; gap: 6px;">
+      ${packagesHtml}
     </div>
 
     <div class="section-title">Коефіцієнти та додаткові умови</div>
     <div class="coef-status-row">
-      <div class="coef-box ${contract.has_extra_coef_contract === 'Так' ? 'active' : ''}">
-        <span>Додаткові коефіцієнти</span>
+      <div class="coef-box ${contract.has_extra_coef_contract === 'Так' ? 'active' : ''}" style="grid-column: span 2;">
+        <span>Коефіцієнти в договорі</span>
         <div class="coef-val">${escapeHtml(contract.has_extra_coef_contract)}</div>
         <div class="coef-desc">наявність додаткових коригувальних коефіцієнтів у тексті договору</div>
-      </div>
-      <div class="coef-box ${contract.has_extra_coef_package === 'Так' ? 'active' : ''}">
-        <span>Коефіцієнт пакета</span>
-        <div class="coef-val">${escapeHtml(contract.has_extra_coef_package)}</div>
-        <div class="coef-desc">наявність додаткового коригувального коефіцієнту під цей конкретний пакет</div>
       </div>
       ${contract.extra_info && contract.extra_info !== 'nan' ? `
         <div class="coef-box active span-2" style="grid-column: span 2;">
@@ -297,15 +338,9 @@ function selectContract(id) {
     </div>
   `;
 
-  // On small screens, scroll detail viewer into view
   if (window.innerWidth <= 1040) {
     el("contractDetailViewer").scrollIntoView({ behavior: "smooth", block: "start" });
   }
-}
-
-function showEmptyState() {
-  el("detailEmptyState").style.display = "block";
-  el("detailContent").style.display = "none";
 }
 
 // Export filtered list to Excel-compatible CSV file (semicolon delimited with UTF-8 BOM)
@@ -334,41 +369,49 @@ function exportToExcel() {
     "Вид допомоги",
     "Спроможна мережа",
     "Електронна пошта",
-    "Сума договору",
-    "Додаткові коефіцієнти",
-    "Коефіцієнт пакета",
+    "Сума пакету",
+    "Додаткові коефіцієнти договору",
+    "Коефіцієнт пакету",
     "Додаткова інформація"
   ];
 
   let csvContent = "\uFEFF"; // UTF-8 BOM for Excel Cyrillic support
   csvContent += headers.join(";") + "\r\n";
 
+  const pkgFilter = el("filterPackage").value;
+
   state.filtered.forEach(c => {
-    const row = [
-      c.edrpou,
-      `"${c.provider_name_full.replace(/"/g, '""')}"`,
-      `"${c.ownership.replace(/"/g, '""')}"`,
-      `"${c.oblast.replace(/"/g, '""')}"`,
-      `"${c.community.replace(/"/g, '""')}"`,
-      `"${c.settlement.replace(/"/g, '""')}"`,
-      `"${c.settlement_type.replace(/"/g, '""')}"`,
-      `"${c.contract_num.replace(/"/g, '""')}"`,
-      `"${c.contract_slug.replace(/"/g, '""')}"`,
-      c.sign_date,
-      c.start_date,
-      c.end_date,
-      c.package_num,
-      `"${c.package_name.replace(/"/g, '""')}"`,
-      `"${c.direction.replace(/"/g, '""')}"`,
-      `"${c.help_type.replace(/"/g, '""')}"`,
-      `"${c.network_type.replace(/"/g, '""')}"`,
-      c.email,
-      c.sum.toString().replace(".", ","), // Decimal separator comma
-      c.has_extra_coef_contract,
-      c.has_extra_coef_package,
-      `"${c.extra_info.replace(/"/g, '""')}"`
-    ];
-    csvContent += row.join(";") + "\r\n";
+    c.packages.forEach(p => {
+      // If a package filter is active, only export that package's rows
+      if (pkgFilter && p.package_num !== pkgFilter) return;
+
+      const meta = state.data.package_metadata[p.package_num] || {};
+      const row = [
+        c.edrpou,
+        `"${c.provider_name_full.replace(/"/g, '""')}"`,
+        `"${c.ownership.replace(/"/g, '""')}"`,
+        `"${c.oblast.replace(/"/g, '""')}"`,
+        `"${c.community.replace(/"/g, '""')}"`,
+        `"${c.settlement.replace(/"/g, '""')}"`,
+        `"${c.settlement_type.replace(/"/g, '""')}"`,
+        `"${c.contract_num.replace(/"/g, '""')}"`,
+        `"${c.contract_slug.replace(/"/g, '""')}"`,
+        c.sign_date,
+        c.start_date,
+        c.end_date,
+        p.package_num,
+        `"${(meta.package_name || "").replace(/"/g, '""')}"`,
+        `"${(meta.direction || "").replace(/"/g, '""')}"`,
+        `"${(meta.help_type || "").replace(/"/g, '""')}"`,
+        `"${c.network_type.replace(/"/g, '""')}"`,
+        c.email,
+        p.sum.toString().replace(".", ","),
+        c.has_extra_coef_contract,
+        p.has_extra_coef_package,
+        `"${c.extra_info.replace(/"/g, '""')}"`
+      ];
+      csvContent += row.join(";") + "\r\n";
+    });
   });
 
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -382,6 +425,11 @@ function exportToExcel() {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+}
+
+function showEmptyState() {
+  el("detailEmptyState").style.display = "block";
+  el("detailContent").style.display = "none";
 }
 
 // Reset all search inputs and filters

@@ -3,10 +3,11 @@ import json
 import re
 import pandas as pd
 from pathlib import Path
+from collections import defaultdict
 
 # Paths
 BASE_DIR = Path(__file__).resolve().parents[2]
-EXCEL_PATH = BASE_DIR / "08_zoz_dogovr" / "укладені договори промедобслуговування.xlsx"
+EXCEL_PATH = BASE_DIR / "08_zoz_dogovr" / "укладені договори всі 2026.xlsx"
 OUTPUT_DIR = Path(__file__).resolve().parent.parent / "data"
 OUTPUT_JSON = OUTPUT_DIR / "contracts.json"
 
@@ -16,7 +17,6 @@ def clean_date(val):
     if isinstance(val, pd.Timestamp):
         return val.strftime("%d.%m.%Y")
     
-    # Try parsing string format
     s = str(val).strip()
     match = re.search(r"(\d{4})[-/](\d{1,2})[-/](\d{1,2})", s)
     if match:
@@ -33,13 +33,11 @@ def clean_date(val):
 def clean_edrpou(val):
     if pd.isna(val) or val is None:
         return ""
-    # Usually read as float or int, convert to string
     try:
         val_int = int(float(val))
         return f"{val_int:08d}"
     except (ValueError, TypeError):
         s = str(val).strip()
-        # strip float decimals if any
         if s.endswith(".0"):
             s = s[:-2]
         return s.zfill(8)
@@ -71,48 +69,87 @@ def main():
         print(f"Error: {EXCEL_PATH} does not exist.")
         return
 
-    # Read the first sheet
+    # Read the sheet
     df = pd.read_excel(EXCEL_PATH, sheet_name=0)
-    print(f"Read {len(df)} rows and {len(df.columns)} columns.")
+    print(f"Read {len(df)} rows.")
+
+    # Dictionary for static package metadata mapping
+    package_metadata = {}
+
+    # Group rows by (Код ЄДРПОУ, Номер договору/додаткової угоди)
+    grouped_rows = defaultdict(list)
+    for idx, row in df.iterrows():
+        edrpou = clean_edrpou(row.get("Код ЄДРПОУ (внутрішній)"))
+        provider_name = clean_str(row.get("Назва надавача"))
+        if not edrpou and not provider_name:
+            continue
+        
+        slug = clean_str(row.get("Номер договору/додаткової угоди"))
+        if not slug:
+            slug = clean_str(row.get("Номер договору"))
+        
+        key = (edrpou, slug)
+        grouped_rows[key].append(row)
+
+        # Track package metadata statically
+        pkg_num = clean_package_num(row.get("Номер пакету послуг"))
+        if pkg_num and pkg_num not in package_metadata:
+            package_metadata[pkg_num] = {
+                "package_name": clean_str(row.get("Назва пакету послуг")),
+                "direction": clean_str(row.get("Напрям допомоги")),
+                "help_type": clean_str(row.get("Вид допомоги")),
+                "financing_program": clean_str(row.get("Програма фінансування"))
+            }
+
+    print(f"Grouped into {len(grouped_rows)} unique contracts.")
 
     contracts = []
     
-    for idx, row in df.iterrows():
-        # Get raw values
-        oblast = clean_str(row.get("Область реєстрації"))
-        edrpou = clean_edrpou(row.get("Код ЄДРПОУ (внутрішній)"))
-        provider_name = clean_str(row.get("Назва надавача"))
+    for (edrpou, slug), rows in grouped_rows.items():
+        primary = rows[0]
         
-        if not edrpou and not provider_name:
-            continue
+        oblast = clean_str(primary.get("Область реєстрації"))
+        provider_name = clean_str(primary.get("Назва надавача"))
+        provider_name_full = clean_str(primary.get("Повна назва надавача"))
+        contract_num = clean_str(primary.get("Номер договору"))
+        contract_slug = slug
+        sign_date = clean_date(primary.get("Дата підписання договору/додаткової угоди"))
+        start_date = clean_date(primary.get("Початок дії договору"))
+        end_date = clean_date(primary.get("Кінець дії договору"))
+        ownership = clean_str(primary.get("Форма власності"))
+        settlement_type = clean_str(primary.get("Тип населеного пункту"))
+        settlement = clean_str(primary.get("Населений пункт"))
+        if not settlement:
+            settlement = clean_str(primary.get("Громада надавача"))
+        community = clean_str(primary.get("Громада надавача"))
+        network_type = clean_str(primary.get("Тип закладу спроможної мережі"))
+        locations = clean_str(primary.get("Перелік МНП за договором"))
+        email = clean_str(primary.get("email"))
+        reg_address = clean_str(primary.get("Адреса реєстрації"))
+        doc_type = clean_str(primary.get("Тип документа"))
+        year = clean_str(primary.get("Рік дії ПМГ"))
+        leader_title = clean_str(primary.get("Посада керівника"))
+        leader_name = clean_str(primary.get("ПІБ керівника"))
+        has_extra_coef_contract = clean_str(primary.get("Наявність додаткових коефіцієнтів в договорі"))
 
-        provider_name_full = clean_str(row.get("Повна назва надавача"))
-        contract_num = clean_str(row.get("Номер договору"))
-        contract_slug = clean_str(row.get("Номер договору/додаткової угоди"))
-        sign_date = clean_date(row.get("Дата підписання договору/додаткової угоди"))
-        start_date = clean_date(row.get("Початок дії договору"))
-        end_date = clean_date(row.get("Кінець дії договору"))
-        package_num = clean_package_num(row.get("Номер пакету послуг"))
-        package_name = clean_str(row.get("Назва пакету послуг"))
-        ownership = clean_str(row.get("Форма власності"))
-        settlement_type = clean_str(row.get("Тип населеного пункту"))
-        settlement = clean_str(row.get("Населений пункт"))
-        community = clean_str(row.get("Громада надавача"))
-        direction = clean_str(row.get("Напрям допомоги"))
-        network_type = clean_str(row.get("Тип закладу спроможної мережі"))
-        locations = clean_str(row.get("Перелік МНП за договором"))
-        email = clean_str(row.get("email"))
-        reg_address = clean_str(row.get("Адреса реєстрації"))
-        help_type = clean_str(row.get("Вид допомоги"))
-        financing_program = clean_str(row.get("Програма фінансування"))
-        doc_type = clean_str(row.get("Тип документа"))
-        year = clean_str(row.get("Рік дії ПМГ"))
-        leader_title = clean_str(row.get("Посада керівника"))
-        leader_name = clean_str(row.get("ПІБ керівника"))
-        has_extra_coef_contract = clean_str(row.get("Наявність додаткових коефіцієнтів в договорі"))
-        has_extra_coef_package = clean_str(row.get("Наявність додаткового коефіцієнту для пакету послуг"))
-        extra_info = clean_str(row.get("Додаткова інформація по пакетам послуг"))
-        contract_sum = clean_float(row.get("Сума договорів"))
+        # Extra info (optional)
+        extra_info = clean_str(primary.get("Додаткова інформація по пакетам послуг"))
+
+        # Compile packages
+        packages = []
+        for row in rows:
+            pkg_num = clean_package_num(row.get("Номер пакету послуг"))
+            has_extra_coef_package = clean_str(row.get("Наявність додаткового коефіцієнту для пакету послуг"))
+            pkg_sum = clean_float(row.get("Сума договорів"))
+
+            packages.append({
+                "package_num": pkg_num,
+                "has_extra_coef_package": has_extra_coef_package,
+                "sum": pkg_sum
+            })
+
+        # Contract sum is the sum of all packages under it
+        total_sum = round(sum(p["sum"] for p in packages), 2)
 
         contracts.append({
             "id": len(contracts) + 1,
@@ -125,35 +162,30 @@ def main():
             "sign_date": sign_date,
             "start_date": start_date,
             "end_date": end_date,
-            "package_num": package_num,
-            "package_name": package_name,
             "ownership": ownership,
             "settlement_type": settlement_type,
             "settlement": settlement,
             "community": community,
-            "direction": direction,
             "network_type": network_type,
             "locations": locations,
             "email": email,
             "reg_address": reg_address,
-            "help_type": help_type,
-            "financing_program": financing_program,
             "doc_type": doc_type,
             "year": year,
             "leader_title": leader_title,
             "leader_name": leader_name,
             "has_extra_coef_contract": has_extra_coef_contract,
-            "has_extra_coef_package": has_extra_coef_package,
             "extra_info": extra_info,
-            "sum": contract_sum
+            "sum": total_sum,
+            "packages": packages
         })
 
-    # Prepare final output structure
     output_payload = {
         "count": len(contracts),
         "total_sum": round(sum(c["sum"] for c in contracts), 2),
         "unique_providers": len(set(c["edrpou"] for c in contracts)),
-        "unique_packages": sorted(list(set(c["package_num"] for c in contracts if c["package_num"])), key=lambda x: int(x) if x.isdigit() else 999),
+        "unique_packages": sorted(list(package_metadata.keys()), key=lambda x: int(x) if x.isdigit() else 999),
+        "package_metadata": package_metadata,
         "contracts": contracts
     }
 
