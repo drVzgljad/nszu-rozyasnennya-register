@@ -1,8 +1,16 @@
 const state = {
   data: null,
   filtered: [],
-  selected: null
+  selected: null,
+  filters: {
+    oblasts: new Set(),
+    packages: new Set(),
+    ownerships: new Set(),
+    networks: new Set()
+  }
 };
+
+const dropdowns = {};
 
 const el = (id) => document.getElementById(id);
 
@@ -19,56 +27,230 @@ function escapeHtml(val) {
   }[char]));
 }
 
-// Build dropdown options dynamically based on initial dataset
-const defOptions = () => {
-  const oblasts = new Set();
-  const packages = new Set();
-  const ownerships = new Set();
+// Setup a multiselect dropdown component
+function setupMultiselect({
+  dropdownId,
+  btnId,
+  optionsId,
+  searchId,
+  selectAllId,
+  clearId,
+  defaultText,
+  filterKey,
+  optionValuesExtractor,
+  optionLabelFormatter,
+  onSelectionChange
+}) {
+  const dropdown = el(dropdownId);
+  const btn = el(btnId);
+  const optionsContainer = el(optionsId);
+  const searchInput = el(searchId);
+  const selectAllBtn = el(selectAllId);
+  const clearBtn = el(clearId);
 
-  state.data.contracts.forEach(c => {
-    if (c.oblast) oblasts.add(c.oblast);
-    if (c.ownership) ownerships.add(c.ownership);
-    
-    // Extract packages from list
-    if (c.packages && Array.isArray(c.packages)) {
-      c.packages.forEach(p => {
-        if (p.package_num) packages.add(p.package_num);
+  let optionsData = optionValuesExtractor();
+
+  function renderOptions(filterQuery = "") {
+    optionsContainer.innerHTML = "";
+    const query = filterQuery.toLowerCase().trim();
+
+    const filteredOpts = optionsData.filter(opt => {
+      const label = optionLabelFormatter ? optionLabelFormatter(opt) : opt;
+      return label.toLowerCase().includes(query) || opt.toLowerCase().includes(query);
+    });
+
+    if (filteredOpts.length === 0) {
+      optionsContainer.innerHTML = '<div style="padding: 10px 12px; font-size:12px; color:var(--muted); text-align:center;">Нічого не знайдено</div>';
+      return;
+    }
+
+    filteredOpts.forEach(opt => {
+      const labelEl = document.createElement("label");
+      labelEl.className = "multiselect-item";
+
+      const chk = document.createElement("input");
+      chk.type = "checkbox";
+      chk.value = opt;
+      chk.checked = state.filters[filterKey].has(opt);
+
+      chk.addEventListener("change", () => {
+        if (chk.checked) {
+          state.filters[filterKey].add(opt);
+        } else {
+          state.filters[filterKey].delete(opt);
+        }
+        updateButtonText();
+        onSelectionChange();
       });
+
+      const span = document.createElement("span");
+      span.textContent = optionLabelFormatter ? optionLabelFormatter(opt) : opt;
+      span.title = span.textContent;
+
+      labelEl.appendChild(chk);
+      labelEl.appendChild(span);
+      optionsContainer.appendChild(labelEl);
+    });
+  }
+
+  function updateButtonText() {
+    const selectedCount = state.filters[filterKey].size;
+    if (selectedCount === 0) {
+      btn.textContent = defaultText;
+    } else if (selectedCount === optionsData.length) {
+      btn.textContent = `Усі (${selectedCount})`;
+    } else {
+      btn.textContent = `Обрано: ${selectedCount}`;
+    }
+  }
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isOpen = dropdown.classList.contains("open");
+    document.querySelectorAll(".multiselect-dropdown").forEach(d => {
+      if (d !== dropdown) d.classList.remove("open");
+    });
+    dropdown.classList.toggle("open");
+    if (dropdown.classList.contains("open")) {
+      if (searchInput) {
+        searchInput.value = "";
+        renderOptions();
+        searchInput.focus();
+      }
     }
   });
 
-  // Populate Oblast selector
-  const oblastSelect = el("filterOblast");
-  [...oblasts].sort((a,b) => a.localeCompare(b, "uk")).forEach(ob => {
-    oblastSelect.add(new Option(ob, ob));
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      renderOptions(e.target.value);
+    });
+  }
+
+  selectAllBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    optionsData.forEach(opt => state.filters[filterKey].add(opt));
+    optionsContainer.querySelectorAll('input[type="checkbox"]').forEach(chk => chk.checked = true);
+    updateButtonText();
+    onSelectionChange();
   });
 
-  // Populate Package selector
-  const packageSelect = el("filterPackage");
-  [...packages].sort((a, b) => {
-    const na = parseInt(a), nb = parseInt(b);
-    if (!isNaN(na) && !isNaN(nb)) return na - nb;
-    return a.localeCompare(b);
-  }).forEach(pkg => {
-    const meta = state.data.package_metadata[pkg];
-    const label = meta ? `Пакет ${pkg} — ${meta.package_name.substring(0, 45)}...` : `Пакет ${pkg}`;
-    packageSelect.add(new Option(label, pkg));
+  clearBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    state.filters[filterKey].clear();
+    optionsContainer.querySelectorAll('input[type="checkbox"]').forEach(chk => chk.checked = false);
+    updateButtonText();
+    onSelectionChange();
   });
 
-  // Populate Ownership selector
-  const ownershipSelect = el("filterOwnership");
-  [...ownerships].sort((a,b) => a.localeCompare(b, "uk")).forEach(own => {
-    ownershipSelect.add(new Option(own, own));
+  // Initial populate
+  renderOptions();
+  updateButtonText();
+
+  return {
+    reset: () => {
+      state.filters[filterKey].clear();
+      if (searchInput) searchInput.value = "";
+      renderOptions();
+      updateButtonText();
+    },
+    selectSingle: (val) => {
+      state.filters[filterKey].clear();
+      state.filters[filterKey].add(val);
+      renderOptions();
+      updateButtonText();
+    }
+  };
+}
+
+// Build all dropdown components
+const initDropdowns = () => {
+  // Oblast dropdown
+  dropdowns.oblasts = setupMultiselect({
+    dropdownId: "dropdownOblast",
+    btnId: "btnOblast",
+    optionsId: "optionsOblast",
+    searchId: "searchOblast",
+    selectAllId: "selectAllOblast",
+    clearId: "clearOblast",
+    defaultText: "Усі області",
+    filterKey: "oblasts",
+    optionValuesExtractor: () => {
+      const list = new Set();
+      state.data.contracts.forEach(c => { if (c.oblast) list.add(c.oblast); });
+      return [...list].sort((a,b) => a.localeCompare(b, "uk"));
+    },
+    onSelectionChange: applyFilters
+  });
+
+  // Package dropdown
+  dropdowns.packages = setupMultiselect({
+    dropdownId: "dropdownPackage",
+    btnId: "btnPackage",
+    optionsId: "optionsPackage",
+    searchId: "searchPackage",
+    selectAllId: "selectAllPackage",
+    clearId: "clearPackage",
+    defaultText: "Усі пакети",
+    filterKey: "packages",
+    optionValuesExtractor: () => {
+      const list = new Set();
+      state.data.contracts.forEach(c => {
+        if (c.packages) c.packages.forEach(p => list.add(p.package_num));
+      });
+      return [...list].sort((a, b) => {
+        const na = parseInt(a), nb = parseInt(b);
+        if (!isNaN(na) && !isNaN(nb)) return na - nb;
+        return a.localeCompare(b);
+      });
+    },
+    optionLabelFormatter: (pkg) => {
+      const meta = state.data.package_metadata[pkg];
+      return meta ? `Пакет ${pkg} — ${meta.package_name.substring(0, 45)}...` : `Пакет ${pkg}`;
+    },
+    onSelectionChange: applyFilters
+  });
+
+  // Ownership dropdown
+  dropdowns.ownerships = setupMultiselect({
+    dropdownId: "dropdownOwnership",
+    btnId: "btnOwnership",
+    optionsId: "optionsOwnership",
+    searchId: null,
+    selectAllId: "selectAllOwnership",
+    clearId: "clearOwnership",
+    defaultText: "Усі форми",
+    filterKey: "ownerships",
+    optionValuesExtractor: () => {
+      const list = new Set();
+      state.data.contracts.forEach(c => { if (c.ownership) list.add(c.ownership); });
+      return [...list].sort((a,b) => a.localeCompare(b, "uk"));
+    },
+    onSelectionChange: applyFilters
+  });
+
+  // Network dropdown
+  dropdowns.networks = setupMultiselect({
+    dropdownId: "dropdownNetwork",
+    btnId: "btnNetwork",
+    optionsId: "optionsNetwork",
+    searchId: null,
+    selectAllId: "selectAllNetwork",
+    clearId: "clearNetwork",
+    defaultText: "Усі типи",
+    filterKey: "networks",
+    optionValuesExtractor: () => {
+      return ["Надкластерний", "Кластерний", "Загальний", "Не входить в спроможну мережу"];
+    },
+    optionLabelFormatter: (val) => {
+      return val === "Не входить в спроможну мережу" ? "Не входить в мережу" : val;
+    },
+    onSelectionChange: applyFilters
   });
 };
 
 // Filter data
 function applyFilters() {
   const query = el("contractSearch").value.trim().toLowerCase();
-  const oblast = el("filterOblast").value;
-  const pkg = el("filterPackage").value;
-  const ownership = el("filterOwnership").value;
-  const network = el("filterNetwork").value;
 
   state.filtered = state.data.contracts.filter(c => {
     // Text search
@@ -93,11 +275,19 @@ function applyFilters() {
       if (!matchText) return false;
     }
 
-    // Dropdowns
-    if (oblast && c.oblast !== oblast) return false;
-    if (pkg && !c.packages.some(p => p.package_num === pkg)) return false;
-    if (ownership && c.ownership !== ownership) return false;
-    if (network && c.network_type !== network) return false;
+    // Multi-select dropdown filters
+    if (state.filters.oblasts.size > 0 && !state.filters.oblasts.has(c.oblast)) {
+      return false;
+    }
+    if (state.filters.packages.size > 0 && !c.packages.some(p => state.filters.packages.has(p.package_num))) {
+      return false;
+    }
+    if (state.filters.ownerships.size > 0 && !state.filters.ownerships.has(c.ownership)) {
+      return false;
+    }
+    if (state.filters.networks.size > 0 && !state.filters.networks.has(c.network_type)) {
+      return false;
+    }
 
     return true;
   });
@@ -105,14 +295,14 @@ function applyFilters() {
   // Update summary metrics
   const uniqueProviders = new Set(state.filtered.map(c => c.edrpou)).size;
   
-  // Calculate total sum of filtered contracts
-  // Note: if user filtered by package, do we show total contract sum or only the package sum?
-  // Showing only matching package sum is more accurate when filtering by package, otherwise contract sum.
+  // Calculate total sum of filtered contracts or filtered packages
   let sumTotal = 0;
-  if (pkg) {
+  if (state.filters.packages.size > 0) {
     state.filtered.forEach(c => {
       c.packages.forEach(p => {
-        if (p.package_num === pkg) sumTotal += p.sum;
+        if (state.filters.packages.has(p.package_num)) {
+          sumTotal += p.sum;
+        }
       });
     });
   } else {
@@ -343,7 +533,7 @@ function selectContract(id) {
   }
 }
 
-// Export filtered list to Excel-compatible CSV file (semicolon delimited with UTF-8 BOM)
+// Export filtered list to premium binary Excel (.xlsx) file using SheetJS
 function exportToExcel() {
   if (!state.filtered || state.filtered.length === 0) {
     alert("Немає даних для експорту!");
@@ -375,56 +565,74 @@ function exportToExcel() {
     "Додаткова інформація"
   ];
 
-  let csvContent = "\uFEFF"; // UTF-8 BOM for Excel Cyrillic support
-  csvContent += headers.join(";") + "\r\n";
-
-  const pkgFilter = el("filterPackage").value;
+  const wsData = [headers];
 
   state.filtered.forEach(c => {
     c.packages.forEach(p => {
-      // If a package filter is active, only export that package's rows
-      if (pkgFilter && p.package_num !== pkgFilter) return;
+      // If package filters are active, only export the selected packages
+      if (state.filters.packages.size > 0 && !state.filters.packages.has(p.package_num)) return;
 
       const meta = state.data.package_metadata[p.package_num] || {};
       const row = [
         c.edrpou,
-        `"${c.provider_name_full.replace(/"/g, '""')}"`,
-        `"${c.ownership.replace(/"/g, '""')}"`,
-        `"${c.oblast.replace(/"/g, '""')}"`,
-        `"${c.community.replace(/"/g, '""')}"`,
-        `"${c.settlement.replace(/"/g, '""')}"`,
-        `"${c.settlement_type.replace(/"/g, '""')}"`,
-        `"${c.contract_num.replace(/"/g, '""')}"`,
-        `"${c.contract_slug.replace(/"/g, '""')}"`,
-        c.sign_date,
-        c.start_date,
-        c.end_date,
+        c.provider_name_full,
+        c.ownership,
+        c.oblast,
+        c.community,
+        c.settlement,
+        c.settlement_type,
+        c.contract_num,
+        c.contract_slug,
+        c.sign_date || "",
+        c.start_date || "",
+        c.end_date || "",
         p.package_num,
-        `"${(meta.package_name || "").replace(/"/g, '""')}"`,
-        `"${(meta.direction || "").replace(/"/g, '""')}"`,
-        `"${(meta.help_type || "").replace(/"/g, '""')}"`,
-        `"${c.network_type.replace(/"/g, '""')}"`,
-        c.email,
-        p.sum.toString().replace(".", ","),
-        c.has_extra_coef_contract,
-        p.has_extra_coef_package,
-        `"${c.extra_info.replace(/"/g, '""')}"`
+        meta.package_name || "",
+        meta.direction || "",
+        meta.help_type || "",
+        c.network_type,
+        c.email || "",
+        p.sum, // Keep as numeric value
+        c.has_extra_coef_contract || "Ні",
+        p.has_extra_coef_package || "Ні",
+        (c.extra_info && c.extra_info !== "nan") ? c.extra_info : ""
       ];
-      csvContent += row.join(";") + "\r\n";
+      wsData.push(row);
     });
   });
 
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
-  
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // Auto-adjust column widths
+  const max_cols = headers.length;
+  ws['!cols'] = [];
+  for (let col = 0; col < max_cols; col++) {
+    let maxLen = headers[col].length;
+    for (let row = 1; row < wsData.length; row++) {
+      const cellVal = wsData[row][col];
+      if (cellVal !== undefined && cellVal !== null) {
+        const len = cellVal.toString().length;
+        if (len > maxLen) maxLen = len;
+      }
+    }
+    ws['!cols'].push({ wch: Math.min(Math.max(maxLen + 3, 10), 60) });
+  }
+
+  // Format the "Сума пакету" numeric column (index 18)
+  const colLetter = XLSX.utils.encode_col(18);
+  for (let r = 1; r < wsData.length; r++) {
+    const cellRef = colLetter + (r + 1);
+    if (ws[cellRef]) {
+      ws[cellRef].t = 'n'; // Numeric format type
+      ws[cellRef].z = '#,##0.00'; // Standard Ukrainian currency presentation layout
+    }
+  }
+
+  XLSX.utils.book_append_sheet(wb, ws, "Договори ЗОЗ");
+
   const dateStr = new Date().toISOString().slice(0, 10);
-  link.setAttribute("download", `zoz_dogovory_${dateStr}.csv`);
-  link.style.visibility = 'hidden';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  XLSX.writeFile(wb, `zoz_dogovory_${dateStr}.xlsx`);
 }
 
 function showEmptyState() {
@@ -435,10 +643,7 @@ function showEmptyState() {
 // Reset all search inputs and filters
 function resetFilters() {
   el("contractSearch").value = "";
-  el("filterOblast").value = "";
-  el("filterPackage").value = "";
-  el("filterOwnership").value = "";
-  el("filterNetwork").value = "";
+  Object.values(dropdowns).forEach(d => d.reset());
   applyFilters();
 }
 
@@ -452,17 +657,20 @@ async function init() {
   el("statProvidersCount").textContent = state.data.unique_providers.toLocaleString('uk-UA');
   el("statTotalSum").textContent = formatCurrency(state.data.total_sum);
 
-  // Populate dropdown options
-  defOptions();
+  // Initialize multiselect dropdowns
+  initDropdowns();
 
   // Setup event listeners
   el("contractSearch").addEventListener("input", applyFilters);
-  el("filterOblast").addEventListener("change", applyFilters);
-  el("filterPackage").addEventListener("change", applyFilters);
-  el("filterOwnership").addEventListener("change", applyFilters);
-  el("filterNetwork").addEventListener("change", applyFilters);
   el("resetFilters").addEventListener("click", resetFilters);
   el("exportExcel").addEventListener("click", exportToExcel);
+
+  // Close dropdowns on document click
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".multiselect-dropdown")) {
+      document.querySelectorAll(".multiselect-dropdown").forEach(d => d.classList.remove("open"));
+    }
+  });
 
   // Check URL params for deep linking (e.g. ?package=53)
   const params = new URLSearchParams(location.search);
@@ -473,7 +681,7 @@ async function init() {
     el("contractSearch").value = initialQuery;
   }
   if (initialPackage) {
-    el("filterPackage").value = initialPackage;
+    dropdowns.packages.selectSingle(initialPackage);
   }
 
   // Initial filtering

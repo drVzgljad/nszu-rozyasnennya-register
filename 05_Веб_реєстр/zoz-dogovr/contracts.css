@@ -287,6 +287,161 @@
   line-height: 1.4;
 }
 
+/* Premium Multi-Select Dropdowns */
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.multiselect-dropdown {
+  position: relative;
+  width: 100%;
+}
+
+.multiselect-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1px solid #d7e1e9;
+  border-radius: 10px;
+  color: var(--ink);
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.multiselect-btn:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,111,201,.12);
+  outline: none;
+}
+
+.multiselect-btn::after {
+  content: "▼";
+  font-size: 9px;
+  margin-left: 8px;
+  color: var(--muted);
+  transition: transform 0.2s;
+}
+
+.multiselect-dropdown.open .multiselect-btn::after {
+  transform: rotate(180deg);
+}
+
+.multiselect-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1100;
+  background: #fff;
+  border: 1px solid #cddbe7;
+  border-radius: 10px;
+  margin-top: 4px;
+  box-shadow: 0 8px 24px rgba(38, 78, 112, 0.12);
+  display: none;
+  flex-direction: column;
+  max-height: 280px;
+}
+
+.multiselect-dropdown.open .multiselect-menu {
+  display: flex;
+}
+
+.multiselect-search-container {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.multiselect-search {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid #d7e1e9;
+  border-radius: 8px;
+  font-size: 12.5px;
+  background: var(--soft);
+  color: var(--ink);
+  outline: none;
+}
+
+.multiselect-search:focus {
+  border-color: var(--accent);
+}
+
+.multiselect-actions {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  background: var(--soft);
+}
+
+.multiselect-action-btn {
+  border: 0;
+  background: transparent;
+  color: var(--accent-dark);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 0;
+  transition: opacity 0.2s;
+}
+
+.multiselect-action-btn:hover {
+  opacity: 0.8;
+}
+
+.multiselect-options {
+  overflow-y: auto;
+  padding: 4px 0;
+  flex-grow: 1;
+  max-height: 180px;
+}
+
+.multiselect-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--ink);
+  transition: background 0.15s;
+  user-select: none;
+}
+
+.multiselect-item:hover {
+  background: var(--soft);
+}
+
+.multiselect-item input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--accent-dark);
+}
+
+.multiselect-item span {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  max-width: 100%;
+}
+
 /* Responsive fixes */
 @media (max-width: 1040px) {
   .contracts-layout {
