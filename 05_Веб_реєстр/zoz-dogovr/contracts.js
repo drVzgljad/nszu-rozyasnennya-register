@@ -635,6 +635,94 @@ function exportToExcel() {
   XLSX.writeFile(wb, `zoz_dogovory_${dateStr}.xlsx`);
 }
 
+// Export a brief table of EDRPOU, ZOZ Name, Email and Selected Packages
+function exportEmailsToExcel() {
+  if (!state.filtered || state.filtered.length === 0) {
+    alert("Немає даних для експорту!");
+    return;
+  }
+
+  const headers = [
+    "Код ЄДРПОУ",
+    "Назва надавача",
+    "Електронна пошта",
+    "Обрані пакети"
+  ];
+
+  const wsData = [headers];
+  
+  // Use a map to ensure unique ZOZ rows by EDRPOU (avoid duplicates for mailing)
+  const uniqueZOZ = new Map();
+
+  state.filtered.forEach(c => {
+    // Find matching package numbers
+    const matchedPkgs = c.packages
+      .map(p => p.package_num)
+      .filter(num => state.filters.packages.size === 0 || state.filters.packages.has(num));
+
+    if (state.filters.packages.size > 0 && matchedPkgs.length === 0) {
+      return;
+    }
+
+    const edrpou = c.edrpou;
+    const email = c.email || "";
+    const name = c.provider_name_full || c.provider_name;
+    const pkgsStr = matchedPkgs.join(", ");
+
+    if (uniqueZOZ.has(edrpou)) {
+      const existing = uniqueZOZ.get(edrpou);
+      const existingPkgs = existing.pkgs.split(", ");
+      matchedPkgs.forEach(p => {
+        if (!existingPkgs.includes(p)) existingPkgs.push(p);
+      });
+      existing.pkgs = existingPkgs.sort((a,b) => parseInt(a) - parseInt(b)).join(", ");
+    } else {
+      uniqueZOZ.set(edrpou, {
+        name: name,
+        email: email,
+        pkgs: pkgsStr
+      });
+    }
+  });
+
+  if (uniqueZOZ.size === 0) {
+    alert("Дані відсутні!");
+    return;
+  }
+
+  uniqueZOZ.forEach((info, edrpou) => {
+    wsData.push([
+      edrpou,
+      info.name,
+      info.email,
+      info.pkgs
+    ]);
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+  // Auto-adjust column widths
+  const max_cols = headers.length;
+  ws['!cols'] = [];
+  for (let col = 0; col < max_cols; col++) {
+    let maxLen = headers[col].length;
+    for (let row = 1; row < wsData.length; row++) {
+      const cellVal = wsData[row][col];
+      if (cellVal !== undefined && cellVal !== null) {
+        const len = cellVal.toString().length;
+        if (len > maxLen) maxLen = len;
+      }
+    }
+    ws['!cols'].push({ wch: Math.min(Math.max(maxLen + 3, 10), 60) });
+  }
+
+  XLSX.utils.book_append_sheet(wb, ws, "Контакти ЗОЗ");
+
+  const dateStr = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, `zoz_emails_${dateStr}.xlsx`);
+}
+
 function showEmptyState() {
   el("detailEmptyState").style.display = "block";
   el("detailContent").style.display = "none";
@@ -664,6 +752,7 @@ async function init() {
   el("contractSearch").addEventListener("input", applyFilters);
   el("resetFilters").addEventListener("click", resetFilters);
   el("exportExcel").addEventListener("click", exportToExcel);
+  el("exportEmails").addEventListener("click", exportEmailsToExcel);
 
   // Close dropdowns on document click
   document.addEventListener("click", (e) => {
