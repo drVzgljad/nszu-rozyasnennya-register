@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>НавиПМГ26 | Укладені договори про медобслуговування</title>
+  <link rel="stylesheet" href="../styles.css?v=20260531e">
+  <link rel="stylesheet" href="contracts.css?v=20260602">
+  <link rel="stylesheet" href="../auth.css?v=20260602b">
+  <script type="module" src="../auth.js?v=20260602b"></script>
+</head>
+<body id="top">
+  <header class="hero contracts-hero">
+    <div class="hero-copy">
+      <div class="overline">Аналітика та реєстри ПМГ</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавиПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Укладені договори про медобслуговування</h1>
+      <p>Шукайте та аналізуйте договори закладу охорони здоров'я (ЗОЗ) з НСЗУ: суми фінансування, переліки медичних послуг, місця надання послуг та коефіцієнти.</p>
+    </div>
+    <div class="stats" id="contractsStats" aria-label="Статистика договорів">
+      <div class="stat">
+        <strong id="statContractsCount">-</strong>
+        <span>договорів</span>
+      </div>
+      <div class="stat">
+        <strong id="statProvidersCount">-</strong>
+        <span>надавачів (ЗОЗ)</span>
+      </div>
+      <div class="stat">
+        <strong id="statTotalSum">-</strong>
+        <span>загальна сума (грн)</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout contracts-layout">
+    <section class="contracts-browser" aria-label="Пошук договорів">
+      <div class="search-panel contracts-search">
+        <label class="search">
+          <span>Пошук договору</span>
+          <input id="contractSearch" type="search" placeholder="Код ЄДРПОУ, назва закладу, номер договору, населений пункт..." autocomplete="off">
+        </label>
+        
+        <div class="filters contracts-filters">
+          <label>Область реєстрації
+            <select id="filterOblast">
+              <option value="">Усі області</option>
+            </select>
+          </label>
+          <label>Пакет послуг
+            <select id="filterPackage">
+              <option value="">Усі пакети</option>
+            </select>
+          </label>
+          <label>Форма власності
+            <select id="filterOwnership">
+              <option value="">Усі форми</option>
+            </select>
+          </label>
+          <label>Спроможна мережа
+            <select id="filterNetwork">
+              <option value="">Усі типи</option>
+              <option value="Надкластерний">Надкластерний</option>
+              <option value="Кластерний">Кластерний</option>
+              <option value="Загальний">Загальний</option>
+              <option value="Не входить в спроможну мережу">Не входить в мережу</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="results-summary" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <span id="resultsCount">Завантаження даних...</span>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button id="exportExcel" class="action" style="padding: 6px 12px; font-size: 13px; border-radius: 8px;" type="button">📥 Експорт в Excel</button>
+            <button id="resetFilters" style="border: 0; background: transparent; color: var(--accent-dark); font-weight: 600; cursor: pointer; font-size: 13px;" type="button">Очистити</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cards" id="contractCards"></div>
+    </section>
+
+    <!-- Sidebar details -->
+    <aside class="detail" id="contractDetailViewer" aria-live="polite">
+      <div class="empty-state" id="detailEmptyState">
+        <div class="empty-icon">i</div>
+        <h2>Оберіть договір для перегляду</h2>
+        <p>Виберіть картку договору зі списку ліворуч, щоб переглянути реквізити, перелік місць надання послуг (МНП) та суми фінансування.</p>
+      </div>
+      
+      <div class="detail-content" id="detailContent" style="display:none">
+        <!-- Content will be injected dynamically via JS -->
+      </div>
+    </aside>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Навігатор створено для швидкого аналізу укладених договорів та специфікацій медичної допомоги.</p>
+      </div>
+    </div>
+  </footer>
+
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <script src="contracts.js?v=20260602" defer></script>
+</body>
+</html>

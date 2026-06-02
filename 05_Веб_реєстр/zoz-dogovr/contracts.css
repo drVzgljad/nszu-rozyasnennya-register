@@ -1,0 +1,304 @@
+/* ============================================================
+   Портал експертної інформації ПМГ 2026 — Contracts View styles
+   ============================================================ */
+
+/* Page container tweaks */
+.contracts-hero {
+  background: linear-gradient(118deg, #eef8f1 0%, #f3faf5 45%, #eef6fc 100%);
+}
+
+.contracts-layout {
+  grid-template-columns: minmax(500px, 1fr) minmax(500px, 1.2fr);
+}
+
+/* Cards container scroll adjustments */
+.contracts-layout .cards {
+  max-height: calc(100vh - 365px);
+}
+
+/* Custom card structure */
+.contract-card {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.contract-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.contract-card-meta {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.contract-edrpou {
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--soft);
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+
+.contract-card-sum {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--teal-dark);
+  white-space: nowrap;
+}
+
+.contract-card-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--ink);
+  margin: 2px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.contract-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.contract-card-footer span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.package-badge-mini {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+/* Detail panel content styling */
+.detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: fadeIn 0.25s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.detail-header-card {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 18px;
+}
+
+.detail-title-desc {
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin: 10px 0;
+}
+
+.detail-pills-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.network-badge {
+  background: #fdf5e6;
+  color: #c27d0e;
+  border: 1px solid rgba(194, 125, 14, 0.2);
+}
+.network-badge.nadklaster {
+  background: #fdebee;
+  color: #c71585;
+  border: 1px solid rgba(199, 21, 133, 0.2);
+}
+.network-badge.klaster {
+  background: #eef6fc;
+  color: #2f6b9e;
+  border: 1px solid rgba(47, 107, 158, 0.2);
+}
+.network-badge.general {
+  background: #eef8f1;
+  color: #3a8462;
+  border: 1px solid rgba(58, 132, 98, 0.2);
+}
+
+/* Detail sums display box */
+.finance-highlight-box {
+  background: linear-gradient(135deg, var(--soft) 0%, rgba(238, 248, 241, 0.8) 100%);
+  border: 1px solid rgba(84, 173, 132, 0.25);
+  border-radius: 14px;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.finance-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.finance-label span {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.finance-label strong {
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.finance-sum {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--teal-dark);
+  letter-spacing: -0.02em;
+}
+
+/* Details grid layout */
+.details-list-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.details-grid-item {
+  background: var(--soft);
+  padding: 10px 14px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.details-grid-item span {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.details-grid-item strong {
+  font-size: 13.5px;
+  color: var(--ink);
+  word-break: break-word;
+}
+
+.details-grid-item.span-2 {
+  grid-column: span 2;
+}
+
+/* Locations block */
+.mnp-locations-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mnp-location-item {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: #364b63;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.mnp-location-item::before {
+  content: "📍";
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* Extra coefficients boxes */
+.coef-status-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.coef-box {
+  border: 1px solid var(--line);
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.coef-box.active {
+  background: #fffdf5;
+  border-color: rgba(194, 125, 14, 0.25);
+}
+
+.coef-box span {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.coef-box.active span {
+  color: #c27d0e;
+}
+
+.coef-val {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.coef-desc {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* Responsive fixes */
+@media (max-width: 1040px) {
+  .contracts-layout {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .contracts-layout .cards {
+    max-height: 48vh;
+  }
+  
+  .detail {
+    min-height: auto;
+  }
+}
