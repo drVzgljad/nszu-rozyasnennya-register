@@ -68,12 +68,20 @@
             </select>
           </div>
 
+          <div class="skod-form-group">
+            <label for="task_branch">Гілка роботи *</label>
+            <select id="task_branch" required>
+              <option value="department" selected>Внутрішня робота відділу</option>
+              <option value="askod">Робота в АСКОД</option>
+            </select>
+          </div>
+
           <div class="skod-form-row">
             <div class="skod-form-group">
               <label for="start_time">Час початку *</label>
               <input type="time" id="start_time" required>
             </div>
-            <div class="skod-form-group">
+            <div class="skod-form-group" id="duration-group">
               <label for="duration_minutes">Тривалість (хв) *</label>
               <input type="number" id="duration_minutes" placeholder="наприклад, 45" min="5" max="480" required>
             </div>
@@ -82,7 +90,14 @@
           <div class="skod-form-group">
             <label for="task_type">Тип завдання *</label>
             <select id="task_type" required>
-              <option value="" disabled selected>Завантаження типів...</option>
+              <option value="" disabled selected>Оберіть гілку спочатку...</option>
+            </select>
+          </div>
+
+          <div class="skod-form-group">
+            <label for="task_category">Категорія завдання *</label>
+            <select id="task_category" required>
+              <option value="" disabled selected>Оберіть тип спочатку...</option>
             </select>
           </div>
 
@@ -97,17 +112,25 @@
           </div>
 
           <div class="skod-form-group">
-            <label for="description">Короткий опис / Код завдання</label>
+            <label for="task_status">Статус завдання *</label>
+            <select id="task_status" required>
+              <option value="completed" selected>Завершено (постфактум)</option>
+              <option value="in_progress">В процесі (реальний час)</option>
+            </select>
+          </div>
+
+          <div class="skod-form-group">
+            <label for="description">Короткий опис / Код завдання / Номер документа</label>
             <textarea id="description" rows="3" placeholder="Опишіть сутність завдання або вкажіть реєстраційний номер листа..."></textarea>
           </div>
 
           <!-- Live Score Output -->
-          <div class="skod-live-score">
+          <div class="skod-live-score" id="live-score-container">
             <div class="score-label">Очікувана оцінка (бали)</div>
             <div class="score-val" id="live-score-val">0.00</div>
           </div>
 
-          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; justify-content: center;">
+          <button type="submit" class="btn btn-primary" id="btn-submit-task" style="width: 100%; padding: 12px; justify-content: center;">
             Зберегти завдання
           </button>
         </form>

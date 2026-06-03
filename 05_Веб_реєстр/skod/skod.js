@@ -17,16 +17,47 @@ const COEFFICIENTS = {
   expert: 2.5
 };
 
-// Standard Task Types
-const TASK_TYPES = [
-  "Аналітична робота",
-  "Розгляд звернень / писемних запитів",
-  "Підготовка нормативних та проектних документів",
-  "Участь у нарадах / робочих групах",
-  "Робота в інформаційних системах НСЗУ",
-  "Організаційне забезпечення діяльності",
-  "Інше (вказати в описі)"
-];
+// Branch-specific Task Types and Categories
+const BRANCH_CONFIG = {
+  askod: {
+    types: [
+      "Лист",
+      "Звернення громадян",
+      "Запит на інформацію",
+      "Внутрішній документ",
+      "Протокол",
+      "Інше (вказати в описі)"
+    ],
+    categories: [
+      "Зміст роз'яснення ПМГ",
+      "Договірні питання",
+      "Надавачі медичних послуг",
+      "Листи МОЗ / КМУ",
+      "Звернення пацієнта",
+      "Контрактування ЗОЗ",
+      "Інше"
+    ]
+  },
+  department: {
+    types: [
+      "Аналітична робота",
+      "Підготовка нормативних та проектних документів",
+      "Робота в інформаційних системах НСЗУ",
+      "Участь у нарадах / робочих групах",
+      "Організаційне забезпечення діяльності",
+      "Інше (вказати в описі)"
+    ],
+    categories: [
+      "Специфікації та умови закупівлі ПМГ",
+      "Розрахунки тарифів та коефіцієнтів",
+      "Аналітика звітів діяльності ЗОЗ",
+      "Внутрішні наради Департаменту",
+      "Робота з реєстрами та базами даних",
+      "Розробка пропозицій до ПМГ",
+      "Інше"
+    ]
+  }
+};
 
 // Initialize
 async function init() {
@@ -81,25 +112,80 @@ function showAccessDenied(msg) {
 // Form Logic
 // ============================================================
 function setupForm() {
+  const branchSel = document.getElementById('task_branch');
   const taskTypeSel = document.getElementById('task_type');
+  const taskCategorySel = document.getElementById('task_category');
   const severitySel = document.getElementById('severity_level');
   const durationInput = document.getElementById('duration_minutes');
+  const durationGroup = document.getElementById('duration-group');
+  const statusSel = document.getElementById('task_status');
   const scoreVal = document.getElementById('live-score-val');
   const formEl = document.getElementById('skod-log-form');
 
-  // Populate task types
-  if (taskTypeSel) {
-    taskTypeSel.innerHTML = '<option value="" disabled selected>Оберіть тип завдання...</option>';
-    TASK_TYPES.forEach(type => {
-      const opt = document.createElement('option');
-      opt.value = type;
-      opt.textContent = type;
-      taskTypeSel.appendChild(opt);
+  // Populate dynamic dropdowns
+  function populateTypesAndCategories() {
+    const branch = branchSel?.value || 'department';
+    const config = BRANCH_CONFIG[branch];
+
+    if (taskTypeSel) {
+      const prevType = taskTypeSel.value;
+      taskTypeSel.innerHTML = '<option value="" disabled selected>Оберіть тип завдання...</option>';
+      config.types.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t;
+        opt.textContent = t;
+        taskTypeSel.appendChild(opt);
+      });
+      if (config.types.includes(prevType)) {
+        taskTypeSel.value = prevType;
+      }
+    }
+    populateCategories();
+  }
+
+  function populateCategories() {
+    const branch = branchSel?.value || 'department';
+    const config = BRANCH_CONFIG[branch];
+    if (taskCategorySel) {
+      taskCategorySel.innerHTML = '<option value="" disabled selected>Оберіть категорію...</option>';
+      config.categories.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        taskCategorySel.appendChild(opt);
+      });
+    }
+  }
+
+  if (branchSel) {
+    branchSel.addEventListener('change', populateTypesAndCategories);
+  }
+
+  // Populate initially
+  populateTypesAndCategories();
+
+  // Handle status toggle
+  if (statusSel) {
+    statusSel.addEventListener('change', () => {
+      const isProgress = statusSel.value === 'in_progress';
+      if (durationGroup) {
+        durationGroup.style.display = isProgress ? 'none' : 'block';
+      }
+      if (durationInput) {
+        durationInput.required = !isProgress;
+        if (isProgress) durationInput.value = '';
+      }
+      updateLiveScore();
     });
   }
 
   // Update live score
   function updateLiveScore() {
+    const status = statusSel?.value || 'completed';
+    if (status === 'in_progress') {
+      if (scoreVal) scoreVal.textContent = 'Розраховується при завершенні';
+      return;
+    }
     const duration = parseInt(durationInput?.value || 0, 10);
     const severity = severitySel?.value || 'easy';
     const coef = COEFFICIENTS[severity];
@@ -124,15 +210,17 @@ function setupForm() {
         submitBtn.textContent = 'Збереження...';
       }
 
+      const branch = branchSel.value;
       const task_type = taskTypeSel.value;
+      const category = taskCategorySel.value;
       const severity_level = severitySel.value;
-      const duration_minutes = parseInt(durationInput.value, 10);
+      const status = statusSel.value;
       const start_time = document.getElementById('start_time').value;
       const description = document.getElementById('description').value.trim();
       const department = userProfile.department || document.getElementById('form-department')?.value || 'Департамент стратегії';
       const user_name = userProfile.full_name || currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
 
-      if (!task_type || !severity_level || !duration_minutes || !start_time) {
+      if (!branch || !task_type || !category || !severity_level || !start_time || !status) {
         alert('Будь ласка, заповніть усі обов’язкові поля.');
         if (submitBtn) {
           submitBtn.disabled = false;
@@ -141,8 +229,22 @@ function setupForm() {
         return;
       }
 
+      let duration_minutes = null;
+      let score = null;
       const coef = COEFFICIENTS[severity_level];
-      const score = parseFloat(((duration_minutes / 60) * coef).toFixed(2));
+
+      if (status === 'completed') {
+        duration_minutes = parseInt(durationInput.value, 10);
+        if (isNaN(duration_minutes) || duration_minutes <= 0) {
+          alert('Будь ласка, вкажіть коректну тривалість завдання.');
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Зберегти завдання';
+          }
+          return;
+        }
+        score = parseFloat(((duration_minutes / 60) * coef).toFixed(2));
+      }
 
       const logData = {
         user_id: currentUser.id,
@@ -150,10 +252,13 @@ function setupForm() {
         department,
         start_time,
         duration_minutes,
+        branch,
         task_type,
+        category,
         severity_level,
         complexity_coefficient: coef,
         score,
+        status,
         description
       };
 
@@ -168,7 +273,16 @@ function setupForm() {
         alert('Помилка збереження: ' + error.message);
       } else {
         formEl.reset();
+        
+        // Reset defaults
+        if (branchSel) branchSel.value = 'department';
+        populateTypesAndCategories();
+        if (statusSel) {
+          statusSel.value = 'completed';
+          if (durationGroup) durationGroup.style.display = 'block';
+        }
         updateLiveScore();
+        
         // Set current time back to start time
         const now = new Date();
         const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -187,12 +301,45 @@ function setupForm() {
 
     // Dynamic department check
     if (!userProfile.department) {
-      // If user profile has no department, show a department selection field
       const deptGroup = document.getElementById('form-dept-group');
       if (deptGroup) {
         deptGroup.style.display = 'block';
       }
     }
+  }
+}
+
+// Complete task in progress
+async function completeTask(id, logDate, startTimeStr, severityLevel, coef) {
+  const now = new Date();
+  
+  // Combine date and time
+  const [year, month, day] = logDate.split('-');
+  const [hours, minutes] = startTimeStr.split(':');
+  
+  const startDt = new Date(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10), parseInt(hours, 10), parseInt(minutes, 10), 0);
+  
+  let diffMs = now - startDt;
+  if (diffMs < 0) diffMs = 0;
+  
+  let duration_minutes = Math.round(diffMs / 60000);
+  if (duration_minutes < 1) duration_minutes = 1;
+  
+  const score = parseFloat(((duration_minutes / 60) * coef).toFixed(2));
+  
+  const { error } = await sb
+    .from('skod_logs')
+    .update({
+      duration_minutes,
+      score,
+      status: 'completed'
+    })
+    .eq('id', id);
+    
+  if (error) {
+    alert("Помилка завершення завдання: " + error.message);
+  } else {
+    loadTodayLogs();
   }
 }
 
@@ -232,30 +379,44 @@ async function loadTodayLogs() {
     if (emptyState) emptyState.style.display = 'none';
     
     todayLogs.forEach(log => {
-      totalScore += parseFloat(log.score);
-      totalMinutes += log.duration_minutes;
+      totalScore += parseFloat(log.score || 0);
+      totalMinutes += log.duration_minutes || 0;
 
       const tr = document.createElement('tr');
       tr.id = `log-row-${log.id}`;
 
       // Hours format
-      const hrs = Math.floor(log.duration_minutes / 60);
-      const mins = log.duration_minutes % 60;
-      const durationStr = hrs > 0 ? `${hrs} год ${mins} хв` : `${mins} хв`;
+      let durationStr = 'В процесі ⏳';
+      if (log.status !== 'in_progress') {
+        const hrs = Math.floor(log.duration_minutes / 60);
+        const mins = log.duration_minutes % 60;
+        durationStr = hrs > 0 ? `${hrs} год ${mins} хв` : `${mins} хв`;
+      }
 
       // Severity translation
       const severityMap = { easy: 'Легкий', medium: 'Середній', hard: 'Складний', expert: 'Експерт' };
       const sevLabel = severityMap[log.severity_level] || log.severity_level;
 
+      const branchLabel = log.branch === 'askod' ? 'АСКОД' : 'Відділ';
+      const categoryLabel = log.category ? ` &bull; ${log.category}` : '';
+
+      let scoreContent = log.score ? log.score.toFixed(2) : '0.00';
+      if (log.status === 'in_progress') {
+        scoreContent = `<button class="btn btn-primary btn-complete-task" data-id="${log.id}" data-date="${log.log_date}" data-start="${log.start_time}" data-severity="${log.severity_level}" data-coef="${log.complexity_coefficient}" style="padding: 5px 10px; font-size: 11px; font-weight: 700; border-radius: 6px; background: var(--accent, #4a8fc7); color: #fff; border: none; cursor: pointer;">Завершити ⏹️</button>`;
+      }
+
       tr.innerHTML = `
         <td style="font-weight: 700;">${log.start_time.substring(0, 5)}</td>
         <td>
+          <div style="font-size:11px; text-transform:uppercase; font-weight:700; color:var(--p-muted); letter-spacing:0.02em; margin-bottom: 2px;">
+            ${branchLabel}${categoryLabel}
+          </div>
           <div style="font-weight: 600;">${log.task_type}</div>
-          <div style="font-size: 12px; color: var(--p-muted); margin-top: 4px;">${log.description || 'Без опису'}</div>
+          <div style="font-size:12px; color: var(--p-muted); margin-top: 4px;">${log.description || 'Без опису'}</div>
         </td>
         <td>${durationStr}</td>
         <td><span class="badge-task ${log.severity_level}">${sevLabel} (${log.complexity_coefficient})</span></td>
-        <td style="font-weight: 800; color: var(--accent-2-deep);">${log.score.toFixed(2)}</td>
+        <td style="font-weight: 800; color: var(--accent-2-deep);" class="score-cell">${scoreContent}</td>
         <td>
           <button class="btn-delete-log" data-id="${log.id}" title="Видалити запис">&times;</button>
         </td>
@@ -276,6 +437,22 @@ async function loadTodayLogs() {
             loadTodayLogs();
           }
         }
+      });
+    });
+
+    // Attach complete listeners
+    document.querySelectorAll('.btn-complete-task').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const target = e.currentTarget;
+        const id = target.dataset.id;
+        const logDate = target.dataset.date;
+        const startTime = target.dataset.start;
+        const severity = target.dataset.severity;
+        const coef = parseFloat(target.dataset.coef);
+        
+        target.disabled = true;
+        target.textContent = 'Збереження...';
+        await completeTask(id, logDate, startTime, severity, coef);
       });
     });
   }
@@ -302,7 +479,6 @@ async function setupReports() {
 
   // Populate departments if user has director/full access
   if (filterDeptSel) {
-    // Standard departments
     const depts = ["Департамент стратегії", "Юридичний департамент", "Департамент фінансів", "Договірний департамент"];
     filterDeptSel.innerHTML = '';
     depts.forEach(d => {
@@ -312,13 +488,11 @@ async function setupReports() {
       filterDeptSel.appendChild(opt);
     });
     
-    // Pre-select user's department if available
     if (userProfile.department) {
       filterDeptSel.value = userProfile.department;
     }
   }
 
-  // Direct users to see only what they are allowed
   if (reportLevelSel) {
     reportLevelSel.addEventListener('change', () => {
       const isDeptOrAll = reportLevelSel.value !== 'personal';
@@ -328,14 +502,10 @@ async function setupReports() {
       }
     });
 
-    // Check permissions
     if (userProfile.role !== 'full') {
-      // Non-full users can't run department-wide reports
       const allOpt = reportLevelSel.querySelector('option[value="department-wide"]');
       if (allOpt) allOpt.disabled = true;
 
-      // Check if they are a manager/supervisor (we can extend this logic if needed).
-      // For now, if role != 'full', default to 'personal' report.
       reportLevelSel.value = 'personal';
       const deptGroup = document.getElementById('report-dept-group');
       if (deptGroup) deptGroup.style.display = 'none';
@@ -344,7 +514,6 @@ async function setupReports() {
 
   if (btnRun) {
     btnRun.addEventListener('click', runReport);
-    // Initial run
     runReport();
   }
 }
@@ -369,8 +538,6 @@ async function runReport() {
     query = query.eq('user_id', currentUser.id);
   } else if (level === 'department') {
     query = query.eq('department', deptVal);
-  } else if (level === 'department-wide') {
-    // All departments, no department filter
   }
 
   const { data: logs, error } = await query.order('user_name', { ascending: true });
@@ -385,7 +552,6 @@ async function runReport() {
     return;
   }
 
-  // Render report based on level
   if (level === 'personal') {
     renderPersonalReport(logs, resultsContainer);
   } else if (level === 'department') {
@@ -400,23 +566,33 @@ function renderPersonalReport(logs, container) {
   let totalScore = 0;
   
   const trs = logs.map(log => {
-    totalMins += log.duration_minutes;
-    totalScore += parseFloat(log.score);
+    totalMins += log.duration_minutes || 0;
+    totalScore += parseFloat(log.score || 0);
 
-    const hrs = Math.floor(log.duration_minutes / 60);
-    const mins = log.duration_minutes % 60;
-    const durationStr = hrs > 0 ? `${hrs} год ${mins} хв` : `${mins} хв`;
+    let durationStr = 'В процесі ⏳';
+    if (log.status !== 'in_progress') {
+      const hrs = Math.floor(log.duration_minutes / 60);
+      const mins = log.duration_minutes % 60;
+      durationStr = hrs > 0 ? `${hrs} год ${mins} хв` : `${mins} хв`;
+    }
+
+    const branchLabel = log.branch === 'askod' ? 'АСКОД' : 'Відділ';
+    const categoryLabel = log.category ? ` &bull; ${log.category}` : '';
+    const scoreVal = log.status === 'in_progress' ? 'В процесі' : parseFloat(log.score || 0).toFixed(2);
 
     return `
       <tr>
         <td style="font-weight:700;">${log.start_time.substring(0, 5)}</td>
         <td>
+          <div style="font-size:11px; text-transform:uppercase; font-weight:700; color:var(--p-muted); letter-spacing:0.02em; margin-bottom: 2px;">
+            ${branchLabel}${categoryLabel}
+          </div>
           <div style="font-weight:600;">${log.task_type}</div>
-          <div style="font-size:12px; color:var(--p-muted); margin-top:2px;">${log.description || ''}</div>
+          <div style="font-size:12px; color:var(--p-muted); margin-top:4px;">${log.description || ''}</div>
         </td>
         <td>${durationStr}</td>
         <td><span class="badge-task ${log.severity_level}">${log.severity_level} (${log.complexity_coefficient})</span></td>
-        <td style="font-weight:800; color:var(--accent-2-deep);">${parseFloat(log.score).toFixed(2)}</td>
+        <td style="font-weight:800; color:var(--accent-2-deep);">${scoreVal}</td>
       </tr>
     `;
   }).join('');
@@ -458,14 +634,13 @@ function renderPersonalReport(logs, container) {
 }
 
 function renderDepartmentReport(logs, container, departmentName) {
-  // Aggregate by employee
   const employees = {};
   let totalDeptMins = 0;
   let totalDeptScore = 0;
 
   logs.forEach(log => {
-    totalDeptMins += log.duration_minutes;
-    totalDeptScore += parseFloat(log.score);
+    totalDeptMins += log.duration_minutes || 0;
+    totalDeptScore += parseFloat(log.score || 0);
 
     if (!employees[log.user_name]) {
       employees[log.user_name] = {
@@ -478,14 +653,14 @@ function renderDepartmentReport(logs, container, departmentName) {
     }
 
     employees[log.user_name].tasksCount++;
-    employees[log.user_name].minutes += log.duration_minutes;
-    employees[log.user_name].score += parseFloat(log.score);
+    employees[log.user_name].minutes += log.duration_minutes || 0;
+    employees[log.user_name].score += parseFloat(log.score || 0);
     employees[log.user_name].tasks.push(log);
   });
 
   const empRows = Object.values(employees).map(emp => {
     const hrs = (emp.minutes / 60).toFixed(1);
-    const avgCoef = (emp.score / (emp.minutes / 60)).toFixed(2);
+    const avgCoef = (emp.score / (emp.minutes / 60 || 1)).toFixed(2);
     return `
       <tr>
         <td style="font-weight:700;">${emp.name}</td>
@@ -539,14 +714,13 @@ function renderDepartmentReport(logs, container, departmentName) {
 }
 
 function renderDepartmentWideReport(logs, container) {
-  // Aggregate by department
   const departments = {};
   let overallScore = 0;
   let overallMinutes = 0;
 
   logs.forEach(log => {
-    overallScore += parseFloat(log.score);
-    overallMinutes += log.duration_minutes;
+    overallScore += parseFloat(log.score || 0);
+    overallMinutes += log.duration_minutes || 0;
 
     if (!departments[log.department]) {
       departments[log.department] = {
@@ -559,14 +733,14 @@ function renderDepartmentWideReport(logs, container) {
     }
 
     departments[log.department].tasksCount++;
-    departments[log.department].minutes += log.duration_minutes;
-    departments[log.department].score += parseFloat(log.score);
+    departments[log.department].minutes += log.duration_minutes || 0;
+    departments[log.department].score += parseFloat(log.score || 0);
     departments[log.department].employees.add(log.user_name);
   });
 
   const deptRows = Object.values(departments).map(dept => {
     const hrs = (dept.minutes / 60).toFixed(1);
-    const avgScorePerEmp = (dept.score / dept.employees.size).toFixed(2);
+    const avgScorePerEmp = (dept.score / (dept.employees.size || 1)).toFixed(2);
     return `
       <tr>
         <td style="font-weight:700;">${dept.name}</td>

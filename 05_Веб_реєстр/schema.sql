@@ -218,3 +218,72 @@ CREATE POLICY "Full access users can read chat" ON public.chat_messages
       ))
     )
   );
+
+
+-- =========================================================================
+-- 6. СИСТЕМА КОДОВОЇ ОЦІНКИ ДІЯЛЬНОСТІ ДЕПАРТАМЕНТУ (СКО-Д)
+-- =========================================================================
+
+-- Таблиця записів діяльності (логів) СКО-Д
+CREATE TABLE IF NOT EXISTS public.skod_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_name TEXT NOT NULL,
+  department TEXT NOT NULL,
+  log_date DATE DEFAULT CURRENT_DATE,
+  start_time TIME NOT NULL,
+  duration_minutes INTEGER,
+  branch TEXT NOT NULL DEFAULT 'department', -- 'askod' | 'department'
+  task_type TEXT NOT NULL,
+  category TEXT,
+  severity_level TEXT NOT NULL,          -- 'easy', 'medium', 'hard', 'expert'
+  complexity_coefficient NUMERIC NOT NULL, -- наприклад: 1.0, 1.3, 1.8, 2.5
+  score NUMERIC,                         -- розраховується: (duration_minutes / 60.0) * complexity_coefficient
+  status TEXT NOT NULL DEFAULT 'completed', -- 'completed' | 'in_progress'
+  description TEXT
+);
+
+-- Увімкнення RLS для таблиці логів СКО-Д
+ALTER TABLE public.skod_logs ENABLE ROW LEVEL SECURITY;
+
+-- Політика читання: користувач бачить свої записи, керівники бачать записи свого відділу, директори ('full') бачать все
+CREATE POLICY "Users can view skod logs" ON public.skod_logs
+  FOR SELECT
+  TO authenticated
+  USING (
+    auth.uid() = user_id OR
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() AND (role = 'full' OR department = skod_logs.department)
+    )
+  );
+
+-- Політика створення: кожен зареєстрований користувач може вносити записи про власну діяльність
+CREATE POLICY "Users can insert their own skod logs" ON public.skod_logs
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    auth.uid() = user_id
+  );
+
+-- Політика видалення: користувач може видалити тільки свій запис протягом поточного дня
+CREATE POLICY "Users can delete their own skod logs of today" ON public.skod_logs
+  FOR DELETE
+  TO authenticated
+  USING (
+    auth.uid() = user_id AND log_date = CURRENT_DATE
+  );
+
+-- Політика оновлення: користувач може оновлювати свої власні записи (для завершення завдань "в процесі")
+CREATE POLICY "Users can update their own skod logs" ON public.skod_logs
+  FOR UPDATE
+  TO authenticated
+  USING (
+    auth.uid() = user_id
+  )
+  WITH CHECK (
+    auth.uid() = user_id
+  );
+
+
