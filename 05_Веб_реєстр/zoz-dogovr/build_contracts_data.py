@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import random
 import pandas as pd
 from pathlib import Path
 from collections import defaultdict
@@ -197,12 +198,52 @@ def main():
 
         # Look up coordinates
         lat, lon = None, None
+        # Regional center coordinates mapping (instant offline geocoding)
+        oblast_centers = {
+            "М.КИЇВ": [50.4501, 30.5234],
+            "КИЇВСЬКА": [50.4501, 30.5234],
+            "ХАРКІВСЬКА": [49.9935, 36.2304],
+            "ОDЕСЬКА": [46.4825, 30.7233], # handle both cyrillic/latin O
+            "ОДЕСЬКА": [46.4825, 30.7233],
+            "ДНІПРОПЕТРОВСЬКА": [48.4647, 35.0462],
+            "ЛЬВІВСЬКА": [49.8397, 24.0297],
+            "ЗАПОРІЗЬКА": [47.8388, 35.1396],
+            "ХМЕЛЬНИЦЬКА": [48.9796, 26.9871],
+            "ВІННИЦЬКА": [49.2331, 28.4682],
+            "ІВАНО-ФРАНКІВСЬКА": [48.9215, 24.7097],
+            "ЧЕРНІВЕЦЬКА": [48.2908, 25.9345],
+            "МИКОЛАЇВСЬКА": [46.9750, 31.9946],
+            "СУМСЬКА": [50.9077, 34.7981],
+            "ПОЛТАВСЬКА": [49.5883, 34.5514],
+            "ТЕРНОПІЛЬСЬКА": [49.5535, 25.5948],
+            "ЧЕРКАСЬКА": [49.4444, 32.0598],
+            "КІРОВОГРАДСЬКА": [48.5079, 32.2623],
+            "РІВНЕНСЬКА": [50.6199, 26.2516],
+            "ЗАКАРПАТСЬКА": [48.6208, 22.2879],
+            "ЖИТОМИРСЬКА": [50.2547, 28.6587],
+            "ВОЛИНСЬКА": [50.7472, 25.3254],
+            "ЧЕРНІГІВСЬКА": [51.4981, 31.2893],
+            "ХЕРСОНСЬКА": [46.6354, 32.6169],
+            "ДОНЕЦЬКА": [48.7390, 37.5838],
+            "ЛУГАНСЬКА": [48.9482, 38.4965]
+        }
+        
+        # Determine coordinate
+        clean_oblast = oblast.upper().strip()
         coords = coords_cache.get((settlement, oblast))
-        if coords:
-            lat, lon = coords[0], coords[1]
-        else:
-            coords = oblast_centers.get(oblast.upper(), [50.4501, 30.5234])
-            lat, lon = coords[0], coords[1]
+        if not coords:
+            coords = oblast_centers.get(clean_oblast, [50.4501, 30.5234])
+        
+        # Add slight random noise to prevent coordinates overlap in oblast centers
+        # This spreads the markers in a nice cluster around the oblast center
+        # Seed with EDRPOU so spread is deterministic and doesn't change on rebuilds
+        try:
+            random.seed(int(edrpou))
+        except:
+            random.seed(len(provider_name))
+        
+        lat = coords[0] + random.uniform(-0.15, 0.15)
+        lon = coords[1] + random.uniform(-0.15, 0.15)
 
         contracts.append({
             "id": len(contracts) + 1,
