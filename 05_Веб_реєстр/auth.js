@@ -326,7 +326,7 @@ function inject() {
 <div id="auth-overlay" class="auth-overlay" style="display:none" role="dialog" aria-modal="true" aria-label="Вхід">
   <div class="auth-modal">
     <button class="auth-modal-close" id="auth-close" aria-label="Закрити">&times;</button>
-    <div class="auth-brand">НавиПМГ26</div>
+    <div class="auth-brand">НавігаторПМГ26</div>
     <div class="auth-tabs" role="tablist">
       <button class="auth-tab active" data-tab="login" role="tab">Увійти</button>
       <button class="auth-tab" data-tab="register" role="tab">Реєстрація</button>
