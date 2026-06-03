@@ -475,3 +475,70 @@
   border: 0 !important;
 }
 
+/* Solo Map & Details Drawer Styles */
+.contracts-layout.map-active {
+  grid-template-columns: 1fr !important;
+}
+
+.contracts-layout.map-active #contractDetailViewer {
+  display: none !important;
+}
+
+.map-details-drawer {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  bottom: 15px;
+  width: 440px;
+  max-width: 90%;
+  z-index: 1001; /* above Leaflet controls but inside map */
+  background: var(--surface);
+  box-shadow: -5px 0 25px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+  overflow: hidden;
+  text-align: left;
+}
+
+.map-details-drawer.hidden-drawer {
+  transform: translateX(calc(100% + 30px));
+  opacity: 0;
+  pointer-events: none;
+}
+
+.close-drawer-btn {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  border: 0;
+  background: transparent;
+  font-size: 24px;
+  font-weight: 300;
+  color: var(--muted);
+  cursor: pointer;
+  z-index: 10;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s, color 0.2s;
+}
+
+.close-drawer-btn:hover {
+  background: var(--soft);
+  color: var(--ink);
+}
+
+#mapDrawerContent {
+  padding: 24px;
+  overflow-y: auto;
+  flex-grow: 1;
+  height: 100%;
+}
+
+

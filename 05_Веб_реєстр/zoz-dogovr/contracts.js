@@ -454,7 +454,7 @@ function selectContract(id) {
     `;
   }).join("");
 
-  content.innerHTML = `
+  const detailHtml = `
     <div class="detail-header-card">
       <div class="detail-pills-row">
         <span class="label">${escapeHtml(contract.oblast)} область</span>
@@ -537,10 +537,21 @@ function selectContract(id) {
     </div>
   `;
 
-  if (window.innerWidth <= 1040) {
+  content.innerHTML = detailHtml;
+
+  // Also populate the map details drawer and show it
+  const mapDrawerContent = el("mapDrawerContent");
+  const mapDrawer = el("mapDetailsDrawer");
+  if (mapDrawerContent && mapDrawer) {
+    mapDrawerContent.innerHTML = detailHtml;
+    mapDrawer.classList.remove("hidden-drawer");
+  }
+
+  if (window.innerWidth <= 1040 && activeView === "list") {
     el("contractDetailViewer").scrollIntoView({ behavior: "smooth", block: "start" });
   }
 }
+window.selectContract = selectContract;
 
 // Export filtered list to premium binary Excel (.xlsx) file using SheetJS
 function exportToExcel() {
@@ -751,6 +762,8 @@ function switchView(view) {
   const toggleMapBtn = el("toggleMap");
   const listContainer = el("contractCards");
   const mapContainer = el("contractsMap");
+  const layoutContainer = document.querySelector(".contracts-layout");
+  const mapDrawer = el("mapDetailsDrawer");
   
   if (view === "list") {
     if (toggleListBtn) {
@@ -765,6 +778,8 @@ function switchView(view) {
     }
     if (listContainer) listContainer.style.display = "flex";
     if (mapContainer) mapContainer.style.display = "none";
+    if (layoutContainer) layoutContainer.classList.remove("map-active");
+    if (mapDrawer) mapDrawer.classList.add("hidden-drawer");
   } else {
     if (toggleMapBtn) {
       toggleMapBtn.classList.add("active");
@@ -778,6 +793,8 @@ function switchView(view) {
     }
     if (listContainer) listContainer.style.display = "none";
     if (mapContainer) mapContainer.style.display = "block";
+    if (layoutContainer) layoutContainer.classList.add("map-active");
+    if (mapDrawer) mapDrawer.classList.add("hidden-drawer");
     
     initMap();
     if (map) {
@@ -943,9 +960,9 @@ function updateMapMarkers() {
       Загальне фінансування: <strong style="color: var(--teal-dark);">${formatCurrency(totalSum)}</strong>
     </div>`;
     
-    // Top 3 ZOZ list in popup
+    // Top 3 ZOZ list in popup - clickable to open details drawer
     const topZozs = g.contracts.slice(0, 3).map(c => 
-      `<div style="margin-top: 3px; font-weight: 600;">• ${escapeHtml(c.provider_name.substring(0, 30))}${c.provider_name.length > 30 ? '...' : ''} (${formatCurrency(c.sum)})</div>`
+      `<div style="margin-top: 3px; font-weight: 600;">• <a href="#" onclick="event.preventDefault(); window.selectContract(${c.id})" style="color: var(--accent-dark); text-decoration: underline; cursor: pointer;" title="Переглянути реквізити">${escapeHtml(c.provider_name.substring(0, 30))}${c.provider_name.length > 30 ? '...' : ''}</a> (${formatCurrency(c.sum)})</div>`
     ).join("");
     const listHtml = `<div style="font-size: 11px; margin-top: 8px; border-top: 1px solid var(--line); padding-top: 6px;">
       ${topZozs}${g.contracts.length > 3 ? `<div style="margin-top: 2px; font-style: italic;">та ще ${g.contracts.length - 3} ЗОЗ...</div>` : ''}
@@ -1000,6 +1017,17 @@ async function init() {
   const toggleMapBtn = el("toggleMap");
   if (toggleListBtn) toggleListBtn.addEventListener("click", () => switchView("list"));
   if (toggleMapBtn) toggleMapBtn.addEventListener("click", () => switchView("map"));
+
+  // Close map details drawer
+  const closeMapDrawerBtn = el("closeMapDrawer");
+  if (closeMapDrawerBtn) {
+    closeMapDrawerBtn.addEventListener("click", () => {
+      const mapDrawer = el("mapDetailsDrawer");
+      if (mapDrawer) {
+        mapDrawer.classList.add("hidden-drawer");
+      }
+    });
+  }
 
   // Close dropdowns on document click
   document.addEventListener("click", (e) => {
