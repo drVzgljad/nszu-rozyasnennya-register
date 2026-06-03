@@ -95,6 +95,38 @@ function applyAccess() {
     }
   }
 
+  // Update standalone SKOD Tasks button in top nav
+  const tasksBtn = document.getElementById('auth-tasks-btn');
+  if (tasksBtn) {
+    tasksBtn.href = prefix + 'skod/tasks.html';
+    const hasTasksAccess = hasAccess('manager');
+    if (!hasTasksAccess) {
+      tasksBtn.classList.add('is-locked');
+      tasksBtn.innerHTML = `Доручення <span class="lock-icon">🔒</span>`;
+      tasksBtn.onclick = (e) => {
+        e.preventDefault();
+        if (!user) {
+          openModal('login');
+        } else {
+          const overlay = document.getElementById('access-denied-overlay');
+          if (overlay) {
+            const msg = document.getElementById('access-denied-msg');
+            if (msg) {
+              msg.textContent = 'Ця сторінка доступна лише для керівництва (Директор, Заступники, Начальники відділів та Адміністратор).';
+            }
+            overlay.style.display = 'flex';
+          } else {
+            alert('Ця сторінка доступна лише для керівництва (Директор, Заступники, Начальники відділів та Адміністратор).');
+          }
+        }
+      };
+    } else {
+      tasksBtn.classList.remove('is-locked');
+      tasksBtn.innerHTML = `Доручення`;
+      tasksBtn.onclick = null;
+    }
+  }
+
   const btn = document.getElementById('auth-nav-btn');
   if (btn) {
     if (user) {
@@ -392,6 +424,13 @@ function inject() {
     topSkodBtn.className = 'auth-skod-btn';
     topSkodBtn.textContent = 'Звіт СКО-Д';
     container.appendChild(topSkodBtn);
+
+    // Standalone Tasks button in top nav
+    const topTasksBtn = document.createElement('a');
+    topTasksBtn.id = 'auth-tasks-btn';
+    topTasksBtn.className = 'auth-tasks-btn';
+    topTasksBtn.textContent = 'Доручення';
+    container.appendChild(topTasksBtn);
 
     const btn = document.createElement('button');
     btn.id = 'auth-nav-btn';

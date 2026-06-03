@@ -309,7 +309,7 @@
 }
 
 /* Force nowrap for all nav items on one line */
-.top-nav a, .section-switch a, .nav-dropdown-btn, .nav-chat-btn, .auth-chat-btn {
+.top-nav a, .section-switch a, .nav-dropdown-btn, .nav-chat-btn, .auth-chat-btn, .auth-skod-btn, .auth-tasks-btn {
   white-space: nowrap;
 }
 
@@ -467,7 +467,50 @@
   border-color: rgba(74, 143, 199, 0.35);
   transform: translateY(-1px);
 }
-.auth-skod-btn .lock-icon {
+/* ── Top Nav Bar SKOD Tasks Button ────────────────── */
+.auth-tasks-btn {
+  margin-left: 8px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+/* Unlocked SKOD Tasks button in top nav */
+.auth-tasks-btn:not(.is-locked) {
+  background: #f5f3ff; /* light violet */
+  color: #6d28d9; /* violet-700 */
+  border: 1.5px solid rgba(109, 40, 217, 0.3);
+}
+.auth-tasks-btn:not(.is-locked):hover {
+  background: #ede9fe;
+  color: #5b21b6;
+  border-color: rgba(109, 40, 217, 0.5);
+  transform: translateY(-1px);
+}
+
+/* Locked SKOD Tasks button in top nav */
+.auth-tasks-btn.is-locked {
+  background: #f7fafc;
+  color: var(--muted, #647688);
+  border: 1.5px solid var(--line, #e3edf3);
+}
+.auth-tasks-btn.is-locked:hover {
+  background: #f0f4f8;
+  color: var(--accent-dark, #2f6b9e);
+  border-color: rgba(74, 143, 199, 0.35);
+  transform: translateY(-1px);
+}
+.auth-tasks-btn .lock-icon {
   font-size: 11px;
   margin-left: 2px;
   opacity: 0.8;
