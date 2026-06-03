@@ -475,6 +475,30 @@ function inject() {
   );
   document.getElementById('auth-login-form').addEventListener('submit', onLogin);
   document.getElementById('auth-reg-form').addEventListener('submit', onRegister);
+
+  // Auto-selection logic based on name and position
+  const regName = document.getElementById('reg-name');
+  const regDept = document.getElementById('reg-dept');
+  const regPos = document.getElementById('reg-position');
+
+  if (regName && regDept && regPos) {
+    regName.addEventListener('input', () => {
+      const name = regName.value.trim().toLowerCase();
+      if (name === 'світлана дудник' || name === 'дудник світлана') {
+        regPos.value = 'Директор';
+        regDept.value = 'Стратеги';
+      } else if (name === 'волошина альбіна' || name === 'альбіна волошина' || name === 'волошина альбіна сергіївна') {
+        regPos.value = 'Заступник директора';
+        regDept.value = 'Стратеги';
+      }
+    });
+
+    regPos.addEventListener('change', () => {
+      if (regPos.value === 'Директор' || regPos.value === 'Заступник директора') {
+        regDept.value = 'Стратеги';
+      }
+    });
+  }
 }
 
 async function init() {
