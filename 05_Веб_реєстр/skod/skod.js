@@ -217,28 +217,7 @@ function setupForm() {
       const status = statusSel.value;
       const start_time = document.getElementById('start_time').value;
       const description = document.getElementById('description').value.trim();
-      const validDepts = ["Аналітика", "Фінансисти", "Стратеги", "Клінічна експертиза", "Реімбурсація", "Спілкування з надавачами"];
-      let department = userProfile.Section;
-      if (!validDepts.includes(department)) {
-        department = document.getElementById('form-department')?.value || 'Стратеги';
-        
-        // Save the chosen department in the database profile row asynchronously
-        sb.from('profiles').update({ "Section": department }).eq('id', currentUser.id).then(({ error }) => {
-          if (error) {
-            console.error("Error updating profile department:", error);
-          } else {
-            userProfile.Section = department;
-            const deptGroup = document.getElementById('form-dept-group');
-            const deptDisplayGroup = document.getElementById('form-dept-display-group');
-            const deptDisplayVal = document.getElementById('form-dept-display-val');
-            if (deptGroup) deptGroup.style.display = 'none';
-            if (deptDisplayGroup && deptDisplayVal) {
-              deptDisplayGroup.style.display = 'block';
-              deptDisplayVal.textContent = department;
-            }
-          }
-        });
-      }
+      const department = userProfile.Section || 'Стратеги';
       const user_name = userProfile.full_name || currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
 
       if (!branch || !task_type || !category || !severity_level || !start_time || !status) {
@@ -325,20 +304,9 @@ function setupForm() {
     }
 
     // Dynamic department check
-    const validDepts = ["Аналітика", "Фінансисти", "Стратеги", "Клінічна експертиза", "Реімбурсація", "Спілкування з надавачами"];
-    const deptGroup = document.getElementById('form-dept-group');
-    const deptDisplayGroup = document.getElementById('form-dept-display-group');
     const deptDisplayVal = document.getElementById('form-dept-display-val');
-
-    if (userProfile.Section && validDepts.includes(userProfile.Section)) {
-      if (deptGroup) deptGroup.style.display = 'none';
-      if (deptDisplayGroup && deptDisplayVal) {
-        deptDisplayGroup.style.display = 'block';
-        deptDisplayVal.textContent = userProfile.Section;
-      }
-    } else {
-      if (deptGroup) deptGroup.style.display = 'block';
-      if (deptDisplayGroup) deptDisplayGroup.style.display = 'none';
+    if (deptDisplayVal) {
+      deptDisplayVal.textContent = userProfile.Section || 'Стратеги';
     }
 
     // Load active assigned tasks for linking
