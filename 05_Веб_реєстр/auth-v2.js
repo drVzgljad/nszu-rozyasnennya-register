@@ -6,18 +6,21 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let user = null;
 let role = null; // null = guest | 'registered' | 'full'
+let isHead = false;
 
 function hasAccess(required) {
   if (!required) return true;
   if (required === 'registered') return role === 'registered' || role === 'full';
   if (required === 'full') return role === 'full';
+  if (required === 'manager') return role === 'full' || isHead === true;
   return false;
 }
 
 async function fetchRole() {
-  if (!user) { role = null; return; }
-  const { data } = await sb.from('profiles').select('role').eq('id', user.id).single();
+  if (!user) { role = null; isHead = false; return; }
+  const { data } = await sb.from('profiles').select('role, is_head').eq('id', user.id).single();
   role = data?.role ?? 'registered';
+  isHead = data?.is_head ?? false;
 }
 
 function applyAccess() {
@@ -195,7 +198,7 @@ function applyAccess() {
       { text: 'Пропозиції ПМГ', path: 'pmg-proposals/index.html', role: 'registered' },
       { text: 'СКО-Д (Внесення)', path: 'skod/index.html', role: 'registered' },
       { text: 'СКО-Д (Звіти)', path: 'skod/reports.html', role: 'registered' },
-      { text: 'СКО-Д (Доручення)', path: 'skod/tasks.html', role: 'registered' },
+      { text: 'СКО-Д (Доручення)', path: 'skod/tasks.html', role: 'manager' },
       { text: 'Новини', path: 'news/index.html', role: 'full' }
     ];
 
@@ -282,9 +285,13 @@ function applyAccess() {
     if (overlay) {
       const msg = document.getElementById('access-denied-msg');
       if (msg) {
-        msg.textContent = required === 'full'
-          ? 'Ця сторінка доступна лише для користувачів з повним доступом.'
-          : 'Ця сторінка доступна лише для зареєстрованих користувачів.';
+        if (required === 'full') {
+          msg.textContent = 'Ця сторінка доступна лише для користувачів з повним доступом.';
+        } else if (required === 'manager') {
+          msg.textContent = 'Ця сторінка доступна лише для керівництва (Директор, Заступники, Начальники відділів та Адміністратор).';
+        } else {
+          msg.textContent = 'Ця сторінка доступна лише для зареєстрованих користувачів.';
+        }
       }
       overlay.style.display = 'flex';
     }

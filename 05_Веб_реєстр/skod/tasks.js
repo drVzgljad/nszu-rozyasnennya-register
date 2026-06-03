@@ -27,6 +27,13 @@ async function init() {
   }
   userProfile = profile || { id: currentUser.id, role: 'registered', full_name: currentUser.email.split('@')[0] };
 
+  // Hard programmatic access guard for managers only
+  const isManager = userProfile.role === 'full' || userProfile.is_head === true;
+  if (!isManager) {
+    showAccessDenied("Ця сторінка доступна лише для керівництва (Директор, Заступники, Начальники відділів та Адміністратор).");
+    return;
+  }
+
   // Setup views
   await loadUsers();
   setupManagerPanel();
