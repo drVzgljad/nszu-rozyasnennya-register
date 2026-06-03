@@ -362,7 +362,7 @@ CREATE POLICY "Creators or directors can delete assigned tasks" ON public.assign
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public.profiles (id, full_name, organization, department, position, role, is_head)
+  INSERT INTO public.profiles (id, full_name, organization, "Section", position, role, is_head)
   VALUES (
     new.id, 
     new.raw_user_meta_data->>'full_name', 
@@ -382,7 +382,7 @@ BEGIN
   ON CONFLICT (id) DO UPDATE SET
     full_name = EXCLUDED.full_name,
     organization = EXCLUDED.organization,
-    department = EXCLUDED.department,
+    "Section" = EXCLUDED."Section",
     position = EXCLUDED.position,
     role = EXCLUDED.role,
     is_head = EXCLUDED.is_head;

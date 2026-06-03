@@ -63,7 +63,7 @@ function showAccessDenied(msg) {
 async function loadUsers() {
   const { data, error } = await sb
     .from('profiles')
-    .select('id, full_name, department, position, is_head, role')
+    .select('id, full_name, Section, position, is_head, role')
     .order('full_name', { ascending: true });
 
   if (error) {
@@ -86,8 +86,8 @@ function setupManagerPanel() {
     
     if (isDeptHead && !isDirectorOrDeputy) {
       // Department Heads can only assign to their own department
-      if (deptSelect && userProfile.department) {
-        deptSelect.value = userProfile.department;
+      if (deptSelect && userProfile.Section) {
+        deptSelect.value = userProfile.Section;
         deptSelect.disabled = true;
       }
     }
@@ -121,7 +121,7 @@ function populateResponsibleSelect() {
   if (!deptSelect || !respSelect) return;
 
   const selectedDept = deptSelect.value;
-  const filteredUsers = allUsers.filter(u => u.department === selectedDept);
+  const filteredUsers = allUsers.filter(u => u.Section === selectedDept);
 
   respSelect.innerHTML = '<option value="" disabled selected>Оберіть співробітника...</option>';
   filteredUsers.forEach(u => {

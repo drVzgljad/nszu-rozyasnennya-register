@@ -218,16 +218,16 @@ function setupForm() {
       const start_time = document.getElementById('start_time').value;
       const description = document.getElementById('description').value.trim();
       const validDepts = ["Аналітика", "Фінансисти", "Стратеги", "Клінічна експертиза", "Реімбурсація", "Спілкування з надавачами"];
-      let department = userProfile.department;
+      let department = userProfile.Section;
       if (!validDepts.includes(department)) {
         department = document.getElementById('form-department')?.value || 'Стратеги';
         
         // Save the chosen department in the database profile row asynchronously
-        sb.from('profiles').update({ department }).eq('id', currentUser.id).then(({ error }) => {
+        sb.from('profiles').update({ "Section": department }).eq('id', currentUser.id).then(({ error }) => {
           if (error) {
             console.error("Error updating profile department:", error);
           } else {
-            userProfile.department = department;
+            userProfile.Section = department;
             const deptGroup = document.getElementById('form-dept-group');
             const deptDisplayGroup = document.getElementById('form-dept-display-group');
             const deptDisplayVal = document.getElementById('form-dept-display-val');
@@ -330,11 +330,11 @@ function setupForm() {
     const deptDisplayGroup = document.getElementById('form-dept-display-group');
     const deptDisplayVal = document.getElementById('form-dept-display-val');
 
-    if (userProfile.department && validDepts.includes(userProfile.department)) {
+    if (userProfile.Section && validDepts.includes(userProfile.Section)) {
       if (deptGroup) deptGroup.style.display = 'none';
       if (deptDisplayGroup && deptDisplayVal) {
         deptDisplayGroup.style.display = 'block';
-        deptDisplayVal.textContent = userProfile.department;
+        deptDisplayVal.textContent = userProfile.Section;
       }
     } else {
       if (deptGroup) deptGroup.style.display = 'block';
@@ -568,8 +568,8 @@ async function setupReports() {
       filterDeptSel.appendChild(opt);
     });
     
-    if (userProfile.department) {
-      filterDeptSel.value = userProfile.department;
+    if (userProfile.Section) {
+      filterDeptSel.value = userProfile.Section;
     }
   }
 
