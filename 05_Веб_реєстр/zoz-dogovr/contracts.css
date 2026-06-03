@@ -457,3 +457,21 @@
     min-height: auto;
   }
 }
+
+/* Fullscreen Map Styles */
+#contractsMap.fullscreen,
+#contractsMap:fullscreen,
+#contractsMap:-webkit-full-screen,
+#contractsMap:-moz-full-screen,
+#contractsMap:-ms-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  z-index: 99999 !important;
+  border: 0 !important;
+}
+

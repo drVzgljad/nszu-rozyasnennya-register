@@ -806,6 +806,104 @@ function initMap() {
     maxClusterRadius: 40
   });
   map.addLayer(markerClusterGroup);
+
+  // Hook up fullscreen button
+  const fsBtn = el("mapFullscreenBtn");
+  if (fsBtn) {
+    const mapContainer = el("contractsMap");
+    
+    // Unified function to handle fullscreen changes (both native and fallback)
+    const onFullscreenChange = () => {
+      if (!mapContainer || !fsBtn) return;
+      
+      const isNativeFs = !!(document.fullscreenElement || 
+                            document.webkitFullscreenElement || 
+                            document.mozFullScreenElement || 
+                            document.msFullscreenElement);
+                            
+      const isCssFs = mapContainer.classList.contains("fullscreen");
+      const isFs = isNativeFs || isCssFs;
+      
+      const fsText = fsBtn.querySelector(".fs-text");
+      const fsIcon = fsBtn.querySelector(".fs-icon");
+      
+      if (isFs) {
+        if (fsText) fsText.textContent = "Згорнути";
+        if (fsIcon) fsIcon.textContent = "❌";
+        fsBtn.style.background = "#fffdf5";
+      } else {
+        if (fsText) fsText.textContent = "На весь екран";
+        if (fsIcon) fsIcon.textContent = "🖥️";
+        fsBtn.style.background = "#fff";
+        mapContainer.classList.remove("fullscreen"); // clean up fallback if any
+      }
+      
+      setTimeout(() => {
+        if (map) map.invalidateSize();
+      }, 150);
+    };
+
+    // Listen to native fullscreen change events
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", onFullscreenChange);
+    document.addEventListener("mozfullscreenchange", onFullscreenChange);
+    document.addEventListener("MSFullscreenChange", onFullscreenChange);
+
+    fsBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (!mapContainer) return;
+      
+      const isCurrentlyFs = !!(document.fullscreenElement || 
+                               document.webkitFullscreenElement || 
+                               document.mozFullScreenElement || 
+                               document.msFullscreenElement ||
+                               mapContainer.classList.contains("fullscreen"));
+                            
+      if (!isCurrentlyFs) {
+        // Try native fullscreen first
+        const requestFS = mapContainer.requestFullscreen || 
+                          mapContainer.webkitRequestFullscreen || 
+                          mapContainer.mozRequestFullScreen || 
+                          mapContainer.msRequestFullscreen;
+        if (requestFS) {
+          requestFS.call(mapContainer).catch(err => {
+            console.warn("Native fullscreen request failed, falling back to CSS:", err);
+            mapContainer.classList.add("fullscreen");
+            onFullscreenChange();
+          });
+        } else {
+          mapContainer.classList.add("fullscreen");
+          onFullscreenChange();
+        }
+      } else {
+        // Exit fullscreen
+        const isNativeFs = !!(document.fullscreenElement || 
+                              document.webkitFullscreenElement || 
+                              document.mozFullScreenElement || 
+                              document.msFullscreenElement);
+        if (isNativeFs) {
+          const exitFS = document.exitFullscreen || 
+                         document.webkitExitFullscreen || 
+                         document.mozCancelFullScreen || 
+                         document.msExitFullscreen;
+          if (exitFS) {
+            exitFS.call(document).catch(err => {
+              console.warn("Native exit fullscreen failed, forcing CSS removal:", err);
+              mapContainer.classList.remove("fullscreen");
+              onFullscreenChange();
+            });
+          } else {
+            mapContainer.classList.remove("fullscreen");
+            onFullscreenChange();
+          }
+        } else {
+          mapContainer.classList.remove("fullscreen");
+          onFullscreenChange();
+        }
+      }
+    });
+  }
+
 }
 
 // Update Map markers based on filtered contracts
