@@ -1,12 +1,12 @@
-const CACHE_NAME = 'chat-cache-v1';
+const CACHE_NAME = 'chat-cache-v3';
 const ASSETS = [
   'index.html',
   'chat.css',
   'chat.js',
   'manifest.json',
   '../styles.css',
-  '../auth.css',
-  '../auth.js',
+  '../auth-v2.css',
+  '../auth-v2.js',
   '../assets/nszu-shield.svg',
   '../assets/icon-192.png',
   '../assets/icon-512.png'

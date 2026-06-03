@@ -23,10 +23,74 @@ async function fetchRole() {
 function applyAccess() {
   const pathParts = window.location.pathname.split('/');
   const isInSubdir = pathParts.some(part => [
-    'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr'
+    'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod'
   ].includes(part.toLowerCase()));
   const prefix = isInSubdir ? '../' : './';
   const currentPath = window.location.pathname.toLowerCase();
+
+  // Update standalone Chat button in top nav
+  const chatBtn = document.getElementById('auth-chat-btn');
+  if (chatBtn) {
+    chatBtn.href = prefix + 'chat/index.html';
+    const hasChatAccess = hasAccess('full');
+    if (!hasChatAccess) {
+      chatBtn.classList.add('is-locked');
+      chatBtn.innerHTML = `Робочий чат <span class="lock-icon">🔒</span>`;
+      chatBtn.onclick = (e) => {
+        e.preventDefault();
+        if (!user) {
+          openModal('login');
+        } else {
+          const overlay = document.getElementById('access-denied-overlay');
+          if (overlay) {
+            const msg = document.getElementById('access-denied-msg');
+            if (msg) {
+              msg.textContent = 'Робочий чат доступний лише для користувачів з повним доступом.';
+            }
+            overlay.style.display = 'flex';
+          } else {
+            alert('Робочий чат доступний лише для користувачів з повним доступом.');
+          }
+        }
+      };
+    } else {
+      chatBtn.classList.remove('is-locked');
+      chatBtn.innerHTML = `Робочий чат`;
+      chatBtn.onclick = null;
+    }
+  }
+
+  // Update standalone SKOD Report button in top nav
+  const skodBtn = document.getElementById('auth-skod-btn');
+  if (skodBtn) {
+    skodBtn.href = prefix + 'skod/reports.html';
+    const hasSkodAccess = hasAccess('registered');
+    if (!hasSkodAccess) {
+      skodBtn.classList.add('is-locked');
+      skodBtn.innerHTML = `Звіт СКО-Д <span class="lock-icon">🔒</span>`;
+      skodBtn.onclick = (e) => {
+        e.preventDefault();
+        if (!user) {
+          openModal('login');
+        } else {
+          const overlay = document.getElementById('access-denied-overlay');
+          if (overlay) {
+            const msg = document.getElementById('access-denied-msg');
+            if (msg) {
+              msg.textContent = 'Звіти СКО-Д доступні лише для зареєстрованих співробітників.';
+            }
+            overlay.style.display = 'flex';
+          } else {
+            alert('Звіти СКО-Д доступні лише для зареєстрованих співробітників.');
+          }
+        }
+      };
+    } else {
+      skodBtn.classList.remove('is-locked');
+      skodBtn.innerHTML = `Звіт СКО-Д`;
+      skodBtn.onclick = null;
+    }
+  }
 
   const btn = document.getElementById('auth-nav-btn');
   if (btn) {
@@ -46,7 +110,7 @@ function applyAccess() {
   const badge = document.getElementById('auth-role-badge');
   if (badge) {
     badge.className = 'auth-role-badge';
-    // Fail-safe inline styles to bypass browser cache of auth.css
+    // Fail-safe inline styles to bypass browser cache of auth-v2.css
     badge.style.display = 'inline-flex';
     badge.style.alignItems = 'center';
     badge.style.padding = '6px 10px';
@@ -92,7 +156,7 @@ function applyAccess() {
     const segments = normalized.split('/');
     
     if (normalized === 'index.html') {
-      const isSub = ['pakety', 'postanova', 'algorithms', 'zoz-questions', 'pmg-proposals', 'news', 'chat', 'rozjasnennya.html', 'zoz-dogovr'].some(s => currentPath.includes(s));
+      const isSub = ['pakety', 'postanova', 'algorithms', 'zoz-questions', 'pmg-proposals', 'news', 'chat', 'rozjasnennya.html', 'zoz-dogovr', 'skod'].some(s => currentPath.includes(s));
       return !isSub && (currentPath.endsWith('/') || currentPath.endsWith('index.html'));
     }
     
@@ -129,6 +193,8 @@ function applyAccess() {
       { text: 'Машина пошуку', path: 'pakety/report.html', role: 'registered' },
       { text: 'Питання ЗОЗ', path: 'zoz-questions/index.html', role: 'registered' },
       { text: 'Пропозиції ПМГ', path: 'pmg-proposals/index.html', role: 'registered' },
+      { text: 'СКО-Д (Внесення)', path: 'skod/index.html', role: 'registered' },
+      { text: 'СКО-Д (Звіти)', path: 'skod/reports.html', role: 'registered' },
       { text: 'Новини', path: 'news/index.html', role: 'full' }
     ];
 
@@ -309,6 +375,13 @@ function inject() {
     topChatBtn.className = 'auth-chat-btn';
     topChatBtn.textContent = 'Робочий чат';
     container.appendChild(topChatBtn);
+
+    // Standalone SKOD Report button in top nav
+    const topSkodBtn = document.createElement('a');
+    topSkodBtn.id = 'auth-skod-btn';
+    topSkodBtn.className = 'auth-skod-btn';
+    topSkodBtn.textContent = 'Звіт СКО-Д';
+    container.appendChild(topSkodBtn);
 
     const btn = document.createElement('button');
     btn.id = 'auth-nav-btn';
