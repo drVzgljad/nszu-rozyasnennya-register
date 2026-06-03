@@ -777,4 +777,22 @@ async function init() {
   applyFilters();
 }
 
-document.addEventListener("DOMContentLoaded", init);
+document.addEventListener("DOMContentLoaded", () => {
+  init().catch((err) => {
+    console.error(err);
+    const resultsCountEl = el("resultsCount");
+    if (resultsCountEl) {
+      resultsCountEl.textContent = "Помилка завантаження даних";
+    }
+    const cardsContainer = el("contractCards");
+    if (cardsContainer) {
+      cardsContainer.innerHTML = `
+        <div class="no-results" style="border: 1px dashed var(--accent); background: var(--accent-soft); color: var(--accent-dark); padding: 20px; border-radius: 12px; margin: 10px 0;">
+          <strong>Не вдалося завантажити дані договорів.</strong><br>
+          Будь ласка, переконайтеся, що сторінку запущено через локальний вебсервер.<br><br>
+          Скористайтеся файлом <code>Відкрити_реєстр.cmd</code> у корені папки для правильного запуску.
+        </div>
+      `;
+    }
+  });
+});
