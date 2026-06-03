@@ -59,12 +59,14 @@
         
         <form id="skod-log-form" novalidate>
           <div class="skod-form-group" id="form-dept-group" style="display: none;">
-            <label for="form-department">Ваш підрозділ / відділ *</label>
+            <label for="form-department">Ваш відділ *</label>
             <select id="form-department">
-              <option value="Департамент стратегії">Департамент стратегії</option>
-              <option value="Юридичний департамент">Юридичний департамент</option>
-              <option value="Департамент фінансів">Департамент фінансів</option>
-              <option value="Договірний департамент">Договірний департамент</option>
+              <option value="Аналітика">Аналітика</option>
+              <option value="Фінансисти">Фінансисти</option>
+              <option value="Стратеги">Стратеги</option>
+              <option value="Клінічна експертиза">Клінічна експертиза</option>
+              <option value="Реімбурсація">Реімбурсація</option>
+              <option value="Спілкування з надавачами">Спілкування з надавачами</option>
             </select>
           </div>
 
@@ -116,6 +118,13 @@
             <select id="task_status" required>
               <option value="completed" selected>Завершено (постфактум)</option>
               <option value="in_progress">В процесі (реальний час)</option>
+            </select>
+          </div>
+
+          <div class="skod-form-group" id="form-assigned-task-group" style="display: none;">
+            <label for="link_assigned_task">Пов'язати з дорученням</label>
+            <select id="link_assigned_task">
+              <option value="" selected>Не пов'язувати з дорученням</option>
             </select>
           </div>
 

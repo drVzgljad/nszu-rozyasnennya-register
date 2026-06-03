@@ -195,6 +195,7 @@ function applyAccess() {
       { text: 'Пропозиції ПМГ', path: 'pmg-proposals/index.html', role: 'registered' },
       { text: 'СКО-Д (Внесення)', path: 'skod/index.html', role: 'registered' },
       { text: 'СКО-Д (Звіти)', path: 'skod/reports.html', role: 'registered' },
+      { text: 'СКО-Д (Доручення)', path: 'skod/tasks.html', role: 'registered' },
       { text: 'Новини', path: 'news/index.html', role: 'full' }
     ];
 
@@ -342,8 +343,10 @@ async function onRegister(e) {
     email:    document.getElementById('reg-email').value.trim(),
     password: document.getElementById('reg-pass').value,
     options:  { data: {
-      full_name:    document.getElementById('reg-name').value,
-      organization: document.getElementById('reg-org').value,
+      full_name:    document.getElementById('reg-name').value.trim(),
+      department:   document.getElementById('reg-dept').value,
+      position:     document.getElementById('reg-position').value,
+      organization: 'Департамент стратегії НСЗУ'
     }},
   });
   btn.disabled = false;
@@ -426,12 +429,28 @@ function inject() {
         <input id="reg-pass" type="password" autocomplete="new-password" minlength="6" required>
       </div>
       <div class="auth-field">
-        <label for="reg-name">Ім'я та прізвище</label>
-        <input id="reg-name" type="text" autocomplete="name">
+        <label for="reg-name">Ім'я та прізвище *</label>
+        <input id="reg-name" type="text" autocomplete="name" required>
       </div>
       <div class="auth-field">
-        <label for="reg-org">Заклад / організація</label>
-        <input id="reg-org" type="text">
+        <label for="reg-dept">Відділ *</label>
+        <select id="reg-dept" required>
+          <option value="Аналітика">Аналітика</option>
+          <option value="Фінансисти">Фінансисти</option>
+          <option value="Стратеги">Стратеги</option>
+          <option value="Клінічна експертиза">Клінічна експертиза</option>
+          <option value="Реімбурсація">Реімбурсація</option>
+          <option value="Спілкування з надавачами">Спілкування з надавачами</option>
+        </select>
+      </div>
+      <div class="auth-field">
+        <label for="reg-position">Посада *</label>
+        <select id="reg-position" required>
+          <option value="Співробітник">Співробітник</option>
+          <option value="Начальник відділу">Начальник відділу</option>
+          <option value="Заступник директора">Заступник директора</option>
+          <option value="Директор">Директор</option>
+        </select>
       </div>
       <div class="auth-error" id="reg-error"></div>
       <button type="submit" class="auth-submit">Зареєструватись</button>

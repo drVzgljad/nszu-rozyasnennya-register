@@ -259,7 +259,8 @@ function setupForm() {
         complexity_coefficient: coef,
         score,
         status,
-        description
+        description,
+        assigned_task_id: document.getElementById('link_assigned_task')?.value || null
       };
 
       const { error } = await sb.from('skod_logs').insert([logData]);
@@ -283,6 +284,9 @@ function setupForm() {
         }
         updateLiveScore();
         
+        const taskLinkSel = document.getElementById('link_assigned_task');
+        if (taskLinkSel) taskLinkSel.value = '';
+        
         // Set current time back to start time
         const now = new Date();
         const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -305,6 +309,52 @@ function setupForm() {
       if (deptGroup) {
         deptGroup.style.display = 'block';
       }
+    }
+
+    // Load active assigned tasks for linking
+    loadActiveAssignedTasks();
+  }
+}
+
+// Load active assigned tasks for linking dropdown
+async function loadActiveAssignedTasks() {
+  if (!currentUser) return;
+  const { data, error } = await sb
+    .from('assigned_tasks')
+    .select('id, title')
+    .eq('responsible_id', currentUser.id)
+    .neq('status', 'completed')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error("Error fetching assigned tasks for link:", error);
+    return;
+  }
+
+  const taskLinkSel = document.getElementById('link_assigned_task');
+  const taskLinkGroup = document.getElementById('form-assigned-task-group');
+
+  if (taskLinkSel && taskLinkGroup) {
+    if (data && data.length > 0) {
+      taskLinkGroup.style.display = 'block';
+      taskLinkSel.innerHTML = '<option value="" selected>Не пов\'язувати з дорученням</option>';
+      data.forEach(task => {
+        const opt = document.createElement('option');
+        opt.value = task.id;
+        opt.textContent = task.title;
+        taskLinkSel.appendChild(opt);
+      });
+
+      // Add auto-fill listener
+      taskLinkSel.addEventListener('change', () => {
+        const selectedText = taskLinkSel.options[taskLinkSel.selectedIndex].text;
+        const descInput = document.getElementById('description');
+        if (taskLinkSel.value && descInput) {
+          descInput.value = `[Доручення]: ${selectedText}`;
+        }
+      });
+    } else {
+      taskLinkGroup.style.display = 'none';
     }
   }
 }
@@ -479,7 +529,7 @@ async function setupReports() {
 
   // Populate departments if user has director/full access
   if (filterDeptSel) {
-    const depts = ["Департамент стратегії", "Юридичний департамент", "Департамент фінансів", "Договірний департамент"];
+    const depts = ["Аналітика", "Фінансисти", "Стратеги", "Клінічна експертиза", "Реімбурсація", "Спілкування з надавачами"];
     filterDeptSel.innerHTML = '';
     depts.forEach(d => {
       const opt = document.createElement('option');

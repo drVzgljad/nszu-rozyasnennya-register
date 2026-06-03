@@ -287,3 +287,114 @@ CREATE POLICY "Users can update their own skod logs" ON public.skod_logs
   );
 
 
+-- =========================================================================
+-- 7. СИСТЕМА ДОРУЧЕНЬ ТА ЗАВДАНЬ (КОНТРОЛЬ ВИКОНАННЯ)
+-- =========================================================================
+
+-- Оновлення профілів користувачів з підтримкою посад
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS department TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS position TEXT DEFAULT 'Співробітник';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_head BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS organization TEXT DEFAULT 'Департамент стратегії НСЗУ';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'registered';
+
+-- Таблиця доручень та завдань
+CREATE TABLE IF NOT EXISTS public.assigned_tasks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  created_by UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_by_name TEXT NOT NULL,
+  title TEXT NOT NULL,
+  department TEXT NOT NULL, -- відділ
+  responsible_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  responsible_name TEXT,
+  deadline DATE,
+  progress INTEGER NOT NULL DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
+  status TEXT NOT NULL DEFAULT 'assigned', -- 'assigned' | 'in_progress' | 'completed'
+  description TEXT
+);
+
+-- Додавання зв'язку в логах СКО-Д до завдань
+ALTER TABLE public.skod_logs ADD COLUMN IF NOT EXISTS assigned_task_id UUID REFERENCES public.assigned_tasks(id) ON DELETE SET NULL;
+
+-- Увімкнення RLS для таблиці доручень
+ALTER TABLE public.assigned_tasks ENABLE ROW LEVEL SECURITY;
+
+-- Політика читання: будь-який авторизований користувач бачить усі завдання
+CREATE POLICY "Anyone can view assigned tasks" ON public.assigned_tasks
+  FOR SELECT TO authenticated USING (TRUE);
+
+-- Політика створення: тільки Директори/Заступники (роль='full') або Керівники відділів (is_head=TRUE) можуть створювати завдання
+CREATE POLICY "Managers can insert assigned tasks" ON public.assigned_tasks
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    auth.role() = 'authenticated' AND
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() AND (role = 'full' OR is_head = TRUE)
+    )
+  );
+
+-- Політика оновлення: творець завдання, відповідальний виконавець або будь-який керівник з роль='full' / is_head=TRUE
+CREATE POLICY "Responsible users or managers can update assigned tasks" ON public.assigned_tasks
+  FOR UPDATE TO authenticated
+  USING (
+    auth.uid() = created_by OR auth.uid() = responsible_id OR
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() AND (role = 'full' OR is_head = TRUE)
+    )
+  )
+  WITH CHECK (TRUE);
+
+-- Політика видалення: тільки творець або Директори/Заступники (роль='full')
+CREATE POLICY "Creators or directors can delete assigned tasks" ON public.assigned_tasks
+  FOR DELETE TO authenticated
+  USING (
+    auth.uid() = created_by OR
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() AND role = 'full'
+    )
+  );
+
+-- Автоматичний тригер для обробки профілів при реєстрації користувачів
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, full_name, organization, department, position, role, is_head)
+  VALUES (
+    new.id, 
+    new.raw_user_meta_data->>'full_name', 
+    COALESCE(new.raw_user_meta_data->>'organization', 'Департамент стратегії НСЗУ'),
+    new.raw_user_meta_data->>'department',
+    COALESCE(new.raw_user_meta_data->>'position', 'Співробітник'),
+    CASE 
+      WHEN COALESCE(new.raw_user_meta_data->>'position', '') IN ('Директор', 'Заступник директора') 
+           OR COALESCE(new.raw_user_meta_data->>'full_name', '') IN ('Світлана Дудник', 'Волошина Альбіна', 'Dudnyk Svitlana', 'Voloshyna Albina') THEN 'full'
+      ELSE 'registered'
+    END,
+    CASE 
+      WHEN COALESCE(new.raw_user_meta_data->>'position', '') = 'Начальник відділу' THEN TRUE
+      ELSE FALSE
+    END
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    full_name = EXCLUDED.full_name,
+    organization = EXCLUDED.organization,
+    department = EXCLUDED.department,
+    position = EXCLUDED.position,
+    role = EXCLUDED.role,
+    is_head = EXCLUDED.is_head;
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Перестворення тригера
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+
+

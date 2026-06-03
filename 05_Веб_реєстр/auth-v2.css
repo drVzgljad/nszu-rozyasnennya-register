@@ -133,7 +133,7 @@
   color: var(--muted, #627287);
 }
 .auth-hint { font-weight: 400; }
-.auth-field input {
+.auth-field input, .auth-field select {
   width: 100%;
   padding: 10px 12px;
   border: 1.5px solid var(--line, #dde6ee);
@@ -146,7 +146,7 @@
   transition: border-color .15s;
   box-sizing: border-box;
 }
-.auth-field input:focus { border-color: var(--accent, #006fc9); }
+.auth-field input:focus, .auth-field select:focus { border-color: var(--accent, #006fc9); }
 .auth-error {
   min-height: 18px;
   margin: -4px 0 10px;
