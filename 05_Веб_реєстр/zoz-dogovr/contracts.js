@@ -14,6 +14,10 @@ const dropdowns = {};
 
 const el = (id) => document.getElementById(id);
 
+let map = null;
+let markerClusterGroup = null;
+let activeView = "list";
+
 // Format number to local currency format
 function formatCurrency(val) {
   if (val === undefined || val === null) return "0,00 ₴";
@@ -313,6 +317,11 @@ function applyFilters() {
   
   // Render list
   renderCards();
+
+  // Update map if it is initialized and active
+  if (activeView === "map") {
+    updateMapMarkers();
+  }
 
   // Handle side view sync
   if (state.filtered.length > 0) {
@@ -735,6 +744,140 @@ function resetFilters() {
   applyFilters();
 }
 
+// Toggle between List and Map views
+function switchView(view) {
+  activeView = view;
+  const toggleListBtn = el("toggleList");
+  const toggleMapBtn = el("toggleMap");
+  const listContainer = el("contractCards");
+  const mapContainer = el("contractsMap");
+  
+  if (view === "list") {
+    if (toggleListBtn) {
+      toggleListBtn.classList.add("active");
+      toggleListBtn.style.background = "var(--surface)";
+      toggleListBtn.style.color = "var(--ink)";
+    }
+    if (toggleMapBtn) {
+      toggleMapBtn.classList.remove("active");
+      toggleMapBtn.style.background = "transparent";
+      toggleMapBtn.style.color = "var(--muted)";
+    }
+    if (listContainer) listContainer.style.display = "flex";
+    if (mapContainer) mapContainer.style.display = "none";
+  } else {
+    if (toggleMapBtn) {
+      toggleMapBtn.classList.add("active");
+      toggleMapBtn.style.background = "var(--surface)";
+      toggleMapBtn.style.color = "var(--ink)";
+    }
+    if (toggleListBtn) {
+      toggleListBtn.classList.remove("active");
+      toggleListBtn.style.background = "transparent";
+      toggleListBtn.style.color = "var(--muted)";
+    }
+    if (listContainer) listContainer.style.display = "none";
+    if (mapContainer) mapContainer.style.display = "block";
+    
+    initMap();
+    if (map) {
+      map.invalidateSize();
+    }
+    updateMapMarkers();
+  }
+}
+
+// Initialize Leaflet Map
+function initMap() {
+  if (map) return;
+  
+  // Center of Ukraine: [48.3794, 31.1656], zoom: 6
+  map = L.map("contractsMap").setView([48.3794, 31.1656], 6);
+  
+  // Premium clean tiles (CartoDB Positron)
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
+    maxZoom: 20
+  }).addTo(map);
+  
+  markerClusterGroup = L.markerClusterGroup({
+    showCoverageOnHover: false,
+    maxClusterRadius: 40
+  });
+  map.addLayer(markerClusterGroup);
+}
+
+// Update Map markers based on filtered contracts
+function updateMapMarkers() {
+  if (!map || !markerClusterGroup) return;
+  
+  markerClusterGroup.clearLayers();
+  
+  // Group contracts by settlement and oblast to prevent overlapping
+  const groups = {};
+  state.filtered.forEach(c => {
+    if (c.lat && c.lon) {
+      const key = `${c.settlement}||${c.oblast}`;
+      if (!groups[key]) {
+        groups[key] = {
+          settlement: c.settlement,
+          oblast: c.oblast,
+          lat: c.lat,
+          lon: c.lon,
+          contracts: []
+        };
+      }
+      groups[key].contracts.push(c);
+    }
+  });
+  
+  // Place markers
+  Object.values(groups).forEach(g => {
+    const count = g.contracts.length;
+    const totalSum = g.contracts.reduce((acc, curr) => acc + curr.sum, 0);
+    
+    const marker = L.marker([g.lat, g.lon]);
+    
+    const titleHtml = `<strong style="font-size: 13.5px; color: var(--ink);">${escapeHtml(g.settlement)} (${escapeHtml(g.oblast)} обл.)</strong>`;
+    const statsHtml = `<div style="font-size: 12px; margin-top: 6px; color: var(--muted);">
+      Закладів з договорами: <strong style="color: var(--ink);">${count}</strong><br>
+      Загальне фінансування: <strong style="color: var(--teal-dark);">${formatCurrency(totalSum)}</strong>
+    </div>`;
+    
+    // Top 3 ZOZ list in popup
+    const topZozs = g.contracts.slice(0, 3).map(c => 
+      `<div style="margin-top: 3px; font-weight: 600;">• ${escapeHtml(c.provider_name.substring(0, 30))}${c.provider_name.length > 30 ? '...' : ''} (${formatCurrency(c.sum)})</div>`
+    ).join("");
+    const listHtml = `<div style="font-size: 11px; margin-top: 8px; border-top: 1px solid var(--line); padding-top: 6px;">
+      ${topZozs}${g.contracts.length > 3 ? `<div style="margin-top: 2px; font-style: italic;">та ще ${g.contracts.length - 3} ЗОЗ...</div>` : ''}
+    </div>`;
+    
+    const btnHtml = `<button type="button" onclick="filterBySettlement('${escapeHtml(g.settlement)}')" style="margin-top: 10px; font-size: 11px; padding: 6px 10px; border-radius: 6px; width: 100%; border: 0; background: var(--accent); color: #fff; font-weight: 700; cursor: pointer; transition: background 0.15s;">🔍 Показати у списку</button>`;
+    
+    marker.bindPopup(`<div style="min-width: 220px; font-family: system-ui, -apple-system, sans-serif; line-height: 1.4;">${titleHtml}${statsHtml}${listHtml}${btnHtml}</div>`);
+    markerClusterGroup.addLayer(marker);
+  });
+  
+  // Center and fit bounds if there are groups
+  if (Object.keys(groups).length > 0) {
+    const bounds = markerClusterGroup.getBounds();
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [40, 40] });
+    }
+  }
+}
+
+// Global filter helper clicked from popup
+window.filterBySettlement = (settlement) => {
+  const searchInput = el("contractSearch");
+  if (searchInput) {
+    searchInput.value = settlement;
+  }
+  applyFilters();
+  switchView("list");
+};
+
 async function init() {
   // Load data
   const response = await fetch("../data/contracts.json");
@@ -753,6 +896,12 @@ async function init() {
   el("resetFilters").addEventListener("click", resetFilters);
   el("exportExcel").addEventListener("click", exportToExcel);
   el("exportEmails").addEventListener("click", exportEmailsToExcel);
+  
+  // View Toggle event listeners
+  const toggleListBtn = el("toggleList");
+  const toggleMapBtn = el("toggleMap");
+  if (toggleListBtn) toggleListBtn.addEventListener("click", () => switchView("list"));
+  if (toggleMapBtn) toggleMapBtn.addEventListener("click", () => switchView("map"));
 
   // Close dropdowns on document click
   document.addEventListener("click", (e) => {

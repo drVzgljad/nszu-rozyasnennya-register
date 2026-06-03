@@ -103,6 +103,50 @@ def main():
 
     print(f"Grouped into {len(grouped_rows)} unique contracts.")
 
+    # Load coordinates cache
+    coords_cache = {}
+    coords_path = Path(__file__).resolve().parent / "settlement_coords.json"
+    if coords_path.exists():
+        try:
+            with open(coords_path, "r", encoding="utf-8") as cf:
+                raw_cache = json.load(cf)
+                for k, coords in raw_cache.items():
+                    parts = k.split("||")
+                    if len(parts) == 2:
+                        coords_cache[(parts[0], parts[1])] = coords
+            print(f"Loaded {len(coords_cache)} coordinates from cache.")
+        except Exception as e:
+            print(f"Warning: could not load coordinates cache: {e}")
+
+    # General regional center fallbacks if geocoding fails
+    oblast_centers = {
+        "М.КИЇВ": [50.4501, 30.5234],
+        "КИЇВСЬКА": [50.4501, 30.5234],
+        "ХАРКІВСЬКА": [49.9935, 36.2304],
+        "ОДЕСЬКА": [46.4825, 30.7233],
+        "ДНІПРОПЕТРОВСЬКА": [48.4647, 35.0462],
+        "ЛЬВІВСЬКА": [49.8397, 24.0297],
+        "ЗАПОРІЗЬКА": [47.8388, 35.1396],
+        "ХМЕЛЬНИЦЬКА": [48.9796, 26.9871],
+        "ВІННИЦЬКА": [49.2331, 28.4682],
+        "ІВАНО-ФРАНКІВСЬКА": [48.9215, 24.7097],
+        "ЧЕРНІВЕЦЬКА": [48.2908, 25.9345],
+        "МИКОЛАЇВСКА": [46.9750, 31.9946],
+        "СУМСЬКА": [50.9077, 34.7981],
+        "ПОЛТАВСЬКА": [49.5883, 34.5514],
+        "ТЕРНОПІЛЬСЬКА": [49.5535, 25.5948],
+        "ЧЕРКАСЬКА": [49.4444, 32.0598],
+        "КІРОВОГРАДСЬКА": [48.5079, 32.2623],
+        "РІВНЕНСЬКА": [50.6199, 26.2516],
+        "ЗАКАРПАТСЬКА": [48.6208, 22.2879],
+        "ЖИТОМИРСЬКА": [50.2547, 28.6587],
+        "ВОЛИНСЬКА": [50.7472, 25.3254],
+        "ЧЕРНІГІВСЬКА": [51.4981, 31.2893],
+        "ХЕРСОНСЬКА": [46.6354, 32.6169],
+        "ДОНЕЦЬКА": [48.7390, 37.5838],
+        "ЛУГАНСЬКА": [48.9482, 38.4965]
+    }
+
     contracts = []
     
     for (edrpou, slug), rows in grouped_rows.items():
@@ -151,6 +195,15 @@ def main():
         # Contract sum is the sum of all packages under it
         total_sum = round(sum(p["sum"] for p in packages), 2)
 
+        # Look up coordinates
+        lat, lon = None, None
+        coords = coords_cache.get((settlement, oblast))
+        if coords:
+            lat, lon = coords[0], coords[1]
+        else:
+            coords = oblast_centers.get(oblast.upper(), [50.4501, 30.5234])
+            lat, lon = coords[0], coords[1]
+
         contracts.append({
             "id": len(contracts) + 1,
             "oblast": oblast,
@@ -177,6 +230,8 @@ def main():
             "has_extra_coef_contract": has_extra_coef_contract,
             "extra_info": extra_info,
             "sum": total_sum,
+            "lat": lat,
+            "lon": lon,
             "packages": packages
         })
 

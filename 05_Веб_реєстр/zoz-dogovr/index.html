@@ -8,6 +8,13 @@
   <link rel="stylesheet" href="contracts.css?v=20260602">
   <link rel="stylesheet" href="../auth.css?v=20260602b">
   <script type="module" src="../auth.js?v=20260602b"></script>
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Leaflet MarkerCluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 </head>
 <body id="top">
   <header class="hero contracts-hero">
@@ -120,7 +127,13 @@
         </div>
 
         <div class="results-summary" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-          <span id="resultsCount">Завантаження даних...</span>
+          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <span id="resultsCount">Завантаження даних...</span>
+            <div class="view-toggle" style="display: flex; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); padding: 2px; gap: 2px;">
+              <button id="toggleList" class="toggle-btn active" style="border: 0; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 600; cursor: pointer; background: var(--surface); color: var(--ink);" type="button">📋 Список</button>
+              <button id="toggleMap" class="toggle-btn" style="border: 0; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 600; cursor: pointer; background: transparent; color: var(--muted);" type="button">🗺️ Карта</button>
+            </div>
+          </div>
           <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             <button id="exportExcel" class="action" style="padding: 6px 12px; font-size: 13px; border-radius: 8px;" type="button">📥 Експорт в Excel</button>
             <button id="exportEmails" class="action" style="padding: 6px 12px; font-size: 13px; border-radius: 8px; background: var(--teal-dark); border-color: var(--teal-dark); color: #ffffff;" type="button">📧 Експорт e-mail</button>
@@ -130,6 +143,7 @@
       </div>
 
       <div class="cards" id="contractCards"></div>
+      <div id="contractsMap" style="display: none; height: calc(100vh - 365px); border-radius: 15px; border: 1px solid var(--line); box-shadow: var(--shadow); position: relative; z-index: 10;"></div>
     </section>
 
     <!-- Sidebar details -->
