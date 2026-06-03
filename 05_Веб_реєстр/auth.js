@@ -121,11 +121,11 @@ function applyAccess() {
       { text: 'Пакети 2026', path: 'pakety/index.html' },
       { text: 'Постанова 1808', path: 'postanova/index.html' },
       { text: 'Алгоритми та правила', path: 'algorithms/index.html' },
+      { text: 'Укладені договори', path: 'zoz-dogovr/index.html' },
       { text: 'Робочий чат', path: 'chat/index.html', isChat: true }
     ];
 
     const dropdownItems = [
-      { text: 'Укладені договори', path: 'zoz-dogovr/index.html' },
       { text: 'Машина пошуку', path: 'pakety/report.html', role: 'registered' },
       { text: 'Питання ЗОЗ', path: 'zoz-questions/index.html', role: 'registered' },
       { text: 'Пропозиції ПМГ', path: 'pmg-proposals/index.html', role: 'registered' },
