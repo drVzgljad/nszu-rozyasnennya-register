@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Внесення діяльності СКО-Д — НавігаторПМГ26</title>
+  <link rel="stylesheet" href="../portal.css?v=20260603d">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260603d">
+  <link rel="stylesheet" href="skod.css">
+  <script type="module" src="../auth-v2.js?v=20260603d"></script>
+  <script type="module" src="skod.js"></script>
+</head>
+<body data-required-role="registered">
+<div class="portal">
+
+  <!-- ── Top bar ─────────────────────────────────────── -->
+  <header class="top">
+    <div class="wrap top-inner">
+      <div class="top-row-1">
+        <a class="lockup" href="../index.html" aria-label="На головну">
+          <img class="shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true" style="width:44px;height:auto">
+          <span class="wm">
+            <span class="wm-1">Портал експертної інформації</span>
+            <span class="wm-2">Програма медичних гарантій 2026</span>
+          </span>
+        </a>
+        <div class="top-row-1-right">
+          <!-- auth-v2.js inject point -->
+          <nav class="section-switch top-auth" aria-label="Авторизація"></nav>
+          <span class="agency-chip">
+            <img src="../assets/nszu-shield.svg" alt="">НСЗУ
+          </span>
+        </div>
+      </div>
+      <div class="top-row-2">
+        <nav class="top-nav" aria-label="Головне меню"></nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main Content ────────────────────────────────── -->
+  <main class="wrap skod-container">
+    <div class="skod-title-area">
+      <div>
+        <h1>Система кодової оцінки діяльності <span>(СКО-Д)</span></h1>
+        <p style="color: var(--p-muted); margin-top: 6px; margin-bottom: 0;">Внесіть виконану роботу за сьогодні для формування щоденного звіту.</p>
+      </div>
+      <div class="skod-btn-group">
+        <a href="reports.html" class="btn btn-primary" style="text-decoration: none; padding: 10px 18px; font-size: 14px;">
+          📊 Перейти до Звітів
+        </a>
+      </div>
+    </div>
+
+    <div class="skod-grid">
+      <!-- Left Panel: Log Form -->
+      <section class="skod-card">
+        <h2 class="skod-card-title">Нове завдання</h2>
+        
+        <form id="skod-log-form" novalidate>
+          <div class="skod-form-group" id="form-dept-group" style="display: none;">
+            <label for="form-department">Ваш підрозділ / відділ *</label>
+            <select id="form-department">
+              <option value="Департамент стратегії">Департамент стратегії</option>
+              <option value="Юридичний департамент">Юридичний департамент</option>
+              <option value="Департамент фінансів">Департамент фінансів</option>
+              <option value="Договірний департамент">Договірний департамент</option>
+            </select>
+          </div>
+
+          <div class="skod-form-row">
+            <div class="skod-form-group">
+              <label for="start_time">Час початку *</label>
+              <input type="time" id="start_time" required>
+            </div>
+            <div class="skod-form-group">
+              <label for="duration_minutes">Тривалість (хв) *</label>
+              <input type="number" id="duration_minutes" placeholder="наприклад, 45" min="5" max="480" required>
+            </div>
+          </div>
+
+          <div class="skod-form-group">
+            <label for="task_type">Тип завдання *</label>
+            <select id="task_type" required>
+              <option value="" disabled selected>Завантаження типів...</option>
+            </select>
+          </div>
+
+          <div class="skod-form-group">
+            <label for="severity_level">Ступінь важкості *</label>
+            <select id="severity_level" required>
+              <option value="easy">Легкий (коеф. 1.0)</option>
+              <option value="medium" selected>Середній (коеф. 1.3)</option>
+              <option value="hard">Складний (коеф. 1.8)</option>
+              <option value="expert">Експертний (коеф. 2.5)</option>
+            </select>
+          </div>
+
+          <div class="skod-form-group">
+            <label for="description">Короткий опис / Код завдання</label>
+            <textarea id="description" rows="3" placeholder="Опишіть сутність завдання або вкажіть реєстраційний номер листа..."></textarea>
+          </div>
+
+          <!-- Live Score Output -->
+          <div class="skod-live-score">
+            <div class="score-label">Очікувана оцінка (бали)</div>
+            <div class="score-val" id="live-score-val">0.00</div>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; justify-content: center;">
+            Зберегти завдання
+          </button>
+        </form>
+      </section>
+
+      <!-- Right Panel: Today Logs -->
+      <section style="display: flex; flex-direction: column; gap: 24px;">
+        <!-- Stats summary for user -->
+        <div class="skod-stats">
+          <div class="skod-stat-box">
+            <span class="stat-lbl">Загальний час</span>
+            <span class="stat-num" id="stat-total-hours">0.0 год</span>
+          </div>
+          <div class="skod-stat-box green">
+            <span class="stat-lbl">Оціночні бали</span>
+            <span class="stat-num" id="stat-total-score">0.00</span>
+          </div>
+          <div class="skod-stat-box">
+            <span class="stat-lbl">Задач внесено</span>
+            <span class="stat-num" id="stat-total-tasks">0</span>
+          </div>
+        </div>
+
+        <!-- Today Log List -->
+        <div class="skod-card" style="flex: 1;">
+          <h2 class="skod-card-title">Завдання за сьогодні</h2>
+          
+          <div class="skod-table-wrapper">
+            <table class="skod-table">
+              <thead>
+                <tr>
+                  <th style="width: 70px;">Час</th>
+                  <th>Тип завдання та деталі</th>
+                  <th style="width: 100px;">Тривалість</th>
+                  <th style="width: 140px;">Складність</th>
+                  <th style="width: 80px;">Бали</th>
+                  <th style="width: 50px;"></th>
+                </tr>
+              </thead>
+              <tbody id="today-logs-body">
+                <!-- JavaScript populated -->
+              </tbody>
+            </table>
+            <div id="today-logs-empty" class="empty-state">
+              Ви ще не додали жодного завдання за сьогодні.
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- ── Footer ───────────────────────────────────────── -->
+  <footer class="p-footer">
+    <div class="wrap">
+      <div class="p-foot-grid">
+        <div>
+          <div class="f-lockup">
+            <img class="shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true" style="width:44px;height:auto">
+            <span class="wm">
+              <span class="wm-1">Портал експертної інформації</span>
+              <span class="wm-2">Програма медичних гарантій 2026</span>
+            </span>
+          </div>
+          <p>Довідковий портал за Програмою медичних гарантій 2026 року.</p>
+        </div>
+        <div class="f-col">
+          <h4>Розділи</h4>
+          <a href="../rozjasnennya.html">Роз'яснення</a>
+          <a href="../pakety/index.html">Пакети 2026</a>
+          <a href="../postanova/index.html">Постанова 1808</a>
+          <a href="../algorithms/index.html">Алгоритми та правила</a>
+        </div>
+        <div class="f-col">
+          <h4>Належність</h4>
+          <a href="../#dept">Департамент стратегії</a>
+          <a href="../#dept">НСЗУ</a>
+          <a href="../#top">Про портал</a>
+        </div>
+      </div>
+      <div class="p-foot-base">
+        <span>© 2026 НСЗУ · Департамент стратегії універсального охоплення населення медичними послугами</span>
+        <span>Розроблено силами Департаменту</span>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+<!-- Access Denied Modal Overlay matching auth-v2.js style -->
+<div id="access-denied-overlay" class="access-denied-overlay" style="display:none">
+  <div class="access-denied-box">
+    <h2>Доступ обмежено</h2>
+    <p id="access-denied-msg">Ця сторінка доступна лише для зареєстрованих співробітників.</p>
+    <button class="auth-submit" id="access-denied-btn">Увійти / Зареєструватись</button>
+  </div>
+</div>
+
+</body>
+</html>

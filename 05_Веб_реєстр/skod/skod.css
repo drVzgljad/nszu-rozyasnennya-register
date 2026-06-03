@@ -1,0 +1,319 @@
+/* ============================================================
+   СКО-Д: Система кодової оцінки діяльності департаменту — Styles
+   ============================================================ */
+
+.skod-container {
+  padding-block: 40px;
+}
+
+.skod-title-area {
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.skod-title-area h1 {
+  font-family: var(--p-display);
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -.02em;
+  color: var(--p-ink);
+}
+
+.skod-title-area h1 span {
+  background: var(--cta-grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.skod-btn-group {
+  display: flex;
+  gap: 10px;
+}
+
+/* Grids */
+.skod-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 30px;
+  margin-bottom: 40px;
+}
+
+@media (max-width: 980px) {
+  .skod-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Cards & Panels */
+.skod-card {
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--pr-tile);
+  padding: 24px;
+  box-shadow: var(--p-shadow-sm);
+  transition: transform .15s, box-shadow .15s;
+}
+
+.skod-card:hover {
+  box-shadow: var(--p-shadow);
+}
+
+.skod-card-title {
+  font-family: var(--p-display);
+  font-size: 18px;
+  font-weight: 800;
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: var(--p-ink);
+  border-bottom: 1px solid var(--p-soft);
+  padding-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Forms */
+.skod-form-group {
+  margin-bottom: 18px;
+}
+
+.skod-form-group label {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--p-muted);
+  margin-bottom: 6px;
+}
+
+.skod-form-group input,
+.skod-form-group select,
+.skod-form-group textarea {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: var(--pr-chip);
+  border: 1px solid var(--p-line);
+  background: var(--p-surface);
+  color: var(--p-ink);
+  font-family: var(--p-text);
+  font-size: 15px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.skod-form-group input:focus,
+.skod-form-group select:focus,
+.skod-form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(74, 143, 199, 0.15);
+}
+
+.skod-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+/* Calculated Live Score Badge */
+.skod-live-score {
+  background: var(--brand-grad);
+  border: 1px dashed var(--accent-2);
+  border-radius: var(--pr-chip);
+  padding: 14px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.skod-live-score .score-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--p-muted);
+  font-weight: 700;
+}
+
+.skod-live-score .score-val {
+  font-family: var(--p-display);
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--accent-2-deep);
+  margin-top: 4px;
+}
+
+/* Stats Widgets */
+.skod-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.skod-stat-box {
+  background: var(--p-soft);
+  border: 1px solid var(--p-line);
+  border-radius: var(--pr-chip);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.skod-stat-box .stat-lbl {
+  font-size: 12px;
+  color: var(--p-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.skod-stat-box .stat-num {
+  font-family: var(--p-display);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--accent-deep);
+}
+
+.skod-stat-box.green .stat-num {
+  color: var(--accent-2-deep);
+}
+
+/* Table styling */
+.skod-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--p-line);
+  border-radius: var(--pr-chip);
+  background: var(--p-surface);
+}
+
+.skod-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14.5px;
+}
+
+.skod-table th {
+  background: var(--p-soft);
+  padding: 12px 16px;
+  font-weight: 700;
+  color: var(--p-ink);
+  border-bottom: 1px solid var(--p-line);
+  font-family: var(--p-display);
+  font-size: 13.5px;
+}
+
+.skod-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--p-soft);
+  color: var(--p-ink);
+  vertical-align: middle;
+}
+
+.skod-table tr:last-child td {
+  border-bottom: none;
+}
+
+.skod-table tr:hover td {
+  background: var(--p-soft);
+}
+
+/* Task Badge styles */
+.badge-task {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: var(--pr-pill);
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.badge-task.easy {
+  background: rgba(116, 194, 160, 0.15);
+  color: var(--accent-2-deep);
+}
+
+.badge-task.medium {
+  background: rgba(74, 143, 199, 0.15);
+  color: var(--accent-deep);
+}
+
+.badge-task.hard {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+}
+
+.badge-task.expert {
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
+
+/* Actions in tables */
+.btn-delete-log {
+  background: transparent;
+  border: none;
+  color: #dc2626;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--pr-chip);
+  transition: background 0.15s;
+}
+
+.btn-delete-log:hover {
+  background: rgba(220, 38, 38, 0.1);
+}
+
+/* Dynamic filter panel */
+.filter-panel {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 24px;
+  background: var(--p-soft);
+  padding: 16px;
+  border-radius: var(--pr-chip);
+  border: 1px solid var(--p-line);
+  flex-wrap: wrap;
+}
+
+.filter-panel label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--p-muted);
+}
+
+.filter-panel select,
+.filter-panel input {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--p-line);
+  background: #fff;
+  font-size: 14px;
+}
+
+.filter-panel button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.filter-panel button:hover {
+  opacity: 0.9;
+}
+
+/* Empty state info */
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--p-muted);
+  font-style: italic;
+}
