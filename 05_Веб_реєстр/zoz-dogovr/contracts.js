@@ -6,7 +6,8 @@ const state = {
     oblasts: new Set(),
     packages: new Set(),
     ownerships: new Set(),
-    networks: new Set()
+    networks: new Set(),
+    programs: new Set()
   }
 };
 
@@ -250,6 +251,22 @@ const initDropdowns = () => {
     },
     onSelectionChange: applyFilters
   });
+
+  // Program dropdown
+  dropdowns.programs = setupMultiselect({
+    dropdownId: "dropdownProgram",
+    btnId: "btnProgram",
+    optionsId: "optionsProgram",
+    searchId: null,
+    selectAllId: "selectAllProgram",
+    clearId: "clearProgram",
+    defaultText: "Усі програми",
+    filterKey: "programs",
+    optionValuesExtractor: () => {
+      return ["ПМГ", "Реімбурсація"];
+    },
+    onSelectionChange: applyFilters
+  });
 };
 
 // Filter data
@@ -291,6 +308,16 @@ function applyFilters() {
     }
     if (state.filters.networks.size > 0 && !state.filters.networks.has(c.network_type)) {
       return false;
+    }
+    if (state.filters.programs.size > 0) {
+      const isReimbursement = c.packages.some(p => {
+        const meta = state.data.package_metadata[p.package_num];
+        return meta && meta.direction === "Реімбурсація";
+      });
+      const cProgram = isReimbursement ? "Реімбурсація" : "ПМГ";
+      if (!state.filters.programs.has(cProgram)) {
+        return false;
+      }
     }
 
     return true;
@@ -1040,12 +1067,16 @@ async function init() {
   const params = new URLSearchParams(location.search);
   const initialPackage = params.get("package") || "";
   const initialQuery = params.get("q") || "";
+  const initialProgram = params.get("program") || "";
 
   if (initialQuery) {
     el("contractSearch").value = initialQuery;
   }
   if (initialPackage) {
     dropdowns.packages.selectSingle(initialPackage);
+  }
+  if (initialProgram) {
+    dropdowns.programs.selectSingle(initialProgram);
   }
 
   // Initial filtering

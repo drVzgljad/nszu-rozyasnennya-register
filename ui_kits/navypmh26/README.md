@@ -1,6 +1,6 @@
-# НавиПМГ26 — UI kit
+# НавігаторПМГ26 — UI kit
 
-A high-fidelity, click-through recreation of the **НавиПМГ26** register
+A high-fidelity, click-through recreation of the **НавігаторПМГ26** register
 (*НСЗУ — National Health Service of Ukraine*). Visuals are lifted directly from the
 product's own stylesheets; component logic is cosmetic/illustrative, not production code.
 

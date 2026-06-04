@@ -1,5 +1,5 @@
 /* ============================================================
-   НавиПМГ26 — Foundational tokens (colors + type)
+   НавігаторПМГ26 — Foundational tokens (colors + type)
    Lifted verbatim from the live register stylesheets
    (05_Веб_реєстр/styles.css, pakety, postanova, algorithms).
    ============================================================ */
@@ -75,7 +75,7 @@
   --fs-h1:        clamp(34px, 4vw, 49px); /* hero title              */
   --fs-h2:        26px;  /* reader / panel title                     */
   --fs-h2-detail: 25px;  /* document detail title                    */
-  --fs-brand:     clamp(25px, 3vw, 34px); /* НавиПМГ26 wordmark      */
+  --fs-brand:     clamp(25px, 3vw, 34px); /* НавігаторПМГ26 wordmark      */
   --fs-stat:      27px;  /* stat number                              */
   --fs-lead:      17px;  /* hero lead paragraph                      */
   --fs-body:      14px;  /* default body / list item                 */

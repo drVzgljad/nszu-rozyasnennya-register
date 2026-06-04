@@ -1,4 +1,4 @@
-/* Sample data for the НавиПМГ26 UI kit — abridged, faithful to the real corpus.
+/* Sample data for the НавігаторПМГ26 UI kit — abridged, faithful to the real corpus.
    Plain globals (no Babel) so every component script can read them. */
 window.KIT_STATS = [
   { n: "171", l: "файлів" },

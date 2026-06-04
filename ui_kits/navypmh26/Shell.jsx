@@ -1,4 +1,4 @@
-/* Shared НавиПМГ26 components: Hero, Footer, small primitives. */
+/* Shared НавігаторПМГ26 components: Hero, Footer, small primitives. */
 
 function Tag({ children, file }) {
   return <span className={"tag" + (file ? " file" : "")}>{children}</span>;

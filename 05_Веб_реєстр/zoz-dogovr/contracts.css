@@ -288,6 +288,12 @@
 }
 
 /* Premium Multi-Select Dropdowns */
+@media (min-width: 651px) {
+  .contracts-filters {
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+  }
+}
+
 .filter-group {
   display: flex;
   flex-direction: column;
