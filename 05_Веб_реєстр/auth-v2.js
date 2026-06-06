@@ -587,7 +587,7 @@ async function renderDashboard(dashboardEl, prefix) {
   try {
     const { data } = await sb
       .from('assigned_tasks')
-      .select('id, title, deadline, progress, status')
+      .select('id, title, deadline, progress, status, description')
       .eq('responsible_id', user.id)
       .neq('status', 'completed')
       .order('deadline', { ascending: true });
@@ -618,8 +618,13 @@ async function renderDashboard(dashboardEl, prefix) {
               const daysText = daysLeft < 0 ? `(Протерміновано)` : (daysLeft === 0 ? `(Сьогодні!)` : `(залишилось ${daysLeft} дн.)`);
               return `
                 <div class="task-brief-item">
-                  <span class="task-brief-title" title="${t.title}">${t.title}</span>
-                  <span class="task-brief-deadline ${dateClass}">до ${dateStr} ${daysText}</span>
+                  <div class="task-brief-content">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 2px;">
+                      <span class="task-brief-title" title="${t.title}">${t.title}</span>
+                      <span class="task-brief-deadline ${dateClass}">до ${dateStr} ${daysText}</span>
+                    </div>
+                    ${t.description ? `<div class="task-brief-desc" title="${t.description.replace(/"/g, '&quot;')}">${t.description}</div>` : ''}
+                  </div>
                   <div class="task-brief-progress-wrapper">
                     <div class="task-brief-progress-bg">
                       <div class="task-brief-progress-bar" style="width: ${t.progress}%"></div>
