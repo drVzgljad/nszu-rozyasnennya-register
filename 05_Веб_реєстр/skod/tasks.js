@@ -255,7 +255,9 @@ function renderMyTasks() {
       card.innerHTML = `
         <div class="personal-task-header">
           <div>
-            <h3 class="personal-task-title">${task.title}</h3>
+            <h3 class="personal-task-title">
+              <a href="task-detail.html?id=${task.id}" style="color: inherit; text-decoration: none; border-bottom: 1px dashed var(--accent, #3b82f6); transition: color 0.2s;" onmouseover="this.style.color='var(--accent, #3b82f6)'" onmouseout="this.style.color='inherit'">${task.title}</a>
+            </h3>
             <span class="personal-task-meta">Надав: ${task.created_by_name} &bull; Термін: ${formattedDeadline}</span>
           </div>
           <span class="badge-status ${task.status}">${getStatusLabel(task.status)}</span>
@@ -371,7 +373,9 @@ function renderRegistry() {
 
       tr.innerHTML = `
         <td>
-          <div style="font-weight: 700; color: var(--p-ink);">${task.title}</div>
+          <div style="font-weight: 700;">
+            <a href="task-detail.html?id=${task.id}" style="color: var(--accent, #3b82f6); text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${task.title}</a>
+          </div>
           <div style="font-size:12px; color: var(--p-muted); margin-top: 4px;">Надав: ${task.created_by_name}</div>
         </td>
         <td><span style="font-size:13.5px; font-weight:600; color:var(--accent-deep);">${task.department}</span></td>
@@ -448,7 +452,9 @@ function getStatusLabel(status) {
   const map = {
     assigned: 'Призначено',
     in_progress: 'В роботі',
-    completed: 'Виконано'
+    completed: 'Виконано',
+    planning: 'План виконання',
+    rejected: 'Відхилено'
   };
   return map[status] || status;
 }

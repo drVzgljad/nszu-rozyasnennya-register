@@ -310,8 +310,12 @@ CREATE TABLE IF NOT EXISTS public.assigned_tasks (
   responsible_name TEXT,
   deadline DATE,
   progress INTEGER NOT NULL DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
-  status TEXT NOT NULL DEFAULT 'assigned', -- 'assigned' | 'in_progress' | 'completed'
-  description TEXT
+  status TEXT NOT NULL DEFAULT 'assigned', -- 'assigned' | 'in_progress' | 'completed' | 'planning' | 'rejected'
+  description TEXT,
+  subtasks JSONB DEFAULT '[]'::jsonb,
+  plan_details TEXT,
+  rejection_reason TEXT,
+  comments JSONB DEFAULT '[]'::jsonb
 );
 
 -- Додавання зв'язку в логах СКО-Д до завдань

@@ -620,7 +620,9 @@ async function renderDashboard(dashboardEl, prefix) {
                 <div class="task-brief-item">
                   <div class="task-brief-content">
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 2px;">
-                      <span class="task-brief-title" title="${t.title}">${t.title}</span>
+                      <span class="task-brief-title" title="${t.title}">
+                        <a href="${prefix}skod/task-detail.html?id=${t.id}" style="color: inherit; text-decoration: none; border-bottom: 1px dashed var(--accent, #3b82f6); transition: color 0.2s;" onmouseover="this.style.color='var(--accent, #3b82f6)'" onmouseout="this.style.color='inherit'">${t.title}</a>
+                      </span>
                       <span class="task-brief-deadline ${dateClass}">до ${dateStr} ${daysText}</span>
                     </div>
                     ${t.description ? `<div class="task-brief-desc" title="${t.description.replace(/"/g, '&quot;')}">${t.description}</div>` : ''}
@@ -637,7 +639,7 @@ async function renderDashboard(dashboardEl, prefix) {
           </div>
           ${userTasks.length > 3 ? `
             <div style="font-size: 11px; text-align: right; margin-top: 4px; color: var(--muted, #627287); font-weight: 600;">
-              ...та ще ${userTasks.length - 3} active доручень (перегляньте у «Сервіси $\rightarrow$ СКО-Д (Доручення)»)
+              ...та ще ${userTasks.length - 3} активних доручень (перегляньте у «Сервіси $\rightarrow$ СКО-Д (Доручення)»)
             </div>
           ` : ''}
         ` : `
