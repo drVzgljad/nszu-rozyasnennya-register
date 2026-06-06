@@ -1,5 +1,13 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
+// Run theme initialization immediately to prevent flash of white screen
+(function() {
+  const savedTheme = localStorage.getItem('portal-theme') || 'light';
+  if (savedTheme === 'dark') {
+    document.documentElement.classList.add('dark-theme');
+  }
+})();
+
 const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -455,6 +463,16 @@ function inject() {
     `;
     container.appendChild(onlineChip);
 
+    // Theme Toggle Button
+    const themeBtn = document.createElement('button');
+    themeBtn.id = 'theme-toggle-btn';
+    themeBtn.className = 'theme-toggle-btn';
+    themeBtn.title = 'Перемикач теми (світла / темна)';
+    const savedTheme = localStorage.getItem('portal-theme') || 'light';
+    themeBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+    themeBtn.addEventListener('click', toggleTheme);
+    container.appendChild(themeBtn);
+
     // Role badge indicator
     const badge = document.createElement('span');
     badge.id = 'auth-role-badge';
@@ -839,6 +857,15 @@ function updateGlobalOnlineCount(state) {
       li.textContent = u.name;
       dropdownList.appendChild(li);
     });
+  }
+}
+
+function toggleTheme() {
+  const isDark = document.documentElement.classList.toggle('dark-theme');
+  localStorage.setItem('portal-theme', isDark ? 'dark' : 'light');
+  const themeBtn = document.getElementById('theme-toggle-btn');
+  if (themeBtn) {
+    themeBtn.textContent = isDark ? '☀️' : '🌙';
   }
 }
 
