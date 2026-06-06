@@ -256,7 +256,7 @@ function renderMyTasks() {
         <div class="personal-task-header">
           <div>
             <h3 class="personal-task-title">
-              <a href="task-detail.html?id=${task.id}" style="color: inherit; text-decoration: none; border-bottom: 1px dashed var(--accent, #3b82f6); transition: color 0.2s;" onmouseover="this.style.color='var(--accent, #3b82f6)'" onmouseout="this.style.color='inherit'">${task.title}</a>
+              <a href="task-detail.html?id=${task.id}" target="_blank" style="color: inherit; text-decoration: none; border-bottom: 1px dashed var(--accent, #3b82f6); transition: color 0.2s;" onmouseover="this.style.color='var(--accent, #3b82f6)'" onmouseout="this.style.color='inherit'">${task.title}</a>
             </h3>
             <span class="personal-task-meta">Надав: ${task.created_by_name} &bull; Термін: ${formattedDeadline}</span>
           </div>
@@ -374,7 +374,7 @@ function renderRegistry() {
       tr.innerHTML = `
         <td>
           <div style="font-weight: 700;">
-            <a href="task-detail.html?id=${task.id}" style="color: var(--accent, #3b82f6); text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${task.title}</a>
+            <a href="task-detail.html?id=${task.id}" target="_blank" style="color: var(--accent, #3b82f6); text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${task.title}</a>
           </div>
           <div style="font-size:12px; color: var(--p-muted); margin-top: 4px;">Надав: ${task.created_by_name}</div>
         </td>

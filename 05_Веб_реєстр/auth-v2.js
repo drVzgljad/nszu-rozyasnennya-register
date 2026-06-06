@@ -621,7 +621,7 @@ async function renderDashboard(dashboardEl, prefix) {
                   <div class="task-brief-content">
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 2px;">
                       <span class="task-brief-title" title="${t.title}">
-                        <a href="${prefix}skod/task-detail.html?id=${t.id}" style="color: inherit; text-decoration: none; border-bottom: 1px dashed var(--accent, #3b82f6); transition: color 0.2s;" onmouseover="this.style.color='var(--accent, #3b82f6)'" onmouseout="this.style.color='inherit'">${t.title}</a>
+                        <a href="${prefix}skod/task-detail.html?id=${t.id}" target="_blank" style="color: inherit; text-decoration: none; border-bottom: 1px dashed var(--accent, #3b82f6); transition: color 0.2s;" onmouseover="this.style.color='var(--accent, #3b82f6)'" onmouseout="this.style.color='inherit'">${t.title}</a>
                       </span>
                       <span class="task-brief-deadline ${dateClass}">до ${dateStr} ${daysText}</span>
                     </div>
