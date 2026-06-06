@@ -361,23 +361,41 @@ CREATE POLICY "Creators or directors can delete assigned tasks" ON public.assign
 -- Автоматичний тригер для обробки профілів при реєстрації користувачів
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
+DECLARE
+  v_organization TEXT;
+  v_department TEXT;
+  v_position TEXT;
+  v_role TEXT;
+  v_is_head BOOLEAN;
 BEGIN
+  v_organization := COALESCE(new.raw_user_meta_data->>'organization', 'Департамент стратегії НСЗУ');
+  v_department := new.raw_user_meta_data->>'department';
+  v_position := COALESCE(new.raw_user_meta_data->>'position', 'Співробітник');
+  
+  -- Determine role based on department and position
+  IF v_department = 'Гість (інший департамент)' THEN
+    v_role := 'guest';
+    v_is_head := FALSE;
+  ELSE
+    v_role := CASE 
+      WHEN v_position = 'Директор' THEN 'director'
+      WHEN v_position = 'Заступник директора' THEN 'deputy_director'
+      WHEN v_position = 'Начальник відділу' THEN 'manager'
+      WHEN v_position = 'Адміністратор' THEN 'admin'
+      ELSE 'expert'
+    END;
+    v_is_head := (v_position = 'Начальник відділу');
+  END IF;
+
   INSERT INTO public.profiles (id, full_name, organization, "Section", position, role, is_head)
   VALUES (
     new.id, 
     new.raw_user_meta_data->>'full_name', 
-    COALESCE(new.raw_user_meta_data->>'organization', 'Департамент стратегії НСЗУ'),
-    new.raw_user_meta_data->>'department',
-    COALESCE(new.raw_user_meta_data->>'position', 'Співробітник'),
-    CASE 
-      WHEN COALESCE(new.raw_user_meta_data->>'position', '') IN ('Директор', 'Заступник директора') 
-           OR COALESCE(new.raw_user_meta_data->>'full_name', '') IN ('Світлана Дудник', 'Волошина Альбіна', 'Dudnyk Svitlana', 'Voloshyna Albina') THEN 'full'
-      ELSE 'registered'
-    END,
-    CASE 
-      WHEN COALESCE(new.raw_user_meta_data->>'position', '') = 'Начальник відділу' THEN TRUE
-      ELSE FALSE
-    END
+    v_organization,
+    v_department,
+    v_position,
+    v_role,
+    v_is_head
   )
   ON CONFLICT (id) DO UPDATE SET
     full_name = EXCLUDED.full_name,
@@ -395,6 +413,55 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+
+-- Тригер валідації призначень доручень
+CREATE OR REPLACE FUNCTION public.validate_task_assignment()
+RETURNS trigger AS $$
+DECLARE
+  creator_role TEXT;
+  creator_dept TEXT;
+  assignee_role TEXT;
+  assignee_dept TEXT;
+BEGIN
+  -- Get creator details
+  SELECT role, "Section" INTO creator_role, creator_dept 
+  FROM public.profiles WHERE id = new.created_by;
+  
+  -- Get assignee details
+  SELECT role, "Section" INTO assignee_role, assignee_dept 
+  FROM public.profiles WHERE id = new.responsible_id;
+  
+  -- 1. Authorization check
+  IF creator_role NOT IN ('admin', 'director', 'deputy_director', 'manager') THEN
+    RAISE EXCEPTION 'Ви не маєте прав для створення доручень';
+  END IF;
+  
+  -- 2. Rules for Manager (Керівник)
+  IF creator_role = 'manager' THEN
+    IF assignee_role != 'expert' THEN
+      RAISE EXCEPTION 'Керівник може надавати доручення лише експертам';
+    END IF;
+    IF assignee_dept != creator_dept THEN
+      RAISE EXCEPTION 'Керівник може надавати доручення лише співробітникам свого відділу';
+    END IF;
+  END IF;
+  
+  -- 3. Rules for Deputy Director (Заступник директора)
+  IF creator_role = 'deputy_director' THEN
+    IF assignee_role = 'director' THEN
+      RAISE EXCEPTION 'Заступник директора не може надавати доручення директору';
+    END IF;
+  END IF;
+  
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_validate_task_assignment ON public.assigned_tasks;
+CREATE TRIGGER trg_validate_task_assignment
+  BEFORE INSERT ON public.assigned_tasks
+  FOR EACH ROW EXECUTE FUNCTION public.validate_task_assignment();
 
 
 

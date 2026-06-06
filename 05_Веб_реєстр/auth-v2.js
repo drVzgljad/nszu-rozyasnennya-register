@@ -10,16 +10,20 @@ let isHead = false;
 
 function hasAccess(required) {
   if (!required) return true;
-  if (required === 'registered') return role === 'registered' || role === 'full';
-  if (required === 'full') return role === 'full';
-  if (required === 'manager') return role === 'full' || isHead === true;
-  return false;
+  if (!user) return false;
+  
+  const rolesOrder = ['guest', 'expert', 'manager', 'deputy_director', 'director', 'admin'];
+  const userRoleIndex = rolesOrder.indexOf(role);
+  const requiredRoleIndex = rolesOrder.indexOf(required);
+  
+  if (userRoleIndex === -1 || requiredRoleIndex === -1) return false;
+  return userRoleIndex >= requiredRoleIndex;
 }
 
 async function fetchRole() {
   if (!user) { role = null; isHead = false; return; }
   const { data } = await sb.from('profiles').select('role, is_head').eq('id', user.id).single();
-  role = data?.role ?? 'registered';
+  role = data?.role ?? 'guest';
   isHead = data?.is_head ?? false;
 }
 
@@ -35,7 +39,7 @@ function applyAccess() {
   const chatBtn = document.getElementById('auth-chat-btn');
   if (chatBtn) {
     chatBtn.href = prefix + 'chat/index.html';
-    const hasChatAccess = hasAccess('full');
+    const hasChatAccess = hasAccess('expert');
     if (!hasChatAccess) {
       chatBtn.classList.add('is-locked');
       chatBtn.innerHTML = `Робочий чат <span class="lock-icon">🔒</span>`;
@@ -48,11 +52,11 @@ function applyAccess() {
           if (overlay) {
             const msg = document.getElementById('access-denied-msg');
             if (msg) {
-              msg.textContent = 'Робочий чат доступний лише для користувачів з повним доступом.';
+              msg.textContent = 'Робочий чат доступний лише для співробітників департаменту.';
             }
             overlay.style.display = 'flex';
           } else {
-            alert('Робочий чат доступний лише для користувачів з повним доступом.');
+            alert('Робочий чат доступний лише для співробітників департаменту.');
           }
         }
       };
@@ -67,7 +71,7 @@ function applyAccess() {
   const skodBtn = document.getElementById('auth-skod-btn');
   if (skodBtn) {
     skodBtn.href = prefix + 'skod/reports.html';
-    const hasSkodAccess = hasAccess('registered');
+    const hasSkodAccess = hasAccess('expert');
     if (!hasSkodAccess) {
       skodBtn.classList.add('is-locked');
       skodBtn.innerHTML = `Звіт СКО-Д <span class="lock-icon">🔒</span>`;
@@ -158,22 +162,21 @@ function applyAccess() {
     badge.style.lineHeight = '1';
 
     if (user) {
-      if (role === 'full') {
-        badge.textContent = 'Повний доступ';
-        badge.classList.add('role-full');
-        badge.style.background = '#e9f7f3';
-        badge.style.color = '#08705e';
-        badge.style.border = '1px solid rgba(84, 173, 132, 0.25)';
-      } else {
-        badge.textContent = 'Базовий доступ';
-        badge.classList.add('role-registered');
-        badge.style.background = '#eef6fc';
-        badge.style.color = '#2f6b9e';
-        badge.style.border = '1px solid rgba(74, 143, 199, 0.2)';
-      }
+      const roleLabels = {
+        guest: { text: 'Гість', bg: '#f2f8fb', color: '#647688', border: '1px solid #e3edf3' },
+        expert: { text: 'Експерт', bg: '#e9f7f3', color: '#08705e', border: '1px solid rgba(84, 173, 132, 0.25)' },
+        manager: { text: 'Керівник', bg: '#eef6fc', color: '#2f6b9e', border: '1px solid rgba(74, 143, 199, 0.2)' },
+        deputy_director: { text: 'Заступник', bg: '#fffdf5', color: '#c27d0e', border: '1px solid rgba(194, 125, 14, 0.25)' },
+        director: { text: 'Директор', bg: '#fdebee', color: '#c71585', border: '1px solid rgba(199, 21, 133, 0.2)' },
+        admin: { text: 'Адмін', bg: '#f5f0ff', color: '#6a0dad', border: '1px solid rgba(106, 13, 173, 0.25)' }
+      };
+      const labelInfo = roleLabels[role] || roleLabels.guest;
+      badge.textContent = labelInfo.text;
+      badge.style.background = labelInfo.bg;
+      badge.style.color = labelInfo.color;
+      badge.style.border = labelInfo.border;
     } else {
       badge.textContent = 'Гість';
-      badge.classList.add('role-guest');
       badge.style.background = '#f2f8fb';
       badge.style.color = '#647688';
       badge.style.border = '1px solid #e3edf3';
@@ -225,13 +228,13 @@ function applyAccess() {
     ];
 
     const dropdownItems = [
-      { text: 'Машина пошуку', path: 'pakety/report.html', role: 'registered' },
-      { text: 'Питання ЗОЗ', path: 'zoz-questions/index.html', role: 'registered' },
-      { text: 'Пропозиції ПМГ', path: 'pmg-proposals/index.html', role: 'registered' },
-      { text: 'СКО-Д (Внесення)', path: 'skod/index.html', role: 'registered' },
-      { text: 'СКО-Д (Звіти)', path: 'skod/reports.html', role: 'registered' },
+      { text: 'Машина пошуку', path: 'pakety/report.html', role: 'expert' },
+      { text: 'Питання ЗОЗ', path: 'zoz-questions/index.html', role: 'expert' },
+      { text: 'Пропозиції ПМГ', path: 'pmg-proposals/index.html', role: 'expert' },
+      { text: 'СКО-Д (Внесення)', path: 'skod/index.html', role: 'expert' },
+      { text: 'СКО-Д (Звіти)', path: 'skod/reports.html', role: 'expert' },
       { text: 'СКО-Д (Доручення)', path: 'skod/tasks.html', role: 'manager' },
-      { text: 'Новини', path: 'news/index.html', role: 'full' }
+      { text: 'Новини', path: 'news/index.html', role: 'expert' }
     ];
 
     // 1. Core navigation tabs
@@ -241,7 +244,7 @@ function applyAccess() {
       
       if (item.isChat) {
         a.className = 'nav-chat-btn';
-        const hasChatAccess = hasAccess('full');
+        const hasChatAccess = hasAccess('expert');
         if (!hasChatAccess) {
           a.classList.add('is-locked');
           a.innerHTML = `<span>${item.text}</span> <span class="lock-icon">🔒</span>`;
@@ -254,11 +257,11 @@ function applyAccess() {
               if (overlay) {
                 const msg = document.getElementById('access-denied-msg');
                 if (msg) {
-                  msg.textContent = 'Робочий чат доступний лише для користувачів з повним доступом.';
+                  msg.textContent = 'Робочий чат доступний лише для співробітників департаменту.';
                 }
                 overlay.style.display = 'flex';
               } else {
-                alert('Робочий чат доступний лише для користувачів з повним доступом.');
+                alert('Робочий чат доступний лише для співробітників департаменту.');
               }
             }
           });
@@ -317,12 +320,12 @@ function applyAccess() {
     if (overlay) {
       const msg = document.getElementById('access-denied-msg');
       if (msg) {
-        if (required === 'full') {
-          msg.textContent = 'Ця сторінка доступна лише для користувачів з повним доступом.';
+        if (required === 'expert') {
+          msg.textContent = 'Ця сторінка доступна лише для співробітників департаменту.';
         } else if (required === 'manager') {
           msg.textContent = 'Ця сторінка доступна лише для керівництва (Директор, Заступники, Начальники відділів та Адміністратор).';
         } else {
-          msg.textContent = 'Ця сторінка доступна лише для зареєстрованих користувачів.';
+          msg.textContent = 'Ця сторінка доступна лише для авторизованих користувачів.';
         }
       }
       overlay.style.display = 'flex';
@@ -487,15 +490,17 @@ function inject() {
           <option value="Клінічна експертиза">Клінічна експертиза</option>
           <option value="Реімбурсація">Реімбурсація</option>
           <option value="Спілкування з надавачами">Спілкування з надавачами</option>
+          <option value="Гість (інший департамент)">Гість (інший департамент)</option>
         </select>
       </div>
       <div class="auth-field">
         <label for="reg-position">Посада *</label>
         <select id="reg-position" required>
-          <option value="Співробітник">Співробітник</option>
+          <option value="Експерт">Експерт</option>
           <option value="Начальник відділу">Начальник відділу</option>
           <option value="Заступник директора">Заступник директора</option>
           <option value="Директор">Директор</option>
+          <option value="Адміністратор">Адміністратор</option>
         </select>
       </div>
       <div class="auth-error" id="reg-error"></div>

@@ -28,7 +28,11 @@ async function init() {
   userProfile = profile || { id: currentUser.id, role: 'registered', full_name: currentUser.email.split('@')[0] };
 
   // Hard programmatic access guard for managers only
-  const isManager = userProfile.role === 'full' || userProfile.is_head === true;
+  const rolesOrder = ['guest', 'expert', 'manager', 'deputy_director', 'director', 'admin'];
+  const userRoleIndex = rolesOrder.indexOf(userProfile.role);
+  const managerIndex = rolesOrder.indexOf('manager');
+  const isManager = userRoleIndex >= managerIndex;
+  
   if (!isManager) {
     showAccessDenied("Ця сторінка доступна лише для керівництва (Директор, Заступники, Начальники відділів та Адміністратор).");
     return;
@@ -82,8 +86,8 @@ async function loadUsers() {
 
 // Setup task assignment UI if user is Director, Deputy or Department Head
 function setupManagerPanel() {
-  const isDirectorOrDeputy = userProfile.role === 'full';
-  const isDeptHead = userProfile.is_head === true;
+  const isDirectorOrDeputy = ['admin', 'director', 'deputy_director'].includes(userProfile.role);
+  const isDeptHead = userProfile.role === 'manager';
 
   if (isDirectorOrDeputy || isDeptHead) {
     const card = document.getElementById('create-task-card');
@@ -129,7 +133,17 @@ function populateResponsibleSelect() {
   if (!deptSelect || !respSelect) return;
 
   const selectedDept = deptSelect.value;
-  const filteredUsers = allUsers.filter(u => (u.Section || u.department) === selectedDept);
+  
+  let filteredUsers = allUsers.filter(u => (u.Section || u.department) === selectedDept);
+
+  // Apply RBAC filters on assignees
+  if (userProfile.role === 'manager') {
+    // Managers can only assign to Experts in their department
+    filteredUsers = filteredUsers.filter(u => u.role === 'expert');
+  } else if (userProfile.role === 'deputy_director') {
+    // Deputy Directors can assign to everyone except Director
+    filteredUsers = filteredUsers.filter(u => u.role !== 'director');
+  }
 
   respSelect.innerHTML = '<option value="" disabled selected>Оберіть співробітника...</option>';
   filteredUsers.forEach(u => {
@@ -329,7 +343,7 @@ function renderRegistry() {
       const formattedDeadline = deadlineDate.toLocaleDateString('uk-UA');
       
       // Delete button check
-      const canDelete = task.created_by === currentUser.id || userProfile.role === 'full';
+      const canDelete = task.created_by === currentUser.id || ['admin', 'director', 'deputy_director'].includes(userProfile.role);
       const deleteBtn = canDelete 
         ? `<button class="btn-delete-task" data-id="${task.id}" title="Видалити доручення">&times;</button>`
         : '';
