@@ -12,9 +12,14 @@ function hasAccess(required) {
   if (!required) return true;
   if (!user) return false;
   
+  let req = required;
+  if (req === 'registered' || req === 'full') {
+    req = 'expert';
+  }
+  
   const rolesOrder = ['guest', 'expert', 'manager', 'deputy_director', 'director', 'admin'];
   const userRoleIndex = rolesOrder.indexOf(role);
-  const requiredRoleIndex = rolesOrder.indexOf(required);
+  const requiredRoleIndex = rolesOrder.indexOf(req);
   
   if (userRoleIndex === -1 || requiredRoleIndex === -1) return false;
   return userRoleIndex >= requiredRoleIndex;
