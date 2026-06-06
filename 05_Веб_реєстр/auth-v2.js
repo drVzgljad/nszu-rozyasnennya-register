@@ -340,9 +340,11 @@ function applyAccess() {
   // Inject User Dashboard banner below header
   const header = document.querySelector('header.top');
   let dashboard = document.getElementById('user-task-dashboard');
+  let alertBanner = document.getElementById('user-news-alert-banner');
   if (header) {
     if (!user || role === 'guest') {
       if (dashboard) dashboard.remove();
+      if (alertBanner) alertBanner.remove();
     } else {
       if (!dashboard) {
         dashboard = document.createElement('div');
@@ -351,6 +353,14 @@ function applyAccess() {
         header.insertAdjacentElement('afterend', dashboard);
       }
       renderDashboard(dashboard, prefix);
+
+      // Inject News Alert Banner below dashboard
+      if (!alertBanner) {
+        alertBanner = document.createElement('div');
+        alertBanner.id = 'user-news-alert-banner';
+        dashboard.insertAdjacentElement('afterend', alertBanner);
+      }
+      renderAlertBanner(alertBanner, prefix);
     }
   }
 }
@@ -666,6 +676,73 @@ async function init() {
     await fetchRole();
     applyAccess();
   });
+}
+
+async function renderAlertBanner(alertBanner, prefix) {
+  try {
+    const { data, error } = await sb
+      .from('news')
+      .select('id, title, importance, created_at')
+      .in('importance', ['important', 'urgent'])
+      .order('created_at', { ascending: false })
+      .limit(3);
+
+    if (error) {
+      console.warn("Failed to load news alerts:", error);
+      alertBanner.style.display = 'none';
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      alertBanner.style.display = 'none';
+      return;
+    }
+
+    alertBanner.style.display = 'block';
+    
+    let hasUrgent = data.some(n => n.importance === 'urgent');
+    alertBanner.className = hasUrgent ? 'news-alert-banner urgent' : 'news-alert-banner important';
+    
+    const icon = hasUrgent ? '🚨' : '⚠️';
+    const titleText = hasUrgent ? 'Увага! Термінові оголошення:' : 'Важливі оголошення:';
+    
+    const escapeHtml = (str) => {
+      if (!str) return "";
+      return str
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    };
+
+    const linksHtml = data.map(n => {
+      const isUrgent = n.importance === 'urgent';
+      const badge = isUrgent 
+        ? '<span class="alert-badge urgent"><span class="pulse-dot"></span> Терміново</span>' 
+        : '<span class="alert-badge important">Важливо</span>';
+      return `
+        <div class="news-alert-item">
+          ${badge}
+          <a href="${prefix}news/index.html?id=${n.id}" class="news-alert-link" target="_blank">${escapeHtml(n.title)}</a>
+        </div>
+      `;
+    }).join('');
+
+    alertBanner.innerHTML = `
+      <div class="wrap">
+        <div class="news-alert-inner">
+          <div class="news-alert-title">${icon} ${titleText}</div>
+          <div class="news-alert-list">
+            ${linksHtml}
+          </div>
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    console.error("Alert banner render error:", err);
+    alertBanner.style.display = 'none';
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);

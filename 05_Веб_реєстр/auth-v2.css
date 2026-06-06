@@ -666,4 +666,105 @@
   border-color: var(--accent-dark, #2f6b9e);
 }
 
-
+/* ── News Alert Banner ────────────────────────────── */
+.news-alert-banner {
+  padding: 10px 0;
+  font-family: inherit;
+  border-bottom: 1.5px solid var(--p-line, #dde6ee);
+  transition: all 0.3s ease;
+}
+.news-alert-banner.urgent {
+  background: #fff5f5;
+  box-shadow: inset 0 -4px 12px rgba(255, 77, 79, 0.03);
+}
+.news-alert-banner.important {
+  background: #fffcf0;
+  box-shadow: inset 0 -4px 12px rgba(250, 173, 20, 0.03);
+}
+.news-alert-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.news-alert-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.news-alert-banner.urgent .news-alert-title {
+  color: #c53030;
+}
+.news-alert-banner.important .news-alert-title {
+  color: #b7791f;
+}
+.news-alert-list {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+.news-alert-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.alert-badge {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+}
+.alert-badge.urgent {
+  background: #ffe3e3;
+  color: #e53e3e;
+  border: 1.5px solid #feb2b2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.alert-badge.urgent .pulse-dot {
+  width: 5px;
+  height: 5px;
+  background-color: #e53e3e;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.7);
+  animation: alert-pulse 1.5s infinite;
+}
+@keyframes alert-pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 4px rgba(229, 62, 62, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(229, 62, 62, 0);
+  }
+}
+.alert-badge.important {
+  background: #fffaf0;
+  color: #dd6b20;
+  border: 1.5px solid #fbd38d;
+}
+.news-alert-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink, #14263d);
+  text-decoration: none;
+  border-bottom: 1.5px dashed rgba(20, 38, 61, 0.25);
+  transition: all 0.15s ease;
+}
+.news-alert-link:hover {
+  color: var(--accent, #006fc9);
+  border-bottom-color: var(--accent, #006fc9);
+}
