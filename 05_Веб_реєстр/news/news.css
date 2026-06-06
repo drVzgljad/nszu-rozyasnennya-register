@@ -186,3 +186,52 @@
     min-height: auto;
   }
 }
+
+/* Importance Badges styling in news section */
+.category-badge.importance-urgent-badge {
+  background: #fff0f6;
+  color: #eb2f96;
+  border: 1px solid #ffadd2;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.category-badge.importance-important-badge {
+  background: #fffbe6;
+  color: #d46b08;
+  border: 1px solid #ffe58f;
+  font-weight: 700;
+}
+.category-badge.importance-normal-badge {
+  background: #e6f7ff;
+  color: #096dd9;
+  border: 1px solid #91d5ff;
+}
+
+/* Pulse dot for card badges */
+.category-badge .pulse-dot {
+  width: 6px;
+  height: 6px;
+  background-color: #ff4d4f;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.7);
+  animation: pulse-animation 1.5s infinite;
+}
+
+@keyframes pulse-animation {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 5px rgba(255, 77, 79, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(255, 77, 79, 0);
+  }
+}
+

@@ -86,6 +86,30 @@
     </div>
   </section>
 
+  <!-- ── Informational Digest ────────────────────────── -->
+  <section class="news-digest-section" id="news-digest" style="display: none;">
+    <div class="wrap">
+      <div class="section-head" style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; width: 100%; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h2 style="margin: 0; font-size: 22px; font-family: var(--p-display); font-weight: 800; color: var(--p-ink);">
+              📰 Інформаційний дайджест
+            </h2>
+            <p style="margin: 4px 0 0 0; font-size: 14px; color: var(--p-muted);">
+              Останні важливі події, зміни законодавства та оголошення Департаменту
+            </p>
+          </div>
+          <a href="news/index.html" class="all-news-link" style="font-size: 14px; font-weight: 600; color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+            Читати всі новини <span>→</span>
+          </a>
+        </div>
+      </div>
+      <div class="news-digest-grid" id="news-digest-grid">
+        <!-- Dynamic cards injected here -->
+      </div>
+    </div>
+  </section>
+
   <!-- ── Hub grid ─────────────────────────────────────── -->
   <section class="hub" id="hub">
     <div class="wrap">
@@ -167,6 +191,14 @@
           <h3>Пропозиції ПМГ</h3>
           <p>Ініціюйте та підтримуйте пропозиції щодо змін у специфікаціях та тарифах.</p>
           <div class="meta">Відкрити <span class="count">Стіна пропозицій</span></div>
+        </a>
+
+        <!-- СКО-Д — тільки для зареєстрованих -->
+        <a class="hub-card span-3" href="skod/index.html" data-role="registered">
+          <span class="num-badge">📊</span>
+          <h3>Система СКО-Д</h3>
+          <p>Вносьте щоденну діяльність та переглядайте індивідуальні й відділові звіти.</p>
+          <div class="meta">Відкрити <span class="count">Кабінет оцінки</span></div>
         </a>
 
         <!-- Аналітичні Новини — тільки для повного доступу -->
@@ -265,6 +297,100 @@
     const q = document.getElementById('hero-q').value.trim();
     window.location.href = q ? 'rozjasnennya.html?q=' + encodeURIComponent(q) : 'rozjasnennya.html';
   }
+</script>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+  const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
+  const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  function escapeHtml(str) {
+    if (!str) return "";
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function formatDate(isoString) {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    return date.toLocaleDateString("uk-UA", {
+      day: "numeric",
+      month: "long",
+      year: "numeric"
+    });
+  }
+
+  async function loadDigest() {
+    try {
+      const { data, error } = await sb
+        .from('news')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(3);
+      
+      if (error) {
+        console.warn('News digest loading skipped (likely guest or unauthorized):', error);
+        document.getElementById('news-digest').style.display = 'none';
+        return;
+      }
+      
+      if (data && data.length > 0) {
+        const container = document.getElementById('news-digest-grid');
+        if (!container) return;
+        container.innerHTML = "";
+        
+        data.forEach(n => {
+          const card = document.createElement("a");
+          card.href = `news/index.html?id=${n.id}`;
+          
+          let badgeHtml = '';
+          let importanceClass = 'importance-normal';
+          if (n.importance === 'urgent') {
+            importanceClass = 'importance-urgent';
+            badgeHtml = `<span class="news-digest-badge urgent"><span class="pulse-dot"></span> Терміново</span>`;
+          } else if (n.importance === 'important') {
+            importanceClass = 'importance-important';
+            badgeHtml = `<span class="news-digest-badge important">⚠️ Важливо</span>`;
+          } else {
+            badgeHtml = `<span class="news-digest-badge normal">Новина</span>`;
+          }
+          
+          card.className = `news-digest-card ${importanceClass}`;
+          card.innerHTML = `
+            <div class="news-digest-card-meta">
+              ${badgeHtml}
+              <span class="news-digest-date">${formatDate(n.created_at)}</span>
+            </div>
+            <h3>${escapeHtml(n.title)}</h3>
+            <p>${escapeHtml(n.summary || "")}</p>
+          `;
+          container.appendChild(card);
+        });
+        
+        document.getElementById('news-digest').style.display = 'block';
+      } else {
+        document.getElementById('news-digest').style.display = 'none';
+      }
+    } catch (e) {
+      console.error('Failed to load news digest:', e);
+      document.getElementById('news-digest').style.display = 'none';
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    loadDigest();
+    if (sb.auth && typeof sb.auth.onAuthStateChange === 'function') {
+      sb.auth.onAuthStateChange(() => {
+        loadDigest();
+      });
+    }
+  });
 </script>
 </body>
 </html>

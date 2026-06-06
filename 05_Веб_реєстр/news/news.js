@@ -35,6 +35,16 @@ async function loadNews() {
   newsList = data || [];
   filterAndRender();
   renderStats();
+
+  // URL Parameter selection to support deep links from the homepage digest
+  const params = new URLSearchParams(window.location.search);
+  const newsId = params.get("id");
+  if (newsId) {
+    const found = newsList.find(n => n.id === newsId);
+    if (found) {
+      selectNews(found);
+    }
+  }
 }
 
 function filterAndRender() {
@@ -71,10 +81,21 @@ function renderGrid(list) {
     card.className = `news-card ${selectedNews && selectedNews.id === n.id ? "active" : ""}`;
     card.dataset.id = n.id;
 
-    // Tags rendering
+    // Tags rendering with importance status badge
     let tagsHtml = "";
+    let importanceBadge = "";
+    if (n.importance === 'urgent') {
+      importanceBadge = `<span class="category-badge importance-urgent-badge"><span class="pulse-dot"></span> Терміново</span>`;
+    } else if (n.importance === 'important') {
+      importanceBadge = `<span class="category-badge importance-important-badge">⚠️ Важливо</span>`;
+    } else {
+      importanceBadge = `<span class="category-badge importance-normal-badge">Новина</span>`;
+    }
+
     if (n.tags && Array.isArray(n.tags)) {
-      tagsHtml = n.tags.map(t => `<span class="category-badge">${escapeHtml(t)}</span>`).join("");
+      tagsHtml = importanceBadge + n.tags.map(t => `<span class="category-badge">${escapeHtml(t)}</span>`).join("");
+    } else {
+      tagsHtml = importanceBadge;
     }
 
     card.innerHTML = `
@@ -117,10 +138,21 @@ function selectNews(n) {
   }
 
   const tagsEl = byId("detTags");
-  if (tagsEl && n.tags && Array.isArray(n.tags)) {
-    tagsEl.innerHTML = n.tags.map(t => `<span class="category-badge">${escapeHtml(t)}</span>`).join("");
-  } else if (tagsEl) {
-    tagsEl.innerHTML = "";
+  if (tagsEl) {
+    let importanceBadge = "";
+    if (n.importance === 'urgent') {
+      importanceBadge = `<span class="category-badge importance-urgent-badge"><span class="pulse-dot"></span> Терміново</span>`;
+    } else if (n.importance === 'important') {
+      importanceBadge = `<span class="category-badge importance-important-badge">⚠️ Важливо</span>`;
+    } else {
+      importanceBadge = `<span class="category-badge importance-normal-badge">Новина</span>`;
+    }
+
+    let tagsHtml = importanceBadge;
+    if (n.tags && Array.isArray(n.tags)) {
+      tagsHtml += n.tags.map(t => `<span class="category-badge">${escapeHtml(t)}</span>`).join("");
+    }
+    tagsEl.innerHTML = tagsHtml;
   }
 
   const contentEl = byId("detContent");
