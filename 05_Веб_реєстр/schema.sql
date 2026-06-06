@@ -541,6 +541,49 @@ CREATE POLICY "Managers and above can delete news" ON public.news
     )
   );
 
+-- ── Chat Reactions Table ──
+CREATE TABLE IF NOT EXISTS public.chat_reactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  message_id UUID REFERENCES public.chat_messages(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_name TEXT NOT NULL,
+  emoji TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  UNIQUE(message_id, user_id, emoji)
+);
+
+-- Enable RLS for chat reactions
+ALTER TABLE public.chat_reactions ENABLE ROW LEVEL SECURITY;
+
+-- Add chat reactions table to realtime publication
+ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_reactions;
+
+-- Read reactions policy (authenticated users who are not guests can read chat reactions)
+CREATE POLICY "Full access users can read chat reactions" ON public.chat_reactions
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role != 'guest'
+    )
+  );
+
+-- Insert reaction policy (authenticated users who are not guests can add their own reactions)
+CREATE POLICY "Full access users can insert chat reactions" ON public.chat_reactions
+  FOR INSERT WITH CHECK (
+    auth.role() = 'authenticated' AND auth.uid() = user_id AND
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role != 'guest'
+    )
+  );
+
+-- Delete reaction policy (users can only delete their own reactions)
+CREATE POLICY "Full access users can delete chat reactions" ON public.chat_reactions
+  FOR DELETE USING (
+    auth.uid() = user_id
+  );
+
+
 
 
 

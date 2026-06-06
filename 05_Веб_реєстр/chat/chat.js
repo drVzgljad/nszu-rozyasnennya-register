@@ -5,7 +5,9 @@ const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = null;
+let currentUserRole = 'guest';
 let chatMessages = [];
+let messageReactions = {}; // messageId -> Array of reaction objects
 let realtimeChannel = null;
 let activeChat = { type: 'group' }; // { type: 'group' }, { type: 'private', userId: '...', userName: '...' } or { type: 'room', roomId: '...', roomName: '...' }
 let knownUsers = {}; // userId -> userName mapping for offline/active DM lists
@@ -29,6 +31,17 @@ async function init() {
     return;
   }
   currentUser = session.user;
+
+  // Load user profile role
+  const { data: profile, error: profileErr } = await sb
+    .from('profiles')
+    .select('role')
+    .eq('id', currentUser.id)
+    .single();
+
+  if (!profileErr && profile) {
+    currentUserRole = profile.role;
+  }
 
   // Load historical messages
   await loadMessages();
@@ -113,6 +126,27 @@ async function loadMessages() {
   }
 
   chatMessages = data || [];
+
+  // Fetch reactions for loaded messages
+  messageReactions = {};
+  if (chatMessages.length > 0) {
+    const messageIds = chatMessages.map(m => m.id);
+    const { data: reactionsData, error: reactionsError } = await sb
+      .from('chat_reactions')
+      .select('*')
+      .in('message_id', messageIds);
+
+    if (reactionsError) {
+      console.error('Error loading chat reactions:', reactionsError);
+    } else if (reactionsData) {
+      reactionsData.forEach(rx => {
+        if (!messageReactions[rx.message_id]) {
+          messageReactions[rx.message_id] = [];
+        }
+        messageReactions[rx.message_id].push(rx);
+      });
+    }
+  }
 
   // Extract known user names from historical messages
   chatMessages.forEach(msg => {
@@ -233,6 +267,21 @@ function appendMessageElement(msg, scroll = true) {
     hasActions = true;
   }
 
+  // Reaction picker action button (visible to non-guests)
+  if (currentUserRole !== 'guest') {
+    const reactBtn = document.createElement("button");
+    reactBtn.type = "button";
+    reactBtn.className = "chat-action-btn react-btn";
+    reactBtn.title = "Реагувати";
+    reactBtn.textContent = "😀";
+    reactBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      showReactionPicker(msg.id, reactBtn);
+    });
+    actionsDiv.appendChild(reactBtn);
+    hasActions = true;
+  }
+
   if (isMe) {
     const editBtn = document.createElement("button");
     editBtn.type = "button";
@@ -250,17 +299,185 @@ function appendMessageElement(msg, scroll = true) {
     
     actionsDiv.appendChild(editBtn);
     actionsDiv.appendChild(deleteBtn);
+    hasActions = true;
   }
 
   if (hasActions) {
     msgDiv.appendChild(actionsDiv);
   }
 
+  // Create reactions wrapper
+  const rxWrapper = document.createElement("div");
+  rxWrapper.className = "chat-msg-reactions-wrapper";
+  rxWrapper.id = `rx-wrapper-${msg.id}`;
+  msgDiv.appendChild(rxWrapper);
+
   container.appendChild(msgDiv);
+
+  // Render reactions for this message
+  renderMessageReactions(msg.id);
 
   if (scroll) {
     scrollToBottom();
   }
+}
+
+function renderMessageReactions(messageId) {
+  const rxWrapper = byId(`rx-wrapper-${messageId}`);
+  if (!rxWrapper) return;
+  rxWrapper.innerHTML = "";
+
+  const reactions = messageReactions[messageId] || [];
+  if (reactions.length === 0) {
+    rxWrapper.style.display = "none";
+    return;
+  }
+  rxWrapper.style.display = "flex";
+
+  // Group reactions by emoji
+  const grouped = {};
+  reactions.forEach(rx => {
+    if (!grouped[rx.emoji]) {
+      grouped[rx.emoji] = [];
+    }
+    grouped[rx.emoji].push(rx);
+  });
+
+  // Render a pill for each unique emoji
+  Object.keys(grouped).forEach(emoji => {
+    const users = grouped[emoji];
+    const count = users.length;
+    const hasMyReaction = users.some(rx => rx.user_id === currentUser?.id);
+
+    const pill = document.createElement("button");
+    pill.type = "button";
+    pill.className = `reaction-pill ${hasMyReaction ? 'active' : ''}`;
+    
+    // Create tooltip text showing list of reactor names
+    const names = users.map(rx => rx.user_name).join(", ");
+    pill.title = names;
+
+    pill.innerHTML = `
+      <span class="reaction-emoji">${emoji}</span>
+      <span class="reaction-count">${count}</span>
+    `;
+
+    // Click handler to toggle reaction
+    pill.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleReaction(messageId, emoji);
+    });
+
+    rxWrapper.appendChild(pill);
+  });
+}
+
+async function toggleReaction(messageId, emoji) {
+  if (currentUserRole === 'guest') {
+    alert("Гості не можуть залишати реакції.");
+    return;
+  }
+
+  const existing = (messageReactions[messageId] || []).find(
+    rx => rx.user_id === currentUser.id && rx.emoji === emoji
+  );
+
+  if (existing) {
+    // Delete reaction
+    const { error } = await sb
+      .from('chat_reactions')
+      .delete()
+      .eq('id', existing.id);
+
+    if (error) {
+      console.error("Error deleting reaction:", error);
+      alert("Не вдалося видалити реакцію: " + error.message);
+    } else {
+      // Optimistic update
+      messageReactions[messageId] = messageReactions[messageId].filter(rx => rx.id !== existing.id);
+      renderMessageReactions(messageId);
+    }
+  } else {
+    // Add reaction
+    const profileName = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
+    const newRx = {
+      message_id: messageId,
+      user_id: currentUser.id,
+      user_name: profileName,
+      emoji: emoji
+    };
+
+    const { data, error } = await sb
+      .from('chat_reactions')
+      .insert(newRx)
+      .select();
+
+    if (error) {
+      console.error("Error inserting reaction:", error);
+      alert("Не вдалося додати реакцію: " + error.message);
+    } else if (data && data.length > 0) {
+      // Optimistic update
+      if (!messageReactions[messageId]) {
+        messageReactions[messageId] = [];
+      }
+      messageReactions[messageId].push(data[0]);
+      renderMessageReactions(messageId);
+    }
+  }
+}
+
+let currentPickerMessageId = null;
+
+function showReactionPicker(messageId, triggerBtn) {
+  let picker = byId("messageReactionPicker");
+  if (!picker) {
+    picker = document.createElement("div");
+    picker.id = "messageReactionPicker";
+    picker.className = "message-reaction-picker";
+    
+    const emojis = ['👍', '❤️', '🔥', '👏', '😂', '😮', '😢'];
+    emojis.forEach(emoji => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "picker-emoji-btn";
+      btn.textContent = emoji;
+      btn.addEventListener("click", () => {
+        if (currentPickerMessageId) {
+          toggleReaction(currentPickerMessageId, emoji);
+        }
+        picker.style.display = "none";
+      });
+      picker.appendChild(btn);
+    });
+    
+    document.body.appendChild(picker);
+  }
+
+  currentPickerMessageId = messageId;
+
+  // Position the picker close to the triggerBtn
+  const rect = triggerBtn.getBoundingClientRect();
+  const pickerWidth = 240; // Approximate
+  const pickerHeight = 40; // Approximate
+  
+  // Align it horizontally centered above the trigger button
+  const top = rect.top + window.scrollY - pickerHeight - 8;
+  const left = rect.left + window.scrollX + (rect.width / 2) - (pickerWidth / 2);
+
+  picker.style.top = `${top}px`;
+  picker.style.left = `${left}px`;
+  picker.style.display = "flex";
+
+  // Prevent immediate click close handler
+  setTimeout(() => {
+    const closePicker = (e) => {
+      if (!picker.contains(e.target) && e.target !== triggerBtn) {
+        picker.style.display = "none";
+        document.removeEventListener("click", closePicker);
+      }
+    };
+    document.addEventListener("click", closePicker);
+  }, 50);
 }
 
 function showSystemMessage(text) {
@@ -576,6 +793,35 @@ function setupRealtime() {
           } else {
             renderDialoguesList();
           }
+        }
+      }
+    })
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'chat_reactions'
+    }, payload => {
+      const { eventType, new: newRx, old: oldRx } = payload;
+      if (eventType === 'INSERT') {
+        const messageId = newRx.message_id;
+        if (!messageReactions[messageId]) {
+          messageReactions[messageId] = [];
+        }
+        if (!messageReactions[messageId].some(rx => rx.id === newRx.id)) {
+          messageReactions[messageId].push(newRx);
+          renderMessageReactions(messageId);
+        }
+      } else if (eventType === 'DELETE') {
+        let foundMessageId = null;
+        Object.keys(messageReactions).forEach(mId => {
+          const idx = messageReactions[mId].findIndex(rx => rx.id === oldRx.id);
+          if (idx !== -1) {
+            messageReactions[mId].splice(idx, 1);
+            foundMessageId = mId;
+          }
+        });
+        if (foundMessageId) {
+          renderMessageReactions(foundMessageId);
         }
       }
     })
