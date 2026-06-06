@@ -40,33 +40,40 @@
   <section class="hero" id="top">
     <div class="plus-field" aria-hidden="true"></div>
     <div class="wrap hero-inner">
-      <h1>
-        Архітектура <span class="accent">медичних гарантій</span>:<br>
-        стратегічні рішення для <span class="accent-2">кожного українця</span>
-      </h1>
-      <p class="hero-lead">
-        Єдиний робочий простір Департаменту: швидкий пошук роз'яснень, пакетів ПМГ та алгоритмів.
-        Контроль доручень, звітність та хронологія роботи (СКО-Д) в одному місці —
-        для легкої та комфортної роботи, де все під контролем і жодна дрібниця не залишиться поза увагою.
-      </p>
-      <div class="hero-search">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-          stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
-          <circle cx="11" cy="11" r="7"></circle>
-          <path d="M21 21l-4.3-4.3"></path>
-        </svg>
-        <input type="search" id="hero-q"
-          placeholder="Наприклад: паліативна допомога, ШВЛ, наказ 377, тариф…"
-          aria-label="Пошук по порталу"
-          onkeydown="if(event.key==='Enter') goSearch()">
-        <button class="btn btn-primary" onclick="goSearch()">Шукати</button>
-      </div>
-      <div class="hero-tags" aria-label="Теги">
-        <a href="rozjasnennya.html">Роз'яснення НСЗУ</a>
-        <a href="pakety/index.html">Пакети 2026</a>
-        <a href="postanova/index.html">Постанова 1808</a>
-        <a href="algorithms/index.html">Наказ 377</a>
-        <a href="pakety/report.html">Машина пошуку</a>
+      <div class="hero-main-row" style="display: flex; align-items: center; justify-content: space-between; gap: 40px; margin-bottom: 30px; flex-wrap: wrap;">
+        <div class="hero-main-content" style="flex: 2; min-width: 300px;">
+          <h1>
+            Архітектура <span class="accent">медичних гарантій</span>:<br>
+            стратегічні рішення для <span class="accent-2">кожного українця</span>
+          </h1>
+          <p class="hero-lead">
+            Єдиний робочий простір Департаменту: швидкий пошук роз'яснень, пакетів ПМГ та алгоритмів.
+            Контроль доручень, звітність та хронологія роботи (СКО-Д) в одному місці —
+            для легкої та комфортної роботи, де все під контролем і жодна дрібниця не залишиться поза увагою.
+          </p>
+          <div class="hero-search">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+              stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"></circle>
+              <path d="M21 21l-4.3-4.3"></path>
+            </svg>
+            <input type="search" id="hero-q"
+              placeholder="Наприклад: паліативна допомога, ШВЛ, наказ 377, тариф…"
+              aria-label="Пошук по порталу"
+              onkeydown="if(event.key==='Enter') goSearch()">
+            <button class="btn btn-primary" onclick="goSearch()">Шукати</button>
+          </div>
+          <div class="hero-tags" aria-label="Теги">
+            <a href="rozjasnennya.html">Роз'яснення НСЗУ</a>
+            <a href="pakety/index.html">Пакети 2026</a>
+            <a href="postanova/index.html">Постанова 1808</a>
+            <a href="algorithms/index.html">Наказ 377</a>
+            <a href="pakety/report.html">Машина пошуку</a>
+          </div>
+        </div>
+        <div class="hero-main-logo" style="flex: 1; min-width: 200px; text-align: center; display: flex; justify-content: center; align-items: center;">
+          <img src="assets/logo.png" alt="Логотип" style="max-width: 260px; width: 100%; height: auto; border-radius: 20px; filter: drop-shadow(0 20px 40px rgba(0,0,0,0.12)); border: 1px solid rgba(255, 255, 255, 0.4); background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(10px); padding: 12px; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
+        </div>
       </div>
       <div class="stat-strip" aria-label="Статистика порталу">
         <div class="cell"><div class="num">171</div><div class="cap">документ у бібліотеці</div></div>
