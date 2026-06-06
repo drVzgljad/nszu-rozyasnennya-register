@@ -1359,28 +1359,130 @@
   color: var(--ink) !important;
 }
 
-/* Chat Page Specific */
-:root.dark-theme .chat-container {
+/* Chat Page Specific Overrides */
+:root.dark-theme .chat-window {
   background: var(--surface) !important;
+  border-color: var(--line) !important;
 }
-:root.dark-theme .chat-sidebar {
-  border-right-color: var(--line) !important;
-  background: var(--soft) !important;
+:root.dark-theme .chat-messages-wrapper {
+  background: #0f172a !important; /* dark slate bg */
+  background-image: radial-gradient(var(--line) 1px, transparent 0) !important;
 }
-:root.dark-theme .message-bubble {
-  background: var(--soft) !important;
-  color: var(--ink) !important;
-}
-:root.dark-theme .message-bubble.my-message {
-  background: var(--accent) !important;
-  color: #fff !important;
-}
-:root.dark-theme .chat-input-area {
-  border-top-color: var(--line) !important;
-  background: var(--surface) !important;
-}
-:root.dark-theme .chat-input-area textarea {
-  background: var(--soft) !important;
+:root.dark-theme .chat-msg.msg-received .chat-msg-bubble {
+  background-color: var(--surface) !important;
   color: var(--ink) !important;
   border-color: var(--line) !important;
+}
+:root.dark-theme .chat-msg-meta {
+  color: var(--muted) !important;
+}
+:root.dark-theme .chat-msg-meta .sender-name {
+  color: var(--ink) !important;
+}
+:root.dark-theme .chat-input-panel {
+  background: var(--surface) !important;
+  border-top-color: var(--line) !important;
+}
+:root.dark-theme .chat-input-panel input {
+  background: var(--soft) !important;
+  border-color: var(--line) !important;
+  color: var(--ink) !important;
+}
+:root.dark-theme .chat-input-panel input:focus {
+  background: var(--surface) !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15) !important;
+}
+:root.dark-theme .chat-msg-actions {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+}
+:root.dark-theme .chat-action-btn:hover {
+  background: var(--soft) !important;
+}
+:root.dark-theme .chat-file-card {
+  background: var(--soft) !important;
+  border-color: var(--line) !important;
+  color: var(--ink) !important;
+}
+:root.dark-theme .chat-file-card:hover {
+  background: var(--surface) !important;
+  border-color: var(--accent) !important;
+}
+:root.dark-theme .chat-msg.msg-sent .chat-file-card {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  color: #fff !important;
+}
+:root.dark-theme .chat-msg.msg-sent .chat-file-card:hover {
+  background: rgba(255, 255, 255, 0.22) !important;
+}
+
+/* Chat Pinned messages hover override */
+:root.dark-theme .pinned-message-item:hover {
+  background-color: var(--surface) !important;
+}
+:root.dark-theme .pinned-item-author {
+  color: var(--accent) !important;
+}
+:root.dark-theme .pinned-item-body {
+  color: var(--ink) !important;
+}
+
+/* Chat Window Header & PIP mode styling */
+:root.dark-theme .chat-window-header {
+  background: var(--surface) !important;
+  border-bottom-color: var(--line) !important;
+}
+:root.dark-theme .chat-header-title {
+  color: var(--ink) !important;
+}
+:root.dark-theme .chat-header-btn:hover {
+  background: var(--soft) !important;
+  color: var(--accent) !important;
+}
+:root.dark-theme .chat-window.pip-mode {
+  background: rgba(30, 41, 59, 0.94) !important;
+  border-color: rgba(56, 189, 248, 0.35) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4) !important;
+}
+:root.dark-theme .chat-window.pip-mode .chat-window-header {
+  background: rgba(30, 41, 59, 0.7) !important;
+  border-bottom-color: var(--line) !important;
+}
+:root.dark-theme .chat-window.pip-mode .chat-messages-wrapper {
+  background: rgba(15, 23, 42, 0.5) !important;
+}
+:root.dark-theme .chat-window.pip-mode .chat-input-panel {
+  background: rgba(30, 41, 59, 0.85) !important;
+  border-top-color: var(--line) !important;
+}
+:root.dark-theme .chat-window.pip-mode .chat-input-wrapper input {
+  background: var(--soft) !important;
+  color: var(--ink) !important;
+}
+:root.dark-theme .chat-window.popup-active .chat-popup-overlay {
+  background: rgba(15, 23, 42, 0.88) !important;
+}
+:root.dark-theme .chat-system-message {
+  background-color: var(--soft) !important;
+  color: var(--muted) !important;
+  border-color: var(--line) !important;
+}
+
+/* News digest badge overrides */
+:root.dark-theme .news-digest-badge.urgent {
+  background: #4a151b !important;
+  color: #f87171 !important;
+  border-color: #7f1d1d !important;
+}
+:root.dark-theme .news-digest-badge.important {
+  background: #452a0a !important;
+  color: #fb923c !important;
+  border-color: #7c2d12 !important;
+}
+:root.dark-theme .news-digest-badge.normal {
+  background: #0c4a6e !important;
+  color: #38bdf8 !important;
+  border-color: #0369a1 !important;
 }
