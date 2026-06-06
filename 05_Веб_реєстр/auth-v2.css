@@ -1021,6 +1021,9 @@
   --teal: #4ade80;
   --teal-dark: #22c55e;
   --warm: #14532d;
+  --warning-bg: #452a0a;
+  --warning-border: #7c2d12;
+  --warning-text: #fb923c;
   --shadow: 0 12px 34px rgba(0,0,0,.4);
 }
 

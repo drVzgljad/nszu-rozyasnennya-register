@@ -41,7 +41,7 @@
   padding: 18px;
   border: 1px solid var(--line);
   border-radius: 20px;
-  background: #fff;
+  background: var(--surface);
   box-shadow: var(--shadow);
 }
 .source-panel h2 {
@@ -61,7 +61,7 @@
   border: 1px solid var(--line);
   border-radius: 14px;
   color: var(--ink);
-  background: #fff;
+  background: var(--surface);
   text-align: left;
   text-decoration: none;
 }
@@ -69,7 +69,7 @@
 .algorithm-card:hover,
 .algorithm-card.active {
   border-color: rgba(0,111,201,.42);
-  background: #f7fbff;
+  background: var(--accent-soft);
 }
 .source-card strong,
 .algorithm-card strong {
@@ -93,7 +93,7 @@
   padding: 4px 7px;
   border-radius: 999px;
   color: var(--accent-dark);
-  background: #eaf4fc;
+  background: var(--soft);
   font-size: 11px;
   font-style: normal;
   font-weight: 800;
@@ -117,10 +117,10 @@
   text-align: center;
   min-height: 42px;
   padding: 8px 6px;
-  border: 1px solid rgba(0,111,201,.2);
+  border: 1px solid var(--line);
   border-radius: 12px;
   color: var(--accent-dark);
-  background: #eaf4fc;
+  background: var(--soft);
   font-size: 15px;
   font-weight: 850;
   letter-spacing: .01em;
@@ -128,7 +128,7 @@
 }
 .algorithm-card.active .algorithm-code {
   border-color: rgba(0,111,201,.42);
-  background: #dcefff;
+  background: var(--accent-soft);
 }
 .algorithm-reader {
   min-height: calc(100vh - 170px);
@@ -155,8 +155,8 @@
 .algorithm-pill {
   padding: 6px 8px;
   border-radius: 999px;
-  color: #31617f;
-  background: #eef5fc;
+  color: var(--accent-dark);
+  background: var(--soft);
   font-size: 12px;
   font-weight: 750;
 }
@@ -165,7 +165,7 @@
   padding: 14px;
   border-radius: 14px;
   background: var(--soft);
-  color: #253b52;
+  color: var(--ink);
   font-size: 15px;
   line-height: 1.58;
 }
@@ -174,10 +174,10 @@
   min-height: 130px;
   margin-top: 10px;
   padding: 12px;
-  border: 1px solid #d2e0eb;
+  border: 1px solid var(--line);
   border-radius: 12px;
   color: var(--ink);
-  background: #fff;
+  background: var(--surface);
   font: 14px/1.5 "Segoe UI", Arial, sans-serif;
   resize: vertical;
 }
@@ -193,10 +193,10 @@
   justify-content: center;
   min-height: 38px;
   padding: 9px 13px;
-  border: 1px solid #cfe0ed;
+  border: 1px solid var(--line);
   border-radius: 10px;
   color: var(--accent-dark);
-  background: #fff;
+  background: var(--surface);
   font: inherit;
   font-size: 13px;
   font-weight: 750;
@@ -223,9 +223,9 @@
   align-items: center;
   padding: 2px 7px;
   border-radius: 999px;
-  background: #fff3cd;
-  color: #7a5000;
-  border: 1px solid #ffc107;
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  border: 1px solid var(--warning-border);
   font-size: 10px;
   font-style: normal;
   font-weight: 800;
@@ -233,9 +233,9 @@
   white-space: nowrap;
 }
 .algorithm-pill--change {
-  background: #fff3cd;
-  color: #7a5000;
-  border: 1px solid #ffc107;
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  border: 1px solid var(--warning-border);
 }
 .algorithm-compare-hint {
   display: flex;
@@ -245,19 +245,19 @@
   margin: 12px 0;
   padding: 10px 14px;
   border-radius: 10px;
-  background: #fffbec;
-  border: 1px solid #fde68a;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
   font-size: 13px;
-  color: #7a5000;
+  color: var(--warning-text);
 }
 .algorithm-compare-hint a {
   white-space: nowrap;
   font-weight: 750;
-  color: #7a5000;
+  color: var(--warning-text);
   text-decoration: underline;
 }
 .source-card-date {
-  color: #7a5000 !important;
+  color: var(--warning-text) !important;
   font-weight: 700 !important;
 }
 mark { padding: 0 2px; border-radius: 3px; color: inherit; background: #ffe69a; }

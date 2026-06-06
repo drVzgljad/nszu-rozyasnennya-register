@@ -12,6 +12,10 @@
   --teal: #54ad84;
   --teal-dark: #3a8462;
   --warm: #eef8f1;
+  --warning-bg: #fff3cd;
+  --warning-border: #ffc107;
+  --warning-text: #7a5000;
+  --brand-grad: linear-gradient(118deg, #eef8f1 0%, #f3faf5 45%, #eef6fc 100%);
   --shadow: 0 12px 34px rgba(38, 78, 112, 0.09);
 }
 

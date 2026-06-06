@@ -4,7 +4,7 @@
 
 /* Page container tweaks */
 .contracts-hero {
-  background: linear-gradient(118deg, #eef8f1 0%, #f3faf5 45%, #eef6fc 100%);
+  background: var(--brand-grad);
 }
 
 .contracts-layout {
@@ -230,7 +230,7 @@
   border-radius: 10px;
   font-size: 13.5px;
   line-height: 1.45;
-  color: #364b63;
+  color: var(--ink);
   display: flex;
   align-items: flex-start;
   gap: 8px;
@@ -318,10 +318,10 @@
   width: 100%;
   margin-top: 6px;
   padding: 10px 12px;
-  border: 1px solid #d7e1e9;
+  border: 1px solid var(--line);
   border-radius: 10px;
   color: var(--ink);
-  background: #fff;
+  background: var(--surface);
   font: inherit;
   font-size: 13px;
   cursor: pointer;
@@ -353,11 +353,11 @@
   left: 0;
   right: 0;
   z-index: 1100;
-  background: #fff;
-  border: 1px solid #cddbe7;
+  background: var(--surface);
+  border: 1px solid var(--line);
   border-radius: 10px;
   margin-top: 4px;
-  box-shadow: 0 8px 24px rgba(38, 78, 112, 0.12);
+  box-shadow: var(--shadow);
   display: none;
   flex-direction: column;
   max-height: 280px;
@@ -546,5 +546,81 @@
   flex-grow: 1;
   height: 100%;
 }
+
+/* ── Dark Theme Overrides for Contracts & Leaflet ── */
+.dark-theme .contracts-hero {
+  background: var(--brand-grad) !important;
+  border-bottom-color: var(--line) !important;
+}
+
+.dark-theme .multiselect-btn {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+  color: var(--ink) !important;
+}
+
+.dark-theme .multiselect-menu {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+}
+
+.dark-theme .multiselect-item:hover {
+  background: var(--soft) !important;
+}
+
+.dark-theme .finance-highlight-box {
+  background: linear-gradient(135deg, var(--soft) 0%, rgba(30, 41, 59, 0.8) 100%) !important;
+  border-color: var(--line) !important;
+}
+
+.dark-theme .mnp-location-item {
+  color: var(--ink) !important;
+}
+
+.dark-theme .coef-box.active {
+  background: #452a0a !important;
+  border-color: #7c2d12 !important;
+}
+
+.dark-theme .coef-box.active span {
+  color: #fb923c !important;
+}
+
+.dark-theme .network-badge {
+  background: #452a0a !important;
+  color: #fb923c !important;
+  border-color: rgba(251, 146, 60, 0.2) !important;
+}
+
+.dark-theme .network-badge.nadklaster {
+  background: #4a1236 !important;
+  color: #f472b6 !important;
+  border-color: rgba(244, 114, 182, 0.2) !important;
+}
+
+.dark-theme .network-badge.klaster {
+  background: #0c4a6e !important;
+  color: #38bdf8 !important;
+  border-color: rgba(56, 189, 248, 0.2) !important;
+}
+
+.dark-theme .network-badge.general {
+  background: #14532d !important;
+  color: #4ade80 !important;
+  border-color: rgba(74, 222, 128, 0.2) !important;
+}
+
+/* Leaflet maps dark mode */
+.dark-theme .leaflet-container {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(1.1) !important;
+}
+.dark-theme .leaflet-bar a,
+.dark-theme .leaflet-control-layers {
+  background-color: var(--surface) !important;
+  color: var(--ink) !important;
+  border-color: var(--line) !important;
+}
+
 
 
