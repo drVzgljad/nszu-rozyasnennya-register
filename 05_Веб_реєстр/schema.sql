@@ -251,7 +251,8 @@ CREATE TABLE IF NOT EXISTS public.skod_logs (
   score NUMERIC,                         -- розраховується: (duration_minutes / 60.0) * complexity_coefficient
   status TEXT NOT NULL DEFAULT 'completed', -- 'completed' | 'in_progress'
   description TEXT,
-  subtask_id TEXT
+  subtask_id TEXT,
+  askod_reg_number TEXT
 );
 
 -- Увімкнення RLS для таблиці логів СКО-Д

@@ -178,6 +178,20 @@ function setupForm() {
       
       const taskLinkGroup = document.getElementById('form-assigned-task-group');
       const taskLinkSel = document.getElementById('link_assigned_task');
+      const askodRegGroup = document.getElementById('form-askod-reg-group');
+      const askodRegInput = document.getElementById('askod_reg_number');
+      
+      // Toggle ASKOD registration group visibility & validation
+      if (branchSel.value === 'askod') {
+        if (askodRegGroup) askodRegGroup.style.display = 'block';
+        if (askodRegInput) askodRegInput.required = true;
+      } else {
+        if (askodRegGroup) askodRegGroup.style.display = 'none';
+        if (askodRegInput) {
+          askodRegInput.required = false;
+          askodRegInput.value = '';
+        }
+      }
       
       if (branchSel.value === 'tasks') {
         if (taskLinkGroup) {
@@ -270,6 +284,20 @@ function setupForm() {
         return;
       }
 
+      let askod_reg_number = null;
+      if (branch === 'askod') {
+        const askodRegInput = document.getElementById('askod_reg_number');
+        askod_reg_number = askodRegInput ? askodRegInput.value.trim() : null;
+        if (!askod_reg_number) {
+          alert('Будь ласка, вкажіть реєстраційний номер в АСКОД.');
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Зберегти завдання';
+          }
+          return;
+        }
+      }
+
       const assigned_task_id = document.getElementById('link_assigned_task')?.value || null;
       if (branch === 'tasks' && !assigned_task_id) {
         alert('Будь ласка, оберіть доручення, яке ви виконували.');
@@ -311,7 +339,8 @@ function setupForm() {
         score,
         status,
         description,
-        assigned_task_id: document.getElementById('link_assigned_task')?.value || null
+        assigned_task_id: document.getElementById('link_assigned_task')?.value || null,
+        askod_reg_number
       };
 
       const { error } = await sb.from('skod_logs').insert([logData]);
@@ -332,6 +361,13 @@ function setupForm() {
         if (statusSel) {
           statusSel.value = 'completed';
           if (durationGroup) durationGroup.style.display = 'block';
+        }
+        const askodRegGroup = document.getElementById('form-askod-reg-group');
+        const askodRegInput = document.getElementById('askod_reg_number');
+        if (askodRegGroup) askodRegGroup.style.display = 'none';
+        if (askodRegInput) {
+          askodRegInput.required = false;
+          askodRegInput.value = '';
         }
         updateLiveScore();
         
@@ -498,7 +534,12 @@ async function loadTodayLogs() {
       const severityMap = { easy: 'Легкий', medium: 'Середній', hard: 'Складний', expert: 'Експерт' };
       const sevLabel = severityMap[log.severity_level] || log.severity_level;
 
-      const branchLabel = log.branch === 'askod' ? 'АСКОД' : 'Відділ';
+      let branchLabel = 'Відділ';
+      if (log.branch === 'askod') {
+        branchLabel = `АСКОД ${log.askod_reg_number ? `№ ${log.askod_reg_number}` : ''}`;
+      } else if (log.branch === 'tasks') {
+        branchLabel = 'Доручення';
+      }
       const categoryLabel = log.category ? ` &bull; ${log.category}` : '';
 
       let scoreContent = log.score ? log.score.toFixed(2) : '0.00';
@@ -684,7 +725,12 @@ function renderPersonalReport(logs, container) {
       durationStr = hrs > 0 ? `${hrs} год ${mins} хв` : `${mins} хв`;
     }
 
-    const branchLabel = log.branch === 'askod' ? 'АСКОД' : 'Відділ';
+    let branchLabel = 'Відділ';
+    if (log.branch === 'askod') {
+      branchLabel = `АСКОД ${log.askod_reg_number ? `№ ${log.askod_reg_number}` : ''}`;
+    } else if (log.branch === 'tasks') {
+      branchLabel = 'Доручення';
+    }
     const categoryLabel = log.category ? ` &bull; ${log.category}` : '';
     const scoreVal = log.status === 'in_progress' ? 'В процесі' : parseFloat(log.score || 0).toFixed(2);
 
