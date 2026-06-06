@@ -439,6 +439,22 @@ function inject() {
   // Auth elements inside nav/container
   const container = document.querySelector('.auth-container') || document.querySelector('nav.section-switch');
   if (container) {
+    // Global Online counter pill
+    const onlineChip = document.createElement('div');
+    onlineChip.id = 'portal-online-chip';
+    onlineChip.className = 'portal-online-chip';
+    onlineChip.innerHTML = `
+      <span class="online-glowing-dot"></span>
+      <span id="portal-online-count" class="online-count-lbl">0</span> в мережі
+      <div class="online-users-dropdown" id="online-users-dropdown">
+        <div class="dropdown-title">Зараз на порталі:</div>
+        <ul class="dropdown-users-list" id="portal-online-users-list">
+          <li>Завантаження...</li>
+        </ul>
+      </div>
+    `;
+    container.appendChild(onlineChip);
+
     // Role badge indicator
     const badge = document.createElement('span');
     badge.id = 'auth-role-badge';
@@ -671,17 +687,13 @@ async function init() {
   await fetchRole();
   applyAccess();
 
-  if (!window.location.pathname.toLowerCase().includes('/chat/')) {
-    trackGlobalPresence();
-  }
+  trackGlobalPresence();
 
   sb.auth.onAuthStateChange(async (_event, session) => {
     user = session?.user ?? null;
     await fetchRole();
     applyAccess();
-    if (!window.location.pathname.toLowerCase().includes('/chat/')) {
-      trackGlobalPresence();
-    }
+    trackGlobalPresence();
   });
 }
 
@@ -755,45 +767,79 @@ async function renderAlertBanner(alertBanner, prefix) {
 let globalPresenceChannel = null;
 
 async function trackGlobalPresence() {
-  // If user is logged out, unsubscribe from channel if it exists
-  if (!user) {
-    if (globalPresenceChannel) {
-      globalPresenceChannel.unsubscribe();
-      globalPresenceChannel = null;
-    }
-    return;
+  // Unsubscribe existing channel to recreate it with the new auth state
+  if (globalPresenceChannel) {
+    globalPresenceChannel.unsubscribe();
+    globalPresenceChannel = null;
   }
 
-  // If already tracking, don't duplicate
-  if (globalPresenceChannel) return;
-
-  const displayName = user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0];
+  const isChatPage = window.location.pathname.toLowerCase().includes('/chat/');
+  const displayName = user ? (user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0]) : null;
 
   globalPresenceChannel = sb.channel('chat_room', {
     config: {
       presence: {
-        key: user.id
+        key: user ? user.id : 'anonymous-' + Math.random().toString(36).substring(2, 9)
       }
     }
   });
 
   globalPresenceChannel
     .on('presence', { event: 'sync' }, () => {
-      // We are just tracking; chat.js on the chat page handles rendering the actual list.
+      const state = globalPresenceChannel.presenceState();
+      updateGlobalOnlineCount(state);
     })
     .subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
-        try {
-          await globalPresenceChannel.track({
-            user_id: user.id,
-            user_name: displayName,
-            online_at: new Date().toISOString()
-          });
-        } catch (e) {
-          console.error("Failed to track global presence:", e);
+        if (user && !isChatPage) {
+          try {
+            await globalPresenceChannel.track({
+              user_id: user.id,
+              user_name: displayName,
+              online_at: new Date().toISOString()
+            });
+          } catch (e) {
+            console.error("Failed to track global presence:", e);
+          }
         }
       }
     });
+}
+
+function updateGlobalOnlineCount(state) {
+  const countLbl = document.getElementById('portal-online-count');
+  const dropdownList = document.getElementById('portal-online-users-list');
+  if (!countLbl || !dropdownList) return;
+
+  const uniqueUsers = [];
+  const seenIds = new Set();
+
+  for (const key in state) {
+    const presences = state[key];
+    if (presences && presences.length > 0) {
+      const p = presences[0];
+      if (p.user_id && !seenIds.has(p.user_id)) {
+        seenIds.add(p.user_id);
+        uniqueUsers.push({
+          id: p.user_id,
+          name: p.user_name || 'Співробітник'
+        });
+      }
+    }
+  }
+
+  countLbl.textContent = uniqueUsers.length;
+
+  dropdownList.innerHTML = "";
+  if (uniqueUsers.length === 0) {
+    dropdownList.innerHTML = '<li style="color: var(--muted); font-style: italic;">Нікого немає</li>';
+  } else {
+    uniqueUsers.forEach(u => {
+      const li = document.createElement('li');
+      li.textContent = u.name;
+      dropdownList.appendChild(li);
+    });
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);
