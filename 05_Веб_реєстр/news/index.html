@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>НавігаторПМГ26 | Аналітичні Новини</title>
-  <link rel="stylesheet" href="../styles.css?v=20260603a">
+  <link rel="stylesheet" href="../styles.css?v=20260531e">
   <link rel="stylesheet" href="news.css">
   <link rel="stylesheet" href="../auth-v2.css?v=20260603f">
   <script type="module" src="../auth-v2.js?v=20260603f"></script>
@@ -41,8 +41,11 @@
           <span>Пошук у новинах</span>
           <input id="newsSearch" type="search" placeholder="Наприклад: звіт, зміни тарифів, роз'яснення..." autocomplete="off">
         </label>
-        <div class="results-summary">
+        <div class="results-summary" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
           <span id="newsCount">Завантаження новин...</span>
+          <button id="createNewsBtn" class="btn btn-primary" type="button" style="display: none; padding: 6px 14px; font-size: 13px; font-weight: 600; border-radius: 999px;">
+            ➕ Створити новину
+          </button>
         </div>
       </div>
 
@@ -78,6 +81,58 @@
       </div>
     </div>
   </footer>
+
+  <!-- Modal for Creating/Publishing News -->
+  <div class="news-modal-overlay" id="publishModal" style="display: none;">
+    <div class="news-modal-card">
+      <div class="news-modal-header">
+        <h2>➕ Створити аналітичну новину</h2>
+        <button class="news-modal-close" id="closePublishModalBtn" type="button">&times;</button>
+      </div>
+      <form id="publishForm" class="news-modal-form">
+        <div class="form-group">
+          <span>Заголовок новини <span class="required">*</span></span>
+          <input type="text" id="pubTitle" required placeholder="Введіть короткий та змістовний заголовок..." autocomplete="off">
+        </div>
+        
+        <div class="form-group">
+          <span>Короткий опис (Summary) <span class="required">*</span></span>
+          <textarea id="pubSummary" required rows="2" placeholder="Короткий опис для картки в стрічці та дайджесті..."></textarea>
+        </div>
+        
+        <div class="form-group">
+          <span>Зміст (Content) <span class="required">*</span></span>
+          <textarea id="pubContent" required rows="8" placeholder="Повний текст новини. Підтримує заголовки (##, ###), списки (*, -) та цитати (>)..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-6">
+            <span>Статус важливості</span>
+            <select id="pubImportance">
+              <option value="normal">Звичайна новина</option>
+              <option value="important">⚠️ Важлива</option>
+              <option value="urgent">🚨 Термінова (пульсуюча)</option>
+            </select>
+          </div>
+          
+          <div class="form-group col-6">
+            <span>Теги (через кому)</span>
+            <input type="text" id="pubTags" placeholder="Наприклад: Оголошення, СКО-Д, Постанова">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <span>Посилання на зображення (Image URL - опціонально)</span>
+          <input type="url" id="pubImageUrl" placeholder="https://example.com/image.jpg">
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="cancelPublishBtn">Скасувати</button>
+          <button type="submit" class="btn btn-primary">Опублікувати новину</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <script type="module" src="news.js" defer></script>
 </body>

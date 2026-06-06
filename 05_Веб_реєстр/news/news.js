@@ -22,6 +22,23 @@ async function init() {
   if (closeBtn) {
     closeBtn.addEventListener("click", showDefaultState);
   }
+
+  // Setup news publishing
+  await checkPublishAccess();
+  setupPublishModal();
+
+  // Listen for auth changes to update publish button visibility
+  sb.auth.onAuthStateChange(async (_event, session) => {
+    if (session && session.user) {
+      currentUser = session.user;
+      const { data } = await sb.from('profiles').select('role').eq('id', currentUser.id).single();
+      currentUserRole = data?.role ?? null;
+    } else {
+      currentUser = null;
+      currentUserRole = null;
+    }
+    togglePublishButtonVisibility();
+  });
 }
 
 async function loadNews() {
@@ -245,6 +262,128 @@ function formatDate(isoString) {
     month: "long",
     year: "numeric"
   });
+}
+
+let currentUser = null;
+let currentUserRole = null;
+
+async function checkPublishAccess() {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session && session.user) {
+      currentUser = session.user;
+      const { data } = await sb.from('profiles').select('role').eq('id', currentUser.id).single();
+      currentUserRole = data?.role ?? null;
+      togglePublishButtonVisibility();
+    } else {
+      currentUser = null;
+      currentUserRole = null;
+      togglePublishButtonVisibility();
+    }
+  } catch (e) {
+    console.error("Error checking publish access:", e);
+  }
+}
+
+function togglePublishButtonVisibility() {
+  const allowedRoles = ['manager', 'deputy_director', 'director', 'admin'];
+  const btn = byId("createNewsBtn");
+  if (btn) {
+    if (currentUser && allowedRoles.includes(currentUserRole)) {
+      btn.style.display = "block";
+    } else {
+      btn.style.display = "none";
+    }
+  }
+}
+
+function setupPublishModal() {
+  const openBtn = byId("createNewsBtn");
+  const modal = byId("publishModal");
+  const closeBtn = byId("closePublishModalBtn");
+  const cancelBtn = byId("cancelPublishBtn");
+  const form = byId("publishForm");
+
+  if (openBtn && modal) {
+    openBtn.addEventListener("click", () => {
+      modal.style.display = "flex";
+    });
+  }
+
+  const closeModal = () => {
+    if (modal) modal.style.display = "none";
+    if (form) form.reset();
+  };
+
+  if (closeBtn) closeBtn.addEventListener("click", closeModal);
+  if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
+
+  // Close modal when clicking outside the card
+  if (modal) {
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) {
+        closeModal();
+      }
+    });
+  }
+
+  if (form) {
+    form.addEventListener("submit", handlePublishSubmit);
+  }
+}
+
+async function handlePublishSubmit(e) {
+  e.preventDefault();
+  
+  const title = byId("pubTitle").value.trim();
+  const summary = byId("pubSummary").value.trim();
+  const content = byId("pubContent").value.trim();
+  const importance = byId("pubImportance").value;
+  const tagsStr = byId("pubTags").value.trim();
+  const imageUrl = byId("pubImageUrl").value.trim();
+  
+  const tags = tagsStr ? tagsStr.split(",").map(t => t.trim()).filter(t => t.length > 0) : [];
+  
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Публікація...";
+  }
+
+  try {
+    const { error } = await sb.from('news').insert([
+      {
+        title,
+        summary,
+        content,
+        importance,
+        tags,
+        image_url: imageUrl || null
+      }
+    ]);
+    
+    if (error) {
+      alert("Помилка публікації новини: " + error.message);
+      return;
+    }
+    
+    // Reset form and close modal
+    byId("publishForm").reset();
+    byId("publishModal").style.display = "none";
+    
+    // Reload news list
+    await loadNews();
+    
+    alert("Новину успішно опубліковано!");
+  } catch (err) {
+    console.error("Publish error:", err);
+    alert("Сталася неочікувана оновлення/публікація.");
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Опублікувати новину";
+    }
+  }
 }
 
 document.addEventListener("DOMContentLoaded", init);

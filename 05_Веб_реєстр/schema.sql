@@ -511,4 +511,36 @@ VALUES (
 );
 
 
+-- 3. Дозволи для публікації, редагування та видалення новин авторизованими ролями (admin, director, deputy_director, manager)
+CREATE POLICY "Managers and above can insert news" ON public.news
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role IN ('admin', 'director', 'deputy_director', 'manager')
+    )
+  );
+
+CREATE POLICY "Managers and above can update news" ON public.news
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role IN ('admin', 'director', 'deputy_director', 'manager')
+    )
+  ) WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role IN ('admin', 'director', 'deputy_director', 'manager')
+    )
+  );
+
+CREATE POLICY "Managers and above can delete news" ON public.news
+  FOR DELETE USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role IN ('admin', 'director', 'deputy_director', 'manager')
+    )
+  );
+
+
+
 
