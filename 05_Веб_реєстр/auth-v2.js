@@ -671,10 +671,17 @@ async function init() {
   await fetchRole();
   applyAccess();
 
+  if (!window.location.pathname.toLowerCase().includes('/chat/')) {
+    trackGlobalPresence();
+  }
+
   sb.auth.onAuthStateChange(async (_event, session) => {
     user = session?.user ?? null;
     await fetchRole();
     applyAccess();
+    if (!window.location.pathname.toLowerCase().includes('/chat/')) {
+      trackGlobalPresence();
+    }
   });
 }
 
@@ -743,6 +750,50 @@ async function renderAlertBanner(alertBanner, prefix) {
     console.error("Alert banner render error:", err);
     alertBanner.style.display = 'none';
   }
+}
+
+let globalPresenceChannel = null;
+
+async function trackGlobalPresence() {
+  // If user is logged out, unsubscribe from channel if it exists
+  if (!user) {
+    if (globalPresenceChannel) {
+      globalPresenceChannel.unsubscribe();
+      globalPresenceChannel = null;
+    }
+    return;
+  }
+
+  // If already tracking, don't duplicate
+  if (globalPresenceChannel) return;
+
+  const displayName = user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0];
+
+  globalPresenceChannel = sb.channel('chat_room', {
+    config: {
+      presence: {
+        key: user.id
+      }
+    }
+  });
+
+  globalPresenceChannel
+    .on('presence', { event: 'sync' }, () => {
+      // We are just tracking; chat.js on the chat page handles rendering the actual list.
+    })
+    .subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        try {
+          await globalPresenceChannel.track({
+            user_id: user.id,
+            user_name: displayName,
+            online_at: new Date().toISOString()
+          });
+        } catch (e) {
+          console.error("Failed to track global presence:", e);
+        }
+      }
+    });
 }
 
 document.addEventListener('DOMContentLoaded', init);
