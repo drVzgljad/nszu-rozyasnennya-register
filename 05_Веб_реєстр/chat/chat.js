@@ -1294,8 +1294,18 @@ function renderMessageText(text) {
     }
   }
   const escaped = escapeHtml(text);
-  const urlRegex = /(https?:\/\/[^\s&lt;&gt;&quot;]+)/g;
-  const linked = escaped.replace(urlRegex, (match) => `<a href="${match}" target="_blank" rel="noopener noreferrer">${match}</a>`);
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const linked = escaped.replace(urlRegex, (match) => {
+    // Прибираємо кінцеві розділові знаки, що прилипли до URL
+    let url = match;
+    let trailing = '';
+    const trailingMatch = url.match(/([.,;:!?)]+)$/);
+    if (trailingMatch) {
+      trailing = trailingMatch[1];
+      url = url.slice(0, -trailing.length);
+    }
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>${trailing}`;
+  });
   return linked.replace(/\n/g, '<br>');
 }
 
