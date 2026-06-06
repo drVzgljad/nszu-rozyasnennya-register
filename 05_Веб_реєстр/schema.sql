@@ -241,7 +241,8 @@ CREATE TABLE IF NOT EXISTS public.skod_logs (
   complexity_coefficient NUMERIC NOT NULL, -- наприклад: 1.0, 1.3, 1.8, 2.5
   score NUMERIC,                         -- розраховується: (duration_minutes / 60.0) * complexity_coefficient
   status TEXT NOT NULL DEFAULT 'completed', -- 'completed' | 'in_progress'
-  description TEXT
+  description TEXT,
+  subtask_id TEXT
 );
 
 -- Увімкнення RLS для таблиці логів СКО-Д
@@ -315,7 +316,8 @@ CREATE TABLE IF NOT EXISTS public.assigned_tasks (
   subtasks JSONB DEFAULT '[]'::jsonb,
   plan_details TEXT,
   rejection_reason TEXT,
-  comments JSONB DEFAULT '[]'::jsonb
+  comments JSONB DEFAULT '[]'::jsonb,
+  attachments JSONB DEFAULT '[]'::jsonb
 );
 
 -- Додавання зв'язку в логах СКО-Д до завдань

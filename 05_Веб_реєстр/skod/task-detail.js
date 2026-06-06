@@ -9,24 +9,10 @@ let currentUser = null;
 let userProfile = null;
 let currentTask = null;
 let taskId = null;
-
-const COEFFICIENTS = {
-  easy: 1.0,
-  medium: 1.3,
-  hard: 1.8,
-  expert: 2.5
-};
-
-const severityMap = {
-  easy: 'Легка',
-  medium: 'Середня',
-  hard: 'Складна',
-  expert: 'Експертна'
-};
+let taskLogs = []; // Stores all skod logs for this task
 
 const statusMap = {
   assigned: 'Призначено 📥',
-  planning: 'Складання плану 📋',
   in_progress: 'В роботі ⚡',
   completed: 'Виконано ⏹️',
   rejected: 'Відхилено ❌'
@@ -77,8 +63,8 @@ async function init() {
     }
   });
 
-  // 6. Setup static forms
-  setupForms();
+  // 6. Setup Static Forms and Tab Toggles
+  setupStaticForms();
 }
 
 function showAccessDenied(msg) {
@@ -124,13 +110,24 @@ async function loadTaskDetails() {
 
   currentTask = task;
 
+  // Fetch skod logs for the task
+  const { data: logs } = await sb
+    .from('skod_logs')
+    .select('*')
+    .eq('assigned_task_id', taskId)
+    .order('log_date', { ascending: false })
+    .order('start_time', { ascending: false });
+
+  taskLogs = logs || [];
+
   // Render elements
   renderTaskHeader();
   renderStatusBanner();
   renderArgumentBox();
   renderSubtasks();
-  await renderSkodLogs();
+  renderSkodLogsTable();
   renderComments();
+  renderAttachments();
 }
 
 function renderTaskHeader() {
@@ -184,22 +181,20 @@ function renderStatusBanner() {
     return;
   }
 
-  // Render control buttons based on current status
+  // Render control buttons based on current status (no planning status!)
   if (currentTask.status === 'assigned') {
     actions.innerHTML = `
-      <button class="btn btn-primary btn-status-action" data-status="in_progress" style="background:#22c55e; color:#fff; border:none; padding:6px 14px; border-radius:6px; font-weight:700; cursor:pointer;">Розпочати виконання ⚡</button>
-      <button class="btn btn-status-action-form" data-type="planning" style="background:#f59e0b; color:#fff; border:none; padding:6px 14px; border-radius:6px; font-weight:700; cursor:pointer;">Скласти план 📋</button>
-      <button class="btn btn-status-action-form" data-type="rejected" style="background:#ef4444; color:#fff; border:none; padding:6px 14px; border-radius:6px; font-weight:700; cursor:pointer;">Відхилити ❌</button>
+      <button class="btn btn-primary btn-status-action" data-status="in_progress" style="background:#22c55e; color:#fff; border:none; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">Розпочати виконання ⚡</button>
+      <button class="btn btn-status-action-form" data-type="rejected" style="background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">Відхилити ❌</button>
     `;
   } else if (currentTask.status === 'in_progress') {
     actions.innerHTML = `
-      <button class="btn btn-status-action" data-status="completed" style="background:#22c55e; color:#fff; border:none; padding:6px 14px; border-radius:6px; font-weight:700; cursor:pointer;">Завершити виконання ⏹️</button>
-      <button class="btn btn-status-action-form" data-type="planning" style="background:#f59e0b; color:#fff; border:none; padding:6px 14px; border-radius:6px; font-weight:700; cursor:pointer;">Запропонувати план 📋</button>
-      <button class="btn btn-status-action-form" data-type="rejected" style="background:#ef4444; color:#fff; border:none; padding:6px 14px; border-radius:6px; font-weight:700; cursor:pointer;">Відмовитись ❌</button>
+      <button class="btn btn-primary btn-status-action" data-status="completed" style="background:#22c55e; color:#fff; border:none; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">Остаточне виконання (Завершити) ⏹️</button>
+      <button class="btn btn-status-action-form" data-type="rejected" style="background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">Відмовитись ❌</button>
     `;
-  } else if (['planning', 'rejected', 'completed'].includes(currentTask.status)) {
+  } else if (['rejected', 'completed'].includes(currentTask.status)) {
     actions.innerHTML = `
-      <button class="btn btn-status-action" data-status="in_progress" style="background:#3b82f6; color:#fff; border:none; padding:6px 14px; border-radius:6px; font-weight:700; cursor:pointer;">Повернути в роботу ⚡</button>
+      <button class="btn btn-status-action" data-status="in_progress" style="background:#3b82f6; color:#fff; border:none; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">Повернути в роботу ⚡</button>
     `;
   }
 
@@ -224,7 +219,7 @@ async function updateTaskStatus(newStatus) {
   if (newStatus === 'completed') {
     progress = 100;
   } else if (newStatus === 'in_progress' && currentTask.status === 'assigned') {
-    progress = currentTask.progress === 0 ? 10 : currentTask.progress; // set to 10% if 0% to show start
+    progress = currentTask.progress === 0 ? 10 : currentTask.progress;
   }
 
   const systemMessage = `${userProfile.full_name} змінив статус завдання на "${statusMap[newStatus] || newStatus}"`;
@@ -258,11 +253,7 @@ function showArgumentForm(type) {
   formCard.style.display = 'block';
   formCard.scrollIntoView({ behavior: 'smooth' });
 
-  if (type === 'planning') {
-    title.textContent = '📋 Складання плану виконання завдання';
-    textarea.placeholder = 'Опишіть деталізований план виконання завдання...';
-    formCard.dataset.type = 'planning';
-  } else if (type === 'rejected') {
+  if (type === 'rejected') {
     title.textContent = '❌ Аргументація відмови від виконання завдання';
     textarea.placeholder = 'Вкажіть причини відмови або неможливості виконання доручення...';
     formCard.dataset.type = 'rejected';
@@ -280,12 +271,7 @@ function renderArgumentBox() {
   const text = document.getElementById('argument-text');
   if (!box || !title || !text) return;
 
-  if (currentTask.status === 'planning' && currentTask.plan_details) {
-    box.style.display = 'block';
-    box.style.borderColor = '#f59e0b';
-    title.innerHTML = '📋 <strong>План виконання завдання:</strong>';
-    text.textContent = currentTask.plan_details;
-  } else if (currentTask.status === 'rejected' && currentTask.rejection_reason) {
+  if (currentTask.status === 'rejected' && currentTask.rejection_reason) {
     box.style.display = 'block';
     box.style.borderColor = '#ef4444';
     title.innerHTML = '❌ <strong>Причина відмови:</strong>';
@@ -303,7 +289,7 @@ function renderSubtasks() {
   container.innerHTML = '';
 
   if (subtasks.length === 0) {
-    container.innerHTML = `<div style="font-size:13.5px; color: var(--p-muted); font-style:italic; padding: 8px 0;">Підзавдання не додано. Ви можете розбити доручення на менші кроки.</div>`;
+    container.innerHTML = `<div style="font-size:13.5px; color: var(--p-muted); font-style:italic; padding: 8px 0;">Підзавдання не додано. Чек-лист є планом виконання доручення.</div>`;
     return;
   }
 
@@ -313,15 +299,72 @@ function renderSubtasks() {
                     ['admin', 'director', 'deputy_director', 'manager'].includes(userProfile.role);
 
   subtasks.forEach(sub => {
-    const el = document.createElement('div');
-    el.className = `checklist-item ${sub.completed ? 'checked' : ''}`;
-    
-    el.innerHTML = `
-      <input type="checkbox" data-id="${sub.id}" ${sub.completed ? 'checked' : ''} ${!canUpdate ? 'disabled' : ''}>
-      <span style="font-size: 14px; font-weight: 500;">${sub.title}</span>
-      ${canUpdate ? `<button class="btn-delete-subtask" data-id="${sub.id}">&times;</button>` : ''}
+    // Check if this subtask has logs associated with it
+    const subLogs = taskLogs.filter(log => log.subtask_id === sub.id);
+    const hasLogs = subLogs.length > 0;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = `subtask-wrapper ${hasLogs ? 'has-logs' : ''}`;
+    wrapper.id = `wrapper-${sub.id}`;
+
+    // Generate logged hours html
+    let logsHtml = '';
+    if (hasLogs) {
+      logsHtml = `
+        <div class="subtask-logs-area">
+          <div style="font-weight: 700; font-size: 11px; color: var(--p-muted); margin-bottom: 4px; text-transform: uppercase;">Витрачений час:</div>
+          ${subLogs.map(l => {
+            const dateStr = new Date(l.log_date).toLocaleDateString('uk-UA');
+            return `
+              <div class="subtask-log-line">
+                <span>⏱️ <strong>${l.duration_minutes} хв</strong> — ${l.description}</span>
+                <span style="font-size: 11px; color: var(--p-muted); font-weight:600;">${l.user_name} (${dateStr})</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    wrapper.innerHTML = `
+      <div class="checklist-item ${sub.completed ? 'checked' : ''}">
+        <input type="checkbox" data-id="${sub.id}" ${sub.completed ? 'checked' : ''} ${!canUpdate ? 'disabled' : ''}>
+        <span style="font-size: 14px; font-weight: 600; color: var(--p-ink);">${sub.title}</span>
+        <div class="subtask-actions">
+          ${canUpdate ? `
+            <button class="btn-subtask-log-trigger" data-id="${sub.id}">
+              ⏱️ Внести час
+            </button>
+            <button class="btn-delete-subtask" data-id="${sub.id}" title="Видалити">&times;</button>
+          ` : ''}
+        </div>
+      </div>
+      
+      <!-- Time Log Area -->
+      ${logsHtml}
+
+      <!-- Inline Log Form (hidden initially) -->
+      <form class="inline-log-form" id="form-${sub.id}" style="display: none;" data-subtask-id="${sub.id}">
+        <div style="flex: 1; min-width: 110px; display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size:11px; font-weight:700; color:var(--p-muted);">Тривалість (хв) *</label>
+          <input type="number" class="log-dur" placeholder="хв" min="5" max="480" required>
+        </div>
+        <div style="flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size:11px; font-weight:700; color:var(--p-muted);">Час початку *</label>
+          <input type="time" class="log-start" required>
+        </div>
+        <div style="flex: 2; min-width: 200px; display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size:11px; font-weight:700; color:var(--p-muted);">Опис виконаної роботи (необов'язково)</label>
+          <input type="text" class="log-desc" placeholder="Залиште порожнім, щоб використати назву підзавдання...">
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button type="submit" class="btn btn-primary" style="padding: 6px 12px; font-size:12px;">Зберегти</button>
+          <button type="button" class="btn btn-cancel-inline" data-id="${sub.id}" style="padding: 6px 12px; font-size:12px; background:#e2e8f0; color:#475569; border:none; border-radius:6px; cursor:pointer;">Скасувати</button>
+        </div>
+      </form>
     `;
-    container.appendChild(el);
+
+    container.appendChild(wrapper);
   });
 
   // Attach toggling listeners
@@ -342,6 +385,133 @@ function renderSubtasks() {
       }
     });
   });
+
+  // Attach Inline Log Trigger listeners
+  container.querySelectorAll('.btn-subtask-log-trigger').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const subId = e.target.dataset.id;
+      const form = document.getElementById(`form-${subId}`);
+      const wrapper = document.getElementById(`wrapper-${subId}`);
+      if (!form) return;
+
+      const isHidden = form.style.display === 'none';
+      form.style.display = isHidden ? 'flex' : 'none';
+      if (wrapper) {
+        if (isHidden) {
+          wrapper.classList.add('form-open');
+          // Pre-populate time input with current time
+          const now = new Date();
+          const hh = String(now.getHours()).padStart(2, '0');
+          const mm = String(now.getMinutes()).padStart(2, '0');
+          form.querySelector('.log-start').value = `${hh}:${mm}`;
+        } else {
+          wrapper.classList.remove('form-open');
+        }
+      }
+    });
+  });
+
+  // Attach Inline Cancel Button listeners
+  container.querySelectorAll('.btn-cancel-inline').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const subId = e.target.dataset.id;
+      const form = document.getElementById(`form-${subId}`);
+      const wrapper = document.getElementById(`wrapper-${subId}`);
+      if (form) form.style.display = 'none';
+      if (wrapper) wrapper.classList.remove('form-open');
+    });
+  });
+
+  // Attach Inline Log Submit handlers
+  container.querySelectorAll('.inline-log-form').forEach(form => {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const subId = e.target.dataset.subtaskId;
+      const duration = parseInt(form.querySelector('.log-dur').value, 10);
+      const startTime = form.querySelector('.log-start').value;
+      const descInput = form.querySelector('.log-desc').value.trim();
+
+      const sub = subtasks.find(s => s.id === subId);
+      const logDesc = descInput || `Виконання підзавдання: ${sub.title}`;
+
+      await saveSubtaskTimeLog(subId, duration, startTime, logDesc);
+    });
+  });
+}
+
+async function saveSubtaskTimeLog(subId, duration, startTime, logDesc) {
+  // Save log with standard 1.0 easy complexity
+  const coef = 1.0;
+  const score = parseFloat(((duration / 60) * coef).toFixed(2));
+
+  // 1. Insert into skod_logs
+  const logData = {
+    user_id: currentUser.id,
+    user_name: userProfile.full_name,
+    department: userProfile.Section || userProfile.department || 'Департамент стратегії НСЗУ',
+    log_date: new Date().toISOString().split('T')[0],
+    start_time: startTime + ':00',
+    duration_minutes: duration,
+    branch: 'department',
+    task_type: 'Доручення',
+    category: 'Виконання доручення',
+    severity_level: 'easy',
+    complexity_coefficient: coef,
+    score: score,
+    status: 'completed',
+    description: logDesc,
+    assigned_task_id: taskId,
+    subtask_id: subId
+  };
+
+  const { error: logErr } = await sb.from('skod_logs').insert([logData]);
+
+  if (logErr) {
+    alert("Помилка збереження запису СКО-Д: " + logErr.message);
+    return;
+  }
+
+  // 2. Automatically update status to in_progress if it was assigned
+  let statusUpdate = {};
+  if (currentTask.status === 'assigned') {
+    const systemMsg = `${userProfile.full_name} розпочав роботу над підзавданням (внесено робочий час в СКО-Д)`;
+    const comments = [...(currentTask.comments || []), {
+      id: crypto.randomUUID(),
+      author: 'Система',
+      role: 'system',
+      text: systemMsg,
+      timestamp: new Date().toISOString(),
+      type: 'system'
+    }];
+    statusUpdate = {
+      status: 'in_progress',
+      progress: currentTask.progress === 0 ? 10 : currentTask.progress,
+      comments
+    };
+  } else {
+    const systemMsg = `${userProfile.full_name} вніс запис роботи у СКО-Д: "${logDesc}" (${duration} хв, бали: ${score})`;
+    const comments = [...(currentTask.comments || []), {
+      id: crypto.randomUUID(),
+      author: 'Система',
+      role: 'system',
+      text: systemMsg,
+      timestamp: new Date().toISOString(),
+      type: 'system'
+    }];
+    statusUpdate = { comments };
+  }
+
+  const { error: taskErr } = await sb
+    .from('assigned_tasks')
+    .update(statusUpdate)
+    .eq('id', taskId);
+
+  if (taskErr) {
+    console.error("Task status update error after subtask log:", taskErr);
+  }
+
+  // Reload everything
+  await loadTaskDetails();
 }
 
 async function toggleSubtask(subId, completed) {
@@ -413,38 +583,33 @@ async function deleteSubtask(subId) {
   }
 }
 
-async function renderSkodLogs() {
+function renderSkodLogsTable() {
   const tbody = document.getElementById('task-logs-body');
   const empty = document.getElementById('task-logs-empty');
   if (!tbody) return;
 
   tbody.innerHTML = '';
 
-  const { data: logs, error } = await sb
-    .from('skod_logs')
-    .select('*')
-    .eq('assigned_task_id', taskId)
-    .order('log_date', { ascending: false })
-    .order('start_time', { ascending: false });
-
-  if (error) {
-    console.error("Error loading logs:", error);
-    return;
-  }
-
-  if (!logs || logs.length === 0) {
+  if (taskLogs.length === 0) {
     if (empty) empty.style.display = 'block';
     return;
   }
 
   if (empty) empty.style.display = 'none';
 
-  logs.forEach(log => {
+  taskLogs.forEach(log => {
     const tr = document.createElement('tr');
-    
     const formattedDate = new Date(log.log_date).toLocaleDateString('uk-UA');
-    const sevLabel = severityMap[log.severity_level] || log.severity_level;
     const scoreVal = log.score ? log.score.toFixed(2) : '0.00';
+
+    // Find linked subtask title if it exists
+    let subtaskTitle = '<span style="color:var(--p-muted); font-style:italic;">Загальна діяльність</span>';
+    if (log.subtask_id && currentTask.subtasks) {
+      const sub = currentTask.subtasks.find(s => s.id === log.subtask_id);
+      if (sub) {
+        subtaskTitle = `<strong>${sub.title}</strong>`;
+      }
+    }
 
     tr.innerHTML = `
       <td style="font-size:12px;">
@@ -452,9 +617,9 @@ async function renderSkodLogs() {
         <div style="color:var(--p-muted); margin-top:2px;">${log.start_time.slice(0, 5)}</div>
       </td>
       <td style="font-weight:600; font-size:12.5px;">${log.user_name}</td>
+      <td style="font-size:12.5px; line-height:1.3;">${subtaskTitle}</td>
       <td>
         <div style="font-size:13px; font-weight:500;">${log.description}</div>
-        <div style="font-size:11px; color:var(--p-muted); margin-top:3px;">Коефіцієнт: ${log.complexity_coefficient} (${sevLabel})</div>
       </td>
       <td style="font-weight:600; font-size:13px;">${log.duration_minutes} хв</td>
       <td style="font-weight:800; color:var(--accent-2-deep); font-size:13.5px;">${scoreVal}</td>
@@ -517,8 +682,93 @@ function renderComments() {
   container.scrollTop = container.scrollHeight;
 }
 
-function setupForms() {
-  // 1. Add Subtask Form
+function renderAttachments() {
+  const container = document.getElementById('attachments-list');
+  if (!container) return;
+
+  const attachments = currentTask.attachments || [];
+  container.innerHTML = '';
+
+  if (attachments.length === 0) {
+    container.innerHTML = `<div style="font-size:13px; color:var(--p-muted); font-style:italic; padding: 10px 0; text-align:center;">Файли та посилання не додано. Ви можете завантажити результати виконання сюди.</div>`;
+    return;
+  }
+
+  const canDelete = currentTask.responsible_id === currentUser.id || 
+                    currentTask.created_by === currentUser.id ||
+                    ['admin', 'director', 'deputy_director', 'manager'].includes(userProfile.role);
+
+  attachments.forEach(att => {
+    const item = document.createElement('div');
+    item.className = 'attachment-item';
+    
+    const icon = att.type === 'file' ? '📄' : '🔗';
+    const dateStr = new Date(att.uploaded_at).toLocaleDateString('uk-UA');
+
+    item.innerHTML = `
+      <div class="attachment-info">
+        <span style="font-size: 20px;">${icon}</span>
+        <div>
+          <a href="${att.url}" target="_blank" style="font-weight: 700; color: var(--accent); text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${att.name}</a>
+          <div style="font-size:11px; color:var(--p-muted); margin-top:2px;">Додав: ${att.uploaded_by} (${dateStr})</div>
+        </div>
+      </div>
+      ${canDelete ? `<button class="btn-delete-attachment" data-id="${att.id}">&times;</button>` : ''}
+    `;
+    container.appendChild(item);
+  });
+
+  // Attach delete handlers
+  container.querySelectorAll('.btn-delete-attachment').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const id = e.target.dataset.id;
+      if (confirm("Ви дійсно хочете видалити цей долучений матеріал?")) {
+        await deleteAttachment(id);
+      }
+    });
+  });
+}
+
+async function deleteAttachment(id) {
+  let attachments = currentTask.attachments || [];
+  const att = attachments.find(a => a.id === id);
+  if (!att) return;
+
+  attachments = attachments.filter(a => a.id !== id);
+
+  const systemMsg = `${userProfile.full_name} видалив матеріал: "${att.name}"`;
+  const comments = [...(currentTask.comments || []), {
+    id: crypto.randomUUID(),
+    author: 'Система',
+    role: 'system',
+    text: systemMsg,
+    timestamp: new Date().toISOString(),
+    type: 'system'
+  }];
+
+  // If it was a file, we could try deleting it from Supabase storage if we stored path
+  if (att.type === 'file' && att.path) {
+    try {
+      await sb.storage.from('task-attachments').remove([att.path]);
+    } catch(err) {
+      console.error("Storage delete error:", err);
+    }
+  }
+
+  const { error } = await sb
+    .from('assigned_tasks')
+    .update({ attachments, comments })
+    .eq('id', taskId);
+
+  if (error) {
+    alert("Помилка видалення: " + error.message);
+  } else {
+    await loadTaskDetails();
+  }
+}
+
+function setupStaticForms() {
+  // 1. Add Subtask
   const subtaskForm = document.getElementById('add-subtask-form');
   if (subtaskForm) {
     subtaskForm.addEventListener('submit', async (e) => {
@@ -564,43 +814,23 @@ function setupForms() {
     });
   }
 
-  // 2. Argument Submit Form (Planning / Rejection)
+  // 2. Reject Form Submit
   const argForm = document.getElementById('task-argument-form');
   const cancelArgBtn = document.getElementById('btn-cancel-argument');
   if (argForm) {
     argForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const type = document.getElementById('argument-form-card').dataset.type;
       const text = document.getElementById('argument-input').value.trim();
       if (!text) return;
 
-      let updatePayload = {};
-      let systemMsg = '';
-
-      if (type === 'planning') {
-        updatePayload = {
-          status: 'planning',
-          plan_details: text
-        };
-        systemMsg = `${userProfile.full_name} запропонував план виконання: "${text}"`;
-      } else if (type === 'rejected') {
-        updatePayload = {
-          status: 'rejected',
-          rejection_reason: text
-        };
-        systemMsg = `${userProfile.full_name} відхилив доручення з причини: "${text}"`;
-      }
-
-      // Add to comments
       const comments = [...(currentTask.comments || []), {
         id: crypto.randomUUID(),
         author: 'Система',
         role: 'system',
-        text: systemMsg,
+        text: `${userProfile.full_name} відхилив виконання доручення з причини: "${text}"`,
         timestamp: new Date().toISOString(),
         type: 'system'
       }];
-      updatePayload.comments = comments;
 
       const submitBtn = document.getElementById('btn-submit-argument');
       if (submitBtn) {
@@ -610,7 +840,11 @@ function setupForms() {
 
       const { error } = await sb
         .from('assigned_tasks')
-        .update(updatePayload)
+        .update({
+          status: 'rejected',
+          rejection_reason: text,
+          comments
+        })
         .eq('id', taskId);
 
       if (submitBtn) {
@@ -635,7 +869,7 @@ function setupForms() {
     });
   }
 
-  // 3. Comments Add Form
+  // 3. Comments Submit Form
   const commentForm = document.getElementById('add-comment-form');
   if (commentForm) {
     commentForm.addEventListener('submit', async (e) => {
@@ -668,121 +902,159 @@ function setupForms() {
     });
   }
 
-  // 4. Time Log Form (SKOD Logging)
-  const skodForm = document.getElementById('quick-skod-form');
-  if (skodForm) {
-    // Set default start time to current time HH:MM
-    const timeInput = document.getElementById('log_start_time');
-    if (timeInput) {
-      const now = new Date();
-      const hh = String(now.getHours()).padStart(2, '0');
-      const mm = String(now.getMinutes()).padStart(2, '0');
-      timeInput.value = `${hh}:${mm}`;
-    }
+  // 4. Tab toggles in Attachments
+  const tabLink = document.getElementById('tab-add-link');
+  const tabFile = document.getElementById('tab-add-file');
+  const formLink = document.getElementById('add-link-form');
+  const formFile = document.getElementById('add-file-form');
 
-    skodForm.addEventListener('submit', async (e) => {
+  if (tabLink && tabFile && formLink && formFile) {
+    tabLink.addEventListener('click', () => {
+      tabLink.style.background = 'var(--accent)';
+      tabLink.style.color = '#fff';
+      tabFile.style.background = '#e2e8f0';
+      tabFile.style.color = '#475569';
+      formLink.style.display = 'flex';
+      formFile.style.display = 'none';
+    });
+
+    tabFile.addEventListener('click', () => {
+      tabFile.style.background = 'var(--accent)';
+      tabFile.style.color = '#fff';
+      tabLink.style.background = '#e2e8f0';
+      tabLink.style.color = '#475569';
+      formFile.style.display = 'flex';
+      formLink.style.display = 'none';
+    });
+  }
+
+  // 5. Submit Attachment Link
+  if (formLink) {
+    formLink.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const startTime = document.getElementById('log_start_time').value;
-      const duration = parseInt(document.getElementById('log_duration').value, 10);
-      const severity = document.getElementById('log_severity').value;
-      const desc = document.getElementById('log_desc').value.trim();
+      const titleInput = document.getElementById('link-title');
+      const urlInput = document.getElementById('link-url');
+      const title = titleInput.value.trim();
+      const url = urlInput.value.trim();
+      
+      if (!title || !url) return;
 
-      const submitBtn = skodForm.querySelector('button[type="submit"]');
+      const attachments = [...(currentTask.attachments || []), {
+        id: crypto.randomUUID(),
+        name: title,
+        url: url,
+        type: 'link',
+        uploaded_by: userProfile.full_name,
+        uploaded_at: new Date().toISOString()
+      }];
 
-      if (!startTime || !duration || !severity || !desc) {
-        alert("Заповніть усі обов'язкові поля для внесення роботи.");
+      const systemMsg = `${userProfile.full_name} додав посилання на матеріал: "${title}"`;
+      const comments = [...(currentTask.comments || []), {
+        id: crypto.randomUUID(),
+        author: 'Система',
+        role: 'system',
+        text: systemMsg,
+        timestamp: new Date().toISOString(),
+        type: 'system'
+      }];
+
+      titleInput.value = '';
+      urlInput.value = '';
+
+      const { error } = await sb
+        .from('assigned_tasks')
+        .update({ attachments, comments })
+        .eq('id', taskId);
+
+      if (error) {
+        alert("Помилка збереження посилання: " + error.message);
+      } else {
+        await loadTaskDetails();
+      }
+    });
+  }
+
+  // 6. Submit Attachment File
+  if (formFile) {
+    formFile.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fileInput = document.getElementById('file-input');
+      const file = fileInput.files?.[0];
+
+      if (!file) {
+        alert("Будь ласка, оберіть файл для завантаження.");
         return;
       }
 
+      const submitBtn = formFile.querySelector('button[type="submit"]');
       if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Внесення...';
+        submitBtn.textContent = 'Завантаження...';
       }
 
-      const coef = COEFFICIENTS[severity] || 1.3;
-      const score = parseFloat(((duration / 60) * coef).toFixed(2));
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const path = `${taskId}/${fileName}`;
 
-      // 1. Insert into skod_logs
-      const logData = {
-        user_id: currentUser.id,
-        user_name: userProfile.full_name,
-        department: userProfile.Section || userProfile.department || 'Департамент стратегії НСЗУ',
-        log_date: new Date().toISOString().split('T')[0],
-        start_time: startTime + ':00',
-        duration_minutes: duration,
-        branch: 'department',
-        task_type: 'Доручення',
-        category: 'Виконання доручення',
-        severity_level: severity,
-        complexity_coefficient: coef,
-        score: score,
-        status: 'completed',
-        description: `Робота над дорученням: ${currentTask.title} — ${desc}`,
-        assigned_task_id: taskId
-      };
+      // Upload to Supabase Storage bucket 'task-attachments'
+      const { data: uploadData, error: uploadErr } = await sb.storage
+        .from('task-attachments')
+        .upload(path, file);
 
-      const { error: logErr } = await sb.from('skod_logs').insert([logData]);
-
-      if (logErr) {
-        alert("Помилка збереження запису СКО-Д: " + logErr.message);
+      if (uploadErr) {
+        console.error("Storage upload error:", uploadErr);
+        alert("Помилка завантаження файлу. Переконайтеся, що бакет 'task-attachments' створено в Supabase, або скористайтеся додаванням посилання на Google Документ.");
         if (submitBtn) {
           submitBtn.disabled = false;
-          submitBtn.textContent = 'Внести роботу';
+          submitBtn.textContent = 'Завантажити';
         }
         return;
       }
 
-      // 2. Automatically update task status to in_progress if it was just assigned
-      let statusUpdate = {};
-      if (currentTask.status === 'assigned') {
-        const systemMsg = `${userProfile.full_name} розпочав роботу над завданням (внесено робочий час в СКО-Д)`;
-        const comments = [...(currentTask.comments || []), {
-          id: crypto.randomUUID(),
-          author: 'Система',
-          role: 'system',
-          text: systemMsg,
-          timestamp: new Date().toISOString(),
-          type: 'system'
-        }];
-        
-        statusUpdate = {
-          status: 'in_progress',
-          progress: currentTask.progress === 0 ? 10 : currentTask.progress,
-          comments
-        };
-      } else {
-        const systemMsg = `${userProfile.full_name} вніс запис роботи у СКО-Д: "${desc}" (${duration} хв, бали: ${score})`;
-        const comments = [...(currentTask.comments || []), {
-          id: crypto.randomUUID(),
-          author: 'Система',
-          role: 'system',
-          text: systemMsg,
-          timestamp: new Date().toISOString(),
-          type: 'system'
-        }];
-        statusUpdate = { comments };
-      }
+      // Get Public URL
+      const { data: urlData } = sb.storage
+        .from('task-attachments')
+        .getPublicUrl(path);
 
-      const { error: taskErr } = await sb
+      const fileUrl = urlData.publicUrl;
+
+      const attachments = [...(currentTask.attachments || []), {
+        id: crypto.randomUUID(),
+        name: file.name,
+        url: fileUrl,
+        type: 'file',
+        path: path,
+        uploaded_by: userProfile.full_name,
+        uploaded_at: new Date().toISOString()
+      }];
+
+      const systemMsg = `${userProfile.full_name} завантажив файл результату: "${file.name}"`;
+      const comments = [...(currentTask.comments || []), {
+        id: crypto.randomUUID(),
+        author: 'Система',
+        role: 'system',
+        text: systemMsg,
+        timestamp: new Date().toISOString(),
+        type: 'system'
+      }];
+
+      fileInput.value = '';
+
+      const { error: dbErr } = await sb
         .from('assigned_tasks')
-        .update(statusUpdate)
+        .update({ attachments, comments })
         .eq('id', taskId);
 
       if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Внести роботу';
+        submitBtn.textContent = 'Завантажити';
       }
 
-      if (taskErr) {
-        console.error("Task update error after time log:", taskErr);
+      if (dbErr) {
+        alert("Помилка оновлення даних доручення: " + dbErr.message);
+      } else {
+        await loadTaskDetails();
       }
-
-      // Reset form desc
-      document.getElementById('log_desc').value = '';
-      document.getElementById('log_duration').value = '';
-
-      // Reload log and details
-      await loadTaskDetails();
     });
   }
 }
