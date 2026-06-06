@@ -21,10 +21,14 @@ CREATE POLICY "Users can view answered questions or their own" ON public.questio
     status = 'answered' OR auth.uid() = user_id
   );
 
--- Політика створення: тільки авторизовані користувачі можуть залишати питання
+-- Політика створення: тільки авторизовані користувачі (крім гостей) можуть залишати питання
 CREATE POLICY "Authenticated users can insert questions" ON public.questions
   FOR INSERT WITH CHECK (
-    auth.role() = 'authenticated' AND auth.uid() = user_id
+    auth.role() = 'authenticated' AND auth.uid() = user_id AND
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role != 'guest'
+    )
   );
 
 
@@ -48,10 +52,14 @@ ALTER TABLE public.proposals ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Authenticated users can view proposals" ON public.proposals
   FOR SELECT USING (auth.role() = 'authenticated');
 
--- Створювати пропозиції можуть всі авторизовані користувачі
+-- Створювати пропозиції можуть всі авторизовані користувачі (крім гостей)
 CREATE POLICY "Authenticated users can insert proposals" ON public.proposals
   FOR INSERT WITH CHECK (
-    auth.role() = 'authenticated' AND auth.uid() = user_id
+    auth.role() = 'authenticated' AND auth.uid() = user_id AND
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role != 'guest'
+    )
   );
 
 -- Оновлювати (для лайків/голосування) можуть всі авторизовані
@@ -261,12 +269,16 @@ CREATE POLICY "Users can view skod logs" ON public.skod_logs
     )
   );
 
--- Політика створення: кожен зареєстрований користувач може вносити записи про власну діяльність
+-- Політика створення: кожен зареєстрований користувач (крім гостей) може вносити записи про власну діяльність
 CREATE POLICY "Users can insert their own skod logs" ON public.skod_logs
   FOR INSERT
   TO authenticated
   WITH CHECK (
-    auth.uid() = user_id
+    auth.uid() = user_id AND
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role != 'guest'
+    )
   );
 
 -- Політика видалення: користувач може видалити тільки свій запис протягом поточного дня
@@ -379,20 +391,9 @@ BEGIN
   v_department := new.raw_user_meta_data->>'department';
   v_position := COALESCE(new.raw_user_meta_data->>'position', 'Співробітник');
   
-  -- Determine role based on department and position
-  IF v_department = 'Гість (інший департамент)' THEN
-    v_role := 'guest';
-    v_is_head := FALSE;
-  ELSE
-    v_role := CASE 
-      WHEN v_position = 'Директор' THEN 'director'
-      WHEN v_position = 'Заступник директора' THEN 'deputy_director'
-      WHEN v_position = 'Начальник відділу' THEN 'manager'
-      WHEN v_position = 'Адміністратор' THEN 'admin'
-      ELSE 'expert'
-    END;
-    v_is_head := (v_position = 'Начальник відділу');
-  END IF;
+  -- Everyone registers as a guest initially; admin manually upgrades roles later
+  v_role := 'guest';
+  v_is_head := FALSE;
 
   INSERT INTO public.profiles (id, full_name, organization, "Section", position, role, is_head)
   VALUES (
@@ -408,9 +409,8 @@ BEGIN
     full_name = EXCLUDED.full_name,
     organization = EXCLUDED.organization,
     "Section" = EXCLUDED."Section",
-    position = EXCLUDED.position,
-    role = EXCLUDED.role,
-    is_head = EXCLUDED.is_head;
+    position = EXCLUDED.position;
+    -- Note: We DO NOT overwrite role and is_head to preserve admin-assigned upgrades
   RETURN new;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
