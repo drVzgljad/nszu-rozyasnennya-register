@@ -56,6 +56,21 @@ const BRANCH_CONFIG = {
       "Розробка пропозицій до ПМГ",
       "Інше"
     ]
+  },
+  tasks: {
+    types: [
+      "Виконання доручення керівництва",
+      "Аналітичний супровід завдання",
+      "Підготовка відповіді / звіту",
+      "Інше (вказати в описі)"
+    ],
+    categories: [
+      "Термінове доручення",
+      "Планове завдання",
+      "Протокольне доручення",
+      "Аналіз даних за дорученням",
+      "Інше"
+    ]
   }
 };
 
@@ -158,7 +173,33 @@ function setupForm() {
   }
 
   if (branchSel) {
-    branchSel.addEventListener('change', populateTypesAndCategories);
+    branchSel.addEventListener('change', () => {
+      populateTypesAndCategories();
+      
+      const taskLinkGroup = document.getElementById('form-assigned-task-group');
+      const taskLinkSel = document.getElementById('link_assigned_task');
+      
+      if (branchSel.value === 'tasks') {
+        if (taskLinkGroup) {
+          taskLinkGroup.style.display = 'block';
+          const label = taskLinkGroup.querySelector('label');
+          if (label) label.innerHTML = 'Оберіть доручення *';
+        }
+        if (taskLinkSel) {
+          taskLinkSel.required = true;
+        }
+      } else {
+        const hasTasks = taskLinkSel && taskLinkSel.options.length > 1;
+        if (taskLinkGroup) {
+          taskLinkGroup.style.display = hasTasks ? 'block' : 'none';
+          const label = taskLinkGroup.querySelector('label');
+          if (label) label.innerHTML = 'Пов\'язати з дорученням (опціонально)';
+        }
+        if (taskLinkSel) {
+          taskLinkSel.required = false;
+        }
+      }
+    });
   }
 
   // Populate initially
@@ -222,6 +263,16 @@ function setupForm() {
 
       if (!branch || !task_type || !category || !severity_level || !start_time || !status) {
         alert('Будь ласка, заповніть усі обов’язкові поля.');
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Зберегти завдання';
+        }
+        return;
+      }
+
+      const assigned_task_id = document.getElementById('link_assigned_task')?.value || null;
+      if (branch === 'tasks' && !assigned_task_id) {
+        alert('Будь ласка, оберіть доручення, яке ви виконували.');
         if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.textContent = 'Зберегти завдання';
@@ -333,26 +384,28 @@ async function loadActiveAssignedTasks() {
   const taskLinkGroup = document.getElementById('form-assigned-task-group');
 
   if (taskLinkSel && taskLinkGroup) {
+    const branchSel = document.getElementById('task_branch');
+    const isTasksBranch = branchSel?.value === 'tasks';
+    
     if (data && data.length > 0) {
       taskLinkGroup.style.display = 'block';
-      taskLinkSel.innerHTML = '<option value="" selected>Не пов\'язувати з дорученням</option>';
+      taskLinkSel.innerHTML = isTasksBranch 
+        ? '<option value="" disabled selected>Оберіть доручення *</option>'
+        : '<option value="" selected>Не пов\'язувати з дорученням</option>';
+        
       data.forEach(task => {
         const opt = document.createElement('option');
         opt.value = task.id;
         opt.textContent = task.title;
         taskLinkSel.appendChild(opt);
       });
-
-      // Add auto-fill listener
-      taskLinkSel.addEventListener('change', () => {
-        const selectedText = taskLinkSel.options[taskLinkSel.selectedIndex].text;
-        const descInput = document.getElementById('description');
-        if (taskLinkSel.value && descInput) {
-          descInput.value = `[Доручення]: ${selectedText}`;
-        }
-      });
     } else {
-      taskLinkGroup.style.display = 'none';
+      if (isTasksBranch) {
+        taskLinkGroup.style.display = 'block';
+        taskLinkSel.innerHTML = '<option value="" disabled selected>У вас немає активних доручень</option>';
+      } else {
+        taskLinkGroup.style.display = 'none';
+      }
     }
   }
 }

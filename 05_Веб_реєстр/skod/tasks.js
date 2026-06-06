@@ -348,6 +348,27 @@ function renderRegistry() {
         ? `<button class="btn-delete-task" data-id="${task.id}" title="Видалити доручення">&times;</button>`
         : '';
 
+      // Evaluation cell content
+      let evalCell = '';
+      if (task.status === 'completed') {
+        const canEvaluate = ['admin', 'director', 'deputy_director', 'manager'].includes(userProfile.role);
+        if (canEvaluate) {
+          const coef = task.evaluation_coefficient || 1.0;
+          evalCell = `
+            <select class="select-task-evaluation" data-id="${task.id}" style="font-size:12px; padding:4px 8px; border-radius:6px; border:1px solid var(--p-line); width: 100%;">
+              <option value="1.3" ${coef == 1.3 ? 'selected' : ''}>Відмінно (1.3)</option>
+              <option value="1.0" ${coef == 1.0 ? 'selected' : ''}>Добре (1.0)</option>
+              <option value="0.8" ${coef == 0.8 ? 'selected' : ''}>Задовільно (0.8)</option>
+              <option value="0.5" ${coef == 0.5 ? 'selected' : ''}>Незадовільно (0.5)</option>
+            </select>
+          `;
+        } else {
+          evalCell = `<span class="badge-status" style="background:#eef6fc; color:#2f6b9e; font-size:11px;">${task.evaluation_label || 'Очікує оцінки'}</span>`;
+        }
+      } else {
+        evalCell = `<span style="color:var(--p-muted); font-size:12px;">В процесі</span>`;
+      }
+
       tr.innerHTML = `
         <td>
           <div style="font-weight: 700; color: var(--p-ink);">${task.title}</div>
@@ -367,6 +388,7 @@ function renderRegistry() {
           </div>
         </td>
         <td><span class="badge-status ${task.status}">${getStatusLabel(task.status)}</span></td>
+        <td>${evalCell}</td>
         <td style="text-align: center;">${deleteBtn}</td>
       `;
       tableBody.appendChild(tr);
@@ -383,6 +405,38 @@ function renderRegistry() {
           } else {
             await loadTasks();
           }
+        }
+      });
+    });
+
+    // Evaluation change listeners
+    tableBody.querySelectorAll('.select-task-evaluation').forEach(select => {
+      select.addEventListener('change', async (e) => {
+        const id = e.target.dataset.id;
+        const coef = parseFloat(e.target.value);
+        const labels = {
+          "1.3": "Відмінно",
+          "1.0": "Добре",
+          "0.8": "Задовільно",
+          "0.5": "Незадовільно"
+        };
+        const label = labels[e.target.value] || "Оцінено";
+        
+        e.target.disabled = true;
+        const { error } = await sb
+          .from('assigned_tasks')
+          .update({
+            evaluation_coefficient: coef,
+            evaluation_label: label,
+            evaluated_at: new Date().toISOString()
+          })
+          .eq('id', id);
+          
+        if (error) {
+          alert("Помилка збереження оцінки: " + error.message);
+          e.target.disabled = false;
+        } else {
+          await loadTasks();
         }
       });
     });
