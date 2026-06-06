@@ -1592,3 +1592,23 @@
   background: #78350f !important;
   color: #fef08a !important;
 }
+
+/* ── Hero header & stats overrides for subpages ─────── */
+:root.dark-theme .hero {
+  background: var(--brand-grad) !important;
+  border-bottom-color: var(--line) !important;
+}
+:root.dark-theme .brand-lockup {
+  background: rgba(30, 41, 59, 0.72) !important;
+  border-color: rgba(56, 189, 248, 0.2) !important;
+}
+:root.dark-theme .stat {
+  background: rgba(30, 41, 59, 0.68) !important;
+  border-color: var(--line) !important;
+}
+:root.dark-theme .stat strong {
+  color: var(--accent) !important;
+}
+:root.dark-theme .overline {
+  color: var(--accent) !important;
+}
