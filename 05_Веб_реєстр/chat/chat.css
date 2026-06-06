@@ -146,6 +146,25 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
+/* Активні посилання в повідомленнях */
+.chat-msg-bubble a {
+  color: var(--accent-dark, #2f6b9e);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  word-break: break-all;
+  transition: opacity 0.15s ease;
+}
+.chat-msg-bubble a:hover {
+  opacity: 0.75;
+}
+.chat-msg.msg-sent .chat-msg-bubble a {
+  color: #c8e4ff;
+}
+.chat-msg.msg-sent .chat-msg-bubble a:hover {
+  color: #fff;
+}
+
 /* Alignment rules */
 .chat-msg.msg-received {
   align-self: flex-start;

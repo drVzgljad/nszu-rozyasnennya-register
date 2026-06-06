@@ -1293,7 +1293,10 @@ function renderMessageText(text) {
       `;
     }
   }
-  return escapeHtml(text).replace(/\n/g, '<br>');
+  const escaped = escapeHtml(text);
+  const urlRegex = /(https?:\/\/[^\s&lt;&gt;&quot;]+)/g;
+  const linked = escaped.replace(urlRegex, (match) => `<a href="${match}" target="_blank" rel="noopener noreferrer">${match}</a>`);
+  return linked.replace(/\n/g, '<br>');
 }
 
 /* ── Emoji Picker Panel ──────────────────────────── */
