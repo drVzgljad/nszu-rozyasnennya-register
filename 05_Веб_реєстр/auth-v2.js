@@ -473,6 +473,36 @@ function inject() {
     themeBtn.addEventListener('click', toggleTheme);
     container.appendChild(themeBtn);
 
+    // News Notifications Toggle Button
+    const newsNotifyBtn = document.createElement('button');
+    newsNotifyBtn.id = 'news-notify-btn';
+    newsNotifyBtn.className = 'news-notify-toggle-btn';
+    const notificationsEnabled = localStorage.getItem('news_notifications_enabled') !== 'false';
+    if (!notificationsEnabled) {
+      newsNotifyBtn.classList.add('muted');
+    }
+    newsNotifyBtn.textContent = notificationsEnabled ? '🔔' : '🔕';
+    newsNotifyBtn.title = notificationsEnabled ? 'Вимкнути сповіщення новин' : 'Увімкнути сповіщення новин';
+    newsNotifyBtn.addEventListener('click', () => {
+      const isCurrentlyEnabled = localStorage.getItem('news_notifications_enabled') !== 'false';
+      const nextEnabled = !isCurrentlyEnabled;
+      localStorage.setItem('news_notifications_enabled', nextEnabled ? 'true' : 'false');
+      
+      newsNotifyBtn.classList.toggle('muted', !nextEnabled);
+      newsNotifyBtn.textContent = nextEnabled ? '🔔' : '🔕';
+      newsNotifyBtn.title = nextEnabled ? 'Вимкнути сповіщення новин' : 'Увімкнути сповіщення новин';
+      
+      if (nextEnabled) {
+        // Play audio alert to test
+        playNewsAlertSound();
+        // Request browser permission if default
+        if ('Notification' in window && Notification.permission === 'default') {
+          Notification.requestPermission();
+        }
+      }
+    });
+    container.appendChild(newsNotifyBtn);
+
     // Role badge indicator
     const badge = document.createElement('span');
     badge.id = 'auth-role-badge';
@@ -910,6 +940,9 @@ function setupNewsRealtime() {
 }
 
 function triggerNewsAlertNotification(newsItem) {
+  const notificationsEnabled = localStorage.getItem('news_notifications_enabled') !== 'false';
+  if (!notificationsEnabled) return;
+
   if (!('Notification' in window)) return;
 
   playNewsAlertSound();
