@@ -73,12 +73,12 @@ CREATE TABLE IF NOT EXISTS public.news (
 -- Увімкнення RLS для таблиці новин
 ALTER TABLE public.news ENABLE ROW LEVEL SECURITY;
 
--- Тільки користувачі з роллю 'full' можуть бачити аналітичні новини
+-- Тільки зареєстровані користувачі (не гості) можуть бачити аналітичні новини
 CREATE POLICY "Full access users can view news" ON public.news
   FOR SELECT USING (
     EXISTS (
       SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role = 'full'
+      WHERE id = auth.uid() AND role != 'guest'
     )
   );
 
@@ -104,40 +104,40 @@ CREATE POLICY "Full access users can read chat" ON public.chat_messages
     )
   );
 
--- Писати в чат можуть тільки користувачі з роллю 'full' від свого імені
+-- Писати в чат можуть тільки користувачі з роллю (крім гостей) від свого імені
 CREATE POLICY "Full access users can send chat messages" ON public.chat_messages
   FOR INSERT WITH CHECK (
     auth.role() = 'authenticated' AND auth.uid() = user_id AND
     EXISTS (
       SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role = 'full'
+      WHERE id = auth.uid() AND role != 'guest'
     )
   );
 
 -- Додавання стовпчика для закріплення повідомлень (топ-повідомлень)
 ALTER TABLE public.chat_messages ADD COLUMN IF NOT EXISTS is_top BOOLEAN DEFAULT FALSE;
 
--- Редагувати або закріплювати повідомлення можуть користувачі з роллю 'full'
+-- Редагувати або закріплювати повідомлення можуть користувачі з роллю (крім гостей)
 CREATE POLICY "Full access users can update chat messages" ON public.chat_messages
   FOR UPDATE USING (
     EXISTS (
       SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role = 'full'
+      WHERE id = auth.uid() AND role != 'guest'
     )
   ) WITH CHECK (
     EXISTS (
       SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role = 'full'
+      WHERE id = auth.uid() AND role != 'guest'
     )
   );
 
--- Видаляти свої повідомлення можуть тільки користувачі з роллю 'full'
+-- Видаляти свої повідомлення можуть тільки користувачі з роллю (крім гостей)
 CREATE POLICY "Full access users can delete their own messages" ON public.chat_messages
   FOR DELETE USING (
     auth.uid() = user_id AND
     EXISTS (
       SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role = 'full'
+      WHERE id = auth.uid() AND role != 'guest'
     )
   );
 
@@ -174,7 +174,7 @@ ALTER TABLE public.chat_rooms ENABLE ROW LEVEL SECURITY;
 -- Додавання до Realtime публікації
 ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_rooms;
 
--- Політика читання кімнат: користувач повинен бути в масиві членів
+-- Політика читання кімнат: користувач повинен бути в кімнаті та не бути гостем
 CREATE POLICY "Users can view rooms they are members of" ON public.chat_rooms
   FOR SELECT
   TO authenticated
@@ -182,7 +182,7 @@ CREATE POLICY "Users can view rooms they are members of" ON public.chat_rooms
     auth.uid() = ANY(member_ids) AND
     EXISTS (
       SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role = 'full'
+      WHERE id = auth.uid() AND role != 'guest'
     )
   );
 
@@ -194,7 +194,7 @@ CREATE POLICY "Users can create rooms" ON public.chat_rooms
     auth.uid() = created_by AND
     EXISTS (
       SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role = 'full'
+      WHERE id = auth.uid() AND role != 'guest'
     )
   );
 
@@ -209,7 +209,7 @@ CREATE POLICY "Full access users can read chat" ON public.chat_messages
   USING (
     EXISTS (
       SELECT 1 FROM public.profiles
-      WHERE id = auth.uid() AND role = 'full'
+      WHERE id = auth.uid() AND role != 'guest'
     ) AND (
       (room_id IS NULL AND (recipient_id IS NULL OR user_id = auth.uid() OR recipient_id = auth.uid())) OR
       (room_id IS NOT NULL AND EXISTS (
@@ -247,7 +247,7 @@ CREATE TABLE IF NOT EXISTS public.skod_logs (
 -- Увімкнення RLS для таблиці логів СКО-Д
 ALTER TABLE public.skod_logs ENABLE ROW LEVEL SECURITY;
 
--- Політика читання: користувач бачить свої записи, керівники бачать записи свого відділу, директори ('full') бачать все
+-- Політика читання: користувач бачить свої записи, керівники бачать записи свого відділу, керівництво департаменту бачить все
 CREATE POLICY "Users can view skod logs" ON public.skod_logs
   FOR SELECT
   TO authenticated
@@ -255,7 +255,7 @@ CREATE POLICY "Users can view skod logs" ON public.skod_logs
     auth.uid() = user_id OR
     EXISTS (
       SELECT 1 FROM public.profiles 
-      WHERE id = auth.uid() AND (role = 'full' OR department = skod_logs.department)
+      WHERE id = auth.uid() AND (role IN ('admin', 'director', 'deputy_director') OR department = skod_logs.department)
     )
   );
 
@@ -324,37 +324,37 @@ ALTER TABLE public.assigned_tasks ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can view assigned tasks" ON public.assigned_tasks
   FOR SELECT TO authenticated USING (TRUE);
 
--- Політика створення: тільки Директори/Заступники (роль='full') або Керівники відділів (is_head=TRUE) можуть створювати завдання
+-- Політика створення: тільки керівництво департаменту та відділів може створювати завдання
 CREATE POLICY "Managers can insert assigned tasks" ON public.assigned_tasks
   FOR INSERT TO authenticated
   WITH CHECK (
     auth.role() = 'authenticated' AND
     EXISTS (
       SELECT 1 FROM public.profiles 
-      WHERE id = auth.uid() AND (role = 'full' OR is_head = TRUE)
+      WHERE id = auth.uid() AND role IN ('admin', 'director', 'deputy_director', 'manager')
     )
   );
 
--- Політика оновлення: творець завдання, відповідальний виконавець або будь-який керівник з роль='full' / is_head=TRUE
+-- Політика оновлення: творець завдання, відповідальний виконавець або будь-який керівник
 CREATE POLICY "Responsible users or managers can update assigned tasks" ON public.assigned_tasks
   FOR UPDATE TO authenticated
   USING (
     auth.uid() = created_by OR auth.uid() = responsible_id OR
     EXISTS (
       SELECT 1 FROM public.profiles 
-      WHERE id = auth.uid() AND (role = 'full' OR is_head = TRUE)
+      WHERE id = auth.uid() AND role IN ('admin', 'director', 'deputy_director', 'manager')
     )
   )
   WITH CHECK (TRUE);
 
--- Політика видалення: тільки творець або Директори/Заступники (роль='full')
+-- Політика видалення: тільки творець або Директори/Заступники/Адміни
 CREATE POLICY "Creators or directors can delete assigned tasks" ON public.assigned_tasks
   FOR DELETE TO authenticated
   USING (
     auth.uid() = created_by OR
     EXISTS (
       SELECT 1 FROM public.profiles 
-      WHERE id = auth.uid() AND role = 'full'
+      WHERE id = auth.uid() AND role IN ('admin', 'director', 'deputy_director')
     )
   );
 
