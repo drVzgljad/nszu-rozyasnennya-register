@@ -1486,3 +1486,109 @@
   color: #38bdf8 !important;
   border-color: #0369a1 !important;
 }
+
+/* ── Package Navigator Page Overrides ────────────────── */
+:root.dark-theme .packages-layout {
+  background: var(--p-page) !important;
+}
+:root.dark-theme .filter-chip {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+  color: var(--ink) !important;
+}
+:root.dark-theme .filter-chip.active {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border-color: var(--accent) !important;
+}
+:root.dark-theme .package-card {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+  color: var(--ink) !important;
+}
+:root.dark-theme .package-card:hover,
+:root.dark-theme .package-card.active {
+  background: var(--accent-soft) !important;
+  border-color: rgba(56, 189, 248, 0.4) !important;
+}
+:root.dark-theme .package-number {
+  background: var(--soft) !important;
+  color: var(--accent) !important;
+}
+:root.dark-theme .package-outline,
+:root.dark-theme .package-reader {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+  color: var(--ink) !important;
+}
+:root.dark-theme .package-tag {
+  background: #14532d !important;
+  color: #4ade80 !important;
+}
+:root.dark-theme .outline-link {
+  color: var(--ink) !important;
+}
+:root.dark-theme .outline-link:hover,
+:root.dark-theme .outline-link.active {
+  color: var(--accent) !important;
+  background: var(--soft) !important;
+}
+:root.dark-theme .outline-link span {
+  color: var(--muted) !important;
+}
+:root.dark-theme .source-heading {
+  color: var(--ink) !important;
+  background: var(--soft) !important;
+}
+:root.dark-theme .requirement-list {
+  color: var(--ink) !important;
+}
+:root.dark-theme .requirement-marker {
+  color: var(--accent) !important;
+}
+:root.dark-theme .related-explanations h3 {
+  color: var(--ink) !important;
+}
+:root.dark-theme .related-link {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+  color: var(--ink) !important;
+}
+:root.dark-theme .related-link:hover {
+  background: var(--accent-soft) !important;
+  border-color: var(--accent) !important;
+}
+:root.dark-theme .law-related-link {
+  background: var(--soft) !important;
+  border-color: var(--line) !important;
+  color: var(--ink) !important;
+}
+:root.dark-theme .law-related-link span {
+  color: var(--muted) !important;
+}
+:root.dark-theme .law-related-link:hover {
+  background: var(--surface) !important;
+  border-color: var(--accent) !important;
+}
+:root.dark-theme .reader-empty {
+  color: var(--muted) !important;
+}
+
+/* ── Search Machine (report.html) Overrides ─────────── */
+:root.dark-theme .report-panel {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+  color: var(--ink) !important;
+}
+:root.dark-theme .report-copy-box {
+  border-top-color: var(--line) !important;
+}
+:root.dark-theme .report-copy-box textarea {
+  border-color: var(--line) !important;
+  background: var(--soft) !important;
+  color: var(--ink) !important;
+}
+:root.dark-theme mark {
+  background: #78350f !important;
+  color: #fef08a !important;
+}
