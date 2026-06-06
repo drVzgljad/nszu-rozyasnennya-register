@@ -7,8 +7,9 @@
   <link rel="stylesheet" href="../portal.css?v=20260603d">
   <link rel="stylesheet" href="../auth-v2.css?v=20260606">
   <link rel="stylesheet" href="skod.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script type="module" src="../auth-v2.js?v=20260606"></script>
-  <script type="module" src="skod.js?v=20260603f"></script>
+  <script type="module" src="skod.js?v=20260606"></script>
 </head>
 <body data-required-role="registered">
 <div class="portal">
@@ -54,13 +55,21 @@
 
     <!-- Filter Panel -->
     <section class="filter-panel">
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <label for="report-date">Дата:</label>
-        <input type="date" id="report-date">
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <label for="report-start-date">Період з:</label>
+        <input type="date" id="report-start-date">
+        <label for="report-end-date">по:</label>
+        <input type="date" id="report-end-date">
+      </div>
+
+      <div class="skod-preset-buttons" style="display: flex; align-items: center; gap: 6px;">
+        <button type="button" class="btn-preset active" id="preset-today">Сьогодні</button>
+        <button type="button" class="btn-preset" id="preset-week">Тиждень</button>
+        <button type="button" class="btn-preset" id="preset-month">Місяць</button>
       </div>
 
       <div style="display: flex; align-items: center; gap: 8px;">
-        <label for="report-level">Рівень звіту:</label>
+        <label for="report-level">Рівень:</label>
         <select id="report-level">
           <option value="personal">Мій звіт (Індивідуальний)</option>
           <option value="department">Звіт відділу</option>
@@ -75,15 +84,36 @@
         </select>
       </div>
 
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <label for="report-branch">Напрям:</label>
+        <select id="report-branch">
+          <option value="all">Всі напрями</option>
+          <option value="askod">АСКОД</option>
+          <option value="department">Робота відділу</option>
+          <option value="tasks">Доручення</option>
+        </select>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <label for="report-severity">Складність:</label>
+        <select id="report-severity">
+          <option value="all">Всі складності</option>
+          <option value="easy">Легка</option>
+          <option value="medium">Середня</option>
+          <option value="hard">Складна</option>
+          <option value="expert">Експертна</option>
+        </select>
+      </div>
+
       <button id="btn-run-report" class="btn btn-primary" style="padding: 8px 20px; font-size: 14px;">
         Сформувати
       </button>
     </section>
 
     <!-- Report Results Container -->
-    <section class="skod-card" id="report-results" style="min-height: 250px;">
-      <div class="empty-state">
-        Оберіть параметри та натисніть "Сформувати" для перегляду аналітики.
+    <section id="report-results" style="min-height: 250px;">
+      <div class="empty-state" style="background: var(--p-surface); border: 1px solid var(--p-line); border-radius: var(--pr-tile); padding: 40px; text-align: center; color: var(--p-muted);">
+        Оберіть parameters та натисніть "Сформувати" для перегляду аналітики.
       </div>
     </section>
   </main>

@@ -608,18 +608,22 @@ async function loadTodayLogs() {
 // ============================================================
 // Reports Logic
 // ============================================================
+let chartInstances = {};
+let lastLoggedData = null;
+
 async function setupReports() {
-  const filterDateInput = document.getElementById('report-date');
+  const startDateInput = document.getElementById('report-start-date');
+  const endDateInput = document.getElementById('report-end-date');
   const filterDeptSel = document.getElementById('report-department');
   const reportLevelSel = document.getElementById('report-level');
   const btnRun = document.getElementById('btn-run-report');
 
-  // Default dates
-  if (filterDateInput) {
-    filterDateInput.value = new Date().toISOString().split('T')[0];
-  }
+  // Default dates: Today
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (startDateInput) startDateInput.value = todayStr;
+  if (endDateInput) endDateInput.value = todayStr;
 
-  // Populate departments if user has director/full access
+  // Populate departments
   if (filterDeptSel) {
     const depts = [
       "робота з електронними медичними даними",
@@ -642,24 +646,108 @@ async function setupReports() {
     }
   }
 
+  // RBAC checks for filters
+  const userRole = userProfile.role || 'registered';
+  const isDirectorOrDeputyOrAdmin = ['admin', 'director', 'deputy_director', 'full'].includes(userRole);
+  const isManager = userRole === 'manager' || userProfile.is_head === true;
+
   if (reportLevelSel) {
-    reportLevelSel.addEventListener('change', () => {
-      const isDeptOrAll = reportLevelSel.value !== 'personal';
-      const deptGroup = document.getElementById('report-dept-group');
-      if (deptGroup) {
-        deptGroup.style.display = isDeptOrAll ? 'block' : 'none';
-      }
-    });
-
-    if (userProfile.role !== 'full') {
+    if (isDirectorOrDeputyOrAdmin) {
+      // Full access - nothing to disable
+    } else if (isManager) {
+      // Manager: can query personal and department, but NOT department-wide
       const allOpt = reportLevelSel.querySelector('option[value="department-wide"]');
-      if (allOpt) allOpt.disabled = true;
+      if (allOpt) allOpt.remove();
 
+      // Force and lock department to their own department
+      if (filterDeptSel) {
+        filterDeptSel.value = userProfile.Section || userProfile.department || '';
+        filterDeptSel.disabled = true;
+      }
+    } else {
+      // Standard: only personal, hide dropdown completely
       reportLevelSel.value = 'personal';
+      const levelDiv = reportLevelSel.closest('div');
+      if (levelDiv) levelDiv.style.display = 'none';
       const deptGroup = document.getElementById('report-dept-group');
       if (deptGroup) deptGroup.style.display = 'none';
     }
+
+    reportLevelSel.addEventListener('change', () => {
+      const showDept = reportLevelSel.value !== 'personal';
+      const deptGroup = document.getElementById('report-dept-group');
+      if (deptGroup) {
+        deptGroup.style.display = showDept ? 'block' : 'none';
+      }
+    });
   }
+
+  // Setup presets
+  const presetToday = document.getElementById('preset-today');
+  const presetWeek = document.getElementById('preset-week');
+  const presetMonth = document.getElementById('preset-month');
+
+  function setActivePreset(btn) {
+    document.querySelectorAll('.btn-preset').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  if (presetToday) {
+    presetToday.addEventListener('click', () => {
+      setActivePreset(presetToday);
+      const today = new Date().toISOString().split('T')[0];
+      if (startDateInput) startDateInput.value = today;
+      if (endDateInput) endDateInput.value = today;
+    });
+  }
+
+  if (presetWeek) {
+    presetWeek.addEventListener('click', () => {
+      setActivePreset(presetWeek);
+      const today = new Date();
+      const day = today.getDay();
+      const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(today.setDate(diff));
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      
+      if (startDateInput) startDateInput.value = monday.toISOString().split('T')[0];
+      if (endDateInput) endDateInput.value = sunday.toISOString().split('T')[0];
+    });
+  }
+
+  if (presetMonth) {
+    presetMonth.addEventListener('click', () => {
+      setActivePreset(presetMonth);
+      const today = new Date();
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      
+      if (startDateInput) startDateInput.value = firstDay.toISOString().split('T')[0];
+      if (endDateInput) endDateInput.value = lastDay.toISOString().split('T')[0];
+    });
+  }
+
+  if (startDateInput) {
+    startDateInput.addEventListener('change', () => {
+      document.querySelectorAll('.btn-preset').forEach(b => b.classList.remove('active'));
+    });
+  }
+  if (endDateInput) {
+    endDateInput.addEventListener('change', () => {
+      document.querySelectorAll('.btn-preset').forEach(b => b.classList.remove('active'));
+    });
+  }
+
+  // Mutation observer to detect theme changes and redraw charts dynamically
+  const themeObserver = new MutationObserver(() => {
+    if (lastLoggedData) {
+      const isDarkTheme = document.body.classList.contains('dark-theme') || document.documentElement.classList.contains('dark-theme');
+      drawDashboardCharts(lastLoggedData.logs, lastLoggedData.level, isDarkTheme);
+    }
+  });
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+  themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
   if (btnRun) {
     btnRun.addEventListener('click', runReport);
@@ -669,19 +757,24 @@ async function setupReports() {
 
 async function runReport() {
   const level = document.getElementById('report-level')?.value || 'personal';
-  const dateVal = document.getElementById('report-date')?.value;
+  const startDateVal = document.getElementById('report-start-date')?.value;
+  const endDateVal = document.getElementById('report-end-date')?.value;
   const deptVal = document.getElementById('report-department')?.value;
-  const resultsContainer = document.getElementById('report-results');
+  const branchVal = document.getElementById('report-branch')?.value || 'all';
+  const severityVal = document.getElementById('report-severity')?.value || 'all';
 
+  const resultsContainer = document.getElementById('report-results');
   if (!resultsContainer) return;
   resultsContainer.innerHTML = '<div class="empty-state">Завантаження аналітики...</div>';
 
-  if (!dateVal) {
-    alert('Будь ласка, оберіть дату.');
+  if (!startDateVal || !endDateVal) {
+    alert('Будь ласка, оберіть період.');
     return;
   }
 
-  let query = sb.from('skod_logs').select('*').eq('log_date', dateVal);
+  let query = sb.from('skod_logs').select('*')
+    .gte('log_date', startDateVal)
+    .lte('log_date', endDateVal);
 
   if (level === 'personal') {
     query = query.eq('user_id', currentUser.id);
@@ -689,7 +782,17 @@ async function runReport() {
     query = query.eq('department', deptVal);
   }
 
-  const { data: logs, error } = await query.order('user_name', { ascending: true });
+  if (branchVal !== 'all') {
+    query = query.eq('branch', branchVal);
+  }
+
+  if (severityVal !== 'all') {
+    query = query.eq('severity_level', severityVal);
+  }
+
+  const { data: logs, error } = await query
+    .order('log_date', { ascending: true })
+    .order('start_time', { ascending: true });
 
   if (error) {
     resultsContainer.innerHTML = `<div class="empty-state" style="color:red">Помилка завантаження: ${error.message}</div>`;
@@ -697,27 +800,111 @@ async function runReport() {
   }
 
   if (!logs || logs.length === 0) {
-    resultsContainer.innerHTML = '<div class="empty-state">За обраний день записи діяльності відсутні.</div>';
+    resultsContainer.innerHTML = '<div class="empty-state" style="background: var(--p-surface); border: 1px solid var(--p-line); border-radius: var(--pr-tile); padding: 40px;">За обраний період та фільтри записи діяльності відсутні.</div>';
+    Object.values(chartInstances).forEach(c => c && c.destroy());
+    chartInstances = {};
+    lastLoggedData = null;
     return;
   }
 
-  if (level === 'personal') {
-    renderPersonalReport(logs, resultsContainer);
-  } else if (level === 'department') {
-    renderDepartmentReport(logs, resultsContainer, deptVal);
-  } else if (level === 'department-wide') {
-    renderDepartmentWideReport(logs, resultsContainer);
-  }
+  lastLoggedData = { logs, level, departmentName: deptVal, startDateVal, endDateVal };
+  renderDashboard(lastLoggedData);
 }
 
-function renderPersonalReport(logs, container) {
-  let totalMins = 0;
-  let totalScore = 0;
-  
-  const trs = logs.map(log => {
-    totalMins += log.duration_minutes || 0;
-    totalScore += parseFloat(log.score || 0);
+function renderDashboard(data) {
+  const { logs, level, departmentName } = data;
+  const resultsContainer = document.getElementById('report-results');
+  if (!resultsContainer) return;
 
+  const completedLogs = logs.filter(log => log.status === 'completed');
+  const totalTasks = logs.length;
+  const totalScore = completedLogs.reduce((sum, log) => sum + parseFloat(log.score || 0), 0);
+  const totalMinutes = completedLogs.reduce((sum, log) => sum + (log.duration_minutes || 0), 0);
+  const totalHours = (totalMinutes / 60).toFixed(1);
+  const avgComplexity = completedLogs.length > 0 
+    ? (completedLogs.reduce((sum, log) => sum + parseFloat(log.complexity_coefficient || 1.0), 0) / completedLogs.length).toFixed(2)
+    : "0.00";
+
+  let html = `
+    <div class="skod-stats-grid">
+      <div class="skod-kpi-card score">
+        <div class="skod-kpi-icon">⭐</div>
+        <div class="skod-kpi-info">
+          <span class="skod-kpi-title">Оціночні бали</span>
+          <span class="skod-kpi-value">${totalScore.toFixed(2)}</span>
+        </div>
+      </div>
+      <div class="skod-kpi-card hours">
+        <div class="skod-kpi-icon">⏱️</div>
+        <div class="skod-kpi-info">
+          <span class="skod-kpi-title">Загальний час</span>
+          <span class="skod-kpi-value">${totalHours} год</span>
+        </div>
+      </div>
+      <div class="skod-kpi-card tasks">
+        <div class="skod-kpi-icon">📋</div>
+        <div class="skod-kpi-info">
+          <span class="skod-kpi-title">Кількість завдань</span>
+          <span class="skod-kpi-value">${totalTasks}</span>
+        </div>
+      </div>
+      <div class="skod-kpi-card complexity">
+        <div class="skod-kpi-icon">⚡</div>
+        <div class="skod-kpi-info">
+          <span class="skod-kpi-title">Сер. складність</span>
+          <span class="skod-kpi-value">${avgComplexity}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="skod-dashboard-grid">
+      <div class="skod-chart-card">
+        <div class="skod-chart-card-title">Розподіл за напрямами (бали)</div>
+        <div class="skod-chart-container">
+          <canvas id="chartBranchDistribution"></canvas>
+        </div>
+      </div>
+      <div class="skod-chart-card">
+        <div class="skod-chart-card-title">Динаміка оцінки за днями</div>
+        <div class="skod-chart-container">
+          <canvas id="chartTimeline"></canvas>
+        </div>
+      </div>
+      ${level !== 'personal' ? `
+      <div class="skod-chart-card" id="card-leaderboard" style="grid-column: span 2;">
+        <div class="skod-chart-card-title" id="leaderboard-title">Рейтинг за балами</div>
+        <div class="skod-chart-container" style="height: 280px;">
+          <canvas id="chartLeaderboard"></canvas>
+        </div>
+      </div>
+      ` : ''}
+    </div>
+
+    <div class="skod-card" style="padding: 24px; border-radius: var(--pr-tile); background: var(--p-surface); border: 1px solid var(--p-line); box-shadow: var(--p-shadow-sm);">
+      <div class="skod-card-title" id="details-section-title" style="margin-bottom: 20px; border-bottom: 1px solid var(--p-soft); padding-bottom: 12px;">
+        Деталі звіту
+      </div>
+      <div id="dashboard-details-table-container"></div>
+    </div>
+  `;
+
+  resultsContainer.innerHTML = html;
+
+  const detailsContainer = document.getElementById('dashboard-details-table-container');
+  if (level === 'personal') {
+    renderPersonalDetails(logs, detailsContainer);
+  } else if (level === 'department') {
+    renderDepartmentDetails(logs, detailsContainer, departmentName);
+  } else if (level === 'department-wide') {
+    renderDepartmentWideDetails(logs, detailsContainer);
+  }
+
+  const isDark = document.body.classList.contains('dark-theme') || document.documentElement.classList.contains('dark-theme');
+  drawDashboardCharts(logs, level, isDark);
+}
+
+function renderPersonalDetails(logs, container) {
+  const trs = logs.map(log => {
     let durationStr = 'В процесі ⏳';
     if (log.status !== 'in_progress') {
       const hrs = Math.floor(log.duration_minutes / 60);
@@ -733,10 +920,11 @@ function renderPersonalReport(logs, container) {
     }
     const categoryLabel = log.category ? ` &bull; ${log.category}` : '';
     const scoreVal = log.status === 'in_progress' ? 'В процесі' : parseFloat(log.score || 0).toFixed(2);
+    const dateFormatted = log.log_date ? log.log_date.split('-').reverse().slice(0, 2).join('.') : '';
 
     return `
       <tr>
-        <td style="font-weight:700;">${log.start_time.substring(0, 5)}</td>
+        <td style="font-weight:700;">${dateFormatted} ${log.start_time.substring(0, 5)}</td>
         <td>
           <div style="font-size:11px; text-transform:uppercase; font-weight:700; color:var(--p-muted); letter-spacing:0.02em; margin-bottom: 2px;">
             ${branchLabel}${categoryLabel}
@@ -751,28 +939,12 @@ function renderPersonalReport(logs, container) {
     `;
   }).join('');
 
-  const totalHrs = (totalMins / 60).toFixed(1);
-
   container.innerHTML = `
-    <div class="skod-stats" style="margin-top: 20px;">
-      <div class="skod-stat-box">
-        <span class="stat-lbl">Загальний час</span>
-        <span class="stat-num">${totalHrs} год</span>
-      </div>
-      <div class="skod-stat-box green">
-        <span class="stat-lbl">Оціночні бали</span>
-        <span class="stat-num">${totalScore.toFixed(2)}</span>
-      </div>
-      <div class="skod-stat-box">
-        <span class="stat-lbl">Кількість завдань</span>
-        <span class="stat-num">${logs.length}</span>
-      </div>
-    </div>
     <div class="skod-table-wrapper">
       <table class="skod-table">
         <thead>
           <tr>
-            <th>Час</th>
+            <th>Дата та час</th>
             <th>Завдання</th>
             <th>Тривалість</th>
             <th>Складність</th>
@@ -787,29 +959,20 @@ function renderPersonalReport(logs, container) {
   `;
 }
 
-function renderDepartmentReport(logs, container, departmentName) {
+function renderDepartmentDetails(logs, container, departmentName) {
   const employees = {};
-  let totalDeptMins = 0;
-  let totalDeptScore = 0;
-
   logs.forEach(log => {
-    totalDeptMins += log.duration_minutes || 0;
-    totalDeptScore += parseFloat(log.score || 0);
-
     if (!employees[log.user_name]) {
       employees[log.user_name] = {
         name: log.user_name,
         tasksCount: 0,
         minutes: 0,
-        score: 0,
-        tasks: []
+        score: 0
       };
     }
-
     employees[log.user_name].tasksCount++;
     employees[log.user_name].minutes += log.duration_minutes || 0;
     employees[log.user_name].score += parseFloat(log.score || 0);
-    employees[log.user_name].tasks.push(log);
   });
 
   const empRows = Object.values(employees).map(emp => {
@@ -827,27 +990,6 @@ function renderDepartmentReport(logs, container, departmentName) {
   }).join('');
 
   container.innerHTML = `
-    <div style="margin-bottom: 20px;">
-      <h3 style="font-family: var(--p-display); margin: 0 0 8px;">Аналітика відділу: ${departmentName}</h3>
-      <p style="color: var(--p-muted); margin: 0;">Зведені показники діяльності відділу за день</p>
-    </div>
-    
-    <div class="skod-stats">
-      <div class="skod-stat-box">
-        <span class="stat-lbl">Загальний час відділу</span>
-        <span class="stat-num">${(totalDeptMins / 60).toFixed(1)} год</span>
-      </div>
-      <div class="skod-stat-box green">
-        <span class="stat-lbl">Сумарний бал діяльності</span>
-        <span class="stat-num">${totalDeptScore.toFixed(2)}</span>
-      </div>
-      <div class="skod-stat-box">
-        <span class="stat-lbl">Активних співробітників</span>
-        <span class="stat-num">${Object.keys(employees).length}</span>
-      </div>
-    </div>
-
-    <div class="skod-card-title" style="margin-top: 30px;">Рейтинг активності співробітників</div>
     <div class="skod-table-wrapper">
       <table class="skod-table">
         <thead>
@@ -867,15 +1009,9 @@ function renderDepartmentReport(logs, container, departmentName) {
   `;
 }
 
-function renderDepartmentWideReport(logs, container) {
+function renderDepartmentWideDetails(logs, container) {
   const departments = {};
-  let overallScore = 0;
-  let overallMinutes = 0;
-
   logs.forEach(log => {
-    overallScore += parseFloat(log.score || 0);
-    overallMinutes += log.duration_minutes || 0;
-
     if (!departments[log.department]) {
       departments[log.department] = {
         name: log.department,
@@ -885,7 +1021,6 @@ function renderDepartmentWideReport(logs, container) {
         employees: new Set()
       };
     }
-
     departments[log.department].tasksCount++;
     departments[log.department].minutes += log.duration_minutes || 0;
     departments[log.department].score += parseFloat(log.score || 0);
@@ -908,27 +1043,6 @@ function renderDepartmentWideReport(logs, container) {
   }).join('');
 
   container.innerHTML = `
-    <div style="margin-bottom: 20px;">
-      <h3 style="font-family: var(--p-display); margin: 0 0 8px;">Зведений звіт департаменту</h3>
-      <p style="color: var(--p-muted); margin: 0;">Порівняльна активність між підрозділами</p>
-    </div>
-    
-    <div class="skod-stats">
-      <div class="skod-stat-box">
-        <span class="stat-lbl">Загальний час департаменту</span>
-        <span class="stat-num">${(overallMinutes / 60).toFixed(1)} год</span>
-      </div>
-      <div class="skod-stat-box green">
-        <span class="stat-lbl">Сумарна оцінка СКО-Д</span>
-        <span class="stat-num">${overallScore.toFixed(2)}</span>
-      </div>
-      <div class="skod-stat-box">
-        <span class="stat-lbl">Кількість залучених відділів</span>
-        <span class="stat-num">${Object.keys(departments).length}</span>
-      </div>
-    </div>
-
-    <div class="skod-card-title" style="margin-top: 30px;">Ефективність підрозділів</div>
     <div class="skod-table-wrapper">
       <table class="skod-table">
         <thead>
@@ -947,6 +1061,253 @@ function renderDepartmentWideReport(logs, container) {
       </table>
     </div>
   `;
+}
+
+function getChartColors(isDark) {
+  return {
+    textColor: isDark ? '#e2e8f0' : '#1e293b',
+    gridColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
+    branches: {
+      askod: '#3b82f6',
+      department: '#10b981',
+      tasks: '#f59e0b',
+      other: '#8b5cf6'
+    },
+    palette: [
+      '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6',
+      '#ec4899', '#14b8a6', '#f43f5e', '#6366f1',
+      '#a855f7', '#06b6d4'
+    ]
+  };
+}
+
+function drawDashboardCharts(logs, level, isDark) {
+  const colors = getChartColors(isDark);
+
+  // Destroy existing charts to prevent mouseover glitching
+  if (chartInstances.branch) {
+    chartInstances.branch.destroy();
+    chartInstances.branch = null;
+  }
+  if (chartInstances.timeline) {
+    chartInstances.timeline.destroy();
+    chartInstances.timeline = null;
+  }
+  if (chartInstances.leaderboard) {
+    chartInstances.leaderboard.destroy();
+    chartInstances.leaderboard = null;
+  }
+
+  // 1. Branch Doughnut Chart
+  const branchScores = { askod: 0, department: 0, tasks: 0 };
+  logs.forEach(log => {
+    if (log.status === 'completed') {
+      const br = log.branch || 'department';
+      if (branchScores[br] !== undefined) {
+        branchScores[br] += parseFloat(log.score || 0);
+      } else {
+        branchScores[br] = parseFloat(log.score || 0);
+      }
+    }
+  });
+
+  const branchLabelsMap = {
+    askod: 'АСКОД',
+    department: 'Внутрішня робота',
+    tasks: 'Доручення'
+  };
+
+  const branchLabels = Object.keys(branchScores).map(k => branchLabelsMap[k] || k);
+  const branchData = Object.values(branchScores);
+  const branchBgColors = Object.keys(branchScores).map(k => colors.branches[k] || colors.branches.other);
+
+  const ctxBranch = document.getElementById('chartBranchDistribution')?.getContext('2d');
+  if (ctxBranch) {
+    chartInstances.branch = new Chart(ctxBranch, {
+      type: 'doughnut',
+      data: {
+        labels: branchLabels,
+        datasets: [{
+          data: branchData,
+          backgroundColor: branchBgColors,
+          borderWidth: isDark ? 2 : 1,
+          borderColor: isDark ? '#1e293b' : '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: colors.textColor,
+              font: { family: 'var(--p-text)', size: 12 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return ` ${context.label}: ${context.raw.toFixed(2)} балів`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // 2. Timeline Bar Chart
+  const dailyScores = {};
+  const startDateVal = document.getElementById('report-start-date')?.value;
+  const endDateVal = document.getElementById('report-end-date')?.value;
+
+  if (startDateVal && endDateVal) {
+    const start = new Date(startDateVal);
+    const end = new Date(endDateVal);
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().split('T')[0];
+      dailyScores[dateStr] = 0;
+    }
+  }
+
+  logs.forEach(log => {
+    if (log.status === 'completed' && dailyScores[log.log_date] !== undefined) {
+      dailyScores[log.log_date] += parseFloat(log.score || 0);
+    }
+  });
+
+  const timelineLabels = Object.keys(dailyScores).map(d => {
+    const parts = d.split('-');
+    return `${parts[2]}.${parts[1]}`;
+  });
+  const timelineData = Object.values(dailyScores);
+
+  const ctxTimeline = document.getElementById('chartTimeline')?.getContext('2d');
+  if (ctxTimeline) {
+    chartInstances.timeline = new Chart(ctxTimeline, {
+      type: 'bar',
+      data: {
+        labels: timelineLabels,
+        datasets: [{
+          data: timelineData,
+          backgroundColor: isDark ? 'rgba(74, 143, 199, 0.65)' : 'rgba(74, 143, 199, 0.85)',
+          borderColor: 'var(--accent)',
+          borderWidth: 1,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return ` ${context.raw.toFixed(2)} балів`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: colors.gridColor },
+            ticks: {
+              color: colors.textColor,
+              font: { family: 'var(--p-text)', size: 11 }
+            }
+          },
+          y: {
+            grid: { color: colors.gridColor },
+            ticks: {
+              color: colors.textColor,
+              font: { family: 'var(--p-text)', size: 11 }
+            },
+            suggestedMin: 0
+          }
+        }
+      }
+    });
+  }
+
+  // 3. Leaderboard Horizontal Bar Chart
+  const ctxLeaderboard = document.getElementById('chartLeaderboard')?.getContext('2d');
+  if (ctxLeaderboard) {
+    let leaderboardLabels = [];
+    let leaderboardData = [];
+
+    if (level === 'department') {
+      const empScores = {};
+      logs.forEach(log => {
+        if (log.status === 'completed') {
+          empScores[log.user_name] = (empScores[log.user_name] || 0) + parseFloat(log.score || 0);
+        }
+      });
+      const sortedEmps = Object.entries(empScores).sort((a, b) => b[1] - a[1]);
+      leaderboardLabels = sortedEmps.map(x => x[0]);
+      leaderboardData = sortedEmps.map(x => x[1]);
+      const lbTitle = document.getElementById('leaderboard-title');
+      if (lbTitle) lbTitle.textContent = 'Рейтинг активності співробітників';
+    } else if (level === 'department-wide') {
+      const deptScores = {};
+      logs.forEach(log => {
+        if (log.status === 'completed') {
+          deptScores[log.department] = (deptScores[log.department] || 0) + parseFloat(log.score || 0);
+        }
+      });
+      const sortedDepts = Object.entries(deptScores).sort((a, b) => b[1] - a[1]);
+      leaderboardLabels = sortedDepts.map(x => x[0]);
+      leaderboardData = sortedDepts.map(x => x[1]);
+      const lbTitle = document.getElementById('leaderboard-title');
+      if (lbTitle) lbTitle.textContent = 'Порівняльна активність відділів';
+    }
+
+    chartInstances.leaderboard = new Chart(ctxLeaderboard, {
+      type: 'bar',
+      data: {
+        labels: leaderboardLabels,
+        datasets: [{
+          data: leaderboardData,
+          backgroundColor: leaderboardLabels.map((_, idx) => colors.palette[idx % colors.palette.length]),
+          borderRadius: 6,
+          borderWidth: 0
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return ` ${context.raw.toFixed(2)} балів`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: colors.gridColor },
+            ticks: {
+              color: colors.textColor,
+              font: { family: 'var(--p-text)', size: 11 }
+            },
+            suggestedMin: 0
+          },
+          y: {
+            grid: { display: false },
+            ticks: {
+              color: colors.textColor,
+              font: { family: 'var(--p-text)', size: 11 }
+            }
+          }
+        }
+      }
+    });
+  }
 }
 
 // Start
