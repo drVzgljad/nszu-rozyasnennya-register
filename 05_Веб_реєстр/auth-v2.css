@@ -308,6 +308,32 @@
   opacity: 0.6;
 }
 
+/* Dark theme overrides for services dropdown */
+.dark-theme .nav-dropdown-menu {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.dark-theme .nav-dropdown-menu a {
+  color: #e2e8f0 !important;
+}
+
+.dark-theme .nav-dropdown-menu a:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: var(--accent, #4a8fc7) !important;
+}
+
+.dark-theme .nav-dropdown-menu a.active {
+  background: rgba(74, 143, 199, 0.2) !important;
+  color: var(--accent, #4a8fc7) !important;
+}
+
+.dark-theme .nav-dropdown-btn:hover:not(.active) {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
 /* Force nowrap for all nav items on one line */
 .top-nav a, .section-switch a, .nav-dropdown-btn, .nav-chat-btn, .auth-chat-btn, .auth-skod-btn, .auth-tasks-btn {
   white-space: nowrap;
