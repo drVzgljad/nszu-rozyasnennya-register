@@ -27,7 +27,12 @@ async function init() {
   await checkPublishAccess();
   setupPublishModal();
 
-  // Listen for auth changes to update publish button visibility
+  const deleteBtn = byId("deleteNewsBtn");
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", handleDeleteNews);
+  }
+
+  // Listen for auth changes to update publish/delete buttons visibility
   sb.auth.onAuthStateChange(async (_event, session) => {
     if (session && session.user) {
       currentUser = session.user;
@@ -38,6 +43,7 @@ async function init() {
       currentUserRole = null;
     }
     togglePublishButtonVisibility();
+    toggleDeleteButtonVisibility();
   });
 }
 
@@ -177,6 +183,9 @@ function selectNews(n) {
     // Render markdown-like elements simply
     contentEl.innerHTML = formatRichText(n.content);
   }
+
+  // Toggle delete button
+  toggleDeleteButtonVisibility();
 
   // Mobile layout scrolling
   if (window.innerWidth <= 1040) {
@@ -382,6 +391,52 @@ async function handlePublishSubmit(e) {
     if (submitBtn) {
       submitBtn.disabled = false;
       submitBtn.textContent = "Опублікувати новину";
+    }
+  }
+}
+
+function toggleDeleteButtonVisibility() {
+  const deleteBtn = byId("deleteNewsBtn");
+  if (deleteBtn) {
+    const allowedRoles = ['manager', 'deputy_director', 'director', 'admin'];
+    if (selectedNews && currentUser && allowedRoles.includes(currentUserRole)) {
+      deleteBtn.style.display = "block";
+    } else {
+      deleteBtn.style.display = "none";
+    }
+  }
+}
+
+async function handleDeleteNews() {
+  if (!selectedNews) return;
+  
+  const confirmed = confirm(`Ви впевнені, що хочете видалити новину "${selectedNews.title}"?`);
+  if (!confirmed) return;
+  
+  const deleteBtn = byId("deleteNewsBtn");
+  if (deleteBtn) {
+    deleteBtn.disabled = true;
+    deleteBtn.textContent = "Видалення...";
+  }
+
+  try {
+    const { error } = await sb.from('news').delete().eq('id', selectedNews.id);
+    
+    if (error) {
+      alert("Помилка при видаленні новини: " + error.message);
+      return;
+    }
+    
+    alert("Новину успішно видалено!");
+    showDefaultState();
+    await loadNews();
+  } catch (err) {
+    console.error("Delete error:", err);
+    alert("Сталася неочікувана помилка при видаленні.");
+  } finally {
+    if (deleteBtn) {
+      deleteBtn.disabled = false;
+      deleteBtn.textContent = "🗑️ Видалити новину";
     }
   }
 }

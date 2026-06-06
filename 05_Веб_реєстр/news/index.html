@@ -61,7 +61,12 @@
       </div>
 
       <div class="news-detail-viewer" id="newsDetailViewer" style="display:none">
-        <button class="action back-btn" id="closeNewsBtn" type="button">← Назад до списку</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; width: 100%;">
+          <button class="action back-btn" id="closeNewsBtn" type="button" style="margin-bottom: 0;">← Назад до списку</button>
+          <button class="btn btn-secondary" id="deleteNewsBtn" type="button" style="display: none; background: #fff1f0; color: #cf1322; border-color: #ffa39e; padding: 6px 14px; font-size: 13px; font-weight: 600; border-radius: var(--pr-pill, 999px); margin-left: auto;">
+            🗑️ Видалити новину
+          </button>
+        </div>
         <img class="detail-cover" id="detCover" src="" alt="" style="display:none">
         <div class="detail-tags" id="detTags"></div>
         <h2 id="detTitle">Назва новини</h2>
