@@ -1612,3 +1612,255 @@
 :root.dark-theme .overline {
   color: var(--accent) !important;
 }
+
+/* ── Decree (resolution.css) Overrides ───────────────── */
+:root.dark-theme .type-chip {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+  color: var(--ink) !important;
+}
+:root.dark-theme .type-chip.active {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border-color: var(--accent) !important;
+}
+:root.dark-theme .resolution-card {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+  color: var(--ink) !important;
+}
+:root.dark-theme .resolution-card:hover,
+:root.dark-theme .resolution-card.active {
+  background: var(--accent-soft) !important;
+  border-color: rgba(56, 189, 248, 0.4) !important;
+}
+:root.dark-theme .resolution-outline,
+:root.dark-theme .resolution-reader {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+  color: var(--ink) !important;
+}
+:root.dark-theme .norm-tag {
+  background: #14532d !important;
+  color: #4ade80 !important;
+}
+:root.dark-theme .paragraph-row:hover .paragraph-link,
+:root.dark-theme .paragraph-row.active .paragraph-link {
+  background: var(--soft) !important;
+  color: var(--accent) !important;
+}
+:root.dark-theme .copy-fragment {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+  color: var(--accent) !important;
+}
+:root.dark-theme .copy-fragment:hover,
+:root.dark-theme .copy-fragment:focus {
+  background: var(--soft) !important;
+  border-color: var(--accent) !important;
+}
+:root.dark-theme .copy-fragment.copied {
+  background: #14532d !important;
+  color: #4ade80 !important;
+}
+:root.dark-theme .law-text,
+:root.dark-theme .law-item {
+  color: var(--ink) !important;
+}
+:root.dark-theme .law-item.selected {
+  background: var(--soft) !important;
+}
+:root.dark-theme .appendix-intro {
+  background: var(--soft) !important;
+  border-color: var(--line) !important;
+  color: var(--ink) !important;
+}
+:root.dark-theme .appendix-package-card {
+  background: var(--soft) !important;
+  border-color: var(--line) !important;
+  color: var(--ink) !important;
+}
+:root.dark-theme .appendix-package-card span {
+  color: var(--muted) !important;
+}
+:root.dark-theme .appendix-table-wrap {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+}
+:root.dark-theme .appendix-table td {
+  border-top-color: var(--line) !important;
+  color: var(--ink) !important;
+}
+:root.dark-theme .appendix-table td:first-child {
+  background: var(--soft) !important;
+  color: var(--accent) !important;
+}
+:root.dark-theme .appendix-table tr:hover td {
+  background: var(--soft) !important;
+}
+:root.dark-theme .appendix-table tr.selected td {
+  background: #452a0a !important;
+  box-shadow: inset 0 1px 0 #7c2d12, inset 0 -1px 0 #7c2d12 !important;
+}
+:root.dark-theme .coef-value {
+  color: var(--accent) !important;
+}
+:root.dark-theme .formula-box {
+  background: var(--soft) !important;
+  color: var(--accent) !important;
+}
+:root.dark-theme .definition-row {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+}
+:root.dark-theme .definition-row span {
+  color: var(--ink) !important;
+}
+:root.dark-theme .package-law-link,
+:root.dark-theme .explanation-law-link {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+  color: var(--ink) !important;
+}
+:root.dark-theme .package-law-link:hover,
+:root.dark-theme .explanation-law-link:hover {
+  background: var(--accent-soft) !important;
+  border-color: var(--accent) !important;
+}
+
+/* ── Algorithms (algorithms.css) Overrides ─────────── */
+:root.dark-theme .source-panel,
+:root.dark-theme .algorithm-results,
+:root.dark-theme .algorithm-reader {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+  color: var(--ink) !important;
+}
+:root.dark-theme .source-card,
+:root.dark-theme .algorithm-card {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+  color: var(--ink) !important;
+}
+:root.dark-theme .source-card:hover,
+:root.dark-theme .algorithm-card:hover,
+:root.dark-theme .algorithm-card.active {
+  background: var(--accent-soft) !important;
+  border-color: rgba(56, 189, 248, 0.4) !important;
+}
+:root.dark-theme .source-card em,
+:root.dark-theme .algorithm-card em {
+  background: var(--soft) !important;
+  color: var(--accent) !important;
+}
+:root.dark-theme .algorithm-code {
+  background: var(--soft) !important;
+  border-color: var(--line) !important;
+  color: var(--accent) !important;
+}
+:root.dark-theme .algorithm-card.active .algorithm-code {
+  background: var(--accent-soft) !important;
+}
+:root.dark-theme .algorithm-pill {
+  background: var(--soft) !important;
+  color: var(--accent) !important;
+}
+:root.dark-theme .algorithm-text-box {
+  background: var(--soft) !important;
+  color: var(--ink) !important;
+}
+:root.dark-theme .algorithm-copy {
+  background: var(--soft) !important;
+  border-color: var(--line) !important;
+  color: var(--ink) !important;
+}
+:root.dark-theme .algorithm-badge,
+:root.dark-theme .algorithm-pill--change {
+  background: #452a0a !important;
+  color: #fb923c !important;
+  border-color: #7c2d12 !important;
+}
+:root.dark-theme .algorithm-compare-hint {
+  background: #271f0c !important;
+  border-color: #7c2d12 !important;
+  color: #fb923c !important;
+}
+:root.dark-theme .algorithm-compare-hint a {
+  color: #fb923c !important;
+}
+:root.dark-theme .source-card-date {
+  color: #fb923c !important;
+}
+
+/* ── Contracts (contracts.css) Overrides ────────────── */
+:root.dark-theme .finance-highlight-box {
+  background: var(--soft) !important;
+  border-color: var(--line) !important;
+}
+:root.dark-theme .mnp-location-item {
+  background: var(--soft) !important;
+  border-color: var(--line) !important;
+  color: var(--ink) !important;
+}
+:root.dark-theme .coef-box {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+}
+:root.dark-theme .coef-box.active {
+  background: #452a0a !important;
+  border-color: #7c2d12 !important;
+}
+:root.dark-theme .coef-box.active span {
+  color: #fb923c !important;
+}
+:root.dark-theme .network-badge {
+  background: #452a0a !important;
+  color: #fb923c !important;
+  border-color: rgba(251, 146, 60, 0.2) !important;
+}
+:root.dark-theme .network-badge.nadklaster {
+  background: #4a1236 !important;
+  color: #f472b6 !important;
+  border-color: rgba(244, 114, 182, 0.2) !important;
+}
+:root.dark-theme .network-badge.klaster {
+  background: #0c4a6e !important;
+  color: #38bdf8 !important;
+  border-color: rgba(56, 189, 248, 0.2) !important;
+}
+:root.dark-theme .network-badge.general {
+  background: #14532d !important;
+  color: #4ade80 !important;
+  border-color: rgba(74, 222, 128, 0.2) !important;
+}
+:root.dark-theme .multiselect-btn {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+  color: var(--ink) !important;
+}
+:root.dark-theme .multiselect-menu {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+}
+:root.dark-theme .multiselect-item:hover {
+  background: var(--soft) !important;
+}
+:root.dark-theme .map-details-drawer {
+  background: var(--surface) !important;
+  border-color: var(--line) !important;
+}
+:root.dark-theme .close-drawer-btn:hover {
+  background: var(--soft) !important;
+}
+
+/* Dark mode for Leaflet maps */
+:root.dark-theme .leaflet-container {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(1.1) !important;
+}
+:root.dark-theme .leaflet-bar a,
+:root.dark-theme .leaflet-control-layers {
+  background-color: var(--surface) !important;
+  color: var(--ink) !important;
+  border-color: var(--line) !important;
+}
