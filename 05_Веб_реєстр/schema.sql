@@ -559,6 +559,9 @@ ALTER TABLE public.chat_reactions ENABLE ROW LEVEL SECURITY;
 -- Add chat reactions table to realtime publication
 ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_reactions;
 
+-- Add news table to realtime publication
+ALTER PUBLICATION supabase_realtime ADD TABLE public.news;
+
 -- Read reactions policy (authenticated users who are not guests can read chat reactions)
 CREATE POLICY "Full access users can read chat reactions" ON public.chat_reactions
   FOR SELECT USING (

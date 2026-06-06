@@ -707,12 +707,19 @@ async function init() {
   applyAccess();
 
   trackGlobalPresence();
+  setupNewsRealtime();
+
+  // Ask for browser notification permission proactively if support is available
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
 
   sb.auth.onAuthStateChange(async (_event, session) => {
     user = session?.user ?? null;
     await fetchRole();
     applyAccess();
     trackGlobalPresence();
+    setupNewsRealtime();
   });
 }
 
@@ -867,6 +874,104 @@ function toggleTheme() {
   const themeBtn = document.getElementById('theme-toggle-btn');
   if (themeBtn) {
     themeBtn.textContent = isDark ? '☀️' : '🌙';
+  }
+}
+
+/* ── Realtime News Subscription & Alerting ──────────────── */
+let newsSubscription = null;
+
+function setupNewsRealtime() {
+  if (!user || role === 'guest') return;
+
+  if (newsSubscription) {
+    sb.removeChannel(newsSubscription);
+    newsSubscription = null;
+  }
+
+  newsSubscription = sb.channel('realtime_news_alerts')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'news' }, payload => {
+      const newArticle = payload.new;
+      if (newArticle && ['important', 'urgent'].includes(newArticle.importance)) {
+        triggerNewsAlertNotification(newArticle);
+        
+        // Re-render the alert banner dynamically if it's on screen
+        const alertBanner = document.getElementById('user-news-alert-banner');
+        if (alertBanner) {
+          const pathParts = window.location.pathname.split('/');
+          const isInSubdir = pathParts.some(part => [
+            'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod'
+          ].includes(part.toLowerCase()));
+          const prefix = isInSubdir ? '../' : './';
+          renderAlertBanner(alertBanner, prefix);
+        }
+      }
+    })
+    .subscribe();
+}
+
+function triggerNewsAlertNotification(newsItem) {
+  if (!('Notification' in window)) return;
+
+  playNewsAlertSound();
+
+  const isTabHidden = document.hidden || !document.hasFocus();
+  if (isTabHidden && Notification.permission === 'granted') {
+    const title = newsItem.importance === 'urgent' ? '🚨 Термінове оголошення!' : '⚠️ Важливе оголошення!';
+    const pathParts = window.location.pathname.split('/');
+    const isInSubdir = pathParts.some(part => [
+      'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod'
+    ].includes(part.toLowerCase()));
+    const prefix = isInSubdir ? '../' : './';
+
+    const notification = new Notification(title, {
+      body: newsItem.title,
+      icon: prefix + "assets/nszu-shield.svg",
+      tag: "news-alert",
+      renotify: true
+    });
+
+    notification.onclick = () => {
+      window.focus();
+      window.open(prefix + "news/index.html?id=" + newsItem.id, "_blank");
+      notification.close();
+    };
+  }
+}
+
+function playNewsAlertSound() {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    const gain2 = ctx.createGain();
+
+    osc1.type = 'triangle';
+    osc1.frequency.setValueAtTime(440, ctx.currentTime);
+    gain1.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start();
+    osc1.stop(ctx.currentTime + 0.3);
+
+    setTimeout(() => {
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(554.37, ctx.currentTime);
+      gain2.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start();
+      osc2.stop(ctx.currentTime + 0.4);
+    }, 120);
+  } catch (e) {
+    console.error("Audio beep error:", e);
   }
 }
 
