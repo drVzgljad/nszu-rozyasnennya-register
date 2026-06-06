@@ -516,4 +516,154 @@
   opacity: 0.8;
 }
 
+/* ── User Task Dashboard Banner ────────────────── */
+.user-task-dashboard {
+  background: var(--p-soft, #f7fafc);
+  border-bottom: 1.5px solid var(--p-line, #dde6ee);
+  padding: 12px 0;
+  font-family: inherit;
+  box-shadow: inset 0 -4px 12px rgba(14, 30, 55, 0.02);
+}
+.dashboard-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+.user-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.user-greeting {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.user-welcome {
+  font-size: 14.5px;
+  color: var(--ink, #14263d);
+}
+.user-dept-badge {
+  font-size: 11px;
+  font-weight: 700;
+  background: #eef6fc;
+  color: #2f6b9e;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(74, 143, 199, 0.2);
+}
+.tasks-summary-section {
+  flex: 1;
+  min-width: 280px;
+}
+.tasks-summary-header {
+  margin-bottom: 6px;
+}
+.tasks-summary-lbl {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink, #14263d);
+}
+.tasks-summary-lbl.font-soft {
+  color: var(--muted, #627287);
+  font-weight: 500;
+}
+.tasks-brief-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.task-brief-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fff;
+  border: 1.5px solid var(--p-line, #dde6ee);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+}
+.task-brief-title {
+  font-weight: 700;
+  color: var(--ink, #14263d);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.task-brief-deadline {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 5px;
+}
+.task-brief-deadline.overdue {
+  background: #fdebee;
+  color: #c53030;
+}
+.task-brief-deadline.urgent {
+  background: #fffdf5;
+  color: #b7791f;
+}
+.task-brief-deadline.normal {
+  background: #f2f8fb;
+  color: #4a5568;
+}
+.task-brief-progress-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 110px;
+}
+.task-brief-progress-bg {
+  flex: 1;
+  height: 6px;
+  background: var(--p-soft, #edf2f7);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.task-brief-progress-bar {
+  height: 100%;
+  background: var(--accent, #4a8fc7);
+  border-radius: 3px;
+}
+.task-brief-progress-val {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--accent, #4a8fc7);
+  min-width: 28px;
+  text-align: right;
+}
+.dashboard-actions {
+  display: flex;
+  gap: 10px;
+}
+.dashboard-action-btn {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1.5px solid var(--accent, #4a8fc7);
+  color: var(--accent, #4a8fc7);
+  background: transparent;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.dashboard-action-btn:hover {
+  background: rgba(74, 143, 199, 0.08);
+  transform: translateY(-1px);
+}
+.dashboard-action-btn.primary {
+  background: var(--accent, #4a8fc7);
+  color: #fff;
+}
+.dashboard-action-btn.primary:hover {
+  background: var(--accent-dark, #2f6b9e);
+  border-color: var(--accent-dark, #2f6b9e);
+}
+
 

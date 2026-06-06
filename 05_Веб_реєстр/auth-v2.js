@@ -331,6 +331,23 @@ function applyAccess() {
       overlay.style.display = 'flex';
     }
   }
+
+  // Inject User Dashboard banner below header
+  const header = document.querySelector('header.top');
+  let dashboard = document.getElementById('user-task-dashboard');
+  if (header) {
+    if (!user || role === 'guest') {
+      if (dashboard) dashboard.remove();
+    } else {
+      if (!dashboard) {
+        dashboard = document.createElement('div');
+        dashboard.id = 'user-task-dashboard';
+        dashboard.className = 'user-task-dashboard';
+        header.insertAdjacentElement('afterend', dashboard);
+      }
+      renderDashboard(dashboard, prefix);
+    }
+  }
 }
 
 function switchTab(tab) {
@@ -550,6 +567,79 @@ function inject() {
       }
     });
   }
+}
+
+async function renderDashboard(dashboardEl, prefix) {
+  const displayName = user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0];
+  
+  let userDept = '';
+  try {
+    const { data: prof } = await sb.from('profiles').select('Section, department').eq('id', user.id).single();
+    userDept = prof?.Section || prof?.department || '';
+  } catch(e) {}
+
+  let userTasks = [];
+  try {
+    const { data } = await sb
+      .from('assigned_tasks')
+      .select('id, title, deadline, progress, status')
+      .eq('responsible_id', user.id)
+      .neq('status', 'completed')
+      .order('deadline', { ascending: true });
+    userTasks = data || [];
+  } catch(e) {}
+
+  const showManagerAction = ['admin', 'director', 'deputy_director', 'manager'].includes(role);
+  const tasksToShow = userTasks.slice(0, 3);
+
+  dashboardEl.innerHTML = `
+    <div class="wrap dashboard-inner">
+      <div class="user-info-section">
+        <div class="user-greeting">
+          <span class="user-welcome">Вітаємо, <strong>${displayName}</strong>!</span>
+          <span class="user-dept-badge">${userDept || 'Департамент'}</span>
+        </div>
+      </div>
+      <div class="tasks-summary-section">
+        ${userTasks.length > 0 ? `
+          <div class="tasks-summary-header">
+            <span class="tasks-summary-lbl">📋 Активні доручення на виконанні (всього: <strong>${userTasks.length}</strong>):</span>
+          </div>
+          <div class="tasks-brief-list">
+            ${tasksToShow.map(t => {
+              const daysLeft = Math.ceil((new Date(t.deadline) - new Date()) / (1000 * 60 * 60 * 24));
+              const dateStr = new Date(t.deadline).toLocaleDateString('uk-UA');
+              const dateClass = daysLeft < 0 ? 'overdue' : (daysLeft <= 3 ? 'urgent' : 'normal');
+              const daysText = daysLeft < 0 ? `(Протерміновано)` : (daysLeft === 0 ? `(Сьогодні!)` : `(залишилось ${daysLeft} дн.)`);
+              return `
+                <div class="task-brief-item">
+                  <span class="task-brief-title" title="${t.title}">${t.title}</span>
+                  <span class="task-brief-deadline ${dateClass}">до ${dateStr} ${daysText}</span>
+                  <div class="task-brief-progress-wrapper">
+                    <div class="task-brief-progress-bg">
+                      <div class="task-brief-progress-bar" style="width: ${t.progress}%"></div>
+                    </div>
+                    <span class="task-brief-progress-val">${t.progress}%</span>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+          ${userTasks.length > 3 ? `
+            <div style="font-size: 11px; text-align: right; margin-top: 4px; color: var(--muted, #627287); font-weight: 600;">
+              ...та ще ${userTasks.length - 3} active доручень (перегляньте у «Сервіси $\rightarrow$ СКО-Д (Доручення)»)
+            </div>
+          ` : ''}
+        ` : `
+          <span class="tasks-summary-lbl font-soft">📋 У вас немає активних доручень на виконанні.</span>
+        `}
+      </div>
+      <div class="dashboard-actions">
+        <a href="${prefix}skod/index.html" class="dashboard-action-btn">✍️ Внести роботу</a>
+        ${showManagerAction ? `<a href="${prefix}skod/tasks.html" class="dashboard-action-btn primary">📋 Надати доручення</a>` : ''}
+      </div>
+    </div>
+  `;
 }
 
 async function init() {
