@@ -368,7 +368,7 @@ DECLARE
   v_role TEXT;
   v_is_head BOOLEAN;
 BEGIN
-  v_organization := COALESCE(new.raw_user_meta_data->>'organization', 'Департамент стратегії НСЗУ');
+  v_organization := COALESCE(new.raw_user_meta_data->>'organization', 'Департамент стратегії універсального охоплення населення медичними послугами');
   v_department := new.raw_user_meta_data->>'department';
   v_position := COALESCE(new.raw_user_meta_data->>'position', 'Співробітник');
   

@@ -217,7 +217,7 @@ function setupForm() {
       const status = statusSel.value;
       const start_time = document.getElementById('start_time').value;
       const description = document.getElementById('description').value.trim();
-      const department = userProfile.Section || 'Стратеги';
+      const department = userProfile.Section || 'стратегічного розвитку програми медичних гарантій';
       const user_name = userProfile.full_name || currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
 
       if (!branch || !task_type || !category || !severity_level || !start_time || !status) {
@@ -306,7 +306,7 @@ function setupForm() {
     // Dynamic department check
     const deptDisplayVal = document.getElementById('form-dept-display-val');
     if (deptDisplayVal) {
-      deptDisplayVal.textContent = userProfile.Section || 'Стратеги';
+      deptDisplayVal.textContent = userProfile.Section || 'стратегічного розвитку програми медичних гарантій';
     }
 
     // Load active assigned tasks for linking
@@ -527,7 +527,14 @@ async function setupReports() {
 
   // Populate departments if user has director/full access
   if (filterDeptSel) {
-    const depts = ["Аналітика", "Фінансисти", "Стратеги", "Клінічна експертиза", "Реімбурсація", "Спілкування з надавачами"];
+    const depts = [
+      "робота з електронними медичними даними",
+      "розрахунок вартості медичних послуг",
+      "стратегічного розвитку програми медичних гарантій",
+      "наукова та клінічна експертиза",
+      "розвиток програми реімбурсації",
+      "взаємодія з надавачами медичних послуг"
+    ];
     filterDeptSel.innerHTML = '';
     depts.forEach(d => {
       const opt = document.createElement('option');

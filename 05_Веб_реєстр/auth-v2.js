@@ -388,7 +388,7 @@ async function onRegister(e) {
       full_name:    document.getElementById('reg-name').value.trim(),
       department:   document.getElementById('reg-dept').value,
       position:     document.getElementById('reg-position').value,
-      organization: 'Департамент стратегії НСЗУ'
+      organization: 'Департамент стратегії універсального охоплення населення медичними послугами'
     }},
   });
   btn.disabled = false;
@@ -482,14 +482,14 @@ function inject() {
         <input id="reg-name" type="text" autocomplete="name" required>
       </div>
       <div class="auth-field">
-        <label for="reg-dept">Відділ *</label>
+        <label for="reg-dept">Відділ (підрозділ) *</label>
         <select id="reg-dept" required>
-          <option value="Аналітика">Аналітика</option>
-          <option value="Фінансисти">Фінансисти</option>
-          <option value="Стратеги">Стратеги</option>
-          <option value="Клінічна експертиза">Клінічна експертиза</option>
-          <option value="Реімбурсація">Реімбурсація</option>
-          <option value="Спілкування з надавачами">Спілкування з надавачами</option>
+          <option value="розрахунок вартості медичних послуг">розрахунок вартості медичних послуг</option>
+          <option value="робота з електронними медичними даними">робота з електронними медичними даними</option>
+          <option value="взаємодія з надавачами медичних послуг">взаємодія з надавачами медичних послуг</option>
+          <option value="розвиток програми реімбурсації">розвиток програми реімбурсації</option>
+          <option value="наукова та клінічна експертиза">наукова та клінічна експертиза</option>
+          <option value="стратегічного розвитку програми медичних гарантій">стратегічного розвитку програми медичних гарантій</option>
           <option value="Гість (інший департамент)">Гість (інший департамент)</option>
         </select>
       </div>
@@ -537,16 +537,16 @@ function inject() {
       const name = regName.value.trim().toLowerCase();
       if (name === 'світлана дудник' || name === 'дудник світлана') {
         regPos.value = 'Директор';
-        regDept.value = 'Стратеги';
+        regDept.value = 'стратегічного розвитку програми медичних гарантій';
       } else if (name === 'волошина альбіна' || name === 'альбіна волошина' || name === 'волошина альбіна сергіївна') {
         regPos.value = 'Заступник директора';
-        regDept.value = 'Стратеги';
+        regDept.value = 'стратегічного розвитку програми медичних гарантій';
       }
     });
 
     regPos.addEventListener('change', () => {
       if (regPos.value === 'Директор' || regPos.value === 'Заступник директора') {
-        regDept.value = 'Стратеги';
+        regDept.value = 'стратегічного розвитку програми медичних гарантій';
       }
     });
   }
