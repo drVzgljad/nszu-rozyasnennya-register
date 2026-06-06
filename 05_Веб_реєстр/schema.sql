@@ -207,6 +207,14 @@ CREATE POLICY "Users can create rooms" ON public.chat_rooms
     )
   );
 
+-- Політика видалення кімнат: тільки творець може видалити групу
+CREATE POLICY "Creator can delete rooms" ON public.chat_rooms
+  FOR DELETE
+  TO authenticated
+  USING (
+    auth.uid() = created_by
+  );
+
 -- Додаємо стовпчик room_id в повідомлення чату
 ALTER TABLE public.chat_messages ADD COLUMN IF NOT EXISTS room_id UUID REFERENCES public.chat_rooms(id) ON DELETE CASCADE;
 CREATE INDEX IF NOT EXISTS idx_chat_messages_room ON public.chat_messages(room_id);
