@@ -317,7 +317,14 @@ function setupForm() {
       const status = statusSel.value;
       const start_time = document.getElementById('start_time').value;
       const description = document.getElementById('description').value.trim();
-      const department = userProfile.Section || 'стратегічного розвитку програми медичних гарантій';
+      let department = userProfile.Section;
+      if (!department) {
+        if (['admin', 'director'].includes(userProfile.role)) {
+          department = 'Поза відділами';
+        } else {
+          department = 'стратегічного розвитку програми медичних гарантій';
+        }
+      }
       const user_name = userProfile.full_name || currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
 
       if (!branch || !task_type || !category || !severity_level || !start_time || !status) {
@@ -457,7 +464,15 @@ function setupForm() {
     // Dynamic department check
     const deptDisplayVal = document.getElementById('form-dept-display-val');
     if (deptDisplayVal) {
-      deptDisplayVal.textContent = userProfile.Section || 'стратегічного розвитку програми медичних гарантій';
+      let displayDept = userProfile.Section;
+      if (!displayDept) {
+        if (['admin', 'director'].includes(userProfile.role)) {
+          displayDept = 'Поза відділами';
+        } else {
+          displayDept = 'стратегічного розвитку програми медичних гарантій';
+        }
+      }
+      deptDisplayVal.textContent = displayDept;
     }
 
     const delegateGroup = document.getElementById('delegate-checkbox-group');
@@ -718,7 +733,8 @@ async function setupReports() {
       "стратегічного розвитку програми медичних гарантій",
       "наукова та клінічна експертиза",
       "розвиток програми реімбурсації",
-      "взаємодія з надавачами медичних послуг"
+      "взаємодія з надавачами медичних послуг",
+      "Поза відділами"
     ];
     filterDeptSel.innerHTML = '';
     depts.forEach(d => {

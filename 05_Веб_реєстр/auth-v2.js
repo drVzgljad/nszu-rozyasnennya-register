@@ -25,8 +25,17 @@ function hasAccess(required) {
     req = 'expert';
   }
   
-  const rolesOrder = ['guest', 'expert', 'manager', 'deputy_director', 'director', 'admin'];
-  const userRoleIndex = rolesOrder.indexOf(role);
+  // Director possesses full administrative rights
+  let currentRole = role;
+  if (currentRole === 'director') {
+    currentRole = 'admin';
+  }
+  if (req === 'director') {
+    req = 'admin';
+  }
+  
+  const rolesOrder = ['guest', 'expert', 'manager', 'deputy_director', 'admin'];
+  const userRoleIndex = rolesOrder.indexOf(currentRole);
   const requiredRoleIndex = rolesOrder.indexOf(req);
   
   if (userRoleIndex === -1 || requiredRoleIndex === -1) return false;
@@ -586,6 +595,7 @@ function inject() {
           <option value="розвиток програми реімбурсації">розвиток програми реімбурсації</option>
           <option value="наукова та клінічна експертиза">наукова та клінічна експертиза</option>
           <option value="стратегічного розвитку програми медичних гарантій">стратегічного розвитку програми медичних гарантій</option>
+          <option value="Поза відділами">Поза відділами</option>
           <option value="Гість (інший департамент)">Гість (інший департамент)</option>
         </select>
       </div>
@@ -633,7 +643,7 @@ function inject() {
       const name = regName.value.trim().toLowerCase();
       if (name === 'світлана дудник' || name === 'дудник світлана') {
         regPos.value = 'Директор';
-        regDept.value = 'стратегічного розвитку програми медичних гарантій';
+        regDept.value = 'Поза відділами';
       } else if (name === 'волошина альбіна' || name === 'альбіна волошина' || name === 'волошина альбіна сергіївна') {
         regPos.value = 'Заступник директора';
         regDept.value = 'стратегічного розвитку програми медичних гарантій';
@@ -641,7 +651,9 @@ function inject() {
     });
 
     regPos.addEventListener('change', () => {
-      if (regPos.value === 'Директор' || regPos.value === 'Заступник директора') {
+      if (regPos.value === 'Директор' || regPos.value === 'Адміністратор') {
+        regDept.value = 'Поза відділами';
+      } else if (regPos.value === 'Заступник директора') {
         regDept.value = 'стратегічного розвитку програми медичних гарантій';
       }
     });
