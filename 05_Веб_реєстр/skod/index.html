@@ -85,8 +85,20 @@
               <input type="time" id="start_time" required>
             </div>
             <div class="skod-form-group" id="duration-group">
-              <label for="duration_minutes">Тривалість (хв) *</label>
-              <input type="number" id="duration_minutes" placeholder="наприклад, 45" min="5" max="480" required>
+              <label for="duration_preset">Тривалість *</label>
+              <select id="duration_preset" required style="margin-bottom: 8px;">
+                <option value="30">30 хв (0.5 год)</option>
+                <option value="60" selected>1 година (60 хв)</option>
+                <option value="90">1.5 години (90 хв)</option>
+                <option value="120">2 години (120 хв)</option>
+                <option value="180">3 години (180 хв)</option>
+                <option value="240">4 години (240 хв)</option>
+                <option value="300">5 годин (300 хв)</option>
+                <option value="360">6 годин (360 хв)</option>
+                <option value="480">8 годин (480 хв)</option>
+                <option value="custom">Інше (вказати у хвилинах)...</option>
+              </select>
+              <input type="number" id="duration_minutes" placeholder="Введіть хвилини..." min="5" max="480" style="display: none;" required>
             </div>
           </div>
 

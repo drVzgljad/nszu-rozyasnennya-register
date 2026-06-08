@@ -132,6 +132,7 @@ function setupForm() {
   const taskCategoryContainer = document.getElementById('task_category_container');
   const severitySel = document.getElementById('severity_level');
   const durationInput = document.getElementById('duration_minutes');
+  const durationPresetSel = document.getElementById('duration_preset');
   const durationGroup = document.getElementById('duration-group');
   const statusSel = document.getElementById('task_status');
   const scoreVal = document.getElementById('live-score-val');
@@ -249,8 +250,29 @@ function setupForm() {
         durationInput.required = !isProgress;
         if (isProgress) durationInput.value = '';
       }
+      if (durationPresetSel) {
+        durationPresetSel.required = !isProgress;
+      }
       updateLiveScore();
     });
+  }
+
+  // Handle duration preset selection
+  if (durationPresetSel && durationInput) {
+    durationPresetSel.addEventListener('change', () => {
+      if (durationPresetSel.value === 'custom') {
+        durationInput.style.display = 'block';
+        durationInput.value = '';
+        durationInput.focus();
+      } else {
+        durationInput.style.display = 'none';
+        durationInput.value = durationPresetSel.value;
+      }
+      updateLiveScore();
+    });
+    
+    // Set initial sync
+    durationInput.value = durationPresetSel.value;
   }
 
   // Update live score
@@ -384,6 +406,13 @@ function setupForm() {
         if (statusSel) {
           statusSel.value = 'completed';
           if (durationGroup) durationGroup.style.display = 'block';
+        }
+        if (durationPresetSel) {
+          durationPresetSel.value = '60';
+        }
+        if (durationInput) {
+          durationInput.value = '60';
+          durationInput.style.display = 'none';
         }
         const askodRegGroup = document.getElementById('form-askod-reg-group');
         const askodRegInput = document.getElementById('askod_reg_number');
