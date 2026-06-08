@@ -794,7 +794,7 @@ async function runReport() {
     return;
   }
 
-  let query = sb.from('skod_logs').select('*')
+  let query = sb.from('skod_logs').select('*, assigned_tasks(status)')
     .gte('log_date', startDateVal)
     .lte('log_date', endDateVal);
 
@@ -812,7 +812,7 @@ async function runReport() {
     query = query.eq('severity_level', severityVal);
   }
 
-  const { data: logs, error } = await query
+  const { data: rawLogs, error } = await query
     .order('log_date', { ascending: true })
     .order('start_time', { ascending: true });
 
@@ -820,6 +820,14 @@ async function runReport() {
     resultsContainer.innerHTML = `<div class="empty-state" style="color:red">Помилка завантаження: ${error.message}</div>`;
     return;
   }
+
+  // Filter out logs linked to tasks that are not completed yet
+  const logs = (rawLogs || []).filter(log => {
+    if (log.branch === 'tasks' && log.assigned_task_id) {
+      return log.assigned_tasks && log.assigned_tasks.status === 'completed';
+    }
+    return true;
+  });
 
   if (!logs || logs.length === 0) {
     resultsContainer.innerHTML = '<div class="empty-state" style="background: var(--p-surface); border: 1px solid var(--p-line); border-radius: var(--pr-tile); padding: 40px;">За обраний період та фільтри записи діяльності відсутні.</div>';
