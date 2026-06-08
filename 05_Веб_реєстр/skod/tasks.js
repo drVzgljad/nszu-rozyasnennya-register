@@ -129,8 +129,8 @@ function setupManagerPanel() {
       isOngoingInput.addEventListener('change', (e) => {
         if (e.target.checked) {
           deadlineInput.value = '2026-12-31';
-          deadlineInput.disabled = true;
-          deadlineInput.required = false;
+          deadlineInput.disabled = false;
+          deadlineInput.required = true;
         } else {
           const today = new Date();
           today.setDate(today.getDate() + 3);
