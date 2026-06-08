@@ -202,7 +202,11 @@ function renderStatusBanner() {
   actions.querySelectorAll('.btn-status-action').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       const newStatus = e.target.dataset.status;
-      await updateTaskStatus(newStatus);
+      if (newStatus === 'completed') {
+        showCompletionTimeForm();
+      } else {
+        await updateTaskStatus(newStatus);
+      }
     });
   });
 
@@ -767,6 +771,34 @@ async function deleteAttachment(id) {
   }
 }
 
+function showCompletionTimeForm() {
+  const formCard = document.getElementById('completion-time-form-card');
+  if (!formCard) return;
+
+  formCard.style.display = 'block';
+  formCard.scrollIntoView({ behavior: 'smooth' });
+
+  // Pre-populate start time with current time
+  const startTimeInput = document.getElementById('completion-start-time');
+  if (startTimeInput) {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    startTimeInput.value = `${hh}:${mm}`;
+  }
+
+  // Pre-populate description with task title
+  const descInput = document.getElementById('completion-description');
+  if (descInput && currentTask) {
+    descInput.value = `Виконано доручення: ${currentTask.title}`;
+  }
+}
+
+function hideCompletionTimeForm() {
+  const formCard = document.getElementById('completion-time-form-card');
+  if (formCard) formCard.style.display = 'none';
+}
+
 function setupStaticForms() {
   // 1. Add Subtask
   const subtaskForm = document.getElementById('add-subtask-form');
@@ -810,6 +842,80 @@ function setupStaticForms() {
         alert("Помилка при додаванні підзавдання: " + error.message);
       } else {
         await loadTaskDetails();
+      }
+    });
+  }
+
+  // Completion Time Form Submit
+  const completionForm = document.getElementById('task-completion-time-form');
+  if (completionForm) {
+    completionForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const startTime = document.getElementById('completion-start-time').value;
+      const duration = parseInt(document.getElementById('completion-duration').value, 10);
+      const desc = document.getElementById('completion-description').value.trim();
+
+      const submitBtn = completionForm.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Збереження...';
+      }
+
+      // Save log with standard 1.0 easy complexity
+      const coef = 1.0;
+      const score = parseFloat(((duration / 60) * coef).toFixed(2));
+
+      // Insert into skod_logs
+      const logData = {
+        user_id: currentUser.id,
+        user_name: userProfile.full_name,
+        department: userProfile.Section || userProfile.department || 'Департамент стратегії НСЗУ',
+        log_date: new Date().toISOString().split('T')[0],
+        start_time: startTime + ':00',
+        duration_minutes: duration,
+        branch: 'tasks', // Set to 'tasks' branch for task execution
+        task_type: 'Виконання доручення керівництва',
+        category: 'Планове завдання',
+        severity_level: 'easy',
+        complexity_coefficient: coef,
+        score: score,
+        status: 'completed',
+        description: desc,
+        assigned_task_id: taskId
+      };
+
+      const { error: logErr } = await sb.from('skod_logs').insert([logData]);
+
+      if (logErr) {
+        alert("Помилка збереження запису СКО-Д: " + logErr.message);
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Завершити та внести в СКО-Д';
+        }
+        return;
+      }
+
+      // Complete the task status
+      await updateTaskStatus('completed');
+      hideCompletionTimeForm();
+    });
+  }
+
+  // Cancel Completion Button
+  const cancelCompletionBtn = document.getElementById('btn-cancel-completion');
+  if (cancelCompletionBtn) {
+    cancelCompletionBtn.addEventListener('click', () => {
+      hideCompletionTimeForm();
+    });
+  }
+
+  // Complete without logging time button
+  const completeNoTimeBtn = document.getElementById('btn-complete-no-time');
+  if (completeNoTimeBtn) {
+    completeNoTimeBtn.addEventListener('click', async () => {
+      if (confirm("Ви дійсно хочете завершити доручення без внесення додаткового часу в СКО-Д?")) {
+        await updateTaskStatus('completed');
+        hideCompletionTimeForm();
       }
     });
   }

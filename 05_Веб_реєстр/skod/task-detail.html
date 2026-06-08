@@ -225,14 +225,18 @@
     }
     :root.dark-theme #add-subtask-form input,
     :root.dark-theme #add-link-form input,
-    :root.dark-theme #add-comment-form input {
+    :root.dark-theme #add-comment-form input,
+    :root.dark-theme #task-completion-time-form input,
+    :root.dark-theme #task-completion-time-form textarea {
       background: var(--p-soft, #0f172a);
       color: var(--p-ink, #e2e8f0);
       border-color: var(--p-line, #334155);
     }
     :root.dark-theme #add-subtask-form input:focus,
     :root.dark-theme #add-link-form input:focus,
-    :root.dark-theme #add-comment-form input:focus {
+    :root.dark-theme #add-comment-form input:focus,
+    :root.dark-theme #task-completion-time-form input:focus,
+    :root.dark-theme #task-completion-time-form textarea:focus {
       border-color: var(--accent);
     }
   </style>
@@ -318,6 +322,32 @@
         <div style="display:flex; gap: 10px;">
           <button type="submit" class="btn btn-primary" id="btn-submit-argument">Підтвердити</button>
           <button type="button" class="btn" id="btn-cancel-argument" style="background:#e2e8f0; color:#475569;">Скасувати</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Completion Time Input Form -->
+    <div id="completion-time-form-card" class="skod-card" style="display: none; margin-bottom: 24px; border-color: #22c55e;">
+      <h3 style="margin-top: 0; font-size: 15px; color: #15803d;">⏹️ Внесення часу роботи для звіту СКО-Д</h3>
+      <form id="task-completion-time-form">
+        <div style="display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 12px;">
+          <div style="flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size:12px; font-weight:700; color:var(--p-muted);">Час початку роботи *</label>
+            <input type="time" id="completion-start-time" style="padding: 10px; border-radius:8px; border:1.5px solid var(--p-line); outline:none; font-family:inherit; width:100%;" required>
+          </div>
+          <div style="flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size:12px; font-weight:700; color:var(--p-muted);">Тривалість (хв) *</label>
+            <input type="number" id="completion-duration" placeholder="наприклад, 60" min="5" max="480" style="padding: 10px; border-radius:8px; border:1.5px solid var(--p-line); outline:none; font-family:inherit; width:100%;" required>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px;">
+          <label style="font-size:12px; font-weight:700; color:var(--p-muted);">Опис виконаної роботи *</label>
+          <textarea id="completion-description" rows="2" placeholder="Опишіть, які саме завдання ви виконали в межах цього доручення..." style="width:100%; padding:10px; border-radius:8px; border:1.5px solid var(--p-line); outline:none; font-family:inherit; box-sizing:border-box;" required></textarea>
+        </div>
+        <div style="display:flex; gap: 10px; flex-wrap: wrap;">
+          <button type="submit" class="btn btn-primary" style="background:#22c55e; border-color:#22c55e;">Завершити та внести в СКО-Д</button>
+          <button type="button" class="btn" id="btn-complete-no-time" style="background:#3b82f6; color:#fff;">Завершити без внесення часу</button>
+          <button type="button" class="btn" id="btn-cancel-completion" style="background:#e2e8f0; color:#475569;">Скасувати</button>
         </div>
       </form>
     </div>
