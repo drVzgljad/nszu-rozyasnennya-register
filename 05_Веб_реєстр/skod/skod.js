@@ -424,14 +424,13 @@ function setupForm() {
   }
 }
 
-// Load active assigned tasks for linking dropdown
+// Load active and completed assigned tasks for linking dropdown
 async function loadActiveAssignedTasks() {
   if (!currentUser) return;
   const { data, error } = await sb
     .from('assigned_tasks')
-    .select('id, title')
+    .select('id, title, status')
     .eq('responsible_id', currentUser.id)
-    .neq('status', 'completed')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -455,13 +454,13 @@ async function loadActiveAssignedTasks() {
       data.forEach(task => {
         const opt = document.createElement('option');
         opt.value = task.id;
-        opt.textContent = task.title;
+        opt.textContent = task.status === 'completed' ? `[Виконано] ${task.title}` : task.title;
         taskLinkSel.appendChild(opt);
       });
     } else {
       if (isTasksBranch) {
         taskLinkGroup.style.display = 'block';
-        taskLinkSel.innerHTML = '<option value="" disabled selected>У вас немає активних доручень</option>';
+        taskLinkSel.innerHTML = '<option value="" disabled selected>У вас немає призначених доручень</option>';
       } else {
         taskLinkGroup.style.display = 'none';
       }
