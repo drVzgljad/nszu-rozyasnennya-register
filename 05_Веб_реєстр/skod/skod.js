@@ -713,11 +713,45 @@ async function loadTodayLogs() {
 let chartInstances = {};
 let lastLoggedData = null;
 
+// Load employee list for the employee filter dropdown
+async function loadEmployeeList(department) {
+  const empSel = document.getElementById('report-employee');
+  if (!empSel) return;
+
+  let query = sb.from('profiles').select('id, full_name, "Section"');
+
+  if (department && department !== 'all') {
+    query = query.eq('Section', department);
+  }
+
+  const { data } = await query.order('full_name');
+  empSel.innerHTML = '<option value="all">Всі співробітники</option>';
+  (data || []).forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.full_name + (!department || department === 'all' ? ` (${p.Section || '—'})` : '');
+    empSel.appendChild(opt);
+  });
+}
+
+// Helper to update employee filter visibility and content
+function updateEmployeeFilter(level, deptVal, isAllowedToSeeEmployees) {
+  const empGroup = document.getElementById('report-employee-group');
+  if (!empGroup) return;
+  const showEmp = isAllowedToSeeEmployees && level !== 'personal';
+  empGroup.style.display = showEmp ? 'flex' : 'none';
+  if (showEmp) {
+    const dept = level === 'department' ? deptVal : 'all';
+    loadEmployeeList(dept);
+  }
+}
+
 async function setupReports() {
   const startDateInput = document.getElementById('report-start-date');
   const endDateInput = document.getElementById('report-end-date');
   const filterDeptSel = document.getElementById('report-department');
   const reportLevelSel = document.getElementById('report-level');
+  const empSel = document.getElementById('report-employee');
   const btnRun = document.getElementById('btn-run-report');
 
   // Default dates: Today
@@ -753,10 +787,20 @@ async function setupReports() {
   const userRole = userProfile.role || 'registered';
   const isDirectorOrDeputyOrAdmin = ['admin', 'director', 'deputy_director', 'full'].includes(userRole);
   const isManager = userRole === 'manager' || userProfile.is_head === true;
+  const canSeeEmployees = isDirectorOrDeputyOrAdmin || isManager;
 
   if (reportLevelSel) {
     if (isDirectorOrDeputyOrAdmin) {
-      // Full access - nothing to disable
+      // Директор не звітує особисто — прибираємо «Мій звіт»
+      if (userRole === 'director' || userRole === 'admin') {
+        const personalOpt = reportLevelSel.querySelector('option[value="personal"]');
+        if (personalOpt) personalOpt.remove();
+        reportLevelSel.value = 'department-wide';
+        // Одразу показати фільтри відділу та співробітника
+        const deptGroup = document.getElementById('report-dept-group');
+        if (deptGroup) deptGroup.style.display = 'flex';
+        updateEmployeeFilter('department-wide', filterDeptSel?.value, true);
+      }
     } else if (isManager) {
       // Manager: can query personal and department, but NOT department-wide
       const allOpt = reportLevelSel.querySelector('option[value="department-wide"]');
@@ -774,13 +818,27 @@ async function setupReports() {
       if (levelDiv) levelDiv.style.display = 'none';
       const deptGroup = document.getElementById('report-dept-group');
       if (deptGroup) deptGroup.style.display = 'none';
+      const empGroup = document.getElementById('report-employee-group');
+      if (empGroup) empGroup.style.display = 'none';
     }
 
     reportLevelSel.addEventListener('change', () => {
       const showDept = reportLevelSel.value !== 'personal';
       const deptGroup = document.getElementById('report-dept-group');
       if (deptGroup) {
-        deptGroup.style.display = showDept ? 'block' : 'none';
+        deptGroup.style.display = showDept ? 'flex' : 'none';
+      }
+      // Update employee filter
+      updateEmployeeFilter(reportLevelSel.value, filterDeptSel?.value, canSeeEmployees);
+    });
+  }
+
+  // When department changes, reload employee list
+  if (filterDeptSel) {
+    filterDeptSel.addEventListener('change', () => {
+      if (reportLevelSel && reportLevelSel.value !== 'personal' && canSeeEmployees) {
+        const dept = reportLevelSel.value === 'department' ? filterDeptSel.value : 'all';
+        loadEmployeeList(dept);
       }
     });
   }
@@ -863,6 +921,7 @@ async function runReport() {
   const startDateVal = document.getElementById('report-start-date')?.value;
   const endDateVal = document.getElementById('report-end-date')?.value;
   const deptVal = document.getElementById('report-department')?.value;
+  const empVal = document.getElementById('report-employee')?.value || 'all';
   const branchVal = document.getElementById('report-branch')?.value || 'all';
   const severityVal = document.getElementById('report-severity')?.value || 'all';
 
@@ -879,11 +938,18 @@ async function runReport() {
     .gte('log_date', startDateVal)
     .lte('log_date', endDateVal);
 
+  // Determine effective level: if specific employee selected, treat as personal-like
+  const isEmployeeSelected = empVal && empVal !== 'all';
+
   if (level === 'personal') {
     query = query.eq('user_id', currentUser.id);
+  } else if (isEmployeeSelected) {
+    // Specific employee selected — filter by their user_id
+    query = query.eq('user_id', empVal);
   } else if (level === 'department') {
     query = query.eq('department', deptVal);
   }
+  // department-wide: no filter — gets everything RLS allows
 
   if (branchVal !== 'all') {
     query = query.eq('branch', branchVal);
@@ -918,7 +984,16 @@ async function runReport() {
     return;
   }
 
-  lastLoggedData = { logs, level, departmentName: deptVal, startDateVal, endDateVal };
+  // Determine effective rendering level
+  let effectiveLevel = level;
+  let employeeName = null;
+  if (isEmployeeSelected && level !== 'personal') {
+    effectiveLevel = 'employee'; // individual view of another user
+    // Get employee name from the first log or from the dropdown
+    employeeName = logs[0]?.user_name || document.getElementById('report-employee')?.selectedOptions[0]?.textContent || '';
+  }
+
+  lastLoggedData = { logs, level: effectiveLevel, departmentName: deptVal, startDateVal, endDateVal, employeeName };
   renderDashboard(lastLoggedData);
 }
 
@@ -981,7 +1056,7 @@ function renderDashboard(data) {
           <canvas id="chartTimeline"></canvas>
         </div>
       </div>
-      ${level !== 'personal' ? `
+      ${level !== 'personal' && level !== 'employee' ? `
       <div class="skod-chart-card" id="card-leaderboard" style="grid-column: span 2;">
         <div class="skod-chart-card-title" id="leaderboard-title">Рейтинг за балами</div>
         <div class="skod-chart-container" style="height: 280px;">
@@ -1002,8 +1077,9 @@ function renderDashboard(data) {
   resultsContainer.innerHTML = html;
 
   const detailsContainer = document.getElementById('dashboard-details-table-container');
-  if (level === 'personal') {
-    renderPersonalDetails(logs, detailsContainer);
+  if (level === 'personal' || level === 'employee') {
+    const breadcrumb = level === 'employee' ? buildBreadcrumb(data) : '';
+    renderPersonalDetails(logs, detailsContainer, breadcrumb);
   } else if (level === 'department') {
     renderDepartmentDetails(logs, detailsContainer, departmentName);
   } else if (level === 'department-wide') {
@@ -1014,7 +1090,70 @@ function renderDashboard(data) {
   drawDashboardCharts(logs, level, isDark);
 }
 
-function renderPersonalDetails(logs, container) {
+// Build breadcrumb for drill-down navigation
+function buildBreadcrumb(data) {
+  const { level, departmentName, employeeName } = data;
+  if (level !== 'employee') return '';
+  let html = '<div class="report-breadcrumb">';
+  html += `<span class="bc-link" onclick="drillToLevel('department-wide')">Департамент</span>`;
+  html += '<span class="bc-sep"></span>';
+  if (departmentName) {
+    html += `<span class="bc-link" onclick="drillToLevel('department', '${departmentName.replace(/'/g, "\\'")}')">відділ ${departmentName}</span>`;
+    html += '<span class="bc-sep"></span>';
+  }
+  html += `<span style="font-weight:600; color:var(--p-ink);">${employeeName || 'Співробітник'}</span>`;
+  html += '</div>';
+  return html;
+}
+
+// Drill-down helpers — called from onclick in rendered HTML
+function drillToLevel(level, department) {
+  const reportLevelSel = document.getElementById('report-level');
+  const filterDeptSel = document.getElementById('report-department');
+  const empSel = document.getElementById('report-employee');
+
+  if (reportLevelSel) reportLevelSel.value = level;
+
+  if (level === 'department' && department && filterDeptSel) {
+    filterDeptSel.value = department;
+    // Show dept group
+    const deptGroup = document.getElementById('report-dept-group');
+    if (deptGroup) deptGroup.style.display = 'flex';
+  }
+
+  if (level === 'department-wide') {
+    const deptGroup = document.getElementById('report-dept-group');
+    if (deptGroup) deptGroup.style.display = 'flex';
+  }
+
+  // Reset employee to all
+  if (empSel) empSel.value = 'all';
+
+  // Update employee filter visibility
+  const userRole = userProfile.role || 'registered';
+  const canSee = ['admin', 'director', 'deputy_director', 'full'].includes(userRole) || userRole === 'manager' || userProfile.is_head === true;
+  updateEmployeeFilter(level, filterDeptSel?.value, canSee);
+
+  runReport();
+}
+
+function drillToEmployee(userId, userName) {
+  const empSel = document.getElementById('report-employee');
+  if (empSel) {
+    // Check if the option exists, if not add it temporarily
+    let opt = empSel.querySelector(`option[value="${userId}"]`);
+    if (!opt) {
+      opt = document.createElement('option');
+      opt.value = userId;
+      opt.textContent = userName;
+      empSel.appendChild(opt);
+    }
+    empSel.value = userId;
+  }
+  runReport();
+}
+
+function renderPersonalDetails(logs, container, breadcrumb) {
   const trs = logs.map(log => {
     let durationStr = 'В процесі ⏳';
     if (log.status !== 'in_progress') {
@@ -1051,6 +1190,7 @@ function renderPersonalDetails(logs, container) {
   }).join('');
 
   container.innerHTML = `
+    ${breadcrumb || ''}
     <div class="skod-table-wrapper">
       <table class="skod-table">
         <thead>
@@ -1076,6 +1216,7 @@ function renderDepartmentDetails(logs, container, departmentName) {
     if (!employees[log.user_name]) {
       employees[log.user_name] = {
         name: log.user_name,
+        userId: log.user_id,
         tasksCount: 0,
         minutes: 0,
         score: 0
@@ -1086,12 +1227,21 @@ function renderDepartmentDetails(logs, container, departmentName) {
     employees[log.user_name].score += parseFloat(log.score || 0);
   });
 
+  // Check if current user can drill down to individual
+  const userRole = userProfile.role || 'registered';
+  const canDrillDown = ['admin', 'director', 'deputy_director', 'full'].includes(userRole)
+    || userRole === 'manager' || userProfile.is_head === true;
+
   const empRows = Object.values(employees).map(emp => {
     const hrs = (emp.minutes / 60).toFixed(1);
     const avgCoef = (emp.score / (emp.minutes / 60 || 1)).toFixed(2);
+    const nameCell = canDrillDown
+      ? `<span class="drilldown-link" onclick="drillToEmployee('${emp.userId}', '${emp.name.replace(/'/g, "\\'")}')"
+           title="Переглянути індивідуальний звіт">${emp.name}</span>`
+      : emp.name;
     return `
       <tr>
-        <td style="font-weight:700;">${emp.name}</td>
+        <td style="font-weight:700;">${nameCell}</td>
         <td>${emp.tasksCount}</td>
         <td>${hrs} год</td>
         <td>${isNaN(avgCoef) ? '0.00' : avgCoef}</td>
@@ -1141,9 +1291,11 @@ function renderDepartmentWideDetails(logs, container) {
   const deptRows = Object.values(departments).map(dept => {
     const hrs = (dept.minutes / 60).toFixed(1);
     const avgScorePerEmp = (dept.score / (dept.employees.size || 1)).toFixed(2);
+    const deptLink = `<span class="drilldown-link" onclick="drillToLevel('department', '${dept.name.replace(/'/g, "\\'")}')"
+      title="Переглянути звіт відділу">${dept.name}</span>`;
     return `
       <tr>
-        <td style="font-weight:700;">${dept.name}</td>
+        <td style="font-weight:700;">${deptLink}</td>
         <td>${dept.employees.size}</td>
         <td>${dept.tasksCount}</td>
         <td>${hrs} год</td>
@@ -1423,4 +1575,9 @@ function drawDashboardCharts(logs, level, isDark) {
 
 // Start
 document.addEventListener('DOMContentLoaded', init);
+
+// Глобальна реєстрація функцій drill-down для onclick в динамічному HTML
+window.drillToLevel = drillToLevel;
+window.drillToEmployee = drillToEmployee;
+
 export { sb };

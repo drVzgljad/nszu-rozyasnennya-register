@@ -6,10 +6,10 @@
   <title>Звіти діяльності СКО-Д — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260603d">
   <link rel="stylesheet" href="../auth-v2.css?v=20260606">
-  <link rel="stylesheet" href="skod.css">
+  <link rel="stylesheet" href="skod.css?v=20260608">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script type="module" src="../auth-v2.js?v=20260606"></script>
-  <script type="module" src="skod.js?v=20260606"></script>
+  <script type="module" src="../auth-v2.js?v=20260608"></script>
+  <script type="module" src="skod.js?v=20260608"></script>
 </head>
 <body data-required-role="registered">
 <div class="portal">
@@ -80,6 +80,14 @@
       <div id="report-dept-group" style="display: none; align-items: center; gap: 8px;">
         <label for="report-department">Відділ:</label>
         <select id="report-department">
+          <!-- JavaScript populated -->
+        </select>
+      </div>
+
+      <div id="report-employee-group" style="display: none; align-items: center; gap: 8px;">
+        <label for="report-employee">Співробітник:</label>
+        <select id="report-employee">
+          <option value="all">Всі співробітники</option>
           <!-- JavaScript populated -->
         </select>
       </div>

@@ -533,3 +533,42 @@
   font-style: italic;
   padding: 4px;
 }
+
+/* Drilldown links in report tables */
+.drilldown-link {
+  color: var(--accent, #3b82f6);
+  cursor: pointer;
+  text-decoration: none;
+  border-bottom: 1px dashed var(--accent, #3b82f6);
+  transition: color 0.2s, border-color 0.2s, opacity 0.2s;
+}
+.drilldown-link:hover {
+  opacity: 0.8;
+  border-bottom-style: solid;
+}
+
+/* Breadcrumb for drill-down navigation */
+.report-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--p-muted);
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.report-breadcrumb .bc-link {
+  color: var(--accent, #3b82f6);
+  cursor: pointer;
+  text-decoration: none;
+  border-bottom: 1px dashed transparent;
+  transition: border-color 0.2s;
+}
+.report-breadcrumb .bc-link:hover {
+  border-bottom-color: var(--accent, #3b82f6);
+}
+.report-breadcrumb .bc-sep::before {
+  content: '›';
+  margin: 0 2px;
+  color: var(--p-faint);
+}
