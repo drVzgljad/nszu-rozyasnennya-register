@@ -1094,4 +1094,42 @@ body.is-popup-window #pipToggleBtn {
   transform: scale(1.25);
 }
 
+/* ── Dark Theme Overrides for Group Creation Modal ── */
+:root.dark-theme .chat-modal {
+  background: rgba(15, 23, 42, 0.75);
+}
+
+:root.dark-theme .chat-modal-content {
+  background: var(--surface, #1e293b);
+  border-color: var(--line, #334155);
+  box-shadow: 0 24px 74px rgba(0, 0, 0, 0.45);
+}
+
+:root.dark-theme .chat-modal-content h3 {
+  color: var(--ink, #e2e8f0);
+}
+
+:root.dark-theme .modal-members-list {
+  background: var(--soft, #0f172a) !important;
+  border-color: var(--line, #334155) !important;
+}
+
+:root.dark-theme .modal-member-checkbox-item {
+  color: var(--ink, #e2e8f0);
+}
+
+:root.dark-theme .modal-member-checkbox-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+:root.dark-theme .chat-modal-content label {
+  color: var(--muted, #94a3b8) !important;
+}
+
+:root.dark-theme .chat-modal-content input {
+  color: var(--ink, #e2e8f0) !important;
+  border-color: var(--line, #334155) !important;
+}
+
+
 
