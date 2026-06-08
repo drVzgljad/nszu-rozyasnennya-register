@@ -870,34 +870,6 @@ body.is-popup-window #pipToggleBtn {
   box-shadow: 0 4px 12px rgba(47, 107, 158, 0.25);
 }
 
-/* Кнопка видалення каналу */
-.channel-delete-btn {
-  background: none;
-  border: none;
-  font-size: 12px;
-  cursor: pointer;
-  padding: 2px 4px;
-  border-radius: 6px;
-  opacity: 0;
-  margin-left: auto;
-  transition: opacity 0.15s, background 0.15s, transform 0.15s;
-  flex-shrink: 0;
-}
-.channel-item:hover .channel-delete-btn {
-  opacity: 0.5;
-}
-.channel-delete-btn:hover {
-  opacity: 1 !important;
-  background: rgba(231, 76, 60, 0.12);
-  transform: scale(1.15);
-}
-.channel-item.active .channel-delete-btn {
-  filter: brightness(10);
-}
-.channel-item.active .channel-delete-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
 .channel-icon {
   font-size: 16px;
   flex-shrink: 0;

@@ -186,6 +186,55 @@
       color: var(--p-ink);
       line-height: 1.4;
     }
+
+    /* ── Dark Theme Overrides for Subtasks and Lists ── */
+    :root.dark-theme .subtask-wrapper {
+      background: var(--p-surface, #1e293b);
+      border-color: var(--p-line, #334155);
+    }
+    :root.dark-theme .subtask-wrapper.has-logs .checklist-item,
+    :root.dark-theme .subtask-wrapper.form-open .checklist-item {
+      border-bottom-color: var(--p-line, #334155);
+    }
+    :root.dark-theme .checklist-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+    :root.dark-theme .subtask-logs-area {
+      background: rgba(0, 0, 0, 0.15);
+      color: var(--p-ink, #e2e8f0);
+    }
+    :root.dark-theme .subtask-log-line {
+      border-bottom-color: var(--p-line, #334155);
+      color: var(--p-ink, #e2e8f0);
+    }
+    :root.dark-theme .inline-log-form {
+      background: rgba(0, 0, 0, 0.2);
+      border-top-color: var(--p-line, #334155);
+    }
+    :root.dark-theme .inline-log-form input {
+      background: var(--p-soft, #0f172a);
+      color: var(--p-ink, #e2e8f0);
+      border-color: var(--p-line, #334155);
+    }
+    :root.dark-theme .inline-log-form input:focus {
+      border-color: var(--accent);
+    }
+    :root.dark-theme .attachment-item {
+      background: var(--p-surface, #1e293b);
+      border-color: var(--p-line, #334155);
+    }
+    :root.dark-theme #add-subtask-form input,
+    :root.dark-theme #add-link-form input,
+    :root.dark-theme #add-comment-form input {
+      background: var(--p-soft, #0f172a);
+      color: var(--p-ink, #e2e8f0);
+      border-color: var(--p-line, #334155);
+    }
+    :root.dark-theme #add-subtask-form input:focus,
+    :root.dark-theme #add-link-form input:focus,
+    :root.dark-theme #add-comment-form input:focus {
+      border-color: var(--accent);
+    }
   </style>
 </head>
 <body data-required-role="expert">
@@ -370,7 +419,7 @@
         <section class="skod-card">
           <h2 class="skod-card-title">💬 Коментарі та Історія</h2>
           
-          <div id="comments-list" style="max-height: 250px; overflow-y: auto; border: 1px solid var(--p-line); border-radius: 8px; margin-bottom: 16px; background:#fff;">
+          <div id="comments-list" style="max-height: 250px; overflow-y: auto; border: 1px solid var(--p-line); border-radius: 8px; margin-bottom: 16px; background: var(--p-surface, #fff);">
             <!-- JS populated -->
           </div>
 

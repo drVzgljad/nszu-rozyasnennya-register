@@ -153,6 +153,53 @@ CREATE POLICY "Full access users can delete their own messages" ON public.chat_m
 -- Додавання таблиці чату до публікації реального часу для Realtime
 ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;
 
+-- 4.1 ТАБЛИЦЯ РЕАКЦІЙ НА ПОВІДОМЛЕННЯ ЧАТУ
+CREATE TABLE IF NOT EXISTS public.chat_reactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  message_id UUID NOT NULL REFERENCES public.chat_messages(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_name TEXT NOT NULL,
+  emoji TEXT NOT NULL
+);
+
+-- Індекс для швидкого пошуку реакцій по повідомленню
+CREATE INDEX IF NOT EXISTS idx_chat_reactions_message_id ON public.chat_reactions(message_id);
+
+-- Унікальність: один юзер — одна реакція з конкретним емодзі на конкретне повідомлення
+CREATE UNIQUE INDEX IF NOT EXISTS idx_chat_reactions_unique ON public.chat_reactions(message_id, user_id, emoji);
+
+-- Увімкнення RLS
+ALTER TABLE public.chat_reactions ENABLE ROW LEVEL SECURITY;
+
+-- Всі авторизовані (не гості) можуть читати реакції
+CREATE POLICY "Authenticated users can read reactions" ON public.chat_reactions
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role != 'guest'
+    )
+  );
+
+-- Авторизовані (не гості) можуть додавати реакції
+CREATE POLICY "Authenticated users can insert reactions" ON public.chat_reactions
+  FOR INSERT WITH CHECK (
+    auth.uid() = user_id AND
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role != 'guest'
+    )
+  );
+
+-- Авторизовані можуть видаляти тільки свої реакції
+CREATE POLICY "Users can delete own reactions" ON public.chat_reactions
+  FOR DELETE USING (
+    auth.uid() = user_id
+  );
+
+-- Додаємо таблицю реакцій до Realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_reactions;
+
 -- 5. ДОДАВАННЯ ПРИВАТНИХ ПОВІДОМЛЕНЬ (ДІАЛОГІВ)
 -- Додаємо стовпчик recipient_id для приватних повідомлень
 ALTER TABLE public.chat_messages ADD COLUMN IF NOT EXISTS recipient_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
@@ -205,14 +252,6 @@ CREATE POLICY "Users can create rooms" ON public.chat_rooms
       SELECT 1 FROM public.profiles
       WHERE id = auth.uid() AND role != 'guest'
     )
-  );
-
--- Політика видалення кімнат: тільки творець може видалити групу
-CREATE POLICY "Creator can delete rooms" ON public.chat_rooms
-  FOR DELETE
-  TO authenticated
-  USING (
-    auth.uid() = created_by
   );
 
 -- Додаємо стовпчик room_id в повідомлення чату
