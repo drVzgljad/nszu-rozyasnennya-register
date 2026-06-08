@@ -140,6 +140,26 @@ function setupManagerPanel() {
         }
       });
     }
+
+    // Check for prefill query parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const prefillTitle = urlParams.get('prefill_title');
+    const prefillDesc = urlParams.get('prefill_desc');
+    
+    if (prefillTitle) {
+      const titleInput = document.getElementById('task_title');
+      if (titleInput) titleInput.value = prefillTitle;
+    }
+    if (prefillDesc) {
+      const descInput = document.getElementById('task_description');
+      if (descInput) descInput.value = prefillDesc;
+    }
+    
+    if (prefillTitle || prefillDesc) {
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
   }
 }
 

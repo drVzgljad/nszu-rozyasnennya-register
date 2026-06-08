@@ -398,6 +398,18 @@ function setupForm() {
       if (error) {
         alert('Помилка збереження: ' + error.message);
       } else {
+        const delegateAfterSubmit = document.getElementById('delegate_after_submit')?.checked || false;
+        if (delegateAfterSubmit) {
+          let regPrefix = '';
+          if (branch === 'askod' && askod_reg_number) {
+            regPrefix = `АСКОД № ${askod_reg_number}: `;
+          }
+          const prefillTitle = `${regPrefix}${task_type}`;
+          const prefillDesc = description || '';
+          window.location.href = `tasks.html?prefill_title=${encodeURIComponent(prefillTitle)}&prefill_desc=${encodeURIComponent(prefillDesc)}`;
+          return;
+        }
+
         formEl.reset();
         
         // Reset defaults
@@ -446,6 +458,11 @@ function setupForm() {
     const deptDisplayVal = document.getElementById('form-dept-display-val');
     if (deptDisplayVal) {
       deptDisplayVal.textContent = userProfile.Section || 'стратегічного розвитку програми медичних гарантій';
+    }
+
+    const delegateGroup = document.getElementById('delegate-checkbox-group');
+    if (delegateGroup && ['admin', 'director', 'deputy_director', 'manager'].includes(userProfile.role)) {
+      delegateGroup.style.display = 'flex';
     }
 
     // Load active assigned tasks for linking
@@ -604,6 +621,18 @@ async function loadTodayLogs() {
         scoreContent = `<button class="btn btn-primary btn-complete-task" data-id="${log.id}" data-date="${log.log_date}" data-start="${log.start_time}" data-severity="${log.severity_level}" data-coef="${log.complexity_coefficient}" style="padding: 5px 10px; font-size: 11px; font-weight: 700; border-radius: 6px; background: var(--accent, #4a8fc7); color: #fff; border: none; cursor: pointer;">Завершити ⏹️</button>`;
       }
 
+      const canDelegate = ['admin', 'director', 'deputy_director', 'manager'].includes(userProfile.role);
+      let delegateBtn = '';
+      if (canDelegate) {
+        let regPrefix = '';
+        if (log.branch === 'askod' && log.askod_reg_number) {
+          regPrefix = `АСКОД № ${log.askod_reg_number}: `;
+        }
+        const titlePrefill = encodeURIComponent(`${regPrefix}${log.task_type}`);
+        const descPrefill = encodeURIComponent(log.description || '');
+        delegateBtn = `<a href="tasks.html?prefill_title=${titlePrefill}&prefill_desc=${descPrefill}" class="btn-delegate-log" title="Створити доручення на основі цього запису" style="text-decoration:none; margin-right:10px; font-size:15px; opacity:0.75; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.75'">📋</a>`;
+      }
+
       tr.innerHTML = `
         <td style="font-weight: 700;">${log.start_time.substring(0, 5)}</td>
         <td>
@@ -616,7 +645,8 @@ async function loadTodayLogs() {
         <td>${durationStr}</td>
         <td><span class="badge-task ${log.severity_level}">${sevLabel} (${log.complexity_coefficient})</span></td>
         <td style="font-weight: 800; color: var(--accent-2-deep);" class="score-cell">${scoreContent}</td>
-        <td>
+        <td style="white-space: nowrap;">
+          ${delegateBtn}
           <button class="btn-delete-log" data-id="${log.id}" title="Видалити запис">&times;</button>
         </td>
       `;

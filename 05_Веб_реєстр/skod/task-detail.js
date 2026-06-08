@@ -433,7 +433,24 @@ function renderSubtasks() {
           <label style="font-size:11px; font-weight:700; color:var(--p-muted);">Опис виконаної роботи (необов'язково)</label>
           <input type="text" class="log-desc" placeholder="Залиште порожнім, щоб використати назву підзавдання...">
         </div>
-        <div style="display: flex; gap: 8px;">
+        
+        <!-- ASKOD fields for subtask log -->
+        <div style="width: 100%; display: flex; align-items: center; gap: 8px; margin-top: 8px;">
+          <input type="checkbox" class="sub-is-askod" id="askod-check-${sub.id}" style="width:16px; height:16px; cursor:pointer;">
+          <label for="askod-check-${sub.id}" style="font-size:12px; font-weight:600; cursor:pointer; color:var(--p-ink); margin:0;">💻 Робота в АСКОД</label>
+        </div>
+        <div class="sub-askod-fields" id="askod-fields-${sub.id}" style="display:none; width: 100%; gap: 12px; margin-top: 8px; border-left: 3px solid var(--accent); padding-left: 8px; box-sizing: border-box;">
+          <div style="flex:1; display:flex; flex-direction:column; gap:2px;">
+            <label style="font-size:10px; font-weight:700; color:var(--p-muted);">Вхідний реєстраційний № *</label>
+            <input type="text" class="sub-askod-in" placeholder="напр., 1234/12-26" style="padding:6px 10px; border-radius:6px; border:1px solid var(--p-line); font-size:12px; background: var(--p-surface); width:100%; box-sizing: border-box;">
+          </div>
+          <div style="flex:1; display:flex; flex-direction:column; gap:2px;">
+            <label style="font-size:10px; font-weight:700; color:var(--p-muted);">Реєстраційний № відповіді *</label>
+            <input type="text" class="sub-askod-out" placeholder="напр., 5678/12-26" style="padding:6px 10px; border-radius:6px; border:1px solid var(--p-line); font-size:12px; background: var(--p-surface); width:100%; box-sizing: border-box;">
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-top: 12px; width: 100%; justify-content: flex-end;">
           <button type="submit" class="btn btn-primary" style="padding: 6px 12px; font-size:12px;">Зберегти</button>
           <button type="button" class="btn btn-cancel-inline" data-id="${sub.id}" style="padding: 6px 12px; font-size:12px; background:#e2e8f0; color:#475569; border:none; border-radius:6px; cursor:pointer;">Скасувати</button>
         </div>
@@ -498,6 +515,33 @@ function renderSubtasks() {
     });
   });
 
+  // Attach ASKOD checkbox toggles for subtasks
+  container.querySelectorAll('.sub-is-askod').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      const subId = e.target.id.replace('askod-check-', '');
+      const fieldsDiv = document.getElementById(`askod-fields-${subId}`);
+      const inInput = fieldsDiv?.querySelector('.sub-askod-in');
+      const outInput = fieldsDiv?.querySelector('.sub-askod-out');
+      if (fieldsDiv) {
+        if (e.target.checked) {
+          fieldsDiv.style.display = 'flex';
+          if (inInput) inInput.required = true;
+          if (outInput) outInput.required = true;
+        } else {
+          fieldsDiv.style.display = 'none';
+          if (inInput) {
+            inInput.required = false;
+            inInput.value = '';
+          }
+          if (outInput) {
+            outInput.required = false;
+            outInput.value = '';
+          }
+        }
+      }
+    });
+  });
+
   // Attach Inline Log Submit handlers
   container.querySelectorAll('.inline-log-form').forEach(form => {
     form.addEventListener('submit', async (e) => {
@@ -507,15 +551,25 @@ function renderSubtasks() {
       const startTime = form.querySelector('.log-start').value;
       const descInput = form.querySelector('.log-desc').value.trim();
 
+      const isAskod = form.querySelector('.sub-is-askod')?.checked || false;
+      let askodRegNum = null;
+      if (isAskod) {
+        const askodIn = form.querySelector('.sub-askod-in')?.value.trim();
+        const askodOut = form.querySelector('.sub-askod-out')?.value.trim();
+        if (askodIn && askodOut) {
+          askodRegNum = `Вх. № ${askodIn}, Вих. № ${askodOut}`;
+        }
+      }
+
       const sub = subtasks.find(s => s.id === subId);
       const logDesc = descInput || `Виконання підзавдання: ${sub.title}`;
 
-      await saveSubtaskTimeLog(subId, duration, startTime, logDesc);
+      await saveSubtaskTimeLog(subId, duration, startTime, logDesc, isAskod, askodRegNum);
     });
   });
 }
 
-async function saveSubtaskTimeLog(subId, duration, startTime, logDesc) {
+async function saveSubtaskTimeLog(subId, duration, startTime, logDesc, isAskod = false, askodRegNum = null) {
   // Save log with standard 1.0 easy complexity
   const coef = 1.0;
   const score = parseFloat(((duration / 60) * coef).toFixed(2));
@@ -528,16 +582,17 @@ async function saveSubtaskTimeLog(subId, duration, startTime, logDesc) {
     log_date: new Date().toISOString().split('T')[0],
     start_time: startTime + ':00',
     duration_minutes: duration,
-    branch: 'department',
-    task_type: 'Доручення',
-    category: 'Виконання доручення',
+    branch: isAskod ? 'askod' : 'tasks',
+    task_type: isAskod ? 'Робота в АСКОД' : 'Доручення',
+    category: isAskod ? 'Опрацювання документа' : 'Виконання доручення',
     severity_level: 'easy',
     complexity_coefficient: coef,
     score: score,
     status: 'completed',
     description: logDesc,
     assigned_task_id: taskId,
-    subtask_id: subId
+    subtask_id: subId,
+    askod_reg_number: askodRegNum
   };
 
   const { error: logErr } = await sb.from('skod_logs').insert([logData]);
@@ -918,6 +973,31 @@ function setupStaticForms() {
     });
   }
 
+  // Completion Time Form ASKOD Toggle
+  const complIsAskod = document.getElementById('completion-is-askod');
+  const complAskodFields = document.getElementById('completion-askod-fields');
+  const complAskodIn = document.getElementById('completion-askod-in');
+  const complAskodOut = document.getElementById('completion-askod-out');
+  if (complIsAskod && complAskodFields) {
+    complIsAskod.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        complAskodFields.style.display = 'flex';
+        if (complAskodIn) complAskodIn.required = true;
+        if (complAskodOut) complAskodOut.required = true;
+      } else {
+        complAskodFields.style.display = 'none';
+        if (complAskodIn) {
+          complAskodIn.required = false;
+          complAskodIn.value = '';
+        }
+        if (complAskodOut) {
+          complAskodOut.required = false;
+          complAskodOut.value = '';
+        }
+      }
+    });
+  }
+
   // Completion Time Form Submit
   const completionForm = document.getElementById('task-completion-time-form');
   if (completionForm) {
@@ -926,6 +1006,16 @@ function setupStaticForms() {
       const startTime = document.getElementById('completion-start-time').value;
       const duration = parseInt(document.getElementById('completion-duration').value, 10);
       const desc = document.getElementById('completion-description').value.trim();
+
+      const isAskod = document.getElementById('completion-is-askod')?.checked || false;
+      let askodRegNum = null;
+      if (isAskod) {
+        const askodIn = document.getElementById('completion-askod-in')?.value.trim();
+        const askodOut = document.getElementById('completion-askod-out')?.value.trim();
+        if (askodIn && askodOut) {
+          askodRegNum = `Вх. № ${askodIn}, Вих. № ${askodOut}`;
+        }
+      }
 
       const submitBtn = completionForm.querySelector('button[type="submit"]');
       if (submitBtn) {
@@ -945,15 +1035,16 @@ function setupStaticForms() {
         log_date: new Date().toISOString().split('T')[0],
         start_time: startTime + ':00',
         duration_minutes: duration,
-        branch: 'tasks', // Set to 'tasks' branch for task execution
-        task_type: 'Виконання доручення керівництва',
-        category: 'Планове завдання',
+        branch: isAskod ? 'askod' : 'tasks',
+        task_type: isAskod ? 'Робота в АСКОД' : 'Виконання доручення керівництва',
+        category: isAskod ? 'Опрацювання документа' : 'Планове завдання',
         severity_level: 'easy',
         complexity_coefficient: coef,
         score: score,
         status: 'completed',
         description: desc,
-        assigned_task_id: taskId
+        assigned_task_id: taskId,
+        askod_reg_number: askodRegNum
       };
 
       const { error: logErr } = await sb.from('skod_logs').insert([logData]);
@@ -965,6 +1056,14 @@ function setupStaticForms() {
           submitBtn.textContent = 'Завершити та внести в СКО-Д';
         }
         return;
+      }
+
+      // Reset Form fields
+      if (complIsAskod) {
+        complIsAskod.checked = false;
+        if (complAskodFields) complAskodFields.style.display = 'none';
+        if (complAskodIn) { complAskodIn.required = false; complAskodIn.value = ''; }
+        if (complAskodOut) { complAskodOut.required = false; complAskodOut.value = ''; }
       }
 
       // Complete the task status
