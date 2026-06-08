@@ -1293,10 +1293,20 @@ function renderMessageText(text) {
       `;
     }
   }
-   const escaped = escapeHtml(text);
-   const urlRegex = /(https?:\/\/[^\s]+)/g;
-   const linked = escaped.replace(urlRegex, (match) => `<a href="${match}" target="_blank" rel="noopener noreferrer">${match}</a>`);
-   return linked.replace(/\n/g, '<br>');
+  const escaped = escapeHtml(text);
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const linked = escaped.replace(urlRegex, (match) => {
+    // Прибираємо кінцеві розділові знаки, що прилипли до URL
+    let url = match;
+    let trailing = '';
+    const trailingMatch = url.match(/([.,;:!?)]+)$/);
+    if (trailingMatch) {
+      trailing = trailingMatch[1];
+      url = url.slice(0, -trailing.length);
+    }
+    return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>${trailing}`;
+  });
+  return linked.replace(/\n/g, '<br>');
 }
 
 /* ── Emoji Picker Panel ──────────────────────────── */
@@ -1506,7 +1516,7 @@ function togglePipMode() {
   const left = (screen.width - popupWidth) / 2;
   const top = (screen.height - popupHeight) / 2;
 
-  const popupUrl = new URL(window.location.href);
+  const popupUrl = new URL(window.location.origin + window.location.pathname);
   popupUrl.searchParams.set('mode', 'popup');
 
   popupRef = window.open(
@@ -1693,12 +1703,22 @@ function renderDialoguesList() {
     item.dataset.roomId = room.id;
 
     const unreadCount = unreadCounts[room.id] || 0;
+    const isCreator = currentUser && room.created_by === currentUser.id;
 
     item.innerHTML = `
       <span class="channel-icon">👥</span>
       <span class="channel-name">${escapeHtml(room.name)}</span>
       ${unreadCount > 0 ? `<span class="unread-badge">🔴 ${unreadCount}</span>` : ''}
+      ${isCreator ? `<button type="button" class="channel-delete-btn" title="Видалити групу">🗑️</button>` : ''}
     `;
+
+    const deleteBtn = item.querySelector('.channel-delete-btn');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteRoom(room.id, room.name);
+      });
+    }
 
     item.addEventListener("click", () => {
       selectChannel({
@@ -1742,7 +1762,16 @@ function renderDialoguesList() {
       <span class="channel-icon">👤</span>
       <span class="channel-name">${escapeHtml(userName)}</span>
       ${unreadCount > 0 ? `<span class="unread-badge">🔴 ${unreadCount}</span>` : ''}
+      <button type="button" class="channel-delete-btn" title="Видалити діалог">🗑️</button>
     `;
+
+    const deleteBtn = item.querySelector('.channel-delete-btn');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deletePrivateDialogue(userId, userName);
+      });
+    }
 
     item.addEventListener("click", () => {
       selectChannel({
@@ -1863,6 +1892,72 @@ async function handleCreateGroupSubmit() {
         });
       }
     }
+  }
+}
+
+/* ── Видалення каналів ────────────────────────────── */
+
+async function deleteRoom(roomId, roomName) {
+  if (!confirm(`Ви впевнені, що хочете видалити групу "${roomName}"?\n\nВсі повідомлення в цій групі будуть видалені назавжди.`)) return;
+
+  const { error } = await sb
+    .from('chat_rooms')
+    .delete()
+    .eq('id', roomId);
+
+  if (error) {
+    console.error('Error deleting room:', error);
+    alert('Не вдалося видалити групу: ' + error.message);
+    return;
+  }
+
+  // Видаляємо повідомлення цієї кімнати з локального масиву
+  chatMessages = chatMessages.filter(m => m.room_id !== roomId);
+  chatRooms = chatRooms.filter(r => r.id !== roomId);
+
+  // Якщо ми були в цій кімнаті — переходимо в загальний чат
+  if (activeChat.type === 'room' && activeChat.roomId === roomId) {
+    selectChannel({ type: 'group' });
+  } else {
+    renderDialoguesList();
+  }
+}
+
+async function deletePrivateDialogue(userId, userName) {
+  if (!confirm(`Видалити діалог з "${userName}"?\n\nВсі повідомлення в цьому діалозі будуть видалені для всіх.`)) return;
+
+  // Знаходимо ID повідомлень цього діалогу
+  const dialogueMsgIds = chatMessages
+    .filter(m => !m.room_id && (
+      (m.user_id === currentUser.id && m.recipient_id === userId) ||
+      (m.user_id === userId && m.recipient_id === currentUser.id)
+    ))
+    .map(m => m.id);
+
+  if (dialogueMsgIds.length === 0) {
+    alert('Діалог вже порожній.');
+    return;
+  }
+
+  const { error } = await sb
+    .from('chat_messages')
+    .delete()
+    .in('id', dialogueMsgIds);
+
+  if (error) {
+    console.error('Error deleting private dialogue:', error);
+    alert('Не вдалося видалити діалог: ' + error.message);
+    return;
+  }
+
+  // Видаляємо з локального масиву
+  chatMessages = chatMessages.filter(m => !dialogueMsgIds.includes(m.id));
+
+  // Якщо ми були в цьому діалозі — переходимо в загальний чат
+  if (activeChat.type === 'private' && activeChat.userId === userId) {
+    selectChannel({ type: 'group' });
+  } else {
+    renderDialoguesList();
   }
 }
 
