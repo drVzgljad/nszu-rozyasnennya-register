@@ -373,6 +373,7 @@ CREATE TABLE IF NOT EXISTS public.assigned_tasks (
   deadline DATE,
   progress INTEGER NOT NULL DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
   status TEXT NOT NULL DEFAULT 'assigned', -- 'assigned' | 'in_progress' | 'completed' | 'planning' | 'rejected'
+  is_ongoing BOOLEAN DEFAULT false,
   description TEXT,
   subtasks JSONB DEFAULT '[]'::jsonb,
   plan_details TEXT,
@@ -633,6 +634,12 @@ CREATE POLICY "Full access users can delete chat reactions" ON public.chat_react
   FOR DELETE USING (
     auth.uid() = user_id
   );
+
+
+-- =========================================================================
+-- МІГРАЦІЯ: ДОДАВАННЯ ПІДТРИМКИ ПОСАДОВИХ ОБОВ'ЯЗКІВ (ПОСТІЙНИХ ДОРУЧЕНЬ)
+-- =========================================================================
+ALTER TABLE public.assigned_tasks ADD COLUMN IF NOT EXISTS is_ongoing BOOLEAN DEFAULT false;
 
 
 

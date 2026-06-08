@@ -458,7 +458,7 @@ async function loadActiveAssignedTasks() {
   if (!currentUser) return;
   const { data, error } = await sb
     .from('assigned_tasks')
-    .select('id, title, status')
+    .select('id, title, status, is_ongoing')
     .eq('responsible_id', currentUser.id)
     .order('created_at', { ascending: false });
 
@@ -483,7 +483,13 @@ async function loadActiveAssignedTasks() {
       data.forEach(task => {
         const opt = document.createElement('option');
         opt.value = task.id;
-        opt.textContent = task.status === 'completed' ? `[Виконано] ${task.title}` : task.title;
+        let prefix = '';
+        if (task.status === 'completed') {
+          prefix = '[Виконано] ';
+        } else if (task.is_ongoing) {
+          prefix = '[Посадовий обов\'язок] ';
+        }
+        opt.textContent = `${prefix}${task.title}`;
         taskLinkSel.appendChild(opt);
       });
     } else {
@@ -823,7 +829,7 @@ async function runReport() {
     return;
   }
 
-  let query = sb.from('skod_logs').select('*, assigned_tasks(status)')
+  let query = sb.from('skod_logs').select('*, assigned_tasks(status, is_ongoing)')
     .gte('log_date', startDateVal)
     .lte('log_date', endDateVal);
 
@@ -850,10 +856,10 @@ async function runReport() {
     return;
   }
 
-  // Filter out logs linked to tasks that are not completed yet
+  // Filter out logs linked to tasks that are not completed yet, except ongoing tasks
   const logs = (rawLogs || []).filter(log => {
     if (log.branch === 'tasks' && log.assigned_task_id) {
-      return log.assigned_tasks && log.assigned_tasks.status === 'completed';
+      return log.assigned_tasks && (log.assigned_tasks.status === 'completed' || log.assigned_tasks.is_ongoing);
     }
     return true;
   });

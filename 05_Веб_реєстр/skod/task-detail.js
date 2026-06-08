@@ -134,8 +134,6 @@ function renderTaskHeader() {
   const deptBadge = document.getElementById('task-dept-badge');
   const titleEl = document.getElementById('task-title');
   const metaEl = document.getElementById('task-meta');
-  const progressBar = document.getElementById('task-progress-bar');
-  const progressVal = document.getElementById('task-progress-val');
   const descEl = document.getElementById('task-description');
 
   if (deptBadge) deptBadge.textContent = currentTask.department;
@@ -144,15 +142,42 @@ function renderTaskHeader() {
   if (metaEl) {
     const createdDate = new Date(currentTask.created_at).toLocaleDateString('uk-UA');
     const deadlineDate = new Date(currentTask.deadline).toLocaleDateString('uk-UA');
-    metaEl.innerHTML = `
-      <strong>Надав:</strong> ${currentTask.created_by_name} (${createdDate}) &bull; 
-      <strong>Виконавець:</strong> ${currentTask.responsible_name || 'Не призначено'} &bull; 
-      <strong>Термін виконання:</strong> <span style="font-weight: 700; color: var(--accent-deep);">${deadlineDate}</span>
-    `;
+    if (currentTask.is_ongoing) {
+      metaEl.innerHTML = `
+        <strong>Надав:</strong> ${currentTask.created_by_name} (${createdDate}) &bull; 
+        <strong>Виконавець:</strong> ${currentTask.responsible_name || 'Не призначено'} &bull; 
+        <strong>Тип доручення:</strong> <span style="font-weight: 700; color: var(--accent-deep);">Постійний посадовий обов'язок</span>
+      `;
+    } else {
+      metaEl.innerHTML = `
+        <strong>Надав:</strong> ${currentTask.created_by_name} (${createdDate}) &bull; 
+        <strong>Виконавець:</strong> ${currentTask.responsible_name || 'Не призначено'} &bull; 
+        <strong>Термін виконання:</strong> <span style="font-weight: 700; color: var(--accent-deep);">${deadlineDate}</span>
+      `;
+    }
   }
 
-  if (progressBar) progressBar.style.width = `${currentTask.progress}%`;
-  if (progressVal) progressVal.textContent = `${currentTask.progress}%`;
+  const progressRightPanel = document.querySelector('#task-header-card > div > div:last-child');
+  if (progressRightPanel) {
+    if (currentTask.is_ongoing) {
+      progressRightPanel.innerHTML = `
+        <div style="font-size: 12px; color: var(--p-muted); font-weight: 700; text-transform: uppercase;">Тип доручення</div>
+        <div style="margin-top: 6px;">
+          <span class="badge-status ongoing" style="background: var(--accent-soft, rgba(74, 143, 199, 0.15)); color: var(--accent-deep, #2f6b9e); font-size: 12.5px; padding: 6px 12px; font-weight: 700; border-radius: 8px; display: inline-block;">🔄 Посадовий обов'язок</span>
+        </div>
+      `;
+    } else {
+      progressRightPanel.innerHTML = `
+        <div style="font-size: 12px; color: var(--p-muted); font-weight: 700; text-transform: uppercase;">Прогрес виконання</div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-top: 6px;">
+          <div class="table-progress-bar-container" style="width: 120px; height: 12px; margin:0;">
+            <div class="table-progress-bar" id="task-progress-bar" style="width: ${currentTask.progress}%;"></div>
+          </div>
+          <span id="task-progress-val" style="font-size: 16px; font-weight: 800; color: var(--accent-deep);">${currentTask.progress}%</span>
+        </div>
+      `;
+    }
+  }
 
   if (descEl) {
     descEl.textContent = currentTask.description || 'Опис доручення відсутній.';
@@ -188,8 +213,11 @@ function renderStatusBanner() {
       <button class="btn btn-status-action-form" data-type="rejected" style="background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">Відхилити ❌</button>
     `;
   } else if (currentTask.status === 'in_progress') {
+    const completeBtnLabel = currentTask.is_ongoing 
+      ? 'Завершити виконання обов\'язків (закрити період) ⏹️' 
+      : 'Остаточне виконання (Завершити) ⏹️';
     actions.innerHTML = `
-      <button class="btn btn-primary btn-status-action" data-status="completed" style="background:#22c55e; color:#fff; border:none; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">Остаточне виконання (Завершити) ⏹️</button>
+      <button class="btn btn-primary btn-status-action" data-status="completed" style="background:#22c55e; color:#fff; border:none; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">${completeBtnLabel}</button>
       <button class="btn btn-status-action-form" data-type="rejected" style="background:#ef4444; color:#fff; border:none; padding:8px 16px; border-radius:6px; font-weight:700; cursor:pointer;">Відмовитись ❌</button>
     `;
   } else if (['rejected', 'completed'].includes(currentTask.status)) {
@@ -290,17 +318,61 @@ function renderSubtasks() {
   if (!container) return;
 
   const subtasks = currentTask.subtasks || [];
+
+  // Determine permissions
+  const canUpdate = currentTask.responsible_id === currentUser.id || 
+                    currentTask.created_by === currentUser.id ||
+                    ['admin', 'director', 'deputy_director', 'manager'].includes(userProfile.role);
+
+  // Setup actions header for ongoing task reset button
+  let actionsHeader = document.getElementById('subtasks-actions-header');
+  if (!actionsHeader) {
+    actionsHeader = document.createElement('div');
+    actionsHeader.id = 'subtasks-actions-header';
+    container.parentNode.insertBefore(actionsHeader, container);
+  }
+  actionsHeader.innerHTML = '';
+
+  if (currentTask.is_ongoing && subtasks.length > 0 && canUpdate) {
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'btn';
+    resetBtn.style.cssText = 'padding: 6px 12px; font-size: 12.5px; background: var(--p-soft); border: 1px solid var(--p-line); border-radius: 6px; cursor: pointer; font-weight: 700; color: var(--p-ink); margin-bottom: 12px; display: inline-flex; align-items: center; gap: 4px;';
+    resetBtn.innerHTML = '🔄 Почати новий цикл (скинути чек-лист)';
+    resetBtn.addEventListener('click', async () => {
+      if (confirm("Ви дійсно хочете скинути статус усіх підзавдань для початку нового циклу виконання посадових обов'язків?")) {
+        const updatedSubtasks = subtasks.map(s => ({ ...s, completed: false }));
+        
+        const systemMsg = `${userProfile.full_name} скинув чек-лист для нового циклу роботи`;
+        const comments = [...(currentTask.comments || []), {
+          id: crypto.randomUUID(),
+          author: 'Система',
+          role: 'system',
+          text: systemMsg,
+          timestamp: new Date().toISOString(),
+          type: 'system'
+        }];
+
+        const { error } = await sb
+          .from('assigned_tasks')
+          .update({ subtasks: updatedSubtasks, progress: 0, comments })
+          .eq('id', taskId);
+
+        if (error) {
+          alert("Помилка при скиданні чек-листа: " + error.message);
+        } else {
+          await loadTaskDetails();
+        }
+      }
+    });
+    actionsHeader.appendChild(resetBtn);
+  }
+
   container.innerHTML = '';
 
   if (subtasks.length === 0) {
     container.innerHTML = `<div style="font-size:13.5px; color: var(--p-muted); font-style:italic; padding: 8px 0;">Підзавдання не додано. Чек-лист є планом виконання доручення.</div>`;
     return;
   }
-
-  // Determine permissions
-  const canUpdate = currentTask.responsible_id === currentUser.id || 
-                    currentTask.created_by === currentUser.id ||
-                    ['admin', 'director', 'deputy_director', 'manager'].includes(userProfile.role);
 
   subtasks.forEach(sub => {
     // Check if this subtask has logs associated with it

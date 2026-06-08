@@ -123,6 +123,23 @@ function setupManagerPanel() {
       today.setDate(today.getDate() + 3);
       deadlineInput.value = today.toISOString().split('T')[0];
     }
+
+    const isOngoingInput = document.getElementById('task_is_ongoing');
+    if (isOngoingInput && deadlineInput) {
+      isOngoingInput.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          deadlineInput.value = '2026-12-31';
+          deadlineInput.disabled = true;
+          deadlineInput.required = false;
+        } else {
+          const today = new Date();
+          today.setDate(today.getDate() + 3);
+          deadlineInput.value = today.toISOString().split('T')[0];
+          deadlineInput.disabled = false;
+          deadlineInput.required = true;
+        }
+      });
+    }
   }
 }
 
@@ -163,6 +180,7 @@ async function createTask(e) {
   const responsible_id = responsibleSelect?.value;
   const deadline = document.getElementById('task_deadline')?.value;
   const description = document.getElementById('task_description')?.value.trim();
+  const is_ongoing = document.getElementById('task_is_ongoing')?.checked || false;
 
   const submitBtn = document.getElementById('btn-submit-task');
 
@@ -191,7 +209,8 @@ async function createTask(e) {
     deadline,
     progress: 0,
     status: 'assigned',
-    description
+    description,
+    is_ongoing: is_ongoing
   };
 
   const { error } = await sb.from('assigned_tasks').insert([taskData]);
@@ -208,6 +227,19 @@ async function createTask(e) {
     document.getElementById('task_title').value = '';
     document.getElementById('task_description').value = '';
     if (responsibleSelect) responsibleSelect.selectedIndex = 0;
+    
+    const isOngoingInput = document.getElementById('task_is_ongoing');
+    if (isOngoingInput) {
+      isOngoingInput.checked = false;
+      const deadlineInput = document.getElementById('task_deadline');
+      if (deadlineInput) {
+        deadlineInput.disabled = false;
+        const today = new Date();
+        today.setDate(today.getDate() + 3);
+        deadlineInput.value = today.toISOString().split('T')[0];
+        deadlineInput.required = true;
+      }
+    }
     
     // Reload
     await loadTasks();
@@ -252,15 +284,30 @@ function renderMyTasks() {
       const deadlineDate = new Date(task.deadline);
       const formattedDeadline = deadlineDate.toLocaleDateString('uk-UA');
       
+      let metaText = `Надав: ${task.created_by_name} &bull; Термін: ${formattedDeadline}`;
+      let statusBadgeHtml = `<span class="badge-status ${task.status}">${getStatusLabel(task.status)}</span>`;
+      let progressSliderHtml = `
+        <div class="progress-slider-container">
+          <input type="range" id="range-${task.id}" min="0" max="100" value="${task.progress}" oninput="document.getElementById('val-${task.id}').textContent = this.value + '%'">
+          <span class="progress-val-badge" id="val-${task.id}">${task.progress}%</span>
+        </div>
+      `;
+
+      if (task.is_ongoing) {
+        metaText = `Надав: ${task.created_by_name} &bull; 🔄 Постійне посадове доручення`;
+        statusBadgeHtml = `<span class="badge-status ongoing" style="background: var(--accent-soft, rgba(74, 143, 199, 0.15)); color: var(--accent-deep, #2f6b9e);">🔄 Посадовий обов'язок</span>`;
+        progressSliderHtml = '';
+      }
+
       card.innerHTML = `
         <div class="personal-task-header">
           <div>
             <h3 class="personal-task-title">
               <a href="task-detail.html?id=${task.id}" target="_blank" style="color: inherit; text-decoration: none; border-bottom: 1px dashed var(--accent, #3b82f6); transition: color 0.2s;" onmouseover="this.style.color='var(--accent, #3b82f6)'" onmouseout="this.style.color='inherit'">${task.title}</a>
             </h3>
-            <span class="personal-task-meta">Надав: ${task.created_by_name} &bull; Термін: ${formattedDeadline}</span>
+            <span class="personal-task-meta">${metaText}</span>
           </div>
-          <span class="badge-status ${task.status}">${getStatusLabel(task.status)}</span>
+          ${statusBadgeHtml}
         </div>
         <div style="font-size: 13.5px; color: var(--p-muted); line-height: 1.4;">${task.description || 'Без додаткового опису.'}</div>
         
@@ -279,11 +326,7 @@ function renderMyTasks() {
               Зберегти зміни
             </button>
           </div>
-
-          <div class="progress-slider-container">
-            <input type="range" id="range-${task.id}" min="0" max="100" value="${task.progress}" oninput="document.getElementById('val-${task.id}').textContent = this.value + '%'">
-            <span class="progress-val-badge" id="val-${task.id}">${task.progress}%</span>
-          </div>
+          ${progressSliderHtml}
         </div>
       `;
       container.appendChild(card);
@@ -293,8 +336,14 @@ function renderMyTasks() {
     container.querySelectorAll('.btn-save-progress').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         const id = e.target.dataset.id;
-        const progress = parseInt(document.getElementById(`range-${id}`).value, 10);
+        const taskObj = allTasks.find(t => t.id === id);
+        const rangeEl = document.getElementById(`range-${id}`);
+        let progress = rangeEl ? parseInt(rangeEl.value, 10) : (taskObj ? taskObj.progress : 0);
         const status = document.getElementById(`status-${id}`).value;
+
+        if (status === 'completed') {
+          progress = 100;
+        }
         
         e.target.disabled = true;
         e.target.textContent = 'Збереження...';
@@ -371,6 +420,23 @@ function renderRegistry() {
         evalCell = `<span style="color:var(--p-muted); font-size:12px;">В процесі</span>`;
       }
 
+      let deadlineVal = formattedDeadline;
+      let progressCell = `
+        <div style="display:flex; align-items:center;">
+          <div class="table-progress-bar-container">
+            <div class="table-progress-bar" style="width: ${task.progress}%;"></div>
+          </div>
+          <span style="font-size:13px; font-weight:700; color:var(--accent-2-deep);">${task.progress}%</span>
+        </div>
+      `;
+      let statusBadge = `<span class="badge-status ${task.status}">${getStatusLabel(task.status)}</span>`;
+
+      if (task.is_ongoing) {
+        deadlineVal = '<span style="color:var(--p-muted); font-weight:normal;">Постійне</span>';
+        progressCell = `<span style="font-size:12px; color: var(--p-muted); font-style: italic;">Посадовий обов'язок</span>`;
+        statusBadge = `<span class="badge-status ongoing" style="background: var(--accent-soft, rgba(74, 143, 199, 0.15)); color: var(--accent-deep, #2f6b9e); font-weight:700;">🔄 Посадовий обов'язок</span>`;
+      }
+
       tr.innerHTML = `
         <td>
           <div style="font-weight: 700;">
@@ -382,16 +448,11 @@ function renderRegistry() {
         <td>
           <div style="font-weight: 600;">${task.responsible_name || 'Не призначено'}</div>
         </td>
-        <td style="font-weight: 600; font-size:13.5px;">${formattedDeadline}</td>
+        <td style="font-weight: 600; font-size:13.5px;">${deadlineVal}</td>
         <td>
-          <div style="display:flex; align-items:center;">
-            <div class="table-progress-bar-container">
-              <div class="table-progress-bar" style="width: ${task.progress}%;"></div>
-            </div>
-            <span style="font-size:13px; font-weight:700; color:var(--accent-2-deep);">${task.progress}%</span>
-          </div>
+          ${progressCell}
         </td>
-        <td><span class="badge-status ${task.status}">${getStatusLabel(task.status)}</span></td>
+        <td>${statusBadge}</td>
         <td>${evalCell}</td>
         <td style="text-align: center;">${deleteBtn}</td>
       `;
