@@ -128,8 +128,8 @@ function showAccessDenied(msg) {
 // ============================================================
 function setupForm() {
   const branchSel = document.getElementById('task_branch');
-  const taskTypeSel = document.getElementById('task_type');
-  const taskCategorySel = document.getElementById('task_category');
+  const taskTypeContainer = document.getElementById('task_type_container');
+  const taskCategoryContainer = document.getElementById('task_category_container');
   const severitySel = document.getElementById('severity_level');
   const durationInput = document.getElementById('duration_minutes');
   const durationGroup = document.getElementById('duration-group');
@@ -137,23 +137,31 @@ function setupForm() {
   const scoreVal = document.getElementById('live-score-val');
   const formEl = document.getElementById('skod-log-form');
 
-  // Populate dynamic dropdowns
+  // Populate dynamic checkboxes
   function populateTypesAndCategories() {
     const branch = branchSel?.value || 'department';
     const config = BRANCH_CONFIG[branch];
 
-    if (taskTypeSel) {
-      const prevType = taskTypeSel.value;
-      taskTypeSel.innerHTML = '<option value="" disabled selected>Оберіть тип завдання...</option>';
+    if (taskTypeContainer) {
+      const checkedTypes = Array.from(taskTypeContainer.querySelectorAll('.task-type-cb:checked')).map(cb => cb.value);
+      taskTypeContainer.innerHTML = '';
       config.types.forEach(t => {
-        const opt = document.createElement('option');
-        opt.value = t;
-        opt.textContent = t;
-        taskTypeSel.appendChild(opt);
+        const label = document.createElement('label');
+        label.className = 'skod-checkbox-item';
+        
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.value = t;
+        cb.className = 'task-type-cb';
+        if (checkedTypes.includes(t)) {
+          cb.checked = true;
+        }
+        cb.addEventListener('change', updateLiveScore);
+        
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(t));
+        taskTypeContainer.appendChild(label);
       });
-      if (config.types.includes(prevType)) {
-        taskTypeSel.value = prevType;
-      }
     }
     populateCategories();
   }
@@ -161,13 +169,24 @@ function setupForm() {
   function populateCategories() {
     const branch = branchSel?.value || 'department';
     const config = BRANCH_CONFIG[branch];
-    if (taskCategorySel) {
-      taskCategorySel.innerHTML = '<option value="" disabled selected>Оберіть категорію...</option>';
+    if (taskCategoryContainer) {
+      const checkedCategories = Array.from(taskCategoryContainer.querySelectorAll('.task-category-cb:checked')).map(cb => cb.value);
+      taskCategoryContainer.innerHTML = '';
       config.categories.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c;
-        opt.textContent = c;
-        taskCategorySel.appendChild(opt);
+        const label = document.createElement('label');
+        label.className = 'skod-checkbox-item';
+        
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.value = c;
+        cb.className = 'task-category-cb';
+        if (checkedCategories.includes(c)) {
+          cb.checked = true;
+        }
+        
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(c));
+        taskCategoryContainer.appendChild(label);
       });
     }
   }
@@ -266,8 +285,12 @@ function setupForm() {
       }
 
       const branch = branchSel.value;
-      const task_type = taskTypeSel.value;
-      const category = taskCategorySel.value;
+      const selectedTypes = Array.from(document.querySelectorAll('.task-type-cb:checked')).map(cb => cb.value);
+      const task_type = selectedTypes.join(', ');
+
+      const selectedCategories = Array.from(document.querySelectorAll('.task-category-cb:checked')).map(cb => cb.value);
+      const category = selectedCategories.join(', ');
+      
       const severity_level = severitySel.value;
       const status = statusSel.value;
       const start_time = document.getElementById('start_time').value;
@@ -276,7 +299,7 @@ function setupForm() {
       const user_name = userProfile.full_name || currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
 
       if (!branch || !task_type || !category || !severity_level || !start_time || !status) {
-        alert('Будь ласка, заповніть усі обов’язкові поля.');
+        alert('Будь ласка, заповніть усі обов’язкові поля та оберіть хоча б один тип та категорію завдання.');
         if (submitBtn) {
           submitBtn.disabled = false;
           submitBtn.textContent = 'Зберегти завдання';
