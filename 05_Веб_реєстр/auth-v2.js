@@ -362,7 +362,7 @@ function applyAccess() {
   let dashboard = document.getElementById('user-task-dashboard');
   let alertBanner = document.getElementById('user-news-alert-banner');
   if (header) {
-    if (!user || role === 'guest') {
+    if (!user || role === 'guest' || currentPath.includes('passport')) {
       if (dashboard) dashboard.remove();
       if (alertBanner) alertBanner.remove();
     } else {
