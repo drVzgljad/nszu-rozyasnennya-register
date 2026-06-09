@@ -63,6 +63,20 @@
         </div>
 
         <button type="button" id="btnUpdateCodes" class="btn btn-secondary">Оновити коди теми</button>
+
+        <div class="form-group code-search-group" style="margin-top: 20px; padding-top: 20px; border-top: 1px dashed var(--line, #dde6ee);">
+          <label for="searchClassifierInput">🔍 Пошук у Нац. класифікаторах:</label>
+          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <input type="text" id="searchClassifierInput" class="form-control" placeholder="Введіть код або назву (від 3 символів)...">
+            <select id="classifierTypeSelect" class="form-control" style="width: 140px; margin: 0; padding: 10px;">
+              <option value="icd">МКХ-10-АМ</option>
+              <option value="achi">АКМІ (ACHI)</option>
+            </select>
+          </div>
+          <div id="searchClassifierResults" style="max-height: 200px; overflow-y: auto; border: 1.5px solid var(--line, #dde6ee); border-radius: 10px; background: var(--surface, #fff); display: none;">
+            <!-- Dynamic search results -->
+          </div>
+        </div>
       </div>
     </section>
 

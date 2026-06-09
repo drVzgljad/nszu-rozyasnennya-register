@@ -10,7 +10,9 @@ const state = {
   packageCodes: {},
   packages: [],
   packageDecLinks: {},
-  selectedCategory: ""
+  selectedCategory: "",
+  icd10Classifier: null,
+  achiClassifier: null
 };
 
 // DOM Elements
@@ -98,6 +100,7 @@ async function loadData() {
 
     populateCategories();
     setupEventListeners();
+    loadClassifiers();
 
   } catch (err) {
     console.error("Помилка завантаження даних для Конструктора:", err);
@@ -129,6 +132,8 @@ function setupEventListeners() {
 
   el("btnUpdateCodes").addEventListener("click", updateCategoryCodes);
   el("btnSaveLinks").addEventListener("click", saveLinksAndCodesToServer);
+  el("searchClassifierInput").addEventListener("input", handleClassifierSearch);
+  el("classifierTypeSelect").addEventListener("change", handleClassifierSearch);
 }
 
 // Handle Category Selection
@@ -400,6 +405,102 @@ function showToast(message, duration = 3000) {
   toastTimeout = setTimeout(() => {
     toast.style.display = "none";
   }, duration);
+}
+
+// Load classifiers asynchronously in the background
+async function loadClassifiers() {
+  try {
+    const [icdRes, achiRes] = await Promise.all([
+      fetch("data/icd10_codes.json").then(r => r.json()),
+      fetch("data/achi_codes.json").then(r => r.json())
+    ]);
+    state.icd10Classifier = icdRes;
+    state.achiClassifier = achiRes;
+    console.log("Національні класифікатори (МКХ-10-АМ та АКМІ) завантажено успішно.");
+  } catch (err) {
+    console.error("Помилка завантаження класифікаторів:", err);
+  }
+}
+
+// Classifier search handler
+function handleClassifierSearch() {
+  const query = el("searchClassifierInput").value.trim().toLowerCase();
+  const type = el("classifierTypeSelect").value;
+  const resultsDiv = el("searchClassifierResults");
+
+  if (query.length < 3) {
+    resultsDiv.style.display = "none";
+    resultsDiv.innerHTML = "";
+    return;
+  }
+
+  const classifier = type === "icd" ? state.icd10Classifier : state.achiClassifier;
+  if (!classifier) {
+    resultsDiv.style.display = "block";
+    resultsDiv.innerHTML = `<div style="padding: 10px; color: var(--muted, #647688); font-size: 13px; text-align: center;">Завантаження класифікаторів... Спробуйте ще раз за мить.</div>`;
+    return;
+  }
+
+  const matches = [];
+  for (const code in classifier) {
+    const name = classifier[code];
+    if (code.toLowerCase().includes(query) || name.toLowerCase().includes(query)) {
+      matches.push({ code, name });
+      if (matches.length >= 40) break;
+    }
+  }
+
+  if (matches.length === 0) {
+    resultsDiv.style.display = "block";
+    resultsDiv.innerHTML = `<div style="padding: 12px; color: var(--muted, #647688); font-size: 13px; text-align: center;">Нічого не знайдено</div>`;
+    return;
+  }
+
+  resultsDiv.style.display = "block";
+  resultsDiv.innerHTML = matches.map(m => {
+    const isDark = document.documentElement.classList.contains("dark-theme");
+    const itemBg = isDark ? "#1e293b" : "#ffffff";
+    const borderC = isDark ? "#334155" : "#dde6ee";
+    const textC = isDark ? "#cbd5e1" : "#1f3347";
+    
+    return `
+      <div class="search-code-item" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid ${borderC}; gap: 12px; font-size: 13px; background: ${itemBg}; color: ${textC};">
+        <div style="text-align: left; line-height: 1.4; flex: 1;">
+          <strong style="color: var(--accent-dark, #2f6b9e); font-family: monospace; font-size: 13.5px;">${m.code}</strong> - <span>${m.name}</span>
+        </div>
+        <button type="button" class="btn btn-secondary btn-add-code" data-code="${m.code}" data-type="${type}" style="padding: 4px 8px; font-size: 11px; margin-left: 8px; flex-shrink: 0;">Додати ➕</button>
+      </div>
+    `;
+  }).join("");
+
+  // Add event listeners to dynamic buttons
+  resultsDiv.querySelectorAll(".btn-add-code").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const code = btn.dataset.code;
+      const codeType = btn.dataset.type;
+      addCodeToInput(code, codeType);
+    });
+  });
+}
+
+// Add code to input and update matching
+function addCodeToInput(code, type) {
+  const inputId = type === "icd" ? "icd10Codes" : "achiCodes";
+  const inputEl = el(inputId);
+  const currentVal = inputEl.value.trim();
+  
+  let codesList = currentVal ? currentVal.split(",").map(c => c.trim()).filter(c => c.length > 0) : [];
+  
+  if (!codesList.includes(code)) {
+    codesList.push(code);
+    inputEl.value = codesList.join(", ");
+    
+    // Automatically trigger code recalculation and UI refresh
+    updateCategoryCodes();
+    showToast(`Код ${code} успішно додано!`, 2000);
+  } else {
+    showToast(`Код ${code} вже присутній у списку.`, 2000);
+  }
 }
 
 // DOMContentLoaded load trigger
