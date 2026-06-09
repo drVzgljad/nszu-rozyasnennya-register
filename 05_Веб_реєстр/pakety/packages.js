@@ -2,6 +2,8 @@ const packageState = {
   data: null,
   explanations: [],
   resolution: null,
+  decDocuments: [],
+  decLinks: {},
   visible: [],
   selected: null,
   selectedUnit: null,
@@ -223,6 +225,34 @@ function readerResolution(pkg) {
   }).join("");
 }
 
+function readerDec(pkg) {
+  if (!packageState.decDocuments || !packageState.decDocuments.length) {
+    return "<p>Завантажуємо стандарти ДЕЦ...</p>";
+  }
+  const linkedCategories = packageState.decLinks[pkg.number] || [];
+  if (!linkedCategories.length) {
+    return "<p>Клінічні стандарти для цього пакета не визначено.</p>";
+  }
+  const relatedDocs = packageState.decDocuments.filter(doc => linkedCategories.includes(doc.category));
+  if (!relatedDocs.length) {
+    return "<p>У пов'язаних категоріях ДЕЦ немає зареєстрованих документів.</p>";
+  }
+  return relatedDocs.map((doc) => {
+    let statusClass = "law-related-badge";
+    const statusLower = doc.status.toLowerCase();
+    if (statusLower.startsWith("чинн")) {
+      statusClass = "law-related-badge active-badge";
+    }
+    return `<a class="law-related-link" href="../dec/index.html?q=${encodeURIComponent(doc.title)}" target="_blank">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%;">
+        <strong>${escapeHtml(doc.title)}</strong>
+        <span class="${statusClass}" style="font-size:11px; padding:2px 6px; border-radius:6px; font-weight:700; background:var(--accent-soft); color:var(--accent-dark);">${escapeHtml(doc.status)}</span>
+      </div>
+      <span style="font-size: 12px; color: var(--muted); margin-top: 4px; display: block;">Категорія: ${escapeHtml(doc.category)} · ${escapeHtml(doc.type)} ${doc.number ? '· ' + escapeHtml(doc.number) : ''}</span>
+    </a>`;
+  }).join("");
+}
+
 function renderReader() {
   const container = byId("packageReader");
   const pkg = packageState.selected;
@@ -251,6 +281,10 @@ function renderReader() {
       <h3>Оплата за постановою № 1808</h3>
       ${readerResolution(pkg)}
     </section>
+    <section class="related-explanations dec-connections" style="border-top-color: #d7e4ef;">
+      <h3>Клінічні стандарти та настанови ДЕЦ МОЗ</h3>
+      ${readerDec(pkg)}
+    </section>
     <section class="related-explanations">
       <h3>Пов'язані роз'яснення</h3>
       ${readerRelated(pkg)}
@@ -258,12 +292,50 @@ function renderReader() {
 }
 
 async function initPackages() {
-  const [packagesResponse, docsResponse] = await Promise.all([
+  const [packagesResponse, docsResponse, decLinksResponse] = await Promise.all([
     fetch("data/packages_2026.json"),
     fetch("../data/documents.json"),
+    fetch("../dec/data/package_dec_links.json").catch(() => null),
   ]);
   packageState.data = await packagesResponse.json();
   packageState.explanations = (await docsResponse.json()).documents;
+  if (decLinksResponse) {
+    try {
+      packageState.decLinks = await decLinksResponse.json() || {};
+    } catch(e) { console.warn("Failed to load dec links", e); }
+  }
+
+  // Гібридне завантаження документів ДЕЦ
+  let loadedFromSupabase = false;
+  try {
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
+    const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    if (sb) {
+      const { data: dbData, error } = await sb.from('dec_documents').select('*');
+      if (!error && dbData && dbData.length > 0) {
+        packageState.decDocuments = dbData;
+        loadedFromSupabase = true;
+        console.log("Loaded DEC documents for packages from Supabase!");
+      }
+    }
+  } catch (dbErr) {
+    console.warn("Supabase fetch for packages skipped or failed, falling back to local JSON:", dbErr);
+  }
+
+  if (!loadedFromSupabase) {
+    try {
+      const decDocsResponse = await fetch("../data/dec_documents.json");
+      if (decDocsResponse) {
+        packageState.decDocuments = (await decDocsResponse.json()).documents || [];
+        console.log("Loaded DEC documents for packages from local JSON.");
+      }
+    } catch(e) {
+      console.warn("Failed to load local dec documents", e);
+    }
+  }
   const params = new URLSearchParams(location.search);
   byId("packageSearch").value = params.get("q") || "";
   renderStats();

@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>НавігаторПМГ26 | Панель управління ДЕЦ</title>
+  <link rel="stylesheet" href="../styles.css?v=20260531e">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260606">
+  <script type="module" src="../auth-v2.js?v=20260606"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    .admin-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 22px 24px 32px;
+      width: 100%;
+    }
+    
+    .admin-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 30px;
+      margin-bottom: 24px;
+    }
+    
+    .admin-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--ink);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: "Manrope", "Segoe UI", Arial, sans-serif;
+    }
+
+    .admin-subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .warning-box {
+      background: #fff9db;
+      border: 1px solid #ffe3e3;
+      border-left: 5px solid #ff6b6b;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 24px;
+      color: #5c2727;
+      font-size: 13.5px;
+      line-height: 1.5;
+    }
+    
+    .warning-box strong {
+      color: #c92a2a;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .dropzone {
+      border: 2px dashed #b5c7d9;
+      border-radius: 16px;
+      padding: 40px 20px;
+      text-align: center;
+      background: var(--soft);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--accent);
+      background: #eef6fc;
+      transform: translateY(-2px);
+    }
+    
+    .dropzone-icon {
+      font-size: 40px;
+      color: var(--accent);
+      transition: transform 0.2s ease;
+    }
+    
+    .dropzone:hover .dropzone-icon {
+      transform: scale(1.1);
+    }
+    
+    .dropzone-text {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    
+    .dropzone-subtext {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    
+    .file-details {
+      background: #f5faff;
+      border: 1px solid #d5e5f3;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 24px;
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .file-details-header {
+      font-weight: 700;
+      font-size: 14.5px;
+      color: var(--accent-dark);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .file-details-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      padding: 6px 0;
+      border-bottom: 1px solid #e2f0fc;
+    }
+    
+    .file-details-row:last-child {
+      border-bottom: none;
+    }
+    
+    .file-details-label {
+      color: var(--muted);
+    }
+    
+    .file-details-val {
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .upload-progress-container {
+      margin-bottom: 24px;
+      display: none;
+    }
+    
+    .progress-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    
+    .progress-bar-bg {
+      height: 12px;
+      background: #e2edf3;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 12px;
+      border: 1px solid rgba(0, 111, 201, 0.05);
+    }
+    
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--teal), var(--accent));
+      border-radius: 6px;
+      transition: width 0.2s ease;
+    }
+    
+    .status-log {
+      max-height: 160px;
+      overflow-y: auto;
+      background: #1e293b;
+      color: #cbd5e1;
+      border-radius: 10px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+    
+    .log-item {
+      margin-bottom: 4px;
+    }
+    .log-item.error { color: #f87171; }
+    .log-item.success { color: #4ade80; }
+    .log-item.info { color: #60a5fa; }
+
+    .btn-container {
+      display: flex;
+      gap: 12px;
+    }
+    
+    .btn-admin {
+      flex: 1;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 15px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s ease;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+    
+    .btn-admin.primary {
+      background: var(--accent);
+      color: white;
+    }
+    .btn-admin.primary:hover:not(:disabled) {
+      background: var(--accent-dark);
+      transform: translateY(-1px);
+    }
+    .btn-admin.primary:disabled {
+      background: #cbd5e1;
+      color: #94a3b8;
+      cursor: not-allowed;
+    }
+    .btn-admin.secondary {
+      background: #e2edf3;
+      color: var(--accent-dark);
+      border: 1px solid #cddbe7;
+    }
+    .btn-admin.secondary:hover {
+      background: #d5e5f3;
+    }
+
+    /* Dark theme support overrides */
+    .dark-theme .admin-card {
+      background: #1e293b;
+      border-color: #334155;
+    }
+    .dark-theme .admin-title {
+      color: #f8fafc;
+    }
+    .dark-theme .dropzone {
+      background: #0f172a;
+      border-color: #334155;
+    }
+    .dark-theme .dropzone-text {
+      color: #cbd5e1;
+    }
+    .dark-theme .file-details {
+      background: rgba(30, 41, 59, 0.5);
+      border-color: #334155;
+    }
+    .dark-theme .file-details-row {
+      border-bottom-color: #334155;
+    }
+    .dark-theme .file-details-val {
+      color: #f8fafc;
+    }
+    .dark-theme .warning-box {
+      background: #3c2626;
+      color: #fca5a5;
+      border-color: #ef4444;
+    }
+    .dark-theme .warning-box strong {
+      color: #f87171;
+    }
+    .dark-theme .btn-admin.secondary {
+      background: #334155;
+      color: #f8fafc;
+      border-color: #475569;
+    }
+    .dark-theme .btn-admin.secondary:hover {
+      background: #475569;
+    }
+  </style>
+</head>
+<body data-required-role="manager">
+  <header class="hero">
+    <div class="hero-copy">
+      <div class="overline">Державний експертний центр МОЗ України</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Панель управління ДЕЦ</h1>
+      <p>Оновлюйте хмарну базу даних стандартів та настанов ДЕЦ МОЗ шляхом завантаження Excel файлу.</p>
+    </div>
+  </header>
+
+  <main class="admin-container">
+    <section class="admin-card">
+      <div class="admin-title">
+        <span>⚙️ Хмарне оновлення бази даних (Supabase)</span>
+      </div>
+      <div class="admin-subtitle">
+        Завантажте новий Excel файл реєстру ДЕЦ МОЗ. Дані будуть оброблені у браузері та записані в базу даних.
+      </div>
+      
+      <div class="warning-box">
+        <strong>⚠️ УВАГА: РУЙНІВНА ДІЯ</strong>
+        Завантаження нового файлу повністю видалить усі наявні записи в таблиці `dec_documents` на сервері Supabase та замінить їх новими даними. Переконайтеся, що файл має правильну структуру колонок.
+      </div>
+      
+      <div class="dropzone" id="dropzone">
+        <span class="dropzone-icon">📥</span>
+        <span class="dropzone-text">Перетягніть сюди Excel файл (.xlsx, .xls)</span>
+        <span class="dropzone-subtext">або натисніть, щоб обрати на комп'ютері</span>
+        <input type="file" id="file-input" accept=".xlsx, .xls" style="display: none;">
+      </div>
+      
+      <div class="file-details" id="file-details">
+        <div class="file-details-header">
+          <span>📄 Інформація про обраний файл</span>
+        </div>
+        <div class="file-details-row">
+          <span class="file-details-label">Назва файлу:</span>
+          <span class="file-details-val" id="file-name">-</span>
+        </div>
+        <div class="file-details-row">
+          <span class="file-details-label">Розмір:</span>
+          <span class="file-details-val" id="file-size">-</span>
+        </div>
+        <div class="file-details-row">
+          <span class="file-details-label">Кількість документів для імпорту:</span>
+          <span class="file-details-val" id="file-rows">-</span>
+        </div>
+      </div>
+      
+      <div class="upload-progress-container" id="progress-container">
+        <div class="progress-info">
+          <span id="progress-status">Ініціалізація завантаження...</span>
+          <span id="progress-percent">0%</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar" id="progress-bar"></div>
+        </div>
+      </div>
+      
+      <div class="status-log" id="status-log" style="display: none;"></div>
+      
+      <div class="btn-container">
+        <a class="btn-admin secondary" id="btn-cancel" href="index.html">
+          Назад до реєстру ДЕЦ
+        </a>
+        <button class="btn-admin primary" id="btn-upload" disabled>
+          🚀 Завантажити в Supabase
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Панель управління реєстром ДЕЦ МОЗ розроблена для внутрішнього використання менеджерами порталу.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
+    const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('file-input');
+    const fileDetails = document.getElementById('file-details');
+    const fileName = document.getElementById('file-name');
+    const fileSize = document.getElementById('file-size');
+    const fileRows = document.getElementById('file-rows');
+    const btnUpload = document.getElementById('btn-upload');
+    const progressContainer = document.getElementById('progress-container');
+    const progressBar = document.getElementById('progress-bar');
+    const progressStatus = document.getElementById('progress-status');
+    const progressPercent = document.getElementById('progress-percent');
+    const statusLog = document.getElementById('status-log');
+
+    let parsedDocuments = [];
+
+    // Setup drag and drop events
+    dropzone.addEventListener('click', () => fileInput.click());
+    
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+    
+    dropzone.addEventListener('dragleave', () => {
+      dropzone.classList.remove('dragover');
+    });
+    
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        handleFileSelect();
+      }
+    });
+
+    fileInput.addEventListener('change', handleFileSelect);
+
+    function log(msg, type = 'info') {
+      statusLog.style.display = 'block';
+      const div = document.createElement('div');
+      div.className = `log-item ${type}`;
+      const time = new Date().toLocaleTimeString('uk-UA');
+      div.textContent = `[${time}] ${msg}`;
+      statusLog.appendChild(div);
+      statusLog.scrollTop = statusLog.scrollHeight;
+    }
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function handleFileSelect() {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      fileName.textContent = file.name;
+      fileSize.textContent = formatBytes(file.size);
+      parsedDocuments = [];
+      btnUpload.disabled = true;
+      fileDetails.style.display = 'none';
+      statusLog.innerHTML = '';
+      statusLog.style.display = 'none';
+      progressContainer.style.display = 'none';
+
+      log(`Обрано файл: ${file.name}, читання...`);
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+          if (rows.length <= 1) {
+            throw new Error("Файл пустий або містить лише заголовок!");
+          }
+
+          log(`Файл успішно прочитано. Рядки у файлі: ${rows.length}. Початок парсингу...`);
+
+          const documents = [];
+          for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row || row.length === 0) continue;
+            
+            const title = row[1];
+            if (!title || String(title).trim() === '') {
+              // Пропускаємо пусті рядки без заголовка
+              continue;
+            }
+
+            // Парсинг дати публікації
+            let publishedStr = "";
+            let pubYear = "";
+            const publishedDate = row[5];
+            
+            if (publishedDate) {
+              if (publishedDate instanceof Date && !isNaN(publishedDate.getTime())) {
+                const day = String(publishedDate.getDate()).padStart(2, '0');
+                const month = String(publishedDate.getMonth() + 1).padStart(2, '0');
+                const year = publishedDate.getFullYear();
+                publishedStr = `${day}.${month}.${year}`;
+                pubYear = String(year);
+              } else {
+                publishedStr = String(publishedDate).trim();
+                // Спробуємо дістати рік
+                if (publishedStr.includes('.')) {
+                  const parts = publishedStr.split('.');
+                  if (parts.length === 3 && parts[2].length === 4) {
+                    pubYear = parts[2];
+                  }
+                } else if (publishedStr.includes('-')) {
+                  const parts = publishedStr.split('-');
+                  if (parts.length >= 1 && parts[0].length === 4) {
+                    pubYear = parts[0];
+                  }
+                } else if (publishedStr.length === 4 && /^\d+$/.test(publishedStr)) {
+                  pubYear = publishedStr;
+                }
+              }
+            }
+
+            documents.push({
+              id: i, // Унікальний числовий ID на основі індексу рядка
+              category: String(row[0] || '').trim() || "Без категорії",
+              title: String(row[1] || '').trim(),
+              status: String(row[2] || '').trim() || "Невідомий",
+              type: String(row[3] || '').trim() || "Невідомий",
+              number: String(row[4] || '').trim() || "",
+              published: publishedStr,
+              year: pubYear,
+              document_url: String(row[8] || '').trim() || "",
+              category_url: String(row[9] || '').trim() || ""
+            });
+          }
+
+          parsedDocuments = documents;
+          fileRows.textContent = parsedDocuments.length;
+          fileDetails.style.display = 'block';
+          btnUpload.disabled = false;
+          log(`Парсинг успішно завершено! Знайдено ${parsedDocuments.length} документів для імпорту.`, 'success');
+        } catch (err) {
+          log(`Помилка парсингу: ${err.message}`, 'error');
+          alert(`Не вдалося розпарсити Excel файл: ${err.message}`);
+        }
+      };
+      reader.onerror = function() {
+        log("Помилка читання файлу!", 'error');
+        alert("Помилка читання файлу на вашому пристрої!");
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    btnUpload.addEventListener('click', async () => {
+      if (parsedDocuments.length === 0) return;
+      
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) {
+        alert("Помилка авторизації. Будь ласка, увійдіть у систему за допомогою кнопки «Увійти» зверху.");
+        return;
+      }
+
+      btnUpload.disabled = true;
+      progressContainer.style.display = 'block';
+      progressBar.style.width = '0%';
+      progressPercent.textContent = '0%';
+      progressStatus.textContent = 'Очищення старої бази даних...';
+      
+      log("Початок транзакції оновлення бази ДЕЦ МОЗ в Supabase...", 'info');
+      
+      try {
+        // Крок 1. Видалення старих записів
+        log("Очищення таблиці dec_documents в Supabase...", 'info');
+        const { error: deleteError } = await sb.from('dec_documents').delete().gt('id', -1);
+        if (deleteError) {
+          throw new Error("Не вдалося видалити старі документи з бази: " + deleteError.message);
+        }
+        log("Таблицю успішно очищено.", 'success');
+        
+        // Крок 2. Пакетне завантаження (batches of 100)
+        const chunkSize = 100;
+        const total = parsedDocuments.length;
+        
+        for (let i = 0; i < total; i += chunkSize) {
+          const chunk = parsedDocuments.slice(i, i + chunkSize);
+          const endIdx = Math.min(i + chunkSize, total);
+          progressStatus.textContent = `Завантаження документів ${i + 1} - ${endIdx} з ${total}...`;
+          log(`Надсилання пакету документів ${i + 1} - ${endIdx} до Supabase...`, 'info');
+          
+          const { error: insertError } = await sb.from('dec_documents').insert(chunk);
+          if (insertError) {
+            throw new Error(`Помилка під час завантаження пакета (${i + 1}-${endIdx}): ` + insertError.message);
+          }
+          
+          const percent = Math.round(((i + chunk.length) / total) * 100);
+          progressBar.style.width = `${percent}%`;
+          progressPercent.textContent = `${percent}%`;
+        }
+        
+        progressStatus.textContent = 'Оновлення бази успішно завершено!';
+        progressBar.style.background = 'var(--teal)';
+        log(`Успішно завантажено всі ${total} документів до бази даних Supabase!`, 'success');
+        alert(`Базу даних ДЕЦ МОЗ успішно оновлено! Додано документів: ${total}.`);
+      } catch (err) {
+        log(`Помилка оновлення бази даних: ${err.message}`, 'error');
+        progressStatus.textContent = 'Помилка під час оновлення';
+        progressBar.style.background = '#f87171';
+        alert(`Виникла помилка під час оновлення: ${err.message}`);
+      } finally {
+        btnUpload.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

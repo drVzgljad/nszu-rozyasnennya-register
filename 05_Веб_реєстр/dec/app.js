@@ -191,6 +191,9 @@ function selectDocument(id) {
   }
 }
 
+let packageLinks = {};
+let packagesList = [];
+
 function renderDetail(doc) {
   const detail = el("detail");
   detail.classList.remove("empty");
@@ -207,6 +210,29 @@ function renderDetail(doc) {
   const categoryAction = doc.category_url 
     ? `<a class="action" href="${escapeHtml(doc.category_url)}" target="_blank" rel="noopener">Сторінка категорії ДЕЦ</a>` 
     : "";
+
+  // Find linked packages
+  const linkedPackages = [];
+  for (const pkgNum in packageLinks) {
+    if (packageLinks[pkgNum].includes(doc.category)) {
+      const pkg = packagesList.find(p => p.number === pkgNum);
+      if (pkg) {
+        linkedPackages.push(pkg);
+      }
+    }
+  }
+  
+  let packagesHtml = "";
+  if (linkedPackages.length > 0) {
+    packagesHtml = linkedPackages.map(pkg => 
+      `<a class="law-related-link" href="../pakety/index.html?package=${pkg.number}" target="_blank" style="margin-bottom: 7px; display: block; padding: 10px 11px; border: 1px solid #d5e5f3; border-radius: 10px; color: var(--ink); background: #f5faff; text-decoration: none; font-size: 12px; line-height: 1.4;">
+        <strong>Пакет ${pkg.number}: ${escapeHtml(pkg.title)}</strong>
+        <span style="font-size: 11px; color: var(--muted); margin-top: 4px; display: block;">Переглянути вимоги закупівлі</span>
+      </a>`
+    ).join("");
+  } else {
+    packagesHtml = "<p style='font-size: 13px; color: var(--muted);'>Пов'язаних пакетів ПМГ не знайдено.</p>";
+  }
 
   detail.innerHTML = `
     <div class="detail-header">
@@ -228,12 +254,69 @@ function renderDetail(doc) {
     <div class="excerpt">${escapeHtml(doc.title)}</div>
     <div class="section-title">Категорія ДЕЦ</div>
     <div class="excerpt">${escapeHtml(doc.category)}</div>
+    <div class="section-title">Пов'язані пакети ПМГ 2026</div>
+    <div class="related">${packagesHtml}</div>
   `;
 }
 
 async function init() {
-  const response = await fetch("../data/dec_documents.json");
-  state.data = await response.json();
+  // 1. Try to load package mapping and package list
+  try {
+    const [linksRes, pkgsRes] = await Promise.all([
+      fetch("data/package_dec_links.json").catch(() => null),
+      fetch("../pakety/data/packages_2026.json").catch(() => null)
+    ]);
+    if (linksRes) packageLinks = await linksRes.json();
+    if (pkgsRes) packagesList = (await pkgsRes.json()).packages || [];
+  } catch (e) {
+    console.warn("Failed to load package data or links:", e);
+  }
+
+  // 2. Try to load from Supabase with local fallback
+  let loadedFromSupabase = false;
+  const sortedList = (set, desc = false) => [...set].sort((a,b) => desc ? b.localeCompare(a) : a.localeCompare(b, "uk"));
+
+  try {
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
+    const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+    
+    if (sb) {
+      const { data: dbData, error } = await sb.from('dec_documents').select('*');
+      if (!error && dbData && dbData.length > 0) {
+        const documents = dbData.map(doc => ({
+          ...doc,
+          search_text: `${doc.title} ${doc.category} ${doc.status} ${doc.type} ${doc.number} ${doc.published}`.toLowerCase()
+        }));
+        const categories = new Set(documents.map(d => d.category));
+        const types = new Set(documents.map(d => d.type));
+        const statuses = new Set(documents.map(d => d.status));
+        const years = new Set(documents.map(d => d.year).filter(Boolean));
+
+        state.data = {
+          generated: "Supabase Realtime",
+          total_documents: documents.length,
+          categories: sortedList(categories),
+          types: sortedList(types),
+          statuses: sortedList(statuses),
+          years: sortedList(years, true),
+          documents: documents
+        };
+        loadedFromSupabase = true;
+        console.log("Loaded DEC documents from Supabase database!");
+      }
+    }
+  } catch (dbErr) {
+    console.warn("Supabase fetch skipped or failed, falling back to local JSON:", dbErr);
+  }
+
+  if (!loadedFromSupabase) {
+    const response = await fetch("../data/dec_documents.json");
+    state.data = await response.json();
+    console.log("Loaded DEC documents from local JSON file.");
+  }
+
   renderStats();
   
   ["search", "category", "type", "status", "year"].forEach((id) => {

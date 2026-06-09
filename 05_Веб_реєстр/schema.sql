@@ -642,6 +642,41 @@ CREATE POLICY "Full access users can delete chat reactions" ON public.chat_react
 ALTER TABLE public.assigned_tasks ADD COLUMN IF NOT EXISTS is_ongoing BOOLEAN DEFAULT false;
 
 
+-- =========================================================================
+-- МІГРАЦІЯ: ТАБЛИЦЯ ДОКУМЕНТІВ ДЕЦ МОЗ УКРАЇНИ
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.dec_documents (
+  id BIGINT PRIMARY KEY,
+  category TEXT NOT NULL,
+  title TEXT NOT NULL,
+  status TEXT,
+  type TEXT,
+  number TEXT,
+  published TEXT,
+  year TEXT,
+  document_url TEXT,
+  category_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Увімкнення RLS
+ALTER TABLE public.dec_documents ENABLE ROW LEVEL SECURITY;
+
+-- Дозвіл на читання для всіх (авторизованих та анонімних)
+CREATE POLICY "Allow read of dec_documents for all" ON public.dec_documents
+  FOR SELECT USING (true);
+
+-- Дозвіл на повне керування для адміністраторів та керівництва
+CREATE POLICY "Admin and managers can manage dec_documents" ON public.dec_documents
+  FOR ALL TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role IN ('admin', 'director', 'deputy_director', 'manager')
+    )
+  );
+
+
 
 
 
