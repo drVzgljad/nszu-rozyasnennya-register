@@ -1955,3 +1955,14 @@
   background: rgba(239, 68, 68, 0.25);
   border-color: #f87171;
 }
+
+/* Reset section-switch styling when used as top-auth slot */
+.top-auth.section-switch {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: none !important;
+  box-shadow: none !important;
+  gap: 8px !important;
+}
+
