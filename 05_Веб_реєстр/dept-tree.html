@@ -72,6 +72,10 @@
     </section>
 
     <section class="org-map" aria-label="Органіграма департаменту">
+      <aside class="support-rail" aria-label="Системна підтримка">
+        <div class="support-label">Системна підтримка</div>
+        <div id="support-row"></div>
+      </aside>
       <div class="leadership-row" id="leadership-row"></div>
       <div class="tree-connector" aria-hidden="true"></div>
       <div class="deputy-row" id="deputy-row"></div>
@@ -241,7 +245,10 @@
       const row = $("#leadership-row");
       row.innerHTML = "";
       row.appendChild(createPersonCard(ORG.director, "lead-card"));
-      row.appendChild(createPersonCard(ORG.administrator, "support-card"));
+
+      const supportRow = $("#support-row");
+      supportRow.innerHTML = "";
+      supportRow.appendChild(createPersonCard(ORG.administrator, "support-card"));
 
       const deputyRow = $("#deputy-row");
       deputyRow.innerHTML = "";
@@ -342,7 +349,7 @@
         });
       });
 
-      document.querySelectorAll("#leadership-row .person-card, #deputy-row .person-card").forEach((person) => {
+      document.querySelectorAll("#leadership-row .person-card, #deputy-row .person-card, #support-row .person-card").forEach((person) => {
         person.classList.toggle("is-match", Boolean(query && person.dataset.search.includes(query)));
       });
 
