@@ -531,6 +531,251 @@
   border: 0;
 }
 
+:root.dark-theme .dept-page,
+.dark-theme .dept-page {
+  color: #e5edf7;
+}
+
+:root.dark-theme .source-panel,
+.dark-theme .source-panel,
+:root.dark-theme .tree-toolbar,
+.dark-theme .tree-toolbar {
+  border-color: rgba(148, 163, 184, 0.18);
+  background: rgba(30, 41, 59, 0.9);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.26);
+}
+
+:root.dark-theme .source-kicker,
+.dark-theme .source-kicker {
+  color: #38bdf8;
+}
+
+:root.dark-theme .source-panel strong,
+.dark-theme .source-panel strong {
+  color: #f8fafc;
+}
+
+:root.dark-theme .source-panel a,
+.dark-theme .source-panel a,
+:root.dark-theme .tree-filter-btn.active,
+.dark-theme .tree-filter-btn.active,
+:root.dark-theme .tree-filter-btn:hover,
+.dark-theme .tree-filter-btn:hover {
+  background: #0ea5e9;
+  border-color: #38bdf8;
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(14, 165, 233, 0.22);
+}
+
+:root.dark-theme .tree-search-wrapper svg,
+.dark-theme .tree-search-wrapper svg {
+  color: #94a3b8;
+}
+
+:root.dark-theme .tree-search-wrapper input,
+.dark-theme .tree-search-wrapper input {
+  border-color: rgba(148, 163, 184, 0.42);
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+:root.dark-theme .tree-search-wrapper input::placeholder,
+.dark-theme .tree-search-wrapper input::placeholder {
+  color: #94a3b8;
+}
+
+:root.dark-theme .tree-search-wrapper input:focus,
+.dark-theme .tree-search-wrapper input:focus {
+  border-color: #38bdf8;
+  background: #111c2f;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
+}
+
+:root.dark-theme .tree-filter-btn,
+.dark-theme .tree-filter-btn {
+  border-color: rgba(148, 163, 184, 0.26);
+  background: #f8fafc;
+  color: #475569;
+}
+
+:root.dark-theme .org-map,
+.dark-theme .org-map {
+  border-color: rgba(148, 163, 184, 0.16);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(17, 24, 39, 0.98)),
+    radial-gradient(circle at 15% 8%, rgba(56, 189, 248, 0.12), transparent 32%),
+    radial-gradient(circle at 86% 2%, rgba(16, 185, 129, 0.1), transparent 30%);
+  box-shadow: 0 26px 70px rgba(0, 0, 0, 0.36);
+}
+
+:root.dark-theme .tree-connector,
+.dark-theme .tree-connector {
+  background: linear-gradient(#38bdf8, rgba(56, 189, 248, 0.18));
+}
+
+:root.dark-theme .departments-connector::after,
+.dark-theme .departments-connector::after {
+  background: rgba(125, 211, 252, 0.22);
+}
+
+:root.dark-theme .department-card,
+.dark-theme .department-card {
+  --dept-soft: rgba(30, 41, 59, 0.92);
+  --dept-line: rgba(148, 163, 184, 0.22);
+  background: rgba(21, 31, 48, 0.94);
+  border-color: var(--dept-line);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+}
+
+:root.dark-theme .department-index,
+.dark-theme .department-index {
+  background: rgba(15, 23, 42, 0.82);
+  color: #f8fafc;
+  border: 1px solid var(--dept-line);
+}
+
+:root.dark-theme .department-head h2,
+.dark-theme .department-head h2,
+:root.dark-theme .person-name,
+.dark-theme .person-name,
+:root.dark-theme .person-dialog h2,
+.dark-theme .person-dialog h2,
+:root.dark-theme .person-dialog dd,
+.dark-theme .person-dialog dd {
+  color: #f8fafc;
+}
+
+:root.dark-theme .department-head p,
+.dark-theme .department-head p,
+:root.dark-theme .person-role,
+.dark-theme .person-role,
+:root.dark-theme .group-label,
+.dark-theme .group-label,
+:root.dark-theme .person-dialog p,
+.dark-theme .person-dialog p,
+:root.dark-theme .person-dialog dt,
+.dark-theme .person-dialog dt {
+  color: #b8c6d8;
+}
+
+:root.dark-theme .manager-slot,
+.dark-theme .manager-slot {
+  border-bottom-color: rgba(148, 163, 184, 0.24);
+}
+
+:root.dark-theme .person-card,
+.dark-theme .person-card {
+  border-color: rgba(148, 163, 184, 0.24);
+  background: rgba(15, 23, 42, 0.78);
+}
+
+:root.dark-theme .person-card:hover,
+.dark-theme .person-card:hover,
+:root.dark-theme .person-card:focus-visible,
+.dark-theme .person-card:focus-visible {
+  border-color: #38bdf8;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(56, 189, 248, 0.18);
+}
+
+:root.dark-theme .person-card.is-match,
+.dark-theme .person-card.is-match {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.16);
+}
+
+:root.dark-theme .lead-card,
+.dark-theme .lead-card {
+  background: rgba(64, 22, 49, 0.82);
+  border-color: rgba(244, 114, 182, 0.42);
+}
+
+:root.dark-theme .deputy-card,
+.dark-theme .deputy-card {
+  background: rgba(66, 47, 16, 0.82);
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+:root.dark-theme .support-card,
+.dark-theme .support-card {
+  background: rgba(24, 39, 60, 0.86);
+  border-color: rgba(125, 211, 252, 0.28);
+}
+
+:root.dark-theme .manager-card,
+.dark-theme .manager-card {
+  background: rgba(15, 23, 42, 0.66);
+  border-color: var(--dept-line);
+}
+
+:root.dark-theme .vacant-card,
+.dark-theme .vacant-card {
+  background: rgba(15, 23, 42, 0.42);
+  opacity: 1;
+}
+
+:root.dark-theme .person-chip,
+.dark-theme .person-chip {
+  background: rgba(14, 165, 233, 0.14);
+  color: #7dd3fc;
+}
+
+:root.dark-theme .theme-partners,
+.dark-theme .theme-partners {
+  --dept-accent: #8ea0ff;
+  --dept-line: rgba(142, 160, 255, 0.34);
+}
+
+:root.dark-theme .theme-cost,
+.dark-theme .theme-cost {
+  --dept-accent: #34d399;
+  --dept-line: rgba(52, 211, 153, 0.32);
+}
+
+:root.dark-theme .theme-data,
+.dark-theme .theme-data {
+  --dept-accent: #60a5fa;
+  --dept-line: rgba(96, 165, 250, 0.34);
+}
+
+:root.dark-theme .theme-reimbursement,
+.dark-theme .theme-reimbursement {
+  --dept-accent: #fbbf24;
+  --dept-line: rgba(251, 191, 36, 0.34);
+}
+
+:root.dark-theme .theme-clinical,
+.dark-theme .theme-clinical {
+  --dept-accent: #d8b4fe;
+  --dept-line: rgba(216, 180, 254, 0.34);
+}
+
+:root.dark-theme .theme-strategy,
+.dark-theme .theme-strategy {
+  --dept-accent: #2dd4bf;
+  --dept-line: rgba(45, 212, 191, 0.34);
+}
+
+:root.dark-theme .empty-result,
+.dark-theme .empty-result,
+:root.dark-theme .person-dialog,
+.dark-theme .person-dialog {
+  background: #172033;
+  border-color: rgba(148, 163, 184, 0.24);
+  color: #e5edf7;
+}
+
+:root.dark-theme .person-dialog dl div,
+.dark-theme .person-dialog dl div,
+:root.dark-theme .dialog-close,
+.dark-theme .dialog-close {
+  background: #0f172a;
+}
+
+:root.dark-theme .dialog-close,
+.dark-theme .dialog-close {
+  color: #cbd5e1;
+}
+
 @media (max-width: 1180px) {
   .departments-grid {
     grid-template-columns: repeat(2, minmax(260px, 1fr));
