@@ -84,7 +84,10 @@
     <section class="linker-panel packages-panel">
       <div class="panel-header-row">
         <h2>📦 Зв'язки з пакетами ПМГ 2026</h2>
-        <button type="button" id="btnSaveLinks" class="btn btn-primary" style="display: none;">💾 Зберегти зміни</button>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" id="btnReindex" class="btn btn-secondary" style="display: none;" title="Оновити коди та зв'язки з першоджерел (PDF/Word)">🔄 Оновити класифікатори</button>
+          <button type="button" id="btnSaveLinks" class="btn btn-primary" style="display: none;">💾 Зберегти зміни</button>
+        </div>
       </div>
       
       <div id="packagesLoading" class="packages-loading">Оберіть клінічну тему ліворуч для завантаження пакетів.</div>

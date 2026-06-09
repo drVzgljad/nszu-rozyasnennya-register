@@ -164,6 +164,7 @@ function setupEventListeners() {
 
   el("btnUpdateCodes").addEventListener("click", updateCategoryCodes);
   el("btnSaveLinks").addEventListener("click", saveLinksAndCodesToServer);
+  el("btnReindex").addEventListener("click", runReindexingOnServer);
   el("searchClassifierInput").addEventListener("input", handleClassifierSearch);
   el("classifierTypeSelect").addEventListener("change", handleClassifierSearch);
 }
@@ -176,6 +177,7 @@ function selectCategory(categoryName) {
     el("codesEditor").style.display = "none";
     el("packagesList").style.display = "none";
     el("btnSaveLinks").style.display = "none";
+    el("btnReindex").style.display = "none";
     el("packagesLoading").style.display = "block";
     el("packagesLoading").textContent = "Оберіть клінічну тему ліворуч для завантаження пакетів.";
     return;
@@ -186,6 +188,7 @@ function selectCategory(categoryName) {
   el("codesEditor").style.display = "block";
   el("packagesList").style.display = "flex";
   el("btnSaveLinks").style.display = "inline-flex";
+  el("btnReindex").style.display = "inline-flex";
 
   // Load codes
   const codes = state.decDocumentCodes[categoryName] || { icd10: [], achi: [] };
@@ -413,6 +416,41 @@ async function saveLinksAndCodesToServer() {
   } catch (err) {
     console.error("Помилка збереження даних:", err);
     alert("Помилка при збереженні даних на сервері: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+// Trigger full server-side reindexing of PDFs/Word mapping
+async function runReindexingOnServer() {
+  const btn = el("btnReindex");
+  const originalText = btn.textContent;
+  
+  if (!confirm("Ви впевнені, що хочете запустити переіндексування? Це може зайняти до 10-15 секунд, оскільки сервер перечитає PDF-файли класифікаторів та Word-таблицю співставлення.")) {
+    return;
+  }
+  
+  btn.disabled = true;
+  btn.textContent = "🔄 Індексування...";
+  
+  try {
+    const res = await fetch("/api/reindex", { method: "POST" });
+    const payload = await res.json();
+    
+    if (res.ok && payload.status === "success") {
+      showToast("🔄 " + (payload.message || "Успішно переіндексовано!"), 5000);
+      // Reload data to reflect any changes
+      await loadData();
+      if (state.selectedCategory) {
+        selectCategory(state.selectedCategory);
+      }
+    } else {
+      throw new Error(payload.error || "Невідома помилка сервера");
+    }
+  } catch (err) {
+    console.error("Помилка при переіндексуванні:", err);
+    alert("Помилка при переіндексуванні: " + err.message);
   } finally {
     btn.disabled = false;
     btn.textContent = originalText;
