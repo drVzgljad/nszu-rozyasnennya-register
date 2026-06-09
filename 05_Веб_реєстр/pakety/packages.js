@@ -225,14 +225,23 @@ function readerResolution(pkg) {
   }).join("");
 }
 
+function getLinkedCategoriesForPackage(pkgNum) {
+  const pkgLinks = packageState.decLinks[pkgNum] || [];
+  if (Array.isArray(pkgLinks)) {
+    return pkgLinks;
+  }
+  return Object.keys(pkgLinks);
+}
+
 function readerDec(pkg) {
   if (!packageState.decDocuments || !packageState.decDocuments.length) {
     return "<p>Завантажуємо стандарти ДЕЦ...</p>";
   }
-  const linkedCategories = packageState.decLinks[pkg.number] || [];
+  const linkedCategories = getLinkedCategoriesForPackage(pkg.number);
   if (!linkedCategories.length) {
     return "<p>Клінічні стандарти для цього пакета не визначено.</p>";
   }
+  const pkgLinks = packageState.decLinks[pkg.number] || {};
   const relatedDocs = packageState.decDocuments.filter(doc => linkedCategories.includes(doc.category));
   if (!relatedDocs.length) {
     return "<p>У пов'язаних категоріях ДЕЦ немає зареєстрованих документів.</p>";
@@ -243,12 +252,27 @@ function readerDec(pkg) {
     if (statusLower.startsWith("чинн")) {
       statusClass = "law-related-badge active-badge";
     }
+    
+    let stage = "";
+    let note = "";
+    if (!Array.isArray(pkgLinks) && pkgLinks[doc.category]) {
+      stage = pkgLinks[doc.category].stage || "";
+      note = pkgLinks[doc.category].note || "";
+    }
+    
+    const stageInfo = stage ? `<span style="font-size: 11px; margin-left: 6px; padding: 2px 6px; background: rgba(74, 143, 199, 0.12); color: var(--accent-dark, #2f6b9e); border-radius: 4px; font-weight: 700;">${escapeHtml(stage)}</span>` : "";
+    const noteHtml = note ? `<span style="font-size: 12px; color: #0284c7; margin-top: 4px; display: block; font-weight: 600;">💡 Коментар: ${escapeHtml(note)}</span>` : "";
+
     return `<a class="law-related-link" href="../dec/index.html?q=${encodeURIComponent(doc.title)}" target="_blank">
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%;">
-        <strong>${escapeHtml(doc.title)}</strong>
+        <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+          <strong>${escapeHtml(doc.title)}</strong>
+          ${stageInfo}
+        </div>
         <span class="${statusClass}" style="font-size:11px; padding:2px 6px; border-radius:6px; font-weight:700; background:var(--accent-soft); color:var(--accent-dark);">${escapeHtml(doc.status)}</span>
       </div>
       <span style="font-size: 12px; color: var(--muted); margin-top: 4px; display: block;">Категорія: ${escapeHtml(doc.category)} · ${escapeHtml(doc.type)} ${doc.number ? '· ' + escapeHtml(doc.number) : ''}</span>
+      ${noteHtml}
     </a>`;
   }).join("");
 }
