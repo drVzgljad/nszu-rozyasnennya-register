@@ -104,7 +104,13 @@
     </div>
   </footer>
 
-  <script>
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
+    const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
     const ORG = {
       director: {
         name: "Дудник Світлана",
@@ -179,7 +185,10 @@
 
     const state = {
       search: "",
-      department: "all"
+      department: "all",
+      profileIdsByName: new Map(),
+      onlineIds: new Set(),
+      presenceChannel: null
     };
 
     const $ = (selector) => document.querySelector(selector);
@@ -212,8 +221,10 @@
       card.type = "button";
       card.className = `person-card ${className} badge-${badge}`;
       card.dataset.search = `${person.name} ${role} ${department}`.toLowerCase();
+      card.dataset.personName = person.name;
       card.innerHTML = `
         <span class="person-avatar">${escapeHtml(initials(person.name))}</span>
+        <span class="online-lamp" aria-hidden="true"></span>
         <span class="person-name">${escapeHtml(person.name)}</span>
         <span class="person-role">${escapeHtml(role)}</span>
         <span class="person-chip">${escapeHtml(badgeLabel(badge))}</span>
@@ -351,6 +362,69 @@
       });
     }
 
+    function syncOnlineCards() {
+      document.querySelectorAll(".person-card").forEach((card) => {
+        const profileId = state.profileIdsByName.get(card.dataset.personName);
+        const isOnline = Boolean(profileId && state.onlineIds.has(profileId));
+        card.classList.toggle("is-online", isOnline);
+        card.setAttribute("aria-label", `${card.dataset.personName}${isOnline ? " зараз у мережі" : ""}`);
+      });
+    }
+
+    function updateOnlineState(presenceState) {
+      const onlineIds = new Set();
+      Object.values(presenceState || {}).forEach((presences) => {
+        (presences || []).forEach((presence) => {
+          if (presence?.user_id) onlineIds.add(presence.user_id);
+        });
+      });
+      state.onlineIds = onlineIds;
+      syncOnlineCards();
+    }
+
+    async function loadProfileIds() {
+      try {
+        const { data, error } = await sb.from("profiles").select("id, full_name");
+        if (error) throw error;
+        (data || []).forEach((profile) => {
+          if (profile.full_name) {
+            state.profileIdsByName.set(profile.full_name.trim(), profile.id);
+          }
+        });
+        syncOnlineCards();
+      } catch (error) {
+        console.warn("Не вдалося завантажити профілі для онлайн-індикаторів:", error);
+      }
+    }
+
+    async function setupPresence() {
+      await loadProfileIds();
+
+      state.presenceChannel = sb.channel("chat_room", {
+        config: { presence: { key: `dept-tree-${crypto.randomUUID()}` } }
+      });
+
+      state.presenceChannel
+        .on("presence", { event: "sync" }, () => {
+          updateOnlineState(state.presenceChannel.presenceState());
+        })
+        .subscribe(async (status) => {
+          if (status !== "SUBSCRIBED") return;
+          try {
+            const { data: { user } } = await sb.auth.getUser();
+            if (user) {
+              await state.presenceChannel.track({
+                user_id: user.id,
+                user_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email,
+                online_at: new Date().toISOString()
+              });
+            }
+          } catch (error) {
+            console.warn("Не вдалося позначити поточну присутність:", error);
+          }
+        });
+    }
+
     function openPersonDialog(person) {
       const dialog = $("#person-dialog");
       $("#dialog-avatar").textContent = initials(person.name);
@@ -395,6 +469,7 @@
     renderLeadership();
     render();
     setupEvents();
+    setupPresence();
   </script>
 </body>
 </html>

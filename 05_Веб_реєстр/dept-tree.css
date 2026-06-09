@@ -261,6 +261,11 @@
   transition: transform 0.16s, border-color 0.16s, box-shadow 0.16s;
 }
 
+.person-card.is-online {
+  border-color: rgba(34, 197, 94, 0.42);
+  box-shadow: 0 10px 24px rgba(34, 197, 94, 0.11);
+}
+
 .person-card:hover,
 .person-card:focus-visible {
   border-color: var(--accent);
@@ -318,6 +323,37 @@
   font-family: "Manrope", "Segoe UI", Arial, sans-serif;
   font-size: 14px;
   font-weight: 800;
+}
+
+.online-lamp {
+  position: absolute;
+  top: 9px;
+  left: 39px;
+  display: none;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.58), 0 0 14px rgba(34, 197, 94, 0.72);
+  pointer-events: none;
+}
+
+.person-card.is-online .online-lamp {
+  display: block;
+  animation: online-lamp-pulse 1.8s ease-out infinite;
+}
+
+@keyframes online-lamp-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.62), 0 0 12px rgba(34, 197, 94, 0.7);
+  }
+  72% {
+    box-shadow: 0 0 0 9px rgba(34, 197, 94, 0), 0 0 18px rgba(34, 197, 94, 0.52);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0), 0 0 12px rgba(34, 197, 94, 0.7);
+  }
 }
 
 .person-name {
@@ -650,6 +686,19 @@
 .dark-theme .person-card.is-match {
   border-color: #38bdf8;
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.16);
+}
+
+:root.dark-theme .person-card.is-online,
+.dark-theme .person-card.is-online {
+  border-color: rgba(74, 222, 128, 0.5);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(74, 222, 128, 0.18);
+}
+
+:root.dark-theme .online-lamp,
+.dark-theme .online-lamp {
+  border-color: #0f172a;
+  background: #4ade80;
+  box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.58), 0 0 16px rgba(74, 222, 128, 0.78);
 }
 
 :root.dark-theme .lead-card,
