@@ -564,20 +564,13 @@
 
       DEPARTMENTS.forEach(dept => {
         // Find department Manager
-        // Deputy director handles 'strat' directly as head of division
-        let manager = null;
-        if (dept.id === 'strat') {
-          manager = deputy;
-        } else {
-          manager = allProfiles.find(p => p.is_head && (p.Section || p.department) === dept.name);
-        }
+        const manager = allProfiles.find(p => p.is_head && (p.Section || p.department) === dept.name);
 
         // Find experts in this department (exclude manager to avoid duplicate card if they are head)
         const experts = allProfiles.filter(p => 
           (p.Section || p.department) === dept.name && 
           p.id !== (manager ? manager.id : null) && 
-          p.role !== 'deputy_director' && 
-          p.role !== 'director'
+          p.position !== 'Директор'
         );
 
         // Sort experts: heads or seniors first, then alphabetical
@@ -586,19 +579,11 @@
         const li = document.createElement('li');
         
         let managerHtml = '';
-        if (manager && dept.id !== 'strat') {
+        if (manager) {
           managerHtml = renderCardHtml(manager, dept.colorClass);
-        } else if (dept.id === 'strat') {
-          // Strategic department is directly under Deputy Director, we show a special node or let cards branch
-          managerHtml = `<div class="dept-title-node" style="border-color: var(--dept-strat-border); background: var(--dept-strat-bg); color: var(--dept-strat-color); font-weight: 800;">
-            ${dept.displayName}
-          </div>`;
         } else {
           // If no manager is currently set, display empty placeholder
           managerHtml = `
-            <div class="dept-title-node" style="border-color: var(--${dept.colorClass}-border); background: var(--${dept.colorClass}-bg); color: var(--${dept.colorClass}-color); font-weight: 800;">
-              ${dept.displayName}
-            </div>
             <div class="employee-card ${dept.colorClass}" style="border-style: dashed; opacity: 0.7; pointer-events: none;">
               <div class="emp-avatar-container">
                 <div class="emp-avatar" style="background: var(--muted); opacity: 0.5;">?</div>
@@ -618,16 +603,14 @@
           `;
         }
 
-        // Connect manager (or title node) to the vertical experts stack
-        const hasManagerClass = manager && dept.id !== 'strat' ? 'parent-node' : '';
+        // Connect manager (or title node) to the vertical experts stack if there are experts
+        const hasManagerClass = experts.length > 0 ? 'parent-node' : '';
 
         li.innerHTML = `
           <div class="${hasManagerClass}">
-            ${dept.id !== 'strat' ? `
-              <div class="dept-title-node" style="border-color: var(--${dept.colorClass}-border); background: var(--${dept.colorClass}-bg); color: var(--${dept.colorClass}-color); font-weight: 800;">
-                ${dept.displayName}
-              </div>
-            ` : ''}
+            <div class="dept-title-node" style="border-color: var(--${dept.colorClass}-border); background: var(--${dept.colorClass}-bg); color: var(--${dept.colorClass}-color); font-weight: 800;">
+              ${dept.displayName}
+            </div>
             ${managerHtml}
           </div>
           ${expertsListHtml}
