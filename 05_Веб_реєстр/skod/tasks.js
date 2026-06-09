@@ -289,7 +289,7 @@ function renderMyTasks() {
   const emptyEl = document.getElementById('my-tasks-empty');
   if (!container) return;
 
-  const myTasks = allTasks.filter(t => t.responsible_id === currentUser.id && t.status !== 'completed');
+  const myTasks = allTasks.filter(t => t.responsible_id === currentUser.id && t.status !== 'completed' && t.progress < 100);
 
   container.innerHTML = '';
   if (myTasks.length === 0) {

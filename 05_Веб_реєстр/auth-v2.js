@@ -681,7 +681,7 @@ async function renderDashboard(dashboardEl, prefix) {
       .eq('responsible_id', user.id)
       .neq('status', 'completed')
       .order('deadline', { ascending: true });
-    userTasks = data || [];
+    userTasks = (data || []).filter(t => t.status !== 'completed' && t.progress < 100);
   } catch(e) {}
 
   const showManagerAction = ['admin', 'director', 'deputy_director', 'manager'].includes(role);
