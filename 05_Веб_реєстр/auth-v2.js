@@ -52,7 +52,7 @@ async function fetchRole() {
 function applyAccess() {
   const pathParts = window.location.pathname.split('/');
   const isInSubdir = pathParts.some(part => [
-    'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod'
+    'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec'
   ].includes(part.toLowerCase()));
   const prefix = isInSubdir ? '../' : './';
   const currentPath = window.location.pathname.toLowerCase();
@@ -216,7 +216,7 @@ function applyAccess() {
     const segments = normalized.split('/');
     
     if (normalized === 'index.html') {
-      const isSub = ['pakety', 'postanova', 'algorithms', 'zoz-questions', 'pmg-proposals', 'news', 'chat', 'rozjasnennya.html', 'zoz-dogovr', 'skod'].some(s => currentPath.includes(s));
+      const isSub = ['pakety', 'postanova', 'algorithms', 'zoz-questions', 'pmg-proposals', 'news', 'chat', 'rozjasnennya.html', 'zoz-dogovr', 'skod', 'dec'].some(s => currentPath.includes(s));
       return !isSub && (currentPath.endsWith('/') || currentPath.endsWith('index.html'));
     }
     
@@ -246,6 +246,7 @@ function applyAccess() {
       { text: 'Постанова 1808', path: 'postanova/index.html' },
       { text: 'Алгоритми та правила', path: 'algorithms/index.html' },
       { text: 'Укладені договори', path: 'zoz-dogovr/index.html' },
+      { text: 'ДЕЦ МОЗ', path: 'dec/index.html' },
       { text: 'Робочий чат', path: 'chat/index.html', isChat: true }
     ];
 
@@ -941,7 +942,7 @@ function setupNewsRealtime() {
         if (alertBanner) {
           const pathParts = window.location.pathname.split('/');
           const isInSubdir = pathParts.some(part => [
-            'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod'
+            'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec'
           ].includes(part.toLowerCase()));
           const prefix = isInSubdir ? '../' : './';
           renderAlertBanner(alertBanner, prefix);
@@ -964,7 +965,7 @@ function triggerNewsAlertNotification(newsItem) {
     const title = newsItem.importance === 'urgent' ? '🚨 Термінове оголошення!' : '⚠️ Важливе оголошення!';
     const pathParts = window.location.pathname.split('/');
     const isInSubdir = pathParts.some(part => [
-      'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod'
+      'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec'
     ].includes(part.toLowerCase()));
     const prefix = isInSubdir ? '../' : './';
 

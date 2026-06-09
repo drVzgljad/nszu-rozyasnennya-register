@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>НавігаторПМГ26 | Стандарти та настанови ДЕЦ МОЗ</title>
+  <link rel="stylesheet" href="../styles.css?v=20260531e">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260606">
+  <script type="module" src="../auth-v2.js?v=20260606"></script>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-copy">
+      <div class="overline">Державний експертний центр МОЗ України</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Стандарти та настанови ДЕЦ МОЗ</h1>
+      <p>Шукайте стандарти медичної допомоги, клінічні настанови, уніфіковані протоколи та накази ДЕЦ МОЗ України. Фільтруйте документи за видом, категорією та статусом чинності.</p>
+    </div>
+    <div class="stats" id="stats" aria-label="Статистика реєстру"></div>
+  </header>
+
+  <main class="layout">
+    <section class="browser" aria-label="Пошук документів">
+      <div class="search-panel">
+        <label class="search">
+          <span>Пошук по стандартах та настановах</span>
+          <input id="search" type="search" placeholder="Наприклад: гепатит, спондилоартрит, карцинома, ГС 2025..." autocomplete="off">
+        </label>
+        <div class="filters">
+          <label>Категорія / Напрям
+            <select id="category"><option value="">Усі категорії</option></select>
+          </label>
+          <label>Вид документа
+            <select id="type"><option value="">Усі види</option></select>
+          </label>
+          <label>Статус чинності
+            <select id="status"><option value="">Усі статуси</option></select>
+          </label>
+          <label>Рік публікації
+            <select id="year"><option value="">Усі роки</option></select>
+          </label>
+        </div>
+        <div class="results-summary">
+          <span id="resultCount">Оберіть фільтр або введіть запит</span>
+          <button id="reset" type="button">Очистити фільтри</button>
+        </div>
+      </div>
+      <div class="cards" id="cards"></div>
+    </section>
+
+    <aside class="detail empty" id="detail" aria-live="polite">
+      <div class="empty-state">
+        <div class="empty-icon">i</div>
+        <h2>Оберіть документ</h2>
+        <p>Тут з'явиться детальна інформація, посилання на завантаження PDF та сторінку категорії ДЕЦ МОЗ.</p>
+      </div>
+    </aside>
+  </main>
+
+  <template id="cardTemplate">
+    <button class="document-card" type="button">
+      <span class="card-tags"></span>
+      <strong></strong>
+      <span class="card-subtitle"></span>
+    </button>
+  </template>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Розділ реєстру ДЕЦ МОЗ інтегровано силами Департаменту для зручності експертів при роботі зі стандартами медичної допомоги.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js" defer></script>
+</body>
+</html>

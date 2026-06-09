@@ -148,6 +148,16 @@ def main():
         "ЛУГАНСЬКА": [48.9482, 38.4965]
     }
 
+    # Count contracts per settlement to apply jitter only when needed
+    settlement_counts = defaultdict(int)
+    for (edrpou, slug), rows in grouped_rows.items():
+        primary = rows[0]
+        settlement = clean_str(primary.get("Населений пункт"))
+        if not settlement:
+            settlement = clean_str(primary.get("Громада надавача"))
+        oblast = clean_str(primary.get("Область реєстрації"))
+        settlement_counts[(settlement, oblast)] += 1
+
     contracts = []
     
     for (edrpou, slug), rows in grouped_rows.items():
@@ -231,19 +241,32 @@ def main():
         # Determine coordinate
         clean_oblast = oblast.upper().strip()
         coords = coords_cache.get((settlement, oblast))
+        is_fallback = False
         if not coords:
             coords = oblast_centers.get(clean_oblast, [50.4501, 30.5234])
+            is_fallback = True
         
-        # Add slight random noise to prevent coordinates overlap in oblast centers
-        # This spreads the markers in a nice cluster around the oblast center
+        # Add slight random noise to prevent coordinates overlap
         # Seed with EDRPOU so spread is deterministic and doesn't change on rebuilds
         try:
             random.seed(int(edrpou))
         except:
             random.seed(len(provider_name))
         
-        lat = coords[0] + random.uniform(-0.15, 0.15)
-        lon = coords[1] + random.uniform(-0.15, 0.15)
+        if is_fallback:
+            # Fallback regional center: spread markers over a wider urban/regional area
+            lat = coords[0] + random.uniform(-0.06, 0.06)
+            lon = coords[1] + random.uniform(-0.06, 0.06)
+        else:
+            # Precise geocoded settlement: only apply tiny jitter if there are multiple providers in this settlement
+            num_providers = settlement_counts.get((settlement, oblast), 1)
+            if num_providers > 1:
+                # 0.0008 degrees is approx. 60-80 meters, perfect for separation without misplacing the town
+                lat = coords[0] + random.uniform(-0.0008, 0.0008)
+                lon = coords[1] + random.uniform(-0.0008, 0.0008)
+            else:
+                lat = coords[0]
+                lon = coords[1]
 
         contracts.append({
             "id": len(contracts) + 1,
