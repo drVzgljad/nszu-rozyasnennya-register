@@ -332,21 +332,6 @@ function renderCatalog() {
       card.classList.add("active");
     }
     
-    card.style.cssText = `
-      padding: 18px;
-      border: 1px solid var(--line);
-      border-radius: 14px;
-      background: var(--bg, #ffffff);
-      color: var(--ink);
-      cursor: pointer;
-      text-align: left;
-      transition: all 0.2s ease-in-out;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.01), 0 1px 3px rgba(0,0,0,0.02);
-    `;
-    
     card.innerHTML = `
       <div style="font-size: 28px; line-height: 1;">${dir.emoji}</div>
       <div style="font-weight: 800; font-size: 13.5px; line-height: 1.3; margin-top: 4px; flex-grow: 1;">${escapeHtml(dir.title)}</div>
@@ -383,25 +368,11 @@ function showPathologies(dir) {
     const pBtn = document.createElement("button");
     pBtn.type = "button";
     pBtn.className = "pathology-btn";
-    pBtn.style.cssText = `
-      padding: 10px 12px;
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      background: var(--bg, #ffffff);
-      color: var(--ink);
-      cursor: pointer;
-      text-align: left;
-      font-size: 12.5px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      transition: all 0.2s;
-    `;
     
     let pkgBadges = "";
     if (path.packages && path.packages.length > 0) {
       pkgBadges = path.packages.map(p => 
-        `<span style="font-size: 9px; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 2px 5px; border-radius: 6px; border: 1px solid #bae6fd;" title="${escapeHtml(p.stage)}: ${escapeHtml(p.note)}">П${p.number}</span>`
+        `<span class="dec-pkg-badge" title="${escapeHtml(p.stage)}: ${escapeHtml(p.note)}">П${p.number}</span>`
       ).join(" ");
     }
     
@@ -412,7 +383,7 @@ function showPathologies(dir) {
           ${pkgBadges}
         </div>
       </div>
-      <span style="font-size: 11px; background: var(--bg-soft, #f1f5f9); color: var(--muted); padding: 3px 8px; border-radius: 20px; font-weight: 600; flex-shrink: 0;">📄 ${docCount}</span>
+      <span class="dec-doc-count">📄 ${docCount}</span>
     `;
     
     pBtn.addEventListener("click", () => {
