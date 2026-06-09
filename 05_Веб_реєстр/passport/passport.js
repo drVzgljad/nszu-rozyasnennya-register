@@ -71,6 +71,15 @@ function formatDate(val) {
   return val;
 }
 
+// Helper to normalize dec links for a package (supports both legacy array and new object format)
+function getLinkedCategoriesForPackage(pkgNum) {
+  const pkgLinks = passportState.decLinks[pkgNum] || [];
+  if (Array.isArray(pkgLinks)) {
+    return pkgLinks;
+  }
+  return Object.keys(pkgLinks);
+}
+
 // ── Data Initialization ──────────────────────────────────────
 async function init() {
   try {
@@ -262,7 +271,7 @@ function renderHeaderAndMetrics() {
   el("indExplanationsCount").textContent = linkedDocs.length;
 
   // Clinical Protocols Count
-  const linkedCategories = passportState.decLinks[pkg.number] || [];
+  const linkedCategories = getLinkedCategoriesForPackage(pkg.number);
   const decDocs = passportState.decDocuments.filter(doc => linkedCategories.includes(doc.category));
   el("indDecCount").textContent = decDocs.length;
 }
@@ -788,12 +797,35 @@ function renderExplanations() {
 }
 
 // ── Tab 5: Clinical Protocols (DEC) ───────────────────────────
+const STAGE_EMOJIS = {
+  "Діагностика / Скринінг": "🔍",
+  "Хірургічне лікування": "🏥",
+  "Спеціалізоване лікування": "💊",
+  "Реабілітація": "⚡",
+  "Паліативна допомога": "🕊️",
+  "Профілактика / Первинна допомога": "🛡️",
+  "Інше": "📂",
+  "Не визначено": "📋"
+};
+
+const STAGE_ORDER = [
+  "Діагностика / Скринінг",
+  "Хірургічне лікування",
+  "Спеціалізоване лікування",
+  "Реабілітація",
+  "Паліативна допомога",
+  "Профілактика / Первинна допомога",
+  "Інше",
+  "Не визначено"
+];
+
 function renderDecDocuments() {
   const pkg = passportState.selectedPackage;
   const container = el("decContainer");
   container.innerHTML = "";
 
-  const linkedCategories = passportState.decLinks[pkg.number] || [];
+  const pkgLinks = passportState.decLinks[pkg.number] || {};
+  const linkedCategories = getLinkedCategoriesForPackage(pkg.number);
   const decDocs = passportState.decDocuments.filter(doc => linkedCategories.includes(doc.category));
 
   if (decDocs.length === 0) {
@@ -801,30 +833,93 @@ function renderDecDocuments() {
     return;
   }
 
+  // Group by stage
+  const stagesMap = {};
+  STAGE_ORDER.forEach(st => {
+    stagesMap[st] = [];
+  });
+
   decDocs.forEach(doc => {
-    const card = document.createElement("div");
-    card.className = "dec-card";
+    let stage = "Не визначено";
+    let note = "";
+    
+    if (!Array.isArray(pkgLinks) && pkgLinks[doc.category]) {
+      stage = pkgLinks[doc.category].stage || "Не визначено";
+      note = pkgLinks[doc.category].note || "";
+    }
+    
+    if (!stagesMap[stage]) {
+      stagesMap[stage] = [];
+    }
+    stagesMap[stage].push({ doc, note });
+  });
 
-    const statusClass = doc.status.toLowerCase().startsWith("чинн") ? "active" : "inactive";
+  // Render by stages
+  STAGE_ORDER.forEach(stage => {
+    const items = stagesMap[stage];
+    if (!items || items.length === 0) return;
 
-    card.innerHTML = `
-      <div class="dec-card-header">
-        <span class="dec-type-pill">${escapeHtml(doc.type)}</span>
-        <span class="dec-status-pill ${statusClass}">${escapeHtml(doc.status)}</span>
-      </div>
-      <h3>${escapeHtml(doc.title)}</h3>
-      <div class="dec-meta-row">
-        <div class="dec-meta-item">Тематична категорія: <strong>${escapeHtml(doc.category)}</strong></div>
-        ${doc.number ? `<div class="dec-meta-item">Реєстраційний №: <strong>${escapeHtml(doc.number)}</strong></div>` : ""}
-        ${doc.published ? `<div class="dec-meta-item">Опубліковано: <strong>${escapeHtml(doc.published)}</strong></div>` : ""}
-      </div>
-      <div class="dec-actions">
-        ${doc.document_url ? `<a class="exp-link primary" href="${escapeHtml(doc.document_url)}" target="_blank" rel="noopener">📄 Відкрити PDF наказ</a>` : ""}
-        ${doc.category_url ? `<a class="exp-link" href="${escapeHtml(doc.category_url)}" target="_blank" rel="noopener">🌐 Категорія ДЕЦ МОЗ</a>` : ""}
-      </div>
-    `;
+    const stageSection = document.createElement("div");
+    stageSection.className = "dec-stage-section";
+    stageSection.style.marginTop = "28px";
+    stageSection.style.marginBottom = "20px";
 
-    container.appendChild(card);
+    const emoji = STAGE_EMOJIS[stage] || "📋";
+    
+    const heading = document.createElement("h3");
+    heading.className = "dec-stage-heading";
+    heading.style.fontSize = "16px";
+    heading.style.fontWeight = "800";
+    heading.style.borderBottom = "2px solid var(--line, #dde6ee)";
+    heading.style.paddingBottom = "8px";
+    heading.style.color = "var(--accent-dark, #2f6b9e)";
+    heading.style.marginBottom = "16px";
+    heading.textContent = `${emoji} ${stage}`;
+    stageSection.appendChild(heading);
+
+    const cardsContainer = document.createElement("div");
+    cardsContainer.className = "dec-container";
+    cardsContainer.style.display = "flex";
+    cardsContainer.style.flexDirection = "column";
+    cardsContainer.style.gap = "14px";
+
+    items.forEach(({ doc, note }) => {
+      const card = document.createElement("div");
+      card.className = "dec-card";
+
+      const statusClass = doc.status.toLowerCase().startsWith("чинн") ? "active" : "inactive";
+
+      let noteHtml = "";
+      if (note) {
+        noteHtml = `
+          <div class="dec-expert-note" style="margin-top: 14px; padding: 10px 14px; background: var(--accent-soft, #eef6fc); border-left: 4px solid var(--accent, #4a8fc7); border-radius: 8px; font-size: 13px; color: var(--ink, #1f3347);">
+            <strong>💡 Коментар експерта:</strong> ${escapeHtml(note)}
+          </div>
+        `;
+      }
+
+      card.innerHTML = `
+        <div class="dec-card-header">
+          <span class="dec-type-pill">${escapeHtml(doc.type)}</span>
+          <span class="dec-status-pill ${statusClass}">${escapeHtml(doc.status)}</span>
+        </div>
+        <h3>${escapeHtml(doc.title)}</h3>
+        <div class="dec-meta-row">
+          <div class="dec-meta-item">Тематична категорія: <strong>${escapeHtml(doc.category)}</strong></div>
+          ${doc.number ? `<div class="dec-meta-item">Реєстраційний №: <strong>${escapeHtml(doc.number)}</strong></div>` : ""}
+          ${doc.published ? `<div class="dec-meta-item">Опубліковано: <strong>${escapeHtml(doc.published)}</strong></div>` : ""}
+        </div>
+        <div class="dec-actions">
+          ${doc.document_url ? `<a class="exp-link primary" href="${escapeHtml(doc.document_url)}" target="_blank" rel="noopener">📄 Відкрити PDF наказ</a>` : ""}
+          ${doc.category_url ? `<a class="exp-link" href="${escapeHtml(doc.category_url)}" target="_blank" rel="noopener">🌐 Категорія ДЕЦ МОЗ</a>` : ""}
+        </div>
+        ${noteHtml}
+      `;
+      cardsContainer.appendChild(card);
+    });
+
+    stageSection.appendChild(cardsContainer);
+    container.appendChild(stageSection);
   });
 }
 
@@ -1115,14 +1210,24 @@ function exportPassportToExcel() {
 
   // 6. Clinical Protocols Sheet (Протоколи ДЕЦ)
   const decData = [
-    ["Тематична категорія ДЕЦ", "Вид стандарту", "Назва протоколу / документа", "Статус чинності", "Реєстраційний №", "Дата публікації", "Рік", "Посилання PDF"]
+    ["Тематична категорія ДЕЦ", "Етап медичної допомоги", "Коментар експерта", "Вид стандарту", "Назва протоколу / документа", "Статус чинності", "Реєстраційний №", "Дата публікації", "Рік", "Посилання PDF"]
   ];
-  const linkedCategories = passportState.decLinks[pkg.number] || [];
+  const pkgLinks = passportState.decLinks[pkg.number] || {};
+  const linkedCategories = getLinkedCategoriesForPackage(pkg.number);
   const decDocs = passportState.decDocuments.filter(doc => linkedCategories.includes(doc.category));
   
   decDocs.forEach(doc => {
+    let stage = "Не визначено";
+    let note = "";
+    if (!Array.isArray(pkgLinks) && pkgLinks[doc.category]) {
+      stage = pkgLinks[doc.category].stage || "Не визначено";
+      note = pkgLinks[doc.category].note || "";
+    }
+    
     decData.push([
       doc.category,
+      stage,
+      note,
       doc.type,
       doc.title,
       doc.status,
@@ -1133,7 +1238,7 @@ function exportPassportToExcel() {
     ]);
   });
   const wsDec = XLSX.utils.aoa_to_sheet(decData);
-  wsDec['!cols'] = [{ wch: 30 }, { wch: 18 }, { wch: 55 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 10 }, { wch: 45 }];
+  wsDec['!cols'] = [{ wch: 30 }, { wch: 25 }, { wch: 35 }, { wch: 18 }, { wch: 55 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 10 }, { wch: 45 }];
   XLSX.utils.book_append_sheet(wb, wsDec, "Стандарти ДЕЦ МОЗ");
 
   // Write file

@@ -254,6 +254,7 @@ function applyAccess() {
 
     const dropdownItems = [
       { text: 'Машина пошуку', path: 'pakety/report.html', role: 'expert' },
+      { text: 'Конструктор зв\'язків', path: 'dec/linker.html', role: 'expert' },
       { text: 'Питання ЗОЗ', path: 'zoz-questions/index.html', role: 'expert' },
       { text: 'Пропозиції ПМГ', path: 'pmg-proposals/index.html', role: 'expert' },
       { text: 'СКО-Д (Внесення)', path: 'skod/index.html', role: 'expert' },
