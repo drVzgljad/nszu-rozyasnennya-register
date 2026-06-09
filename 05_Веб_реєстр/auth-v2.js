@@ -216,7 +216,7 @@ function applyAccess() {
     const segments = normalized.split('/');
     
     if (normalized === 'index.html') {
-      const isSub = ['pakety', 'postanova', 'algorithms', 'zoz-questions', 'pmg-proposals', 'news', 'chat', 'rozjasnennya.html', 'zoz-dogovr', 'skod', 'dec'].some(s => currentPath.includes(s));
+      const isSub = ['pakety', 'postanova', 'algorithms', 'zoz-questions', 'pmg-proposals', 'news', 'chat', 'rozjasnennya.html', 'zoz-dogovr', 'skod', 'dec', 'dept-tree.html'].some(s => currentPath.includes(s));
       return !isSub && (currentPath.endsWith('/') || currentPath.endsWith('index.html'));
     }
     
@@ -247,6 +247,7 @@ function applyAccess() {
       { text: 'Алгоритми та правила', path: 'algorithms/index.html' },
       { text: 'Укладені договори', path: 'zoz-dogovr/index.html' },
       { text: 'ДЕЦ МОЗ', path: 'dec/index.html' },
+      { text: 'Структура', path: 'dept-tree.html' },
       { text: 'Робочий чат', path: 'chat/index.html', isChat: true }
     ];
 
