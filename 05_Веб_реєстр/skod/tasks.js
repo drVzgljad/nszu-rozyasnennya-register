@@ -46,6 +46,7 @@ async function init() {
   // Attach filter listeners
   document.getElementById('filter-dept')?.addEventListener('change', renderRegistry);
   document.getElementById('filter-status')?.addEventListener('change', renderRegistry);
+  document.getElementById('filter-search')?.addEventListener('input', renderRegistry);
 
   // Auth State Change listener
   sb.auth.onAuthStateChange(async (event, session) => {
@@ -394,11 +395,15 @@ function renderRegistry() {
 
   const deptFilter = document.getElementById('filter-dept')?.value || 'all';
   const statusFilter = document.getElementById('filter-status')?.value || 'all';
+  const searchFilter = document.getElementById('filter-search')?.value.trim().toLowerCase() || '';
 
   const filteredTasks = allTasks.filter(t => {
     const matchDept = deptFilter === 'all' || t.department === deptFilter;
     const matchStatus = statusFilter === 'all' || t.status === statusFilter;
-    return matchDept && matchStatus;
+    const matchSearch = !searchFilter || 
+      (t.responsible_name && t.responsible_name.toLowerCase().includes(searchFilter)) ||
+      (t.created_by_name && t.created_by_name.toLowerCase().includes(searchFilter));
+    return matchDept && matchStatus && matchSearch;
   });
 
   tableBody.innerHTML = '';
