@@ -328,7 +328,7 @@
 .online-lamp {
   position: absolute;
   top: 9px;
-  left: 39px;
+  right: 9px;
   display: none;
   width: 12px;
   height: 12px;
