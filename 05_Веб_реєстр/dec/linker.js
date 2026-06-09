@@ -34,28 +34,60 @@ function normalizeCode(code) {
   return String(code || "").toUpperCase().replace(/[\s\.]/g, "");
 }
 
-// Check if there is an overlap between category codes and package target codes
+// Check if there is an overlap between category codes and package target codes (highly optimized for large arrays)
 function findOverlappingCodes(pkgTargets, catCodes) {
   if (!pkgTargets || !catCodes || pkgTargets.length === 0 || catCodes.length === 0) {
     return [];
   }
-  const normalizedPkg = pkgTargets.map(normalizeCode);
-  const normalizedCat = catCodes.map(normalizeCode);
+  
+  // Normalize category codes
+  const normalizedCat = catCodes.map(c => ({
+    original: c,
+    normalized: normalizeCode(c)
+  }));
+  
+  // Caching Set of normalized codes on the array object to avoid rebuilding it on every check
+  if (!pkgTargets._normalizedSet) {
+    pkgTargets._normalizedSet = new Set(pkgTargets.map(normalizeCode));
+  }
+  const pkgSet = pkgTargets._normalizedSet;
   
   const overlaps = [];
   
-  catCodes.forEach((originalCatCode, idx) => {
-    const normCat = normalizedCat[idx];
-    pkgTargets.forEach((originalPkgCode, pIdx) => {
-      const normPkg = normalizedPkg[pIdx];
-      // Match if one starts with another (covers C50 vs C50.1, and C50.1 vs C50)
-      if (normCat.startsWith(normPkg) || normPkg.startsWith(normCat)) {
-        if (!overlaps.includes(originalCatCode)) {
-          overlaps.push(originalCatCode);
-        }
+  for (const cat of normalizedCat) {
+    const code = cat.normalized;
+    
+    // 1. Direct exact match (O(1) complexity)
+    if (pkgSet.has(code)) {
+      overlaps.push(cat.original);
+      continue;
+    }
+    
+    // 2. Check if the category code is more specific than a target in the package
+    // e.g. category code is 'C501' (C50.1) and package has 'C50'
+    // Standard ICD-10 prefix is 3 chars, so check prefix lengths
+    let found = false;
+    for (let len = 3; len < code.length; len++) {
+      const prefix = code.substring(0, len);
+      if (pkgSet.has(prefix)) {
+        overlaps.push(cat.original);
+        found = true;
+        break;
       }
-    });
-  });
+    }
+    if (found) continue;
+    
+    // 3. Check if any package target starts with the category code (less common direction)
+    // e.g. category code is 'C50' and package has 'C501' (C50.1)
+    // This loop is only run when other instant lookups fail
+    for (const pkgCode of pkgTargets) {
+      const normPkg = normalizeCode(pkgCode);
+      if (normPkg.startsWith(code)) {
+        overlaps.push(cat.original);
+        break;
+      }
+    }
+  }
   
   return overlaps;
 }
