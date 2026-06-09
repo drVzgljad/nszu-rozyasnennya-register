@@ -1,4 +1,11 @@
-const state = { data: null, visible: [], selected: null };
+const state = { 
+  data: null, 
+  visible: [], 
+  selected: null,
+  clinicalDirections: null,
+  activeView: "search",
+  selectedDirection: null
+};
 const el = (id) => document.getElementById(id);
 
 const filterDefinitions = [
@@ -214,22 +221,46 @@ function renderDetail(doc) {
   // Find linked packages
   const linkedPackages = [];
   for (const pkgNum in packageLinks) {
-    if (packageLinks[pkgNum].includes(doc.category)) {
+    const pkgLinkData = packageLinks[pkgNum];
+    if (!pkgLinkData) continue;
+    
+    let isLinked = false;
+    let stage = "";
+    let note = "";
+    
+    if (Array.isArray(pkgLinkData)) {
+      isLinked = pkgLinkData.includes(doc.category);
+    } else if (typeof pkgLinkData === "object") {
+      isLinked = doc.category in pkgLinkData;
+      if (isLinked) {
+        stage = pkgLinkData[doc.category].stage || "";
+        note = pkgLinkData[doc.category].note || "";
+      }
+    }
+    
+    if (isLinked) {
       const pkg = packagesList.find(p => p.number === pkgNum);
       if (pkg) {
-        linkedPackages.push(pkg);
+        linkedPackages.push({ pkg, stage, note });
       }
     }
   }
   
   let packagesHtml = "";
   if (linkedPackages.length > 0) {
-    packagesHtml = linkedPackages.map(pkg => 
-      `<a class="law-related-link" href="../pakety/index.html?package=${pkg.number}" target="_blank" style="margin-bottom: 7px; display: block; padding: 10px 11px; border: 1px solid #d5e5f3; border-radius: 10px; color: var(--ink); background: #f5faff; text-decoration: none; font-size: 12px; line-height: 1.4;">
-        <strong>Пакет ${pkg.number}: ${escapeHtml(pkg.title)}</strong>
-        <span style="font-size: 11px; color: var(--muted); margin-top: 4px; display: block;">Переглянути вимоги закупівлі</span>
-      </a>`
-    ).join("");
+    packagesHtml = linkedPackages.map(({ pkg, stage, note }) => {
+      const stageBadge = stage ? `<span class="tag file" style="margin-right: 8px; font-size: 10px; padding: 2px 6px; background: var(--accent-soft); border: 1px solid var(--accent); color: var(--accent-dark);">${escapeHtml(stage)}</span>` : "";
+      const noteHtml = note ? `<span style="font-size: 11px; color: var(--muted); margin-top: 4px; display: block; font-style: italic;">💡 ${escapeHtml(note)}</span>` : "";
+      return `
+      <a class="law-related-link" href="../pakety/index.html?package=${pkg.number}" target="_blank" style="margin-bottom: 7px; display: block; padding: 11px 12px; border: 1px solid #d5e5f3; border-radius: 10px; color: var(--ink); background: #f5faff; text-decoration: none; font-size: 12px; line-height: 1.4; transition: border-color 0.2s, background-color 0.2s;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 6px;">
+          <strong>Пакет ${pkg.number}: ${escapeHtml(pkg.title)}</strong>
+          ${stageBadge}
+        </div>
+        ${noteHtml}
+        <span style="font-size: 11px; color: var(--accent-dark); margin-top: 6px; display: block; font-weight: 600;">Переглянути вимоги закупівлі →</span>
+      </a>`;
+    }).join("");
   } else {
     packagesHtml = "<p style='font-size: 13px; color: var(--muted);'>Пов'язаних пакетів ПМГ не знайдено.</p>";
   }
@@ -259,17 +290,164 @@ function renderDetail(doc) {
   `;
 }
 
+function switchView(view) {
+  state.activeView = view;
+  const searchBtn = el("view-search-btn");
+  const catalogBtn = el("view-catalog-btn");
+  
+  if (view === "search") {
+    searchBtn.classList.add("active");
+    catalogBtn.classList.remove("active");
+    el("search-panel").style.display = "block";
+    el("cards").style.display = "block";
+    el("catalog-container").style.display = "none";
+  } else {
+    searchBtn.classList.remove("active");
+    catalogBtn.classList.add("active");
+    el("search-panel").style.display = "none";
+    el("cards").style.display = "none";
+    el("catalog-container").style.display = "flex";
+    renderCatalog();
+  }
+}
+
+function renderCatalog() {
+  const container = el("catalog-directions-grid");
+  if (!container || !state.clinicalDirections) return;
+  container.innerHTML = "";
+  
+  state.clinicalDirections.directions.forEach(dir => {
+    const pathCount = dir.pathologies.length;
+    
+    // Count total documents in this direction
+    let docCount = 0;
+    dir.pathologies.forEach(p => {
+      docCount += state.data.documents.filter(d => d.category === p.name).length;
+    });
+    
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "direction-card";
+    if (state.selectedDirection && state.selectedDirection.id === dir.id) {
+      card.classList.add("active");
+    }
+    
+    card.style.cssText = `
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--bg, #ffffff);
+      color: var(--ink);
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s ease-in-out;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.01), 0 1px 3px rgba(0,0,0,0.02);
+    `;
+    
+    card.innerHTML = `
+      <div style="font-size: 28px; line-height: 1;">${dir.emoji}</div>
+      <div style="font-weight: 800; font-size: 13.5px; line-height: 1.3; margin-top: 4px; flex-grow: 1;">${escapeHtml(dir.title)}</div>
+      <div style="font-size: 11px; color: var(--muted); display: flex; gap: 8px; margin-top: 4px;">
+        <span>📁 ${pathCount} патол.</span>
+        <span>📄 ${docCount} док.</span>
+      </div>
+    `;
+    
+    card.addEventListener("click", () => showPathologies(dir));
+    container.appendChild(card);
+  });
+}
+
+function showPathologies(dir) {
+  state.selectedDirection = dir;
+  
+  // Highlight active card
+  renderCatalog();
+  
+  const section = el("catalog-pathologies-section");
+  section.style.display = "block";
+  
+  const title = el("selected-direction-title");
+  title.innerHTML = `<span style="font-size: 20px; margin-right: 6px;">${dir.emoji}</span> ${escapeHtml(dir.title)}`;
+  
+  const list = el("catalog-pathologies-list");
+  list.innerHTML = "";
+  
+  dir.pathologies.forEach(path => {
+    const docCount = state.data.documents.filter(d => d.category === path.name).length;
+    if (docCount === 0) return; // Only display pathologies with documents
+    
+    const pBtn = document.createElement("button");
+    pBtn.type = "button";
+    pBtn.className = "pathology-btn";
+    pBtn.style.cssText = `
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--bg, #ffffff);
+      color: var(--ink);
+      cursor: pointer;
+      text-align: left;
+      font-size: 12.5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s;
+    `;
+    
+    let pkgBadges = "";
+    if (path.packages && path.packages.length > 0) {
+      pkgBadges = path.packages.map(p => 
+        `<span style="font-size: 9px; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 2px 5px; border-radius: 6px; border: 1px solid #bae6fd;" title="${escapeHtml(p.stage)}: ${escapeHtml(p.note)}">П${p.number}</span>`
+      ).join(" ");
+    }
+    
+    pBtn.innerHTML = `
+      <div style="flex-grow: 1; margin-right: 10px; display: flex; flex-direction: column; gap: 4px;">
+        <span style="font-weight: 700;">${escapeHtml(path.name)}</span>
+        <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px;">
+          ${pkgBadges}
+        </div>
+      </div>
+      <span style="font-size: 11px; background: var(--bg-soft, #f1f5f9); color: var(--muted); padding: 3px 8px; border-radius: 20px; font-weight: 600; flex-shrink: 0;">📄 ${docCount}</span>
+    `;
+    
+    pBtn.addEventListener("click", () => {
+      // 1. Update filter dropdown to this pathology
+      el("category").value = path.name;
+      
+      // 2. Switch back to search/cards list view
+      switchView("search");
+      
+      // 3. Trigger filters update
+      applyFilters();
+      
+      // 4. Select and show first document in details pane
+      if (state.visible.length > 0) {
+        selectDocument(state.visible[0].id);
+      }
+    });
+    
+    list.appendChild(pBtn);
+  });
+}
+
 async function init() {
-  // 1. Try to load package mapping and package list
+  // 1. Try to load package mapping, package list, and clinical directions
   try {
-    const [linksRes, pkgsRes] = await Promise.all([
+    const [linksRes, pkgsRes, dirRes] = await Promise.all([
       fetch("data/package_dec_links.json").catch(() => null),
-      fetch("../pakety/data/packages_2026.json").catch(() => null)
+      fetch("../pakety/data/packages_2026.json").catch(() => null),
+      fetch("data/clinical_directions.json").catch(() => null)
     ]);
     if (linksRes) packageLinks = await linksRes.json();
     if (pkgsRes) packagesList = (await pkgsRes.json()).packages || [];
+    if (dirRes) state.clinicalDirections = await dirRes.json();
   } catch (e) {
-    console.warn("Failed to load package data or links:", e);
+    console.warn("Failed to load package data, links, or clinical directions:", e);
   }
 
   // 2. Try to load from Supabase with local fallback
@@ -331,6 +509,10 @@ async function init() {
   const params = new URLSearchParams(location.search);
   const initialQuery = params.get("q") || "";
   if (initialQuery) el("search").value = initialQuery;
+  
+  // View Switcher Event Listeners
+  el("view-search-btn").addEventListener("click", () => switchView("search"));
+  el("view-catalog-btn").addEventListener("click", () => switchView("catalog"));
   
   refreshFilterMenus();
   applyFilters();

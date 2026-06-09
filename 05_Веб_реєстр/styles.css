@@ -547,3 +547,36 @@ select {
     font-size: 13px;
   }
 }
+
+/* DEC Catalog View Custom Styling */
+.dec-view-btn.active {
+  background: var(--accent) !important;
+  color: #ffffff !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 4px 10px rgba(74, 143, 199, 0.25);
+}
+.dec-view-btn:hover {
+  background: var(--accent-soft) !important;
+  border-color: var(--accent) !important;
+}
+.direction-card {
+  outline: none;
+}
+.direction-card:hover {
+  border-color: var(--accent) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 18px rgba(38, 78, 112, 0.05), 0 3px 6px rgba(0, 0, 0, 0.02) !important;
+}
+.direction-card.active {
+  border-color: var(--accent) !important;
+  background: var(--accent-soft) !important;
+  box-shadow: 0 4px 10px rgba(74, 143, 199, 0.1) !important;
+}
+.pathology-btn {
+  outline: none;
+}
+.pathology-btn:hover {
+  border-color: var(--accent) !important;
+  background: var(--accent-soft) !important;
+  transform: translateX(1px);
+}
