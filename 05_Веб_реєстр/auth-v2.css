@@ -1966,3 +1966,57 @@
   gap: 8px !important;
 }
 
+/* ── Top Nav Bar Regulatory Admin Button ─────────── */
+.auth-regulatory-btn {
+  margin-left: 8px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+/* Force nowrap for all nav items */
+.top-nav a, .section-switch a, .nav-dropdown-btn, .nav-chat-btn, .auth-chat-btn, .auth-skod-btn, .auth-tasks-btn, .auth-regulatory-btn {
+  white-space: nowrap;
+}
+
+/* Unlocked regulatory button */
+.auth-regulatory-btn:not(.is-locked) {
+  background: #fffdf5; /* light gold/yellow */
+  color: #b25e00; /* gold-700 */
+  border: 1.5px solid rgba(194, 125, 14, 0.3);
+}
+.auth-regulatory-btn:not(.is-locked):hover {
+  background: #fff9db;
+  color: #9e5000;
+  border-color: rgba(194, 125, 14, 0.5);
+  transform: translateY(-1px);
+}
+
+/* Locked regulatory button */
+.auth-regulatory-btn.is-locked {
+  background: #f7fafc;
+  color: var(--muted, #647688);
+  border: 1.5px solid var(--line, #e3edf3);
+}
+.auth-regulatory-btn.is-locked:hover {
+  background: #f0f4f8;
+  color: var(--accent-dark, #2f6b9e);
+  border-color: rgba(74, 143, 199, 0.35);
+  transform: translateY(-1px);
+}
+.auth-regulatory-btn .lock-icon {
+  font-size: 11px;
+  margin-left: 2px;
+  opacity: 0.8;
+}
+

@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>НавігаторПМГ26 | Панель управління нормативною базою</title>
+  <link rel="stylesheet" href="../styles.css?v=20260531e">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260612b">
+  <script type="module" src="../auth-v2.js?v=20260612b"></script>
+  <style>
+    .admin-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 22px 24px 32px;
+      width: 100%;
+    }
+    
+    .admin-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 30px;
+      margin-bottom: 24px;
+    }
+    
+    .admin-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--ink);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: "Manrope", "Segoe UI", Arial, sans-serif;
+    }
+
+    .admin-subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 700;
+      font-size: 13.5px;
+      color: var(--ink);
+      margin-bottom: 6px;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="date"],
+    .form-group input[type="url"],
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--soft);
+      color: var(--ink);
+      font-family: inherit;
+      font-size: 14.5px;
+      transition: all 0.2s ease;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--accent);
+      background: var(--surface);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(74, 143, 199, 0.15);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .action-box {
+      border-left: 4px solid var(--accent);
+      background: var(--soft);
+      padding: 14px 18px;
+      border-radius: 0 12px 12px 0;
+      margin-bottom: 24px;
+    }
+
+    .btn-container {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 30px;
+      flex-wrap: wrap;
+    }
+
+    .btn-admin {
+      padding: 11px 24px;
+      border-radius: 12px;
+      font-size: 14.5px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+
+    .btn-admin.primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-admin.primary:hover {
+      background: var(--accent-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn-admin.secondary {
+      background: var(--soft);
+      border: 1px solid var(--line);
+      color: var(--ink);
+    }
+
+    .btn-admin.secondary:hover {
+      background: var(--line);
+    }
+
+    .btn-admin.warning {
+      background: #ffe3e3;
+      border: 1px solid #ffa8a8;
+      color: #c92a2a;
+    }
+
+    .btn-admin.warning:hover {
+      background: #ffa8a8;
+      color: #fff;
+    }
+
+    .btn-admin:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .alert-box {
+      padding: 14px 18px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      line-height: 1.5;
+      display: none;
+    }
+
+    .alert-box.success {
+      background: #ebfbee;
+      border: 1px solid #b2f2bb;
+      color: #2b8a3e;
+      display: block;
+    }
+
+    .alert-box.error {
+      background: #fff5f5;
+      border: 1px solid #ffc9c9;
+      color: #c92a2a;
+      display: block;
+    }
+  </style>
+</head>
+<body data-required-role="expert">
+  <header class="hero">
+    <div class="hero-copy">
+      <div class="overline">Панель адміністратора нормативної бази</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Управління нормативною базою</h1>
+      <p>Вносьте нові закони, постанови чи накази МОЗ/НСЗУ або редагуйте чинні документи в реальному часі.</p>
+    </div>
+  </header>
+
+  <main class="admin-container">
+    <div id="alert-message" class="alert-box"></div>
+
+    <section class="admin-card">
+      <div class="admin-title">
+        <span>⚙️ Редагування нормативних документів</span>
+      </div>
+      <div class="admin-subtitle">
+        Оберіть режим роботи, заповніть форму та збережіть зміни у Supabase.
+      </div>
+
+      <div class="action-box">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="editor-mode">Оберіть дію:</label>
+          <select id="editor-mode">
+            <option value="create">➕ Додати новий документ</option>
+            <option value="edit">📝 Редагувати існуючий документ</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Select Document to Edit (Hidden in Create mode) -->
+      <div class="form-group" id="document-selector-group" style="display: none;">
+        <label for="edit-document-select">Оберіть документ для редагування:</label>
+        <select id="edit-document-select">
+          <option value="">-- Оберіть документ зі списку --</option>
+        </select>
+      </div>
+
+      <form id="document-form">
+        <div class="form-group">
+          <label for="doc-title">Назва документа *</label>
+          <textarea id="doc-title" rows="2" placeholder="Наприклад: Про затвердження Порядку направлення пацієнтів..." required></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="doc-type">Вид документа *</label>
+            <select id="doc-type" required>
+              <option value="Закон">Закон</option>
+              <option value="Постанова КМУ">Постанова КМУ</option>
+              <option value="Наказ МОЗ">Наказ МОЗ</option>
+              <option value="Наказ НСЗУ">Наказ НСЗУ</option>
+              <option value="Розпорядження">Розпорядження</option>
+              <option value="Інше">Інше</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="doc-status">Статус чинності *</label>
+            <select id="doc-status" required>
+              <option value="чинний">чинний</option>
+              <option value="зі змінами">зі змінами</option>
+              <option value="втратив чинність">втратив чинність</option>
+              <option value="проєкт">проєкт</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="doc-number">Реєстраційний номер</label>
+            <input type="text" id="doc-number" placeholder="Наприклад: 377, 2168-VIII">
+          </div>
+          <div class="form-group">
+            <label for="doc-date">Дата прийняття</label>
+            <input type="date" id="doc-date">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="doc-category">Категорія / Тематика / Напрям</label>
+          <input type="text" id="doc-category" placeholder="Наприклад: Держфінгарантії, Онкологія, Фінансування" list="categories-list">
+          <datalist id="categories-list"></datalist>
+        </div>
+
+        <div class="form-group">
+          <label for="doc-url">Посилання на офіційне джерело (Rada.gov.ua)</label>
+          <input type="url" id="doc-url" placeholder="https://zakon.rada.gov.ua/laws/show/...">
+        </div>
+
+        <div class="form-group">
+          <label for="doc-file-url">Посилання на локальну копію або внутрішній розділ</label>
+          <input type="text" id="doc-file-url" placeholder="Наприклад: ../postanova/index.html або шлях до файлу">
+        </div>
+
+        <div class="form-group">
+          <label for="doc-content">Короткий опис, зміст або ключові слова (для пошуку)</label>
+          <textarea id="doc-content" rows="5" placeholder="Введіть основні положення документа, зміст або слова, за якими експерти шукатимуть цей акт..."></textarea>
+        </div>
+
+        <div class="btn-container">
+          <a class="btn-admin secondary" href="index.html">
+            Скасувати та повернутись
+          </a>
+          <button type="submit" class="btn-admin primary" id="btn-save">
+            💾 Зберегти зміни
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Local Offline Sync Section -->
+    <section class="admin-card">
+      <div class="admin-title">
+        <span>🔄 Локальна синхронізація (Офлайн-режим)</span>
+      </div>
+      <div class="admin-subtitle">
+        Синхронізуйте хмарні дані Supabase з локальним JSON-файлом, щоб сервіс коректно працював у користувачів за відсутності інтернету.
+      </div>
+      
+      <div style="background:#eef6fc; border:1px solid #bcead5; padding:16px; border-radius:12px; font-size:13px; color:#1e4e6d; margin-bottom:18px; line-height:1.5;">
+        <strong>💡 Як це працює:</strong> Натискання кнопки нижче завантажить усі актуальні документи з Supabase та надішле запит локальному серверу на перезапис файлу <code>data/regulatory_documents.json</code>.
+      </div>
+
+      <button type="button" class="btn-admin secondary" id="btn-sync-local" style="width:100%;">
+        ⚙️ Перезаписати локальний JSON-файл
+      </button>
+
+      <div style="background:#fff9db; border:1px solid #ffe3e3; padding:16px; border-radius:12px; font-size:13px; color:#b25e00; margin-top:18px; line-height:1.5;">
+        <strong>⚡ Ініціалізація бази:</strong> Якщо база даних у Supabase порожня, ви можете завантажити 4 початкових документи з локального файлу <code>data/regulatory_documents.json</code> у хмару одним натисканням.
+      </div>
+      <button type="button" class="btn-admin secondary" id="btn-seed-supabase" style="width:100%; margin-top:10px; background: #fffdf5; color: #b25e00; border: 1.5px solid rgba(194, 125, 14, 0.3);">
+        📥 Завантажити початкові дані у Supabase
+      </button>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Панель управління базою нормативно-правової регламентації розроблена для внутрішнього використання менеджерами порталу.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="admin.js?v=20260612b" defer></script>
+</body>
+</html>

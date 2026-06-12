@@ -710,7 +710,67 @@ VALUES (
 );
 
 
+-- =========================================================================
+-- МІГРАЦІЯ: ТАБЛИЦЯ НОРМАТИВНО-ПРАВОВИХ ДОКУМЕНТІВ (НОРМАТИВНА БАЗА)
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.regulatory_documents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  document_type TEXT NOT NULL,          -- 'Закон', 'Постанова КМУ', 'Наказ МОЗ', 'Наказ НСЗУ', 'Розпорядження', 'Інше'
+  document_number TEXT,
+  adoption_date DATE,
+  status TEXT NOT NULL DEFAULT 'чинний', -- 'чинний', 'втратив чинність', 'зі змінами', 'проєкт'
+  category TEXT,                         -- напрям/тематика
+  document_url TEXT,                     -- посилання на офіційне джерело (Rada)
+  file_url TEXT,                         -- посилання на локальну копію (PDF/Word)
+  content TEXT,                          -- зміст або опис для повнотекстового пошуку
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_by_name TEXT
+);
 
+-- Увімкнення RLS
+ALTER TABLE public.regulatory_documents ENABLE ROW LEVEL SECURITY;
 
+-- Дозвіл на читання для всіх (авторизованих та анонімних)
+CREATE POLICY "Allow read of regulatory_documents for all" ON public.regulatory_documents
+  FOR SELECT USING (true);
 
+-- Дозвіл на додавання (INSERT) для експертів та керівництва
+CREATE POLICY "Allow insert of regulatory_documents for experts and above" ON public.regulatory_documents
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role IN ('admin', 'director', 'deputy_director', 'manager', 'expert')
+    )
+  );
 
+-- Дозвіл на редагування (UPDATE) для експертів та керівництва
+CREATE POLICY "Allow update of regulatory_documents for experts and above" ON public.regulatory_documents
+  FOR UPDATE TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role IN ('admin', 'director', 'deputy_director', 'manager', 'expert')
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role IN ('admin', 'director', 'deputy_director', 'manager', 'expert')
+    )
+  );
+
+-- Дозвіл на видалення (DELETE) тільки для керівництва та адмінів (експерти не можуть видаляти)
+CREATE POLICY "Allow delete of regulatory_documents for managers and admins" ON public.regulatory_documents
+  FOR DELETE TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role IN ('admin', 'director', 'deputy_director', 'manager')
+    )
+  );
+
+-- Додавання таблиці нормативних документів до публікації реального часу
+ALTER PUBLICATION supabase_realtime ADD TABLE public.regulatory_documents;

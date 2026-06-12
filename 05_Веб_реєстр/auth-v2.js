@@ -52,7 +52,7 @@ async function fetchRole() {
 function applyAccess() {
   const pathParts = window.location.pathname.split('/');
   const isInSubdir = pathParts.some(part => [
-    'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'passport'
+    'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'passport', 'regulatory'
   ].includes(part.toLowerCase()));
   const prefix = isInSubdir ? '../' : './';
   const currentPath = window.location.pathname.toLowerCase();
@@ -153,6 +153,38 @@ function applyAccess() {
     }
   }
 
+  // Update standalone Regulatory Admin button in top nav
+  const regulatoryBtn = document.getElementById('auth-regulatory-btn');
+  if (regulatoryBtn) {
+    regulatoryBtn.href = prefix + 'regulatory/admin.html';
+    const hasRegAccess = hasAccess('expert');
+    if (!hasRegAccess) {
+      regulatoryBtn.classList.add('is-locked');
+      regulatoryBtn.innerHTML = `Управління нормами <span class="lock-icon">🔒</span>`;
+      regulatoryBtn.onclick = (e) => {
+        e.preventDefault();
+        if (!user) {
+          openModal('login');
+        } else {
+          const overlay = document.getElementById('access-denied-overlay');
+          if (overlay) {
+            const msg = document.getElementById('access-denied-msg');
+            if (msg) {
+              msg.textContent = 'Управління нормативною базою доступне лише для експертів та керівництва.';
+            }
+            overlay.style.display = 'flex';
+          } else {
+            alert('Управління нормативною базою доступне лише для експертів та керівництва.');
+          }
+        }
+      };
+    } else {
+      regulatoryBtn.classList.remove('is-locked');
+      regulatoryBtn.innerHTML = `Управління нормами`;
+      regulatoryBtn.onclick = null;
+    }
+  }
+
   const btn = document.getElementById('auth-nav-btn');
   if (btn) {
     if (user) {
@@ -216,7 +248,7 @@ function applyAccess() {
     const segments = normalized.split('/');
     
     if (normalized === 'index.html') {
-      const isSub = ['pakety', 'postanova', 'algorithms', 'zoz-questions', 'pmg-proposals', 'news', 'chat', 'rozjasnennya.html', 'zoz-dogovr', 'skod', 'dec', 'dept-tree.html', 'passport'].some(s => currentPath.includes(s));
+      const isSub = ['pakety', 'postanova', 'algorithms', 'zoz-questions', 'pmg-proposals', 'news', 'chat', 'rozjasnennya.html', 'zoz-dogovr', 'skod', 'dec', 'dept-tree.html', 'passport', 'regulatory'].some(s => currentPath.includes(s));
       return !isSub && (currentPath.endsWith('/') || currentPath.endsWith('index.html'));
     }
     
@@ -248,6 +280,7 @@ function applyAccess() {
       { text: 'Алгоритми та правила', path: 'algorithms/index.html' },
       { text: 'Укладені договори', path: 'zoz-dogovr/index.html' },
       { text: 'ДЕЦ МОЗ', path: 'dec/index.html' },
+      { text: 'Нормативна база', path: 'regulatory/index.html' },
       { text: 'Структура', path: 'dept-tree.html' },
       { text: 'Робочий чат', path: 'chat/index.html', isChat: true }
     ];
@@ -543,6 +576,13 @@ function inject() {
     topTasksBtn.className = 'auth-tasks-btn';
     topTasksBtn.textContent = 'Доручення';
     container.appendChild(topTasksBtn);
+
+    // Standalone Regulatory Admin button in top nav
+    const topRegBtn = document.createElement('a');
+    topRegBtn.id = 'auth-regulatory-btn';
+    topRegBtn.className = 'auth-regulatory-btn';
+    topRegBtn.textContent = 'Управління нормами';
+    container.appendChild(topRegBtn);
 
     const btn = document.createElement('button');
     btn.id = 'auth-nav-btn';
@@ -945,7 +985,7 @@ function setupNewsRealtime() {
         if (alertBanner) {
           const pathParts = window.location.pathname.split('/');
           const isInSubdir = pathParts.some(part => [
-            'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec'
+            'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'regulatory'
           ].includes(part.toLowerCase()));
           const prefix = isInSubdir ? '../' : './';
           renderAlertBanner(alertBanner, prefix);
@@ -968,7 +1008,7 @@ function triggerNewsAlertNotification(newsItem) {
     const title = newsItem.importance === 'urgent' ? '🚨 Термінове оголошення!' : '⚠️ Важливе оголошення!';
     const pathParts = window.location.pathname.split('/');
     const isInSubdir = pathParts.some(part => [
-      'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec'
+      'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'regulatory'
     ].includes(part.toLowerCase()));
     const prefix = isInSubdir ? '../' : './';
 
