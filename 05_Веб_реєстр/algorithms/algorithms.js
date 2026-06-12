@@ -165,6 +165,16 @@ function renderReader() {
   const compareUrl = comparisonHref
     ? encodeURI(comparisonHref) + (comparePage ? `#page=${comparePage}` : "")
     : null;
+
+  const codesHtml = (record.codes && record.codes.length > 0)
+    ? `<div class="algorithm-codes-section">
+         <span class="algorithm-codes-label">Пов'язані коди:</span>
+         <div class="algorithm-codes-list">
+           ${record.codes.map((code) => `<button class="code-badge" type="button" data-code="${escapeHtml(code)}">${escapeHtml(code)}</button>`).join("")}
+         </div>
+       </div>`
+    : "";
+
   container.innerHTML = `
     <h2>${escapeHtml(record.code)}</h2>
     <div class="algorithm-meta">
@@ -177,6 +187,7 @@ function renderReader() {
       <strong>${escapeHtml(record.name)}</strong>
       ${formatStatus(record) ? `<p>Застосовується до: ${escapeHtml(formatStatus(record))}</p>` : ""}
     </div>
+    ${codesHtml}
     ${compareUrl ? `
     <div class="algorithm-compare-hint">
       <span>Зміни до цього коду — у порівняльній таблиці${comparePage ? `, стор. ${comparePage}` : ""}</span>
@@ -190,12 +201,26 @@ function renderReader() {
       <button class="action primary" id="copyAlgorithm" type="button">Копіювати висновок</button>
       <a class="action" href="${encodeURI(record.href)}" target="_blank">Відкрити PDF</a>
       ${compareUrl ? `<a class="action" href="${compareUrl}" target="_blank">Порівняльна таблиця${comparePage ? ` (стор. ${comparePage})` : ""}</a>` : ""}
-      ${(record.packages || []).filter((value) => /^\d+$/.test(value)).slice(0, 1).map((value) =>
-        `<a class="action" href="../pakety/index.html?package=${encodeURIComponent(value)}">До пакета ${escapeHtml(value)}</a>`
-      ).join("")}
+      ${(record.packages || []).filter((value) => /^\d+$/.test(value) || value === "9").slice(0, 1).map((value) => `
+        <a class="action" href="../pakety/index.html?package=${encodeURIComponent(value)}">Специфікація пакета ${escapeHtml(value)}</a>
+        <a class="action" href="../passport/index.html?package=${encodeURIComponent(value)}">Паспорт пакета ${escapeHtml(value)}</a>
+      `).join("")}
+      <a class="action" href="../rozjasnennya.html?q=${encodeURIComponent(record.code)}" target="_blank">Пов'язані роз'яснення</a>
     </div>
   `;
   byId("copyAlgorithm").addEventListener("click", copySummary);
+
+  // Set up click listeners for the code badges
+  container.querySelectorAll(".code-badge").forEach((badge) => {
+    badge.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const code = badge.dataset.code;
+      const searchInput = byId("algorithmSearch");
+      searchInput.value = code;
+      applyFilters();
+      searchInput.focus();
+    });
+  });
 }
 
 async function copySummary() {

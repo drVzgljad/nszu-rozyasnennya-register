@@ -212,6 +212,18 @@ function selectDocument(id) {
   }
 }
 
+function extractCodesFromTextJS(text) {
+  if (!text) return [];
+  const codeRegex = /\b([A-ZА-Я]\d{2}(?:\.\d{1,2})?|[A-ZА-Я]\d{5}|\d{5}-\d{2})\b/gi;
+  const matches = text.match(codeRegex) || [];
+  const cyrToLat = {
+    'А': 'A', 'В': 'B', 'С': 'C', 'Е': 'E', 'Н': 'H', 'І': 'I', 'К': 'K', 'М': 'M', 'О': 'O', 'Р': 'P', 'Т': 'T', 'Х': 'X'
+  };
+  return [...new Set(matches.map((code) => 
+    code.toUpperCase().split("").map((c) => cyrToLat[c] || c).join("")
+  ))];
+}
+
 function renderDetail(doc) {
   const detail = el("detail");
   detail.classList.remove("empty");
@@ -223,6 +235,15 @@ function renderDetail(doc) {
     if (!other) return "";
     return `<button data-related="${other.id}"><strong>${escapeHtml(other.title)}</strong><span>${escapeHtml(relationship.reason)}</span></button>`;
   }).join("");
+
+  const foundCodes = extractCodesFromTextJS(doc.title + " " + doc.name + " " + doc.excerpt);
+  const codeLinks = foundCodes.length > 0
+    ? `<div class="section-title">Правила Наказу № 377</div>
+       <div class="excerpt" style="display:flex; flex-wrap:wrap; gap:6px;">
+         ${foundCodes.map((code) => `<a class="action" href="algorithms/index.html?q=${encodeURIComponent(code)}" target="_blank" style="font-size:12px; min-height:30px; padding:6px 10px; margin-top:0;">Перевірити код ${escapeHtml(code)} →</a>`).join("")}
+       </div>`
+    : "";
+
   detail.innerHTML = `
     <div class="detail-header">
       <span class="label">${escapeHtml(doc.direction.replace(/-/g, " "))}</span>
@@ -243,6 +264,7 @@ function renderDetail(doc) {
       <a class="action primary" href="${localHref(doc.local_path)}" target="_blank">Відкрити файл</a>
       <a class="action" href="${escapeHtml(doc.source_url)}" target="_blank" rel="noopener">Джерело НСЗУ</a>
     </div>
+    ${codeLinks}
     <div class="section-title">Назва у бібліотеці</div>
     <div class="excerpt">${escapeHtml(doc.name)}</div>
     <div class="section-title">Оригінальна технічна назва</div>

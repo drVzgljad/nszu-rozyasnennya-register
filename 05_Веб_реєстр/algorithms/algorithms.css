@@ -320,3 +320,37 @@ mark { padding: 0 2px; border-radius: 3px; color: inherit; background: #ffe69a; 
     min-width: 78px;
   }
 }
+
+.algorithm-codes-section {
+  margin: 16px 0;
+}
+.algorithm-codes-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+.algorithm-codes-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.code-badge {
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--accent-dark);
+  background: var(--surface);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.code-badge:hover {
+  border-color: var(--accent);
+  background: var(--soft);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}

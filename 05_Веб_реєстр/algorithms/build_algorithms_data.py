@@ -1,6 +1,7 @@
 import json
 import re
 import shutil
+import datetime
 from pathlib import Path
 
 import pypdf
@@ -8,7 +9,10 @@ import pypdf
 
 WEB_DIR = Path(__file__).resolve().parents[1]
 SITE_REPO = WEB_DIR.parent
-SOURCE_DIR = SITE_REPO.parent / "07_Алгоритми та правила"
+if (SITE_REPO / "07_Алгоритми та правила").exists():
+    SOURCE_DIR = SITE_REPO / "07_Алгоритми та правила"
+else:
+    SOURCE_DIR = SITE_REPO.parent / "07_Алгоритми та правила"
 OUTPUT_DIR = Path(__file__).resolve().parent
 DOCS_DIR = OUTPUT_DIR / "docs"
 DATA_DIR = OUTPUT_DIR / "data"
@@ -18,6 +22,22 @@ INLINE_CODE_RE = re.compile(r"\b[A-ZА-Я]\d{2}(?:\.\d{1,2})?\b")
 TAK_RE = re.compile(r"так(?:,\s*для\s*(\d+)\s*пакет[ау]?)?", re.I)
 
 SOURCE_META = {
+    "Додаток 1": {
+        "id": "appendix-1",
+        "kind": "appendix",
+        "title": "Додаток 1. Перелік правил сервісу «Лабораторна діагностика»",
+        "short_title": "Лабораторна діагностика",
+        "description": "Перелік правил сервісу «Лабораторна діагностика» (LR0-LR8).",
+        "packages": ["9"],
+    },
+    "Додаток 2": {
+        "id": "appendix-2",
+        "kind": "appendix",
+        "title": "Додаток 2. Правила сервісу «Інструментальна діагностика»",
+        "short_title": "Інструментальна діагностика",
+        "description": "Правила сервісу «Інструментальна діагностика» (ІR0-ІR5).",
+        "packages": ["9"],
+    },
     "Додаток 3": {
         "id": "appendix-3",
         "kind": "appendix",
@@ -33,6 +53,22 @@ SOURCE_META = {
         "short_title": "Профілактика",
         "description": "Перелік діагнозів, які обліковуються тільки в межах епізоду «Профілактика».",
         "packages": ["Профілактика"],
+    },
+    "ЗМІНИ_Наказ_лабораторні": {
+        "id": "order-changes-labs",
+        "kind": "order",
+        "title": "Зміни до наказу НСЗУ № 377 (лабораторна діагностика)",
+        "short_title": "Зміни (лабораторія)",
+        "description": "Проєкт змін до наказу про алгоритми і правила визначення послуг (лабораторні дослідження).",
+        "packages": [],
+    },
+    "ЗМІНИ Hаказ_алгоритми": {
+        "id": "order-changes-algorithms",
+        "kind": "order",
+        "title": "Зміни до наказу НСЗУ № 377 (алгоритми та правила)",
+        "short_title": "Зміни (алгоритми)",
+        "description": "Проєкт змін до наказу про алгоритми і правила визначення послуг за пакетами ПМГ (алгоритми).",
+        "packages": [],
     },
     "ЗМІНИ": {
         "id": "order-changes",
@@ -62,11 +98,13 @@ def normalize_filename(path):
 
 
 def source_meta(path):
-    if "Порівняльна".casefold() in path.name.casefold():
+    normalized_name = re.sub(r"[\s_]+", " ", path.name.casefold())
+    if "Порівняльна".casefold() in normalized_name:
         return SOURCE_META["Порівняльна"]
-    for token, meta in SOURCE_META.items():
-        if token.casefold() in path.name.casefold():
-            return meta
+    for token in sorted(SOURCE_META.keys(), key=len, reverse=True):
+        normalized_token = re.sub(r"[\s_]+", " ", token.casefold())
+        if normalized_token in normalized_name:
+            return SOURCE_META[token]
     return {
         "id": re.sub(r"[^a-z0-9]+", "-", path.stem.casefold()).strip("-"),
         "kind": "document",
@@ -95,7 +133,6 @@ def detect_column_boundary(pages):
     Метод 1: заголовок на одному рядку.
     Метод 2: середня між першим і другим 'так' у рядках з двома 'так'.
     """
-    # Метод 1: заголовок на одному рядку
     for page in pages:
         for line in page["layout"].splitlines():
             lower = line.lower()
@@ -105,7 +142,6 @@ def detect_column_boundary(pages):
                 if pos_adults > pos_children:
                     return (pos_children + pos_adults) // 2
 
-    # Метод 2: аналіз рядків де є рівно два 'так'
     pairs = []
     for page in pages:
         for line in page["layout"].splitlines():
@@ -144,19 +180,113 @@ def split_status(name_with_status):
     return name, status
 
 
+def extract_codes_from_text(text):
+    if not text:
+        return []
+    icd_re = re.compile(r"\b[A-ZА-Я]\d{2}(?:\.\d{1,2})?\b", re.I)
+    nk_lab_re = re.compile(r"\b[A-ZА-Я]\d{5}\b", re.I)
+    loinc_re = re.compile(r"\b\d{3,5}-\d\b")
+    achi_re = re.compile(r"\b\d{5}-\d{2}\b")
+    achi_point_re = re.compile(r"\b\d{5}\b")
+    
+    found = []
+    found.extend(icd_re.findall(text))
+    found.extend(nk_lab_re.findall(text))
+    found.extend(loinc_re.findall(text))
+    found.extend(achi_re.findall(text))
+    found.extend(achi_point_re.findall(text))
+    
+    cyr_to_lat = {
+        'А': 'A', 'В': 'B', 'С': 'C', 'Е': 'E', 'Н': 'H', 'І': 'I', 'К': 'K', 'М': 'M', 'О': 'O', 'Р': 'P', 'Т': 'T', 'Х': 'X'
+    }
+    normalized = []
+    for code in found:
+        code_norm = "".join(cyr_to_lat.get(c, c) for c in code.upper())
+        normalized.append(code_norm)
+        
+    return sorted(list(set(normalized)))
+
+
 def parse_records(path, meta, pages):
-    if meta["id"] not in {"appendix-3", "appendix-4"}:
+    if meta["id"] not in {"appendix-1", "appendix-2", "appendix-3", "appendix-4"}:
         return []
 
+    if meta["id"] in {"appendix-1", "appendix-2"}:
+        RULE_PREFIX_RE = re.compile(r"^(LR|[ІI]R)\.?\s*(\d+(?:\.\d+)*)\b", re.I)
+        records = []
+        current = None
+        
+        for page in pages:
+            for raw_line in page["text"].splitlines():
+                line = clean(raw_line)
+                if not line:
+                    continue
+                
+                m = RULE_PREFIX_RE.match(line)
+                if m:
+                    if current:
+                        records.append(current)
+                    
+                    prefix = m.group(1)
+                    num = m.group(2)
+                    norm_prefix = "IR" if prefix.upper() in {"ІR", "IR"} else "LR"
+                    full_code = f"{norm_prefix}.{num}"
+                    rest = clean(line[m.end():]).strip(".")
+                    
+                    current = {
+                        "id": f"{meta['id']}-{norm_prefix.lower()}-{num.replace('.', '-')}-{len(records) + 1}",
+                        "code": full_code,
+                        "name": rest,
+                        "children": False,
+                        "adults": False,
+                        "pkg4_only": None,
+                        "source_id": meta["id"],
+                        "source_title": meta["short_title"],
+                        "document_title": meta["title"],
+                        "kind": meta["kind"],
+                        "packages": meta["packages"],
+                        "page": page["page"],
+                        "href": f"docs/{normalize_filename(path)}#page={page['page']}",
+                        "search_text": "",
+                        "codes": [],
+                    }
+                else:
+                    if current and not line.startswith(("СЕД АСКОД", "ДОКУМЕНТ №", "Сертифікат", "Підписувач", "Дійсний з")):
+                        current["name"] = clean(f"{current['name']} {line}").strip(".")
+                        
+        if current:
+            records.append(current)
+            
+        unique = []
+        seen = set()
+        for record in records:
+            key = (record["source_id"], record["code"], record["name"])
+            if key in seen or not record["name"]:
+                continue
+            seen.add(key)
+            record["codes"] = extract_codes_from_text(record["name"])
+            record["search_text"] = clean(
+                " ".join([
+                    record["code"],
+                    record["name"],
+                    " ".join(record["codes"]),
+                    record["source_title"],
+                    record["document_title"],
+                    " ".join(record["packages"]),
+                ])
+            ).casefold()
+            unique.append(record)
+        return unique
+
+    # Logic for appendix-3 and appendix-4
     boundary = detect_column_boundary(pages) if meta["id"] == "appendix-3" else None
 
     records = []
     current = None
-    current_layout_lines = []  # всі layout-рядки для поточного запису
+    current_layout_lines = []
 
     for page in pages:
         layout_lines = page["layout"].splitlines()
-        # Будуємо індекс layout рядків по очищеному тексту для зіставлення
         layout_clean_map = {clean(ll): ll for ll in layout_lines if clean(ll)}
 
         for raw_line in page["text"].splitlines():
@@ -170,7 +300,6 @@ def parse_records(path, meta, pages):
                 if code in {"Y36", "Y96"} and rest.casefold().startswith("та "):
                     continue
                 if current:
-                    # Визначаємо вікові групи по всіх layout-рядках запису
                     combined_layout = " ".join(current_layout_lines)
                     children, adults, pkg4_only = parse_age_from_layout(combined_layout, boundary)
                     current["children"] = children
@@ -193,10 +322,11 @@ def parse_records(path, meta, pages):
                     "page": page["page"],
                     "href": f"docs/{normalize_filename(path)}#page={page['page']}",
                     "search_text": "",
+                    "codes": [code],
                 }
                 current_layout_lines = [layout_clean_map.get(line, raw_line)]
                 continue
-            if current and not line.startswith(("СЕД АСКОД", "ДОКУМЕНТ №", "Сертифікат", "Підписувач")):
+            if current and not line.startswith(("СЕД АСКОД", "ДОКУМЕНТ №", "Сертифікат", "Підписувач", "Дійсний з")):
                 name_only, _ = split_status(line)
                 current["name"] = clean(f"{current['name']} {name_only}")
                 if line in layout_clean_map:
@@ -220,6 +350,7 @@ def parse_records(path, meta, pages):
             "Діти" if record["children"] else "",
             "Дорослі" if record["adults"] else "",
         ]))
+        record["codes"] = [record["code"]]
         record["search_text"] = clean(
             " ".join([
                 record["code"],
@@ -287,7 +418,7 @@ def main():
             record["comparison_page"] = None
 
     payload = {
-        "generated": "2026-05-31",
+        "generated": datetime.date.today().isoformat(),
         "title": "Алгоритми та правила за наказом № 377",
         "comparison_href": comparison_doc["href"] if comparison_doc else None,
         "documents_count": len(documents),

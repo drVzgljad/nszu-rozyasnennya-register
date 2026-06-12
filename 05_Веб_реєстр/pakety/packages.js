@@ -300,6 +300,7 @@ function renderReader() {
     <div class="package-actions">
       <a class="action primary" href="${encodeURI(pkg.source_href)}" target="_blank">Відкрити оригінал DOCX</a>
       <a class="action" href="../index.html?package=${encodeURIComponent((pkg.related_document_ids.length && packageState.explanations.find((doc) => doc.id === pkg.related_document_ids[0])?.package) || "")}">До реєстру роз'яснень</a>
+      <a class="action" href="../algorithms/index.html?package=${encodeURIComponent(pkg.number)}">Правила Наказу 377</a>
     </div>
     <section class="related-explanations resolution-connections">
       <h3>Оплата за постановою № 1808</h3>
