@@ -1,245 +1,281 @@
+/* ============================================================
+   Управління нормативною базою — адмін-панель v2
+   Сховище: Supabase (таблиця regulatory_documents)
+   Синхронізація: /api/save-data → data/regulatory_documents.json
+   ============================================================ */
+
 let sbClient = null;
 let allDocuments = [];
-let selectedDocId = null;
+let selectedDocId = null; // null = режим створення
 
 const el = (id) => document.getElementById(id);
 
-// Alert display helper
-function showAlert(message, type = 'success') {
-  const alertBox = el('alert-message');
-  alertBox.textContent = message;
-  alertBox.className = `alert-box ${type}`;
-  alertBox.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  
-  // Auto-hide success alert after 5 seconds
-  if (type === 'success') {
-    setTimeout(() => {
-      alertBox.style.display = 'none';
-    }, 5000);
+const escapeHtml = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({
+  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+}[c]));
+
+function showAlert(message, type = "success") {
+  const box = el("alert-message");
+  box.textContent = message;
+  box.className = `alert-box ${type}`;
+  box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  if (type === "success") {
+    setTimeout(() => { box.style.display = "none"; }, 5000);
   }
 }
 
-// Populate Category datalist for suggestions
-function populateCategorySuggestions() {
-  const datalist = el('categories-list');
-  const categories = new Set(allDocuments.map(doc => doc.category).filter(Boolean));
-  datalist.innerHTML = "";
-  categories.forEach(cat => {
-    const opt = document.createElement('option');
-    opt.value = cat;
-    datalist.appendChild(opt);
-  });
+function fmtDate(iso) {
+  if (!iso) return "—";
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : iso;
 }
 
-// Load documents list for Editing mode dropdown
-function populateDocumentSelector() {
-  const select = el('edit-document-select');
-  select.innerHTML = '<option value="">-- Оберіть документ зі списку --</option>';
-  
-  // Sort documents by title
-  const sortedDocs = [...allDocuments].sort((a, b) => a.title.localeCompare(b.title, 'uk'));
-  
-  sortedDocs.forEach(doc => {
-    const opt = document.createElement('option');
-    opt.value = doc.id;
-    const dateStr = doc.adoption_date ? ` (${doc.adoption_date.split('-')[0]})` : '';
-    const numStr = doc.document_number ? ` № ${doc.document_number}` : '';
-    opt.textContent = `${doc.document_type}${numStr}${dateStr}: ${doc.title.substring(0, 70)}...`;
-    select.appendChild(opt);
-  });
+function typePillClass(type) {
+  const t = (type || "").toLowerCase();
+  if (t === "закон") return "t-zakon";
+  if (t.includes("постанова")) return "t-postanova";
+  if (t.includes("наказ моз")) return "t-nakaz-moz";
+  if (t.includes("наказ нсзу")) return "t-nakaz-nszu";
+  return "t-other";
 }
 
-// Fill form fields with selected document details
-function fillFormWithSelectedDocument(id) {
-  const doc = allDocuments.find(d => d.id === id);
-  if (!doc) {
-    clearForm();
-    return;
+function statusPill(status) {
+  const s = (status || "").toLowerCase();
+  if (s === "чинний") return `<span class="pill s-active">чинний</span>`;
+  if (s === "проєкт") return `<span class="pill s-draft">проєкт</span>`;
+  if (s.includes("втрат")) return `<span class="pill s-expired">втратив чинність</span>`;
+  if (s.includes("змін")) return `<span class="pill s-amended">зі змінами</span>`;
+  return `<span class="pill t-other">${escapeHtml(status || "—")}</span>`;
+}
+
+/* ---------------- Список документів ---------------- */
+
+function renderList() {
+  const q = el("admSearch").value.trim().toLowerCase();
+  const typeF = el("admTypeFilter").value;
+
+  let docs = [...allDocuments].sort((a, b) => (b.adoption_date || "").localeCompare(a.adoption_date || ""));
+  if (typeF) docs = docs.filter((d) => d.document_type === typeF);
+  if (q) {
+    docs = docs.filter((d) =>
+      [d.title, d.document_number, d.category, d.content].join(" ").toLowerCase().includes(q)
+    );
   }
-  
-  el('doc-title').value = doc.title || '';
-  el('doc-type').value = doc.document_type || 'Закон';
-  el('doc-status').value = doc.status || 'чинний';
-  el('doc-number').value = doc.document_number || '';
-  el('doc-date').value = doc.adoption_date || '';
-  el('doc-category').value = doc.category || '';
-  el('doc-url').value = doc.document_url || '';
-  el('doc-file-url').value = doc.file_url || '';
-  el('doc-content').value = doc.content || '';
-  
-  selectedDocId = doc.id;
+
+  el("admList").innerHTML = docs.length ? docs.map((d) => `
+    <button class="adm-row ${d.id === selectedDocId ? "selected" : ""}" type="button" data-id="${d.id}">
+      <span class="r-title">${escapeHtml(d.title)}</span>
+      <span class="r-meta">
+        <span class="pill ${typePillClass(d.document_type)}">${escapeHtml(d.document_type)}</span>
+        ${statusPill(d.status)}
+        <span>№ ${escapeHtml(d.document_number || "б/н")}</span>
+        <span>від ${fmtDate(d.adoption_date)}</span>
+        ${d.category ? `<span>· ${escapeHtml(d.category)}</span>` : ""}
+      </span>
+    </button>`).join("")
+    : `<p style="color:var(--muted); font-size:13px; padding:20px; text-align:center;">Документів не знайдено.</p>`;
+
+  el("admList").querySelectorAll(".adm-row").forEach((row) => {
+    row.addEventListener("click", () => selectDocument(row.dataset.id));
+  });
 }
 
-// Clear all form fields
-function clearForm() {
-  el('doc-title').value = '';
-  el('doc-type').value = 'Закон';
-  el('doc-status').value = 'чинний';
-  el('doc-number').value = '';
-  el('doc-date').value = '';
-  el('doc-category').value = '';
-  el('doc-url').value = '';
-  el('doc-file-url').value = '';
-  el('doc-content').value = '';
+function renderStats() {
+  const total = allDocuments.length;
+  const active = allDocuments.filter((d) => d.status === "чинний").length;
+  const drafts = allDocuments.filter((d) => d.status === "проєкт").length;
+  el("admStats").innerHTML = `
+    <div class="stat"><strong>${total}</strong><span>документів</span></div>
+    <div class="stat"><strong>${active}</strong><span>чинних</span></div>
+    <div class="stat"><strong>${drafts}</strong><span>проєктів</span></div>`;
+}
+
+function populateFilters() {
+  const types = [...new Set(allDocuments.map((d) => d.document_type).filter(Boolean))].sort();
+  const sel = el("admTypeFilter");
+  const cur = sel.value;
+  sel.innerHTML = `<option value="">Усі види</option>` + types.map((t) => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("");
+  sel.value = cur;
+
+  const cats = [...new Set(allDocuments.map((d) => d.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, "uk"));
+  el("categories-list").innerHTML = cats.map((c) => `<option value="${escapeHtml(c)}">`).join("");
+}
+
+/* ---------------- Форма ---------------- */
+
+function selectDocument(id) {
+  const doc = allDocuments.find((d) => d.id === id);
+  if (!doc) return;
+  selectedDocId = id;
+
+  el("formMode").textContent = "📝 Редагування документа";
+  el("doc-title").value = doc.title || "";
+  el("doc-type").value = doc.document_type || "Закон";
+  el("doc-status").value = doc.status || "чинний";
+  el("doc-number").value = doc.document_number || "";
+  el("doc-date").value = doc.adoption_date || "";
+  el("doc-category").value = doc.category || "";
+  el("doc-url").value = doc.document_url || "";
+  el("doc-file-url").value = doc.file_url || "";
+  el("doc-content").value = doc.content || "";
+  el("btn-delete").style.display = "";
+
+  const meta = el("docMeta");
+  meta.style.display = "";
+  meta.textContent = `Останнє оновлення: ${fmtDate(doc.updated_at)}${doc.updated_by_name ? " · " + doc.updated_by_name : ""}`;
+
+  renderList();
+  el("doc-title").scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function resetForm() {
   selectedDocId = null;
+  el("formMode").textContent = "➕ Новий документ";
+  el("document-form").reset();
+  el("doc-type").value = "Закон";
+  el("doc-status").value = "чинний";
+  el("btn-delete").style.display = "none";
+  el("docMeta").style.display = "none";
+  renderList();
 }
 
-// Fetch all documents from Supabase
+/* ---------------- Supabase CRUD ---------------- */
+
+async function getUpdaterName(fallback = "Співробітник") {
+  try {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (session?.user) {
+      return session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email.split("@")[0];
+    }
+  } catch (e) { /* ignore */ }
+  return fallback;
+}
+
 async function fetchAllDocuments() {
   if (!sbClient) return;
   try {
-    const { data, error } = await sbClient.from('regulatory_documents').select('*');
+    const { data, error } = await sbClient.from("regulatory_documents").select("*");
     if (error) throw error;
     allDocuments = data || [];
-    populateCategorySuggestions();
-    if (el('editor-mode').value === 'edit') {
-      populateDocumentSelector();
-    }
+    populateFilters();
+    renderStats();
+    renderList();
   } catch (err) {
     console.error("Error fetching documents:", err);
     showAlert("Помилка при завантаженні списку документів: " + err.message, "error");
   }
 }
 
-// Setup Mode Changes
-function handleModeChange() {
-  const mode = el('editor-mode').value;
-  const selectorGroup = el('document-selector-group');
-  
-  clearForm();
-  
-  if (mode === 'edit') {
-    selectorGroup.style.display = 'block';
-    populateDocumentSelector();
-  } else {
-    selectorGroup.style.display = 'none';
-  }
-}
-
-// Handle Form Submission
 async function handleFormSubmit(e) {
   e.preventDefault();
-  
   if (!sbClient) {
-    showAlert("Помилка: Не вдалося ініціалізувати клієнт бази даних.", "error");
+    showAlert("Помилка: не вдалося ініціалізувати клієнт бази даних.", "error");
     return;
   }
-  
-  // Get active session user info
-  let updaterName = "Співробітник";
-  try {
-    const { data: { session } } = await sbClient.auth.getSession();
-    if (session && session.user) {
-      updaterName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email.split('@')[0];
-    }
-  } catch(e) {}
-  
-  const mode = el('editor-mode').value;
-  const btnSave = el('btn-save');
+
+  const btnSave = el("btn-save");
   btnSave.disabled = true;
-  btnSave.textContent = "Збереження...";
-  
+  btnSave.textContent = "Збереження…";
+
   const payload = {
-    title: el('doc-title').value.trim(),
-    document_type: el('doc-type').value,
-    status: el('doc-status').value,
-    document_number: el('doc-number').value.trim() || null,
-    adoption_date: el('doc-date').value || null,
-    category: el('doc-category').value.trim() || null,
-    document_url: el('doc-url').value.trim() || null,
-    file_url: el('doc-file-url').value.trim() || null,
-    content: el('doc-content').value.trim() || null,
+    title: el("doc-title").value.trim(),
+    document_type: el("doc-type").value,
+    status: el("doc-status").value,
+    document_number: el("doc-number").value.trim() || null,
+    adoption_date: el("doc-date").value || null,
+    category: el("doc-category").value.trim() || null,
+    document_url: el("doc-url").value.trim() || null,
+    file_url: el("doc-file-url").value.trim() || null,
+    content: el("doc-content").value.trim() || null,
     updated_at: new Date().toISOString(),
-    updated_by_name: updaterName
+    updated_by_name: await getUpdaterName()
   };
-  
+
   try {
-    if (mode === 'create') {
-      // Insert new
-      const { error } = await sbClient.from('regulatory_documents').insert([payload]);
+    if (!selectedDocId) {
+      const { error } = await sbClient.from("regulatory_documents").insert([payload]);
       if (error) throw error;
-      showAlert("Документ успішно додано у Supabase!", "success");
-      clearForm();
+      showAlert("Документ успішно додано!", "success");
+      resetForm();
     } else {
-      // Update existing
-      if (!selectedDocId) {
-        showAlert("Будь ласка, оберіть документ для редагування!", "error");
-        btnSave.disabled = false;
-        btnSave.textContent = "💾 Зберегти зміни";
-        return;
-      }
-      const { error } = await sbClient.from('regulatory_documents').update(payload).eq('id', selectedDocId);
+      const { error } = await sbClient.from("regulatory_documents").update(payload).eq("id", selectedDocId);
       if (error) throw error;
-      showAlert("Документ успішно оновлено у Supabase!", "success");
+      showAlert("Документ успішно оновлено!", "success");
     }
-    
-    // Refresh local memory and controls
     await fetchAllDocuments();
   } catch (err) {
     console.error("Save error:", err);
     showAlert("Помилка збереження: " + err.message, "error");
   } finally {
     btnSave.disabled = false;
-    btnSave.textContent = "💾 Зберегти зміни";
+    btnSave.textContent = "💾 Зберегти";
   }
 }
 
-// Local Sync Process (writes to data/regulatory_documents.json via local node server API)
-async function handleLocalSync() {
-  const btnSync = el('btn-sync-local');
-  btnSync.disabled = true;
-  btnSync.textContent = "Синхронізація...";
-  
+async function handleDelete() {
+  if (!selectedDocId) return;
+  const doc = allDocuments.find((d) => d.id === selectedDocId);
+  if (!doc) return;
+
+  const ok = confirm(`Видалити документ назавжди?\n\n${doc.document_type} № ${doc.document_number || "б/н"}\n«${doc.title}»\n\nЦю дію не можна скасувати.`);
+  if (!ok) return;
+
+  const btn = el("btn-delete");
+  btn.disabled = true;
+  btn.textContent = "Видалення…";
   try {
-    // 1. Fetch freshest data from Supabase
-    const { data: dbData, error } = await sbClient.from('regulatory_documents').select('*');
+    const { error } = await sbClient.from("regulatory_documents").delete().eq("id", selectedDocId);
     if (error) throw error;
-    
+    showAlert("Документ видалено з бази.", "success");
+    resetForm();
+    await fetchAllDocuments();
+  } catch (err) {
+    console.error("Delete error:", err);
+    showAlert("Помилка видалення: " + err.message, "error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "🗑 Видалити документ";
+  }
+}
+
+/* ---------------- Синхронізація ---------------- */
+
+async function handleLocalSync() {
+  const btnSync = el("btn-sync-local");
+  btnSync.disabled = true;
+  btnSync.textContent = "Синхронізація…";
+
+  try {
+    const { data: dbData, error } = await sbClient.from("regulatory_documents").select("*");
+    if (error) throw error;
     if (!dbData || dbData.length === 0) {
       throw new Error("Немає записів у Supabase для синхронізації!");
     }
-    
-    // 2. Build local JSON structure
-    const sortedList = (set, desc = false) => [...set].sort((a,b) => desc ? b.localeCompare(a) : a.localeCompare(b, "uk"));
-    const documents = dbData.map(doc => {
-      const year = doc.adoption_date ? doc.adoption_date.split("-")[0] : "";
-      return { ...doc, year };
-    });
-    
-    const categories = new Set(documents.map(d => d.category).filter(Boolean));
-    const types = new Set(documents.map(d => d.document_type));
-    const statuses = new Set(documents.map(d => d.status));
-    const years = new Set(documents.map(d => d.year).filter(Boolean));
-    
+
+    const sortedList = (set, desc = false) => [...set].sort((a, b) => desc ? b.localeCompare(a) : a.localeCompare(b, "uk"));
+    const documents = dbData.map((doc) => ({ ...doc, year: doc.adoption_date ? doc.adoption_date.split("-")[0] : "" }));
+
     const localPayload = {
       total_documents: documents.length,
-      categories: sortedList(categories),
-      types: sortedList(types),
-      statuses: sortedList(statuses),
-      years: sortedList(years, true),
-      documents: dbData // Keep raw dbData (without calculated year, since app.js calculates it)
+      categories: sortedList(new Set(documents.map((d) => d.category).filter(Boolean))),
+      types: sortedList(new Set(documents.map((d) => d.document_type))),
+      statuses: sortedList(new Set(documents.map((d) => d.status))),
+      years: sortedList(new Set(documents.map((d) => d.year).filter(Boolean)), true),
+      documents: dbData
     };
-    
-    // 3. Post to local API
+
     const response = await fetch("/api/save-data", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        filename: "regulatory_documents.json",
-        data: localPayload
-      })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ filename: "regulatory_documents.json", data: localPayload })
     });
-    
+
     if (!response.ok) {
-      const errMsg = await response.text();
-      throw new Error(`Помилка сервера: ${errMsg}`);
+      throw new Error(`Помилка сервера: ${await response.text()}`);
     }
-    
     const resData = await response.json();
     if (resData.status === "success") {
-      showAlert(`Локальну копію нормативної бази (всього: ${documents.length} документів) успішно оновлено!`, "success");
+      showAlert(`Локальну копію бази (${documents.length} документів) успішно оновлено!`, "success");
     } else {
       throw new Error("Невідома відповідь сервера.");
     }
@@ -252,49 +288,30 @@ async function handleLocalSync() {
   }
 }
 
-// Seed Supabase with local JSON documents
 async function handleSeedSupabase() {
-  const btnSeed = el('btn-seed-supabase');
+  const btnSeed = el("btn-seed-supabase");
   btnSeed.disabled = true;
-  btnSeed.textContent = "Завантаження...";
+  btnSeed.textContent = "Завантаження…";
 
   try {
-    // 1. Fetch from local JSON file
     const response = await fetch("data/regulatory_documents.json");
-    if (!response.ok) {
-      throw new Error(`Не вдалося завантажити локальний файл: ${response.statusText}`);
-    }
+    if (!response.ok) throw new Error(`Не вдалося завантажити локальний файл: ${response.statusText}`);
     const localData = await response.json();
     const docs = localData.documents || [];
+    if (!docs.length) throw new Error("У локальному JSON-файлі немає документів для завантаження.");
 
-    if (docs.length === 0) {
-      throw new Error("У локальному JSON-файлі немає документів для завантаження.");
-    }
-
-    // 2. Check if Supabase already has documents
     const { count, error: countErr } = await sbClient
-      .from('regulatory_documents')
-      .select('*', { count: 'exact', head: true });
-    
+      .from("regulatory_documents")
+      .select("*", { count: "exact", head: true });
     if (countErr) throw countErr;
     if (count && count > 0) {
-      if (!confirm(`У Supabase вже є ${count} документів. Ви дійсно бажаєте додати початкові документи (це може створити дублікати)?`)) {
-        btnSeed.disabled = false;
-        btnSeed.textContent = "📥 Завантажити початкові дані у Supabase";
+      if (!confirm(`У Supabase вже є ${count} документів. Додати початкові документи (можливі дублікати)?`)) {
         return;
       }
     }
 
-    // 3. Prepare payload
-    let updaterName = "Адміністратор";
-    try {
-      const { data: { session } } = await sbClient.auth.getSession();
-      if (session && session.user) {
-        updaterName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email.split('@')[0];
-      }
-    } catch(e) {}
-
-    const payload = docs.map(doc => ({
+    const updaterName = await getUpdaterName("Адміністратор");
+    const payload = docs.map((doc) => ({
       title: doc.title,
       document_type: doc.document_type,
       document_number: doc.document_number,
@@ -307,8 +324,7 @@ async function handleSeedSupabase() {
       updated_by_name: updaterName
     }));
 
-    // 4. Insert into Supabase
-    const { error: insertErr } = await sbClient.from('regulatory_documents').insert(payload);
+    const { error: insertErr } = await sbClient.from("regulatory_documents").insert(payload);
     if (insertErr) throw insertErr;
 
     showAlert(`Успішно завантажено ${payload.length} документів у Supabase!`, "success");
@@ -322,35 +338,29 @@ async function handleSeedSupabase() {
   }
 }
 
-// Check auth role and init
+/* ---------------- Ініціалізація ---------------- */
+
 async function init() {
   try {
-    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-    const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
+    const { createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm");
+    const SUPABASE_URL = "https://qdqtkvyvhtjgxpxnvblk.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz";
     sbClient = createClient(SUPABASE_URL, SUPABASE_KEY);
-    
-    // Fetch initial documents list
+
     await fetchAllDocuments();
-    
-    // Event listeners
-    el('editor-mode').addEventListener('change', handleModeChange);
-    el('edit-document-select').addEventListener('change', (e) => {
-      fillFormWithSelectedDocument(e.target.value);
-    });
-    el('document-form').addEventListener('submit', handleFormSubmit);
-    el('btn-sync-local').addEventListener('click', handleLocalSync);
-    
-    const btnSeedSupabase = el('btn-seed-supabase');
-    if (btnSeedSupabase) {
-      btnSeedSupabase.addEventListener('click', handleSeedSupabase);
-    }
-    
+
+    el("admSearch").addEventListener("input", renderList);
+    el("admTypeFilter").addEventListener("change", renderList);
+    el("btnNew").addEventListener("click", resetForm);
+    el("btn-cancel").addEventListener("click", resetForm);
+    el("btn-delete").addEventListener("click", handleDelete);
+    el("document-form").addEventListener("submit", handleFormSubmit);
+    el("btn-sync-local").addEventListener("click", handleLocalSync);
+    el("btn-seed-supabase").addEventListener("click", handleSeedSupabase);
   } catch (err) {
     console.error("Initialization error:", err);
     showAlert("Не вдалося ініціалізувати сторінку: " + err.message, "error");
   }
 }
 
-// Run on load
 document.addEventListener("DOMContentLoaded", init);

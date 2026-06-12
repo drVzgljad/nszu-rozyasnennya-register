@@ -1,405 +1,685 @@
-const state = { 
-  data: null, 
-  visible: [], 
-  selected: null 
+/* ============================================================
+   Нормативно-правова база — сервіс v2
+   Логіка: Пошуковий хаб → Робоче місце документа
+   Дані: data/regulatory_documents.json (реєстр)
+         data/search_index.json (фрагменти повних текстів)
+   ============================================================ */
+
+const state = {
+  docs: [],            // реєстр документів
+  chunksByNumber: {},  // фрагменти, згруповані за document_number
+  visible: [],         // результат фільтрації хабу
+  hits: {},            // doc.id -> к-ть фрагментів, що містять запит
+  selected: null,      // відкритий документ
+  docChunks: [],       // фрагменти відкритого документа (в порядку файла)
+  tree: null,          // дерево структури відкритого документа
+  activePath: "",      // обраний вузол дерева (префікс шляху)
+  inQuery: "",         // пошук всередині документа
+  fnFilter: "",        // фільтр за юридичною функцією
+  keyMoments: false,   // режим «Ключові вимоги»
+  matchEls: [],        // позиції збігів (елементи <mark>)
+  matchIdx: -1,
+  passportCollapsed: false
 };
+
 const el = (id) => document.getElementById(id);
 
-const filterDefinitions = [
-  { id: "document_type", allLabel: "Усі види", value: (doc) => doc.document_type, display: (v) => v },
-  { id: "status", allLabel: "Усі статуси", value: (doc) => doc.status, display: (v) => v },
-  { id: "category", allLabel: "Усі теми", value: (doc) => doc.category, display: (v) => v },
-  { id: "year", allLabel: "Усі роки", value: (doc) => doc.year, display: (v) => v }
-];
-
-const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
+const escapeHtml = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-}[char]));
+}[c]));
 
-function currentFilters() {
+const debounce = (fn, ms) => {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+};
+
+/* ---------------- Довідники відображення ---------------- */
+
+function typePillClass(type) {
+  const t = (type || "").toLowerCase();
+  if (t === "закон") return "t-zakon";
+  if (t.includes("постанова")) return "t-postanova";
+  if (t.includes("наказ моз")) return "t-nakaz-moz";
+  if (t.includes("наказ нсзу")) return "t-nakaz-nszu";
+  return "t-other";
+}
+
+function statusPill(status) {
+  const s = (status || "").toLowerCase();
+  if (s === "чинний") return `<span class="pill s-active">✓ чинний</span>`;
+  if (s === "проєкт") return `<span class="pill s-draft">проєкт</span>`;
+  if (s.includes("втрат")) return `<span class="pill s-expired">втратив чинність</span>`;
+  return `<span class="pill t-other">${escapeHtml(status || "—")}</span>`;
+}
+
+function fnBadgeClass(fn) {
+  const f = (fn || "").toLowerCase();
+  if (f.includes("обов")) return "obligation";
+  if (f.includes("заборон")) return "prohibition";
+  if (f.includes("право")) return "right";
+  if (f.includes("процедур")) return "procedure";
+  if (f.includes("визначен")) return "definition";
+  if (f.includes("затвердж")) return "approval";
+  return "";
+}
+
+function fmtDate(iso) {
+  if (!iso) return "—";
+  const m = String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return iso;
+  return `${m[3]}.${m[2]}.${m[1]}`;
+}
+
+function docChunks(doc) {
+  return state.chunksByNumber[doc.document_number] || [];
+}
+
+/* ============================================================
+   VIEW 1 — ПОШУКОВИЙ ХАБ
+   ============================================================ */
+
+function hubFilters() {
   return {
-    query: el("search").value.trim().toLowerCase(),
-    document_type: el("document_type").value,
-    status: el("status").value,
-    category: el("category").value,
-    year: el("year").value
+    query: el("hubSearch").value.trim().toLowerCase(),
+    type: el("f-type").value,
+    status: el("f-status").value,
+    category: el("f-category").value,
+    year: el("f-year").value,
+    number: el("f-number").value.trim().toLowerCase(),
+    text: el("f-text").value,
+    sort: el("f-sort").value
   };
 }
 
-function matchesFilters(doc, filters, ignored = "") {
-  if (filters.query && !doc.search_text.includes(filters.query)) return false;
-  if (ignored !== "document_type" && filters.document_type && doc.document_type !== filters.document_type) return false;
-  if (ignored !== "status" && filters.status && doc.status !== filters.status) return false;
-  if (ignored !== "category" && filters.category && doc.category !== filters.category) return false;
-  if (ignored !== "year" && filters.year && doc.year !== filters.year) return false;
-  return true;
+function applyHubFilters() {
+  const f = hubFilters();
+  state.hits = {};
+
+  let list = state.docs.filter((doc) => {
+    if (f.type && doc.document_type !== f.type) return false;
+    if (f.status && doc.status !== f.status) return false;
+    if (f.category && doc.category !== f.category) return false;
+    if (f.year && !(doc.adoption_date || "").startsWith(f.year)) return false;
+    if (f.number && !(doc.document_number || "").toLowerCase().includes(f.number)) return false;
+    const hasText = docChunks(doc).length > 0;
+    if (f.text === "yes" && !hasText) return false;
+    if (f.text === "no" && hasText) return false;
+
+    if (f.query) {
+      const meta = [
+        doc.title, doc.document_number, doc.document_type,
+        doc.category, doc.content, doc.adoption_date, fmtDate(doc.adoption_date)
+      ].join(" ").toLowerCase();
+      const metaHit = f.query.split(/\s+/).every((w) => meta.includes(w));
+
+      // Глибокий пошук: рахуємо фрагменти повного тексту, що містять усі слова
+      let deepHits = 0;
+      if (f.query.length >= 3) {
+        const words = f.query.split(/\s+/).filter((w) => w.length >= 2);
+        if (words.length) {
+          for (const ch of docChunks(doc)) {
+            const txt = (ch.text_original || "").toLowerCase();
+            if (words.every((w) => txt.includes(w))) deepHits++;
+          }
+        }
+      }
+      if (deepHits > 0) state.hits[doc.id] = deepHits;
+      if (!metaHit && deepHits === 0) return false;
+    }
+    return true;
+  });
+
+  // Сортування
+  const q = f.query;
+  list.sort((a, b) => {
+    if (f.sort === "title") return (a.title || "").localeCompare(b.title || "", "uk");
+    if (f.sort === "date-asc") return (a.adoption_date || "").localeCompare(b.adoption_date || "");
+    if (f.sort === "relevance" && q) {
+      const score = (d) => {
+        let s = 0;
+        if ((d.title || "").toLowerCase().includes(q)) s += 100;
+        if ((d.document_number || "").toLowerCase().includes(q)) s += 80;
+        s += (state.hits[d.id] || 0);
+        return s;
+      };
+      return score(b) - score(a);
+    }
+    return (b.adoption_date || "").localeCompare(a.adoption_date || ""); // date-desc
+  });
+
+  state.visible = list;
+  renderHub();
 }
 
-function refreshFilterMenus() {
-  let filtersChanged = false;
-  do {
-    filtersChanged = false;
-    const filters = currentFilters();
-    filterDefinitions.forEach((definition) => {
-      const select = el(definition.id);
-      const currentValue = select.value;
-      const counts = new Map();
-      
-      state.data.documents
-        .filter((doc) => matchesFilters(doc, filters, definition.id))
-        .forEach((doc) => {
-          const value = definition.value(doc);
-          if (!value) return;
-          counts.set(value, (counts.get(value) || 0) + 1);
-        });
-        
-      const options = [...counts.keys()].sort((left, right) =>
-        definition.id === "year"
-          ? right.localeCompare(left)
-          : definition.display(left).localeCompare(definition.display(right), "uk")
-      );
-      
-      select.innerHTML = "";
-      select.appendChild(new Option(definition.allLabel, ""));
-      options.forEach((value) => {
-        select.add(new Option(`${definition.display(value)} (${counts.get(value)})`, value));
-      });
-      
-      if (currentValue && counts.has(currentValue)) {
-        select.value = currentValue;
-      } else if (currentValue) {
-        select.value = "";
-        filtersChanged = true;
+function renderHub() {
+  const f = hubFilters();
+  const grid = el("docGrid");
+  const total = state.visible.length;
+
+  el("hubSearchWrap").classList.toggle("has-query", !!f.query);
+  el("resultLine").innerHTML = total
+    ? `Знайдено: <strong>${total}</strong> ${pluralDocs(total)}${f.query ? ` за запитом «<strong>${escapeHtml(f.query)}</strong>»` : ""}`
+    : "За цими умовами документів немає";
+  el("hubEmpty").style.display = total ? "none" : "block";
+
+  grid.innerHTML = state.visible.map((doc) => {
+    const hits = state.hits[doc.id] || 0;
+    const hasText = docChunks(doc).length > 0;
+    const snippet = doc.content || "";
+    return `
+      <button class="doc-tile" type="button" data-id="${doc.id}">
+        <span class="tile-tags">
+          <span class="pill ${typePillClass(doc.document_type)}">${escapeHtml(doc.document_type || "Акт")}</span>
+          ${statusPill(doc.status)}
+          ${hasText ? `<span class="pill has-text">📖 повний текст</span>` : ""}
+        </span>
+        <span class="tile-title">${highlight(doc.title, f.query)}</span>
+        <span class="tile-req">№ ${escapeHtml(doc.document_number || "б/н")} · від ${fmtDate(doc.adoption_date)} · ${escapeHtml(doc.category || "—")}</span>
+        ${snippet ? `<span class="tile-snippet">${highlight(snippet, f.query)}</span>` : ""}
+        ${hits ? `<span class="tile-hits">Запит знайдено у ${hits} ${pluralFragments(hits)} тексту</span>` : ""}
+        <span class="tile-foot">
+          <span>${hasText ? `${docChunks(doc).length} фрагментів` : "лише картка документа"}</span>
+          <span class="tile-open">Відкрити →</span>
+        </span>
+      </button>`;
+  }).join("");
+
+  grid.querySelectorAll(".doc-tile").forEach((tile) => {
+    tile.addEventListener("click", () => openDoc(tile.dataset.id, hubFilters().query));
+  });
+}
+
+function pluralDocs(n) {
+  const m10 = n % 10, m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return "документ";
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return "документи";
+  return "документів";
+}
+function pluralFragments(n) {
+  const m10 = n % 10, m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return "фрагменті";
+  return "фрагментах";
+}
+
+function highlight(text, query) {
+  if (!query) return escapeHtml(text);
+  const words = query.split(/\s+/).filter((w) => w.length >= 2);
+  if (!words.length) return escapeHtml(text);
+  let html = escapeHtml(text);
+  for (const w of words) {
+    const esc = w.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
+    try { html = html.replace(new RegExp(`(${esc})`, "gi"), "<mark>$1</mark>"); } catch (e) { /* ignore */ }
+  }
+  return html;
+}
+
+/* ============================================================
+   VIEW 2 — РОБОЧЕ МІСЦЕ ДОКУМЕНТА
+   ============================================================ */
+
+function openDoc(id, presetQuery = "") {
+  const doc = state.docs.find((d) => d.id === id);
+  if (!doc) return;
+  state.selected = doc;
+  state.docChunks = docChunks(doc);
+  state.activePath = "";
+  state.fnFilter = "";
+  state.keyMoments = false;
+  state.inQuery = presetQuery && state.hits[doc.id] ? presetQuery : "";
+  state.passportCollapsed = false;
+
+  location.hash = `doc=${encodeURIComponent(id)}`;
+
+  el("view-hub").classList.remove("visible");
+  el("view-doc").classList.add("visible");
+  window.scrollTo(0, 0);
+
+  el("wsTitle").textContent = doc.title;
+  el("inSearch").value = state.inQuery;
+  el("keyMomentsBtn").classList.remove("on");
+  renderPassport(doc);
+  buildFnFilter();
+  buildTree();
+  renderChunks();
+}
+
+function closeDoc() {
+  state.selected = null;
+  history.replaceState(null, "", location.pathname + location.search);
+  el("view-doc").classList.remove("visible");
+  el("view-hub").classList.add("visible");
+  window.scrollTo(0, 0);
+}
+
+/* ---------------- Паспорт документа ---------------- */
+
+function renderPassport(doc) {
+  const chunks = state.docChunks;
+  const fnStats = {};
+  for (const ch of chunks) {
+    const fn = ch.legal_function || "Інше";
+    if (fn !== "Інше" && fn !== "None") fnStats[fn] = (fnStats[fn] || 0) + 1;
+  }
+  const fnLine = Object.entries(fnStats)
+    .sort((a, b) => b[1] - a[1])
+    .map(([fn, n]) => `<span class="fn-badge ${fnBadgeClass(fn)}">${escapeHtml(fn)}: ${n}</span>`)
+    .join(" ");
+
+  const topics = [...new Set(chunks.flatMap((c) => c.topics || []))].slice(0, 6);
+  const authority = chunks[0]?.authority || authorityByType(doc.document_type);
+
+  el("wsPassport").innerHTML = `
+    <div class="ws-passport-head">
+      <div class="ws-passport-tags">
+        <span class="pill ${typePillClass(doc.document_type)}">${escapeHtml(doc.document_type || "Акт")}</span>
+        ${statusPill(doc.status)}
+        <span class="pill t-other">№ ${escapeHtml(doc.document_number || "б/н")}</span>
+        <span class="pill t-other">від ${fmtDate(doc.adoption_date)}</span>
+      </div>
+      <div class="ws-passport-actions">
+        ${doc.document_url ? `<a class="btn-link primary" href="${escapeHtml(doc.document_url)}" target="_blank" rel="noopener">⚖️ Перевірити чинність на rada.gov.ua</a>` : ""}
+        ${doc.file_url ? `<a class="btn-link" href="${escapeHtml(doc.file_url)}" target="_blank" rel="noopener">📄 Локальна копія</a>` : ""}
+        <button class="btn-link" id="copyReqBtn" type="button" title="Скопіювати реквізити документа">📋 Реквізити</button>
+      </div>
+    </div>
+    <div class="passport-details" id="passportDetails">
+      <div class="ws-passport-grid">
+        <div class="pp-item"><div class="pp-label">Орган, що видав</div><div class="pp-value">${escapeHtml(authority)}</div></div>
+        <div class="pp-item"><div class="pp-label">Напрям / тема</div><div class="pp-value">${escapeHtml(doc.category || "—")}</div></div>
+        <div class="pp-item"><div class="pp-label">Дата прийняття</div><div class="pp-value">${fmtDate(doc.adoption_date)}</div></div>
+        <div class="pp-item"><div class="pp-label">Статус</div><div class="pp-value">${escapeHtml(doc.status || "—")}</div></div>
+        <div class="pp-item"><div class="pp-label">Обсяг тексту</div><div class="pp-value">${chunks.length ? chunks.length + " фрагментів" : "повний текст недоступний"}</div></div>
+        <div class="pp-item"><div class="pp-label">Оновлено в базі</div><div class="pp-value">${fmtDate(doc.updated_at)} ${doc.updated_by_name ? "· " + escapeHtml(doc.updated_by_name) : ""}</div></div>
+      </div>
+      ${doc.content ? `<p class="ws-passport-desc">${escapeHtml(doc.content)}</p>` : ""}
+      ${fnLine ? `<div style="margin-top:10px; display:flex; gap:6px; flex-wrap:wrap; align-items:center;"><span style="font-size:11px; font-weight:800; text-transform:uppercase; color:var(--muted);">Юридичні акценти:</span> ${fnLine}</div>` : ""}
+      ${topics.length ? `<div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap; align-items:center;"><span style="font-size:11px; font-weight:800; text-transform:uppercase; color:var(--muted);">Теми:</span> ${topics.map((t) => `<span class="pill t-other" style="text-transform:none;">${escapeHtml(t)}</span>`).join("")}</div>` : ""}
+    </div>
+    <button class="ws-passport-toggle" id="passportToggle" type="button">▲ Згорнути довідку</button>
+  `;
+
+  el("copyReqBtn").addEventListener("click", () => {
+    const req = `${doc.document_type} № ${doc.document_number} від ${fmtDate(doc.adoption_date)} «${doc.title}» (${doc.status})${doc.document_url ? "\n" + doc.document_url : ""}`;
+    copyToClipboard(req, "Реквізити скопійовано");
+  });
+  el("passportToggle").addEventListener("click", () => {
+    state.passportCollapsed = !state.passportCollapsed;
+    el("passportDetails").style.display = state.passportCollapsed ? "none" : "";
+    el("passportToggle").textContent = state.passportCollapsed ? "▼ Розгорнути довідку" : "▲ Згорнути довідку";
+  });
+}
+
+function authorityByType(type) {
+  const t = (type || "").toLowerCase();
+  if (t === "закон") return "Верховна Рада України";
+  if (t.includes("постанова")) return "Кабінет Міністрів України";
+  if (t.includes("моз")) return "МОЗ України";
+  if (t.includes("нсзу")) return "НСЗУ";
+  return "—";
+}
+
+/* ---------------- Дерево структури ---------------- */
+
+function buildTree() {
+  const root = { label: "", children: new Map(), count: 0, path: "" };
+  for (const ch of state.docChunks) {
+    const segs = (ch.path || "Документ").split(" / ");
+    let node = root;
+    let acc = [];
+    root.count++;
+    for (const seg of segs) {
+      acc.push(seg);
+      if (!node.children.has(seg)) {
+        node.children.set(seg, { label: seg, children: new Map(), count: 0, path: acc.join(" / ") });
       }
+      node = node.children.get(seg);
+      node.count++;
+    }
+  }
+  state.tree = root;
+  renderTree();
+}
+
+function renderTree() {
+  const tree = el("wsTree");
+  if (!state.docChunks.length) {
+    tree.innerHTML = `<div class="ws-tree-head">Структура</div>
+      <p style="font-size:12.5px; color:var(--muted); padding:6px 8px; line-height:1.5;">
+      Повний текст цього документа ще не завантажено до бази. Доступна лише картка документа.</p>`;
+    return;
+  }
+  let html = `<div class="ws-tree-head">
+      <span>Структура документа</span>
+      <button class="crumb-reset" id="treeAll" type="button" style="font-size:11px;">Увесь текст</button>
+    </div>`;
+  html += renderTreeNodes(state.tree, 0);
+  tree.innerHTML = html;
+
+  tree.querySelector("#treeAll")?.addEventListener("click", () => setActivePath(""));
+  tree.querySelectorAll(".tree-caret:not(.leaf)").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      btn.classList.toggle("open");
+      btn.closest(".tree-node").querySelector(":scope > .tree-children")?.classList.toggle("open");
     });
-  } while (filtersChanged);
+  });
+  tree.querySelectorAll(".tree-label").forEach((btn) => {
+    btn.addEventListener("click", () => setActivePath(btn.dataset.path));
+  });
+  markActiveTreeRow();
+}
+
+function renderTreeNodes(node, depth) {
+  let html = "";
+  for (const child of node.children.values()) {
+    const hasKids = child.children.size > 0;
+    const isTop = depth === 0;
+    html += `<div class="tree-node">
+      <div class="tree-row" data-path="${escapeHtml(child.path)}">
+        <button class="tree-caret ${hasKids ? (isTop ? "open" : "") : "leaf"}" type="button" aria-label="Розгорнути">▶</button>
+        <button class="tree-label" type="button" data-path="${escapeHtml(child.path)}" title="${escapeHtml(child.path)}">${escapeHtml(child.label)}</button>
+        <span class="tree-count">${child.count}</span>
+      </div>
+      ${hasKids ? `<div class="tree-children ${isTop ? "open" : ""}">${renderTreeNodes(child, depth + 1)}</div>` : ""}
+    </div>`;
+  }
+  return html;
+}
+
+function setActivePath(path) {
+  state.activePath = path;
+  markActiveTreeRow();
+  renderChunks();
+}
+
+function markActiveTreeRow() {
+  document.querySelectorAll("#wsTree .tree-row").forEach((row) => {
+    row.classList.toggle("active", row.dataset.path === state.activePath && state.activePath !== "");
+  });
+  const crumb = el("wsCrumb");
+  if (state.activePath) {
+    crumb.style.display = "";
+    el("crumbPath").textContent = "📍 " + state.activePath;
+  } else {
+    crumb.style.display = "none";
+  }
+}
+
+/* ---------------- Фільтр юридичних функцій ---------------- */
+
+function buildFnFilter() {
+  const sel = el("fnFilter");
+  const fns = [...new Set(state.docChunks.map((c) => c.legal_function).filter((f) => f && f !== "None" && f !== "Інше"))];
+  sel.innerHTML = `<option value="">Усі типи норм</option>` +
+    fns.sort((a, b) => a.localeCompare(b, "uk")).map((f) => `<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`).join("");
+  sel.value = "";
+}
+
+/* ---------------- Рендер фрагментів ---------------- */
+
+function visibleChunks() {
+  const q = state.inQuery.trim().toLowerCase();
+  const words = q.split(/\s+/).filter((w) => w.length >= 2);
+  return state.docChunks.filter((ch) => {
+    if (state.activePath) {
+      const p = ch.path || "";
+      if (p !== state.activePath && !p.startsWith(state.activePath + " / ")) return false;
+    }
+    if (state.fnFilter && (ch.legal_function || "") !== state.fnFilter) return false;
+    if (state.keyMoments) {
+      const f = (ch.legal_function || "").toLowerCase();
+      if (!f.includes("обов") && !f.includes("заборон")) return false;
+    }
+    if (words.length) {
+      const txt = ((ch.text_original || "") + " " + (ch.path || "")).toLowerCase();
+      if (!words.every((w) => txt.includes(w))) return false;
+    }
+    return true;
+  });
+}
+
+function renderChunks() {
+  const wrap = el("wsChunks");
+  const doc = state.selected;
+  if (!doc) return;
+
+  if (!state.docChunks.length) {
+    wrap.innerHTML = `<div class="ws-notext">
+      <div class="ico">📄</div>
+      <h3>Повний текст недоступний у базі</h3>
+      <p>Скористайтесь офіційним джерелом${doc.document_url ? `: <a href="${escapeHtml(doc.document_url)}" target="_blank" rel="noopener">відкрити на zakon.rada.gov.ua →</a>` : "."}</p>
+      ${doc.file_url ? `<p><a href="${escapeHtml(doc.file_url)}" target="_blank" rel="noopener">Або відкрийте локальну копію →</a></p>` : ""}
+    </div>`;
+    updateMatchNav([]);
+    return;
+  }
+
+  const list = visibleChunks();
+  const q = state.inQuery.trim();
+
+  if (!list.length) {
+    wrap.innerHTML = `<div class="ws-notext">
+      <div class="ico">🔍</div>
+      <h3>Збігів не знайдено</h3>
+      <p>Змініть запит, тип норми або оберіть інший розділ структури.</p>
+    </div>`;
+    updateMatchNav([]);
+    return;
+  }
+
+  wrap.innerHTML = list.map((ch, i) => {
+    const fn = ch.legal_function || "";
+    const showFn = fn && fn !== "None" && fn !== "Інше";
+    const fnCls = fnBadgeClass(fn);
+    return `
+    <article class="chunk ${fnCls ? "f-" + fnCls : ""}" data-idx="${i}" id="chunk-${i}">
+      <div class="chunk-head">
+        <button class="chunk-path" type="button" data-path="${escapeHtml(ch.path || "")}" title="Перейти до цього розділу в структурі">${escapeHtml(ch.path || "Документ")}</button>
+        ${showFn ? `<span class="fn-badge ${fnCls}">${escapeHtml(fn)}</span>` : ""}
+      </div>
+      <div class="chunk-text">${highlight(ch.text_original || "", q)}</div>
+      <div class="chunk-tools">
+        <button type="button" class="copy-text" title="Скопіювати текст фрагмента">📋 Текст</button>
+        <button type="button" class="copy-cite" title="Скопіювати з реквізитами для офіційної відповіді">🔖 З посиланням</button>
+      </div>
+    </article>`;
+  }).join("");
+
+  // обробники
+  wrap.querySelectorAll(".chunk").forEach((node) => {
+    const ch = list[Number(node.dataset.idx)];
+    node.querySelector(".copy-text").addEventListener("click", () => {
+      copyToClipboard(ch.text_original || "", "Текст фрагмента скопійовано");
+    });
+    node.querySelector(".copy-cite").addEventListener("click", () => {
+      const doc = state.selected;
+      const cite = `${ch.text_original || ""}\n\n— ${doc.document_type} № ${doc.document_number} від ${fmtDate(doc.adoption_date)} «${doc.title}», ${ch.path || ""}${doc.document_url ? "\n" + doc.document_url : ""}`;
+      copyToClipboard(cite, "Фрагмент з реквізитами скопійовано");
+    });
+    node.querySelector(".chunk-path").addEventListener("click", (e) => {
+      setActivePath(e.currentTarget.dataset.path);
+    });
+  });
+
+  // навігація по збігах
+  updateMatchNav([...wrap.querySelectorAll("mark")]);
+}
+
+/* ---------------- Навігація по збігах пошуку ---------------- */
+
+function updateMatchNav(marks) {
+  state.matchEls = marks;
+  state.matchIdx = marks.length ? 0 : -1;
+  const nav = el("inSearchNav");
+  if (!state.inQuery.trim() || !marks.length) {
+    nav.style.display = state.inQuery.trim() ? "" : "none";
+    el("matchCount").textContent = state.inQuery.trim() ? "0" : "";
+    return;
+  }
+  nav.style.display = "";
+  highlightCurrentMatch(false);
+}
+
+function highlightCurrentMatch(scroll = true) {
+  state.matchEls.forEach((m) => m.classList.remove("current"));
+  if (state.matchIdx < 0 || !state.matchEls.length) return;
+  const cur = state.matchEls[state.matchIdx];
+  cur.classList.add("current");
+  el("matchCount").textContent = `${state.matchIdx + 1} / ${state.matchEls.length}`;
+  if (scroll) cur.scrollIntoView({ block: "center", behavior: "smooth" });
+}
+
+function gotoMatch(delta) {
+  if (!state.matchEls.length) return;
+  state.matchIdx = (state.matchIdx + delta + state.matchEls.length) % state.matchEls.length;
+  highlightCurrentMatch(true);
+}
+
+/* ---------------- Буфер обміну ---------------- */
+
+let toastTimer;
+function copyToClipboard(text, message) {
+  const done = () => {
+    const toast = el("copyToast");
+    toast.textContent = message || "Скопійовано";
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 1800);
+  };
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+function fallbackCopy(text, done) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.cssText = "position:fixed;opacity:0;";
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand("copy"); } catch (e) { /* ignore */ }
+  document.body.removeChild(ta);
+  done();
+}
+
+/* ============================================================
+   ІНІЦІАЛІЗАЦІЯ
+   ============================================================ */
+
+function populateHubFilters(data) {
+  const fill = (id, values) => {
+    const sel = el(id);
+    const first = sel.querySelector("option");
+    sel.innerHTML = "";
+    sel.appendChild(first);
+    for (const v of values) {
+      const opt = document.createElement("option");
+      opt.value = v; opt.textContent = v;
+      sel.appendChild(opt);
+    }
+  };
+  fill("f-type", data.types || [...new Set(state.docs.map((d) => d.document_type))].sort());
+  fill("f-status", data.statuses || [...new Set(state.docs.map((d) => d.status))].sort());
+  fill("f-category", (data.categories || [...new Set(state.docs.map((d) => d.category))]).sort((a, b) => a.localeCompare(b, "uk")));
+  const years = data.years || [...new Set(state.docs.map((d) => (d.adoption_date || "").slice(0, 4)).filter(Boolean))];
+  fill("f-year", [...years].sort((a, b) => b.localeCompare(a)));
 }
 
 function renderStats() {
-  const activeCount = state.data.documents.filter(doc => doc.status.toLowerCase().startsWith("чинн")).length;
-  const uniqueCategories = new Set(state.data.documents.map(doc => doc.category).filter(Boolean)).size;
-
-  el("stats").innerHTML = [
-    [state.data.total_documents, "документів"],
-    [uniqueCategories, "напрямів / тем"],
-    [activeCount, "чинних актів"]
-  ].map(([number, label]) => `<div class="stat"><strong>${number}</strong><span>${label}</span></div>`).join("");
+  const total = state.docs.length;
+  const active = state.docs.filter((d) => d.status === "чинний").length;
+  const fragments = Object.values(state.chunksByNumber).reduce((s, arr) => s + arr.length, 0);
+  const withText = state.docs.filter((d) => docChunks(d).length > 0).length;
+  el("stats").innerHTML = `
+    <div class="stat"><strong>${total}</strong><span>документів</span></div>
+    <div class="stat"><strong>${active}</strong><span>чинних актів</span></div>
+    <div class="stat"><strong>${withText}</strong><span>з повним текстом</span></div>
+    <div class="stat"><strong>${fragments}</strong><span>фрагментів норм</span></div>`;
 }
 
-function applyFilters() {
-  refreshFilterMenus();
-  const filters = currentFilters();
-  
-  if (!hasActiveFilters(filters)) {
-    state.visible = [...state.data.documents];
-    // Sort by adoption date descending, or by title
-    state.visible.sort((left, right) => {
-      const dateL = left.adoption_date || "";
-      const dateR = right.adoption_date || "";
-      if (dateL || dateR) return dateR.localeCompare(dateL);
-      return left.title.localeCompare(right.title, "uk");
-    });
-    el("resultCount").textContent = `Всього документів: ${state.visible.length}`;
-    renderCards();
-    if (state.visible.length > 0) {
-      selectDocument(state.visible[0].id);
-    } else {
-      renderWelcome();
+function bindEvents() {
+  const rerun = debounce(applyHubFilters, 220);
+  el("hubSearch").addEventListener("input", rerun);
+  el("hubSearchClear").addEventListener("click", () => { el("hubSearch").value = ""; applyHubFilters(); el("hubSearch").focus(); });
+  ["f-type", "f-status", "f-category", "f-year", "f-text", "f-sort"].forEach((id) => el(id).addEventListener("change", applyHubFilters));
+  el("f-number").addEventListener("input", rerun);
+  el("resetFilters").addEventListener("click", () => {
+    el("hubSearch").value = "";
+    ["f-type", "f-status", "f-category", "f-year", "f-text"].forEach((id) => { el(id).value = ""; });
+    el("f-number").value = "";
+    el("f-sort").value = "date-desc";
+    applyHubFilters();
+  });
+
+  el("btnBack").addEventListener("click", closeDoc);
+
+  const rerenderDoc = debounce(() => {
+    state.inQuery = el("inSearch").value;
+    renderChunks();
+  }, 200);
+  el("inSearch").addEventListener("input", rerenderDoc);
+  el("inSearch").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); gotoMatch(e.shiftKey ? -1 : 1); }
+  });
+  el("matchPrev").addEventListener("click", () => gotoMatch(-1));
+  el("matchNext").addEventListener("click", () => gotoMatch(1));
+
+  el("fnFilter").addEventListener("change", (e) => { state.fnFilter = e.target.value; renderChunks(); });
+  el("keyMomentsBtn").addEventListener("click", () => {
+    state.keyMoments = !state.keyMoments;
+    el("keyMomentsBtn").classList.toggle("on", state.keyMoments);
+    renderChunks();
+  });
+  el("crumbReset").addEventListener("click", () => setActivePath(""));
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && state.selected) closeDoc();
+    if (e.key === "/" && !state.selected && document.activeElement?.tagName !== "INPUT") {
+      e.preventDefault();
+      el("hubSearch").focus();
     }
-    return;
-  }
-  
-  const query = filters.query;
-  state.visible = state.data.documents.filter((doc) => matchesFilters(doc, filters));
-  
-  if (query) {
-    state.visible.sort((left, right) => searchScore(right, query) - searchScore(left, query) || right.adoption_date.localeCompare(left.adoption_date));
-  } else {
-    state.visible.sort((left, right) =>
-      left.category.localeCompare(right.category, "uk") ||
-      left.title.localeCompare(right.title, "uk")
-    );
-  }
-  
-  el("resultCount").textContent = `Знайдено: ${state.visible.length} з ${state.data.total_documents}`;
-  renderCards();
-  if (!state.visible.length) {
-    renderNoResults();
-    return;
-  }
-  if (!state.selected || !state.visible.some((doc) => doc.id === state.selected.id)) {
-    selectDocument(state.visible[0].id);
-  }
-}
-
-function hasActiveFilters(filters) {
-  return Object.values(filters).some((value) => Boolean(value));
-}
-
-function searchScore(doc, query) {
-  const title = doc.title.toLowerCase();
-  const category = doc.category ? doc.category.toLowerCase() : "";
-  const docType = doc.document_type.toLowerCase();
-  const number = doc.document_number ? doc.document_number.toLowerCase() : "";
-  const content = doc.content ? doc.content.toLowerCase() : "";
-  
-  let score = 1;
-  if (title.includes(query)) score += 80;
-  if (number && number.includes(query)) score += 90;
-  if (category && category.includes(query)) score += 50;
-  if (docType.includes(query)) score += 30;
-  if (content.includes(query)) score += 20;
-  return score;
-}
-
-function renderCards(isBlank = false) {
-  const container = el("cards");
-  container.innerHTML = "";
-  if (isBlank) return;
-  if (!state.visible.length) {
-    container.innerHTML = '<div class="no-results">За цими умовами документів не знайдено. Спробуйте змінити фільтри.</div>';
-    return;
-  }
-  state.visible.forEach((doc) => {
-    const card = el("cardTemplate").content.firstElementChild.cloneNode(true);
-    card.classList.toggle("active", state.selected?.id === doc.id);
-    
-    // Status color badge
-    let statusClass = "tag";
-    const statusLower = doc.status.toLowerCase();
-    if (statusLower.startsWith("чинн")) {
-      statusClass = "tag file"; // Teal styling
-    } else if (statusLower.includes("втрат")) {
-      statusClass = "tag doc-locked"; // Dark/grey styling
-    } else if (statusLower.includes("проєкт") || statusLower.includes("проект")) {
-      statusClass = "tag ocr"; // Yellow styling
-    }
-    
-    card.querySelector(".card-tags").innerHTML =
-      `<span class="${statusClass}">${escapeHtml(doc.status)}</span><span class="tag">${escapeHtml(doc.document_type)}</span>${doc.year ? `<span class="tag">${escapeHtml(doc.year)}</span>` : ''}`;
-    card.querySelector("strong").textContent = doc.title;
-    
-    const subtitleParts = [];
-    if (doc.category) subtitleParts.push(doc.category);
-    if (doc.document_number) subtitleParts.push(`№ ${doc.document_number}`);
-    if (doc.adoption_date) {
-      const dateParts = doc.adoption_date.split("-");
-      if (dateParts.length === 3) subtitleParts.push(`${dateParts[2]}.${dateParts[1]}.${dateParts[0]}`);
-    }
-    card.querySelector(".card-subtitle").textContent = subtitleParts.join(" | ");
-    
-    card.addEventListener("click", () => selectDocument(doc.id));
-    container.appendChild(card);
   });
 }
 
-function renderWelcome() {
-  const detail = el("detail");
-  detail.classList.add("empty");
-  detail.innerHTML = `
-    <div class="empty-state">
-      <div class="empty-icon">i</div>
-      <h2>Оберіть фільтр або знайдіть документ</h2>
-      <p>Результати пошуку з'являться після вибору умов або введення запиту.</p>
-    </div>`;
-}
-
-function renderNoResults() {
-  const detail = el("detail");
-  detail.classList.add("empty");
-  detail.innerHTML = `
-    <div class="empty-state">
-      <div class="empty-icon">?</div>
-      <h2>Нічого не знайдено</h2>
-      <p>Змініть пошуковий запит або натисніть «Очистити фільтри».</p>
-    </div>`;
-}
-
-function selectDocument(id) {
-  const documentInfo = state.data.documents.find((doc) => doc.id === id);
-  if (!documentInfo) return;
-  state.selected = documentInfo;
-  renderCards();
-  renderDetail(documentInfo);
-  if (window.innerWidth <= 1040) {
-    el("detail").scrollIntoView({ behavior: "smooth", block: "start" });
+function openFromHash() {
+  const m = location.hash.match(/doc=([^&]+)/);
+  if (m) {
+    const id = decodeURIComponent(m[1]);
+    if (state.docs.some((d) => d.id === id)) openDoc(id);
   }
-}
-
-function renderDetail(doc) {
-  const detail = el("detail");
-  detail.classList.remove("empty");
-  
-  // Date format
-  let dateFormatted = "-";
-  if (doc.adoption_date) {
-    const dateParts = doc.adoption_date.split("-");
-    if (dateParts.length === 3) dateFormatted = `${dateParts[2]}.${dateParts[1]}.${dateParts[0]}`;
-  }
-
-  // Badges
-  let statusClass = "tag";
-  const statusLower = doc.status.toLowerCase();
-  if (statusLower.startsWith("чинн")) {
-    statusClass = "tag file"; 
-  } else if (statusLower.includes("втрат")) {
-    statusClass = "tag doc-locked";
-  } else if (statusLower.includes("проєкт") || statusLower.includes("проект")) {
-    statusClass = "tag ocr";
-  }
-
-  // Links block
-  let linksHtml = "";
-  if (doc.document_url || doc.file_url) {
-    linksHtml = `<div class="detail-actions" style="display:flex; gap:12px; margin-top:20px; flex-wrap:wrap;">`;
-    if (doc.document_url) {
-      linksHtml += `<a href="${escapeHtml(doc.document_url)}" target="_blank" class="detail-btn web" style="text-decoration:none; display:inline-flex; align-items:center; gap:8px;">🌐 Офіційне джерело</a>`;
-    }
-    if (doc.file_url) {
-      linksHtml += `<a href="${escapeHtml(doc.file_url)}" target="_blank" class="detail-btn doc" style="text-decoration:none; display:inline-flex; align-items:center; gap:8px;">📄 Локальна копія / перехід</a>`;
-    }
-    linksHtml += `</div>`;
-  }
-
-  // Metadata block
-  const userMetadata = doc.updated_by_name ? `<div style="font-size:12px; color:var(--muted); margin-top:30px; border-top:1px solid var(--line); padding-top:12px;">Останній запис вніс: <strong>${escapeHtml(doc.updated_by_name)}</strong></div>` : "";
-
-  detail.innerHTML = `
-    <div class="detail-scroll">
-      <div class="detail-header">
-        <div class="detail-tags">
-          <span class="${statusClass}">${escapeHtml(doc.status)}</span>
-          <span class="tag">${escapeHtml(doc.document_type)}</span>
-          ${doc.year ? `<span class="tag">${escapeHtml(doc.year)}</span>` : ""}
-        </div>
-        <h2>${escapeHtml(doc.title)}</h2>
-      </div>
-
-      <table class="properties-table">
-        <tbody>
-          <tr>
-            <th>Вид документа</th>
-            <td>${escapeHtml(doc.document_type)}</td>
-          </tr>
-          ${doc.document_number ? `<tr><th>Реєстраційний №</th><td>${escapeHtml(doc.document_number)}</td></tr>` : ""}
-          ${doc.adoption_date ? `<tr><th>Дата прийняття</th><td>${dateFormatted}</td></tr>` : ""}
-          ${doc.category ? `<tr><th>Тема / Напрям</th><td>${escapeHtml(doc.category)}</td></tr>` : ""}
-          <tr>
-            <th>Статус документа</th>
-            <td><strong>${escapeHtml(doc.status)}</strong></td>
-          </tr>
-        </tbody>
-      </table>
-
-      ${linksHtml}
-
-      ${doc.content ? `
-        <div class="detail-content" style="margin-top:24px;">
-          <h3 style="font-size:16px; font-weight:800; border-bottom:1px solid var(--line); padding-bottom:6px; margin-bottom:12px;">Короткий опис та зміст:</h3>
-          <div class="content-text" style="font-size:14.5px; line-height:1.6; white-space:pre-wrap; color:var(--ink);">${escapeHtml(doc.content)}</div>
-        </div>
-      ` : ""}
-
-      ${userMetadata}
-    </div>
-  `;
 }
 
 async function init() {
-  let loadedFromSupabase = false;
-  const sortedList = (set, desc = false) => [...set].sort((a,b) => desc ? b.localeCompare(a) : a.localeCompare(b, "uk"));
-
+  bindEvents();
   try {
-    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-    const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
-    const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
-    
-    if (sb) {
-      const { data: dbData, error } = await sb.from('regulatory_documents').select('*');
-      if (!error && dbData && dbData.length > 0) {
-        const documents = dbData.map(doc => {
-          const year = doc.adoption_date ? doc.adoption_date.split("-")[0] : "";
-          return {
-            ...doc,
-            year,
-            search_text: `${doc.title} ${doc.document_type} ${doc.status} ${doc.document_number} ${doc.category} ${doc.content || ""}`.toLowerCase()
-          };
-        });
-        
-        const categories = new Set(documents.map(d => d.category).filter(Boolean));
-        const types = new Set(documents.map(d => d.document_type));
-        const statuses = new Set(documents.map(d => d.status));
-        const years = new Set(documents.map(d => d.year).filter(Boolean));
+    const regResp = await fetch("data/regulatory_documents.json?v=" + Date.now());
+    const data = await regResp.json();
+    state.docs = data.documents || [];
 
-        state.data = {
-          generated: "Supabase Realtime",
-          total_documents: documents.length,
-          categories: sortedList(categories),
-          types: sortedList(types),
-          statuses: sortedList(statuses),
-          years: sortedList(years, true),
-          documents: documents
-        };
-        loadedFromSupabase = true;
-        console.log("Loaded regulatory documents from Supabase!");
+    // індекс фрагментів — великий файл, тягнемо після реєстру
+    try {
+      const idxResp = await fetch("data/search_index.json");
+      if (idxResp.ok) {
+        const chunks = await idxResp.json();
+        for (const ch of chunks) {
+          const key = ch.document_number;
+          if (!key) continue;
+          (state.chunksByNumber[key] = state.chunksByNumber[key] || []).push(ch);
+        }
       }
+    } catch (err) {
+      console.error("Не вдалося завантажити search_index.json:", err);
     }
-  } catch (dbErr) {
-    console.warn("Supabase fetch failed, falling back to local JSON:", dbErr);
-  }
 
-  if (!loadedFromSupabase) {
-    const response = await fetch("data/regulatory_documents.json");
-    const localData = await response.json();
-    const documents = localData.documents.map(doc => {
-      const year = doc.adoption_date ? doc.adoption_date.split("-")[0] : "";
-      return {
-        ...doc,
-        year,
-        search_text: `${doc.title} ${doc.document_type} ${doc.status} ${doc.document_number} ${doc.category} ${doc.content || ""}`.toLowerCase()
-      };
-    });
-    
-    const categories = new Set(documents.map(d => d.category).filter(Boolean));
-    const types = new Set(documents.map(d => d.document_type));
-    const statuses = new Set(documents.map(d => d.status));
-    const years = new Set(documents.map(d => d.year).filter(Boolean));
-
-    state.data = {
-      generated: "Local JSON File",
-      total_documents: documents.length,
-      categories: sortedList(categories),
-      types: sortedList(types),
-      statuses: sortedList(statuses),
-      years: sortedList(years, true),
-      documents: documents
-    };
-    console.log("Loaded regulatory documents from local JSON file.");
+    populateHubFilters(data);
+    renderStats();
+    applyHubFilters();
+    openFromHash();
+  } catch (err) {
+    console.error("Помилка завантаження бази:", err);
+    el("resultLine").textContent = "Не вдалося завантажити дані бази.";
   }
-
-  renderStats();
-  
-  ["search", "document_type", "status", "category", "year"].forEach((id) => {
-    el(id).addEventListener(id === "search" ? "input" : "change", applyFilters);
-  });
-  
-  el("reset").addEventListener("click", () => {
-    ["search", "document_type", "status", "category", "year"].forEach((id) => { el(id).value = ""; });
-    applyFilters();
-  });
-  
-  const params = new URLSearchParams(location.search);
-  const initialQuery = params.get("q") || "";
-  if (initialQuery) {
-    el("search").value = initialQuery;
-  }
-  
-  refreshFilterMenus();
-  applyFilters();
 }
 
-init().catch((e) => {
-  console.error(e);
-  el("cards").innerHTML = "<p>Не вдалося завантажити дані нормативної бази. Перевірте консоль браузера.</p>";
-});
+document.addEventListener("DOMContentLoaded", init);
