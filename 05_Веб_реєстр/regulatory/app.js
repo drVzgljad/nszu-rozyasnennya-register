@@ -650,6 +650,58 @@ function openFromHash() {
   }
 }
 
+/* Окремі файли документів: data/docs/<номер>.json
+   ("/" та "\" у номері замінюються на "_").
+   Файл — масив фрагментів або об'єкт { fragments: [...] }.
+   Згенеровані ШІ файли мають пріоритет над search_index.json. */
+function docFileName(number) {
+  return String(number).replace(/[\/\\]/g, "_") + ".json";
+}
+
+function normalizeChunks(raw, doc) {
+  const arr = Array.isArray(raw) ? raw : (raw?.fragments || raw?.chunks || []);
+  return arr
+    .filter((ch) => ch && (ch.text_original || ch.text))
+    .map((ch, i) => ({
+      document_id: ch.document_id || doc.id,
+      chunk_id: ch.chunk_id || `${doc.document_number}_f${i + 1}`,
+      document_type: ch.document_type || doc.document_type,
+      document_number: doc.document_number,
+      document_date: ch.document_date || doc.adoption_date,
+      authority: ch.authority || authorityByType(doc.document_type),
+      path: ch.path || "Документ",
+      text_original: ch.text_original || ch.text,
+      topics: Array.isArray(ch.topics) ? ch.topics : [],
+      keywords: Array.isArray(ch.keywords) ? ch.keywords : [],
+      legal_function: ch.legal_function || "Інше",
+      related_documents: Array.isArray(ch.related_documents) ? ch.related_documents : [],
+      citation: ch.citation || `${(doc.document_type || "").toLowerCase()} № ${doc.document_number}`,
+      can_be_used_in_official_answer: ch.can_be_used_in_official_answer !== false
+    }));
+}
+
+async function loadPerDocFiles() {
+  const jobs = state.docs
+    .filter((doc) => doc.document_number)
+    .map(async (doc) => {
+      try {
+        const resp = await fetch("data/docs/" + encodeURIComponent(docFileName(doc.document_number)) + "?v=" + Date.now());
+        if (!resp.ok) return;
+        let text = await resp.text();
+        // прибираємо можливі ```json-огорожі та BOM від ШІ-генерації
+        text = text.replace(/^﻿/, "").trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+        const chunks = normalizeChunks(JSON.parse(text), doc);
+        if (chunks.length) {
+          state.chunksByNumber[doc.document_number] = chunks;
+          console.log(`Документ № ${doc.document_number}: завантажено ${chunks.length} фрагментів з data/docs/`);
+        }
+      } catch (err) {
+        console.warn(`data/docs/${docFileName(doc.document_number)}: файл не завантажено`, err.message);
+      }
+    });
+  await Promise.allSettled(jobs);
+}
+
 async function init() {
   bindEvents();
   try {
@@ -671,6 +723,9 @@ async function init() {
     } catch (err) {
       console.error("Не вдалося завантажити search_index.json:", err);
     }
+
+    // окремі файли документів мають пріоритет
+    await loadPerDocFiles();
 
     populateHubFilters(data);
     renderStats();

@@ -298,6 +298,15 @@
           Якщо база Supabase порожня — завантажує початкові документи зі статичного файлу <code>data/regulatory_documents.json</code> у хмару.
           <button type="button" class="btn-adm secondary" id="btn-seed-supabase">📥 Завантажити початкові дані у Supabase</button>
         </div>
+        <div class="ops-box" style="grid-column: 1 / -1;">
+          <strong>📖 Як додати повний текст документа (навігація, дерево, пошук)</strong>
+          1) Створіть картку документа тут, в адмінці — номер документа є ключем зв'язки.
+          2) Вставте текст документа у будь-який ШІ-чат разом з готовим промтом з файла
+          <code>data/docs/_ПРОМТ_для_ШІ.md</code>.
+          3) Збережіть відповідь ШІ у файл <code>data/docs/&lt;НОМЕР&gt;.json</code>
+          (символи «/» у номері замініть на «_»). Навігатор підхопить файл автоматично після оновлення сторінки.
+          <a class="btn-adm secondary" href="data/docs/_ПРОМТ_для_ШІ.md" target="_blank" rel="noopener" style="margin-top:10px; width:100%; justify-content:center;">📄 Відкрити промт та інструкцію</a>
+        </div>
       </div>
     </section>
   </main>
