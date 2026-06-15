@@ -247,6 +247,12 @@
       }[badge] || "Співробітник";
     }
 
+    function render() {
+      renderFilters();
+      renderDepartments();
+      applyFilters();
+    }
+
     function renderLeadership() {
       const row = $("#leadership-row");
       row.innerHTML = "";
