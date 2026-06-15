@@ -741,7 +741,7 @@ function updateEmployeeFilter(level, deptVal, isAllowedToSeeEmployees) {
   const showEmp = isAllowedToSeeEmployees && level !== 'personal';
   empGroup.style.display = showEmp ? 'flex' : 'none';
   if (showEmp) {
-    const dept = level === 'department' ? deptVal : 'all';
+    const dept = (level === 'department' || level === 'user-statuses') ? deptVal : 'all';
     loadEmployeeList(dept);
   }
 }
@@ -812,10 +812,13 @@ async function setupReports() {
         filterDeptSel.disabled = true;
       }
     } else {
-      // Standard: only personal, hide dropdown completely
+      // Standard: can see personal and user-statuses
+      const deptOpt = reportLevelSel.querySelector('option[value="department"]');
+      if (deptOpt) deptOpt.remove();
+      const allOpt = reportLevelSel.querySelector('option[value="department-wide"]');
+      if (allOpt) allOpt.remove();
+
       reportLevelSel.value = 'personal';
-      const levelDiv = reportLevelSel.closest('div');
-      if (levelDiv) levelDiv.style.display = 'none';
       const deptGroup = document.getElementById('report-dept-group');
       if (deptGroup) deptGroup.style.display = 'none';
       const empGroup = document.getElementById('report-employee-group');
@@ -829,18 +832,38 @@ async function setupReports() {
         deptGroup.style.display = showDept ? 'flex' : 'none';
       }
       // Update employee filter
-      updateEmployeeFilter(reportLevelSel.value, filterDeptSel?.value, canSeeEmployees);
+      const level = reportLevelSel.value;
+      const canSee = canSeeEmployees || level === 'user-statuses';
+      updateEmployeeFilter(level, filterDeptSel?.value, canSee);
     });
   }
 
   // When department changes, reload employee list
   if (filterDeptSel) {
     filterDeptSel.addEventListener('change', () => {
-      if (reportLevelSel && reportLevelSel.value !== 'personal' && canSeeEmployees) {
-        const dept = reportLevelSel.value === 'department' ? filterDeptSel.value : 'all';
+      const level = reportLevelSel ? reportLevelSel.value : 'personal';
+      const canSee = canSeeEmployees || level === 'user-statuses';
+      if (level !== 'personal' && canSee) {
+        const dept = (level === 'department' || level === 'user-statuses') ? filterDeptSel.value : 'all';
         loadEmployeeList(dept);
       }
     });
+  }
+
+  // Pre-select tab and run status reports if URL parameter ?type=statuses is present
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('type') === 'statuses' || urlParams.get('tab') === 'statuses') {
+    if (reportLevelSel) {
+      reportLevelSel.value = 'user-statuses';
+      reportLevelSel.dispatchEvent(new Event('change'));
+      
+      const presetWeekBtn = document.getElementById('preset-week');
+      if (presetWeekBtn) {
+        presetWeekBtn.click();
+      } else {
+        runReport();
+      }
+    }
   }
 
   // Setup presets
@@ -922,6 +945,11 @@ async function runReport() {
   const endDateVal = document.getElementById('report-end-date')?.value;
   const deptVal = document.getElementById('report-department')?.value;
   const empVal = document.getElementById('report-employee')?.value || 'all';
+
+  if (level === 'user-statuses') {
+    runStatusReport(startDateVal, endDateVal, deptVal, empVal);
+    return;
+  }
   const branchVal = document.getElementById('report-branch')?.value || 'all';
   const severityVal = document.getElementById('report-severity')?.value || 'all';
 
@@ -1579,5 +1607,348 @@ document.addEventListener('DOMContentLoaded', init);
 // Глобальна реєстрація функцій drill-down для onclick в динамічному HTML
 window.drillToLevel = drillToLevel;
 window.drillToEmployee = drillToEmployee;
+
+
+/* ── User Daily Statuses Statistics / Reporting Logic ─────── */
+async function runStatusReport(startDateVal, endDateVal, deptVal, empVal) {
+  const resultsContainer = document.getElementById('report-results');
+  if (!resultsContainer) return;
+  resultsContainer.innerHTML = '<div class="empty-state">Завантаження аналітики статусів...</div>';
+
+  if (!startDateVal || !endDateVal) {
+    alert('Будь ласка, оберіть період.');
+    return;
+  }
+
+  let query = sb.from('user_daily_statuses').select('*')
+    .gte('status_date', startDateVal)
+    .lte('status_date', endDateVal);
+
+  if (empVal && empVal !== 'all') {
+    query = query.eq('user_id', empVal);
+  } else if (deptVal && deptVal !== 'Поза відділами') {
+    query = query.eq('department', deptVal);
+  }
+
+  const { data, error } = await query.order('status_date', { ascending: true });
+
+  if (error) {
+    resultsContainer.innerHTML = `<div class="empty-state" style="color:red">Помилка завантаження: ${error.message}</div>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    resultsContainer.innerHTML = '<div class="empty-state" style="background: var(--p-surface); border: 1px solid var(--p-line); border-radius: var(--pr-tile); padding: 40px;">За обраний період та фільтри записи статусів відсутні.</div>';
+    Object.values(chartInstances).forEach(c => c && c.destroy());
+    chartInstances = {};
+    return;
+  }
+
+  renderStatusDashboard(data, startDateVal, endDateVal, deptVal, empVal);
+}
+
+function renderStatusDashboard(logs, startDateVal, endDateVal, deptVal, empVal) {
+  const resultsContainer = document.getElementById('report-results');
+  if (!resultsContainer) return;
+
+  const totalDays = logs.length;
+  const statusCounts = { office: 0, home: 0, sick: 0, vacation: 0, agreement: 0 };
+  logs.forEach(log => {
+    if (statusCounts[log.status] !== undefined) {
+      statusCounts[log.status]++;
+    }
+  });
+
+  const officePct = totalDays > 0 ? ((statusCounts.office / totalDays) * 100).toFixed(1) : 0;
+  const homePct = totalDays > 0 ? ((statusCounts.home / totalDays) * 100).toFixed(1) : 0;
+
+  let html = `
+    <div class="skod-stats-grid">
+      <div class="skod-kpi-card score" style="border-left: 4px solid #137333; background: #e6f4ea; color: #137333;">
+        <div class="skod-kpi-icon">🏢</div>
+        <div class="skod-kpi-info">
+          <span class="skod-kpi-title" style="color:#137333">Днів в офісі</span>
+          <span class="skod-kpi-value" style="color:#137333">${statusCounts.office} (${officePct}%)</span>
+        </div>
+      </div>
+      <div class="skod-kpi-card hours" style="border-left: 4px solid #1a73e8; background: #e8f0fe; color: #1a73e8;">
+        <div class="skod-kpi-icon">🏡</div>
+        <div class="skod-kpi-info">
+          <span class="skod-kpi-title" style="color:#1a73e8">Днів вдома (дистанційно)</span>
+          <span class="skod-kpi-value" style="color:#1a73e8">${statusCounts.home} (${homePct}%)</span>
+        </div>
+      </div>
+      <div class="skod-kpi-card tasks" style="border-left: 4px solid #c5221f; background: #fce8e6; color: #c5221f;">
+        <div class="skod-kpi-icon">🏥</div>
+        <div class="skod-kpi-info">
+          <span class="skod-kpi-title" style="color:#c5221f">Лікарняні / Відпустки</span>
+          <span class="skod-kpi-value" style="color:#c5221f">${statusCounts.sick + statusCounts.vacation}</span>
+        </div>
+      </div>
+      <div class="skod-kpi-card complexity" style="border-left: 4px solid #007b83; background: #eef8f7; color: #007b83;">
+        <div class="skod-kpi-icon">🤝</div>
+        <div class="skod-kpi-info">
+          <span class="skod-kpi-title" style="color:#007b83">За домовленістю</span>
+          <span class="skod-kpi-value" style="color:#007b83">${statusCounts.agreement}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="skod-dashboard-grid">
+      <div class="skod-chart-card">
+        <div class="skod-chart-card-title">Розподіл статусів (кількість днів)</div>
+        <div class="skod-chart-container">
+          <canvas id="chartStatusDistribution"></canvas>
+        </div>
+      </div>
+      <div class="skod-chart-card">
+        <div class="skod-chart-card-title">Динаміка присутності</div>
+        <div class="skod-chart-container">
+          <canvas id="chartStatusTimeline"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary matrix table by User -->
+    <div class="skod-card" style="padding: 24px; border-radius: var(--pr-tile); background: var(--p-surface); border: 1px solid var(--p-line); box-shadow: var(--p-shadow-sm); margin-bottom: 20px;">
+      <div class="skod-card-title" style="margin-bottom: 20px; border-bottom: 1px solid var(--p-soft); padding-bottom: 12px; font-weight:700;">
+        📊 Зведена таблиця присутності співробітників
+      </div>
+      <div style="overflow-x: auto;">
+        <table class="skod-table" style="width: 100%; border-collapse: collapse; font-size: 14px;">
+          <thead>
+            <tr style="border-bottom: 2px solid var(--p-line); text-align: left;">
+              <th style="padding: 10px;">Співробітник</th>
+              <th style="padding: 10px; color: #137333;">🏢 Офіс</th>
+              <th style="padding: 10px; color: #1a73e8;">🏡 Вдома</th>
+              <th style="padding: 10px; color: #c5221f;">🏥 Лікарняний</th>
+              <th style="padding: 10px; color: #8616a6;">🌴 Відпустка</th>
+              <th style="padding: 10px; color: #007b83;">🤝 За домовл.</th>
+              <th style="padding: 10px; font-weight: bold;">Всього днів</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${buildStatusMatrixRows(logs)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Detailed history log -->
+    <div class="skod-card" style="padding: 24px; border-radius: var(--pr-tile); background: var(--p-surface); border: 1px solid var(--p-line); box-shadow: var(--p-shadow-sm);">
+      <div class="skod-card-title" style="margin-bottom: 20px; border-bottom: 1px solid var(--p-soft); padding-bottom: 12px; font-weight:700;">
+        📋 Хронологічний журнал статусів
+      </div>
+      <div style="overflow-x: auto;">
+        <table class="skod-table" style="width: 100%; border-collapse: collapse; font-size: 14px;">
+          <thead>
+            <tr style="border-bottom: 2px solid var(--p-line); text-align: left;">
+              <th style="padding: 10px;">Дата</th>
+              <th style="padding: 10px;">Співробітник</th>
+              <th style="padding: 10px;">Відділ</th>
+              <th style="padding: 10px;">Статус</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${buildStatusLogRows(logs)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  resultsContainer.innerHTML = html;
+
+  // Destroy previous chart instances
+  Object.values(chartInstances).forEach(c => c && c.destroy());
+  chartInstances = {};
+
+  const isDark = document.body.classList.contains('dark-theme') || document.documentElement.classList.contains('dark-theme');
+  drawStatusCharts(logs, isDark);
+}
+
+function buildStatusMatrixRows(logs) {
+  const userStats = {};
+  logs.forEach(log => {
+    const userId = log.user_id;
+    const name = log.user_name || 'Співробітник';
+    if (!userStats[userId]) {
+      userStats[userId] = { name: name, office: 0, home: 0, sick: 0, vacation: 0, agreement: 0, total: 0 };
+    }
+    const s = log.status;
+    if (userStats[userId][s] !== undefined) {
+      userStats[userId][s]++;
+    }
+    userStats[userId].total++;
+  });
+
+  const rows = Object.values(userStats).map(u => `
+    <tr style="border-bottom: 1px solid var(--p-line); height: 40px;">
+      <td style="padding: 10px; font-weight: 600;">${u.name}</td>
+      <td style="padding: 10px; color: #137333; font-weight: 600;">${u.office}</td>
+      <td style="padding: 10px; color: #1a73e8; font-weight: 600;">${u.home}</td>
+      <td style="padding: 10px; color: #c5221f; font-weight: 600;">${u.sick}</td>
+      <td style="padding: 10px; color: #8616a6; font-weight: 600;">${u.vacation}</td>
+      <td style="padding: 10px; color: #007b83; font-weight: 600;">${u.agreement}</td>
+      <td style="padding: 10px; font-weight: bold;">${u.total}</td>
+    </tr>
+  `).join('');
+
+  return rows || `<tr><td colspan="7" style="padding:10px; text-align:center;">Немає даних</td></tr>`;
+}
+
+function buildStatusLogRows(logs) {
+  const statusLabels = {
+    office: '🏢 Офіс',
+    home: '🏡 Вдома',
+    sick: '🏥 Лікарняний',
+    vacation: '🌴 Відпустка',
+    agreement: '🤝 За домовленістю'
+  };
+
+  const statusColors = {
+    office: 'color: #137333; font-weight: 700;',
+    home: 'color: #1a73e8; font-weight: 700;',
+    sick: 'color: #c5221f; font-weight: 700;',
+    vacation: 'color: #8616a6; font-weight: 700;',
+    agreement: 'color: #007b83; font-weight: 700;'
+  };
+
+  const sorted = [...logs].sort((a, b) => new Date(b.status_date) - new Date(a.status_date));
+
+  const rows = sorted.map(log => {
+    const formattedDate = new Date(log.status_date).toLocaleDateString('uk-UA', {
+      day: 'numeric', month: 'long', year: 'numeric'
+    });
+    return `
+      <tr style="border-bottom: 1px solid var(--p-line); height: 40px;">
+        <td style="padding: 10px; white-space: nowrap;">${formattedDate}</td>
+        <td style="padding: 10px; font-weight: 600;">${log.user_name || 'Співробітник'}</td>
+        <td style="padding: 10px; color: var(--p-muted);">${log.department || 'Департамент'}</td>
+        <td style="padding: 10px; ${statusColors[log.status]}">${statusLabels[log.status] || log.status}</td>
+      </tr>
+    `;
+  }).join('');
+
+  return rows || `<tr><td colspan="4" style="padding:10px; text-align:center;">Немає даних</td></tr>`;
+}
+
+function drawStatusCharts(logs, isDark) {
+  const counts = { office: 0, home: 0, sick: 0, vacation: 0, agreement: 0 };
+  logs.forEach(log => {
+    if (counts[log.status] !== undefined) counts[log.status]++;
+  });
+
+  const labels = ['Офіс 🏢', 'Вдома 🏡', 'Лікарняний 🏥', 'Відпустка 🌴', 'За домовл. 🤝'];
+  const data = [counts.office, counts.home, counts.sick, counts.vacation, counts.agreement];
+  const bgColors = ['rgba(19, 115, 51, 0.15)', 'rgba(26, 115, 232, 0.15)', 'rgba(197, 34, 31, 0.15)', 'rgba(134, 22, 166, 0.15)', 'rgba(0, 123, 131, 0.15)'];
+  const borderColors = ['#137333', '#1a73e8', '#c5221f', '#8616a6', '#007b83'];
+
+  const ctxDist = document.getElementById('chartStatusDistribution')?.getContext('2d');
+  if (ctxDist) {
+    chartInstances.statusDist = new Chart(ctxDist, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: data,
+          backgroundColor: bgColors,
+          borderColor: borderColors,
+          borderWidth: 1.5,
+          hoverBackgroundColor: borderColors,
+          hoverBorderColor: borderColors
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: {
+              color: isDark ? '#cbd5e1' : '#1e293b',
+              font: { family: 'var(--p-text)', weight: '600', size: 12 }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  const dateGroups = {};
+  logs.forEach(log => {
+    const d = log.status_date;
+    if (!dateGroups[d]) {
+      dateGroups[d] = { office: 0, home: 0, sick: 0, vacation: 0, agreement: 0 };
+    }
+    dateGroups[d][log.status]++;
+  });
+
+  const sortedDates = Object.keys(dateGroups).sort();
+  const timelineOffice = [];
+  const timelineHome = [];
+  const timelineSick = [];
+  const timelineVacation = [];
+  const timelineAgreement = [];
+
+  sortedDates.forEach(d => {
+    timelineOffice.push(dateGroups[d].office);
+    timelineHome.push(dateGroups[d].home);
+    timelineSick.push(dateGroups[d].sick);
+    timelineVacation.push(dateGroups[d].vacation);
+    timelineAgreement.push(dateGroups[d].agreement);
+  });
+
+  const formattedDates = sortedDates.map(d => {
+    const dt = new Date(d);
+    return dt.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
+  });
+
+  const ctxTime = document.getElementById('chartStatusTimeline')?.getContext('2d');
+  if (ctxTime) {
+    chartInstances.statusTimeline = new Chart(ctxTime, {
+      type: 'bar',
+      data: {
+        labels: formattedDates,
+        datasets: [
+          { label: 'Офіс 🏢', data: timelineOffice, backgroundColor: '#137333', borderRadius: 4 },
+          { label: 'Вдома 🏡', data: timelineHome, backgroundColor: '#1a73e8', borderRadius: 4 },
+          { label: 'Лікарняний 🏥', data: timelineSick, backgroundColor: '#c5221f', borderRadius: 4 },
+          { label: 'Відпустка 🌴', data: timelineVacation, backgroundColor: '#8616a6', borderRadius: 4 },
+          { label: 'За домовл. 🤝', data: timelineAgreement, backgroundColor: '#007b83', borderRadius: 4 }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            stacked: true,
+            grid: { display: false },
+            ticks: { color: isDark ? '#94a3b8' : '#64748b' }
+          },
+          y: {
+            stacked: true,
+            ticks: {
+              color: isDark ? '#94a3b8' : '#64748b',
+              stepSize: 1,
+              precision: 0
+            },
+            grid: { color: isDark ? '#334155' : '#e2e8f0' }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: isDark ? '#cbd5e1' : '#1e293b',
+              font: { family: 'var(--p-text)', weight: '600', size: 12 }
+            }
+          }
+        }
+      }
+    });
+  }
+}
 
 export { sb };

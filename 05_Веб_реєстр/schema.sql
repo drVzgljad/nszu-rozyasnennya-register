@@ -774,3 +774,57 @@ CREATE POLICY "Allow delete of regulatory_documents for managers and admins" ON 
 
 -- Додавання таблиці нормативних документів до публікації реального часу
 ALTER PUBLICATION supabase_realtime ADD TABLE public.regulatory_documents;
+
+
+-- =========================================================================
+-- МІГРАЦІЯ: ТАБЛИЦЯ ЩОДЕННИХ СТАТУСІВ КОРИСТУВАЧІВ (ПРИСУТНІСТЬ)
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.user_daily_statuses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_name TEXT NOT NULL,
+  department TEXT,
+  status_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  status TEXT NOT NULL, -- 'office' | 'home' | 'sick' | 'vacation' | 'agreement'
+  UNIQUE(user_id, status_date)
+);
+
+-- Увімкнення RLS
+ALTER TABLE public.user_daily_statuses ENABLE ROW LEVEL SECURITY;
+
+-- Дозвіл на читання для всіх авторизованих
+CREATE POLICY "Allow read of user_daily_statuses for all authenticated" ON public.user_daily_statuses
+  FOR SELECT TO authenticated USING (true);
+
+-- Дозвіл на створення (INSERT) власного статусу
+CREATE POLICY "Allow insert of own daily status" ON public.user_daily_statuses
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    auth.uid() = user_id AND
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role != 'guest'
+    )
+  );
+
+-- Дозвіл на оновлення (UPDATE) власного статусу
+CREATE POLICY "Allow update of own daily status" ON public.user_daily_statuses
+  FOR UPDATE TO authenticated
+  USING (
+    auth.uid() = user_id
+  )
+  WITH CHECK (
+    auth.uid() = user_id
+  );
+
+-- Дозвіл на видалення (DELETE) власного статусу
+CREATE POLICY "Allow delete of own daily status" ON public.user_daily_statuses
+  FOR DELETE TO authenticated
+  USING (
+    auth.uid() = user_id
+  );
+
+-- Додавання таблиці щоденних статусів до публікації реального часу
+ALTER PUBLICATION supabase_realtime ADD TABLE public.user_daily_statuses;
+

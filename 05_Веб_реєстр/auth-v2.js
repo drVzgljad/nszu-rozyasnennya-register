@@ -237,6 +237,20 @@ function applyAccess() {
     }
   }
 
+  // Show/hide daily status chip next to access status button
+  const statusChip = document.getElementById('portal-status-chip');
+  if (statusChip) {
+    if (user && role !== 'guest') {
+      statusChip.style.display = 'inline-flex';
+      const statsLink = document.getElementById('view-status-stats-link');
+      if (statsLink) {
+        statsLink.href = prefix + 'skod/reports.html?type=statuses';
+      }
+    } else {
+      statusChip.style.display = 'none';
+    }
+  }
+
   // Show/hide role-gated elements
   document.querySelectorAll('[data-role]').forEach(el => {
     el.style.display = hasAccess(el.dataset.role) ? '' : 'none';
@@ -556,6 +570,71 @@ function inject() {
     badge.textContent = 'Гість';
     container.appendChild(badge);
 
+    // Daily Status Badge/Dropdown Chip
+    const statusChip = document.createElement('div');
+    statusChip.id = 'portal-status-chip';
+    statusChip.className = 'portal-status-chip';
+    statusChip.style.display = 'none'; // Hidden by default, shown when logged in
+    statusChip.innerHTML = `
+      <span class="status-icon">❓</span>
+      <span class="status-lbl">Вкажіть статус</span>
+      <div class="status-dropdown" id="portal-status-dropdown">
+        <div class="dropdown-title">Мій статус на сьогодні:</div>
+        <div class="status-options-grid">
+          <button class="status-opt-btn" data-status="office">🏢 Офіс</button>
+          <button class="status-opt-btn" data-status="home">🏡 Вдома</button>
+          <button class="status-opt-btn" data-status="sick">🏥 Лікарняний</button>
+          <button class="status-opt-btn" data-status="vacation">🌴 Відпустка</button>
+          <button class="status-opt-btn" data-status="agreement">🤝 За домовл.</button>
+        </div>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-title">Присутність колег сьогодні:</div>
+        <ul class="colleagues-status-list" id="colleagues-status-list">
+          <li style="color: var(--muted); font-style: italic;">Завантаження...</li>
+        </ul>
+        <div class="dropdown-divider"></div>
+        <a href="#" id="view-status-stats-link" class="status-stats-link">📊 Детальна статистика статусів</a>
+      </div>
+    `;
+    container.appendChild(statusChip);
+
+    statusChip.addEventListener('click', (e) => {
+      const optBtn = e.target.closest('.status-opt-btn');
+      if (optBtn) {
+        e.stopPropagation();
+        const selectedStatus = optBtn.dataset.status;
+        saveUserDailyStatus(selectedStatus);
+        return;
+      }
+      
+      const statsLink = e.target.closest('#view-status-stats-link');
+      if (statsLink) {
+        return;
+      }
+      
+      const dropdown = document.getElementById('portal-status-dropdown');
+      if (dropdown) {
+        e.stopPropagation();
+        const willShow = !dropdown.classList.contains('show');
+        
+        // Close other dropdowns if any
+        document.querySelectorAll('.status-dropdown').forEach(d => d.classList.remove('show'));
+        
+        if (willShow) {
+          dropdown.classList.add('show');
+          loadTeamPresence();
+        }
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      const dropdown = document.getElementById('portal-status-dropdown');
+      const chip = document.getElementById('portal-status-chip');
+      if (dropdown && dropdown.classList.contains('show') && chip && !chip.contains(e.target)) {
+        dropdown.classList.remove('show');
+      }
+    });
+
     // Standalone Chat button in top nav
     const topChatBtn = document.createElement('a');
     topChatBtn.id = 'auth-chat-btn';
@@ -794,6 +873,11 @@ async function init() {
 
   trackGlobalPresence();
   setupNewsRealtime();
+  
+  // Daily Status Initialization
+  loadUserDailyStatus();
+  loadTeamPresence();
+  setupRealtimeStatus();
 
   // Ask for browser notification permission proactively if support is available
   if ('Notification' in window && Notification.permission === 'default') {
@@ -806,6 +890,11 @@ async function init() {
     applyAccess();
     trackGlobalPresence();
     setupNewsRealtime();
+    
+    // Daily Status update on Auth change
+    loadUserDailyStatus();
+    loadTeamPresence();
+    setupRealtimeStatus();
   });
 }
 
@@ -1062,6 +1151,239 @@ function playNewsAlertSound() {
   } catch (e) {
     console.error("Audio beep error:", e);
   }
+}
+
+
+/* ── Daily User Status Business Logic ─────────────────────── */
+let todayStatus = null;
+let statusSubscription = null;
+
+function getLocalDateString() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+async function loadUserDailyStatus() {
+  if (!user || role === 'guest') return;
+  const todayStr = getLocalDateString();
+  
+  try {
+    const { data, error } = await sb
+      .from('user_daily_statuses')
+      .select('status')
+      .eq('user_id', user.id)
+      .eq('status_date', todayStr)
+      .maybeSingle();
+      
+    if (error) {
+      console.warn("Failed to load user daily status:", error);
+      const cached = localStorage.getItem(`daily_status_${user.id}_${todayStr}`);
+      if (cached) {
+        updateStatusUI(cached);
+      } else {
+        updateStatusUI(null);
+      }
+      return;
+    }
+    
+    if (data) {
+      todayStatus = data.status;
+      localStorage.setItem(`daily_status_${user.id}_${todayStr}`, todayStatus);
+      updateStatusUI(todayStatus);
+    } else {
+      todayStatus = null;
+      updateStatusUI(null);
+    }
+  } catch (err) {
+    console.error("Error in loadUserDailyStatus:", err);
+  }
+}
+
+function updateStatusUI(status) {
+  const chip = document.getElementById('portal-status-chip');
+  if (!chip) return;
+  
+  chip.className = 'portal-status-chip';
+  const iconEl = chip.querySelector('.status-icon');
+  const lblEl = chip.querySelector('.status-lbl');
+  
+  const statusConfig = {
+    office: { icon: '🏢', text: 'Офіс', className: 'status-office' },
+    home: { icon: '🏡', text: 'Вдома', className: 'status-home' },
+    sick: { icon: '🏥', text: 'Лікарняний', className: 'status-sick' },
+    vacation: { icon: '🌴', text: 'Відпустка', className: 'status-vacation' },
+    agreement: { icon: '🤝', text: 'За домовл.', className: 'status-agreement' }
+  };
+  
+  if (status && statusConfig[status]) {
+    const config = statusConfig[status];
+    iconEl.textContent = config.icon;
+    lblEl.textContent = config.text;
+    chip.classList.add(config.className);
+  } else {
+    iconEl.textContent = '❓';
+    lblEl.textContent = 'Вкажіть статус';
+    chip.classList.add('needs-activation');
+  }
+  
+  document.querySelectorAll('.status-opt-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.status === status);
+  });
+}
+
+async function saveUserDailyStatus(status) {
+  if (!user || role === 'guest') return;
+  const todayStr = getLocalDateString();
+  const displayName = user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0];
+  
+  let userDept = '';
+  try {
+    const { data: prof } = await sb.from('profiles').select('Section, department').eq('id', user.id).single();
+    userDept = prof?.Section || prof?.department || '';
+  } catch(e) {}
+  
+  try {
+    updateStatusUI(status);
+    
+    const { error } = await sb
+      .from('user_daily_statuses')
+      .upsert({
+        user_id: user.id,
+        user_name: displayName,
+        department: userDept,
+        status_date: todayStr,
+        status: status
+      }, { onConflict: 'user_id, status_date' });
+      
+    if (error) {
+      console.error("Failed to save daily status to DB:", error);
+      localStorage.setItem(`daily_status_${user.id}_${todayStr}`, status);
+      updateStatusUI(status);
+      alert("Не вдалося зберегти статус у хмару, збережено локально.");
+    } else {
+      todayStatus = status;
+      localStorage.setItem(`daily_status_${user.id}_${todayStr}`, status);
+      
+      setTimeout(() => {
+        const dropdown = document.getElementById('portal-status-dropdown');
+        if (dropdown) dropdown.classList.remove('show');
+      }, 300);
+    }
+  } catch (err) {
+    console.error("Error in saveUserDailyStatus:", err);
+  }
+}
+
+async function loadTeamPresence() {
+  if (!user) return;
+  const todayStr = getLocalDateString();
+  const listEl = document.getElementById('colleagues-status-list');
+  if (!listEl) return;
+  
+  try {
+    const { data: profiles, error: profErr } = await sb
+      .from('profiles')
+      .select('id, full_name, role')
+      .neq('role', 'guest');
+      
+    if (profErr) {
+      console.warn("Failed to load profiles for presence:", profErr);
+      listEl.innerHTML = '<li style="color:var(--muted)">Помилка завантаження профілів</li>';
+      return;
+    }
+    
+    const { data: statuses, error: statErr } = await sb
+      .from('user_daily_statuses')
+      .select('user_id, user_name, status')
+      .eq('status_date', todayStr);
+      
+    if (statErr) {
+      console.warn("Failed to load daily statuses for presence:", statErr);
+      listEl.innerHTML = '<li style="color:var(--muted)">Помилка завантаження статусів</li>';
+      return;
+    }
+    
+    const statusMap = {};
+    statuses?.forEach(s => {
+      statusMap[s.user_id] = s.status;
+    });
+    
+    const groups = {
+      office: { title: '🏢 В офісі', names: [] },
+      home: { title: '🏡 Вдома', names: [] },
+      sick: { title: '🏥 Лікарняний', names: [] },
+      vacation: { title: '🌴 Відпустка', names: [] },
+      agreement: { title: '🤝 За домовл.', names: [] },
+      none: { title: '🔴 Не вказано', names: [] }
+    };
+    
+    profiles?.forEach(p => {
+      const status = statusMap[p.id];
+      const name = p.full_name || 'Співробітник';
+      if (status && groups[status]) {
+        groups[status].names.push(name);
+      } else {
+        groups.none.names.push(name);
+      }
+    });
+    
+    let html = '';
+    let hasAnyData = false;
+    
+    for (const key in groups) {
+      const g = groups[key];
+      if (g.names.length > 0) {
+        hasAnyData = true;
+        html += `
+          <div class="colleague-group">
+            <div class="colleague-group-title">${g.title} (${g.names.length})</div>
+            <div class="colleague-names">${g.names.join(', ')}</div>
+          </div>
+        `;
+      }
+    }
+    
+    if (!hasAnyData) {
+      listEl.innerHTML = '<li style="color: var(--muted); font-style: italic;">Немає активних колег</li>';
+    } else {
+      listEl.innerHTML = html;
+    }
+  } catch (err) {
+    console.error("Error loading team presence:", err);
+    listEl.innerHTML = '<li style="color:var(--muted)">Помилка завантаження</li>';
+  }
+}
+
+function setupRealtimeStatus() {
+  if (!user || role === 'guest') return;
+  
+  if (statusSubscription) {
+    sb.removeChannel(statusSubscription);
+    statusSubscription = null;
+  }
+  
+  statusSubscription = sb.channel('realtime_daily_statuses')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'user_daily_statuses' }, payload => {
+      const todayStr = getLocalDateString();
+      const newRecord = payload.new;
+      const oldRecord = payload.old;
+      
+      const isRecordToday = (newRecord && newRecord.status_date === todayStr) || 
+                            (oldRecord && oldRecord.status_date === todayStr);
+                            
+      if (isRecordToday) {
+        loadTeamPresence();
+        
+        if (newRecord && newRecord.user_id === user.id) {
+          todayStatus = newRecord.status;
+          updateStatusUI(todayStatus);
+        }
+      }
+    })
+    .subscribe();
 }
 
 document.addEventListener('DOMContentLoaded', init);

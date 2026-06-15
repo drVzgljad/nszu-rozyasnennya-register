@@ -2020,3 +2020,225 @@
   opacity: 0.8;
 }
 
+/* Daily Status Selector Chip */
+.portal-status-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 9px;
+  background: var(--soft, #f2f8fb);
+  border: 1.5px solid var(--line, #e3edf3);
+  color: var(--muted, #647688);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.portal-status-chip:hover {
+  background: var(--accent-soft, #eef6fc);
+  border-color: rgba(74, 143, 199, 0.35);
+  color: var(--accent-deep, #2f6b9e);
+  box-shadow: 0 4px 12px rgba(74, 143, 199, 0.08);
+}
+
+/* Blinking activation warning if status not set today */
+.portal-status-chip.needs-activation {
+  border-color: #ef4444 !important;
+  color: #dc2626 !important;
+  background: rgba(239, 68, 68, 0.05) !important;
+  animation: statusRedBlink 1.5s infinite alternate !important;
+}
+
+@keyframes statusRedBlink {
+  0% {
+    box-shadow: 0 0 2px rgba(239, 68, 68, 0.4);
+    background: rgba(239, 68, 68, 0.05);
+  }
+  100% {
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
+    background: rgba(239, 68, 68, 0.2);
+  }
+}
+
+/* Color codes for set statuses */
+.portal-status-chip.status-office {
+  background: #e6f4ea !important;
+  color: #137333 !important;
+  border-color: #ceead6 !important;
+}
+.portal-status-chip.status-home {
+  background: #e8f0fe !important;
+  color: #1a73e8 !important;
+  border-color: #d2e3fc !important;
+}
+.portal-status-chip.status-sick {
+  background: #fce8e6 !important;
+  color: #c5221f !important;
+  border-color: #fad2cf !important;
+}
+.portal-status-chip.status-vacation {
+  background: #f3e8fd !important;
+  color: #8616a6 !important;
+  border-color: #ebd4fc !important;
+}
+.portal-status-chip.status-agreement {
+  background: #eef8f7 !important;
+  color: #007b83 !important;
+  border-color: #d2f1f2 !important;
+}
+
+/* Dropdown styling */
+.status-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  min-width: 260px;
+  max-width: 340px;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--line, #dde6ee);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(14, 30, 55, 0.15);
+  padding: 14px 16px;
+  display: none;
+  z-index: 120;
+  text-align: left;
+  animation: onlineDropdownFade 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: default;
+}
+
+/* Show class toggled by JS */
+.status-dropdown.show {
+  display: block;
+}
+
+/* Dark theme overrides for dropdown */
+:root.dark-theme .status-dropdown {
+  background: rgba(30, 41, 59, 0.96);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  color: #f1f5f9;
+}
+
+.status-options-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.status-opt-btn {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--p-ink, #1e293b);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.status-opt-btn:hover {
+  background: var(--accent-soft, #f1f5f9);
+  border-color: var(--accent, #3b82f6);
+  transform: translateY(-1px);
+}
+
+.status-opt-btn.active {
+  background: var(--accent, #3b82f6) !important;
+  color: #fff !important;
+  border-color: var(--accent, #3b82f6) !important;
+}
+
+:root.dark-theme .status-opt-btn {
+  background: #334155;
+  color: #f1f5f9;
+  border-color: #475569;
+}
+
+:root.dark-theme .status-opt-btn:hover {
+  background: #475569;
+  border-color: #64748b;
+}
+
+:root.dark-theme .status-opt-btn.active {
+  background: var(--accent, #3b82f6) !important;
+  color: #fff !important;
+  border-color: var(--accent, #3b82f6) !important;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--line, #e2e8f0);
+  margin: 10px 0;
+}
+
+:root.dark-theme .dropdown-divider {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.colleagues-status-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0 0;
+  max-height: 180px;
+  overflow-y: auto;
+  font-size: 12px;
+}
+
+.colleagues-status-list li {
+  padding: 4px 0;
+  line-height: 1.4;
+}
+
+.colleague-group {
+  margin-bottom: 8px;
+}
+
+.colleague-group-title {
+  font-weight: 700;
+  color: var(--p-muted, #64748b);
+  margin-bottom: 3px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.colleague-names {
+  color: var(--p-ink, #334155);
+}
+
+:root.dark-theme .colleague-names {
+  color: #cbd5e1;
+}
+
+.status-stats-link {
+  display: block;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent, #3b82f6);
+  text-decoration: none;
+  margin-top: 8px;
+  transition: color 0.15s ease;
+}
+
+.status-stats-link:hover {
+  color: var(--accent-deep, #1d4ed8);
+  text-decoration: underline;
+}
+
+
