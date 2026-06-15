@@ -468,8 +468,16 @@
       $("#stat-total-heads").textContent = 1 + 1 + ORG.departments.filter((dept) => dept.manager).length;
     }
 
+    function getLocalDateString() {
+      const d = new Date();
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
     async function loadDailyStatuses() {
-      const todayStr = new Date().toLocaleDateString('en-CA');
+      const todayStr = getLocalDateString();
       try {
         const { data, error } = await sb
           .from("user_daily_statuses")
@@ -496,7 +504,24 @@
         const personName = el.dataset.statusName;
         if (!personName) return;
         
-        const status = statusMap.get(personName.trim().toLowerCase());
+        let status = null;
+        const targetNameLower = personName.trim().toLowerCase();
+        
+        // Try exact match first
+        if (statusMap.has(targetNameLower)) {
+          status = statusMap.get(targetNameLower);
+        } else {
+          // Fallback to word-set matching (e.g. 'Дудник Світлана' matches 'Світлана Дудник')
+          const targetWords = targetNameLower.split(/\s+/).filter(Boolean);
+          for (const [dbName, dbStatus] of statusMap.entries()) {
+            const dbWords = dbName.split(/\s+/).filter(Boolean);
+            if (dbWords.length === targetWords.length && dbWords.every(w => targetWords.includes(w))) {
+              status = dbStatus;
+              break;
+            }
+          }
+        }
+        
         el.className = 'person-status-indicator';
         el.innerHTML = '';
         
