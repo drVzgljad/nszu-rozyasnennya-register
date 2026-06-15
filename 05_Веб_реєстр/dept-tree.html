@@ -225,7 +225,10 @@
       card.innerHTML = `
         <span class="person-avatar">${escapeHtml(initials(person.name))}</span>
         <span class="online-lamp" aria-hidden="true"></span>
-        <span class="person-name">${escapeHtml(person.name)}</span>
+        <span class="person-name">
+          ${escapeHtml(person.name)}
+          <span class="person-status-indicator" data-status-name="${person.name}"></span>
+        </span>
         <span class="person-role">${escapeHtml(role)}</span>
         <span class="person-chip">${escapeHtml(badgeLabel(badge))}</span>
       `;
@@ -459,10 +462,65 @@
       $("#stat-total-heads").textContent = 1 + 1 + ORG.departments.filter((dept) => dept.manager).length;
     }
 
-    function render() {
-      renderFilters();
-      renderDepartments();
-      applyFilters();
+    async function loadDailyStatuses() {
+      const todayStr = new Date().toLocaleDateString('en-CA');
+      try {
+        const { data, error } = await sb
+          .from("user_daily_statuses")
+          .select("user_name, status")
+          .eq("status_date", todayStr);
+          
+        if (error) throw error;
+        
+        const statusMap = new Map();
+        (data || []).forEach(item => {
+          if (item.user_name) {
+            statusMap.set(item.user_name.trim().toLowerCase(), item.status);
+          }
+        });
+        
+        applyStatusesToCards(statusMap);
+      } catch (error) {
+        console.warn("Не вдалося завантажити щоденні статуси для структури:", error);
+      }
+    }
+    
+    function applyStatusesToCards(statusMap) {
+      document.querySelectorAll(".person-status-indicator").forEach(el => {
+        const personName = el.dataset.statusName;
+        if (!personName) return;
+        
+        const status = statusMap.get(personName.trim().toLowerCase());
+        el.className = 'person-status-indicator';
+        el.innerHTML = '';
+        
+        if (status) {
+          const config = {
+            office: { text: '🏢 Офіс', className: 'status-office' },
+            home: { text: '🏡 Вдома', className: 'status-home' },
+            sick: { text: '🏥 Лікарняний', className: 'status-sick' },
+            vacation: { text: '🌴 Відпустка', className: 'status-vacation' },
+            agreement: { text: '🤝 За домовл.', className: 'status-agreement' }
+          };
+          
+          const sConf = config[status];
+          if (sConf) {
+            el.classList.add(sConf.className);
+            el.textContent = sConf.text;
+            el.style.display = 'inline-flex';
+          }
+        } else {
+          el.style.display = 'none';
+        }
+      });
+    }
+
+    function setupStatusesRealtime() {
+      sb.channel('realtime_dept_tree_statuses')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'user_daily_statuses' }, () => {
+          loadDailyStatuses();
+        })
+        .subscribe();
     }
 
     renderStats();
@@ -470,6 +528,8 @@
     render();
     setupEvents();
     setupPresence();
+    loadDailyStatuses();
+    setupStatusesRealtime();
   </script>
 </body>
 </html>
