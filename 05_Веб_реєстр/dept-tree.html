@@ -578,7 +578,8 @@
           return `
             <div class="presence-legend-item">
               <span class="presence-legend-dot" style="background: var(--status-${key})"></span>
-              <span>${config[key].icon} ${config[key].label}: <strong>${count}</strong></span>
+              <span class="presence-legend-icon">${config[key].icon}</span>
+              <span class="presence-legend-text">${config[key].label}: <strong>${count}</strong></span>
             </div>
           `;
         }).join('');

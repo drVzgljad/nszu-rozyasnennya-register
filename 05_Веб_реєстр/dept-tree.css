@@ -1108,3 +1108,13 @@
   }
 }
 
+.stat {
+  text-align: center;
+}
+
+.presence-legend-icon {
+  font-size: 16px;
+  display: inline-block;
+  line-height: 1;
+}
+
