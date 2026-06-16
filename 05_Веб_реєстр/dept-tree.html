@@ -6,7 +6,7 @@
   <title>НавігаторПМГ26 | Структура департаменту</title>
   <link rel="stylesheet" href="styles.css?v=20260531e">
   <link rel="stylesheet" href="auth-v2.css?v=20260615b">
-  <link rel="stylesheet" href="dept-tree.css?v=20260616g">
+  <link rel="stylesheet" href="dept-tree.css?v=20260616h">
   <script type="module" src="auth-v2.js?v=20260615b"></script>
 </head>
 <body>
@@ -157,7 +157,7 @@
         {
           id: "partners",
           title: "Відділ взаємодії з надавачами медичних послуг",
-          shortTitle: "Взаємодія з надавачами",
+          shortTitle: "Взаємодія",
           color: "partners",
           manager: "Ірина Білолипецька",
           specialists: ["Анастасія Левченко", "Анна Ліщишина", "Оксана Кирилюк"]
@@ -165,7 +165,7 @@
         {
           id: "cost",
           title: "Відділ розрахунку вартості медичних послуг",
-          shortTitle: "Розрахунок вартості",
+          shortTitle: "Вартість",
           color: "cost",
           manager: "Володимир Якубівський",
           specialists: ["Марина Риженко", "Олена Задорожня", "Наталія Вервейко"]
@@ -173,7 +173,7 @@
         {
           id: "data",
           title: "Відділ роботи з електронними медичними даними",
-          shortTitle: "Електронні медичні дані",
+          shortTitle: "Дані",
           color: "data",
           manager: "Євгеній Горох",
           specialists: ["Костянтин Звєрєв", "Олег Коваль"]
@@ -189,7 +189,7 @@
         {
           id: "clinical",
           title: "Відділ наукової та клінічної експертизи",
-          shortTitle: "Наукова та клінічна експертиза",
+          shortTitle: "Експертиза",
           color: "clinical",
           manager: "",
           specialists: ["Вікторія Ісаюк", "Юлія Савка", "Костянтин Ткач"]
@@ -197,7 +197,7 @@
         {
           id: "strategy",
           title: "Відділ стратегічного розвитку ПМГ",
-          shortTitle: "Стратегічний розвиток ПМГ",
+          shortTitle: "Стратегія",
           color: "strategy",
           manager: "Альбіна Волошина",
           specialists: ["Олена Ковалева"]
@@ -650,14 +650,35 @@
         });
 
         const parts = [];
-        if (stats.office > 0) parts.push(`О${stats.office}`);
-        if (stats.home > 0) parts.push(`Д${stats.home}`);
-        if (stats.sick > 0) parts.push(`Л${stats.sick}`);
-        if (stats.vacation > 0) parts.push(`В${stats.vacation}`);
-        if (stats.agreement > 0) parts.push(`ЗД${stats.agreement}`);
-        if (stats.unregistered > 0) parts.push(`Б/С${stats.unregistered}`);
+        const badgeParts = [];
+
+        if (stats.office > 0) {
+          parts.push(`О${stats.office}`);
+          badgeParts.push(`<span class="micro-status m-office" title="Офіс">О${stats.office}</span>`);
+        }
+        if (stats.home > 0) {
+          parts.push(`Д${stats.home}`);
+          badgeParts.push(`<span class="micro-status m-home" title="Вдома">Д${stats.home}</span>`);
+        }
+        if (stats.sick > 0) {
+          parts.push(`Л${stats.sick}`);
+          badgeParts.push(`<span class="micro-status m-sick" title="Лікарняний">Л${stats.sick}</span>`);
+        }
+        if (stats.vacation > 0) {
+          parts.push(`В${stats.vacation}`);
+          badgeParts.push(`<span class="micro-status m-vacation" title="Відпустка">В${stats.vacation}</span>`);
+        }
+        if (stats.agreement > 0) {
+          parts.push(`ЗД${stats.agreement}`);
+          badgeParts.push(`<span class="micro-status m-agreement" title="За домовленістю">ЗД${stats.agreement}</span>`);
+        }
+        if (stats.unregistered > 0) {
+          parts.push(`Б/С${stats.unregistered}`);
+          badgeParts.push(`<span class="micro-status m-unregistered" title="Без статусу">Б/С${stats.unregistered}</span>`);
+        }
 
         const badgeText = parts.join(' ');
+        const badgeHtml = badgeParts.join('');
 
         const badge = document.querySelector(`[data-dept-status-id="${dept.id}"]`);
         if (badge) {
@@ -669,7 +690,7 @@
         deptsHtml += `
           <div class="dept-presence-box theme-${dept.color}">
             <span class="dept-presence-title" title="${escapeHtml(dept.title)}">${escapeHtml(dept.shortTitle)}</span>
-            <span class="dept-presence-badge">${escapeHtml(badgeText || 'Б/С')}</span>
+            <div class="dept-presence-badge">${badgeHtml || '<span class="micro-status m-unregistered">Б/С</span>'}</div>
           </div>
         `;
       });
