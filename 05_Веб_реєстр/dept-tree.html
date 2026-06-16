@@ -33,34 +33,35 @@
         Департамент стратегії універсального охоплення населення медичними послугами:
         керівництво, відділи, керівники відділів та головні спеціалісти.
       </p>
-    </div>
-    <div class="dept-hero-widgets">
-      <div class="stats dept-summary" aria-label="Коротка статистика">
-        <div class="stat">
-          <strong id="stat-total-people">0</strong>
-          <span>співробітників</span>
-        </div>
-        <div class="stat">
-          <strong id="stat-total-depts">0</strong>
-          <span>відділів</span>
-        </div>
-        <div class="stat">
-          <strong id="stat-total-heads">0</strong>
-          <span>керівних ролей</span>
-        </div>
-      </div>
-
-      <div class="presence-widget" aria-label="Статистика присутності">
-        <div class="presence-widget-title">Статус сьогодні</div>
-        <div class="presence-widget-content">
-          <div class="presence-chart-container">
-            <div class="presence-doughnut" id="presence-doughnut"></div>
-            <div class="presence-chart-center">
-              <span class="presence-chart-number" id="presence-chart-number">0</span>
-              <span class="presence-chart-label">співр.</span>
-            </div>
+      
+      <div class="dept-hero-widgets">
+        <div class="stats dept-summary" aria-label="Коротка статистика">
+          <div class="stat">
+            <strong id="stat-total-people">0</strong>
+            <span>співробітників</span>
           </div>
-          <div class="presence-legend" id="presence-legend"></div>
+          <div class="stat">
+            <strong id="stat-total-depts">0</strong>
+            <span>відділів</span>
+          </div>
+          <div class="stat">
+            <strong id="stat-total-heads">0</strong>
+            <span>керівних ролей</span>
+          </div>
+        </div>
+
+        <div class="presence-widget" aria-label="Статистика присутності">
+          <div class="presence-widget-title">Статус сьогодні</div>
+          <div class="presence-widget-content">
+            <div class="presence-chart-container">
+              <div class="presence-doughnut" id="presence-doughnut"></div>
+              <div class="presence-chart-center">
+                <span class="presence-chart-number" id="presence-chart-number">0</span>
+                <span class="presence-chart-label">співр.</span>
+              </div>
+            </div>
+            <div class="presence-legend" id="presence-legend"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -210,9 +211,7 @@
     const $ = (selector) => document.querySelector(selector);
 
     function peopleCount() {
-      const departmentPeople = ORG.departments.reduce((sum, dept) =>
-        sum + (dept.manager ? 1 : 0) + dept.specialists.length, 0);
-      return 1 + 1 + 1 + departmentPeople;
+      return getUniquePeopleNames().length;
     }
 
     function initials(name) {
