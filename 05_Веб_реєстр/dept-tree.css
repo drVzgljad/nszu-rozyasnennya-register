@@ -1118,3 +1118,36 @@
   line-height: 1;
 }
 
+.dept-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 5px;
+}
+
+.dept-meta-row p {
+  margin: 0 !important;
+}
+
+.dept-status-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+:root.dark-theme .dept-status-badge,
+.dark-theme .dept-status-badge {
+  background: #0f172a;
+  border-color: rgba(148, 163, 184, 0.2);
+  color: #e5edf7;
+}
+

@@ -6,7 +6,7 @@
   <title>НавігаторПМГ26 | Структура департаменту</title>
   <link rel="stylesheet" href="styles.css?v=20260531e">
   <link rel="stylesheet" href="auth-v2.css?v=20260615b">
-  <link rel="stylesheet" href="dept-tree.css?v=20260616d">
+  <link rel="stylesheet" href="dept-tree.css?v=20260616e">
   <script type="module" src="auth-v2.js?v=20260615b"></script>
 </head>
 <body>
@@ -315,7 +315,10 @@
             <span class="department-index">${escapeHtml(String(ORG.departments.indexOf(dept) + 1).padStart(2, "0"))}</span>
             <div>
               <h2>${escapeHtml(dept.title)}</h2>
-              <p>${dept.specialists.length} головн${dept.specialists.length === 1 ? "ий спеціаліст" : "і спеціалісти"}</p>
+              <div class="dept-meta-row">
+                <p>${dept.specialists.length} головн${dept.specialists.length === 1 ? "ий спеціаліст" : "і спеціалісти"}</p>
+                <span class="dept-status-badge" data-dept-status-id="${dept.id}"></span>
+              </div>
             </div>
           </header>
           <div class="manager-slot"></div>
@@ -591,6 +594,69 @@
       }
     }
 
+    function updateDepartmentStatusBadges(statusesData) {
+      const statusMap = new Map();
+      (statusesData || []).forEach(item => {
+        if (item.user_name && item.status) {
+          statusMap.set(item.user_name.trim().toLowerCase(), item.status);
+        }
+      });
+
+      ORG.departments.forEach(dept => {
+        const members = new Set();
+        if (dept.manager) members.add(dept.manager);
+        dept.specialists.forEach(sp => members.add(sp));
+        
+        const stats = {
+          office: 0,
+          home: 0,
+          sick: 0,
+          vacation: 0,
+          agreement: 0,
+          unregistered: 0
+        };
+
+        members.forEach(member => {
+          const dbNameLower = member.trim().toLowerCase();
+          let status = null;
+          if (statusMap.has(dbNameLower)) {
+            status = statusMap.get(dbNameLower);
+          } else {
+            const targetWords = dbNameLower.split(/\s+/).filter(Boolean);
+            for (const [dbName, dbStatus] of statusMap.entries()) {
+              const dbWords = dbName.split(/\s+/).filter(Boolean);
+              if (dbWords.length === targetWords.length && dbWords.every(w => targetWords.includes(w))) {
+                status = dbStatus;
+                break;
+              }
+            }
+          }
+
+          if (status) {
+            if (stats[status] !== undefined) {
+              stats[status]++;
+            }
+          } else {
+            stats.unregistered++;
+          }
+        });
+
+        const parts = [];
+        if (stats.office > 0) parts.push(`О${stats.office}`);
+        if (stats.home > 0) parts.push(`Д${stats.home}`);
+        if (stats.sick > 0) parts.push(`Л${stats.sick}`);
+        if (stats.vacation > 0) parts.push(`В${stats.vacation}`);
+        if (stats.agreement > 0) parts.push(`ЗД${stats.agreement}`);
+        if (stats.unregistered > 0) parts.push(`Б/С${stats.unregistered}`);
+
+        const badge = document.querySelector(`[data-dept-status-id="${dept.id}"]`);
+        if (badge) {
+          badge.textContent = parts.join(' ');
+          badge.style.display = parts.length > 0 ? 'inline-flex' : 'none';
+        }
+      });
+    }
+
     async function loadDailyStatuses() {
       const todayStr = getLocalDateString();
       try {
@@ -610,6 +676,7 @@
         
         applyStatusesToCards(statusMap);
         calculatePresenceStats(data);
+        updateDepartmentStatusBadges(data);
       } catch (error) {
         console.warn("Не вдалося завантажити щоденні статуси для структури:", error);
       }
