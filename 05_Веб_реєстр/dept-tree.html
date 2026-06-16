@@ -34,18 +34,34 @@
         керівництво, відділи, керівники відділів та головні спеціалісти.
       </p>
     </div>
-    <div class="stats dept-summary" aria-label="Коротка статистика">
-      <div class="stat">
-        <strong id="stat-total-people">0</strong>
-        <span>співробітників</span>
+    <div class="dept-hero-widgets">
+      <div class="stats dept-summary" aria-label="Коротка статистика">
+        <div class="stat">
+          <strong id="stat-total-people">0</strong>
+          <span>співробітників</span>
+        </div>
+        <div class="stat">
+          <strong id="stat-total-depts">0</strong>
+          <span>відділів</span>
+        </div>
+        <div class="stat">
+          <strong id="stat-total-heads">0</strong>
+          <span>керівних ролей</span>
+        </div>
       </div>
-      <div class="stat">
-        <strong id="stat-total-depts">0</strong>
-        <span>відділів</span>
-      </div>
-      <div class="stat">
-        <strong id="stat-total-heads">0</strong>
-        <span>керівних ролей</span>
+
+      <div class="presence-widget" aria-label="Статистика присутності">
+        <div class="presence-widget-title">Статус сьогодні</div>
+        <div class="presence-widget-content">
+          <div class="presence-chart-container">
+            <div class="presence-doughnut" id="presence-doughnut"></div>
+            <div class="presence-chart-center">
+              <span class="presence-chart-number" id="presence-chart-number">0</span>
+              <span class="presence-chart-label">співр.</span>
+            </div>
+          </div>
+          <div class="presence-legend" id="presence-legend"></div>
+        </div>
       </div>
     </div>
   </header>
@@ -476,6 +492,105 @@
       return `${year}-${month}-${day}`;
     }
 
+    function getUniquePeopleNames() {
+      const names = new Set();
+      names.add(ORG.director.name);
+      names.add(ORG.deputy.name);
+      names.add(ORG.administrator.name);
+      ORG.departments.forEach(dept => {
+        if (dept.manager) names.add(dept.manager);
+        dept.specialists.forEach(sp => names.add(sp));
+      });
+      return Array.from(names);
+    }
+
+    function calculatePresenceStats(statusesData) {
+      const uniqueNames = getUniquePeopleNames();
+      const stats = {
+        office: 0,
+        home: 0,
+        sick: 0,
+        vacation: 0,
+        agreement: 0,
+        unregistered: 0
+      };
+
+      const registeredNames = new Set();
+      (statusesData || []).forEach(item => {
+        if (item.user_name) {
+          const dbNameLower = item.user_name.trim().toLowerCase();
+          const matchedName = uniqueNames.find(uname => {
+            const unameLower = uname.trim().toLowerCase();
+            if (unameLower === dbNameLower) return true;
+            
+            const unameWords = unameLower.split(/\s+/).filter(Boolean);
+            const dbWords = dbNameLower.split(/\s+/).filter(Boolean);
+            return unameWords.length === dbWords.length && unameWords.every(w => dbWords.includes(w));
+          });
+          
+          if (matchedName && !registeredNames.has(matchedName)) {
+            registeredNames.add(matchedName);
+            if (stats[item.status] !== undefined) {
+              stats[item.status]++;
+            }
+          }
+        }
+      });
+
+      stats.unregistered = uniqueNames.length - registeredNames.size;
+
+      const total = uniqueNames.length;
+      const order = ['office', 'home', 'sick', 'vacation', 'agreement', 'unregistered'];
+      const segments = [];
+      let currentPercent = 0;
+
+      order.forEach(key => {
+        const val = stats[key] || 0;
+        if (val > 0) {
+          const pct = (val / total) * 100;
+          const nextPercent = currentPercent + pct;
+          segments.push(`var(--status-${key}) ${currentPercent.toFixed(1)}% ${nextPercent.toFixed(1)}%`);
+          currentPercent = nextPercent;
+        }
+      });
+
+      const doughnut = document.getElementById('presence-doughnut');
+      if (doughnut) {
+        if (segments.length > 0) {
+          doughnut.style.background = `conic-gradient(${segments.join(', ')})`;
+        } else {
+          doughnut.style.background = 'var(--status-unregistered)';
+        }
+      }
+
+      const legend = document.getElementById('presence-legend');
+      if (legend) {
+        const config = {
+          office: { label: 'Офіс', icon: '🏢' },
+          home: { label: 'Вдома', icon: '🏡' },
+          sick: { label: 'Лікарняний', icon: '🏥' },
+          vacation: { label: 'Відпустка', icon: '🌴' },
+          agreement: { label: 'За домовл.', icon: '🤝' },
+          unregistered: { label: 'Не вказано', icon: '❓' }
+        };
+
+        legend.innerHTML = order.map(key => {
+          const count = stats[key] || 0;
+          return `
+            <div class="presence-legend-item">
+              <span class="presence-legend-dot" style="background: var(--status-${key})"></span>
+              <span>${config[key].icon} ${config[key].label}: <strong>${count}</strong></span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const chartNumber = document.getElementById('presence-chart-number');
+      if (chartNumber) {
+        chartNumber.textContent = total;
+      }
+    }
+
     async function loadDailyStatuses() {
       const todayStr = getLocalDateString();
       try {
@@ -494,6 +609,7 @@
         });
         
         applyStatusesToCards(statusMap);
+        calculatePresenceStats(data);
       } catch (error) {
         console.warn("Не вдалося завантажити щоденні статуси для структури:", error);
       }
