@@ -1109,7 +1109,7 @@
 }
 
 .stat {
-  text-align: center;
+  text-align: center !important;
 }
 
 .presence-legend-icon {
