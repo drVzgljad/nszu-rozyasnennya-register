@@ -6,7 +6,7 @@
   <title>НавігаторПМГ26 | Структура департаменту</title>
   <link rel="stylesheet" href="styles.css?v=20260531e">
   <link rel="stylesheet" href="auth-v2.css?v=20260615b">
-  <link rel="stylesheet" href="dept-tree.css?v=20260616f">
+  <link rel="stylesheet" href="dept-tree.css?v=20260616g">
   <script type="module" src="auth-v2.js?v=20260615b"></script>
 </head>
 <body>
@@ -62,6 +62,11 @@
             </div>
             <div class="presence-legend" id="presence-legend"></div>
           </div>
+        </div>
+
+        <div class="depts-presence-widget" aria-label="Статус по відділах">
+          <div class="presence-widget-title">Статус по відділах</div>
+          <div class="depts-presence-content" id="depts-presence-content"></div>
         </div>
       </div>
     </div>
@@ -602,6 +607,9 @@
         }
       });
 
+      const deptsPresenceContent = document.getElementById('depts-presence-content');
+      let deptsHtml = '';
+
       ORG.departments.forEach(dept => {
         const members = new Set();
         if (dept.manager) members.add(dept.manager);
@@ -649,12 +657,26 @@
         if (stats.agreement > 0) parts.push(`ЗД${stats.agreement}`);
         if (stats.unregistered > 0) parts.push(`Б/С${stats.unregistered}`);
 
+        const badgeText = parts.join(' ');
+
         const badge = document.querySelector(`[data-dept-status-id="${dept.id}"]`);
         if (badge) {
-          badge.textContent = parts.join(' ');
+          badge.textContent = badgeText;
           badge.style.display = parts.length > 0 ? 'inline-flex' : 'none';
         }
+
+        // Add to department summary dashboard widget
+        deptsHtml += `
+          <div class="dept-presence-box theme-${dept.color}">
+            <span class="dept-presence-title" title="${escapeHtml(dept.title)}">${escapeHtml(dept.shortTitle)}</span>
+            <span class="dept-presence-badge">${escapeHtml(badgeText || 'Б/С')}</span>
+          </div>
+        `;
       });
+
+      if (deptsPresenceContent) {
+        deptsPresenceContent.innerHTML = deptsHtml;
+      }
     }
 
     async function loadDailyStatuses() {
