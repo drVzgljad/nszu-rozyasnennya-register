@@ -1237,12 +1237,15 @@ function updateStatusUI(status) {
 async function saveUserDailyStatus(status) {
   if (!user || role === 'guest') return;
   const todayStr = getLocalDateString();
-  const displayName = user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0];
+  let displayName = user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0];
   
   let userDept = '';
   try {
-    const { data: prof } = await sb.from('profiles').select('Section, department').eq('id', user.id).single();
+    const { data: prof } = await sb.from('profiles').select('Section, department, full_name').eq('id', user.id).single();
     userDept = prof?.Section || prof?.department || '';
+    if (prof?.full_name) {
+      displayName = prof.full_name;
+    }
   } catch(e) {}
   
   try {

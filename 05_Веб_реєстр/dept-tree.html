@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="styles.css?v=20260531e">
   <link rel="stylesheet" href="auth-v2.css?v=20260615b">
   <link rel="stylesheet" href="dept-tree.css?v=20260616h">
-  <script type="module" src="auth-v2.js?v=20260615b"></script>
+  <script type="module" src="auth-v2.js?v=20260616b"></script>
 </head>
 <body>
   <header class="hero dept-hero">
@@ -209,6 +209,7 @@
       search: "",
       department: "all",
       profileIdsByName: new Map(),
+      profileNamesById: new Map(),
       onlineIds: new Set(),
       presenceChannel: null
     };
@@ -420,7 +421,9 @@
         if (error) throw error;
         (data || []).forEach((profile) => {
           if (profile.full_name) {
-            state.profileIdsByName.set(profile.full_name.trim(), profile.id);
+            const trimmedName = profile.full_name.trim();
+            state.profileIdsByName.set(trimmedName, profile.id);
+            state.profileNamesById.set(profile.id, trimmedName);
           }
         });
         syncOnlineCards();
@@ -705,21 +708,32 @@
       try {
         const { data, error } = await sb
           .from("user_daily_statuses")
-          .select("user_name, status")
+          .select("user_id, user_name, status")
           .eq("status_date", todayStr);
           
         if (error) throw error;
         
+        const normalizedData = (data || []).map(item => {
+          let resolvedName = item.user_name;
+          if (item.user_id && state.profileNamesById.has(item.user_id)) {
+            resolvedName = state.profileNamesById.get(item.user_id);
+          }
+          return {
+            ...item,
+            user_name: resolvedName
+          };
+        });
+        
         const statusMap = new Map();
-        (data || []).forEach(item => {
+        normalizedData.forEach(item => {
           if (item.user_name) {
             statusMap.set(item.user_name.trim().toLowerCase(), item.status);
           }
         });
         
         applyStatusesToCards(statusMap);
-        calculatePresenceStats(data);
-        updateDepartmentStatusBadges(data);
+        calculatePresenceStats(normalizedData);
+        updateDepartmentStatusBadges(normalizedData);
       } catch (error) {
         console.warn("Не вдалося завантажити щоденні статуси для структури:", error);
       }
