@@ -269,23 +269,17 @@ function generateFolderName() {
   return `ДЕЦ_Документи_${dateStr}`;
 }
 
-function loadJSZip() {
-  return new Promise((resolve, reject) => {
-    if (window.JSZip) {
-      resolve();
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Не вдалося завантажити бібліотеку створення архівів JSZip"));
-    document.head.appendChild(script);
-  });
+function downloadFile(url) {
+  const iframe = document.createElement("iframe");
+  iframe.style.display = "none";
+  iframe.src = url;
+  document.body.appendChild(iframe);
+  setTimeout(() => {
+    document.body.removeChild(iframe);
+  }, 10000);
 }
 
 async function downloadSelectedDocs() {
-  const folderInput = el("download-folder-name");
-  const folderName = folderInput ? (folderInput.value.trim() || "ДЕЦ_Документи") : "ДЕЦ_Документи";
   const selectedDocs = state.data.documents.filter(doc => state.selectedDocsForDownload.has(doc.id) && doc.document_url);
   
   if (selectedDocs.length === 0) return;
@@ -294,131 +288,6 @@ async function downloadSelectedDocs() {
   const statusEl = el("download-status");
   const downloadBtn = el("download-selected-btn");
   
-  // Check if running locally (which supports backend python folder creation)
-  const isLocal = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost";
-  const isFileProtocol = window.location.protocol === "file:";
-  
-  if (isFileProtocol) {
-    if (downloadBtn) {
-      downloadBtn.disabled = false;
-    }
-    if (statusContainer && statusEl) {
-      statusContainer.style.display = "block";
-      statusEl.className = "download-status error";
-      statusEl.innerHTML = `⚠️ Ви відкрили файл <code>index.html</code> безпосередньо. Для автоматичного створення папок та завантаження файлів запустіть проект через файл <strong>Відкрити_реєстр.cmd</strong> та використовуйте адресу <code>http://127.0.0.1:8042/...</code>`;
-    }
-    return;
-  }
-  
-  if (!isLocal) {
-    // Client-side fallback: compile ZIP using JSZip and CORS proxy
-    if (downloadBtn) {
-      downloadBtn.disabled = true;
-      downloadBtn.innerHTML = `<span>⏳ Створення ZIP...</span>`;
-    }
-    
-    if (statusContainer && statusEl) {
-      statusContainer.style.display = "block";
-      statusEl.className = "download-status info";
-      statusEl.innerHTML = `Завантаження файлів та створення ZIP-архіву з ${selectedDocs.length} документів (через CORS proxy)...`;
-    }
-    
-    try {
-      await loadJSZip();
-      const zip = new JSZip();
-      
-      // Sanitize folder name for the zip root folder
-      const sanitizedFolder = folderName.replace(/[\\/*?:"<>|]/g, "_").strip ? folderName.replace(/[\\/*?:"<>|]/g, "_").trim() : folderName.replace(/[\\/*?:"<>|]/g, "_");
-      const folder = zip.folder(sanitizedFolder || "ДЕЦ_Документи");
-      
-      const corsProxy = "https://corsproxy.io/?";
-      
-      let successCount = 0;
-      let failCount = 0;
-      const failedList = [];
-      
-      for (const doc of selectedDocs) {
-        try {
-          const proxiedUrl = corsProxy + encodeURIComponent(doc.document_url);
-          const response = await fetch(proxiedUrl);
-          if (!response.ok) {
-            throw new Error(`Статус ${response.status}`);
-          }
-          const blob = await response.blob();
-          
-          // Determine file extension
-          let ext = ".pdf";
-          if (doc.document_url.includes(".doc")) ext = ".doc";
-          if (doc.document_url.includes(".docx")) ext = ".docx";
-          if (doc.document_url.includes(".xls")) ext = ".xls";
-          if (doc.document_url.includes(".xlsx")) ext = ".xlsx";
-          
-          const sanitizedTitle = doc.title.replace(/[\\/*?:"<>|]/g, "_").trim();
-          folder.file(`${sanitizedTitle}${ext}`, blob);
-          successCount++;
-          
-          if (statusEl) {
-            statusEl.innerHTML = `Скачано документів: ${successCount} з ${selectedDocs.length}...`;
-          }
-        } catch (err) {
-          console.warn(`Failed to fetch ${doc.title} via proxy:`, err);
-          failedList.push(doc.title);
-          failCount++;
-        }
-      }
-      
-      if (successCount === 0) {
-        throw new Error("Не вдалося завантажити жодного документа через CORS proxy.");
-      }
-      
-      if (statusEl) {
-        statusEl.innerHTML = `Компіляція ZIP-архіву...`;
-      }
-      
-      const content = await zip.generateAsync({ type: "blob" });
-      const downloadUrl = URL.createObjectURL(content);
-      
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.download = `${sanitizedFolder}.zip`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(downloadUrl);
-      
-      if (statusEl) {
-        if (failCount > 0) {
-          statusEl.className = "download-status warning";
-          statusEl.innerHTML = `⚠️ Архів <strong>${escapeHtml(sanitizedFolder)}.zip</strong> створено! Збережено ${successCount} з ${selectedDocs.length} документів. Не вдалося завантажити: ${failedList.join(", ")}`;
-        } else {
-          statusEl.className = "download-status success";
-          statusEl.innerHTML = `Успішно створено та надіслано на завантаження архів <strong>${escapeHtml(sanitizedFolder)}.zip</strong>!`;
-        }
-      }
-      state.selectedDocsForDownload.clear();
-    } catch (err) {
-      if (statusEl) {
-        statusEl.className = "download-status error";
-        statusEl.innerHTML = `❌ Помилка створення архіву на зовнішньому сайті: ${escapeHtml(err.message)}`;
-      }
-    } finally {
-      const selectedCount = state.data.documents.filter(doc => state.selectedDocsForDownload.has(doc.id) && doc.document_url).length;
-      if (downloadBtn) {
-        downloadBtn.innerHTML = `<span>📥 Скачати вибране (${selectedCount})</span>`;
-        downloadBtn.disabled = selectedCount === 0;
-      }
-      renderCards();
-      
-      if (statusEl && statusEl.classList.contains("success")) {
-        setTimeout(() => {
-          if (statusContainer) statusContainer.style.display = "none";
-        }, 7000);
-      }
-    }
-    return;
-  }
-  
-  // UI Loading state
   if (downloadBtn) {
     downloadBtn.disabled = true;
     downloadBtn.innerHTML = `<span>⏳ Завантаження...</span>`;
@@ -427,76 +296,44 @@ async function downloadSelectedDocs() {
   if (statusContainer && statusEl) {
     statusContainer.style.display = "block";
     statusEl.className = "download-status info";
-    statusEl.innerHTML = `Створення архіву з ${selectedDocs.length} документів...`;
+    statusEl.innerHTML = `Запуск скачування документів...`;
   }
   
-  const payload = {
-    folder_name: folderName,
-    documents: selectedDocs.map(doc => ({
-      title: doc.title,
-      url: doc.document_url
-    }))
-  };
-  
-  try {
-    const response = await fetch("/api/download-docs", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Помилка сервера: ${response.status}`);
-    }
-    
-    const contentType = response.headers.get("Content-Type");
-    if (contentType && contentType.includes("application/json")) {
-      const result = await response.json();
-      throw new Error(result.error || "Невідома помилка");
-    }
-    
-    const blob = await response.blob();
-    const downloadUrl = URL.createObjectURL(blob);
-    
-    const link = document.createElement("a");
-    link.href = downloadUrl;
-    link.download = `${folderName}.zip`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(downloadUrl);
-    
-    if (statusEl) {
-      statusEl.className = "download-status success";
-      statusEl.innerHTML = `Успішно створено та надіслано на завантаження архів <strong>${escapeHtml(folderName)}.zip</strong>!`;
-    }
-    
-    state.selectedDocsForDownload.clear();
-  } catch (err) {
-    if (statusEl) {
-      statusEl.className = "download-status error";
-      statusEl.innerHTML = `❌ Помилка при завантаженні: ${escapeHtml(err.message)}`;
-    }
-  } finally {
-    // Restore button
-    const selectedCount = state.data.documents.filter(doc => state.selectedDocsForDownload.has(doc.id) && doc.document_url).length;
-    if (downloadBtn) {
-      downloadBtn.innerHTML = `<span>📥 Скачати вибране (${selectedCount})</span>`;
-      downloadBtn.disabled = selectedCount === 0;
-    }
-    
-    // Refresh cards to update checkboxes if cleared
-    renderCards();
-    
-    // Hide status after some time if it was successful
-    if (statusEl && statusEl.classList.contains("success")) {
-      setTimeout(() => {
-        if (statusContainer) statusContainer.style.display = "none";
-      }, 7000);
-    }
-  }
+  let downloadedCount = 0;
+  selectedDocs.forEach((doc, index) => {
+    setTimeout(() => {
+      try {
+        downloadFile(doc.document_url);
+        downloadedCount++;
+        
+        if (statusEl) {
+          statusEl.innerHTML = `Запущено завантаження ${downloadedCount} з ${selectedDocs.length} документів...`;
+        }
+        
+        if (downloadedCount === selectedDocs.length) {
+          setTimeout(() => {
+            if (statusEl) {
+              statusEl.className = "download-status success";
+              statusEl.innerHTML = `Успішно запущено завантаження <strong>${selectedDocs.length}</strong> документів!`;
+            }
+            state.selectedDocsForDownload.clear();
+            renderCards();
+            
+            if (downloadBtn) {
+              downloadBtn.innerHTML = `<span>📥 Скачати вибране (0)</span>`;
+              downloadBtn.disabled = true;
+            }
+            
+            setTimeout(() => {
+              if (statusContainer) statusContainer.style.display = "none";
+            }, 6000);
+          }, 1000);
+        }
+      } catch (err) {
+        console.error("Error downloading file:", err);
+      }
+    }, index * 800); // 800ms delay to prevent browser blocks
+  });
 }
 
 function renderWelcome() {

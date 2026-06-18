@@ -737,11 +737,7 @@ select {
 }
 
 .folder-name-container {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-grow: 1;
-  min-width: 220px;
+  display: none !important;
 }
 
 .folder-label {
