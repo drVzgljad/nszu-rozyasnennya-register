@@ -354,7 +354,7 @@ async function downloadSelectedDocs() {
   if (statusContainer && statusEl) {
     statusContainer.style.display = "block";
     statusEl.className = "download-status info";
-    statusEl.innerHTML = `Початок завантаження ${selectedDocs.length} документів у папку <strong>${escapeHtml(folderName)}</strong>...`;
+    statusEl.innerHTML = `Створення архіву з ${selectedDocs.length} документів...`;
   }
   
   const payload = {
@@ -378,30 +378,29 @@ async function downloadSelectedDocs() {
       throw new Error(`Помилка сервера: ${response.status}`);
     }
     
-    const result = await response.json();
-    
-    if (result.status === "success") {
-      const successCount = result.downloaded.length;
-      const failCount = result.failed.length;
-      
-      let msg = `Успішно завантажено <strong>${successCount}</strong> документів у папку <code>Downloads/${escapeHtml(folderName)}</code>!`;
-      if (failCount > 0) {
-        msg += `<br><span style="color: var(--warning-text, #7a5000); font-weight: 700;">Не вдалося завантажити ${failCount} файлів:</span><ul>`;
-        result.failed.forEach(f => {
-          msg += `<li>${escapeHtml(f.title)} (${escapeHtml(f.error)})</li>`;
-        });
-        msg += `</ul>`;
-        if (statusEl) statusEl.className = "download-status warning";
-      } else {
-        if (statusEl) statusEl.className = "download-status success";
-        // Clear selection on complete success
-        state.selectedDocsForDownload.clear();
-      }
-      
-      if (statusEl) statusEl.innerHTML = msg;
-    } else {
+    const contentType = response.headers.get("Content-Type");
+    if (contentType && contentType.includes("application/json")) {
+      const result = await response.json();
       throw new Error(result.error || "Невідома помилка");
     }
+    
+    const blob = await response.blob();
+    const downloadUrl = URL.createObjectURL(blob);
+    
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = `${folderName}.zip`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(downloadUrl);
+    
+    if (statusEl) {
+      statusEl.className = "download-status success";
+      statusEl.innerHTML = `Успішно створено та надіслано на завантаження архів <strong>${escapeHtml(folderName)}.zip</strong>!`;
+    }
+    
+    state.selectedDocsForDownload.clear();
   } catch (err) {
     if (statusEl) {
       statusEl.className = "download-status error";
