@@ -8,6 +8,7 @@ const state = {
   selectedDocsForDownload: new Set()
 };
 const el = (id) => document.getElementById(id);
+const isLocal = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost";
 
 const filterDefinitions = [
   { id: "category", allLabel: "Усі категорії", value: (doc) => doc.category, display: (v) => v },
@@ -288,6 +289,30 @@ async function downloadSelectedDocs() {
   const statusEl = el("download-status");
   const downloadBtn = el("download-selected-btn");
   
+  if (!isLocal) {
+    // External / static: Display links list to prevent CORS/browser download blocks
+    if (statusContainer && statusEl) {
+      statusContainer.style.display = "block";
+      statusEl.className = "download-status warning";
+      
+      let linksHtml = `<div style="font-weight: 700; margin-bottom: 8px;">⚠️ На зовнішньому сайті групове скачування обмежене безпекою браузера. Клацніть на кожне посилання нижче для скачування:</div>`;
+      linksHtml += `<ul style="margin-top: 6px; padding-left: 20px; text-align: left;">`;
+      selectedDocs.forEach(doc => {
+        linksHtml += `<li style="margin-bottom: 4px;"><a href="${escapeHtml(doc.document_url)}" target="_blank" style="color: var(--accent-dark); font-weight: 600; text-decoration: underline;">${escapeHtml(doc.title)}</a></li>`;
+      });
+      linksHtml += `</ul>`;
+      linksHtml += `<div style="font-size: 11.5px; color: var(--muted); margin-top: 8px; font-style: italic; border-top: 1px dashed rgba(0,0,0,0.1); padding-top: 6px;">💡 Запустіть сервіс локально через файл <strong>Відкрити_реєстр.cmd</strong>, щоб завантажувати вибрані документи по черзі за допомогою вікна "Зберегти як"!</div>`;
+      
+      statusEl.innerHTML = linksHtml;
+    }
+    
+    // Reset selection so the count updates
+    state.selectedDocsForDownload.clear();
+    renderCards();
+    return;
+  }
+  
+  // Local server: trigger sequential "Save As" downloads
   if (downloadBtn) {
     downloadBtn.disabled = true;
     downloadBtn.innerHTML = `<span>⏳ Завантаження...</span>`;
@@ -296,16 +321,23 @@ async function downloadSelectedDocs() {
   if (statusContainer && statusEl) {
     statusContainer.style.display = "block";
     statusEl.className = "download-status info";
-    statusEl.innerHTML = `Запуск скачування документів...`;
+    statusEl.innerHTML = `Підготовка до завантаження ${selectedDocs.length} документів...`;
   }
   
   let downloadedCount = 0;
   selectedDocs.forEach((doc, index) => {
     setTimeout(() => {
       try {
-        downloadFile(doc.document_url);
-        downloadedCount++;
+        const downloadUrl = `/api/download-file?url=${encodeURIComponent(doc.document_url)}&title=${encodeURIComponent(doc.title)}`;
         
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = ""; // server handles Content-Disposition
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        downloadedCount++;
         if (statusEl) {
           statusEl.innerHTML = `Запущено завантаження ${downloadedCount} з ${selectedDocs.length} документів...`;
         }
@@ -330,9 +362,9 @@ async function downloadSelectedDocs() {
           }, 1000);
         }
       } catch (err) {
-        console.error("Error downloading file:", err);
+        console.error("Error triggering download:", err);
       }
-    }, index * 800); // 800ms delay to prevent browser blocks
+    }, index * 800); // 800ms delay to prevent browser blockage
   });
 }
 
@@ -381,8 +413,12 @@ function renderDetail(doc) {
     statusBadgeClass = "label ocr"; // Highlighted
   }
 
+  const downloadUrl = isLocal 
+    ? `/api/download-file?url=${encodeURIComponent(doc.document_url)}&title=${encodeURIComponent(doc.title)}`
+    : doc.document_url;
+    
   const fileActions = doc.document_url 
-    ? `<a class="action primary" href="${escapeHtml(doc.document_url)}" target="_blank" rel="noopener">Завантажити PDF</a>` 
+    ? `<a class="action primary" href="${escapeHtml(downloadUrl)}" ${isLocal ? '' : 'target="_blank" rel="noopener"'} download="${escapeHtml(doc.title)}.pdf">Завантажити PDF</a>` 
     : `<span style="font-size: 13px; color: var(--muted); padding: 10px; border: 1px dashed var(--line); border-radius: 10px;">Файл недоступний</span>`;
 
   const categoryAction = doc.category_url 
