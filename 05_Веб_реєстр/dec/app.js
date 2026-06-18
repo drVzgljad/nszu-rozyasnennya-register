@@ -277,6 +277,58 @@ async function downloadSelectedDocs() {
   const statusEl = el("download-status");
   const downloadBtn = el("download-selected-btn");
   
+  // Check if running locally (which supports backend python folder creation)
+  const isLocal = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost";
+  
+  if (!isLocal) {
+    // Client-side fallback: trigger individual downloads
+    if (downloadBtn) {
+      downloadBtn.disabled = true;
+      downloadBtn.innerHTML = `<span>⏳ Завантаження...</span>`;
+    }
+    
+    if (statusContainer && statusEl) {
+      statusContainer.style.display = "block";
+      statusEl.className = "download-status warning";
+      statusEl.innerHTML = `⚠️ На зовнішньому сайті автоматичне створення папок не підтримується. Завантажуємо ${selectedDocs.length} документів по черзі у вашу папку завантажень...`;
+    }
+    
+    let downloadedCount = 0;
+    selectedDocs.forEach((doc, index) => {
+      setTimeout(() => {
+        const link = document.createElement("a");
+        link.href = doc.document_url;
+        link.target = "_blank";
+        link.setAttribute("download", doc.title);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        downloadedCount++;
+        if (downloadedCount === selectedDocs.length) {
+          setTimeout(() => {
+            if (statusEl) {
+              statusEl.className = "download-status success";
+              statusEl.innerHTML = `Успішно ініційовано завантаження <strong>${selectedDocs.length}</strong> документів!`;
+            }
+            state.selectedDocsForDownload.clear();
+            renderCards();
+            
+            if (downloadBtn) {
+              downloadBtn.innerHTML = `<span>📥 Скачати вибране (0)</span>`;
+              downloadBtn.disabled = true;
+            }
+            
+            setTimeout(() => {
+              if (statusContainer) statusContainer.style.display = "none";
+            }, 6000);
+          }, 1000);
+        }
+      }, index * 800); // 800ms delay to prevent browser blocks
+    });
+    return;
+  }
+  
   // UI Loading state
   if (downloadBtn) {
     downloadBtn.disabled = true;
