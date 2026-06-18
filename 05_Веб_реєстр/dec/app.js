@@ -87,6 +87,9 @@ function renderStats() {
 }
 
 function applyFilters() {
+  if (state.selectedDocsForDownload) {
+    state.selectedDocsForDownload.clear();
+  }
   refreshFilterMenus();
   const filters = currentFilters();
   if (!hasActiveFilters(filters)) {
