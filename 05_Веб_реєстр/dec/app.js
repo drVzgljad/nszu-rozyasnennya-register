@@ -282,6 +282,19 @@ async function downloadSelectedDocs() {
   
   // Check if running locally (which supports backend python folder creation)
   const isLocal = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost";
+  const isFileProtocol = window.location.protocol === "file:";
+  
+  if (isFileProtocol) {
+    if (downloadBtn) {
+      downloadBtn.disabled = false;
+    }
+    if (statusContainer && statusEl) {
+      statusContainer.style.display = "block";
+      statusEl.className = "download-status error";
+      statusEl.innerHTML = `⚠️ Ви відкрили файл <code>index.html</code> безпосередньо. Для автоматичного створення папок та завантаження файлів запустіть проект через файл <strong>Відкрити_реєстр.cmd</strong> та використовуйте адресу <code>http://127.0.0.1:8042/...</code>`;
+    }
+    return;
+  }
   
   if (!isLocal) {
     // Client-side fallback: trigger individual downloads
