@@ -4,7 +4,8 @@ const state = {
   selected: null,
   clinicalDirections: null,
   activeView: "search",
-  selectedDirection: null
+  selectedDirection: null,
+  selectedDocsForDownload: new Set()
 };
 const el = (id) => document.getElementById(id);
 
@@ -139,9 +140,13 @@ function searchScore(doc, query) {
 function renderCards(isBlank = false) {
   const container = el("cards");
   container.innerHTML = "";
-  if (isBlank) return;
+  if (isBlank) {
+    updateDownloadPanel();
+    return;
+  }
   if (!state.visible.length) {
     container.innerHTML = '<div class="no-results">За цими умовами документів не знайдено. Спробуйте інше слово або очистіть фільтри.</div>';
+    updateDownloadPanel();
     return;
   }
   state.visible.forEach((doc) => {
@@ -160,9 +165,198 @@ function renderCards(isBlank = false) {
     card.querySelector("strong").textContent = doc.title;
     card.querySelector(".card-subtitle").textContent =
       `${doc.category} ${doc.number ? '| ' + doc.number : ''}`;
+      
+    // Set checkbox checked state
+    const checkbox = card.querySelector(".card-select-checkbox");
+    if (checkbox) {
+      checkbox.checked = state.selectedDocsForDownload.has(doc.id);
+      
+      // Only show checkbox if the document has a valid download URL
+      if (!doc.document_url) {
+        checkbox.style.display = "none";
+      } else {
+        checkbox.addEventListener("change", (e) => {
+          if (checkbox.checked) {
+            state.selectedDocsForDownload.add(doc.id);
+          } else {
+            state.selectedDocsForDownload.delete(doc.id);
+          }
+          updateDownloadPanel();
+        });
+        
+        checkbox.addEventListener("click", (e) => {
+          e.stopPropagation(); // prevent card selection
+        });
+      }
+    }
+    
     card.addEventListener("click", () => selectDocument(doc.id));
     container.appendChild(card);
   });
+  updateDownloadPanel();
+}
+
+function updateDownloadPanel() {
+  const panel = el("download-panel");
+  const selectAll = el("select-all-visible");
+  const downloadBtn = el("download-selected-btn");
+  
+  if (!panel || !selectAll || !downloadBtn) return;
+  
+  if (!state.visible.length || state.activeView !== "search") {
+    panel.style.display = "none";
+    return;
+  }
+  
+  panel.style.display = "flex";
+  
+  // Get visible documents that can be downloaded
+  const visibleDownloadableDocs = state.visible.filter(doc => doc.document_url);
+  
+  // Check if all visible downloadable documents are checked
+  const allChecked = visibleDownloadableDocs.length > 0 && visibleDownloadableDocs.every(doc => state.selectedDocsForDownload.has(doc.id));
+  const someChecked = visibleDownloadableDocs.some(doc => state.selectedDocsForDownload.has(doc.id));
+  
+  selectAll.checked = allChecked;
+  selectAll.indeterminate = someChecked && !allChecked;
+  
+  if (visibleDownloadableDocs.length === 0) {
+    selectAll.disabled = true;
+  } else {
+    selectAll.disabled = false;
+  }
+  
+  // Calculate count of selected files
+  const selectedDocs = state.data.documents.filter(doc => state.selectedDocsForDownload.has(doc.id) && doc.document_url);
+  const selectedCount = selectedDocs.length;
+  
+  downloadBtn.innerHTML = `<span>📥 Скачати вибране (${selectedCount})</span>`;
+  downloadBtn.disabled = selectedCount === 0;
+  
+  // Auto-fill folder name if not modified or if empty
+  const folderInput = el("download-folder-name");
+  if (folderInput) {
+    if (!folderInput.value || folderInput.dataset.auto === "true" || folderInput.dataset.lastQuery !== getFolderQueryKey()) {
+      const defaultName = generateFolderName();
+      folderInput.value = defaultName;
+      folderInput.dataset.auto = "true";
+      folderInput.dataset.lastQuery = getFolderQueryKey();
+    }
+  }
+}
+
+function getFolderQueryKey() {
+  const filters = currentFilters();
+  return `${filters.query}|${filters.category}|${filters.type}|${filters.status}|${filters.year}`;
+}
+
+function generateFolderName() {
+  const filters = currentFilters();
+  if (filters.query) {
+    return `ДЕЦ_Пошук_${filters.query}`;
+  }
+  if (filters.category) {
+    return `ДЕЦ_${filters.category}`;
+  }
+  if (filters.type) {
+    return `ДЕЦ_Вид_${filters.type}`;
+  }
+  // Fallback to date
+  const dateStr = new Date().toISOString().slice(0, 10);
+  return `ДЕЦ_Документи_${dateStr}`;
+}
+
+async function downloadSelectedDocs() {
+  const folderInput = el("download-folder-name");
+  const folderName = folderInput ? (folderInput.value.trim() || "ДЕЦ_Документи") : "ДЕЦ_Документи";
+  const selectedDocs = state.data.documents.filter(doc => state.selectedDocsForDownload.has(doc.id) && doc.document_url);
+  
+  if (selectedDocs.length === 0) return;
+  
+  const statusContainer = el("download-status-container");
+  const statusEl = el("download-status");
+  const downloadBtn = el("download-selected-btn");
+  
+  // UI Loading state
+  if (downloadBtn) {
+    downloadBtn.disabled = true;
+    downloadBtn.innerHTML = `<span>⏳ Завантаження...</span>`;
+  }
+  
+  if (statusContainer && statusEl) {
+    statusContainer.style.display = "block";
+    statusEl.className = "download-status info";
+    statusEl.innerHTML = `Початок завантаження ${selectedDocs.length} документів у папку <strong>${escapeHtml(folderName)}</strong>...`;
+  }
+  
+  const payload = {
+    folder_name: folderName,
+    documents: selectedDocs.map(doc => ({
+      title: doc.title,
+      url: doc.document_url
+    }))
+  };
+  
+  try {
+    const response = await fetch("/api/download-docs", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Помилка сервера: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    
+    if (result.status === "success") {
+      const successCount = result.downloaded.length;
+      const failCount = result.failed.length;
+      
+      let msg = `Успішно завантажено <strong>${successCount}</strong> документів у папку <code>Downloads/${escapeHtml(folderName)}</code>!`;
+      if (failCount > 0) {
+        msg += `<br><span style="color: var(--warning-text, #7a5000); font-weight: 700;">Не вдалося завантажити ${failCount} файлів:</span><ul>`;
+        result.failed.forEach(f => {
+          msg += `<li>${escapeHtml(f.title)} (${escapeHtml(f.error)})</li>`;
+        });
+        msg += `</ul>`;
+        if (statusEl) statusEl.className = "download-status warning";
+      } else {
+        if (statusEl) statusEl.className = "download-status success";
+        // Clear selection on complete success
+        state.selectedDocsForDownload.clear();
+      }
+      
+      if (statusEl) statusEl.innerHTML = msg;
+    } else {
+      throw new Error(result.error || "Невідома помилка");
+    }
+  } catch (err) {
+    if (statusEl) {
+      statusEl.className = "download-status error";
+      statusEl.innerHTML = `❌ Помилка при завантаженні: ${escapeHtml(err.message)}`;
+    }
+  } finally {
+    // Restore button
+    const selectedCount = state.data.documents.filter(doc => state.selectedDocsForDownload.has(doc.id) && doc.document_url).length;
+    if (downloadBtn) {
+      downloadBtn.innerHTML = `<span>📥 Скачати вибране (${selectedCount})</span>`;
+      downloadBtn.disabled = selectedCount === 0;
+    }
+    
+    // Refresh cards to update checkboxes if cleared
+    renderCards();
+    
+    // Hide status after some time if it was successful
+    if (statusEl && statusEl.classList.contains("success")) {
+      setTimeout(() => {
+        if (statusContainer) statusContainer.style.display = "none";
+      }, 7000);
+    }
+  }
 }
 
 function renderWelcome() {
@@ -309,6 +503,7 @@ function switchView(view) {
     el("catalog-container").style.display = "flex";
     renderCatalog();
   }
+  updateDownloadPanel();
 }
 
 function renderCatalog() {
@@ -484,6 +679,36 @@ async function init() {
   // View Switcher Event Listeners
   el("view-search-btn").addEventListener("click", () => switchView("search"));
   el("view-catalog-btn").addEventListener("click", () => switchView("catalog"));
+  
+  // Download Panel Event Listeners
+  const selectAllEl = el("select-all-visible");
+  if (selectAllEl) {
+    selectAllEl.addEventListener("change", (e) => {
+      const checked = e.target.checked;
+      state.visible.forEach(doc => {
+        if (checked) {
+          if (doc.document_url) {
+            state.selectedDocsForDownload.add(doc.id);
+          }
+        } else {
+          state.selectedDocsForDownload.delete(doc.id);
+        }
+      });
+      renderCards();
+    });
+  }
+  
+  const folderInputEl = el("download-folder-name");
+  if (folderInputEl) {
+    folderInputEl.addEventListener("input", (e) => {
+      e.target.dataset.auto = "false";
+    });
+  }
+  
+  const downloadBtnEl = el("download-selected-btn");
+  if (downloadBtnEl) {
+    downloadBtnEl.addEventListener("click", downloadSelectedDocs);
+  }
   
   refreshFilterMenus();
   applyFilters();

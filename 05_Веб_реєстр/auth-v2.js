@@ -288,6 +288,7 @@ function applyAccess() {
     const coreItems = [
       { text: 'Головна', path: 'index.html' },
       { text: 'Реєстр', path: 'rozjasnennya.html' },
+      { text: 'AI Пошук', path: 'rozjasnennya_semantic.html' },
       { text: 'Пакети 2026', path: 'pakety/index.html' },
       { text: 'Паспорт пакета', path: 'passport/index.html' },
       { text: 'Постанова 1808', path: 'postanova/index.html' },
@@ -298,6 +299,7 @@ function applyAccess() {
       { text: 'Структура', path: 'dept-tree.html' },
       { text: 'Робочий чат', path: 'chat/index.html', isChat: true }
     ];
+
 
     const dropdownItems = [
       { text: 'Машина пошуку', path: 'pakety/report.html', role: 'expert' },

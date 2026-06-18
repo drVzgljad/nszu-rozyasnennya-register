@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>НавігаторПМГ26 | Стандарти та настанови ДЕЦ МОЗ</title>
-  <link rel="stylesheet" href="../styles.css?v=20260531e">
+  <link rel="stylesheet" href="../styles.css?v=20260618a">
   <link rel="stylesheet" href="../auth-v2.css?v=20260615b">
   <script type="module" src="../auth-v2.js?v=20260615b"></script>
 </head>
@@ -64,6 +64,28 @@
           <button id="reset" type="button">Очистити фільтри</button>
         </div>
       </div>
+
+      <!-- Download Panel -->
+      <div class="download-panel" id="download-panel" style="display: none;">
+        <div class="download-panel-left">
+          <label class="select-all-label">
+            <input type="checkbox" id="select-all-visible">
+            <span>Вибрати всі</span>
+          </label>
+        </div>
+        <div class="download-panel-right">
+          <div class="folder-name-container">
+            <span class="folder-label">Папка в Downloads:</span>
+            <input type="text" id="download-folder-name" placeholder="Назва папки..." value="">
+          </div>
+          <button id="download-selected-btn" type="button">
+            <span>📥 Скачати вибране (0)</span>
+          </button>
+        </div>
+        <div class="download-status-container" id="download-status-container">
+          <div class="download-status" id="download-status"></div>
+        </div>
+      </div>
       
       <div class="cards" id="cards"></div>
       
@@ -92,9 +114,14 @@
 
   <template id="cardTemplate">
     <button class="document-card" type="button">
-      <span class="card-tags"></span>
-      <strong></strong>
-      <span class="card-subtitle"></span>
+      <div class="card-checkbox-wrapper">
+        <input type="checkbox" class="card-select-checkbox" aria-label="Вибрати документ для завантаження">
+      </div>
+      <div class="card-content-wrapper">
+        <span class="card-tags"></span>
+        <strong></strong>
+        <span class="card-subtitle"></span>
+      </div>
     </button>
   </template>
 
@@ -108,6 +135,6 @@
     </div>
   </footer>
 
-  <script src="app.js?v=20260612b" defer></script>
+  <script src="app.js?v=20260618a" defer></script>
 </body>
 </html>
