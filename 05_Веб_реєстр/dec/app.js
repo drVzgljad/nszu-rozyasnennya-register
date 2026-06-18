@@ -269,6 +269,20 @@ function generateFolderName() {
   return `ДЕЦ_Документи_${dateStr}`;
 }
 
+function loadJSZip() {
+  return new Promise((resolve, reject) => {
+    if (window.JSZip) {
+      resolve();
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js";
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Не вдалося завантажити бібліотеку створення архівів JSZip"));
+    document.head.appendChild(script);
+  });
+}
+
 async function downloadSelectedDocs() {
   const folderInput = el("download-folder-name");
   const folderName = folderInput ? (folderInput.value.trim() || "ДЕЦ_Документи") : "ДЕЦ_Документи";
@@ -297,51 +311,110 @@ async function downloadSelectedDocs() {
   }
   
   if (!isLocal) {
-    // Client-side fallback: trigger individual downloads
+    // Client-side fallback: compile ZIP using JSZip and CORS proxy
     if (downloadBtn) {
       downloadBtn.disabled = true;
-      downloadBtn.innerHTML = `<span>⏳ Завантаження...</span>`;
+      downloadBtn.innerHTML = `<span>⏳ Створення ZIP...</span>`;
     }
     
     if (statusContainer && statusEl) {
       statusContainer.style.display = "block";
-      statusEl.className = "download-status warning";
-      statusEl.innerHTML = `⚠️ На зовнішньому сайті автоматичне створення папок не підтримується. Завантажуємо ${selectedDocs.length} документів по черзі у вашу папку завантажень...`;
+      statusEl.className = "download-status info";
+      statusEl.innerHTML = `Завантаження файлів та створення ZIP-архіву з ${selectedDocs.length} документів (через CORS proxy)...`;
     }
     
-    let downloadedCount = 0;
-    selectedDocs.forEach((doc, index) => {
-      setTimeout(() => {
-        const link = document.createElement("a");
-        link.href = doc.document_url;
-        link.target = "_blank";
-        link.setAttribute("download", doc.title);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        downloadedCount++;
-        if (downloadedCount === selectedDocs.length) {
-          setTimeout(() => {
-            if (statusEl) {
-              statusEl.className = "download-status success";
-              statusEl.innerHTML = `Успішно ініційовано завантаження <strong>${selectedDocs.length}</strong> документів!`;
-            }
-            state.selectedDocsForDownload.clear();
-            renderCards();
-            
-            if (downloadBtn) {
-              downloadBtn.innerHTML = `<span>📥 Скачати вибране (0)</span>`;
-              downloadBtn.disabled = true;
-            }
-            
-            setTimeout(() => {
-              if (statusContainer) statusContainer.style.display = "none";
-            }, 6000);
-          }, 1000);
+    try {
+      await loadJSZip();
+      const zip = new JSZip();
+      
+      // Sanitize folder name for the zip root folder
+      const sanitizedFolder = folderName.replace(/[\\/*?:"<>|]/g, "_").strip ? folderName.replace(/[\\/*?:"<>|]/g, "_").trim() : folderName.replace(/[\\/*?:"<>|]/g, "_");
+      const folder = zip.folder(sanitizedFolder || "ДЕЦ_Документи");
+      
+      const corsProxy = "https://corsproxy.io/?";
+      
+      let successCount = 0;
+      let failCount = 0;
+      const failedList = [];
+      
+      for (const doc of selectedDocs) {
+        try {
+          const proxiedUrl = corsProxy + encodeURIComponent(doc.document_url);
+          const response = await fetch(proxiedUrl);
+          if (!response.ok) {
+            throw new Error(`Статус ${response.status}`);
+          }
+          const blob = await response.blob();
+          
+          // Determine file extension
+          let ext = ".pdf";
+          if (doc.document_url.includes(".doc")) ext = ".doc";
+          if (doc.document_url.includes(".docx")) ext = ".docx";
+          if (doc.document_url.includes(".xls")) ext = ".xls";
+          if (doc.document_url.includes(".xlsx")) ext = ".xlsx";
+          
+          const sanitizedTitle = doc.title.replace(/[\\/*?:"<>|]/g, "_").trim();
+          folder.file(`${sanitizedTitle}${ext}`, blob);
+          successCount++;
+          
+          if (statusEl) {
+            statusEl.innerHTML = `Скачано документів: ${successCount} з ${selectedDocs.length}...`;
+          }
+        } catch (err) {
+          console.warn(`Failed to fetch ${doc.title} via proxy:`, err);
+          failedList.push(doc.title);
+          failCount++;
         }
-      }, index * 800); // 800ms delay to prevent browser blocks
-    });
+      }
+      
+      if (successCount === 0) {
+        throw new Error("Не вдалося завантажити жодного документа через CORS proxy.");
+      }
+      
+      if (statusEl) {
+        statusEl.innerHTML = `Компіляція ZIP-архіву...`;
+      }
+      
+      const content = await zip.generateAsync({ type: "blob" });
+      const downloadUrl = URL.createObjectURL(content);
+      
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = `${sanitizedFolder}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(downloadUrl);
+      
+      if (statusEl) {
+        if (failCount > 0) {
+          statusEl.className = "download-status warning";
+          statusEl.innerHTML = `⚠️ Архів <strong>${escapeHtml(sanitizedFolder)}.zip</strong> створено! Збережено ${successCount} з ${selectedDocs.length} документів. Не вдалося завантажити: ${failedList.join(", ")}`;
+        } else {
+          statusEl.className = "download-status success";
+          statusEl.innerHTML = `Успішно створено та надіслано на завантаження архів <strong>${escapeHtml(sanitizedFolder)}.zip</strong>!`;
+        }
+      }
+      state.selectedDocsForDownload.clear();
+    } catch (err) {
+      if (statusEl) {
+        statusEl.className = "download-status error";
+        statusEl.innerHTML = `❌ Помилка створення архіву на зовнішньому сайті: ${escapeHtml(err.message)}`;
+      }
+    } finally {
+      const selectedCount = state.data.documents.filter(doc => state.selectedDocsForDownload.has(doc.id) && doc.document_url).length;
+      if (downloadBtn) {
+        downloadBtn.innerHTML = `<span>📥 Скачати вибране (${selectedCount})</span>`;
+        downloadBtn.disabled = selectedCount === 0;
+      }
+      renderCards();
+      
+      if (statusEl && statusEl.classList.contains("success")) {
+        setTimeout(() => {
+          if (statusContainer) statusContainer.style.display = "none";
+        }, 7000);
+      }
+    }
     return;
   }
   
