@@ -295,13 +295,13 @@ async function downloadSelectedDocs() {
       statusContainer.style.display = "block";
       statusEl.className = "download-status warning";
       
-      let linksHtml = `<div style="font-weight: 700; margin-bottom: 8px;">⚠️ На зовнішньому сайті групове скачування обмежене безпекою браузера. Клацніть на кожне посилання нижче для скачування:</div>`;
+      let linksHtml = `<div style="font-weight: 700; margin-bottom: 8px; color: var(--warning-text);">👉 Файли завантажуються по одному через правий клік миші та «Зберегти посилання як...»:</div>`;
       linksHtml += `<ul style="margin-top: 6px; padding-left: 20px; text-align: left;">`;
       selectedDocs.forEach(doc => {
         linksHtml += `<li style="margin-bottom: 4px;"><a href="${escapeHtml(doc.document_url)}" target="_blank" style="color: var(--accent-dark); font-weight: 600; text-decoration: underline;">${escapeHtml(doc.title)}</a></li>`;
       });
       linksHtml += `</ul>`;
-      linksHtml += `<div style="font-size: 11.5px; color: var(--muted); margin-top: 8px; font-style: italic; border-top: 1px dashed rgba(0,0,0,0.1); padding-top: 6px;">💡 Запустіть сервіс локально через файл <strong>Відкрити_реєстр.cmd</strong>, щоб завантажувати вибрані документи по черзі за допомогою вікна "Зберегти як"!</div>`;
+      linksHtml += `<div style="font-size: 11.5px; color: var(--muted); margin-top: 8px; font-style: italic; border-top: 1px dashed rgba(0,0,0,0.1); padding-top: 6px;">🔒 Це обмеження діє відповідно до політики безпеки браузерів.</div>`;
       
       statusEl.innerHTML = linksHtml;
     }
