@@ -849,3 +849,49 @@ ALTER TABLE public.skod_logs ADD COLUMN IF NOT EXISTS included_in_report_at TIME
 ALTER TABLE public.skod_logs ADD COLUMN IF NOT EXISTS included_by_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
 
 
+-- =========================================================================
+-- МІГРАЦІЯ: МОДУЛЬ АВТОМАТИЧНИХ НАГАДУВАНЬ ПРО ТЕРМІНИ ЗВІТУВАННЯ
+-- =========================================================================
+
+CREATE TABLE IF NOT EXISTS public.reporting_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  title TEXT NOT NULL,
+  due_date_description TEXT NOT NULL,
+  deadline_date DATE NOT NULL,
+  executor_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  executor_name TEXT,
+  regulatory_basis TEXT,
+  status TEXT NOT NULL DEFAULT 'Чернетка', -- 'Чернетка' | 'Надіслано' | 'Прострочено'
+  notified_tiers TEXT[] DEFAULT '{}'::TEXT[], -- масив відправлених сповіщень (наприклад: {'15', '5', '2', '0'})
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Увімкнення RLS
+ALTER TABLE public.reporting_events ENABLE ROW LEVEL SECURITY;
+
+-- Дозвіл на читання для всіх авторизованих користувачів
+CREATE POLICY "Allow read of reporting_events for all authenticated" ON public.reporting_events
+  FOR SELECT TO authenticated USING (true);
+
+-- Дозвіл на повне керування для експертів та керівництва (role != 'guest')
+CREATE POLICY "Allow write of reporting_events for experts and managers" ON public.reporting_events
+  FOR ALL TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role != 'guest'
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role != 'guest'
+    )
+  );
+
+-- Додавання таблиці нагадувань до публікації реального часу
+ALTER PUBLICATION supabase_realtime ADD TABLE public.reporting_events;
+
+
+

@@ -52,7 +52,7 @@ async function fetchRole() {
 function applyAccess() {
   const pathParts = window.location.pathname.split('/');
   const isInSubdir = pathParts.some(part => [
-    'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'passport', 'regulatory'
+    'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'passport', 'regulatory', 'reminders'
   ].includes(part.toLowerCase()));
   const prefix = isInSubdir ? '../' : './';
   const currentPath = window.location.pathname.toLowerCase();
@@ -288,7 +288,6 @@ function applyAccess() {
     const coreItems = [
       { text: 'Головна', path: 'index.html' },
       { text: 'Реєстр', path: 'rozjasnennya.html' },
-      { text: 'AI Пошук', path: 'rozjasnennya_semantic.html' },
       { text: 'Пакети 2026', path: 'pakety/index.html' },
       { text: 'Паспорт пакета', path: 'passport/index.html' },
       { text: 'Постанова 1808', path: 'postanova/index.html' },
@@ -304,6 +303,7 @@ function applyAccess() {
     const dropdownItems = [
       { text: 'Машина пошуку', path: 'pakety/report.html', role: 'expert' },
       { text: 'Конструктор зв\'язків', path: 'dec/linker.html', role: 'expert' },
+      { text: 'Календар нагадувань', path: 'reminders/index.html', role: 'expert' },
       { text: 'Питання ЗОЗ', path: 'zoz-questions/index.html', role: 'expert' },
       { text: 'Пропозиції ПМГ', path: 'pmg-proposals/index.html', role: 'expert' },
       { text: 'СКО-Д (Внесення)', path: 'skod/index.html', role: 'expert' },
@@ -805,8 +805,95 @@ async function renderDashboard(dashboardEl, prefix) {
     userTasks = (data || []).filter(t => t.status !== 'completed' && t.progress < 100);
   } catch(e) {}
 
+  // Load active reporting reminders with warnings for the current user
+  let activeReminders = [];
+  try {
+    let rawEvents = [];
+    try {
+      const { data, error } = await sb.from('reporting_events').select('*').eq('executor_id', user.id).neq('status', 'Надіслано');
+      if (!error && data) rawEvents = data;
+    } catch(e) {}
+    
+    if (rawEvents.length === 0) {
+      const local = localStorage.getItem('reporting_events');
+      if (local) {
+        const parsed = JSON.parse(local);
+        rawEvents = parsed.filter(ev => ev.executor_id === user.id && ev.status !== 'Надіслано');
+      }
+    }
+    
+    // Business days count helper
+    const getBizDays = (startDate, endDate) => {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(endDate);
+      end.setHours(0, 0, 0, 0);
+      if (start > end) return -getBizDays(end, start);
+      if (start.getTime() === end.getTime()) return 0;
+      let count = 0;
+      const current = new Date(start);
+      while (current < end) {
+        current.setDate(current.getDate() + 1);
+        if (current.getDay() !== 0 && current.getDay() !== 6) count++;
+      }
+      return count;
+    };
+    
+    const today = new Date();
+    rawEvents.forEach(ev => {
+      const deadline = new Date(ev.deadline_date);
+      const bizDays = getBizDays(today, deadline);
+      
+      let tier = null;
+      let urgency = '';
+      let warningText = '';
+      let badgeLabel = '';
+      
+      if (bizDays < 0) {
+        tier = 'overdue';
+        urgency = 'critical';
+        warningText = `Прострочено на ${Math.abs(bizDays)} дн.`;
+        badgeLabel = 'Прострочено';
+      } else if (bizDays === 0) {
+        tier = 'deadline';
+        urgency = 'critical';
+        warningText = `ДЕДЛАЙН СЬОГОДНІ!`;
+        badgeLabel = 'Дедлайн';
+      } else if (bizDays <= 2) {
+        tier = 'warning-2';
+        urgency = 'high';
+        warningText = `Залишилось ${bizDays} роб. дн.`;
+        badgeLabel = 'Критично';
+      } else if (bizDays <= 5) {
+        tier = 'warning-5';
+        urgency = 'medium';
+        warningText = `Залишилось ${bizDays} роб. дн.`;
+        badgeLabel = 'Важливо';
+      } else if (bizDays === 15) {
+        tier = 'warning-15';
+        urgency = 'low';
+        warningText = `Залишилося 15 роб. дн.`;
+        badgeLabel = 'Нагадування';
+      }
+      
+      if (tier) {
+        activeReminders.push({
+          id: ev.id,
+          title: ev.title,
+          deadline_date: ev.deadline_date,
+          warningText: warningText,
+          urgency: urgency,
+          badgeLabel: badgeLabel
+        });
+      }
+    });
+  } catch(e) {
+    console.error("Dashboard reminders error:", e);
+  }
+
   const showManagerAction = ['admin', 'director', 'deputy_director', 'manager'].includes(role);
   const tasksToShow = userTasks.slice(0, 3);
+  const remindersToShow = activeReminders.slice(0, 3);
 
   dashboardEl.innerHTML = `
     <div class="wrap dashboard-inner">
@@ -850,13 +937,43 @@ async function renderDashboard(dashboardEl, prefix) {
           </div>
           ${userTasks.length > 3 ? `
             <div style="font-size: 11px; text-align: right; margin-top: 4px; color: var(--muted, #627287); font-weight: 600;">
-              ...та ще ${userTasks.length - 3} активних доручень (перегляньте у «Сервіси $\rightarrow$ СКО-Д (Доручення)»)
+              ...та ще ${userTasks.length - 3} active tasks (see dropdown menu)
             </div>
           ` : ''}
         ` : `
           <span class="tasks-summary-lbl font-soft">📋 У вас немає активних доручень на виконанні.</span>
         `}
       </div>
+      
+      <div class="reminders-summary-section">
+        ${activeReminders.length > 0 ? `
+          <div class="tasks-summary-header">
+            <span class="tasks-summary-lbl">📅 Нагадування про терміни звітування (активних: <strong>${activeReminders.length}</strong>):</span>
+          </div>
+          <div class="reminders-brief-list">
+            ${remindersToShow.map(r => {
+              const itemClass = r.urgency === 'critical' ? 'critical' : (r.urgency === 'high' ? 'high' : '');
+              const warningBadgeClass = r.urgency === 'critical' ? 'critical' : (r.urgency === 'high' ? 'high' : (r.urgency === 'medium' ? 'medium' : 'low'));
+              return `
+                <div class="reminder-brief-item ${itemClass}">
+                  <span class="reminder-brief-title" title="${r.title}">
+                    <a href="${prefix}reminders/index.html" style="color: inherit; text-decoration: none; border-bottom: 1px dashed var(--accent, #3b82f6); transition: color 0.2s;" onmouseover="this.style.color='var(--accent, #3b82f6)'" onmouseout="this.style.color='inherit'">${r.title}</a>
+                  </span>
+                  <span class="reminder-brief-warning ${warningBadgeClass}">${r.badgeLabel}: ${r.warningText}</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+          ${activeReminders.length > 3 ? `
+            <div style="font-size: 11px; text-align: right; margin-top: 4px; color: var(--muted, #627287); font-weight: 600;">
+              ...та ще ${activeReminders.length - 3} термінів (перегляньте у «Сервіси $\rightarrow$ Календар нагадувань»)
+            </div>
+          ` : ''}
+        ` : `
+          <span class="tasks-summary-lbl font-soft">📅 Усі найближчі звіти успішно надіслано.</span>
+        `}
+      </div>
+
       <div class="dashboard-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
         <a href="${prefix}skod/index.html" class="dashboard-action-btn">✍️ Внести роботу</a>
         <a href="${prefix}skod/reports.html" class="dashboard-action-btn" style="background: var(--p-soft); border: 1px solid var(--p-line); color: var(--p-ink); display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none;">📊 Звіти та аналітика</a>

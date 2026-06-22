@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Терміни звітування та нагадування — НавігаторПМГ26</title>
+  <link rel="stylesheet" href="../portal.css?v=20260603d">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260615b">
+  <link rel="stylesheet" href="reminders.css">
+  <script type="module" src="../auth-v2.js?v=20260616b"></script>
+</head>
+<body data-required-role="expert">
+<div class="portal">
+
+  <!-- ── Top bar ─────────────────────────────────────── -->
+  <header class="top">
+    <div class="wrap top-inner">
+      <div class="top-row-1">
+        <a class="lockup" href="../index.html" aria-label="На головну">
+          <img class="shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true" style="width:44px;height:auto">
+          <span class="wm">
+            <span class="wm-1">Робочий простір експертів</span>
+            <span class="wm-2">Програма медичних гарантій 2026</span>
+          </span>
+        </a>
+        <div class="top-row-1-right">
+          <nav class="section-switch top-auth" aria-label="Авторизація"></nav>
+          <span class="agency-chip">
+            <img src="../assets/nszu-shield.svg" alt="">НСЗУ
+          </span>
+        </div>
+      </div>
+      <div class="top-row-2">
+        <nav class="top-nav" aria-label="Головне меню"></nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Access Denied Overlay ───────────────────────── -->
+  <div id="access-denied-overlay" class="access-denied-overlay" style="display:none">
+    <div class="access-denied-box">
+      <h2>Доступ обмежено</h2>
+      <p id="access-denied-msg">Ця сторінка доступна лише для співробітників департаменту.</p>
+      <button class="auth-submit" onclick="window.location.href='../index.html'">На головну</button>
+    </div>
+  </div>
+
+  <!-- ── Main Section ────────────────────────────────── -->
+  <main class="wrap main-content-area" style="margin-top: 30px; margin-bottom: 50px;">
+    
+    <!-- Title and Action block -->
+    <div class="page-header-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 20px;">
+      <div>
+        <h1 class="page-title" style="margin: 0; font-size: 28px; font-family: var(--p-display); font-weight: 800;">
+          📅 Автоматичні нагадування про терміни звітування
+        </h1>
+        <p class="page-subtitle" style="margin: 6px 0 0 0; color: var(--p-muted); font-size: 15px;">
+          Календар подання медичної та фінансової звітності до НСЗУ, МОЗ, КМУ та інших органів влади.
+        </p>
+      </div>
+      <div>
+        <button id="add-event-btn" class="dashboard-action-btn primary" style="display: none; padding: 10px 18px; font-size: 14px; font-weight: 700; border-radius: 9px; cursor: pointer; border: none; background: var(--accent); color: white;">
+          ➕ Додати подію
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats summary grid -->
+    <div class="reminders-stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">📋</div>
+        <div class="stat-info">
+          <div class="stat-val" id="stat-total-events">0</div>
+          <div class="stat-label">Всього подій у календарі</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">🚨</div>
+        <div class="stat-info">
+          <div class="stat-val" id="stat-deadline-today">0</div>
+          <div class="stat-label">Дедлайни сьогодні</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">⚠️</div>
+        <div class="stat-info">
+          <div class="stat-val" id="stat-warning-events">0</div>
+          <div class="stat-label">Термінові попередження</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">✅</div>
+        <div class="stat-info">
+          <div class="stat-val" id="stat-sent-events">0</div>
+          <div class="stat-label">Звітів надіслано</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filtering panel -->
+    <div class="filters-panel">
+      <div class="filter-group">
+        <label for="filter-search">Пошук звіту/листа:</label>
+        <input type="search" id="filter-search" placeholder="Введіть ключове слово...">
+      </div>
+      <div class="filter-group">
+        <label for="filter-executor">Виконавець:</label>
+        <select id="filter-executor">
+          <option value="all">Усі виконавці</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="filter-status">Статус виконання:</label>
+        <select id="filter-status">
+          <option value="all">Усі статуси</option>
+          <option value="Чернетка">Чернетка</option>
+          <option value="Надіслано">Надіслано</option>
+          <option value="Прострочено">Прострочено</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Events grid header -->
+    <div class="events-grid-header" style="display: flex; justify-content: space-between; align-items: center; margin-top: 40px; margin-bottom: 20px;">
+      <h2 style="margin: 0; font-size: 20px; font-family: var(--p-display); font-weight: 700;">🗓️ Майбутні події та граничні терміни</h2>
+      <div class="view-toggle" style="display: flex; gap: 4px; background: var(--p-soft); padding: 3px; border-radius: 8px; border: 1px solid var(--p-line);">
+        <button id="view-grid-btn" class="view-btn active" title="Вигляд картками">🎴 Картки</button>
+        <button id="view-table-btn" class="view-btn" title="Вигляд таблицею">📊 Таблиця</button>
+      </div>
+    </div>
+
+    <!-- Content Containers -->
+    <div id="events-grid-container" class="events-grid">
+      <div class="loading-state">Завантаження календаря подій...</div>
+    </div>
+
+    <div id="events-table-container" class="events-table-wrapper" style="display: none;">
+      <table class="events-table">
+        <thead>
+          <tr>
+            <th>Назва звіту / листа</th>
+            <th>Кінцева дата (періодичність)</th>
+            <th>Граничний дедлайн</th>
+            <th>Залишилось днів</th>
+            <th>Виконавець</th>
+            <th>Нормативна підстава</th>
+            <th>Статус</th>
+            <th>Дії</th>
+          </tr>
+        </thead>
+        <tbody id="events-table-body">
+          <!-- Injected rows -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Email Simulation Log Panel -->
+    <section class="email-logs-section">
+      <div class="email-logs-header">
+        <h2>📧 Лог надісланих email-сповіщень виконавцям</h2>
+        <button id="refresh-email-logs-btn" class="dashboard-action-btn" style="font-size: 13px; padding: 6px 12px; border: 1.5px solid var(--p-line); background: var(--p-soft); color: var(--p-ink); cursor: pointer;">🔄 Оновити лог</button>
+      </div>
+      <p class="email-logs-desc">
+        Цей лог відображає автоматичні відправки листів на електронні пошти виконавців при спрацюванні тригерів наближення термінів (за 15, 5, 2 робочих дні та в день дедлайну).
+      </p>
+      <div class="email-logs-container" id="email-logs-list">
+        <div class="no-logs">Логи відсутні або завантажуються...</div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── Add/Edit Event Modal ────────────────────────── -->
+  <div id="event-modal" class="auth-overlay" style="display:none" role="dialog" aria-modal="true">
+    <div class="auth-modal event-modal-content">
+      <button class="auth-modal-close" id="event-modal-close" aria-label="Закрити">&times;</button>
+      <div class="auth-brand" id="event-modal-title">Додати подію нагадування</div>
+      <form id="event-form" novalidate style="margin-top: 15px;">
+        <input type="hidden" id="event-id-field">
+        
+        <div class="auth-field" style="margin-bottom: 12px;">
+          <label for="event-title" style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--p-muted);">Назва звіту / листа *</label>
+          <input id="event-title" type="text" placeholder="Наприклад: Звіт про використання залишків коштів" required style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--p-line); background: var(--p-surface); color: var(--p-ink);">
+        </div>
+        
+        <div class="auth-field" style="margin-bottom: 12px;">
+          <label for="event-due-desc" style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--p-muted);">Періодичність подання (опис терміну) *</label>
+          <input id="event-due-desc" type="text" placeholder="Наприклад: щомісяця до 10-го числа" required style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--p-line); background: var(--p-surface); color: var(--p-ink);">
+        </div>
+        
+        <div class="auth-field" style="margin-bottom: 12px;">
+          <label for="event-deadline-date" style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--p-muted);">Найближча гранична дата (дедлайн) *</label>
+          <input id="event-deadline-date" type="date" required style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--p-line); background: var(--p-surface); color: var(--p-ink);">
+          <span class="field-hint" style="font-size: 11px; color: var(--p-muted); display: block; margin-top: 3px;">Конкретна календарна дата наступного звітування, за якою вираховуються робочі дні.</span>
+        </div>
+
+        <div class="auth-field" style="margin-bottom: 12px;">
+          <label for="event-executor" style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--p-muted);">Виконавець (співробітник) *</label>
+          <select id="event-executor" required style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--p-line); background: var(--p-surface); color: var(--p-ink);">
+            <option value="">Оберіть виконавця...</option>
+          </select>
+        </div>
+
+        <div class="auth-field" style="margin-bottom: 12px;">
+          <label for="event-basis" style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--p-muted);">Нормативна підстава (наказ, закон тощо)</label>
+          <input id="event-basis" type="text" placeholder="Наприклад: Постанова КМУ від 31.12.2025 № 1808" style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--p-line); background: var(--p-surface); color: var(--p-ink);">
+        </div>
+
+        <div class="auth-field" style="margin-bottom: 15px;">
+          <label for="event-status" style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--p-muted);">Статус виконання</label>
+          <select id="event-status" required style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--p-line); background: var(--p-surface); color: var(--p-ink);">
+            <option value="Чернетка">Чернетка</option>
+            <option value="Надіслано">Надіслано</option>
+            <option value="Прострочено">Прострочено</option>
+          </select>
+        </div>
+        
+        <div class="auth-error" id="event-form-error" style="color: #ef4444; font-size: 13px; margin-bottom: 12px; font-weight: 600;"></div>
+        <button type="submit" class="auth-submit" id="event-submit-btn" style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: var(--accent); color: white; font-weight: 700; cursor: pointer;">Зберегти подію</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Date Rollover Modal ────────────────────────── -->
+  <div id="rollover-modal" class="auth-overlay" style="display:none" role="dialog" aria-modal="true">
+    <div class="auth-modal" style="max-width: 450px;">
+      <button class="auth-modal-close" id="rollover-modal-close" aria-label="Закрити">&times;</button>
+      <div class="auth-brand">Перенесення звіту на наступний період</div>
+      <p style="font-size: 14px; color: var(--p-muted); margin-bottom: 20px;">
+        Звіт успішно надіслано! Для планування наступного періоду вкажіть дату наступного граничного дедлайну. Статус звіту буде скинуто до «Чернетка».
+      </p>
+      <form id="rollover-form">
+        <input type="hidden" id="rollover-event-id">
+        <div class="auth-field" style="margin-bottom: 15px;">
+          <label for="rollover-next-date" style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--p-muted);">Гранична дата наступного періоду *</label>
+          <input id="rollover-next-date" type="date" required style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--p-line); background: var(--p-surface); color: var(--p-ink);">
+        </div>
+        <button type="submit" class="auth-submit" style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: var(--accent); color: white; font-weight: 700; cursor: pointer;">Запланувати наступний період</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Footer ───────────────────────────────────────── -->
+  <footer class="p-footer">
+    <div class="wrap">
+      <div class="p-foot-grid">
+        <div>
+          <div class="f-lockup">
+            <img class="shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true" style="width:44px;height:auto">
+            <span class="wm">
+              <span class="wm-1">Робочий простір експертів</span>
+              <span class="wm-2">Програма медичних гарантій 2026</span>
+            </span>
+          </div>
+          <p>Довідковий портал за Програмою медичних гарантій 2026 року.</p>
+        </div>
+        <div class="f-col">
+          <h4>Розділи</h4>
+          <a href="../rozjasnennya.html">Роз'яснення</a>
+          <a href="../pakety/index.html">Пакети 2026</a>
+          <a href="../postanova/index.html">Постанова 1808</a>
+          <a href="../algorithms/index.html">Алгоритми та правила</a>
+        </div>
+        <div class="f-col">
+          <h4>Належність</h4>
+          <a href="../index.html#dept">Департамент стратегії</a>
+          <a href="../index.html#dept">НСЗУ</a>
+          <a href="../index.html#top">Про портал</a>
+        </div>
+      </div>
+      <div class="p-foot-base">
+        <span>© 2026 НСЗУ · Департамент стратегії універсального охоплення населення медичними послугами</span>
+        <span>Розроблено силами Департаменту</span>
+      </div>
+    </div>
+  </footer>
+
+</div><!-- /.portal -->
+
+<script type="module" src="reminders.js"></script>
+</body>
+</html>
