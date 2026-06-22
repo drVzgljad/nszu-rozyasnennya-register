@@ -892,8 +892,6 @@ async function renderDashboard(dashboardEl, prefix) {
   }
 
   const showManagerAction = ['admin', 'director', 'deputy_director', 'manager'].includes(role);
-  const tasksToShow = userTasks.slice(0, 3);
-  const remindersToShow = activeReminders.slice(0, 3);
 
   dashboardEl.innerHTML = `
     <div class="wrap dashboard-inner">
@@ -909,13 +907,14 @@ async function renderDashboard(dashboardEl, prefix) {
             <span class="tasks-summary-lbl">📋 Активні доручення на виконанні (всього: <strong>${userTasks.length}</strong>):</span>
           </div>
           <div class="tasks-brief-list">
-            ${tasksToShow.map(t => {
+            ${userTasks.map((t, index) => {
               const daysLeft = Math.ceil((new Date(t.deadline) - new Date()) / (1000 * 60 * 60 * 24));
               const dateStr = new Date(t.deadline).toLocaleDateString('uk-UA');
               const dateClass = daysLeft < 0 ? 'overdue' : (daysLeft <= 3 ? 'urgent' : 'normal');
               const daysText = daysLeft < 0 ? `(Протерміновано)` : (daysLeft === 0 ? `(Сьогодні!)` : `(залишилось ${daysLeft} дн.)`);
+              const collapsedAttr = index >= 3 ? 'class="task-brief-item is-collapsed-hidden" style="display: none;"' : 'class="task-brief-item"';
               return `
-                <div class="task-brief-item">
+                <div ${collapsedAttr}>
                   <div class="task-brief-content">
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 2px;">
                       <span class="task-brief-title" title="${t.title}">
@@ -936,8 +935,8 @@ async function renderDashboard(dashboardEl, prefix) {
             }).join('')}
           </div>
           ${userTasks.length > 3 ? `
-            <div style="font-size: 11px; text-align: right; margin-top: 4px; color: var(--muted, #627287); font-weight: 600;">
-              ...та ще ${userTasks.length - 3} active tasks (see dropdown menu)
+            <div style="font-size: 11px; text-align: right; margin-top: 4px; font-weight: 600;">
+              <a href="#" id="dashboard-toggle-tasks" data-expanded="false" style="color: var(--accent, #3b82f6); text-decoration: none;">...та ще ${userTasks.length - 3} активних доручень (Розгорнути)</a>
             </div>
           ` : ''}
         ` : `
@@ -951,11 +950,12 @@ async function renderDashboard(dashboardEl, prefix) {
             <span class="tasks-summary-lbl">📅 Нагадування про терміни звітування (активних: <strong>${activeReminders.length}</strong>):</span>
           </div>
           <div class="reminders-brief-list">
-            ${remindersToShow.map(r => {
+            ${activeReminders.map((r, index) => {
               const itemClass = r.urgency === 'critical' ? 'critical' : (r.urgency === 'high' ? 'high' : '');
               const warningBadgeClass = r.urgency === 'critical' ? 'critical' : (r.urgency === 'high' ? 'high' : (r.urgency === 'medium' ? 'medium' : 'low'));
+              const collapsedAttr = index >= 3 ? `class="reminder-brief-item ${itemClass} is-collapsed-hidden" style="display: none;"` : `class="reminder-brief-item ${itemClass}"`;
               return `
-                <div class="reminder-brief-item ${itemClass}">
+                <div ${collapsedAttr}>
                   <span class="reminder-brief-title" title="${r.title}">
                     <a href="${prefix}reminders/index.html" style="color: inherit; text-decoration: none; border-bottom: 1px dashed var(--accent, #3b82f6); transition: color 0.2s;" onmouseover="this.style.color='var(--accent, #3b82f6)'" onmouseout="this.style.color='inherit'">${r.title}</a>
                   </span>
@@ -965,8 +965,8 @@ async function renderDashboard(dashboardEl, prefix) {
             }).join('')}
           </div>
           ${activeReminders.length > 3 ? `
-            <div style="font-size: 11px; text-align: right; margin-top: 4px; color: var(--muted, #627287); font-weight: 600;">
-              ...та ще ${activeReminders.length - 3} термінів (перегляньте у «Сервіси $\rightarrow$ Календар нагадувань»)
+            <div style="font-size: 11px; text-align: right; margin-top: 4px; font-weight: 600;">
+              <a href="#" id="dashboard-toggle-reminders" data-expanded="false" style="color: var(--accent, #3b82f6); text-decoration: none;">...та ще ${activeReminders.length - 3} термінів (Розгорнути)</a>
             </div>
           ` : ''}
         ` : `
@@ -981,6 +981,43 @@ async function renderDashboard(dashboardEl, prefix) {
       </div>
     </div>
   `;
+
+  // Attach event listeners for expand/collapse actions
+  const toggleTasksBtn = dashboardEl.querySelector('#dashboard-toggle-tasks');
+  if (toggleTasksBtn) {
+    toggleTasksBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const hiddenItems = dashboardEl.querySelectorAll('.task-brief-item.is-collapsed-hidden');
+      const isExpanded = toggleTasksBtn.dataset.expanded === 'true';
+      
+      hiddenItems.forEach(item => {
+        item.style.display = isExpanded ? 'none' : 'flex';
+      });
+      
+      toggleTasksBtn.dataset.expanded = !isExpanded;
+      toggleTasksBtn.textContent = isExpanded 
+        ? `...та ще ${userTasks.length - 3} активних доручень (Розгорнути)` 
+        : `Згорнути список доручень`;
+    });
+  }
+
+  const toggleRemindersBtn = dashboardEl.querySelector('#dashboard-toggle-reminders');
+  if (toggleRemindersBtn) {
+    toggleRemindersBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const hiddenItems = dashboardEl.querySelectorAll('.reminder-brief-item.is-collapsed-hidden');
+      const isExpanded = toggleRemindersBtn.dataset.expanded === 'true';
+      
+      hiddenItems.forEach(item => {
+        item.style.display = isExpanded ? 'none' : 'flex';
+      });
+      
+      toggleRemindersBtn.dataset.expanded = !isExpanded;
+      toggleRemindersBtn.textContent = isExpanded 
+        ? `...та ще ${activeReminders.length - 3} термінів (Розгорнути)` 
+        : `Згорнути список нагадувань`;
+    });
+  }
 }
 
 async function init() {
