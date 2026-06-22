@@ -935,6 +935,7 @@ async function setupReports() {
   // Populate departments
   if (filterDeptSel) {
     const depts = [
+      "Всі відділи",
       "робота з електронними медичними даними",
       "розрахунок вартості медичних послуг",
       "стратегічного розвитку програми медичних гарантій",
@@ -946,7 +947,7 @@ async function setupReports() {
     filterDeptSel.innerHTML = '';
     depts.forEach(d => {
       const opt = document.createElement('option');
-      opt.value = d;
+      opt.value = d === "Всі відділи" ? "all" : d;
       opt.textContent = d;
       filterDeptSel.appendChild(opt);
     });
@@ -1232,6 +1233,7 @@ async function setupReports() {
   // Populate 37-D departments
   if (dept37dSel) {
     const depts = [
+      "Всі відділи",
       "робота з електронними медичними даними",
       "розрахунок вартості медичних послуг",
       "стратегічного розвитку програми медичних гарантій",
@@ -1243,7 +1245,7 @@ async function setupReports() {
     dept37dSel.innerHTML = '';
     depts.forEach(d => {
       const opt = document.createElement('option');
-      opt.value = d;
+      opt.value = (d === "Всі відділи") ? "all" : d;
       opt.textContent = d;
       dept37dSel.appendChild(opt);
     });
@@ -1286,6 +1288,7 @@ async function setupReports() {
       level37dSel.value = 'department-wide';
       const deptGroup = document.getElementById('report-37d-dept-group');
       if (deptGroup) deptGroup.style.display = 'flex';
+      if (dept37dSel) dept37dSel.value = 'all';
       loadEmployeeList37d('all');
     } else if (isManager37d) {
       // Remove department-wide option
@@ -1387,10 +1390,11 @@ async function runReport() {
   } else if (isEmployeeSelected) {
     // Specific employee selected — filter by their user_id
     query = query.eq('user_id', empVal);
-  } else if (level === 'department') {
-    query = query.eq('department', deptVal);
+  } else {
+    if (deptVal && deptVal !== 'all') {
+      query = query.eq('department', deptVal);
+    }
   }
-  // department-wide: no filter — gets everything RLS allows
 
   if (branchVal !== 'all') {
     query = query.eq('branch', branchVal);
@@ -1613,6 +1617,28 @@ function renderPersonalDetails(logs, container, breadcrumb) {
     const scoreVal = log.status === 'in_progress' ? 'В процесі' : parseFloat(log.score || 0).toFixed(2);
     const dateFormatted = log.log_date ? log.log_date.split('-').reverse().slice(0, 2).join('.') : '';
 
+    // Check if included in 37d
+    let action37dHtml = '';
+    if (log.include_37d) {
+      const statusClass = (log.status_37d || 'виконано').toLowerCase().replace(/\s+/g, '-').replace(/\//g, '');
+      action37dHtml = `
+        <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-start;">
+          <span class="badge-37d ${statusClass}" style="margin-left:0; font-size:10px; padding:2px 6px;">
+            ${log.status_37d || 'виконано'}
+          </span>
+          <button class="btn btn-sm btn-edit-37d" data-log-id="${log.id}" style="padding:2px 6px; font-size:11px; background:var(--p-soft); border:1px solid var(--p-line); border-radius:4px; cursor:pointer;">
+            ✏️ Редагувати
+          </button>
+        </div>
+      `;
+    } else {
+      action37dHtml = `
+        <button class="btn btn-sm btn-add-37d" data-log-id="${log.id}" style="padding:4px 8px; font-size:11px; background:var(--p-soft, #f1f5f9); border:1px solid var(--p-line, #cbd5e1); border-radius:4px; cursor:pointer; color:var(--accent-deep, #1e40af); font-weight:600;">
+          ➕ Додати
+        </button>
+      `;
+    }
+
     return `
       <tr>
         <td style="font-weight:700;">${dateFormatted} ${log.start_time.substring(0, 5)}</td>
@@ -1626,6 +1652,7 @@ function renderPersonalDetails(logs, container, breadcrumb) {
         <td>${durationStr}</td>
         <td><span class="badge-task ${log.severity_level}">${log.severity_level} (${log.complexity_coefficient})</span></td>
         <td style="font-weight:800; color:var(--accent-2-deep);">${scoreVal}</td>
+        <td>${action37dHtml}</td>
       </tr>
     `;
   }).join('');
@@ -1641,6 +1668,7 @@ function renderPersonalDetails(logs, container, breadcrumb) {
             <th>Тривалість</th>
             <th>Складність</th>
             <th>Бали</th>
+            <th>Звіт 37-Д</th>
           </tr>
         </thead>
         <tbody>
@@ -2444,8 +2472,10 @@ function render37dPreview(logs) {
   const groups = {};
   logs.forEach(log => {
     const d = log.department || 'Інші відділи';
-    if (!groups[d]) groups[d] = [];
-    groups[d].push(log);
+    const emp = log.user_name || 'Невідомий співробітник';
+    if (!groups[d]) groups[d] = {};
+    if (!groups[d][emp]) groups[d][emp] = [];
+    groups[d][emp].push(log);
   });
 
   let tableRowsHtml = '';
@@ -2455,26 +2485,39 @@ function render37dPreview(logs) {
     const formattedDept = dept.startsWith('відділ') ? dept.charAt(0).toUpperCase() + dept.slice(1) : dept;
     tableRowsHtml += `
       <tr class="dept-header-row">
-        <td colspan="2" style="font-weight: bold; background-color: var(--p-soft, #f1f5f9); font-family: 'Times New Roman', serif;">
+        <td colspan="2" style="font-weight: bold; background-color: #e2e8f0; font-family: 'Times New Roman', serif; text-transform: uppercase; font-size: 12pt; border: 1px solid #000;">
           ${formattedDept}
         </td>
       </tr>
     `;
     
-    groups[dept].forEach(log => {
-      const docLink = log.document_link ? ` (Док: ${log.document_link})` : '';
-      const contactText = log.contact_person_name ? ` [К-кт: ${log.contact_person_name}]` : '';
-      
+    const emps = groups[dept];
+    const sortedEmps = Object.keys(emps).sort();
+    
+    sortedEmps.forEach(empName => {
       tableRowsHtml += `
-        <tr style="font-family: 'Times New Roman', serif;">
-          <td style="width: 50%; padding: 8px; border: 1px solid #000; text-align: left;">
-            ${log.process_name || 'Без назви процесу'}
-          </td>
-          <td style="width: 50%; padding: 8px; border: 1px solid #000; text-align: left;">
-            ${log.current_state_text || 'Без опису стану'}${docLink}${contactText}
+        <tr class="emp-header-row">
+          <td colspan="2" style="font-weight: bold; padding-left: 20px; font-family: 'Times New Roman', serif; color: var(--accent-deep, #1e40af); background-color: #f8fafc; font-size: 12pt; border: 1px solid #000;">
+            👤 Співробітник: ${empName}
           </td>
         </tr>
       `;
+      
+      emps[empName].forEach(log => {
+        const docLink = log.document_link ? ` (Док: ${log.document_link})` : '';
+        const contactText = log.contact_person_name ? ` [К-кт: ${log.contact_person_name}]` : '';
+        
+        tableRowsHtml += `
+          <tr style="font-family: 'Times New Roman', serif; font-size: 12pt;">
+            <td style="width: 50%; padding: 8px 8px 8px 30px; border: 1px solid #000; text-align: left;">
+              ${log.process_name || 'Без назви процесу'}
+            </td>
+            <td style="width: 50%; padding: 8px; border: 1px solid #000; text-align: left;">
+              ${log.current_state_text || 'Без опису стану'}${docLink}${contactText}
+            </td>
+          </tr>
+        `;
+      });
     });
   });
 
@@ -2486,16 +2529,16 @@ function render37dPreview(logs) {
       </div>
       
       <div style="background: white; padding: 30px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #cbd5e1; overflow-x: auto; width: 100%; box-sizing: border-box;">
-        <div class="preview-title-37d">
+        <div class="preview-title-37d" style="font-family: 'Times New Roman', Times, serif; font-size: 14pt; font-weight: bold; text-align: center; margin-bottom: 24px; color: #000;">
           ПІДСУМКОВА ІНФОРМАЦІЯ<br>
           щодо заходів та підготовки відповідних листів Департаментом стратегії універсального охоплення населення медичними послугами
         </div>
         
-        <table class="table-37d-preview" style="width: 100%; border-collapse: collapse; border: 1px solid #000;">
+        <table class="table-37d-preview" style="width: 100%; border-collapse: collapse; border: 1px solid #000; font-family: 'Times New Roman', Times, serif;">
           <thead>
             <tr>
-              <th style="width: 50%; padding: 8px; border: 1px solid #000; text-align: center; font-weight: bold; background: #f1f5f9;">Процеси</th>
-              <th style="width: 50%; padding: 8px; border: 1px solid #000; text-align: center; font-weight: bold; background: #f1f5f9;">Поточний стан виконання</th>
+              <th style="width: 50%; padding: 8px; border: 1px solid #000; text-align: center; font-weight: bold; background: #f1f5f9; font-size: 12pt; color: #000;">Процеси</th>
+              <th style="width: 50%; padding: 8px; border: 1px solid #000; text-align: center; font-weight: bold; background: #f1f5f9; font-size: 12pt; color: #000;">Поточний стан виконання</th>
             </tr>
           </thead>
           <tbody>
@@ -2531,8 +2574,10 @@ function download37dExcel() {
   const groups = {};
   last37dLogs.forEach(log => {
     const d = log.department || 'Інші відділи';
-    if (!groups[d]) groups[d] = [];
-    groups[d].push(log);
+    const emp = log.user_name || 'Невідомий співробітник';
+    if (!groups[d]) groups[d] = {};
+    if (!groups[d][emp]) groups[d][emp] = [];
+    groups[d][emp].push(log);
   });
 
   const sortedDepts = Object.keys(groups).sort();
@@ -2547,14 +2592,23 @@ function download37dExcel() {
     merges.push({ s: { r: currentRowIdx, c: 0 }, e: { r: currentRowIdx, c: 1 } });
     currentRowIdx++;
 
-    groups[deptName].forEach(log => {
-      const docLink = log.document_link ? ` (Док: ${log.document_link})` : '';
-      const contactText = log.contact_person_name ? ` [К-кт: ${log.contact_person_name}]` : '';
-      ws1_data.push([
-        log.process_name || 'Без назви процесу',
-        (log.current_state_text || 'Без опису стану') + docLink + contactText
-      ]);
+    const emps = groups[deptName];
+    const sortedEmps = Object.keys(emps).sort();
+
+    sortedEmps.forEach(empName => {
+      ws1_data.push([`  👤 Співробітник: ${empName}`, ""]);
+      merges.push({ s: { r: currentRowIdx, c: 0 }, e: { r: currentRowIdx, c: 1 } });
       currentRowIdx++;
+
+      emps[empName].forEach(log => {
+        const docLink = log.document_link ? ` (Док: ${log.document_link})` : '';
+        const contactText = log.contact_person_name ? ` [К-кт: ${log.contact_person_name}]` : '';
+        ws1_data.push([
+          "  " + (log.process_name || 'Без назви процесу'),
+          (log.current_state_text || 'Без опису стану') + docLink + contactText
+        ]);
+        currentRowIdx++;
+      });
     });
   });
 
@@ -2708,5 +2762,217 @@ async function mark37dAsIncluded() {
     }
   }
 }
+
+// Modal for inline marking/editing tasks for 37-D
+async function open37dModal(logId) {
+  if (!lastLoggedData || !lastLoggedData.logs) return;
+  const log = lastLoggedData.logs.find(l => l.id === logId);
+  if (!log) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'modal-37d-editor';
+
+  const infoTypeOptions = [
+    { value: 'заплановані зміни для ЗОЗ, аптек, пацієнтів', text: 'заплановані зміни для ЗОЗ, аптек, пацієнтів' },
+    { value: 'презентація для публічного заходу', text: 'презентація для публічного заходу' },
+    { value: 'аналітична довідка для МОЗ або іншого ЦОВВ', text: 'аналітична довідка для МОЗ або іншого ЦОВВ' },
+    { value: 'масовий лист-роз’яснення', text: 'масовий лист-роз’яснення' },
+    { value: 'інша інформація, що може потребувати комунікаційної підтримки', text: 'інша інформація, що може потребувати комунікаційної підтримки' }
+  ];
+
+  const statusOptions = [
+    { value: 'заплановано', text: 'заплановано' },
+    { value: 'у роботі', text: 'у роботі' },
+    { value: 'виконано', text: 'виконано' },
+    { value: 'очікує погодження', text: 'очікує погодження' },
+    { value: 'готово до включення в довідку', text: 'готово до включення в довідку' },
+    { value: 'включено в довідку', text: 'включено в довідку' },
+    { value: 'скасовано / неактуально', text: 'скасовано / неактуально' }
+  ];
+
+  const currentInfoType = log.info_type_37d || 'інша інформація, що може потребувати комунікаційної підтримки';
+  const currentStatus = log.status_37d || 'виконано';
+  const currentProcessName = log.process_name || log.task_type || '';
+  const currentCurrentStateText = log.current_state_text || log.description || '';
+  const currentEventDate = log.event_date || log.log_date || new Date().toISOString().split('T')[0];
+  const currentDocumentLink = log.document_link || '';
+  const currentContactPersonName = log.contact_person_name || log.user_name || '';
+
+  const infoTypeOptionsHtml = infoTypeOptions.map(opt => 
+    `<option value="${opt.value}" ${opt.value === currentInfoType ? 'selected' : ''}>${opt.text}</option>`
+  ).join('');
+
+  const statusOptionsHtml = statusOptions.map(opt => 
+    `<option value="${opt.value}" ${opt.value === currentStatus ? 'selected' : ''}>${opt.text}</option>`
+  ).join('');
+
+  overlay.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>📝 Розмітка завдання для звіту 37-Д</h3>
+        <button class="modal-close" id="modal-37d-close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="skod-form-group">
+          <label style="font-weight:700; color:var(--p-muted); margin-bottom:6px; display:block;">Процес *</label>
+          <input type="text" id="m-process-name" value="${currentProcessName.replace(/"/g, '&quot;')}" placeholder="наприклад, Підготовка листа-роз'яснення..." style="width:100%; padding:11px 14px; border-radius:var(--pr-chip); border:1px solid var(--p-line); background:var(--p-surface); color:var(--p-ink); font-size:15px;">
+        </div>
+
+        <div class="skod-form-group">
+          <label style="font-weight:700; color:var(--p-muted); margin-bottom:6px; display:block;">Тип інформації для 37-Д</label>
+          <select id="m-info-type" style="width:100%; padding:11px 14px; border-radius:var(--pr-chip); border:1px solid var(--p-line); background:var(--p-surface); color:var(--p-ink); font-size:15px;">
+            ${infoTypeOptionsHtml}
+          </select>
+        </div>
+
+        <div class="skod-form-group">
+          <label style="font-weight:700; color:var(--p-muted); margin-bottom:6px; display:block;">Поточний стан виконання *</label>
+          <textarea id="m-current-state" rows="3" placeholder="наприклад, Виконано. Взяв участь..." style="width:100%; padding:11px 14px; border-radius:var(--pr-chip); border:1px solid var(--p-line); background:var(--p-surface); color:var(--p-ink); font-size:15px; font-family:var(--p-text);">${currentCurrentStateText}</textarea>
+        </div>
+
+        <div class="skod-form-group">
+          <label style="font-weight:700; color:var(--p-muted); margin-bottom:6px; display:block;">Стан 37-Д *</label>
+          <select id="m-status" style="width:100%; padding:11px 14px; border-radius:var(--pr-chip); border:1px solid var(--p-line); background:var(--p-surface); color:var(--p-ink); font-size:15px;">
+            ${statusOptionsHtml}
+          </select>
+        </div>
+
+        <div class="skod-form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <div class="skod-form-group">
+            <label style="font-weight:700; color:var(--p-muted); margin-bottom:6px; display:block;">Дата події / виконання *</label>
+            <input type="date" id="m-event-date" value="${currentEventDate}" style="width:100%; padding:11px 14px; border-radius:var(--pr-chip); border:1px solid var(--p-line); background:var(--p-surface); color:var(--p-ink); font-size:15px;">
+          </div>
+          <div class="skod-form-group">
+            <label style="font-weight:700; color:var(--p-muted); margin-bottom:6px; display:block;">Контактна особа *</label>
+            <input type="text" id="m-contact-person" value="${currentContactPersonName.replace(/"/g, '&quot;')}" style="width:100%; padding:11px 14px; border-radius:var(--pr-chip); border:1px solid var(--p-line); background:var(--p-surface); color:var(--p-ink); font-size:15px;">
+          </div>
+        </div>
+
+        <div class="skod-form-group">
+          <label style="font-weight:700; color:var(--p-muted); margin-bottom:6px; display:block;">Посилання / номер документа</label>
+          <input type="text" id="m-document-link" value="${currentDocumentLink.replace(/"/g, '&quot;')}" placeholder="наприклад, АСКОД № 1234/12-26..." style="width:100%; padding:11px 14px; border-radius:var(--pr-chip); border:1px solid var(--p-line); background:var(--p-surface); color:var(--p-ink); font-size:15px;">
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex; justify-content:flex-end; gap:12px; border-top:1px solid var(--p-soft); padding-top:16px; margin-top:8px;">
+        ${log.include_37d ? `
+          <button id="modal-37d-delete-btn" style="background:#dc2626; color:white; border:none; padding:10px 16px; border-radius:8px; font-weight:700; cursor:pointer; margin-right:auto;">
+            ❌ Видалити зі звіту 37-Д
+          </button>
+        ` : ''}
+        <button id="modal-37d-cancel-btn" style="background:var(--p-soft); border:1px solid var(--p-line); color:var(--p-ink); padding:10px 16px; border-radius:8px; font-weight:700; cursor:pointer;">
+          Скасувати
+        </button>
+        <button id="modal-37d-save-btn" style="background:var(--accent); color:white; border:none; padding:10px 20px; border-radius:8px; font-weight:700; cursor:pointer;">
+          Зберегти
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  document.getElementById('m-process-name').focus();
+
+  const closeModal = () => {
+    overlay.remove();
+  };
+
+  document.getElementById('modal-37d-close-btn').addEventListener('click', closeModal);
+  document.getElementById('modal-37d-cancel-btn').addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeModal();
+  });
+
+  document.getElementById('modal-37d-save-btn').addEventListener('click', async () => {
+    const processName = document.getElementById('m-process-name').value.trim();
+    const currentState = document.getElementById('m-current-state').value.trim();
+    const statusVal = document.getElementById('m-status').value;
+    const infoTypeVal = document.getElementById('m-info-type').value;
+    const eventDateVal = document.getElementById('m-event-date').value;
+    const contactPerson = document.getElementById('m-contact-person').value.trim();
+    const documentLink = document.getElementById('m-document-link').value.trim();
+
+    if (!processName || !currentState || !eventDateVal || !contactPerson) {
+      alert("Будь ласка, заповніть усі обов'язкові поля (*)");
+      return;
+    }
+
+    const saveBtn = document.getElementById('modal-37d-save-btn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Збереження...';
+
+    try {
+      const { error } = await sb.from('skod_logs')
+        .update({
+          include_37d: true,
+          process_name: processName,
+          current_state_text: currentState,
+          status_37d: statusVal,
+          info_type_37d: infoTypeVal,
+          event_date: eventDateVal,
+          contact_person_name: contactPerson,
+          document_link: documentLink
+        })
+        .eq('id', logId);
+
+      if (error) {
+        alert("Помилка збереження: " + error.message);
+      } else {
+        closeModal();
+        runReport(); // Refresh standard report list!
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Помилка збереження: " + err.message);
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Зберегти';
+    }
+  });
+
+  const deleteBtn = document.getElementById('modal-37d-delete-btn');
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', async () => {
+      if (!confirm("Ви впевнені, що хочете видалити цей запис зі звіту 37-Д?")) return;
+
+      deleteBtn.disabled = true;
+      deleteBtn.textContent = 'Видалення...';
+
+      try {
+        const { error } = await sb.from('skod_logs')
+          .update({
+            include_37d: false
+          })
+          .eq('id', logId);
+
+        if (error) {
+          alert("Помилка видалення: " + error.message);
+        } else {
+          closeModal();
+          runReport(); // Refresh standard report list!
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Помилка видалення: " + err.message);
+      } finally {
+        deleteBtn.disabled = false;
+        deleteBtn.textContent = '❌ Видалити зі звіту 37-Д';
+      }
+    });
+  }
+}
+
+// Global click event delegation for inline 37-D marking/editing buttons
+document.addEventListener('click', (e) => {
+  const addBtn = e.target.closest('.btn-add-37d');
+  const editBtn = e.target.closest('.btn-edit-37d');
+  if (addBtn) {
+    const logId = addBtn.dataset.logId;
+    open37dModal(logId);
+  } else if (editBtn) {
+    const logId = editBtn.dataset.logId;
+    open37dModal(logId);
+  }
+});
 
 export { sb };
