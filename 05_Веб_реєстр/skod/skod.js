@@ -296,6 +296,96 @@ function setupForm() {
   if (severitySel) severitySel.addEventListener('change', updateLiveScore);
   if (durationInput) durationInput.addEventListener('input', updateLiveScore);
 
+  // 37-D Autocomplete for Process
+  async function populateProcessAutocomplete() {
+    try {
+      const { data, error } = await sb
+        .from('skod_logs')
+        .select('process_name')
+        .eq('include_37d', true)
+        .not('process_name', 'is', null);
+      
+      if (error) {
+        console.error('Error fetching processes for autocomplete:', error);
+        return;
+      }
+      
+      const datalist = document.getElementById('processes-list');
+      if (datalist && data) {
+        datalist.innerHTML = '';
+        const uniqueProcesses = [...new Set(data.map(d => d.process_name ? d.process_name.trim() : '').filter(Boolean))];
+        uniqueProcesses.forEach(proc => {
+          const option = document.createElement('option');
+          option.value = proc;
+          datalist.appendChild(option);
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  // 37-D Populate Contact Persons
+  async function populateContactPersons() {
+    try {
+      const select = document.getElementById('contact_person_select');
+      if (!select) return;
+      
+      const { data, error } = await sb
+        .from('profiles')
+        .select('id, full_name')
+        .order('full_name', { ascending: true });
+        
+      if (error) {
+        console.error('Error fetching profiles for contact persons:', error);
+        return;
+      }
+      
+      select.innerHTML = '';
+      if (data) {
+        data.forEach(profile => {
+          const opt = document.createElement('option');
+          opt.value = profile.id;
+          opt.textContent = profile.full_name;
+          if (profile.id === currentUser.id) {
+            opt.selected = true;
+          }
+          select.appendChild(opt);
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  const include37dCheckbox = document.getElementById('include_37d');
+  const block37dFields = document.getElementById('block-37d-fields');
+  
+  if (include37dCheckbox && block37dFields) {
+    // Enable manager comment editing for managers/coordinators
+    const userRole = userProfile.role || 'registered';
+    const isManagerOrAbove = ['admin', 'director', 'deputy_director', 'manager'].includes(userRole);
+    const managerCommentInput = document.getElementById('manager_comment');
+    if (managerCommentInput && isManagerOrAbove) {
+      managerCommentInput.removeAttribute('readonly');
+    }
+
+    include37dCheckbox.addEventListener('change', () => {
+      const show37d = include37dCheckbox.checked;
+      block37dFields.style.display = show37d ? 'flex' : 'none';
+      if (show37d) {
+        // Set default date to today
+        const dateInput = document.getElementById('event_date');
+        if (dateInput && !dateInput.value) {
+          dateInput.value = new Date().toISOString().split('T')[0];
+        }
+        // Load data
+        populateProcessAutocomplete();
+        populateContactPersons();
+      }
+    });
+  }
+
   // Form submission
   if (formEl) {
     formEl.addEventListener('submit', async (e) => {
@@ -350,6 +440,58 @@ function setupForm() {
         }
       }
 
+      let include_37d = false;
+      let process_name = null;
+      let info_type_37d = null;
+      let current_state_text = null;
+      let status_37d = null;
+      let event_date = null;
+      let contact_person_id = null;
+      let contact_person_name = null;
+      let document_link = null;
+      let manager_comment = null;
+      let include_in_current_report = true;
+
+      const include37dCheckbox = document.getElementById('include_37d');
+      if (include37dCheckbox && include37dCheckbox.checked) {
+        include_37d = true;
+        process_name = document.getElementById('process_name')?.value?.trim() || null;
+        info_type_37d = document.getElementById('info_type_37d')?.value || null;
+        current_state_text = document.getElementById('current_state_text')?.value?.trim() || null;
+        status_37d = document.getElementById('status_37d')?.value || 'виконано';
+        event_date = document.getElementById('event_date')?.value || null;
+        
+        const contactPersonSelect = document.getElementById('contact_person_select');
+        contact_person_id = contactPersonSelect?.value || null;
+        contact_person_name = contactPersonSelect?.options[contactPersonSelect.selectedIndex]?.textContent || null;
+        
+        document_link = document.getElementById('document_link')?.value?.trim() || null;
+        manager_comment = document.getElementById('manager_comment')?.value?.trim() || null;
+        include_in_current_report = document.getElementById('include_in_current_report')?.checked ?? true;
+
+        // Validation for Form 37-D
+        if (!process_name) {
+          alert("Для включення завдання до форми 37-Д необхідно заповнити поле: Процес");
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Зберегти завдання'; }
+          return;
+        }
+        if (!current_state_text) {
+          alert("Для включення завдання до форми 37-Д необхідно заповнити поле: Поточний стан виконання");
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Зберегти завдання'; }
+          return;
+        }
+        if (!event_date) {
+          alert("Для включення завдання до форми 37-Д необхідно заповнити поле: Дата події / виконання");
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Зберегти завдання'; }
+          return;
+        }
+        if (!contact_person_id) {
+          alert("Для включення завдання до форми 37-Д необхідно заповнити поле: Контактна особа");
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Зберегти завдання'; }
+          return;
+        }
+      }
+
       const assigned_task_id = document.getElementById('link_assigned_task')?.value || null;
       if (branch === 'tasks' && !assigned_task_id) {
         alert('Будь ласка, оберіть доручення, яке ви виконували.');
@@ -392,7 +534,20 @@ function setupForm() {
         status,
         description,
         assigned_task_id: document.getElementById('link_assigned_task')?.value || null,
-        askod_reg_number
+        askod_reg_number,
+        
+        // 37-D Fields
+        include_37d,
+        process_name,
+        info_type_37d,
+        current_state_text,
+        status_37d,
+        event_date,
+        contact_person_id,
+        contact_person_name,
+        document_link,
+        manager_comment,
+        include_in_current_report
       };
 
       const { error } = await sb.from('skod_logs').insert([logData]);
@@ -418,6 +573,20 @@ function setupForm() {
         }
 
         formEl.reset();
+        
+        // Reset 37-D fields
+        if (include37dCheckbox) {
+          include37dCheckbox.checked = false;
+          include37dCheckbox.dispatchEvent(new Event('change'));
+        }
+        const pName = document.getElementById('process_name'); if (pName) pName.value = '';
+        const iType = document.getElementById('info_type_37d'); if (iType) iType.value = '';
+        const cState = document.getElementById('current_state_text'); if (cState) cState.value = '';
+        const s37d = document.getElementById('status_37d'); if (s37d) s37d.value = 'виконано';
+        const eDate = document.getElementById('event_date'); if (eDate) eDate.value = '';
+        const dLink = document.getElementById('document_link'); if (dLink) dLink.value = '';
+        const mComm = document.getElementById('manager_comment'); if (mComm) mComm.value = '';
+        const iReport = document.getElementById('include_in_current_report'); if (iReport) iReport.checked = true;
         
         // Reset defaults
         if (branchSel) branchSel.value = 'department';
@@ -648,13 +817,17 @@ async function loadTodayLogs() {
         delegateBtn = `<a href="tasks.html?prefill_title=${titlePrefill}&prefill_desc=${descPrefill}" class="btn-delegate-log" title="Створити доручення на основі цього запису" style="text-decoration:none; margin-right:10px; font-size:15px; opacity:0.75; transition:opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.75'">📋</a>`;
       }
 
+      const badge37d = log.include_37d 
+        ? `<span class="badge-37d ${log.status_37d ? log.status_37d.replace(/[\s/]+/g, '_') : ''}">${log.status_37d || 'виконано'}</span>` 
+        : '';
+
       tr.innerHTML = `
         <td style="font-weight: 700;">${log.start_time.substring(0, 5)}</td>
         <td>
           <div style="font-size:11px; text-transform:uppercase; font-weight:700; color:var(--p-muted); letter-spacing:0.02em; margin-bottom: 2px;">
             ${branchLabel}${categoryLabel}
           </div>
-          <div style="font-weight: 600;">${log.task_type}</div>
+          <div style="font-weight: 600;">${log.task_type}${badge37d}</div>
           <div style="font-size:12px; color: var(--p-muted); margin-top: 4px;">${log.description || 'Без опису'}</div>
         </td>
         <td>${durationStr}</td>
@@ -936,6 +1109,246 @@ async function setupReports() {
   if (btnRun) {
     btnRun.addEventListener('click', runReport);
     runReport();
+  }
+
+  // === Tab Switching ===
+  const tabAnalytics = document.getElementById('tab-analytics');
+  const tab37d = document.getElementById('tab-37d');
+  const sectionAnalytics = document.getElementById('analytics-section');
+  const section37d = document.getElementById('section-37d');
+
+  if (tabAnalytics && tab37d) {
+    tabAnalytics.addEventListener('click', () => {
+      tabAnalytics.classList.add('active');
+      tab37d.classList.remove('active');
+      if (sectionAnalytics) sectionAnalytics.style.display = 'block';
+      if (section37d) section37d.style.display = 'none';
+    });
+
+    tab37d.addEventListener('click', () => {
+      tab37d.classList.add('active');
+      tabAnalytics.classList.remove('active');
+      if (sectionAnalytics) sectionAnalytics.style.display = 'none';
+      if (section37d) section37d.style.display = 'block';
+      // Run initial report
+      run37dReport();
+    });
+  }
+
+  // === 37-D Filters Setup ===
+  const startDate37d = document.getElementById('report-37d-start-date');
+  const endDate37d = document.getElementById('report-37d-end-date');
+  const dept37dSel = document.getElementById('report-37d-department');
+  const level37dSel = document.getElementById('report-37d-level');
+  const emp37dSel = document.getElementById('report-37d-employee');
+  const status37dSel = document.getElementById('report-37d-status');
+  const infoType37dSel = document.getElementById('report-37d-info-type');
+  
+  const btnRun37d = document.getElementById('btn-run-37d');
+  const btnExcel37d = document.getElementById('btn-excel-37d');
+  const btnMarkIncluded = document.getElementById('btn-mark-included-37d');
+  const btnClear37d = document.getElementById('btn-clear-37d');
+
+  // Tuesday preset helper
+  function getTuesdayRange() {
+    const today = new Date();
+    const currentDay = today.getDay(); // 0: Sun, 1: Mon, 2: Tue...
+    let daysSinceTuesday = currentDay - 2;
+    if (daysSinceTuesday < 0) {
+      daysSinceTuesday += 7;
+    }
+    const end = new Date(today);
+    end.setDate(today.getDate() - daysSinceTuesday);
+    const start = new Date(end);
+    start.setDate(end.getDate() - 7);
+    return {
+      start: start.toISOString().split('T')[0],
+      end: end.toISOString().split('T')[0]
+    };
+  }
+
+  // Tuesday preset default
+  const tuesdayRange = getTuesdayRange();
+  if (startDate37d) startDate37d.value = tuesdayRange.start;
+  if (endDate37d) endDate37d.value = tuesdayRange.end;
+
+  // Set 37-D preset buttons active state
+  function set37dPresetActive(btn) {
+    document.querySelectorAll('#section-37d .btn-preset').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  // Preset Event Listeners for 37-D
+  const preset37dTuesday = document.getElementById('preset-37d-tuesday');
+  if (preset37dTuesday) {
+    preset37dTuesday.addEventListener('click', () => {
+      set37dPresetActive(preset37dTuesday);
+      const range = getTuesdayRange();
+      if (startDate37d) startDate37d.value = range.start;
+      if (endDate37d) endDate37d.value = range.end;
+    });
+  }
+
+  const preset37dToday = document.getElementById('preset-37d-today');
+  if (preset37dToday) {
+    preset37dToday.addEventListener('click', () => {
+      set37dPresetActive(preset37dToday);
+      const today = new Date().toISOString().split('T')[0];
+      if (startDate37d) startDate37d.value = today;
+      if (endDate37d) endDate37d.value = today;
+    });
+  }
+
+  const preset37dWeek = document.getElementById('preset-37d-week');
+  if (preset37dWeek) {
+    preset37dWeek.addEventListener('click', () => {
+      set37dPresetActive(preset37dWeek);
+      const today = new Date();
+      const day = today.getDay();
+      const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(today.setDate(diff));
+      const sunday = new Date(monday);
+      sunday.setDate(monday.getDate() + 6);
+      if (startDate37d) startDate37d.value = monday.toISOString().split('T')[0];
+      if (endDate37d) endDate37d.value = sunday.toISOString().split('T')[0];
+    });
+  }
+
+  const preset37dMonth = document.getElementById('preset-37d-month');
+  if (preset37dMonth) {
+    preset37dMonth.addEventListener('click', () => {
+      set37dPresetActive(preset37dMonth);
+      const today = new Date();
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      if (startDate37d) startDate37d.value = firstDay.toISOString().split('T')[0];
+      if (endDate37d) endDate37d.value = lastDay.toISOString().split('T')[0];
+    });
+  }
+
+  if (startDate37d) startDate37d.addEventListener('change', () => document.querySelectorAll('#section-37d .btn-preset').forEach(b => b.classList.remove('active')));
+  if (endDate37d) endDate37d.addEventListener('change', () => document.querySelectorAll('#section-37d .btn-preset').forEach(b => b.classList.remove('active')));
+
+  // Populate 37-D departments
+  if (dept37dSel) {
+    const depts = [
+      "робота з електронними медичними даними",
+      "розрахунок вартості медичних послуг",
+      "стратегічного розвитку програми медичних гарантій",
+      "наукова та клінічна експертиза",
+      "розвиток програми реімбурсації",
+      "взаємодія з надавачами медичних послуг",
+      "Поза відділами"
+    ];
+    dept37dSel.innerHTML = '';
+    depts.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d;
+      opt.textContent = d;
+      dept37dSel.appendChild(opt);
+    });
+    if (userProfile.Section) {
+      dept37dSel.value = userProfile.Section;
+    }
+  }
+
+  // Load employee list for 37d
+  async function loadEmployeeList37d(department) {
+    if (!emp37dSel) return;
+    emp37dSel.innerHTML = '<option value="all">Всі співробітники</option>';
+    let query = sb.from('profiles').select('id, full_name, "Section"');
+    if (department && department !== 'all') {
+      query = query.eq('Section', department);
+    }
+    const { data, error } = await query.order('full_name', { ascending: true });
+    if (error) {
+      console.error("Error loading profiles:", error);
+      return;
+    }
+    if (data) {
+      data.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.full_name;
+        emp37dSel.appendChild(opt);
+      });
+    }
+  }
+
+  // RBAC checks for 37-D filters
+  const userRole37d = userProfile.role || 'registered';
+  const isCoordOrAdmin = ['admin', 'director', 'deputy_director', 'full'].includes(userRole37d);
+  const isManager37d = userRole37d === 'manager' || userProfile.is_head === true;
+  const canSeeEmployees37d = isCoordOrAdmin || isManager37d;
+
+  if (level37dSel) {
+    if (isCoordOrAdmin) {
+      level37dSel.value = 'department-wide';
+      const deptGroup = document.getElementById('report-37d-dept-group');
+      if (deptGroup) deptGroup.style.display = 'flex';
+      loadEmployeeList37d('all');
+    } else if (isManager37d) {
+      // Remove department-wide option
+      const wideOpt = level37dSel.querySelector('option[value="department-wide"]');
+      if (wideOpt) wideOpt.remove();
+      level37dSel.value = 'department';
+      if (dept37dSel) {
+        dept37dSel.value = userProfile.Section || userProfile.department || '';
+        dept37dSel.disabled = true;
+      }
+      loadEmployeeList37d(userProfile.Section);
+    } else {
+      // Personal only
+      const wideOpt = level37dSel.querySelector('option[value="department-wide"]'); if (wideOpt) wideOpt.remove();
+      const deptOpt = level37dSel.querySelector('option[value="department"]'); if (deptOpt) deptOpt.remove();
+      level37dSel.value = 'personal';
+      const deptGroup = document.getElementById('report-37d-dept-group'); if (deptGroup) deptGroup.style.display = 'none';
+      const empGroup = document.getElementById('report-37d-employee-group'); if (empGroup) empGroup.style.display = 'none';
+    }
+
+    level37dSel.addEventListener('change', () => {
+      const showDept = level37dSel.value !== 'personal';
+      const deptGroup = document.getElementById('report-37d-dept-group');
+      if (deptGroup) deptGroup.style.display = showDept ? 'flex' : 'none';
+      const empGroup = document.getElementById('report-37d-employee-group');
+      if (empGroup) empGroup.style.display = showDept ? 'flex' : 'none';
+      
+      const dept = (level37dSel.value === 'department') ? dept37dSel.value : 'all';
+      loadEmployeeList37d(dept);
+    });
+  }
+
+  if (dept37dSel) {
+    dept37dSel.addEventListener('change', () => {
+      if (level37dSel.value === 'department') {
+        loadEmployeeList37d(dept37dSel.value);
+      }
+    });
+  }
+
+  // Show "Mark as Included" button only for coordinators/admins
+  if (btnMarkIncluded && isCoordOrAdmin) {
+    btnMarkIncluded.style.display = 'inline-block';
+  }
+
+  // Button actions
+  if (btnRun37d) btnRun37d.addEventListener('click', run37dReport);
+  if (btnExcel37d) btnExcel37d.addEventListener('click', download37dExcel);
+  if (btnMarkIncluded) btnMarkIncluded.addEventListener('click', mark37dAsIncluded);
+  if (btnClear37d) {
+    btnClear37d.addEventListener('click', () => {
+      if (startDate37d) startDate37d.value = tuesdayRange.start;
+      if (endDate37d) endDate37d.value = tuesdayRange.end;
+      if (level37dSel) {
+        if (isCoordOrAdmin) level37dSel.value = 'department-wide';
+        else if (isManager37d) level37dSel.value = 'department';
+        else level37dSel.value = 'personal';
+        level37dSel.dispatchEvent(new Event('change'));
+      }
+      if (status37dSel) status37dSel.value = 'all';
+      if (infoType37dSel) infoType37dSel.value = 'all';
+      run37dReport();
+    });
   }
 }
 
@@ -1948,6 +2361,351 @@ function drawStatusCharts(logs, isDark) {
         }
       }
     });
+  }
+}
+
+// === Module 37-D Functions ===
+let last37dLogs = [];
+
+async function run37dReport() {
+  const container = document.getElementById('results-37d');
+  if (!container) return;
+  
+  container.innerHTML = '<div class="empty-state">Завантаження даних...</div>';
+
+  const startDate = document.getElementById('report-37d-start-date')?.value;
+  const endDate = document.getElementById('report-37d-end-date')?.value;
+  const level = document.getElementById('report-37d-level')?.value || 'department-wide';
+  const dept = document.getElementById('report-37d-department')?.value;
+  const emp = document.getElementById('report-37d-employee')?.value || 'all';
+  const status = document.getElementById('report-37d-status')?.value || 'all';
+  const infoType = document.getElementById('report-37d-info-type')?.value || 'all';
+
+  if (!startDate || !endDate) {
+    alert("Будь ласка, вкажіть період.");
+    container.innerHTML = '<div class="empty-state">Оберіть період для формування звіту.</div>';
+    return;
+  }
+
+  let query = sb.from('skod_logs')
+    .select('*')
+    .eq('include_37d', true)
+    .gte('event_date', startDate)
+    .lte('event_date', endDate);
+
+  // Apply level filters
+  if (level === 'personal') {
+    query = query.eq('user_id', currentUser.id);
+  } else {
+    if (level === 'department' && dept) {
+      query = query.eq('department', dept);
+    } else if (level === 'department-wide' && dept && dept !== 'all') {
+      query = query.eq('department', dept);
+    }
+    
+    if (emp && emp !== 'all') {
+      query = query.eq('user_id', emp);
+    }
+  }
+
+  // Filter by status_37d
+  if (status !== 'all') {
+    query = query.eq('status_37d', status);
+  } else {
+    query = query.ne('status_37d', 'скасовано / неактуально');
+  }
+
+  // Filter by info_type_37d
+  if (infoType !== 'all') {
+    query = query.eq('info_type_37d', infoType);
+  }
+
+  const { data, error } = await query.order('department').order('event_date', { ascending: true });
+
+  if (error) {
+    container.innerHTML = `<div class="empty-state" style="color:red">Помилка завантаження: ${error.message}</div>`;
+    return;
+  }
+
+  last37dLogs = data || [];
+
+  if (last37dLogs.length === 0) {
+    container.innerHTML = '<div class="empty-state">Записи за вказаними фільтрами відсутні.</div>';
+    return;
+  }
+
+  render37dPreview(last37dLogs);
+}
+
+function render37dPreview(logs) {
+  const container = document.getElementById('results-37d');
+  if (!container) return;
+
+  const groups = {};
+  logs.forEach(log => {
+    const d = log.department || 'Інші відділи';
+    if (!groups[d]) groups[d] = [];
+    groups[d].push(log);
+  });
+
+  let tableRowsHtml = '';
+  const sortedDepts = Object.keys(groups).sort();
+  
+  sortedDepts.forEach(dept => {
+    const formattedDept = dept.startsWith('відділ') ? dept.charAt(0).toUpperCase() + dept.slice(1) : dept;
+    tableRowsHtml += `
+      <tr class="dept-header-row">
+        <td colspan="2" style="font-weight: bold; background-color: var(--p-soft, #f1f5f9); font-family: 'Times New Roman', serif;">
+          ${formattedDept}
+        </td>
+      </tr>
+    `;
+    
+    groups[dept].forEach(log => {
+      const docLink = log.document_link ? ` (Док: ${log.document_link})` : '';
+      const contactText = log.contact_person_name ? ` [К-кт: ${log.contact_person_name}]` : '';
+      
+      tableRowsHtml += `
+        <tr style="font-family: 'Times New Roman', serif;">
+          <td style="width: 50%; padding: 8px; border: 1px solid #000; text-align: left;">
+            ${log.process_name || 'Без назви процесу'}
+          </td>
+          <td style="width: 50%; padding: 8px; border: 1px solid #000; text-align: left;">
+            ${log.current_state_text || 'Без опису стану'}${docLink}${contactText}
+          </td>
+        </tr>
+      `;
+    });
+  });
+
+  const previewHtml = `
+    <div class="report-37d-preview">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--p-line); padding-bottom: 10px;">
+        <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--p-ink);">👁️ Попередній перегляд довідки</h3>
+        <span style="font-size: 12px; color: var(--p-muted); font-weight: 600;">Знайдено записів: ${logs.length}</span>
+      </div>
+      
+      <div style="background: white; padding: 30px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #cbd5e1; overflow-x: auto; width: 100%; box-sizing: border-box;">
+        <div class="preview-title-37d">
+          ПІДСУМКОВА ІНФОРМАЦІЯ<br>
+          щодо заходів та підготовки відповідних листів Департаментом стратегії універсального охоплення населення медичними послугами
+        </div>
+        
+        <table class="table-37d-preview" style="width: 100%; border-collapse: collapse; border: 1px solid #000;">
+          <thead>
+            <tr>
+              <th style="width: 50%; padding: 8px; border: 1px solid #000; text-align: center; font-weight: bold; background: #f1f5f9;">Процеси</th>
+              <th style="width: 50%; padding: 8px; border: 1px solid #000; text-align: center; font-weight: bold; background: #f1f5f9;">Поточний стан виконання</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${tableRowsHtml}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = previewHtml;
+}
+
+function download37dExcel() {
+  if (!last37dLogs || last37dLogs.length === 0) {
+    alert("Будь ласка, спочатку сформуйте звіт.");
+    return;
+  }
+
+  const startDate = document.getElementById('report-37d-start-date')?.value || new Date().toISOString().split('T')[0];
+  const level = document.getElementById('report-37d-level')?.value || 'department-wide';
+  const dept = document.getElementById('report-37d-department')?.value;
+  const emp = document.getElementById('report-37d-employee')?.value || 'all';
+
+  // 1. Sheet 1: Довідка 37-Д
+  const ws1_data = [
+    ["ПІДСУМКОВА ІНФОРМАЦІЯ"],
+    ["щодо заходів та підготовки відповідних листів Департаментом стратегії універсального охоплення населення медичними послугами"],
+    [],
+    ["Процеси", "Поточний стан виконання"]
+  ];
+
+  const groups = {};
+  last37dLogs.forEach(log => {
+    const d = log.department || 'Інші відділи';
+    if (!groups[d]) groups[d] = [];
+    groups[d].push(log);
+  });
+
+  const sortedDepts = Object.keys(groups).sort();
+  const merges = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 1 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 1 } }
+  ];
+
+  let currentRowIdx = 4;
+  sortedDepts.forEach(deptName => {
+    ws1_data.push([deptName.toUpperCase(), ""]);
+    merges.push({ s: { r: currentRowIdx, c: 0 }, e: { r: currentRowIdx, c: 1 } });
+    currentRowIdx++;
+
+    groups[deptName].forEach(log => {
+      const docLink = log.document_link ? ` (Док: ${log.document_link})` : '';
+      const contactText = log.contact_person_name ? ` [К-кт: ${log.contact_person_name}]` : '';
+      ws1_data.push([
+        log.process_name || 'Без назви процесу',
+        (log.current_state_text || 'Без опису стану') + docLink + contactText
+      ]);
+      currentRowIdx++;
+    });
+  });
+
+  const ws1 = XLSX.utils.aoa_to_sheet(ws1_data);
+  ws1['!merges'] = merges;
+  ws1['!cols'] = [{ wch: 50 }, { wch: 60 }];
+
+  // 2. Sheet 2: Реєстр завдань
+  const ws2_data = [[
+    "Дата", "Департамент", "Відділ", "Співробітник", "Процес", 
+    "Поточний стан виконання", "Стан 37-Д", "Тип інформації", 
+    "Документ / посилання", "Контактна особа", "Коментар керівника"
+  ]];
+
+  last37dLogs.forEach(log => {
+    ws2_data.push([
+      log.event_date ? new Date(log.event_date).toLocaleDateString('uk-UA') : '',
+      "Департамент стратегії",
+      log.department || '',
+      log.user_name || '',
+      log.process_name || '',
+      log.current_state_text || '',
+      log.status_37d || '',
+      log.info_type_37d || '',
+      log.document_link || '',
+      log.contact_person_name || '',
+      log.manager_comment || ''
+    ]);
+  });
+
+  const ws2 = XLSX.utils.aoa_to_sheet(ws2_data);
+  ws2['!cols'] = [
+    { wch: 12 }, { wch: 25 }, { wch: 30 }, { wch: 25 }, { wch: 40 },
+    { wch: 50 }, { wch: 18 }, { wch: 25 }, { wch: 20 }, { wch: 25 }, { wch: 30 }
+  ];
+  ws2['!views'] = [{ state: 'frozen', ySplit: 1 }];
+
+  // 3. Sheet 3: Зведення
+  const deptCounts = {};
+  const statusCounts = {};
+  const empCounts = {};
+  
+  last37dLogs.forEach(log => {
+    const d = log.department || 'Інші відділи';
+    deptCounts[d] = (deptCounts[d] || 0) + 1;
+
+    const s = log.status_37d || 'невідомо';
+    statusCounts[s] = (statusCounts[s] || 0) + 1;
+
+    const e = log.user_name || 'невідомо';
+    empCounts[e] = (empCounts[e] || 0) + 1;
+  });
+
+  const ws3_data = [
+    ["ЗВЕДЕННЯ ПО ЗАВДАННЯХ 37-Д"],
+    [],
+    ["Кількість завдань за відділами"],
+    ["Відділ", "Кількість"]
+  ];
+
+  Object.entries(deptCounts).forEach(([d, count]) => {
+    ws3_data.push([d, count]);
+  });
+
+  ws3_data.push([]);
+  ws3_data.push(["Кількість завдань за станами"]);
+  ws3_data.push(["Стан 37-Д", "Кількість"]);
+
+  Object.entries(statusCounts).forEach(([s, count]) => {
+    ws3_data.push([s, count]);
+  });
+
+  ws3_data.push([]);
+  ws3_data.push(["Кількість завдань за співробітниками"]);
+  ws3_data.push(["Співробітник", "Кількість"]);
+
+  Object.entries(empCounts).forEach(([e, count]) => {
+    ws3_data.push([e, count]);
+  });
+
+  const ws3 = XLSX.utils.aoa_to_sheet(ws3_data);
+  ws3['!cols'] = [{ wch: 40 }, { wch: 15 }];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws1, "Довідка 37-Д");
+  XLSX.utils.book_append_sheet(wb, ws2, "Реєстр завдань");
+  XLSX.utils.book_append_sheet(wb, ws3, "Зведення");
+
+  let filenamePrefix = "37-Д_Департамент_стратегії";
+  if (level === 'department' && dept) {
+    filenamePrefix = `37-Д_Відділ_${dept.replace(/\s+/g, '_')}`;
+  } else if (level === 'personal') {
+    const uName = userProfile.full_name || "Співробітник";
+    filenamePrefix = `37-Д_${uName.replace(/\s+/g, '_')}`;
+  } else if (emp && emp !== 'all') {
+    const eName = document.getElementById('report-37d-employee')?.selectedOptions[0]?.textContent || "Виконавець";
+    filenamePrefix = `37-Д_${eName.replace(/\s+/g, '_')}`;
+  }
+
+  const filename = `${filenamePrefix}_${startDate}.xlsx`;
+  XLSX.writeFile(wb, filename);
+}
+
+async function mark37dAsIncluded() {
+  if (!last37dLogs || last37dLogs.length === 0) {
+    alert("Немає записів для оновлення.");
+    return;
+  }
+
+  const logsToUpdate = last37dLogs.filter(log => log.status_37d !== 'включено в довідку' && log.status_37d !== 'скасовано / неактуально');
+
+  if (logsToUpdate.length === 0) {
+    alert("Всі знайдені записи вже мають статус 'включено в довідку' або 'скасовано / неактуально'.");
+    return;
+  }
+
+  const confirmMsg = `Ви впевнені, що хочете позначити ${logsToUpdate.length} записів як 'включено в довідку'?`;
+  if (!confirm(confirmMsg)) return;
+
+  const btn = document.getElementById('btn-mark-included-37d');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Збереження...';
+  }
+
+  const ids = logsToUpdate.map(log => log.id);
+  
+  try {
+    const { error } = await sb
+      .from('skod_logs')
+      .update({ 
+        status_37d: 'включено в довідку',
+        included_in_report_at: new Date().toISOString(),
+        included_by_user_id: currentUser.id
+      })
+      .in('id', ids);
+
+    if (error) {
+      alert("Помилка при оновленні: " + error.message);
+    } else {
+      alert("Статуси записів успішно оновлено на 'включено в довідку'!");
+      run37dReport();
+    }
+  } catch (err) {
+    console.error(err);
+    alert("Помилка: " + err.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '✓ Включено в довідку';
+    }
   }
 }
 

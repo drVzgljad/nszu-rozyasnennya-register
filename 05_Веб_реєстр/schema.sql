@@ -828,3 +828,24 @@ CREATE POLICY "Allow delete of own daily status" ON public.user_daily_statuses
 -- Додавання таблиці щоденних статусів до публікації реального часу
 ALTER PUBLICATION supabase_realtime ADD TABLE public.user_daily_statuses;
 
+
+-- =========================================================================
+-- МІГРАЦІЯ: МОДУЛЬ 37-Д (ФОРМУВАННЯ ПІДСУМКОВОЇ ІНФОРМАЦІЇ)
+-- =========================================================================
+
+-- 1. Додавання нових колонок до таблиці skod_logs
+ALTER TABLE public.skod_logs ADD COLUMN IF NOT EXISTS include_37d BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.skod_logs ADD COLUMN IF NOT EXISTS process_name TEXT;
+ALTER TABLE public.skod_logs ADD COLUMN IF NOT EXISTS current_state_text TEXT;
+ALTER TABLE public.skod_logs ADD COLUMN IF NOT EXISTS status_37d TEXT DEFAULT 'виконано'; -- 'заплановано', 'у роботі', 'виконано', 'очікує погодження', 'готово до включення в довідку', 'включено в довідку', 'скасовано / неактуально'
+ALTER TABLE public.skod_logs ADD COLUMN IF NOT EXISTS info_type_37d TEXT;
+ALTER TABLE public.skod_logs ADD COLUMN IF NOT EXISTS contact_person_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL;
+ALTER TABLE public.skod_logs ADD COLUMN IF NOT EXISTS contact_person_name TEXT;
+ALTER TABLE public.skod_logs ADD COLUMN IF NOT EXISTS event_date DATE DEFAULT CURRENT_DATE;
+ALTER TABLE public.skod_logs ADD COLUMN IF NOT EXISTS document_link TEXT;
+ALTER TABLE public.skod_logs ADD COLUMN IF NOT EXISTS manager_comment TEXT;
+ALTER TABLE public.skod_logs ADD COLUMN IF NOT EXISTS include_in_current_report BOOLEAN DEFAULT TRUE;
+ALTER TABLE public.skod_logs ADD COLUMN IF NOT EXISTS included_in_report_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE public.skod_logs ADD COLUMN IF NOT EXISTS included_by_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+
+

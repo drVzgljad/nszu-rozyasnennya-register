@@ -572,3 +572,148 @@
   margin: 0 2px;
   color: var(--p-faint);
 }
+
+/* ============================================================
+   Модуль 37-Д: Формування підсумкової інформації
+   ============================================================ */
+
+.skod-form-group-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.skod-tab-switcher {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--p-line);
+  padding-bottom: 8px;
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  font-family: var(--p-display);
+  font-weight: 700;
+  font-size: 14px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--p-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+  outline: none;
+}
+
+.tab-btn:hover {
+  color: var(--p-ink);
+}
+
+.tab-btn.active {
+  border-bottom-color: var(--accent-deep);
+  color: var(--accent-deep);
+}
+
+.badge-37d {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #fff;
+  margin-left: 6px;
+  vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.badge-37d.заплановано { background-color: #64748b; }
+.badge-37d.у_роботі { background-color: #3b82f6; }
+.badge-37d.виконано { background-color: #22c55e; }
+.badge-37d.очікує_погодження { background-color: #eab308; color: #1e293b; }
+.badge-37d.готово_до_включення_в_довідку { background-color: #06b6d4; }
+.badge-37d.включено_в_довідку { background-color: #6366f1; }
+.badge-37d.скасовано_неактуально { background-color: #ef4444; }
+
+.badge-37d.у-роботі { background-color: #3b82f6; }
+.badge-37d.очікує-погодження { background-color: #eab308; color: #1e293b; }
+.badge-37d.готово-до-включення-в-довідку { background-color: #06b6d4; }
+.badge-37d.включено-в-довідку { background-color: #6366f1; }
+.badge-37d.скасовано-неактуально { background-color: #ef4444; }
+
+#block-37d-fields {
+  transition: all 0.3s ease;
+}
+
+/* 37-D Report Preview Styles */
+.report-37d-preview {
+  margin-top: 24px;
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--pr-tile);
+  padding: 24px;
+  box-shadow: var(--p-shadow-sm);
+}
+
+.preview-title-37d {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 24px;
+  color: #000;
+  line-height: 1.4;
+}
+
+:root.dark-theme .preview-title-37d {
+  color: var(--p-ink);
+}
+
+.table-37d-preview {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 13px;
+  color: #000;
+}
+
+:root.dark-theme .table-37d-preview {
+  color: var(--p-ink);
+}
+
+.table-37d-preview th,
+.table-37d-preview td {
+  border: 1px solid #000;
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+:root.dark-theme .table-37d-preview th,
+:root.dark-theme .table-37d-preview td {
+  border-color: var(--p-line);
+}
+
+.table-37d-preview th {
+  font-weight: bold;
+  text-align: center;
+  background-color: #f1f5f9;
+}
+
+:root.dark-theme .table-37d-preview th {
+  background-color: var(--p-soft);
+}
+
+.table-37d-preview .dept-header-row td {
+  font-weight: bold;
+  background-color: #e2e8f0;
+  padding: 6px 10px;
+}
+
+:root.dark-theme .table-37d-preview .dept-header-row td {
+  background-color: rgba(255, 255, 255, 0.08);
+}

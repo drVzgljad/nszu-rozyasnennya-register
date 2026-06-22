@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="../auth-v2.css?v=20260615b">
   <link rel="stylesheet" href="skod.css?v=20260608">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script type="module" src="../auth-v2.js?v=20260615b"></script>
   <script type="module" src="skod.js?v=20260615b"></script>
 </head>
@@ -53,8 +54,15 @@
       </div>
     </div>
 
-    <!-- Filter Panel -->
-    <section class="filter-panel">
+    <!-- Tab Switcher -->
+    <div class="skod-tab-switcher">
+      <button type="button" class="tab-btn active" id="tab-analytics">📊 Основна аналітика СКО-Д</button>
+      <button type="button" class="tab-btn" id="tab-37d">📝 Звіт 37-Д</button>
+    </div>
+
+    <div id="analytics-section">
+      <!-- Filter Panel -->
+      <section class="filter-panel">
       <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
         <label for="report-start-date">Період з:</label>
         <input type="date" id="report-start-date">
@@ -119,13 +127,106 @@
       </button>
     </section>
 
-    <!-- Report Results Container -->
+     <!-- Report Results Container -->
     <section id="report-results" style="min-height: 250px;">
       <div class="empty-state" style="background: var(--p-surface); border: 1px solid var(--p-line); border-radius: var(--pr-tile); padding: 40px; text-align: center; color: var(--p-muted);">
         Оберіть parameters та натисніть "Сформувати" для перегляду аналітики.
       </div>
     </section>
-  </main>
+  </div> <!-- End of #analytics-section -->
+
+  <!-- Section for 37-D Report -->
+  <div id="section-37d" style="display: none;">
+    <!-- Filter Panel for 37-D -->
+    <section class="filter-panel">
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <label for="report-37d-start-date">Період з:</label>
+        <input type="date" id="report-37d-start-date">
+        <label for="report-37d-end-date">по:</label>
+        <input type="date" id="report-37d-end-date">
+      </div>
+
+      <div class="skod-preset-buttons" style="display: flex; align-items: center; gap: 6px;">
+        <button type="button" class="btn-preset active" id="preset-37d-tuesday">Щовівторковий звіт</button>
+        <button type="button" class="btn-preset" id="preset-37d-today">Сьогодні</button>
+        <button type="button" class="btn-preset" id="preset-37d-week">Тиждень</button>
+        <button type="button" class="btn-preset" id="preset-37d-month">Місяць</button>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <label for="report-37d-level">Рівень звіту:</label>
+        <select id="report-37d-level">
+          <option value="department-wide" selected>Весь Департамент</option>
+          <option value="department">Звіт відділу</option>
+          <option value="personal">Мій звіт (Індивідуальний)</option>
+        </select>
+      </div>
+
+      <div id="report-37d-dept-group" style="display: flex; align-items: center; gap: 8px;">
+        <label for="report-37d-department">Відділ:</label>
+        <select id="report-37d-department">
+          <!-- JavaScript populated -->
+        </select>
+      </div>
+
+      <div id="report-37d-employee-group" style="display: flex; align-items: center; gap: 8px;">
+        <label for="report-37d-employee">Співробітник:</label>
+        <select id="report-37d-employee">
+          <option value="all" selected>Всі співробітники</option>
+          <!-- JavaScript populated -->
+        </select>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <label for="report-37d-status">Стан 37-Д:</label>
+        <select id="report-37d-status">
+          <option value="all" selected>Всі стани (крім скасованих)</option>
+          <option value="заплановано">заплановано</option>
+          <option value="у роботі">у роботі</option>
+          <option value="виконано">виконано</option>
+          <option value="очікує погодження">очікує погодження</option>
+          <option value="готово до включення в довідку">готово до включення в довідку</option>
+          <option value="включено в довідку">включено в довідку</option>
+          <option value="скасовано / неактуально">скасовано / неактуально</option>
+        </select>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <label for="report-37d-info-type">Тип інформації:</label>
+        <select id="report-37d-info-type">
+          <option value="all" selected>Всі типи</option>
+          <option value="заплановані зміни для ЗОЗ, аптек, пацієнтів">заплановані зміни</option>
+          <option value="презентація для публічного заходу">презентація</option>
+          <option value="аналітична довідка для МОЗ або іншого ЦОВВ">аналітична довідка</option>
+          <option value="масовий лист-роз’яснення">лист-роз’яснення</option>
+          <option value="інша інформація, що може потребувати комунікаційної підтримки">інше</option>
+        </select>
+      </div>
+
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button id="btn-run-37d" class="btn btn-primary" style="padding: 8px 16px; font-size: 13.5px;">
+          🔍 Сформувати
+        </button>
+        <button id="btn-excel-37d" class="btn btn-primary" style="padding: 8px 16px; font-size: 13.5px; background-color: #16a34a; border-color: #16a34a;">
+          📥 Завантажити Excel
+        </button>
+        <button id="btn-mark-included-37d" class="btn btn-primary" style="padding: 8px 16px; font-size: 13.5px; background-color: #4f46e5; border-color: #4f46e5; display: none;">
+          ✓ Включено в довідку
+        </button>
+        <button id="btn-clear-37d" class="btn" style="padding: 8px 16px; font-size: 13.5px; background: var(--p-soft); border: 1px solid var(--p-line); color: var(--p-ink);">
+          Очистити
+        </button>
+      </div>
+    </section>
+
+    <!-- 37-D Results Preview Container -->
+    <section id="results-37d" style="min-height: 250px;">
+      <div class="empty-state" style="background: var(--p-surface); border: 1px solid var(--p-line); border-radius: var(--pr-tile); padding: 40px; text-align: center; color: var(--p-muted);">
+        Оберіть параметри та натисніть "Сформувати" для попереднього перегляду довідки 37-Д.
+      </div>
+    </section>
+  </div>
+</main>
 
   <!-- ── Footer ───────────────────────────────────────── -->
   <footer class="p-footer">

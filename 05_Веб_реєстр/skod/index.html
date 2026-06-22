@@ -141,6 +141,78 @@
             </select>
           </div>
 
+          <!-- Блок Форма 37-Д -->
+          <div class="skod-form-group-checkbox" style="display: flex; align-items: center; gap: 8px; margin-top: 12px; margin-bottom: 12px;">
+            <input type="checkbox" id="include_37d" style="width: 18px; height: 18px; cursor: pointer;">
+            <label for="include_37d" style="margin: 0; font-weight: 600; cursor: pointer; color: var(--p-ink); font-size: 14px;">☐ Форма 37-Д</label>
+          </div>
+
+          <div id="block-37d-fields" style="display: none; border: 1px solid var(--p-line); padding: 16px; border-radius: var(--pr-chip); background: var(--p-soft); margin-bottom: 16px; flex-direction: column; gap: 12px;">
+            <h3 style="font-size: 15px; font-weight: 700; margin: 0 0 4px 0; color: var(--accent-deep); display: flex; align-items: center; gap: 6px;">📝 Дані для форми 37-Д</h3>
+            
+            <div class="skod-form-group">
+              <label for="process_name">Процес *</label>
+              <input type="text" id="process_name" placeholder="наприклад, Підготовка листа-роз'яснення..." list="processes-list">
+              <datalist id="processes-list"></datalist>
+            </div>
+
+            <div class="skod-form-group">
+              <label for="info_type_37d">Тип інформації для 37-Д</label>
+              <select id="info_type_37d">
+                <option value="" selected>-- Не обрано --</option>
+                <option value="заплановані зміни для ЗОЗ, аптек, пацієнтів">заплановані зміни для ЗОЗ, аптек, пацієнтів</option>
+                <option value="презентація для публічного заходу">презентація для публічного заходу</option>
+                <option value="аналітична довідка для МОЗ або іншого ЦОВВ">аналітична довідка для МОЗ або іншого ЦОВВ</option>
+                <option value="масовий лист-роз’яснення">масовий лист-роз’яснення</option>
+                <option value="інша інформація, що може потребувати комунікаційної підтримки">інша інформація, що може потребувати комунікаційної підтримки</option>
+              </select>
+            </div>
+
+            <div class="skod-form-group">
+              <label for="current_state_text">Поточний стан виконання *</label>
+              <textarea id="current_state_text" rows="2" placeholder="наприклад, Виконано. Взяв участь Є. Горох 17.06.2026"></textarea>
+            </div>
+
+            <div class="skod-form-group">
+              <label for="status_37d">Стан 37-Д *</label>
+              <select id="status_37d">
+                <option value="заплановано">заплановано</option>
+                <option value="у роботі">у роботі</option>
+                <option value="виконано" selected>виконано</option>
+                <option value="очікує погодження">очікує погодження</option>
+                <option value="готово до включення в довідку">готово до включення в довідку</option>
+                <option value="включено в довідку">включено в довідку</option>
+                <option value="скасовано / неактуально">скасовано / неактуально</option>
+              </select>
+            </div>
+
+            <div class="skod-form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 0;">
+              <div class="skod-form-group" style="margin-bottom: 0;">
+                <label for="event_date">Дата події / виконання *</label>
+                <input type="date" id="event_date">
+              </div>
+              <div class="skod-form-group" style="margin-bottom: 0;">
+                <label for="contact_person_select">Контактна особа *</label>
+                <select id="contact_person_select"></select>
+              </div>
+            </div>
+
+            <div class="skod-form-group">
+              <label for="document_link">Посилання / номер документа</label>
+              <input type="text" id="document_link" placeholder="наприклад, АСКОД № 1234/12-26 або посилання...">
+            </div>
+
+            <div class="skod-form-group">
+              <label for="manager_comment">Коментар керівника</label>
+              <input type="text" id="manager_comment" placeholder="Тільки для керівника або координатора..." readonly>
+            </div>
+
+            <div class="skod-form-group-checkbox" style="display: flex; align-items: center; gap: 8px; margin-top: 6px;">
+              <input type="checkbox" id="include_in_current_report" checked style="width: 16px; height: 16px; cursor: pointer;">
+              <label for="include_in_current_report" style="margin: 0; font-weight: 500; cursor: pointer; color: var(--p-ink); font-size: 13px;">Включити в поточний звіт</label>
+            </div>
+          </div>
+
           <div class="skod-form-group">
             <label for="description">Короткий опис / Код завдання / Номер документа</label>
             <textarea id="description" rows="3" placeholder="Опишіть сутність завдання або вкажіть реєстраційний номер листа..."></textarea>
