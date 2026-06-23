@@ -344,6 +344,16 @@ function applyAccess() {
       renderAlertBanner(alertBanner, prefix);
     }
   }
+
+  // Show/hide online chip for guests and unregistered users
+  const onlineChip = document.getElementById('portal-online-chip');
+  if (onlineChip) {
+    if (user && role !== 'guest') {
+      onlineChip.style.display = '';
+    } else {
+      onlineChip.style.display = 'none';
+    }
+  }
 }
 
 function switchTab(tab) {
