@@ -63,26 +63,9 @@ function applyAccess() {
     chatBtn.href = prefix + 'chat/index.html';
     const hasChatAccess = hasAccess('expert');
     if (!hasChatAccess) {
-      chatBtn.classList.add('is-locked');
-      chatBtn.innerHTML = `Робочий чат <span class="lock-icon">🔒</span>`;
-      chatBtn.onclick = (e) => {
-        e.preventDefault();
-        if (!user) {
-          openModal('login');
-        } else {
-          const overlay = document.getElementById('access-denied-overlay');
-          if (overlay) {
-            const msg = document.getElementById('access-denied-msg');
-            if (msg) {
-              msg.textContent = 'Робочий чат доступний лише для співробітників департаменту.';
-            }
-            overlay.style.display = 'flex';
-          } else {
-            alert('Робочий чат доступний лише для співробітників департаменту.');
-          }
-        }
-      };
+      chatBtn.style.display = 'none';
     } else {
+      chatBtn.style.display = '';
       chatBtn.classList.remove('is-locked');
       chatBtn.innerHTML = `Робочий чат`;
       chatBtn.onclick = null;
@@ -95,26 +78,9 @@ function applyAccess() {
     skodBtn.href = prefix + 'skod/reports.html';
     const hasSkodAccess = hasAccess('expert');
     if (!hasSkodAccess) {
-      skodBtn.classList.add('is-locked');
-      skodBtn.innerHTML = `Звіт СКО-Д <span class="lock-icon">🔒</span>`;
-      skodBtn.onclick = (e) => {
-        e.preventDefault();
-        if (!user) {
-          openModal('login');
-        } else {
-          const overlay = document.getElementById('access-denied-overlay');
-          if (overlay) {
-            const msg = document.getElementById('access-denied-msg');
-            if (msg) {
-              msg.textContent = 'Звіти СКО-Д доступні лише для зареєстрованих співробітників.';
-            }
-            overlay.style.display = 'flex';
-          } else {
-            alert('Звіти СКО-Д доступні лише для зареєстрованих співробітників.');
-          }
-        }
-      };
+      skodBtn.style.display = 'none';
     } else {
+      skodBtn.style.display = '';
       skodBtn.classList.remove('is-locked');
       skodBtn.innerHTML = `Звіт СКО-Д`;
       skodBtn.onclick = null;
@@ -127,26 +93,9 @@ function applyAccess() {
     tasksBtn.href = prefix + 'skod/tasks.html';
     const hasTasksAccess = hasAccess('manager');
     if (!hasTasksAccess) {
-      tasksBtn.classList.add('is-locked');
-      tasksBtn.innerHTML = `Доручення <span class="lock-icon">🔒</span>`;
-      tasksBtn.onclick = (e) => {
-        e.preventDefault();
-        if (!user) {
-          openModal('login');
-        } else {
-          const overlay = document.getElementById('access-denied-overlay');
-          if (overlay) {
-            const msg = document.getElementById('access-denied-msg');
-            if (msg) {
-              msg.textContent = 'Ця сторінка доступна лише для керівництва (Директор, Заступники, Начальники відділів та Адміністратор).';
-            }
-            overlay.style.display = 'flex';
-          } else {
-            alert('Ця сторінка доступна лише для керівництва (Директор, Заступники, Начальники відділів та Адміністратор).');
-          }
-        }
-      };
+      tasksBtn.style.display = 'none';
     } else {
+      tasksBtn.style.display = '';
       tasksBtn.classList.remove('is-locked');
       tasksBtn.innerHTML = `Доручення`;
       tasksBtn.onclick = null;
@@ -159,26 +108,9 @@ function applyAccess() {
     regulatoryBtn.href = prefix + 'regulatory/admin.html';
     const hasRegAccess = hasAccess('expert');
     if (!hasRegAccess) {
-      regulatoryBtn.classList.add('is-locked');
-      regulatoryBtn.innerHTML = `Управління нормами <span class="lock-icon">🔒</span>`;
-      regulatoryBtn.onclick = (e) => {
-        e.preventDefault();
-        if (!user) {
-          openModal('login');
-        } else {
-          const overlay = document.getElementById('access-denied-overlay');
-          if (overlay) {
-            const msg = document.getElementById('access-denied-msg');
-            if (msg) {
-              msg.textContent = 'Управління нормативною базою доступне лише для експертів та керівництва.';
-            }
-            overlay.style.display = 'flex';
-          } else {
-            alert('Управління нормативною базою доступне лише для експертів та керівництва.');
-          }
-        }
-      };
+      regulatoryBtn.style.display = 'none';
     } else {
+      regulatoryBtn.style.display = '';
       regulatoryBtn.classList.remove('is-locked');
       regulatoryBtn.innerHTML = `Управління нормами`;
       regulatoryBtn.onclick = null;
@@ -295,8 +227,8 @@ function applyAccess() {
       { text: 'Укладені договори', path: 'zoz-dogovr/index.html' },
       { text: 'ДЕЦ МОЗ', path: 'dec/index.html' },
       { text: 'Нормативна база', path: 'regulatory/index.html' },
-      { text: 'Структура', path: 'dept-tree.html' },
-      { text: 'Робочий чат', path: 'chat/index.html', isChat: true }
+      { text: 'Структура', path: 'dept-tree.html', role: 'expert' },
+      { text: 'Робочий чат', path: 'chat/index.html', isChat: true, role: 'expert' }
     ];
 
 
@@ -314,38 +246,16 @@ function applyAccess() {
 
     // 1. Core navigation tabs
     coreItems.forEach(item => {
+      if (item.role && !hasAccess(item.role)) {
+        return; // Hide completely
+      }
       const a = document.createElement('a');
       a.href = prefix + item.path;
       
       if (item.isChat) {
         a.className = 'nav-chat-btn';
-        const hasChatAccess = hasAccess('expert');
-        if (!hasChatAccess) {
-          a.classList.add('is-locked');
-          a.innerHTML = `<span>${item.text}</span> <span class="lock-icon">🔒</span>`;
-          a.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (!user) {
-              openModal('login');
-            } else {
-              const overlay = document.getElementById('access-denied-overlay');
-              if (overlay) {
-                const msg = document.getElementById('access-denied-msg');
-                if (msg) {
-                  msg.textContent = 'Робочий чат доступний лише для співробітників департаменту.';
-                }
-                overlay.style.display = 'flex';
-              } else {
-                alert('Робочий чат доступний лише для співробітників департаменту.');
-              }
-            }
-          });
-        } else {
-          a.textContent = item.text;
-        }
-      } else {
-        a.textContent = item.text;
       }
+      a.textContent = item.text;
 
       if (isActive(item.path)) {
         a.classList.add('active');
@@ -355,37 +265,38 @@ function applyAccess() {
     });
 
     // 2. Dropdown menu for role-gated items
-    const isDropdownActive = dropdownItems.some(item => isActive(item.path));
-    
-    const dropdownDiv = document.createElement('div');
-    dropdownDiv.className = 'nav-dropdown';
-    
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'nav-dropdown-btn';
-    if (isDropdownActive) btn.classList.add('active');
-    btn.innerHTML = `Сервіси <span class="nav-dropdown-arrow">▼</span>`;
-    
-    const menuDiv = document.createElement('div');
-    menuDiv.className = 'nav-dropdown-menu';
-    
-    dropdownItems.forEach(item => {
-      const a = document.createElement('a');
-      a.href = prefix + item.path;
+    const visibleDropdownItems = dropdownItems.filter(item => hasAccess(item.role));
+    if (visibleDropdownItems.length > 0) {
+      const isDropdownActive = visibleDropdownItems.some(item => isActive(item.path));
       
-      const hasPermission = hasAccess(item.role);
-      a.innerHTML = `<span>${item.text}</span> ${hasPermission ? '' : '<span class="lock-icon">🔒</span>'}`;
+      const dropdownDiv = document.createElement('div');
+      dropdownDiv.className = 'nav-dropdown';
       
-      if (isActive(item.path)) {
-        a.classList.add('active');
-        a.setAttribute('aria-current', 'page');
-      }
-      menuDiv.appendChild(a);
-    });
-    
-    dropdownDiv.appendChild(btn);
-    dropdownDiv.appendChild(menuDiv);
-    navContainer.appendChild(dropdownDiv);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'nav-dropdown-btn';
+      if (isDropdownActive) btn.classList.add('active');
+      btn.innerHTML = `Сервіси <span class="nav-dropdown-arrow">▼</span>`;
+      
+      const menuDiv = document.createElement('div');
+      menuDiv.className = 'nav-dropdown-menu';
+      
+      visibleDropdownItems.forEach(item => {
+        const a = document.createElement('a');
+        a.href = prefix + item.path;
+        a.innerHTML = `<span>${item.text}</span>`;
+        
+        if (isActive(item.path)) {
+          a.classList.add('active');
+          a.setAttribute('aria-current', 'page');
+        }
+        menuDiv.appendChild(a);
+      });
+      
+      dropdownDiv.appendChild(btn);
+      dropdownDiv.appendChild(menuDiv);
+      navContainer.appendChild(dropdownDiv);
+    }
   }
 
   // Page-level guard

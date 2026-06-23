@@ -1,55 +1,10 @@
 let embeddingIndex = null;
+const documentsMap = new Map();
+let isServerAvailable = false;
 
 const el = (id) => document.getElementById(id);
 
-// Modals and settings
-const modal = el("settingsModal");
-const openBtn = el("openSettingsBtn");
-const closeBtn = el("closeSettingsBtn");
-const saveBtn = el("saveSettingsBtn");
-const keyInput = el("geminiApiKeyInput");
-
-openBtn.onclick = () => {
-  keyInput.value = localStorage.getItem("gemini_api_key") || "";
-  modal.style.display = "flex";
-};
-
-closeBtn.onclick = () => {
-  modal.style.display = "none";
-};
-
-saveBtn.onclick = () => {
-  const key = keyInput.value.trim();
-  if (key) {
-    localStorage.setItem("gemini_api_key", key);
-  } else {
-    localStorage.removeItem("gemini_api_key");
-  }
-  modal.style.display = "none";
-  checkApiKeyStatus();
-};
-
-window.onclick = (event) => {
-  if (event.target === modal) {
-    modal.style.display = "none";
-  }
-};
-
-function checkApiKeyStatus() {
-  const key = localStorage.getItem("gemini_api_key");
-  const isLocal = location.hostname === "127.0.0.1" || location.hostname === "localhost";
-  
-  if (key) {
-    openBtn.innerHTML = "⚙️ API Ключ збережено";
-    openBtn.style.background = "rgba(16, 185, 129, 0.2)";
-  } else if (isLocal) {
-    openBtn.innerHTML = "⚙️ Налаштування API (Локальний сервер)";
-    openBtn.style.background = "rgba(255, 255, 255, 0.2)";
-  } else {
-    openBtn.innerHTML = "⚠️ Потрібен API Ключ";
-    openBtn.style.background = "rgba(239, 68, 68, 0.2)";
-  }
-}
+// Local server state holds whether backend API is reachable
 
 // Dot product (since embeddings are L2 normalized, dot product equals cosine similarity)
 function dotProduct(vecA, vecB) {
@@ -62,56 +17,25 @@ function dotProduct(vecA, vecB) {
 }
 
 async function getQueryVector(query) {
-  const isLocal = location.hostname === "127.0.0.1" || location.hostname === "localhost";
-  
-  // 1. Try local server endpoint first if running locally
-  if (isLocal) {
-    try {
-      const response = await fetch("/api/embed", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: query })
-      });
-      if (response.ok) {
-        const result = await response.json();
-        if (result.status === "success" && result.vector) {
-          return result.vector;
-        }
+  // 1. Try local server endpoint first
+  try {
+    const response = await fetch("/api/embed", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: query })
+    });
+    if (response.ok) {
+      const result = await response.json();
+      if (result.status === "success" && result.vector) {
+        return result.vector;
       }
-    } catch (e) {
-      console.warn("Local embed API failed, falling back to direct API...", e);
     }
+  } catch (e) {
+    console.warn("Local embed API failed or not running, falling back to browser direct API...", e);
   }
   
-  // 2. Try browser direct API call using localStorage API key
-  const apiKey = localStorage.getItem("gemini_api_key");
-  if (!apiKey) {
-    throw new Error("API key not configured. Please click 'Налаштування API' and enter your Gemini API key.");
-  }
-  
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${apiKey}`;
-  const payload = {
-    model: "models/gemini-embedding-001",
-    content: {
-      parts: [{ text: query }]
-    }
-  };
-
-
-  
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-  
-  if (!response.ok) {
-    const errData = await response.json().catch(() => ({}));
-    throw new Error(errData.error?.message || `API error: ${response.status}`);
-  }
-  
-  const resData = await response.json();
-  return resData.embedding.values;
+  // No local server and no external API key direct calls allowed
+  throw new Error("Локальний сервер не відповідає. Запустіть Відкрити_реєстр.cmd.");
 }
 
 async function handleSearch() {
@@ -157,7 +81,7 @@ async function handleSearch() {
         <div style="font-size: 36px; margin-bottom: 8px;">⚠️ Помилка</div>
         <p>${err.message}</p>
         <p style="font-size: 13px; margin-top: 12px; color: #64748b;">
-          Переконайтеся, що локальний сервер server.py запущений, або додайте ваш API ключ у налаштуваннях.
+          Переконайтеся, що локальний сервер server.py запущений.
         </p>
       </div>`;
   } finally {
@@ -189,7 +113,13 @@ function renderResults(results) {
     
     // Convert score to percentage
     const pct = Math.max(0, Math.min(100, Math.round(item.score * 100)));
-    const path = `../02_Перейменовані/${encodeURIComponent(item.proposed_name)}`;
+    
+    // Resolve path using documentsMap if available, else fall back to original proposed path
+    let path = `../02_Перейменовані/${encodeURIComponent(item.proposed_name)}`;
+    const doc = documentsMap.get(item.doc_id);
+    if (doc && doc.local_path) {
+      path = doc.local_path.split("/").map(part => encodeURIComponent(part)).join("/");
+    }
     
     card.innerHTML = `
       <div class="card-meta-row">
@@ -207,12 +137,56 @@ function renderResults(results) {
 }
 
 async function init() {
-  checkApiKeyStatus();
+  // Check if local server endpoint is running and responding
+  try {
+    const probeResponse = await fetch("/api/embed", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: "probe" })
+    });
+    if (probeResponse.ok) {
+      const probeResult = await probeResponse.json();
+      if (probeResult.status === "success") {
+        isServerAvailable = true;
+      }
+    }
+  } catch (e) {
+    isServerAvailable = false;
+  }
+  
+  if (!isServerAvailable) {
+    el("aiSearch").disabled = true;
+    el("searchBtn").disabled = true;
+    el("aiSearch").placeholder = "Пошук відключено (потрібен локальний запуск)";
+    el("aiResults").innerHTML = `
+      <div style="text-align: center; padding: 40px; color: #ea580c; border: 1px dashed #fdba74; border-radius:12px; background:#fff7ed;">
+        <div style="font-size: 36px; margin-bottom: 8px;">🖥️ Потрібен локальний запуск</div>
+        <p>Семантичний AI-пошук доступний лише у локальному робочому просторі експертів.</p>
+        <p style="font-size: 14px; margin-top: 12px; color: #475569;">
+          Будь ласка, запустіть проєкт через файл <strong>Відкрити_реєстр.cmd</strong> у кореневій теці, щоб підключити AI-функції.
+        </p>
+      </div>`;
+    return;
+  }
   
   el("searchBtn").addEventListener("click", handleSearch);
   el("aiSearch").addEventListener("keydown", (e) => {
     if (e.key === "Enter") handleSearch();
   });
+  
+  try {
+    const docsRes = await fetch("data/documents.json");
+    if (docsRes.ok) {
+      const docsData = await docsRes.json();
+      if (docsData && docsData.documents) {
+        docsData.documents.forEach(doc => {
+          documentsMap.set(doc.id, doc);
+        });
+      }
+    }
+  } catch (err) {
+    console.warn("Failed to load documents registry:", err);
+  }
   
   try {
     const res = await fetch("data/embeddings.json");
