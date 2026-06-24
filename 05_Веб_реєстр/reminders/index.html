@@ -195,10 +195,30 @@
         </div>
 
         <div class="auth-field" style="margin-bottom: 12px;">
-          <label for="event-executor" style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--p-muted);">Виконавець (співробітник) *</label>
-          <select id="event-executor" required style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1.5px solid var(--p-line); background: var(--p-surface); color: var(--p-ink);">
-            <option value="">Оберіть виконавця...</option>
-          </select>
+          <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px; color: var(--p-muted);">Виконавці *</label>
+          <div class="executors-multiselect-container">
+            <input type="text" id="executor-search" placeholder="🔍 Швидкий пошук виконавця..." style="width: 100%; padding: 6px 10px; margin-bottom: 8px; border-radius: 6px; border: 1px solid var(--p-line); background: var(--p-soft); color: var(--p-ink); font-size: 13px; outline: none; box-sizing: border-box;">
+            <div id="executors-list" style="display: flex; flex-direction: column; gap: 4px;">
+              <!-- Чекбокси будуть додані динамічно через JS -->
+            </div>
+          </div>
+          <div style="margin-top: 6px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 11.5px; color: var(--p-muted);">Оберіть одного або кількох виконавців</span>
+            <button type="button" id="btn-show-add-executor" style="background: none; border: none; color: var(--accent); font-size: 12.5px; cursor: pointer; padding: 0; font-weight: 700; outline: none;">➕ Додати виконавця</button>
+          </div>
+          
+          <!-- Інлайн-форма для додавання нового виконавця -->
+          <div id="add-executor-form-inline" style="display: none; margin-top: 10px; padding: 12px; border: 1.5px dashed var(--p-line); border-radius: 10px; background: var(--p-soft); flex-direction: column; gap: 8px; box-sizing: border-box;">
+            <div style="font-weight: 700; font-size: 11px; color: var(--p-ink); text-transform: uppercase; letter-spacing: 0.05em;">Новий виконавець</div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <input type="text" id="new-exec-name" placeholder="ПІБ (наприклад, Петренко П.П.)" style="flex: 1; min-width: 150px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--p-line); font-size: 12.5px; background: var(--p-surface); color: var(--p-ink); box-sizing: border-box;">
+              <input type="email" id="new-exec-email" placeholder="Email (наприклад, p.petrenko@nszu.gov.ua)" style="flex: 1; min-width: 150px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--p-line); font-size: 12.5px; background: var(--p-surface); color: var(--p-ink); box-sizing: border-box;">
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px;">
+              <button type="button" id="btn-cancel-add-executor" style="padding: 4px 10px; border-radius: 6px; border: 1.5px solid var(--p-line); font-size: 11.5px; cursor: pointer; background: var(--p-surface); color: var(--p-ink); font-weight: 600;">Скасувати</button>
+              <button type="button" id="btn-save-new-executor" style="padding: 4px 12px; border-radius: 6px; border: none; background: var(--accent); color: white; font-size: 11.5px; font-weight: 700; cursor: pointer;">Зберегти</button>
+            </div>
+          </div>
         </div>
 
         <div class="auth-field" style="margin-bottom: 12px;">

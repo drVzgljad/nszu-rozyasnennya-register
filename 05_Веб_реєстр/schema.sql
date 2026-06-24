@@ -42,8 +42,17 @@ CREATE TABLE IF NOT EXISTS public.proposals (
   title TEXT NOT NULL,
   description TEXT NOT NULL,
   upvotes INTEGER DEFAULT 0,
-  voted_users JSONB DEFAULT '[]'::jsonb
+  voted_users JSONB DEFAULT '[]'::jsonb,
+  downvotes INTEGER DEFAULT 0,
+  voted_down_users JSONB DEFAULT '[]'::jsonb,
+  resolution TEXT DEFAULT NULL
 );
+
+-- Для оновлення існуючої бази даних виконайте ці команди в Supabase SQL Editor:
+-- ALTER TABLE public.proposals ADD COLUMN IF NOT EXISTS downvotes INTEGER DEFAULT 0;
+-- ALTER TABLE public.proposals ADD COLUMN IF NOT EXISTS voted_down_users JSONB DEFAULT '[]'::jsonb;
+-- ALTER TABLE public.proposals ADD COLUMN IF NOT EXISTS resolution TEXT DEFAULT NULL;
+
 
 -- Увімкнення RLS для таблиці пропозицій
 ALTER TABLE public.proposals ENABLE ROW LEVEL SECURITY;
@@ -866,6 +875,14 @@ CREATE TABLE IF NOT EXISTS public.reporting_events (
   notified_tiers TEXT[] DEFAULT '{}'::TEXT[], -- масив відправлених сповіщень (наприклад: {'15', '5', '2', '0'})
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
+
+-- ПРИМІТКА ЩОДО МУЛЬТИ-ВИКОНАВЦІВ:
+-- Для збереження зворотної сумісності та підтримки кількох виконавців з їхніми email
+-- без потреби зміни схеми БД, поле `executor_name` містить список у форматі:
+-- "Ім'я1 <email1>, Ім'я2 <email2>".
+--
+-- Альтернативний варіант міграції для майбутнього (якщо вирішите розширити колонки):
+-- ALTER TABLE public.reporting_events ADD COLUMN IF NOT EXISTS executor_email TEXT;
 
 -- Увімкнення RLS
 ALTER TABLE public.reporting_events ENABLE ROW LEVEL SECURITY;

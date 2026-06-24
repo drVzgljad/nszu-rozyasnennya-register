@@ -9,6 +9,8 @@ let currentProfile = null;
 let allProfiles = [];
 let events = [];
 let viewMode = 'grid'; // 'grid' | 'table'
+let customExecutors = [];
+let allAvailableExecutors = [];
 
 // Hybrid DB Provider
 const DB = {
@@ -123,6 +125,41 @@ function formatLocalDate(isoString) {
   });
 }
 
+// Parse executor_name containing "Name <email>, Name2 <email2>"
+function parseExecutors(executorNameStr) {
+  if (!executorNameStr || executorNameStr.trim() === '' || executorNameStr === 'Не призначено') return [];
+  return executorNameStr.split(',').map(part => {
+    const match = part.trim().match(/^(.*?)\s*<(.*?)>$/);
+    if (match) {
+      return { name: match[1].trim(), email: match[2].trim() };
+    }
+    return { name: part.trim(), email: '' };
+  });
+}
+
+function getProfileEmail(p) {
+  if (p.email) return p.email;
+  if (p.full_name === 'Дудник Світлана') return 's.dudnik@nszu.gov.ua';
+  if (p.full_name === 'Волошина Альбіна') return 'a.voloshyna@nszu.gov.ua';
+  // Generate transliterated email
+  const translit = transliterate(p.full_name).toLowerCase().replace(/\s+/g, '.');
+  return `${translit}@nszu.gov.ua`;
+}
+
+function transliterate(text) {
+  const map = {
+    'а': 'a', 'б': 'b', 'в': 'v', 'г': 'h', 'ґ': 'g', 'д': 'd', 'е': 'e', 'є': 'ye', 'ж': 'zh', 'з': 'z',
+    'и': 'y', 'і': 'i', 'ї': 'yi', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o', 'п': 'p',
+    'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'kh', 'ц': 'ts', 'ч': 'ch', 'ш': 'sh', 'щ': 'shch',
+    'ь': '', 'ю': 'yu', 'я': 'ya',
+    'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'H', 'Ґ': 'G', 'Д': 'D', 'Е': 'E', 'Є': 'Ye', 'Ж': 'Zh', 'З': 'Z',
+    'И': 'Y', 'І': 'I', 'Ї': 'Yi', 'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M', 'Н': 'N', 'О': 'O', 'П': 'P',
+    'Р': 'R', 'С': 'S', 'Т': 'T', 'У': 'U', 'Ф': 'F', 'Х': 'Kh', 'Ц': 'Ts', 'Ч': 'Ch', 'Ш': 'Sh', 'Щ': 'Shch',
+    'Ю': 'Yu', 'Я': 'Ya'
+  };
+  return text.split('').map(char => map[char] !== undefined ? map[char] : char).join('');
+}
+
 function getInitials(name) {
   if (!name) return "СП";
   const parts = name.trim().split(/\s+/);
@@ -142,7 +179,7 @@ function generateDefaultEvents() {
       due_date_description: "щомісяця до 10-го числа",
       deadline_date: formatDateISO(addBusinessDays(today, 15)),
       executor_id: currentUser ? currentUser.id : null,
-      executor_name: currentProfile ? currentProfile.full_name : "Дудник Світлана",
+      executor_name: currentProfile ? `${currentProfile.full_name} <${getProfileEmail(currentProfile)}>` : "Дудник Світлана <s.dudnik@nszu.gov.ua>",
       regulatory_basis: "Постанова КМУ № 410, Постанова КМУ № 1808",
       status: "Чернетка",
       notified_tiers: []
@@ -151,8 +188,8 @@ function generateDefaultEvents() {
       title: "Фінансовий звіт за формою № 1-НСЗУ",
       due_date_description: "щокварталу до 15-го числа",
       deadline_date: formatDateISO(addBusinessDays(today, 5)),
-      executor_id: currentUser ? currentUser.id : null,
-      executor_name: currentProfile ? currentProfile.full_name : "Волошина Альбіна",
+      executor_id: null,
+      executor_name: "Волошина Альбіна <a.voloshyna@nszu.gov.ua>",
       regulatory_basis: "Наказ НСЗУ від 29.12.2023 № 431",
       status: "Чернетка",
       notified_tiers: []
@@ -162,7 +199,7 @@ function generateDefaultEvents() {
       due_date_description: "щомісяця до 20-го числа",
       deadline_date: formatDateISO(addBusinessDays(today, 2)),
       executor_id: currentUser ? currentUser.id : null,
-      executor_name: currentProfile ? currentProfile.full_name : "Дудник Світлана",
+      executor_name: currentProfile ? `${currentProfile.full_name} <${getProfileEmail(currentProfile)}>` : "Дудник Світлана <s.dudnik@nszu.gov.ua>",
       regulatory_basis: "Постанова КМУ від 25.12.2020 № 1377",
       status: "Чернетка",
       notified_tiers: []
@@ -171,8 +208,8 @@ function generateDefaultEvents() {
       title: "Звіт про використання залишків коштів за ПМГ",
       due_date_description: "щомісяця до 5-го числа",
       deadline_date: formatDateISO(today),
-      executor_id: currentUser ? currentUser.id : null,
-      executor_name: currentProfile ? currentProfile.full_name : "Волошина Альбіна",
+      executor_id: null,
+      executor_name: "Волошина Альбіна <a.voloshyna@nszu.gov.ua>",
       regulatory_basis: "Розпорядження КМУ від 12.01.2026 № 14-р",
       status: "Чернетка",
       notified_tiers: []
@@ -182,7 +219,7 @@ function generateDefaultEvents() {
       due_date_description: "щорічно до 1 березня",
       deadline_date: "2027-03-01",
       executor_id: null,
-      executor_name: "Волошина Альбіна",
+      executor_name: "Волошина Альбіна <a.voloshyna@nszu.gov.ua>",
       regulatory_basis: "Закон України 'Про державні фінансові гарантії'",
       status: "Чернетка",
       notified_tiers: []
@@ -275,10 +312,7 @@ function showDesktopNotification(title, text) {
 }
 
 // Trigger simulated/SMTP email sending via backend Simple HTTP endpoint
-async function sendReminderEmail(event, tier) {
-  const email = currentProfile?.email || currentUser?.email || "executor@nszu.gov.ua";
-  const executorName = event.executor_name || "Співробітник";
-  
+async function sendReminderEmail(event, tier, executorName, email) {
   try {
     const response = await fetch('/api/send-reminder-email', {
       method: 'POST',
@@ -297,13 +331,13 @@ async function sendReminderEmail(event, tier) {
     });
     
     const result = await response.json();
-    console.log("Email request response:", result);
+    console.log(`Email request response for ${executorName} (${email}):`, result);
   } catch (err) {
-    console.error("Failed to make send-email request:", err);
+    console.error(`Failed to make send-email request for ${executorName}:`, err);
   }
 }
 
-// Check deadline warnings for the current user and update database status
+// Check deadline warnings and send automatic reminders to all assignees
 async function processRemindersAutomation() {
   let hasChanges = false;
   
@@ -318,34 +352,42 @@ async function processRemindersAutomation() {
       continue;
     }
     
-    // 2. Automated notifications check (only trigger for user's assigned events)
-    const isAssignedToMe = currentUser && event.executor_id === currentUser.id;
-    if (isAssignedToMe && tier && ['15', '5', '2', '0'].includes(tier)) {
+    // 2. Automated notifications check (runs for any event with warning tier)
+    if (tier && ['15', '5', '2', '0'].includes(tier)) {
       if (!event.notified_tiers) {
         event.notified_tiers = [];
       }
       
       if (!event.notified_tiers.includes(tier)) {
-        event.notified_tiers.push(tier);
-        await DB.saveEvent(event);
-        hasChanges = true;
+        // Parse all assigned executors
+        const assignees = parseExecutors(event.executor_name);
         
-        // Trigger alert visual warnings & sound
-        playAlertSound();
-        
-        const tierLabels = {
-          '15': 'Первинне попередження (15 роб. днів)',
-          '5': 'Повторне попередження (5 роб. днів)',
-          '2': 'Повторне попередження (2 роб. дні)',
-          '0': 'ДЕДЛАЙН звітування!'
-        };
-        const title = `🚨 Нагадування: ${tierLabels[tier]}`;
-        const text = `Граничний термін звіту "${event.title}" наближається (${event.deadline_date}).`;
-        
-        showDesktopNotification(title, text);
-        
-        // Send email and log it
-        await sendReminderEmail(event, tier);
+        if (assignees.length > 0) {
+          event.notified_tiers.push(tier);
+          await DB.saveEvent(event);
+          hasChanges = true;
+          
+          // Trigger alert visual warnings & sound
+          playAlertSound();
+          
+          const tierLabels = {
+            '15': 'Первинне попередження (15 роб. днів)',
+            '5': 'Повторне попередження (5 роб. днів)',
+            '2': 'Повторне попередження (2 роб. дні)',
+            '0': 'ДЕДЛАЙН звітування!'
+          };
+          const title = `🚨 Нагадування: ${tierLabels[tier]}`;
+          const text = `Граничний термін звіту "${event.title}" наближається (${event.deadline_date}).`;
+          
+          showDesktopNotification(title, text);
+          
+          // Send email reminders to each assignee who has an email
+          for (const exec of assignees) {
+            if (exec.email) {
+              await sendReminderEmail(event, tier, exec.name, exec.email);
+            }
+          }
+        }
       }
     }
   }
@@ -410,7 +452,22 @@ function renderEvents() {
   const filteredEvents = events.filter(ev => {
     const matchesSearch = ev.title.toLowerCase().includes(searchVal) || 
                           (ev.regulatory_basis && ev.regulatory_basis.toLowerCase().includes(searchVal));
-    const matchesExec = execVal === 'all' || ev.executor_id === execVal || (execVal === 'unassigned' && !ev.executor_id);
+    
+    const assignees = parseExecutors(ev.executor_name);
+    let matchesExec = false;
+    if (execVal === 'all') {
+      matchesExec = true;
+    } else if (execVal === 'unassigned') {
+      matchesExec = assignees.length === 0;
+    } else {
+      const targetProfile = allProfiles.find(p => p.id === execVal);
+      if (targetProfile) {
+        matchesExec = assignees.some(a => a.name.toLowerCase() === targetProfile.full_name.toLowerCase());
+      } else {
+        matchesExec = assignees.some(a => a.name.toLowerCase() === execVal.toLowerCase() || (a.email && a.email.toLowerCase() === execVal.toLowerCase()));
+      }
+    }
+    
     const matchesStatus = statusVal === 'all' || ev.status === statusVal;
     return matchesSearch && matchesExec && matchesStatus;
   });
@@ -486,7 +543,50 @@ function renderEvents() {
       `;
     }
     
-    const initials = getInitials(ev.executor_name);
+    const assignees = parseExecutors(ev.executor_name);
+    
+    let cardExecutorHtml = '';
+    let tableExecutorHtml = '';
+    
+    if (assignees.length === 0) {
+      cardExecutorHtml = `
+        <div class="card-executors-row" data-id="${ev.id}">
+          <button type="button" class="btn-quick-assign" data-id="${ev.id}">➕ Призначити виконавця</button>
+        </div>
+      `;
+      tableExecutorHtml = `
+        <div class="table-executors-cell" data-id="${ev.id}">
+          <button type="button" class="btn-quick-assign" data-id="${ev.id}">➕ Призначити</button>
+        </div>
+      `;
+    } else {
+      cardExecutorHtml = `
+        <div class="card-executors-row">
+          <div class="card-executors-avatars">
+            ${assignees.map((a, idx) => {
+              const initials = getInitials(a.name);
+              return `<div class="executor-avatar" style="z-index: ${assignees.length - idx};" title="${a.name} ${a.email ? `<${a.email}>` : ''}">${initials}</div>`;
+            }).join('')}
+          </div>
+          <div class="card-executors-info">
+            <span class="card-executors-names" title="${assignees.map(a => a.name).join(', ')}">${assignees.map(a => a.name).join(', ')}</span>
+            <span class="card-executors-title">Виконавець / Виконавці</span>
+          </div>
+        </div>
+      `;
+      
+      tableExecutorHtml = `
+        <div class="table-executors-cell">
+          <div class="table-executors-avatars">
+            ${assignees.map((a, idx) => {
+              const initials = getInitials(a.name);
+              return `<div class="executor-avatar" style="z-index: ${assignees.length - idx};" title="${a.name} ${a.email ? `<${a.email}>` : ''}">${initials}</div>`;
+            }).join('')}
+          </div>
+          <span title="${assignees.map(a => a.name).join(', ')}">${assignees.map(a => a.name).join(', ')}</span>
+        </div>
+      `;
+    }
     
     // 1. Render Card
     const card = document.createElement('div');
@@ -511,13 +611,7 @@ function renderEvents() {
           <span><strong>Підстава:</strong> ${ev.regulatory_basis ? `<span class="regulatory-basis-link" title="${ev.regulatory_basis}">${ev.regulatory_basis}</span>` : '<span style="font-style:italic;color:var(--p-faint);">не вказано</span>'}</span>
         </div>
       </div>
-      <div class="card-executor">
-        <div class="executor-avatar">${initials}</div>
-        <div class="executor-info">
-          <span class="executor-name">${ev.executor_name || 'Не призначено'}</span>
-          <span class="executor-title">Виконавець</span>
-        </div>
-      </div>
+      ${cardExecutorHtml}
       <div class="card-actions">
         ${actionsHtml}
       </div>
@@ -531,12 +625,7 @@ function renderEvents() {
       <td>${ev.due_date_description}</td>
       <td>${formatLocalDate(ev.deadline_date)}</td>
       <td><span class="days-left-tag ${daysTagClass}" style="display:inline-block;">${daysTagText}</span></td>
-      <td>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div class="executor-avatar" style="width:24px;height:24px;font-size:10px;">${initials}</div>
-          <span>${ev.executor_name || 'Не призначено'}</span>
-        </div>
-      </td>
+      <td>${tableExecutorHtml}</td>
       <td>${ev.regulatory_basis || '-'}</td>
       <td><span class="status-badge ${statusClass}">${ev.status}</span></td>
       <td>
@@ -598,6 +687,16 @@ function attachActionListeners() {
       }
     });
   });
+
+  document.querySelectorAll('.btn-quick-assign').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.target.dataset.id;
+      const event = events.find(ev => ev.id === id);
+      if (event) {
+        openEventModal(event);
+      }
+    });
+  });
 }
 
 // --- Rollover Modal ---
@@ -631,9 +730,90 @@ function closeRolloverModal() {
 
 // --- Add/Edit Event Modal ---
 
-async function loadProfilesForSelect() {
-  const selects = [document.getElementById('event-executor')];
+// --- Add/Edit Event Modal ---
+
+function loadCustomExecutors() {
+  try {
+    const local = localStorage.getItem('reporting_custom_executors');
+    customExecutors = local ? JSON.parse(local) : [];
+  } catch (e) {
+    console.error("Failed to load custom executors:", e);
+    customExecutors = [];
+  }
+}
+
+function buildExecutorsList() {
+  allAvailableExecutors = [];
   
+  // Add database profiles
+  allProfiles.forEach(p => {
+    allAvailableExecutors.push({
+      id: p.id,
+      name: p.full_name,
+      email: getProfileEmail(p),
+      isProfile: true
+    });
+  });
+  
+  // Add custom local executors
+  customExecutors.forEach(c => {
+    if (!allAvailableExecutors.some(x => x.name.toLowerCase() === c.name.toLowerCase())) {
+      allAvailableExecutors.push({
+        id: c.id || crypto.randomUUID(),
+        name: c.name,
+        email: c.email,
+        isProfile: false
+      });
+    }
+  });
+}
+
+function renderExecutorsChecklist(filterText = '') {
+  const listContainer = document.getElementById('executors-list');
+  if (!listContainer) return;
+  
+  listContainer.innerHTML = '';
+  const query = filterText.toLowerCase().trim();
+  
+  const filtered = allAvailableExecutors.filter(x => 
+    x.name.toLowerCase().includes(query) || 
+    x.email.toLowerCase().includes(query)
+  );
+  
+  if (filtered.length === 0) {
+    listContainer.innerHTML = `<div style="font-size:12px;color:var(--p-muted);padding:4px;">Нікого не знайдено</div>`;
+    return;
+  }
+  
+  filtered.forEach(x => {
+    const item = document.createElement('label');
+    item.className = 'executor-checkbox-item';
+    item.innerHTML = `
+      <input type="checkbox" class="executor-checkbox" value="${x.name}" data-id="${x.id}" data-email="${x.email}">
+      <span class="executor-checkbox-label">
+        <span class="executor-checkbox-name">${x.name}</span>
+        <span class="executor-checkbox-email">${x.email}</span>
+      </span>
+    `;
+    listContainer.appendChild(item);
+  });
+}
+
+function populateFilterExecutorDropdown() {
+  const select = document.getElementById('filter-executor');
+  if (!select) return;
+  
+  select.innerHTML = '<option value="all">Усі виконавці</option><option value="unassigned">Не призначено</option>';
+  
+  allAvailableExecutors.forEach(x => {
+    const opt = document.createElement('option');
+    opt.value = x.isProfile ? x.id : x.name;
+    opt.textContent = x.name;
+    select.appendChild(opt);
+  });
+}
+
+async function loadProfilesForSelect() {
   try {
     const { data, error } = await sb.from('profiles').select('id, full_name, role').neq('role', 'guest');
     if (!error && data) {
@@ -647,21 +827,10 @@ async function loadProfilesForSelect() {
     ];
   }
   
-  selects.forEach(select => {
-    if (!select) return;
-    
-    // Save first option
-    const firstOpt = select.options[0];
-    select.innerHTML = "";
-    select.appendChild(firstOpt);
-    
-    allProfiles.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.id;
-      opt.textContent = p.full_name;
-      select.appendChild(opt);
-    });
-  });
+  loadCustomExecutors();
+  buildExecutorsList();
+  renderExecutorsChecklist();
+  populateFilterExecutorDropdown();
 }
 
 function openEventModal(event = null) {
@@ -675,15 +844,53 @@ function openEventModal(event = null) {
   errorEl.textContent = "";
   form.reset();
   
+  // Clear checkboxes
+  document.querySelectorAll('.executor-checkbox').forEach(cb => cb.checked = false);
+  const searchInput = document.getElementById('executor-search');
+  if (searchInput) searchInput.value = '';
+  const inlineForm = document.getElementById('add-executor-form-inline');
+  if (inlineForm) inlineForm.style.display = 'none';
+  
   if (event) {
     modalTitle.textContent = "Редагувати подію нагадування";
     document.getElementById('event-id-field').value = event.id;
     document.getElementById('event-title').value = event.title;
     document.getElementById('event-due-desc').value = event.due_date_description;
     document.getElementById('event-deadline-date').value = event.deadline_date;
-    document.getElementById('event-executor').value = event.executor_id || "";
     document.getElementById('event-basis').value = event.regulatory_basis || "";
     document.getElementById('event-status').value = event.status;
+    
+    // Parse current event's executors
+    const assignees = parseExecutors(event.executor_name);
+    
+    // Dynamically inject any executor assigned to this event who isn't currently in allAvailableExecutors
+    let listNeedsRebuild = false;
+    assignees.forEach(a => {
+      if (!allAvailableExecutors.some(x => x.name.toLowerCase() === a.name.toLowerCase())) {
+        allAvailableExecutors.push({
+          id: crypto.randomUUID(),
+          name: a.name,
+          email: a.email,
+          isProfile: false
+        });
+        listNeedsRebuild = true;
+      }
+    });
+    
+    if (listNeedsRebuild) {
+      renderExecutorsChecklist();
+      populateFilterExecutorDropdown();
+    } else {
+      renderExecutorsChecklist();
+    }
+    
+    // Check checkboxes
+    assignees.forEach(a => {
+      const cb = Array.from(document.querySelectorAll('.executor-checkbox')).find(c => 
+        c.value.toLowerCase() === a.name.toLowerCase()
+      );
+      if (cb) cb.checked = true;
+    });
   } else {
     modalTitle.textContent = "Додати подію нагадування";
     document.getElementById('event-id-field').value = "";
@@ -693,6 +900,8 @@ function openEventModal(event = null) {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     document.getElementById('event-deadline-date').value = formatDateISO(tomorrow);
+    
+    renderExecutorsChecklist();
   }
   
   modal.style.display = 'flex';
@@ -836,25 +1045,33 @@ async function init() {
     const title = document.getElementById('event-title').value.trim();
     const dueDesc = document.getElementById('event-due-desc').value.trim();
     const deadlineDate = document.getElementById('event-deadline-date').value;
-    const execId = document.getElementById('event-executor').value;
     const basis = document.getElementById('event-basis').value.trim();
     const status = document.getElementById('event-status').value;
     
     const errorEl = document.getElementById('event-form-error');
     
-    if (!title || !dueDesc || !deadlineDate || !execId) {
-      errorEl.textContent = "Будь ласка, заповніть усі обов'язкові поля (*)";
+    const checkedBoxes = Array.from(document.querySelectorAll('.executor-checkbox:checked'));
+    
+    if (!title || !dueDesc || !deadlineDate || checkedBoxes.length === 0) {
+      errorEl.textContent = "Будь ласка, заповніть усі обов'язкові поля (*), обравши хоча б одного виконавця";
       return;
     }
     
-    const executorProfile = allProfiles.find(p => p.id === execId);
+    const executorName = checkedBoxes.map(cb => `${cb.value} <${cb.dataset.email}>`).join(', ');
+    
+    // Find the first checked profile's ID for backward compatibility dashboard filters
+    const firstProfileBox = checkedBoxes.find(cb => {
+      const match = allAvailableExecutors.find(x => x.id === cb.dataset.id && x.isProfile);
+      return !!match;
+    });
+    const executorId = firstProfileBox ? firstProfileBox.dataset.id : null;
     
     const eventData = {
       title: title,
       due_date_description: dueDesc,
       deadline_date: deadlineDate,
-      executor_id: execId,
-      executor_name: executorProfile ? executorProfile.full_name : 'Не призначено',
+      executor_id: executorId,
+      executor_name: executorName,
       regulatory_basis: basis || null,
       status: status,
       notified_tiers: [] // Reset warnings upon edit/creation to trigger again if needed
@@ -874,6 +1091,68 @@ async function init() {
     renderEvents();
     updateStatsSummary();
     loadEmailLogs();
+  });
+  
+  // Search filter for executors checklist
+  document.getElementById('executor-search')?.addEventListener('input', (e) => {
+    renderExecutorsChecklist(e.target.value);
+  });
+  
+  // Custom executor inline form toggles
+  document.getElementById('btn-show-add-executor')?.addEventListener('click', () => {
+    const inlineForm = document.getElementById('add-executor-form-inline');
+    if (inlineForm) inlineForm.style.display = 'flex';
+  });
+  
+  document.getElementById('btn-cancel-add-executor')?.addEventListener('click', () => {
+    const inlineForm = document.getElementById('add-executor-form-inline');
+    if (inlineForm) inlineForm.style.display = 'none';
+    const newName = document.getElementById('new-exec-name');
+    const newEmail = document.getElementById('new-exec-email');
+    if (newName) newName.value = '';
+    if (newEmail) newEmail.value = '';
+  });
+  
+  document.getElementById('btn-save-new-executor')?.addEventListener('click', () => {
+    const nameEl = document.getElementById('new-exec-name');
+    const emailEl = document.getElementById('new-exec-email');
+    if (!nameEl || !emailEl) return;
+    
+    const name = nameEl.value.trim();
+    const email = emailEl.value.trim();
+    
+    if (!name || !email) {
+      alert("Будь ласка, вкажіть ПІБ та Email виконавця");
+      return;
+    }
+    
+    if (!email.includes('@')) {
+      alert("Будь ласка, вкажіть коректну адресу Email");
+      return;
+    }
+    
+    // Add to custom executors
+    const newExec = {
+      id: crypto.randomUUID(),
+      name: name,
+      email: email
+    };
+    customExecutors.push(newExec);
+    localStorage.setItem('reporting_custom_executors', JSON.stringify(customExecutors));
+    
+    // Rebuild lists and refresh UI dropdown and list
+    buildExecutorsList();
+    renderExecutorsChecklist();
+    populateFilterExecutorDropdown();
+    
+    // Check the newly created checkbox
+    const cb = Array.from(document.querySelectorAll('.executor-checkbox')).find(c => c.value === name);
+    if (cb) cb.checked = true;
+    
+    // Hide form
+    document.getElementById('add-executor-form-inline').style.display = 'none';
+    nameEl.value = '';
+    emailEl.value = '';
   });
   
   // Rollover Form Submit

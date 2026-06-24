@@ -606,3 +606,142 @@
   background: #dc2626;
   color: white;
 }
+
+/* ============================================================
+   Custom Executors Checklist & Forms
+   ============================================================ */
+.executors-multiselect-container {
+  border: 1.5px solid var(--p-line);
+  border-radius: 8px;
+  background: var(--p-surface);
+  padding: 8px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.executor-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-bottom: 2px;
+}
+
+.executor-checkbox-item:hover {
+  background: var(--p-soft);
+}
+
+.executor-checkbox-item input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.executor-checkbox-label {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.executor-checkbox-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--p-ink);
+}
+
+.executor-checkbox-email {
+  font-size: 11px;
+  color: var(--p-muted);
+}
+
+/* Card Executors Avatars Row */
+.card-executors-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  border-top: 1px solid var(--p-line);
+  padding-top: 14px;
+  min-height: 48px;
+}
+
+.card-executors-avatars {
+  display: flex;
+  align-items: center;
+}
+
+.card-executors-avatars .executor-avatar {
+  margin-right: -10px; /* overlapping effect */
+  border: 2px solid var(--p-surface);
+  transition: transform 0.15s, z-index 0.15s;
+  cursor: pointer;
+  position: relative;
+}
+
+.card-executors-avatars .executor-avatar:hover {
+  transform: translateY(-2px) scale(1.1);
+  z-index: 10 !important;
+}
+
+.card-executors-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-executors-names {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--p-ink);
+}
+
+.card-executors-title {
+  font-size: 11px;
+  color: var(--p-muted);
+  font-weight: 600;
+}
+
+/* Table Executors Layout */
+.table-executors-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-executors-avatars {
+  display: flex;
+  align-items: center;
+}
+
+.table-executors-avatars .executor-avatar {
+  width: 24px;
+  height: 24px;
+  font-size: 9px;
+  margin-right: -6px;
+  border: 1.5px solid var(--p-surface);
+}
+
+/* Quick Assign Button */
+.btn-quick-assign {
+  background: transparent;
+  border: 1px dashed var(--accent);
+  color: var(--accent);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-quick-assign:hover {
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+}
+

@@ -132,7 +132,8 @@
   letter-spacing: -.03em;
 }
 
-.proposal-form-container input[type="text"] {
+.proposal-form-container input[type="text"],
+.proposal-form-container textarea {
   width: 100%;
   padding: 12px;
   font: inherit;
@@ -142,10 +143,11 @@
   border-radius: 11px;
   outline: none;
   background: var(--soft);
-  transition: border-color .15s;
+  transition: border-color .15s, box-shadow .15s;
 }
 
-.proposal-form-container input[type="text"]:focus {
+.proposal-form-container input[type="text"]:focus,
+.proposal-form-container textarea:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(0, 111, 201, 0.12);
 }
@@ -181,6 +183,10 @@
   color: #364b63;
   margin-bottom: 24px;
   white-space: pre-wrap;
+  background: var(--soft);
+  padding: 16px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
 }
 
 /* Voting Area */
@@ -191,12 +197,21 @@
 
 .vote-status-box {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-around;
   align-items: center;
   padding: 16px;
   border-radius: 14px;
   background: var(--soft);
   border: 1px solid var(--line);
+  gap: 16px;
+}
+
+.vote-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
 }
 
 .vote-count-label {
@@ -215,6 +230,85 @@
   padding: 10px 18px;
   font-size: 14px;
   font-weight: 700;
+  width: 100%;
+  max-width: 160px;
+}
+
+.vote-btn.danger {
+  border-color: rgba(220, 38, 38, 0.4);
+  color: #b91c1c;
+  background: #fff;
+}
+
+.vote-btn.danger:hover {
+  background: #fef2f2;
+}
+
+/* Resolution box styling */
+.resolution-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  margin-top: 8px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.resolution-label {
+  font-size: 14.5px;
+  color: var(--ink);
+}
+
+.resolution-label strong {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent-dark);
+  margin-left: 4px;
+}
+
+.resolution-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.resolution-btn {
+  padding: 8px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+/* Resolution Badge on cards */
+.resolution-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-top: 6px;
+  width: fit-content;
+}
+
+.resolution-badge.in-work {
+  background: #eef6fc;
+  color: var(--accent-dark);
+  border: 1px solid rgba(74, 143, 199, 0.25);
+}
+
+.resolution-badge.rejected {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid rgba(220, 38, 38, 0.25);
+}
+
+.proposal-card-meta {
+  display: flex;
+  flex-direction: column;
 }
 
 .vote-status-msg {
@@ -239,4 +333,97 @@
     position: static;
     min-height: auto;
   }
+}
+
+/* ── Dark Theme Overrides ── */
+:root.dark-theme .proposal-card {
+  background: var(--surface);
+  border-color: var(--line);
+}
+
+:root.dark-theme .proposal-card:hover,
+:root.dark-theme .proposal-card.active {
+  background: var(--accent-soft);
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+:root.dark-theme .proposal-body {
+  color: var(--ink);
+}
+
+:root.dark-theme .proposal-form-container input[type="text"],
+:root.dark-theme .proposal-form-container textarea {
+  border-color: var(--line);
+}
+
+:root.dark-theme .vote-btn.danger {
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  background: var(--surface);
+}
+
+:root.dark-theme .vote-btn.danger:hover {
+  background: rgba(220, 38, 38, 0.08);
+}
+
+:root.dark-theme .resolution-badge.in-work {
+  background: #0c4a6e;
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.2);
+}
+
+:root.dark-theme .resolution-badge.rejected {
+  background: rgba(220, 38, 38, 0.15);
+  color: #f87171;
+  border-color: rgba(220, 38, 38, 0.25);
+}
+
+/* Fullscreen modal style for description */
+.proposal-body.fullscreen {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90vw;
+  max-width: 900px;
+  height: 80vh;
+  max-height: 700px;
+  z-index: 9999;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.45);
+  padding: 30px;
+  margin: 0;
+  overflow-y: auto;
+  border-radius: 20px;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.fullscreen-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(8px);
+  z-index: 9998;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.fullscreen-backdrop.show {
+  display: block;
+  opacity: 1;
+}
+
+.body-no-scroll {
+  overflow: hidden !important;
+}
+
+/* Dark theme overrides for fullscreen description */
+:root.dark-theme .fullscreen-backdrop {
+  background: rgba(0, 0, 0, 0.7);
 }

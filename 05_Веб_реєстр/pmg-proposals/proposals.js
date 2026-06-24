@@ -20,9 +20,23 @@ async function init() {
   byId("addProposalBtn").addEventListener("click", showProposalForm);
   byId("cancelProposalBtn").addEventListener("click", showDefaultState);
   byId("newProposalForm").addEventListener("submit", handleProposalSubmit);
-  byId("voteBtn").addEventListener("click", () => {
-    if (selectedProposal) handleUpvote(selectedProposal);
+  byId("upvoteBtn").addEventListener("click", () => {
+    if (selectedProposal) handleVote(selectedProposal, 'up');
   });
+  byId("downvoteBtn").addEventListener("click", () => {
+    if (selectedProposal) handleVote(selectedProposal, 'down');
+  });
+  byId("btnResInWork").addEventListener("click", () => {
+    if (selectedProposal) handleResolution(selectedProposal, 'in_work');
+  });
+  byId("btnResReject").addEventListener("click", () => {
+    if (selectedProposal) handleResolution(selectedProposal, 'rejected');
+  });
+  byId("btnResReset").addEventListener("click", () => {
+    if (selectedProposal) handleResolution(selectedProposal, 'null');
+  });
+  byId("toggleDescFullscreenBtn").addEventListener("click", toggleDescriptionFullscreen);
+  byId("fullscreenBackdrop").addEventListener("click", closeDescriptionFullscreen);
 }
 
 async function loadPackages() {
@@ -94,14 +108,23 @@ function renderCards(list) {
 
     const pkgTitle = packagesMap[p.package_id] || `Пакет ${p.package_id}`;
     
+    const resolutionBadge = p.resolution === 'in_work' 
+      ? '<span class="resolution-badge in-work">📥 В роботу</span>'
+      : p.resolution === 'rejected'
+      ? '<span class="resolution-badge rejected">❌ Відхилено</span>'
+      : '';
+
     card.innerHTML = `
       <div class="proposal-card-content">
         <strong>${escapeHtml(p.title)}</strong>
-        <p>Пакет ${escapeHtml(p.package_id)} · Автор: ${escapeHtml(p.user_name || "Користувач")}</p>
+        <div class="proposal-card-meta">
+          <p>Пакет ${escapeHtml(p.package_id)} · Автор: ${escapeHtml(p.user_name || "Користувач")}</p>
+          ${resolutionBadge}
+        </div>
       </div>
       <div class="proposal-card-votes">
         ${p.upvotes || 0}
-        <span>ГОЛОСІВ</span>
+        <span>АКТУАЛЬНО</span>
       </div>
     `;
 
@@ -110,7 +133,7 @@ function renderCards(list) {
   });
 }
 
-function selectProposal(p) {
+async function selectProposal(p) {
   selectedProposal = p;
   renderCards(proposalsList);
   
@@ -120,13 +143,34 @@ function selectProposal(p) {
   const viewer = byId("proposalDetailViewer");
   viewer.style.display = "flex";
   byId("voteStatusMsg").textContent = "";
+  byId("resolutionStatusMsg").textContent = "";
 
   const pkgTitle = packagesMap[p.package_id] || `Пакет ${p.package_id}`;
   byId("detPackage").textContent = `Пакет ${p.package_id}: ${pkgTitle}`;
   byId("detProposalTitle").textContent = p.title;
   byId("detAuthor").textContent = `Подано: ${p.user_name || "Користувач"} · ${formatDate(p.created_at)}`;
   byId("detDesc").textContent = p.description;
-  byId("detVoteCount").textContent = p.upvotes || 0;
+  
+  // Show upvotes and downvotes
+  byId("detUpvotes").textContent = p.upvotes || 0;
+  byId("detDownvotes").textContent = p.downvotes || 0;
+
+  // Show resolution status
+  const resLabels = {
+    'in_work': '📥 В роботу',
+    'rejected': '❌ Відхилено'
+  };
+  byId("detResolution").textContent = resLabels[p.resolution] || 'Немає';
+
+  // Check director/admin role for resolution actions visibility
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    const { data: profile } = await sb.from('profiles').select('role').eq('id', session.user.id).single();
+    const isDirector = (profile?.role === 'director' || profile?.role === 'admin');
+    byId("resolutionActions").style.display = isDirector ? "flex" : "none";
+  } else {
+    byId("resolutionActions").style.display = "none";
+  }
 
   // Smooth scroll for mobile layout
   if (window.innerWidth <= 1040) {
@@ -135,6 +179,7 @@ function selectProposal(p) {
 }
 
 function showProposalForm() {
+  closeDescriptionFullscreen();
   selectedProposal = null;
   renderCards(proposalsList);
   
@@ -151,6 +196,7 @@ function showProposalForm() {
 }
 
 function showDefaultState() {
+  closeDescriptionFullscreen();
   selectedProposal = null;
   renderCards(proposalsList);
   
@@ -211,7 +257,7 @@ async function handleProposalSubmit(e) {
   }
 }
 
-async function handleUpvote(proposal) {
+async function handleVote(proposal, type) {
   const statusEl = byId("voteStatusMsg");
   const { data: { session } } = await sb.auth.getSession();
   if (!session) {
@@ -221,27 +267,49 @@ async function handleUpvote(proposal) {
   }
   
   const userId = session.user.id;
-  let votedUsers = [];
-  
-  if (proposal.voted_users) {
-    votedUsers = Array.isArray(proposal.voted_users) 
-      ? proposal.voted_users 
-      : JSON.parse(proposal.voted_users);
+  let votedUsers = Array.isArray(proposal.voted_users) 
+    ? proposal.voted_users 
+    : JSON.parse(proposal.voted_users || '[]');
+  let votedDownUsers = Array.isArray(proposal.voted_down_users) 
+    ? proposal.voted_down_users 
+    : JSON.parse(proposal.voted_down_users || '[]');
+
+  const hasUpvoted = votedUsers.includes(userId);
+  const hasDownvoted = votedDownUsers.includes(userId);
+
+  if (type === 'up') {
+    if (hasUpvoted) {
+      statusEl.style.color = '#c0392b';
+      statusEl.textContent = 'Ви вже позначили цю пропозицію як актуальну!';
+      return;
+    }
+    // Remove downvote if any
+    if (hasDownvoted) {
+      votedDownUsers = votedDownUsers.filter(id => id !== userId);
+    }
+    votedUsers.push(userId);
+  } else if (type === 'down') {
+    if (hasDownvoted) {
+      statusEl.style.color = '#c0392b';
+      statusEl.textContent = 'Ви вже позначили цю пропозицію як неактуальну!';
+      return;
+    }
+    // Remove upvote if any
+    if (hasUpvoted) {
+      votedUsers = votedUsers.filter(id => id !== userId);
+    }
+    votedDownUsers.push(userId);
   }
-  
-  if (votedUsers.includes(userId)) {
-    statusEl.style.color = '#c0392b';
-    statusEl.textContent = 'Ви вже підтримали цю пропозицію!';
-    return;
-  }
-  
-  votedUsers.push(userId);
-  const newUpvotes = (proposal.upvotes || 0) + 1;
-  
+
+  const newUpvotes = votedUsers.length;
+  const newDownvotes = votedDownUsers.length;
+
   const { error } = await sb.from('proposals')
     .update({
       upvotes: newUpvotes,
-      voted_users: votedUsers
+      voted_users: votedUsers,
+      downvotes: newDownvotes,
+      voted_down_users: votedDownUsers
     })
     .eq('id', proposal.id);
     
@@ -252,10 +320,43 @@ async function handleUpvote(proposal) {
     // Update local state
     proposal.upvotes = newUpvotes;
     proposal.voted_users = votedUsers;
-    byId("detVoteCount").textContent = newUpvotes;
+    proposal.downvotes = newDownvotes;
+    proposal.voted_down_users = votedDownUsers;
+    
+    byId("detUpvotes").textContent = newUpvotes;
+    byId("detDownvotes").textContent = newDownvotes;
     
     statusEl.style.color = 'var(--teal, #08705e)';
-    statusEl.textContent = 'Дякуємо! Пропозицію підтримано.';
+    statusEl.textContent = type === 'up' ? 'Дякуємо! Позначено як актуально.' : 'Дякуємо! Позначено як неактуально.';
+    
+    // Refresh lists
+    loadProposals();
+  }
+}
+
+async function handleResolution(proposal, status) {
+  const statusEl = byId("resolutionStatusMsg");
+  const dbStatus = status === 'null' ? null : status;
+
+  const { error } = await sb.from('proposals')
+    .update({
+      resolution: dbStatus
+    })
+    .eq('id', proposal.id);
+
+  if (error) {
+    statusEl.style.color = '#c0392b';
+    statusEl.textContent = error.message;
+  } else {
+    proposal.resolution = dbStatus;
+    const resLabels = {
+      'in_work': '📥 В роботу',
+      'rejected': '❌ Відхилено'
+    };
+    byId("detResolution").textContent = resLabels[dbStatus] || 'Немає';
+    
+    statusEl.style.color = 'var(--teal, #08705e)';
+    statusEl.textContent = 'Резолюцію успішно оновлено!';
     
     // Refresh lists
     loadProposals();
@@ -304,6 +405,45 @@ function formatDate(isoString) {
     month: "long",
     year: "numeric"
   });
+}
+
+function toggleDescriptionFullscreen() {
+  const desc = byId("detDesc");
+  const backdrop = byId("fullscreenBackdrop");
+  const btn = byId("toggleDescFullscreenBtn");
+  
+  if (desc.classList.contains("fullscreen")) {
+    closeDescriptionFullscreen();
+  } else {
+    desc.classList.add("fullscreen");
+    backdrop.style.display = "block";
+    void backdrop.offsetWidth; // force reflow
+    backdrop.classList.add("show");
+    btn.textContent = "↕ Згорнути";
+    document.body.classList.add("body-no-scroll");
+  }
+}
+
+function closeDescriptionFullscreen() {
+  const desc = byId("detDesc");
+  const backdrop = byId("fullscreenBackdrop");
+  const btn = byId("toggleDescFullscreenBtn");
+  
+  if (desc && desc.classList.contains("fullscreen")) {
+    desc.classList.remove("fullscreen");
+  }
+  if (backdrop && backdrop.classList.contains("show")) {
+    backdrop.classList.remove("show");
+    setTimeout(() => {
+      if (!backdrop.classList.contains("show")) {
+        backdrop.style.display = "none";
+      }
+    }, 200);
+  }
+  if (btn) {
+    btn.textContent = "↕ Розгорнути";
+  }
+  document.body.classList.remove("body-no-scroll");
 }
 
 document.addEventListener("DOMContentLoaded", init);

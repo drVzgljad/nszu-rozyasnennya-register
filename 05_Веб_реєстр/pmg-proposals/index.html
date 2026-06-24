@@ -100,18 +100,42 @@
         <h2 id="detProposalTitle">Суть пропозиції</h2>
         <p class="detail-author" id="detAuthor">Автор: ...</p>
         
-        <div class="section-title">Обґрунтування та опис зміни</div>
-        <div class="excerpt proposal-body" id="detDesc">Опис пропозиції...</div>
+        <div class="desc-header-row" style="display: flex; justify-content: space-between; align-items: center; margin: 22px 0 9px;">
+          <div class="section-title" style="margin: 0;">Обґрунтування та опис зміни</div>
+          <button class="action-link" id="toggleDescFullscreenBtn" type="button" style="font-size: 12.5px; background: none; border: none; color: var(--accent-dark); cursor: pointer; font-weight: 600; padding: 0; display: flex; align-items: center; gap: 4px;">↕ Розгорнути</button>
+        </div>
+        <div class="proposal-body" id="detDesc">Опис пропозиції...</div>
 
         <div class="voting-section">
           <div class="vote-status-box">
-            <span class="vote-count-label">Підтримали пропозицію: <strong id="detVoteCount">0</strong></span>
-            <button class="action primary vote-btn" id="voteBtn" type="button">👍 Підтримати</button>
+            <div class="vote-col">
+              <span class="vote-count-label">Актуально: <strong id="detUpvotes">0</strong></span>
+              <button class="action primary vote-btn" id="upvoteBtn" type="button">👍 Актуально</button>
+            </div>
+            <div class="vote-col">
+              <span class="vote-count-label">Не актуально: <strong id="detDownvotes">0</strong></span>
+              <button class="action vote-btn danger" id="downvoteBtn" type="button">👎 Не актуально</button>
+            </div>
           </div>
           <div class="vote-status-msg" id="voteStatusMsg"></div>
         </div>
+
+        <!-- Resolution Section -->
+        <div class="resolution-section" id="resolutionSection" style="margin-top: 20px; padding-top: 20px; border-top: 1px dashed var(--line);">
+          <div class="section-title">Резолюція керівництва</div>
+          <div class="resolution-box">
+            <span class="resolution-label">Статус: <strong id="detResolution">Немає</strong></span>
+            <div class="resolution-actions" id="resolutionActions" style="display: none;">
+              <button class="action primary resolution-btn" id="btnResInWork" type="button">📥 В роботу</button>
+              <button class="action resolution-btn" id="btnResReject" type="button">❌ Відхилено</button>
+              <button class="action resolution-btn" id="btnResReset" type="button">🔄 Скинути</button>
+            </div>
+          </div>
+          <div class="resolution-status-msg" id="resolutionStatusMsg"></div>
+        </div>
       </div>
     </aside>
+    <div class="fullscreen-backdrop" id="fullscreenBackdrop"></div>
   </main>
 
   <footer class="site-footer">
