@@ -35,8 +35,9 @@ async function init() {
   byId("btnResReset").addEventListener("click", () => {
     if (selectedProposal) handleResolution(selectedProposal, 'null');
   });
-  byId("toggleDescFullscreenBtn").addEventListener("click", toggleDescriptionFullscreen);
-  byId("fullscreenBackdrop").addEventListener("click", closeDescriptionFullscreen);
+  byId("toggleDescFullscreenBtn").addEventListener("click", showDescriptionModal);
+  byId("descModalCloseBtn").addEventListener("click", hideDescriptionModal);
+  byId("descModalBackdrop").addEventListener("click", hideDescriptionModal);
 }
 
 async function loadPackages() {
@@ -172,6 +173,9 @@ async function selectProposal(p) {
     byId("resolutionActions").style.display = "none";
   }
 
+  // Fetch and render voters names
+  await renderVoters(p);
+
   // Smooth scroll for mobile layout
   if (window.innerWidth <= 1040) {
     byId("proposalPanelSide").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -179,7 +183,7 @@ async function selectProposal(p) {
 }
 
 function showProposalForm() {
-  closeDescriptionFullscreen();
+  hideDescriptionModal();
   selectedProposal = null;
   renderCards(proposalsList);
   
@@ -196,7 +200,7 @@ function showProposalForm() {
 }
 
 function showDefaultState() {
-  closeDescriptionFullscreen();
+  hideDescriptionModal();
   selectedProposal = null;
   renderCards(proposalsList);
   
@@ -329,6 +333,9 @@ async function handleVote(proposal, type) {
     statusEl.style.color = 'var(--teal, #08705e)';
     statusEl.textContent = type === 'up' ? 'Дякуємо! Позначено як актуально.' : 'Дякуємо! Позначено як неактуально.';
     
+    // Refresh voters names
+    await renderVoters(proposal);
+    
     // Refresh lists
     loadProposals();
   }
@@ -407,43 +414,70 @@ function formatDate(isoString) {
   });
 }
 
-function toggleDescriptionFullscreen() {
-  const desc = byId("detDesc");
-  const backdrop = byId("fullscreenBackdrop");
-  const btn = byId("toggleDescFullscreenBtn");
-  
-  if (desc.classList.contains("fullscreen")) {
-    closeDescriptionFullscreen();
-  } else {
-    desc.classList.add("fullscreen");
-    backdrop.style.display = "block";
-    void backdrop.offsetWidth; // force reflow
-    backdrop.classList.add("show");
-    btn.textContent = "↕ Згорнути";
+function showDescriptionModal() {
+  if (selectedProposal) {
+    byId("descModalBody").textContent = selectedProposal.description;
+    byId("descModal").classList.add("show");
     document.body.classList.add("body-no-scroll");
   }
 }
 
-function closeDescriptionFullscreen() {
-  const desc = byId("detDesc");
-  const backdrop = byId("fullscreenBackdrop");
-  const btn = byId("toggleDescFullscreenBtn");
-  
-  if (desc && desc.classList.contains("fullscreen")) {
-    desc.classList.remove("fullscreen");
-  }
-  if (backdrop && backdrop.classList.contains("show")) {
-    backdrop.classList.remove("show");
-    setTimeout(() => {
-      if (!backdrop.classList.contains("show")) {
-        backdrop.style.display = "none";
-      }
-    }, 200);
-  }
-  if (btn) {
-    btn.textContent = "↕ Розгорнути";
+function hideDescriptionModal() {
+  const modal = byId("descModal");
+  if (modal) {
+    modal.classList.remove("show");
   }
   document.body.classList.remove("body-no-scroll");
+}
+
+async function renderVoters(p) {
+  const upvoteIds = Array.isArray(p.voted_users) 
+    ? p.voted_users 
+    : JSON.parse(p.voted_users || '[]');
+  const downvoteIds = Array.isArray(p.voted_down_users) 
+    ? p.voted_down_users 
+    : JSON.parse(p.voted_down_users || '[]');
+
+  const allVoterIds = [...upvoteIds, ...downvoteIds];
+
+  if (allVoterIds.length === 0) {
+    byId("votersListSection").style.display = "none";
+    return;
+  }
+
+  try {
+    const { data: profiles, error } = await sb.from('profiles').select('id, full_name').in('id', allVoterIds);
+    if (error) throw error;
+
+    const namesMap = {};
+    if (profiles) {
+      profiles.forEach(u => {
+        namesMap[u.id] = u.full_name || 'Колега';
+      });
+    }
+
+    const upvotersNames = upvoteIds.map(id => namesMap[id] || 'Колега');
+    const downvotersNames = downvoteIds.map(id => namesMap[id] || 'Колега');
+
+    if (upvotersNames.length > 0) {
+      byId("upvotersGroup").style.display = "block";
+      byId("upvotersList").textContent = upvotersNames.join(', ');
+    } else {
+      byId("upvotersGroup").style.display = "none";
+    }
+
+    if (downvotersNames.length > 0) {
+      byId("downvotersGroup").style.display = "block";
+      byId("downvotersList").textContent = downvotersNames.join(', ');
+    } else {
+      byId("downvotersGroup").style.display = "none";
+    }
+
+    byId("votersListSection").style.display = "block";
+  } catch (err) {
+    console.warn("Failed to load voters profiles:", err);
+    byId("votersListSection").style.display = "none";
+  }
 }
 
 document.addEventListener("DOMContentLoaded", init);

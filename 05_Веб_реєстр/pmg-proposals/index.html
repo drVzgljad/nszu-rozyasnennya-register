@@ -118,6 +118,18 @@
             </div>
           </div>
           <div class="vote-status-msg" id="voteStatusMsg"></div>
+          
+          <!-- Voters List -->
+          <div class="voters-list-section" id="votersListSection" style="display: none; margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--line);">
+            <div class="voters-group" id="upvotersGroup" style="margin-bottom: 8px;">
+              <div style="font-size: 12px; font-weight: 700; color: var(--teal, #08705e); margin-bottom: 2px;">👍 Актуально вважають:</div>
+              <div id="upvotersList" style="font-size: 13px; color: var(--ink); line-height: 1.4; word-break: break-word;">...</div>
+            </div>
+            <div class="voters-group" id="downvotersGroup">
+              <div style="font-size: 12px; font-weight: 700; color: #b91c1c; margin-bottom: 2px;">👎 Не актуально вважають:</div>
+              <div id="downvotersList" style="font-size: 13px; color: var(--ink); line-height: 1.4; word-break: break-word;">...</div>
+            </div>
+          </div>
         </div>
 
         <!-- Resolution Section -->
@@ -135,7 +147,18 @@
         </div>
       </div>
     </aside>
-    <div class="fullscreen-backdrop" id="fullscreenBackdrop"></div>
+    
+    <!-- Fullscreen Description Modal -->
+    <div class="desc-modal" id="descModal">
+      <div class="desc-modal-backdrop" id="descModalBackdrop"></div>
+      <div class="desc-modal-content">
+        <div class="desc-modal-header">
+          <h3>Обґрунтування та опис зміни</h3>
+          <button class="desc-modal-close" id="descModalCloseBtn" type="button">&times;</button>
+        </div>
+        <div class="desc-modal-body" id="descModalBody"></div>
+      </div>
+    </div>
   </main>
 
   <footer class="site-footer">
