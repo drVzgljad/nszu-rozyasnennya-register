@@ -79,19 +79,44 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── API Calls ───────────────────────────────────────
 
   async function fetchPackages() {
+    filesList.innerHTML = '<div class="loading-state">Завантаження пакетів документів...</div>';
+    let loadedFromSupabase = false;
+
     try {
-      filesList.innerHTML = '<div class="loading-state">Завантаження пакетів документів...</div>';
-      const response = await fetch('/api/packages/list');
-      if (!response.ok) throw new Error('Не вдалося завантажити список пакетів');
+      const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+      const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
+      const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
+      const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
       
-      allPackages = await response.json();
-      statTotalCount.textContent = allPackages.length;
-      
-      applyFilters();
-    } catch (error) {
-      console.error(error);
-      filesList.innerHTML = `<div class="error-state">Помилка завантаження даних: ${error.message}</div>`;
+      if (sb) {
+        const { data: dbData, error } = await sb.from('pmg_packages').select('*');
+        if (!error && dbData && dbData.length > 0) {
+          allPackages = dbData;
+          loadedFromSupabase = true;
+          console.log("Loaded packages list from Supabase!");
+        } else if (error) {
+          console.warn("Supabase packages error:", error);
+        }
+      }
+    } catch (dbErr) {
+      console.warn("Supabase fetch failed, falling back to local JSON:", dbErr);
     }
+
+    if (!loadedFromSupabase) {
+      try {
+        const response = await fetch('data/packages_list.json');
+        if (!response.ok) throw new Error('Не вдалося завантажити локальний список пакетів');
+        allPackages = await response.json();
+        console.log("Loaded packages list from local JSON file.");
+      } catch (error) {
+        console.error(error);
+        filesList.innerHTML = `<div class="error-state">Помилка завантаження даних: ${error.message}</div>`;
+        return;
+      }
+    }
+
+    statTotalCount.textContent = allPackages.length;
+    applyFilters();
   }
 
   async function downloadZipArchive() {
@@ -110,28 +135,60 @@ document.addEventListener('DOMContentLoaded', () => {
         <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
         <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
       </svg>
-      Генерація ZIP...
+      Завантаження...
     `;
 
     try {
+      const zip = new JSZip();
       const archiveName = archiveNameInput.value.trim() || 'пакети_пмг_вибірка';
-      const paths = Array.from(selectedPaths);
       
-      const response = await fetch('/api/packages/download-zip', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ paths, archive_name: archiveName })
-      });
+      let count = 0;
+      const total = selectedPaths.size;
 
-      if (!response.ok) {
-        const errJson = await response.json();
-        throw new Error(errJson.error || 'Помилка створення архіву');
+      for (const relPath of selectedPaths) {
+        count++;
+        downloadZipBtn.innerHTML = `
+          <svg class="spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px; animation: spin 1s linear infinite;">
+            <line x1="12" y1="2" x2="12" y2="6"></line>
+            <line x1="12" y1="18" x2="12" y2="22"></line>
+            <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+            <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+            <line x1="2" y1="12" x2="6" y2="12"></line>
+            <line x1="18" y1="12" x2="22" y2="12"></line>
+            <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+            <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+          </svg>
+          Завантаження ${count}/${total}...
+        `;
+
+        const pkg = allPackages.find(p => p.path === relPath);
+        const folderName = pkg ? String(pkg.year) : 'інше';
+        const fileName = pkg ? pkg.name : relPath.split('/').pop();
+        
+        const fileUrl = '../' + relPath;
+        const fileRes = await fetch(fileUrl);
+        if (!fileRes.ok) throw new Error(`Не вдалося завантажити файл ${fileName} (помилка ${fileRes.status})`);
+        
+        const blob = await fileRes.blob();
+        zip.folder(folderName).file(fileName, blob);
       }
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      downloadZipBtn.innerHTML = `
+        <svg class="spinner" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px; animation: spin 1s linear infinite;">
+          <line x1="12" y1="2" x2="12" y2="6"></line>
+          <line x1="12" y1="18" x2="12" y2="22"></line>
+          <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+          <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+          <line x1="2" y1="12" x2="6" y2="12"></line>
+          <line x1="18" y1="12" x2="22" y2="12"></line>
+          <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+          <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+        </svg>
+        Генерація ZIP...
+      `;
+
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = window.URL.createObjectURL(content);
       const a = document.createElement('a');
       a.href = url;
       a.download = `${archiveName}.zip`;
@@ -140,6 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
+      console.error(err);
       alert('Не вдалося завантажити ZIP-архів: ' + err.message);
     } finally {
       downloadZipBtn.disabled = false;

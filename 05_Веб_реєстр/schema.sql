@@ -911,4 +911,38 @@ CREATE POLICY "Allow write of reporting_events for experts and managers" ON publ
 ALTER PUBLICATION supabase_realtime ADD TABLE public.reporting_events;
 
 
+-- =========================================================================
+-- МІГРАЦІЯ: ТАБЛИЦЯ АРХІВНИХ ПАКЕТІВ ПМГ (2021-2026)
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.pmg_packages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  year INTEGER NOT NULL,
+  size BIGINT NOT NULL,
+  path TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Увімкнення RLS
+ALTER TABLE public.pmg_packages ENABLE ROW LEVEL SECURITY;
+
+-- Дозвіл на читання для всіх (публічний доступ)
+CREATE POLICY "Allow read of pmg_packages for all" ON public.pmg_packages
+  FOR SELECT USING (true);
+
+-- Дозвіл на повне керування для експертів та керівництва
+CREATE POLICY "Admin and managers can manage pmg_packages" ON public.pmg_packages
+  FOR ALL TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND role IN ('admin', 'director', 'deputy_director', 'manager')
+    )
+  );
+
+-- Додавання таблиці пакетів до публікації реального часу
+ALTER PUBLICATION supabase_realtime ADD TABLE public.pmg_packages;
+
+
+
 
