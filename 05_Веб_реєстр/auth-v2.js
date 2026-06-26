@@ -206,8 +206,12 @@ function applyAccess() {
       return currentPath.includes('report.html');
     }
     
+    if (normalized === 'pakety/collector.html') {
+      return currentPath.includes('collector.html');
+    }
+    
     if (normalized === 'pakety/index.html') {
-      return currentPath.includes('/pakety/') && !currentPath.includes('report.html');
+      return currentPath.includes('/pakety/') && !currentPath.includes('report.html') && !currentPath.includes('collector.html');
     }
     
     return currentPath.includes(segments[0]);
@@ -233,6 +237,7 @@ function applyAccess() {
 
 
     const dropdownItems = [
+      { text: 'Архів пакетів ПМГ', path: 'pakety/collector.html' },
       { text: 'Машина пошуку', path: 'pakety/report.html', role: 'expert' },
       { text: 'Конструктор зв\'язків', path: 'dec/linker.html', role: 'expert' },
       { text: 'Календар нагадувань', path: 'reminders/index.html', role: 'expert' },
