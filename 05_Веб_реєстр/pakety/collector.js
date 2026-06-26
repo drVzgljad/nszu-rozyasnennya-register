@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const folderName = pkg ? String(pkg.year) : 'інше';
         const fileName = pkg ? pkg.name : relPath.split('/').pop();
         
-        const fileUrl = '../' + relPath;
+        const fileUrl = '../../' + relPath;
         const fileRes = await fetch(fileUrl);
         if (!fileRes.ok) throw new Error(`Не вдалося завантажити файл ${fileName} (помилка ${fileRes.status})`);
         
@@ -301,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
 
         <div class="card-actions">
-          <a href="../${pkg.path}" download class="btn-icon" title="Завантажити файл безпосередньо">
+          <a href="../../${pkg.path}" download class="btn-icon" title="Завантажити файл безпосередньо">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
               <polyline points="7 10 12 15 17 10"></polyline>
