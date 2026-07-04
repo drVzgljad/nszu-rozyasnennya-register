@@ -326,10 +326,12 @@ async function checkPublishAccess() {
       const { data } = await sb.from('profiles').select('role').eq('id', currentUser.id).single();
       currentUserRole = data?.role ?? null;
       togglePublishButtonVisibility();
+      toggleEditAndDeleteButtons();
     } else {
       currentUser = null;
       currentUserRole = null;
       togglePublishButtonVisibility();
+      toggleEditAndDeleteButtons();
     }
   } catch (e) {
     console.error("Error checking publish access:", e);
