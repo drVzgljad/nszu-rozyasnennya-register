@@ -5,7 +5,9 @@ const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let newsList = [];
+let localNewsList = [];
 let selectedNews = null;
+let modalMode = 'create';
 
 const byId = (id) => document.getElementById(id);
 
@@ -32,7 +34,12 @@ async function init() {
     deleteBtn.addEventListener("click", handleDeleteNews);
   }
 
-  // Listen for auth changes to update publish/delete buttons visibility
+  const editBtn = byId("editNewsBtn");
+  if (editBtn) {
+    editBtn.addEventListener("click", handleEditNewsClick);
+  }
+
+  // Listen for auth changes to update publish/delete/edit buttons visibility
   sb.auth.onAuthStateChange(async (_event, session) => {
     if (session && session.user) {
       currentUser = session.user;
@@ -43,7 +50,7 @@ async function init() {
       currentUserRole = null;
     }
     togglePublishButtonVisibility();
-    toggleDeleteButtonVisibility();
+    toggleEditAndDeleteButtons();
   });
 }
 
@@ -68,6 +75,7 @@ async function loadNews() {
     const res = await fetch('data/news.json');
     if (res.ok) {
       localNews = await res.json();
+      localNewsList = localNews;
     }
   } catch (e) {
     console.warn('Local news file not found or failed to load:', e);
@@ -215,8 +223,8 @@ function selectNews(n) {
     contentEl.innerHTML = formatRichText(n.content);
   }
 
-  // Toggle delete button
-  toggleDeleteButtonVisibility();
+  // Toggle edit and delete buttons
+  toggleEditAndDeleteButtons();
 
   // Mobile layout scrolling
   if (window.innerWidth <= 1040) {
@@ -349,14 +357,16 @@ function setupPublishModal() {
 
   if (openBtn && modal) {
     openBtn.addEventListener("click", () => {
+      modalMode = 'create';
+      const modalTitle = document.querySelector("#publishModal h2");
+      if (modalTitle) modalTitle.textContent = "➕ Створити аналітичну новину";
+      
+      const submitBtn = document.querySelector("#publishForm button[type='submit']");
+      if (submitBtn) submitBtn.textContent = "Опублікувати новину";
+      
       modal.style.display = "flex";
     });
   }
-
-  const closeModal = () => {
-    if (modal) modal.style.display = "none";
-    if (form) form.reset();
-  };
 
   if (closeBtn) closeBtn.addEventListener("click", closeModal);
   if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
@@ -390,54 +400,138 @@ async function handlePublishSubmit(e) {
   const submitBtn = e.target.querySelector('button[type="submit"]');
   if (submitBtn) {
     submitBtn.disabled = true;
-    submitBtn.textContent = "Публікація...";
+    submitBtn.textContent = modalMode === 'edit' ? "Збереження..." : "Публікація...";
   }
 
   try {
-    const { error } = await sb.from('news').insert([
-      {
-        title,
-        summary,
-        content,
-        importance,
-        tags,
-        image_url: imageUrl || null
+    if (modalMode === 'edit') {
+      const isLocal = localNewsList.some(n => n.id === selectedNews.id);
+      if (isLocal) {
+        const idx = localNewsList.findIndex(n => n.id === selectedNews.id);
+        if (idx !== -1) {
+          localNewsList[idx] = {
+            ...localNewsList[idx],
+            title,
+            summary,
+            content,
+            importance,
+            tags,
+            image_url: imageUrl || null
+          };
+          
+          const res = await fetch('/api/save-data', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              filename: 'news.json',
+              data: localNewsList
+            })
+          });
+          if (!res.ok) throw new Error('Помилка сервера при збереженні локальної новини');
+        }
+      } else {
+        const { error } = await sb.from('news').update({
+          title,
+          summary,
+          content,
+          importance,
+          tags,
+          image_url: imageUrl || null
+        }).eq('id', selectedNews.id);
+        
+        if (error) throw error;
       }
-    ]);
-    
-    if (error) {
-      alert("Помилка публікації новини: " + error.message);
-      return;
+      
+      const currentId = selectedNews.id;
+      
+      // Reset form and close modal
+      closeModal();
+      
+      // Reload news list
+      await loadNews();
+      
+      // Re-select the edited item
+      const updated = newsList.find(n => n.id === currentId);
+      if (updated) {
+        selectNews(updated);
+      }
+      
+      alert("Новину успішно відредаговано!");
+      
+    } else {
+      // Create mode
+      const { error } = await sb.from('news').insert([
+        {
+          title,
+          summary,
+          content,
+          importance,
+          tags,
+          image_url: imageUrl || null
+        }
+      ]);
+      
+      if (error) throw error;
+      
+      // Reset form and close modal
+      closeModal();
+      
+      // Reload news list
+      await loadNews();
+      
+      alert("Новину успішно опубліковано!");
     }
-    
-    // Reset form and close modal
-    byId("publishForm").reset();
-    byId("publishModal").style.display = "none";
-    
-    // Reload news list
-    await loadNews();
-    
-    alert("Новину успішно опубліковано!");
   } catch (err) {
-    console.error("Publish error:", err);
-    alert("Сталася неочікувана оновлення/публікація.");
+    console.error("Submit error:", err);
+    alert("Сталася помилка: " + err.message);
   } finally {
     if (submitBtn) {
       submitBtn.disabled = false;
-      submitBtn.textContent = "Опублікувати новину";
+      submitBtn.textContent = modalMode === 'edit' ? "Зберегти зміни" : "Опублікувати новину";
     }
   }
 }
 
-function toggleDeleteButtonVisibility() {
+function closeModal() {
+  const modal = byId("publishModal");
+  const form = byId("publishForm");
+  if (modal) modal.style.display = "none";
+  if (form) form.reset();
+}
+
+function handleEditNewsClick() {
+  if (!selectedNews) return;
+  
+  modalMode = 'edit';
+  
+  const modalTitle = document.querySelector("#publishModal h2");
+  if (modalTitle) modalTitle.textContent = "✏️ Редагувати аналітичну новину";
+  
+  const submitBtn = document.querySelector("#publishForm button[type='submit']");
+  if (submitBtn) submitBtn.textContent = "Зберегти зміни";
+  
+  // Fill inputs
+  byId("pubTitle").value = selectedNews.title || "";
+  byId("pubSummary").value = selectedNews.summary || "";
+  byId("pubContent").value = selectedNews.content || "";
+  byId("pubImportance").value = selectedNews.importance || "normal";
+  byId("pubTags").value = selectedNews.tags ? selectedNews.tags.join(", ") : "";
+  byId("pubImageUrl").value = selectedNews.image_url || "";
+  
+  const modal = byId("publishModal");
+  if (modal) modal.style.display = "flex";
+}
+
+function toggleEditAndDeleteButtons() {
   const deleteBtn = byId("deleteNewsBtn");
-  if (deleteBtn) {
+  const editBtn = byId("editNewsBtn");
+  
+  if (deleteBtn || editBtn) {
     const allowedRoles = ['manager', 'deputy_director', 'director', 'admin'];
-    if (selectedNews && currentUser && allowedRoles.includes(currentUserRole)) {
-      deleteBtn.style.display = "block";
-    } else {
-      deleteBtn.style.display = "none";
-    }
+    const hasAccess = selectedNews && currentUser && allowedRoles.includes(currentUserRole);
+    
+    if (deleteBtn) deleteBtn.style.display = hasAccess ? "block" : "none";
+    if (editBtn) editBtn.style.display = hasAccess ? "block" : "none";
   }
 }
 
@@ -454,19 +548,34 @@ async function handleDeleteNews() {
   }
 
   try {
-    const { error } = await sb.from('news').delete().eq('id', selectedNews.id);
-    
-    if (error) {
-      alert("Помилка при видаленні новини: " + error.message);
-      return;
+    const isLocal = localNewsList.some(n => n.id === selectedNews.id);
+    if (isLocal) {
+      localNewsList = localNewsList.filter(n => n.id !== selectedNews.id);
+      
+      const res = await fetch('/api/save-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: 'news.json',
+          data: localNewsList
+        })
+      });
+      if (!res.ok) throw new Error('Помилка сервера при видаленні локальної новини');
+      
+      alert("Новину успішно видалено!");
+      showDefaultState();
+      await loadNews();
+    } else {
+      const { error } = await sb.from('news').delete().eq('id', selectedNews.id);
+      if (error) throw error;
+      
+      alert("Новину успішно видалено!");
+      showDefaultState();
+      await loadNews();
     }
-    
-    alert("Новину успішно видалено!");
-    showDefaultState();
-    await loadNews();
   } catch (err) {
     console.error("Delete error:", err);
-    alert("Сталася неочікувана помилка при видаленні.");
+    alert("Сталася неочікувана помилка при видаленні: " + err.message);
   } finally {
     if (deleteBtn) {
       deleteBtn.disabled = false;
