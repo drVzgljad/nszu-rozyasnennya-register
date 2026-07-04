@@ -48,14 +48,45 @@ async function init() {
 }
 
 async function loadNews() {
-  const { data, error } = await sb.from('news').select('*').order('created_at', { ascending: false });
-  if (error) {
-    console.error('Error loading news:', error);
-    const countEl = byId("newsCount");
-    if (countEl) countEl.textContent = "Помилка завантаження новин";
-    return;
+  let dbNews = [];
+  let localNews = [];
+  
+  // 1. Try loading from Supabase
+  try {
+    const { data, error } = await sb.from('news').select('*').order('created_at', { ascending: false });
+    if (!error && data) {
+      dbNews = data;
+    } else {
+      console.warn('Supabase news load failed or empty, fallback to local');
+    }
+  } catch (e) {
+    console.error('Error loading news from Supabase:', e);
   }
-  newsList = data || [];
+  
+  // 2. Load from local JSON
+  try {
+    const res = await fetch('data/news.json');
+    if (res.ok) {
+      localNews = await res.json();
+    }
+  } catch (e) {
+    console.warn('Local news file not found or failed to load:', e);
+  }
+  
+  // 3. Merge news (avoiding duplicate IDs)
+  const allNews = [...dbNews];
+  const dbIds = new Set(dbNews.map(n => n.id));
+  
+  localNews.forEach(ln => {
+    if (!dbIds.has(ln.id)) {
+      allNews.push(ln);
+    }
+  });
+  
+  // Sort all news by created_at descending
+  allNews.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  
+  newsList = allNews;
   filterAndRender();
   renderStats();
 
@@ -222,6 +253,9 @@ function formatRichText(text) {
   if (!text) return "";
   // Escape html tags to prevent injections but format some markdown simple structures
   let escaped = escapeHtml(text);
+
+  // Convert markdown links [text](url) to HTML anchors
+  escaped = escaped.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
 
   // Convert double newlines to paragraph tags
   let paras = escaped.split(/\n\n+/).map(p => {

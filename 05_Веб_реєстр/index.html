@@ -358,24 +358,68 @@
 
   async function loadDigest() {
     try {
-      const { data, error } = await sb
-        .from('news')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(3);
-      
-      if (error) {
-        console.warn('News digest loading skipped (likely guest or unauthorized):', error);
+      // 1. Get current session
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session || !session.user) {
         document.getElementById('news-digest').style.display = 'none';
         return;
       }
       
-      if (data && data.length > 0) {
+      // 2. Get role to ensure user has access (role != 'guest')
+      const { data: profile } = await sb.from('profiles').select('role').eq('id', session.user.id).single();
+      if (!profile || profile.role === 'guest') {
+        document.getElementById('news-digest').style.display = 'none';
+        return;
+      }
+      
+      let dbNews = [];
+      let localNews = [];
+      
+      // 3. Try load from Supabase
+      try {
+        const { data, error } = await sb
+          .from('news')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(5);
+        if (!error && data) {
+          dbNews = data;
+        }
+      } catch (e) {
+        console.warn('Failed to load news from Supabase, relying on local:', e);
+      }
+      
+      // 4. Try load from local JSON
+      try {
+        const res = await fetch('news/data/news.json');
+        if (res.ok) {
+          localNews = await res.json();
+        }
+      } catch (e) {
+        console.warn('Failed to load local news:', e);
+      }
+      
+      // 5. Merge news
+      const allNews = [...dbNews];
+      const dbIds = new Set(dbNews.map(n => n.id));
+      localNews.forEach(ln => {
+        if (!dbIds.has(ln.id)) {
+          allNews.push(ln);
+        }
+      });
+      
+      // Sort news by date
+      allNews.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      
+      // Take top 3
+      const digestItems = allNews.slice(0, 3);
+      
+      if (digestItems.length > 0) {
         const container = document.getElementById('news-digest-grid');
         if (!container) return;
         container.innerHTML = "";
         
-        data.forEach(n => {
+        digestItems.forEach(n => {
           const card = document.createElement("a");
           card.href = `news/index.html?id=${n.id}`;
           
