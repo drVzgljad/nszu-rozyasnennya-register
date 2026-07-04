@@ -411,7 +411,7 @@ async function handlePublishSubmit(e) {
       if (isLocal) {
         const idx = localNewsList.findIndex(n => n.id === selectedNews.id);
         if (idx !== -1) {
-          localNewsList[idx] = {
+          const updatedItem = {
             ...localNewsList[idx],
             title,
             summary,
@@ -421,15 +421,26 @@ async function handlePublishSubmit(e) {
             image_url: imageUrl || null
           };
           
-          const res = await fetch('/api/save-data', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              filename: 'news.json',
-              data: localNewsList
-            })
-          });
-          if (!res.ok) throw new Error('Помилка сервера при збереженні локальної новини');
+          try {
+            // 1. Try to save locally via server API (works on local development server)
+            const res = await fetch('/api/save-data', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                filename: 'news.json',
+                data: [...localNewsList.slice(0, idx), updatedItem, ...localNewsList.slice(idx + 1)]
+              })
+            });
+            if (!res.ok) throw new Error('Local save endpoint returned error');
+            localNewsList[idx] = updatedItem;
+            alert("Новину успішно відредаговано локально!");
+          } catch (localErr) {
+            console.warn('Failed to save locally, performing cloud fallback upsert:', localErr);
+            // 2. Fallback to Supabase upsert (works on live site rpe-pmg.org.ua)
+            const { error } = await sb.from('news').upsert([updatedItem]);
+            if (error) throw error;
+            alert("Збережено в хмару Supabase (оскільки локальний сервер недоступний на цьому домені)!");
+          }
         }
       } else {
         const { error } = await sb.from('news').update({
@@ -442,6 +453,7 @@ async function handlePublishSubmit(e) {
         }).eq('id', selectedNews.id);
         
         if (error) throw error;
+        alert("Новину успішно відредаговано в хмарі!");
       }
       
       const currentId = selectedNews.id;
@@ -457,8 +469,6 @@ async function handlePublishSubmit(e) {
       if (updated) {
         selectNews(updated);
       }
-      
-      alert("Новину успішно відредаговано!");
       
     } else {
       // Create mode
@@ -552,21 +562,37 @@ async function handleDeleteNews() {
   try {
     const isLocal = localNewsList.some(n => n.id === selectedNews.id);
     if (isLocal) {
-      localNewsList = localNewsList.filter(n => n.id !== selectedNews.id);
+      const remainingList = localNewsList.filter(n => n.id !== selectedNews.id);
       
-      const res = await fetch('/api/save-data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filename: 'news.json',
-          data: localNewsList
-        })
-      });
-      if (!res.ok) throw new Error('Помилка сервера при видаленні локальної новини');
-      
-      alert("Новину успішно видалено!");
-      showDefaultState();
-      await loadNews();
+      try {
+        const res = await fetch('/api/save-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            filename: 'news.json',
+            data: remainingList
+          })
+        });
+        if (!res.ok) throw new Error('Local save endpoint returned error');
+        localNewsList = remainingList;
+        alert("Новину успішно видалено локально!");
+        showDefaultState();
+        await loadNews();
+      } catch (localErr) {
+        console.warn('Failed to delete locally, performing cloud fallback check:', localErr);
+        // On live site, since we can't edit news.json directly, we try to see if it was overridden in Supabase
+        const { data: dbItem } = await sb.from('news').select('id').eq('id', selectedNews.id).single();
+        if (dbItem) {
+          // If it exists in Supabase, we can delete it from Supabase
+          const { error } = await sb.from('news').delete().eq('id', selectedNews.id);
+          if (error) throw error;
+          alert("Новину успішно видалено з хмари (вона знову відображатиметься у початковому локальному вигляді)!");
+        } else {
+          alert("На цьому домені локальний сервер недоступний. Для повного видалення цієї новини з сайту, будь ласка, видаліть її з файлу news.json у Git та відправте оновлення.");
+        }
+        showDefaultState();
+        await loadNews();
+      }
     } else {
       const { error } = await sb.from('news').delete().eq('id', selectedNews.id);
       if (error) throw error;
