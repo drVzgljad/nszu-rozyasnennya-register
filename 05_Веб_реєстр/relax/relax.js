@@ -29,7 +29,12 @@ document.addEventListener("DOMContentLoaded", () => {
       resultText.style.display = "none";
 
       try {
-        const res = await fetch("/api/relax-horoscope", {
+        const isFileProtocol = window.location.protocol === "file:";
+        const fetchUrl = isFileProtocol 
+          ? "http://127.0.0.1:8042/api/relax-horoscope" 
+          : "/api/relax-horoscope";
+
+        const res = await fetch(fetchUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
