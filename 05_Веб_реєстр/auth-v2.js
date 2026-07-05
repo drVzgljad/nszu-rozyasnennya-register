@@ -247,7 +247,8 @@ function applyAccess() {
       { text: 'СКО-Д (Внесення)', path: 'skod/index.html', role: 'expert' },
       { text: 'СКО-Д (Звіти)', path: 'skod/reports.html', role: 'expert' },
       { text: 'СКО-Д (Доручення)', path: 'skod/tasks.html', role: 'manager' },
-      { text: 'Новини', path: 'news/index.html', role: 'expert' }
+      { text: 'Новини', path: 'news/index.html', role: 'expert' },
+      { text: 'Хвилинка відпочинку', path: 'relax/index.html' }
     ];
 
     // 1. Core navigation tabs

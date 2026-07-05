@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>НавігаторПМГ26 | Хвилинка відпочинку</title>
+  <link rel="stylesheet" href="../styles.css?v=20260531e">
+  <link rel="stylesheet" href="relax.css">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260615b">
+  <script type="module" src="../auth-v2.js?v=20260615b"></script>
+</head>
+<body id="top">
+  
+  <header class="hero relax-hero">
+    <div class="hero-copy">
+      <div class="overline">🧘 Кабінет емоційного розвантаження</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">робочий простір експертів ПМГ</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      
+      <div class="title-row">
+        <h1>Хвилинка відпочинку</h1>
+      </div>
+      <p>Коли Excel-таблиці та палкі дискусії вимагають паузи. Знайдіть свій знак зодіаку для веселого прогнозу, налаштуйте дихання або увімкніть розслаблюючі звуки природи.</p>
+    </div>
+  </header>
+
+  <main class="relax-layout">
+    <!-- Block 1: Horoscope -->
+    <section class="relax-card horoscope-card" aria-labelledby="horoscopeTitle">
+      <h2 id="horoscopeTitle">✨ Космічний Гороскоп Експерта</h2>
+      <p class="subtitle">Оберіть ваш знак зодіаку для кумедного прогнозу щодо бюджетів, правок та переговорів на сьогодні:</p>
+      
+      <div class="zodiac-grid">
+        <button class="zodiac-btn" data-sign="Овен" type="button">
+          <span class="zodiac-icon">♈</span>
+          <span class="zodiac-name">Овен</span>
+          <span class="zodiac-date">21.03 - 19.04</span>
+        </button>
+        <button class="zodiac-btn" data-sign="Телець" type="button">
+          <span class="zodiac-icon">♉</span>
+          <span class="zodiac-name">Телець</span>
+          <span class="zodiac-date">20.04 - 20.05</span>
+        </button>
+        <button class="zodiac-btn" data-sign="Близнюки" type="button">
+          <span class="zodiac-icon">♊</span>
+          <span class="zodiac-name">Близнюки</span>
+          <span class="zodiac-date">21.05 - 20.06</span>
+        </button>
+        <button class="zodiac-btn" data-sign="Рак" type="button">
+          <span class="zodiac-icon">♋</span>
+          <span class="zodiac-name">Рак</span>
+          <span class="zodiac-date">21.06 - 22.07</span>
+        </button>
+        <button class="zodiac-btn" data-sign="Лев" type="button">
+          <span class="zodiac-icon">♌</span>
+          <span class="zodiac-name">Лев</span>
+          <span class="zodiac-date">23.07 - 22.08</span>
+        </button>
+        <button class="zodiac-btn" data-sign="Діва" type="button">
+          <span class="zodiac-icon">♍</span>
+          <span class="zodiac-name">Діва</span>
+          <span class="zodiac-date">23.08 - 22.09</span>
+        </button>
+        <button class="zodiac-btn" data-sign="Терези" type="button">
+          <span class="zodiac-icon">♎</span>
+          <span class="zodiac-name">Терези</span>
+          <span class="zodiac-date">23.09 - 22.10</span>
+        </button>
+        <button class="zodiac-btn" data-sign="Скорпіон" type="button">
+          <span class="zodiac-icon">♏</span>
+          <span class="zodiac-name">Скорпіон</span>
+          <span class="zodiac-date">23.10 - 21.11</span>
+        </button>
+        <button class="zodiac-btn" data-sign="Стрілець" type="button">
+          <span class="zodiac-icon">♐</span>
+          <span class="zodiac-name">Стрілець</span>
+          <span class="zodiac-date">22.11 - 21.12</span>
+        </button>
+        <button class="zodiac-btn" data-sign="Козеріг" type="button">
+          <span class="zodiac-icon">♑</span>
+          <span class="zodiac-name">Козеріг</span>
+          <span class="zodiac-date">22.12 - 19.01</span>
+        </button>
+        <button class="zodiac-btn" data-sign="Водолій" type="button">
+          <span class="zodiac-icon">♒</span>
+          <span class="zodiac-name">Водолій</span>
+          <span class="zodiac-date">20.01 - 18.02</span>
+        </button>
+        <button class="zodiac-btn" data-sign="Риби" type="button">
+          <span class="zodiac-icon">♓</span>
+          <span class="zodiac-name">Риби</span>
+          <span class="zodiac-date">19.02 - 20.03</span>
+        </button>
+      </div>
+
+      <!-- Result Container -->
+      <div id="horoscopeResult" class="horoscope-result" style="display: none;">
+        <div class="result-header">
+          <span id="selectedSignIcon" class="result-sign-icon">✨</span>
+          <h3 id="selectedSignName">Прогноз</h3>
+        </div>
+        <p id="horoscopeText">Завантаження вашого зоряного прогнозу...</p>
+        <div class="loader" id="horoscopeLoader" style="display: none;"></div>
+      </div>
+    </section>
+
+    <!-- Right Column: Breathing & Sound -->
+    <div class="relax-sidebar">
+      <!-- Block 2: Breathing Guide -->
+      <section class="relax-card breathing-card" aria-labelledby="breathingTitle">
+        <h2 id="breathingTitle">🌬️ Космічне Дихання (4-7-8)</h2>
+        <p class="subtitle">Практика швидкого зняття стресу. Концентруйтеся на колі та слідуйте інструкціям:</p>
+        
+        <div class="breathing-session-container">
+          <div class="breathing-circle-wrapper">
+            <div id="breathingCircle" class="breathing-circle"></div>
+            <div id="breathingActionText" class="breathing-action-text">Вдих</div>
+            <div id="breathingTimer" class="breathing-timer">4</div>
+          </div>
+          
+          <div class="breathing-controls">
+            <button id="startBreathingBtn" class="action primary" type="button">▶️ Почати вправу</button>
+            <button id="stopBreathingBtn" class="action" type="button" style="display: none;">⏹️ Зупинити</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Block 3: Ambient Sound Generator -->
+      <section class="relax-card sound-card" aria-labelledby="soundTitle">
+        <h2 id="soundTitle">🎵 Генератор Фонові звуків</h2>
+        <p class="subtitle">Увімкніть заспокійливі природні вібрації для фонового супроводу роботи:</p>
+        
+        <div class="sound-grid">
+          <div class="sound-item">
+            <span class="sound-icon">🌧️</span>
+            <div class="sound-details">
+              <h4>М'який дощ</h4>
+              <p>Шум літньої зливи</p>
+            </div>
+            <button class="sound-toggle-btn" data-sound="rain" type="button">▶️ Грати</button>
+          </div>
+          
+          <div class="sound-item">
+            <span class="sound-icon">🌳</span>
+            <div class="sound-details">
+              <h4>Шелест лісу</h4>
+              <p>Вітер у кронах дерев</p>
+            </div>
+            <button class="sound-toggle-btn" data-sound="forest" type="button">▶️ Грати</button>
+          </div>
+          
+          <div class="sound-item">
+            <span class="sound-icon">🌊</span>
+            <div class="sound-details">
+              <h4>Морські хвилі</h4>
+              <p>Прибій біля берега</p>
+            </div>
+            <button class="sound-toggle-btn" data-sound="sea" type="button">▶️ Грати</button>
+          </div>
+
+          <div class="sound-item">
+            <span class="sound-icon">🌌</span>
+            <div class="sound-details">
+              <h4>Космічний гул</h4>
+              <p>Медитативний дрон</p>
+            </div>
+            <button class="sound-toggle-btn" data-sound="space" type="button">▶️ Грати</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer" id="siteFooter">
+    <p>&copy; 2026 НавігаторПМГ26. Зроблено з турботою про команду НСЗУ.</p>
+  </footer>
+
+  <script type="module" src="relax.js"></script>
+</body>
+</html>

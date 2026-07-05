@@ -1,0 +1,366 @@
+/* Relax Service (Хвилинка відпочинку) Styling */
+
+.relax-hero {
+  background: linear-gradient(135deg, #1e1b4b 0%, #311042 50%, #0f172a 100%);
+  color: #fff;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.relax-hero p {
+  color: rgba(255, 255, 255, 0.85);
+  max-width: 800px;
+}
+
+.relax-layout {
+  display: grid;
+  grid-template-columns: 1fr 450px;
+  gap: 2rem;
+  max-width: 1600px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .relax-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Glassmorphism Cards */
+.relax-card {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+}
+
+:root.dark-theme .relax-card {
+  background: rgba(30, 41, 59, 0.7) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25) !important;
+}
+
+.relax-card h2 {
+  margin-top: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--ink, #1e293b);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.relax-card .subtitle {
+  margin: 8px 0 24px;
+  font-size: 0.95rem;
+  color: var(--muted, #64748b);
+  line-height: 1.4;
+}
+
+.relax-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Zodiac Grid */
+.zodiac-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+}
+
+.zodiac-btn {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 16px;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+}
+
+:root.dark-theme .zodiac-btn {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.zodiac-btn:hover {
+  transform: translateY(-4px);
+  border-color: #a855f7;
+  background: #faf5ff;
+  box-shadow: 0 8px 20px rgba(168, 85, 247, 0.12);
+}
+
+:root.dark-theme .zodiac-btn:hover {
+  background: rgba(168, 85, 247, 0.1) !important;
+  box-shadow: 0 8px 24px rgba(168, 85, 247, 0.2) !important;
+}
+
+.zodiac-btn.active {
+  border-color: #a855f7;
+  background: #f3e8ff;
+  box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.25);
+}
+
+:root.dark-theme .zodiac-btn.active {
+  background: rgba(168, 85, 247, 0.2) !important;
+  border-color: #c084fc !important;
+  box-shadow: 0 0 0 2px rgba(192, 132, 252, 0.3) !important;
+}
+
+.zodiac-icon {
+  font-size: 2.25rem;
+  margin-bottom: 8px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05));
+  transition: transform 0.2s ease;
+}
+
+.zodiac-btn:hover .zodiac-icon {
+  transform: scale(1.15);
+}
+
+.zodiac-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--ink, #1f2937);
+  margin-bottom: 4px;
+}
+
+.zodiac-date {
+  font-size: 0.72rem;
+  color: var(--muted, #6b7280);
+}
+
+/* Horoscope Result Area */
+.horoscope-result {
+  margin-top: 2rem;
+  background: rgba(168, 85, 247, 0.05);
+  border: 1px solid rgba(168, 85, 247, 0.18);
+  border-radius: 16px;
+  padding: 1.5rem;
+  position: relative;
+  min-height: 100px;
+  transition: all 0.3s ease;
+}
+
+:root.dark-theme .horoscope-result {
+  background: rgba(168, 85, 247, 0.08) !important;
+  border-color: rgba(168, 85, 247, 0.25) !important;
+}
+
+.result-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.result-sign-icon {
+  font-size: 1.8rem;
+}
+
+.result-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #7e22ce;
+}
+
+:root.dark-theme .result-header h3 {
+  color: #c084fc !important;
+}
+
+#horoscopeText {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--ink, #374151);
+}
+
+/* Loader */
+.loader {
+  border: 3px solid rgba(168, 85, 247, 0.1);
+  border-top: 3px solid #a855f7;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  animation: spin 1s linear infinite;
+  margin: 20px auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Breathing Session Container */
+.breathing-session-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  margin-top: 1rem;
+}
+
+.breathing-circle-wrapper {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.breathing-circle {
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, rgba(168,85,247,0.4) 0%, rgba(6,182,212,0.15) 100%);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: 50%;
+  box-shadow: 0 0 30px rgba(168, 85, 247, 0.25);
+  transition: transform 1s ease-in-out, background 1s ease;
+  position: absolute;
+  z-index: 1;
+}
+
+.breathing-circle.inhale {
+  transform: scale(2.2);
+  background: radial-gradient(circle, rgba(168,85,247,0.5) 0%, rgba(6,182,212,0.25) 100%);
+  box-shadow: 0 0 50px rgba(168, 85, 247, 0.45);
+}
+
+.breathing-circle.hold {
+  transform: scale(2.2);
+  background: radial-gradient(circle, rgba(6,182,212,0.5) 0%, rgba(168,85,247,0.25) 100%);
+  box-shadow: 0 0 50px rgba(6, 182, 212, 0.45);
+}
+
+.breathing-circle.exhale {
+  transform: scale(1.0);
+  background: radial-gradient(circle, rgba(168,85,247,0.4) 0%, rgba(6,182,212,0.15) 100%);
+  box-shadow: 0 0 30px rgba(168, 85, 247, 0.25);
+}
+
+.breathing-action-text {
+  position: relative;
+  z-index: 2;
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--ink, #1e293b);
+  transition: all 0.3s ease;
+}
+
+.breathing-timer {
+  position: absolute;
+  bottom: 30px;
+  z-index: 2;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--muted, #64748b);
+}
+
+.breathing-controls {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+/* Sound Generator */
+.sound-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sound-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(226, 232, 240, 0.5);
+  border-radius: 16px;
+  padding: 12px 16px;
+  transition: all 0.2s ease;
+}
+
+:root.dark-theme .sound-item {
+  background: rgba(15, 23, 42, 0.4) !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.sound-item:hover {
+  border-color: rgba(6, 182, 212, 0.3);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+:root.dark-theme .sound-item:hover {
+  background: rgba(6, 182, 212, 0.05) !important;
+}
+
+.sound-icon {
+  font-size: 1.75rem;
+  flex-shrink: 0;
+}
+
+.sound-details {
+  flex-grow: 1;
+}
+
+.sound-details h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink, #1f2937);
+}
+
+.sound-details p {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: var(--muted, #6b7280);
+}
+
+.sound-toggle-btn {
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 6px 14px;
+  cursor: pointer;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+:root.dark-theme .sound-toggle-btn {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+.sound-toggle-btn.playing {
+  background: #06b6d4;
+  border-color: #06b6d4;
+  color: #fff;
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.35);
+}
+
+:root.dark-theme .sound-toggle-btn.playing {
+  background: #06b6d4 !important;
+  border-color: #06b6d4 !important;
+  color: #fff !important;
+}
+
+.sound-toggle-btn:hover {
+  transform: translateY(-1px);
+}
