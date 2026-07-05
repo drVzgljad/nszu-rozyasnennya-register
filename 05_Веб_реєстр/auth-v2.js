@@ -52,7 +52,7 @@ async function fetchRole() {
 function applyAccess() {
   const pathParts = window.location.pathname.split('/');
   const isInSubdir = pathParts.some(part => [
-    'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'passport', 'regulatory', 'reminders'
+    'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'passport', 'regulatory', 'reminders', 'expert-proposals'
   ].includes(part.toLowerCase()));
   const prefix = isInSubdir ? '../' : './';
   const currentPath = window.location.pathname.toLowerCase();
@@ -194,7 +194,7 @@ function applyAccess() {
     const segments = normalized.split('/');
     
     if (normalized === 'index.html') {
-      const isSub = ['pakety', 'postanova', 'algorithms', 'zoz-questions', 'pmg-proposals', 'news', 'chat', 'rozjasnennya.html', 'zoz-dogovr', 'skod', 'dec', 'dept-tree.html', 'passport', 'regulatory'].some(s => currentPath.includes(s));
+      const isSub = ['pakety', 'postanova', 'algorithms', 'zoz-questions', 'pmg-proposals', 'news', 'chat', 'rozjasnennya.html', 'zoz-dogovr', 'skod', 'dec', 'dept-tree.html', 'passport', 'regulatory', 'expert-proposals'].some(s => currentPath.includes(s));
       return !isSub && (currentPath.endsWith('/') || currentPath.endsWith('index.html'));
     }
     
@@ -243,6 +243,7 @@ function applyAccess() {
       { text: 'Календар нагадувань', path: 'reminders/index.html', role: 'expert' },
       { text: 'Питання ЗОЗ', path: 'zoz-questions/index.html', role: 'expert' },
       { text: 'Пропозиції ПМГ', path: 'pmg-proposals/index.html', role: 'expert' },
+      { text: 'Пропозиції робочих груп', path: 'expert-proposals/index.html', role: 'expert' },
       { text: 'СКО-Д (Внесення)', path: 'skod/index.html', role: 'expert' },
       { text: 'СКО-Д (Звіти)', path: 'skod/reports.html', role: 'expert' },
       { text: 'СКО-Д (Доручення)', path: 'skod/tasks.html', role: 'manager' },

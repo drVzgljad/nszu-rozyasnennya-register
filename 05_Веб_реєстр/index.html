@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Робочий простір експертів ПМГ 2026 — НавігаторПМГ26</title>
   <link rel="stylesheet" href="portal.css?v=20260603d">
-  <link rel="stylesheet" href="auth-v2.css?v=20260626b">
-  <script type="module" src="auth-v2.js?v=20260626b"></script>
+  <link rel="stylesheet" href="auth-v2.css?v=20260615b">
+  <script type="module" src="auth-v2.js?v=20260616b"></script>
 </head>
 <body>
 <div class="portal">
@@ -65,6 +65,7 @@
           </div>
           <div class="hero-tags" aria-label="Теги">
             <a href="rozjasnennya.html">Роз'яснення НСЗУ</a>
+            <a href="rozjasnennya_semantic.html" style="background: linear-gradient(135deg, #0284c7, #0d9488); color: white; border: none; font-weight: bold; padding: 4px 10px; border-radius: 9999px;">AI Семантичний пошук 💡</a>
             <a href="pakety/index.html">Пакети 2026</a>
             <a href="postanova/index.html">Постанова 1808</a>
             <a href="algorithms/index.html">Наказ 377</a>
@@ -132,6 +133,16 @@
           <p>Офіційні роз'яснення НСЗУ за темою, пакетом, номером, датою або словом
              з тексту — зі змістом, джерелом і пов'язаними матеріалами.</p>
           <div class="meta">Відкрити <span class="count">171 документ</span></div>
+        </a>
+
+        <!-- AI Семантичний пошук — feature card -->
+        <a class="hub-card span-3 feature" href="rozjasnennya_semantic.html" style="background: linear-gradient(135deg, #1e3a8a 0%, #0d9488 100%); color: white; border: none; box-shadow: 0 10px 20px rgba(13, 148, 136, 0.15);">
+          <span class="badge-tile" style="background: rgba(255, 255, 255, 0.2);">
+            <span style="font-size: 24px; filter: drop-shadow(0 0 4px #fff);">💡</span>
+          </span>
+          <h3 style="color: white; margin-top: 12px;">AI Семантичний пошук</h3>
+          <p style="color: rgba(255, 255, 255, 0.9);">Пошук відповідей за допомогою штучного інтелекту. Шукає смислові відповіді навіть за відсутності точних збігів слів у запиті.</p>
+          <div class="meta" style="color: rgba(255, 255, 255, 0.85);">Спробувати AI пошук <span class="count" style="background: rgba(255, 255, 255, 0.25); color: white;">Новий сервіс</span></div>
         </a>
 
         <!-- Пакети 2026 -->
@@ -202,14 +213,6 @@
           <div class="meta">Відкрити <span class="count">Збірка відповіді</span></div>
         </a>
 
-        <!-- Накопичувач пакетів -->
-        <a class="hub-card span-2" href="pakety/collector.html">
-          <span class="num-badge g">🧺</span>
-          <h3>Архів пакетів ПМГ</h3>
-          <p>Пошук, акумуляція та пакетне завантаження специфікацій та умов закупівлі за 2021-2026 роки у ZIP-архів.</p>
-          <div class="meta">Відкрити <span class="count">Акумулятор</span></div>
-        </a>
-
         <!-- Питання ЗОЗ — тільки для зареєстрованих -->
         <a class="hub-card span-3" href="zoz-questions/index.html" data-role="registered">
           <span class="num-badge">?</span>
@@ -224,6 +227,14 @@
           <h3>Пропозиції ПМГ</h3>
           <p>Ініціюйте та підтримуйте пропозиції щодо змін у специфікаціях та тарифах.</p>
           <div class="meta">Відкрити <span class="count">Стіна пропозицій</span></div>
+        </a>
+
+        <!-- Пропозиції робочих груп — тільки для зареєстрованих -->
+        <a class="hub-card span-3" href="expert-proposals/index.html" data-role="registered">
+          <span class="num-badge">🧬</span>
+          <h3>Пропозиції робочих груп</h3>
+          <p>Опрацьовуйте пропозиції експертів робочих груп, беріть участь у голосуванні відділів та фіксуйте рішення.</p>
+          <div class="meta">Відкрити <span class="count">Робочі групи</span></div>
         </a>
 
         <!-- СКО-Д — тільки для зареєстрованих -->

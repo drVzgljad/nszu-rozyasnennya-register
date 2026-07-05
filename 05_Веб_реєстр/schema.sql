@@ -944,5 +944,61 @@ CREATE POLICY "Admin and managers can manage pmg_packages" ON public.pmg_package
 ALTER PUBLICATION supabase_realtime ADD TABLE public.pmg_packages;
 
 
+-- =========================================================================
+-- МІГРАЦІЯ: ТАБЛИЦЯ ЕКСПЕРТНИХ ПРОПОЗИЦІЙ РОБОЧИХ ГРУП
+-- =========================================================================
+CREATE TABLE IF NOT EXISTS public.expert_proposals (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  package_number INTEGER NOT NULL,
+  package_name TEXT NOT NULL,
+  row_num INTEGER NOT NULL,
+  item TEXT NOT NULL,
+  proposal TEXT NOT NULL,
+  analysis TEXT,
+  position_nhsu TEXT,
+  decision TEXT,
+  
+  -- Голосування відділів (масиви UUID користувачів)
+  votes_clinical JSONB DEFAULT '[]'::jsonb,
+  votes_strategy JSONB DEFAULT '[]'::jsonb,
+  
+  -- Коментарі відділів
+  comments_clinical JSONB DEFAULT '[]'::jsonb,
+  comments_strategy JSONB DEFAULT '[]'::jsonb,
+  
+  -- Резолюція Директора
+  director_status TEXT DEFAULT 'pending', -- 'pending' | 'approved' | 'returned'
+  director_remarks TEXT,
+  approved_at TIMESTAMP WITH TIME ZONE,
+  
+  -- Метрики часу
+  started_processing_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  completed_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Для оновлення існуючої бази даних виконайте ці команди в Supabase SQL Editor:
+-- ALTER TABLE public.expert_proposals ADD COLUMN IF NOT EXISTS comments_clinical JSONB DEFAULT '[]'::jsonb;
+-- ALTER TABLE public.expert_proposals ADD COLUMN IF NOT EXISTS comments_strategy JSONB DEFAULT '[]'::jsonb;
+
+CREATE INDEX IF NOT EXISTS idx_expert_proposals_package ON public.expert_proposals(package_number);
+CREATE INDEX IF NOT EXISTS idx_expert_proposals_status ON public.expert_proposals(director_status);
+
+-- Увімкнення RLS
+ALTER TABLE public.expert_proposals ENABLE ROW LEVEL SECURITY;
+
+-- Читати можуть всі авторизовані
+CREATE POLICY "Authenticated users can view expert proposals" ON public.expert_proposals
+  FOR SELECT TO authenticated USING (TRUE);
+
+-- Оновлювати можуть всі авторизовані (для голосування та резолюцій)
+CREATE POLICY "Authenticated users can update expert proposals" ON public.expert_proposals
+  FOR UPDATE TO authenticated USING (TRUE);
+
+-- Додавання до Realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE public.expert_proposals;
+
+
+
 
 

@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>НавігаторПМГ26 | Пропозиції експертів (Робочі групи)</title>
+  <link rel="stylesheet" href="../styles.css?v=20260531e">
+  <link rel="stylesheet" href="proposals.css">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260615b">
+  <script type="module" src="../auth-v2.js?v=20260615b"></script>
+</head>
+<body id="top" data-required-role="expert">
+  
+  <!-- Access Denied Overlay (gated by auth-v2.js) -->
+  <div id="access-denied-overlay" class="access-denied-overlay" style="display: none;">
+    <div class="access-denied-box">
+      <div class="access-icon">🔒</div>
+      <h2>Доступ обмежено</h2>
+      <p id="access-denied-msg">Ця сторінка доступна лише для співробітників департаменту.</p>
+      <a href="../index.html" class="action primary">На головну</a>
+    </div>
+  </div>
+
+  <header class="hero expert-hero">
+    <div class="hero-copy">
+      <div class="overline">Засідання робочих груп</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">робочий простір експертів ПМГ</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      
+      <div class="title-row">
+        <h1>Пропозиції експертів (Робочі групи)</h1>
+        <button id="toggleMeetingModeBtn" class="action primary pulse-btn" type="button">🖥️ Режим зустрічі</button>
+      </div>
+      <p>Аналітичний інструмент для роботи під час зустрічей з експертами за пакетами медичних гарантій. Голосування відділів за правки та фінальне затвердження Директором.</p>
+    </div>
+
+    <!-- Info Dashboard -->
+    <div class="dashboard-container" id="expertDashboard" aria-label="Панель показників">
+      <div class="dashboard-grid">
+        <div class="dash-card">
+          <span class="dash-icon">📊</span>
+          <div class="dash-info">
+            <h3 id="dashProgressText">0%</h3>
+            <p>Опрацьовано пакетів</p>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="dashProgressBar" style="width: 0%;"></div>
+          </div>
+        </div>
+        
+        <div class="dash-card">
+          <span class="dash-icon">⏱️</span>
+          <div class="dash-info">
+            <h3 id="dashAvgTime">0 хв</h3>
+            <p>Середній час обговорення</p>
+          </div>
+        </div>
+        
+        <div class="dash-card">
+          <span class="dash-icon">💡</span>
+          <div class="dash-info">
+            <h3 id="dashTotalCount">0</h3>
+            <p>Всього пропозицій</p>
+          </div>
+        </div>
+
+        <div class="dash-card">
+          <span class="dash-icon">✔️</span>
+          <div class="dash-info">
+            <h3 id="dashApprovedCount">0</h3>
+            <p>Затверджено Директором</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="expert-layout" id="mainLayout">
+    
+    <!-- Left panel: Package navigation & Proposal list -->
+    <section class="expert-browser" id="browserSection" aria-label="Навігатор пропозицій">
+      <div class="search-panel">
+        <div class="search-row">
+          <label class="search">
+            <span>Швидкий пошук засідань</span>
+            <input id="expertSearch" type="search" placeholder="Пошук по тексту пропозиції, нормах, коментарях..." autocomplete="off">
+          </label>
+        </div>
+        
+        <div class="filters-row">
+          <label>Виберіть пакет ПМГ
+            <select id="packageSelector">
+              <option value="">Усі пакети (завантаження...)</option>
+            </select>
+          </label>
+          <label>Статус
+            <select id="statusFilter">
+              <option value="">Всі статуси</option>
+              <option value="pending">Очікує рішення</option>
+              <option value="approved">Затверджено Директором</option>
+              <option value="returned">Повернуто з зауваженнями</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="packages-summary" id="packagesSummaryText">
+          Завантаження даних...
+        </div>
+      </div>
+
+      <div class="proposal-list" id="proposalList">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- Right panel: Active Proposal Detail, Voting, Director cabinet -->
+    <aside class="detail-panel" id="detailSection" aria-live="polite">
+      <!-- Default empty state -->
+      <div class="empty-state" id="panelEmptyState">
+        <div class="empty-icon">📂</div>
+        <h2>Оберіть пропозицію для початку</h2>
+        <p>Виберіть пропозицію робочої групи зі списку ліворуч для виведення нормативного розбору, позиції Департаменту стратегії, проведення голосування та затвердження Директором.</p>
+      </div>
+
+      <!-- Proposal detail viewer -->
+      <div class="proposal-detail-viewer" id="proposalDetailViewer" style="display:none">
+        
+        <!-- Header status info -->
+        <div class="detail-header-row">
+          <div class="detail-package-badge" id="detPackageBadge">Пакет 0</div>
+          <div class="detail-status-badge" id="detStatusBadge">Очікує рішення</div>
+        </div>
+
+        <div class="detail-item-title" id="detItemTitle">Специфікація, п. 1</div>
+        
+        <!-- Stopwatch timer row -->
+        <div class="timer-row">
+          <div class="stopwatch-container">
+            <span class="timer-dot"></span>
+            <span class="timer-label">Обговорення:</span>
+            <strong id="stopwatchDisplay">00:00</strong>
+          </div>
+          <button id="resetTimerBtn" class="action-link" type="button">🔄 Скинути таймер</button>
+        </div>
+
+        <!-- 1. The Expert proposal -->
+        <div class="content-block proposal-block">
+          <div class="block-label">💡 Пропозиція експерта</div>
+          <div class="block-content text-large" id="detProposalText">...</div>
+        </div>
+
+        <!-- 2. Legal / Regulatory analysis -->
+        <div class="content-block analysis-block">
+          <div class="block-label">⚖️ Розбір пропозиції (Нормативно-правове обґрунтування)</div>
+          <div class="block-content" id="detAnalysisText">...</div>
+        </div>
+
+        <!-- 3. NHSU Strategy position -->
+        <div class="content-block nhsu-block">
+          <div class="block-label">🛡️ Позиція Департаменту стратегії (Проєкт)</div>
+          <div class="block-content" id="detNhsuPosition">...</div>
+          <div class="ai-assist-row">
+            <button id="aiAssistBtn" class="ai-btn" type="button">💡 AI-Співдоповідач (Аналіз Gemini)</button>
+          </div>
+          <div id="aiResponseContainer" class="ai-response" style="display: none;"></div>
+        </div>
+
+        <!-- 4. Interactive Voting Section -->
+        <div class="voting-panel">
+          <h3 class="panel-section-title">📊 Голосування членів робочої групи</h3>
+          
+          <div class="voting-grid">
+            <!-- Scientific Department -->
+            <div class="vote-dept-card" id="deptClinicalCard">
+              <div class="dept-title">🧬 Відділ наукової та клінічної експертизи</div>
+              <div class="vote-actions">
+                <button class="action vote-btn" id="voteClinicalUpBtn" type="button">👍 Підтримати</button>
+                <div class="vote-count"><span id="votesClinicalCount">0</span> голосів</div>
+              </div>
+              <div class="voters-avatars" id="votesClinicalList">
+                <!-- Names -->
+              </div>
+            </div>
+
+            <!-- Strategy Department -->
+            <div class="vote-dept-card" id="deptStrategyCard">
+              <div class="dept-title">📈 Відділ стратегічного розвитку ПМГ</div>
+              <div class="vote-actions">
+                <button class="action vote-btn" id="voteStrategyUpBtn" type="button">👍 Підтримати</button>
+                <div class="vote-count"><span id="votesStrategyCount">0</span> голосів</div>
+              </div>
+              <div class="voters-avatars" id="votesStrategyList">
+                <!-- Names -->
+              </div>
+            </div>
+        <!-- 4.1. Comments Section (Separate columns) -->
+        <div class="comments-panel">
+          <h3 class="panel-section-title">💬 Коментарі та зауваження відділів</h3>
+          <div class="comments-grid">
+            
+            <!-- Clinical Dept Comments -->
+            <div class="comments-column" id="commentsClinicalCol">
+              <div class="dept-title">🧬 Відділ клінічної експертизи</div>
+              <div class="comments-list" id="commentsClinicalList">
+                <!-- Rendered dynamically -->
+              </div>
+              <div class="comment-input-row">
+                <textarea id="commentClinicalInput" placeholder="Додати коментар клінічної експертизи..."></textarea>
+                <button class="action primary send-comment-btn" id="addCommentClinicalBtn" type="button">Надіслати</button>
+              </div>
+            </div>
+
+            <!-- Strategy Dept Comments -->
+            <div class="comments-column" id="commentsStrategyCol">
+              <div class="dept-title">📈 Відділ стратегічного розвитку ПМГ</div>
+              <div class="comments-list" id="commentsStrategyList">
+                <!-- Rendered dynamically -->
+              </div>
+              <div class="comment-input-row">
+                <textarea id="commentStrategyInput" placeholder="Додати коментар відділу стратегії..."></textarea>
+                <button class="action primary send-comment-btn" id="addCommentStrategyBtn" type="button">Надіслати</button>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+
+        <!-- 5. Decision and Director approval -->
+        <div class="director-panel" id="directorPanel">
+          <h3 class="panel-section-title">✍️ Кабінет Директора Департаменту</h3>
+          
+          <div class="form-field">
+            <label for="detDecisionInput">Фінальне рішення за підсумками дискусії</label>
+            <textarea id="detDecisionInput" placeholder="Сформулюйте узгоджене рішення (наприклад: Прийняти. Внести відповідні зміни до вимог...)"></textarea>
+          </div>
+
+          <div class="form-field">
+            <label for="detRemarksInput">Коментарі / Зауваження Директора</label>
+            <textarea id="detRemarksInput" placeholder="У разі повернення на доопрацювання вкажіть зауваження..."></textarea>
+          </div>
+
+          <div class="director-actions">
+            <button class="action primary success-btn" id="directorApproveBtn" type="button">✔️ Затвердити правку</button>
+            <button class="action danger" id="directorRejectBtn" type="button">❌ Надіслати на доопрацювання</button>
+          </div>
+          <div class="director-status-msg" id="directorStatusMsg"></div>
+        </div>
+
+      </div>
+    </aside>
+  </main>
+
+  <footer class="site-footer" id="siteFooter">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Сервіс розроблено силами Департаменту без зовнішнього сприяння та проєктів.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="proposals.js" defer></script>
+</body>
+</html>
