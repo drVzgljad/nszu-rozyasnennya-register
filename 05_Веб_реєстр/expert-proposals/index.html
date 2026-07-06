@@ -183,29 +183,41 @@
           <h3 class="panel-section-title">📊 Голосування членів робочої групи</h3>
           
           <div class="voting-grid">
-            <!-- Scientific Department -->
-            <div class="vote-dept-card" id="deptClinicalCard">
-              <div class="dept-title">🧬 Відділ наукової та клінічної експертизи</div>
-              <div class="vote-actions">
-                <button class="action vote-btn" id="voteClinicalUpBtn" type="button">👍 Підтримати</button>
-                <div class="vote-count"><span id="votesClinicalCount">0</span> голосів</div>
-              </div>
-              <div class="voters-avatars" id="votesClinicalList">
-                <!-- Names -->
-              </div>
-            </div>
+             <!-- Scientific Department -->
+             <div class="vote-dept-card" id="deptClinicalCard">
+               <div class="dept-title">🧬 Відділ наукової та клінічної експертизи</div>
+               <div class="vote-actions">
+                 <div class="vote-buttons" style="display: flex; gap: 8px;">
+                   <button class="action vote-btn success-btn" id="voteClinicalUpBtn" type="button">👍 За</button>
+                   <button class="action vote-btn danger-btn" id="voteClinicalDownBtn" type="button">👎 Проти</button>
+                 </div>
+                 <div class="vote-count">
+                   За: <span id="votesClinicalUpCount" style="color: var(--clinical-color); font-weight: 800;">0</span> | 
+                   Проти: <span id="votesClinicalDownCount" style="color: #e11d48; font-weight: 800;">0</span>
+                 </div>
+               </div>
+               <div class="voters-avatars" id="votesClinicalList">
+                 <!-- Names -->
+               </div>
+             </div>
 
-            <!-- Strategy Department -->
-            <div class="vote-dept-card" id="deptStrategyCard">
-              <div class="dept-title">📈 Відділ стратегічного розвитку ПМГ</div>
-              <div class="vote-actions">
-                <button class="action vote-btn" id="voteStrategyUpBtn" type="button">👍 Підтримати</button>
-                <div class="vote-count"><span id="votesStrategyCount">0</span> голосів</div>
-              </div>
-              <div class="voters-avatars" id="votesStrategyList">
-                <!-- Names -->
-              </div>
-            </div>
+             <!-- Strategy Department -->
+             <div class="vote-dept-card" id="deptStrategyCard">
+               <div class="dept-title">📈 Відділ стратегічного розвитку ПМГ</div>
+               <div class="vote-actions">
+                 <div class="vote-buttons" style="display: flex; gap: 8px;">
+                   <button class="action vote-btn success-btn" id="voteStrategyUpBtn" type="button">👍 За</button>
+                   <button class="action vote-btn danger-btn" id="voteStrategyDownBtn" type="button">👎 Проти</button>
+                 </div>
+                 <div class="vote-count">
+                   За: <span id="votesStrategyUpCount" style="color: var(--strategy-color); font-weight: 800;">0</span> | 
+                   Проти: <span id="votesStrategyDownCount" style="color: #e11d48; font-weight: 800;">0</span>
+                 </div>
+               </div>
+               <div class="voters-avatars" id="votesStrategyList">
+                 <!-- Names -->
+               </div>
+             </div>
         <!-- 4.1. Comments Section (Separate columns) -->
         <div class="comments-panel">
           <h3 class="panel-section-title">💬 Коментарі та зауваження відділів</h3>

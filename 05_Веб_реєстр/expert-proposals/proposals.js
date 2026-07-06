@@ -31,8 +31,10 @@ async function init() {
   byId("aiAssistBtn").addEventListener("click", getAiAnalysis);
 
   // Voting Events
-  byId("voteClinicalUpBtn").addEventListener("click", () => handleVote('clinical'));
-  byId("voteStrategyUpBtn").addEventListener("click", () => handleVote('strategy'));
+  byId("voteClinicalUpBtn").addEventListener("click", () => handleVote('clinical', 'up'));
+  byId("voteClinicalDownBtn").addEventListener("click", () => handleVote('clinical', 'down'));
+  byId("voteStrategyUpBtn").addEventListener("click", () => handleVote('strategy', 'up'));
+  byId("voteStrategyDownBtn").addEventListener("click", () => handleVote('strategy', 'down'));
 
   // Comment Events
   byId("addCommentClinicalBtn").addEventListener("click", () => handleAddComment('clinical'));
@@ -131,26 +133,34 @@ function setupProfileUI() {
 
   if (!isClinical) {
     byId("voteClinicalUpBtn").disabled = true;
+    byId("voteClinicalDownBtn").disabled = true;
     byId("voteClinicalUpBtn").title = "Голосувати можуть лише члени Відділу клінічної експертизи";
+    byId("voteClinicalDownBtn").title = "Голосувати можуть лише члени Відділу клінічної експертизи";
     byId("commentClinicalInput").disabled = true;
     byId("commentClinicalInput").placeholder = "Коментувати можуть лише співробітники відділу...";
     byId("addCommentClinicalBtn").disabled = true;
   } else {
     byId("voteClinicalUpBtn").disabled = false;
+    byId("voteClinicalDownBtn").disabled = false;
     byId("voteClinicalUpBtn").title = "";
+    byId("voteClinicalDownBtn").title = "";
     byId("commentClinicalInput").disabled = false;
     byId("commentClinicalInput").placeholder = "Додати коментар клінічної експертизи...";
     byId("addCommentClinicalBtn").disabled = false;
   }
   if (!isStrategy) {
     byId("voteStrategyUpBtn").disabled = true;
+    byId("voteStrategyDownBtn").disabled = true;
     byId("voteStrategyUpBtn").title = "Голосувати можуть лише члени Відділу стратегії";
+    byId("voteStrategyDownBtn").title = "Голосувати можуть лише члени Відділу стратегії";
     byId("commentStrategyInput").disabled = true;
     byId("commentStrategyInput").placeholder = "Коментувати можуть лише співробітники відділу...";
     byId("addCommentStrategyBtn").disabled = true;
   } else {
     byId("voteStrategyUpBtn").disabled = false;
+    byId("voteStrategyDownBtn").disabled = false;
     byId("voteStrategyUpBtn").title = "";
+    byId("voteStrategyDownBtn").title = "";
     byId("commentStrategyInput").disabled = false;
     byId("commentStrategyInput").placeholder = "Додати коментар відділу стратегії...";
     byId("addCommentStrategyBtn").disabled = false;
@@ -339,21 +349,36 @@ function selectProposal(p) {
   const clinVotes = p.votes_clinical || [];
   const stratVotes = p.votes_strategy || [];
 
-  byId("votesClinicalCount").textContent = clinVotes.length;
-  byId("votesStrategyCount").textContent = stratVotes.length;
+  const clinUp = clinVotes.filter(v => v.type !== 'down');
+  const clinDown = clinVotes.filter(v => v.type === 'down');
+  const stratUp = stratVotes.filter(v => v.type !== 'down');
+  const stratDown = stratVotes.filter(v => v.type === 'down');
 
-  byId("votesClinicalList").textContent = clinVotes.map(v => v.name).join(", ") || "Немає голосів";
-  byId("votesStrategyList").textContent = stratVotes.map(v => v.name).join(", ") || "Немає голосів";
+  byId("votesClinicalUpCount").textContent = clinUp.length;
+  byId("votesClinicalDownCount").textContent = clinDown.length;
+  byId("votesStrategyUpCount").textContent = stratUp.length;
+  byId("votesStrategyDownCount").textContent = stratDown.length;
 
-  // Check if current user voted
+  const clinNames = clinVotes.map(v => `${v.name} (${v.type === 'down' ? 'Проти' : 'За'})`).join(", ");
+  const stratNames = stratVotes.map(v => `${v.name} (${v.type === 'down' ? 'Проти' : 'За'})`).join(", ");
+
+  byId("votesClinicalList").textContent = clinNames || "Немає голосів";
+  byId("votesStrategyList").textContent = stratNames || "Немає голосів";
+
   if (currentProfile) {
-    const clinVoted = clinVotes.some(v => v.id === currentProfile.id);
-    byId("voteClinicalUpBtn").textContent = clinVoted ? "👍 Скасувати голос" : "👍 Підтримати";
-    byId("voteClinicalUpBtn").className = `action vote-btn ${clinVoted ? "primary" : ""}`;
+    const clinUserVote = clinVotes.find(v => v.id === currentProfile.id);
+    const clinVotedUp = clinUserVote && clinUserVote.type !== 'down';
+    const clinVotedDown = clinUserVote && clinUserVote.type === 'down';
 
-    const stratVoted = stratVotes.some(v => v.id === currentProfile.id);
-    byId("voteStrategyUpBtn").textContent = stratVoted ? "👍 Скасувати голос" : "👍 Підтримати";
-    byId("voteStrategyUpBtn").className = `action vote-btn ${stratVoted ? "primary" : ""}`;
+    const stratUserVote = stratVotes.find(v => v.id === currentProfile.id);
+    const stratVotedUp = stratUserVote && stratUserVote.type !== 'down';
+    const stratVotedDown = stratUserVote && stratUserVote.type === 'down';
+
+    byId("voteClinicalUpBtn").className = `action vote-btn success-btn ${clinVotedUp ? "active" : ""}`;
+    byId("voteClinicalDownBtn").className = `action vote-btn danger-btn ${clinVotedDown ? "active" : ""}`;
+
+    byId("voteStrategyUpBtn").className = `action vote-btn success-btn ${stratVotedUp ? "active" : ""}`;
+    byId("voteStrategyDownBtn").className = `action vote-btn danger-btn ${stratVotedDown ? "active" : ""}`;
   }
 
   // Director Panel inputs
@@ -404,7 +429,7 @@ function resetTimer() {
 }
 
 // Voting Logic
-async function handleVote(dept) {
+async function handleVote(dept, type) {
   if (!selectedProposal || !currentProfile) return;
 
   const currentVotes = dept === 'clinical' 
@@ -415,22 +440,26 @@ async function handleVote(dept) {
   const userName = currentProfile.full_name || currentProfile.name || "Співробітник";
 
   if (voterIndex > -1) {
-    // Remove vote
-    currentVotes.splice(voterIndex, 1);
+    const existingVote = currentVotes[voterIndex];
+    if (existingVote.type === type) {
+      // Toggle off
+      currentVotes.splice(voterIndex, 1);
+    } else {
+      // Switch type
+      existingVote.type = type;
+    }
   } else {
-    // Add vote
-    currentVotes.push({ id: currentProfile.id, name: userName });
+    // New vote
+    currentVotes.push({ id: currentProfile.id, name: userName, type: type });
   }
 
   const updatePayload = dept === 'clinical' 
     ? { votes_clinical: currentVotes } 
     : { votes_strategy: currentVotes };
 
-  // Write to Supabase if connected
   const { data, error } = await sb.from('expert_proposals').update(updatePayload).eq('id', selectedProposal.id).select();
   if (error) {
     console.warn("Failed to save vote to DB, saving locally:", error);
-    // Local fallback update
     const index = proposalsList.findIndex(p => p.id === selectedProposal.id);
     if (index > -1) {
       proposalsList[index] = { ...proposalsList[index], ...updatePayload };
@@ -438,7 +467,6 @@ async function handleVote(dept) {
       renderDashboard();
     }
   } else if (data && data[0]) {
-    // Supabase will trigger realtime subscription, but we update UI immediately
     updateLocalProposal(data[0]);
   }
 }
