@@ -30,25 +30,41 @@ document.addEventListener("DOMContentLoaded", () => {
 
       try {
         const isFileProtocol = window.location.protocol === "file:";
-        const fetchUrl = isFileProtocol 
-          ? "http://127.0.0.1:8042/api/relax-horoscope" 
-          : "/api/relax-horoscope";
-
-        const res = await fetch(fetchUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ zodiac_sign: signName })
-        });
-
-        if (!res.ok) throw new Error("Помилка сервера");
-        const data = await res.json();
+        const isLocalHost = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost";
         
-        resultText.innerHTML = escapeHtml(data.response || data.message || "Не вдалося отримати прогноз.");
+        let responseText = "";
+        
+        if (isFileProtocol || isLocalHost) {
+          const fetchUrl = isFileProtocol ? "http://127.0.0.1:8042/api/relax-horoscope" : "/api/relax-horoscope";
+          const res = await fetch(fetchUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ zodiac_sign: signName })
+          });
+          
+          if (res.ok) {
+            const data = await res.json();
+            responseText = data.response || data.message || "";
+          } else {
+            throw new Error("Local server error");
+          }
+        } else {
+          // Internet static hosting mode - query Gemini directly
+          responseText = await generateHoroscopeDirect(signName);
+        }
+        
+        resultText.innerHTML = escapeHtml(responseText || "Не вдалося отримати прогноз.");
       } catch (err) {
-        console.error("Horoscope load failed:", err);
-        resultText.innerHTML = "<strong>❌ Помилка:</strong> Не вдалося отримати космічний прогноз. Переконайтеся, що бекенд-сервер запущено.";
+        console.warn("Horoscope load failed, trying direct fallback:", err);
+        try {
+          const responseText = await generateHoroscopeDirect(signName);
+          resultText.innerHTML = escapeHtml(responseText);
+        } catch (fallbackErr) {
+          console.error("Direct fallback failed:", fallbackErr);
+          resultText.innerHTML = "<strong>❌ Помилка:</strong> " + escapeHtml(fallbackErr.message || "Не вдалося отримати прогноз. Переконайтеся, що бекенд-сервер запущено або вкажіть API-ключ.");
+        }
       } finally {
         resultLoader.style.display = "none";
         resultText.style.display = "block";
@@ -353,3 +369,47 @@ soundToggleButtons.forEach(btn => {
     }
   });
 });
+
+async function generateHoroscopeDirect(signName) {
+  let apiKey = localStorage.getItem('gemini_api_key');
+  if (!apiKey) {
+    apiKey = prompt("Для роботи ШІ в інтернеті введіть ваш Gemini API-ключ (він збережеться локально у вашому браузері):");
+    if (!apiKey) {
+      throw new Error("API-ключ не вказано");
+    }
+    localStorage.setItem('gemini_api_key', apiKey.trim());
+  }
+  
+  const current_date = new Date().toLocaleDateString('uk-UA');
+  const promptText = `Ти — професійний класичний астролог. Твоє завдання — написати класичний, підбадьорливий та точний гороскоп на сьогодні (${current_date}) для знака зодіаку '${signName}'.\n\n` +
+                     `Гороскоп повинен бути структурований за такими розділами:\n` +
+                     `✨ **Загальний прогноз**: опис енергетики дня та внутрішнього стану.\n` +
+                     `💼 **Кар'єра та фінанси**: поради щодо професійної діяльності, переговорів та грошей.\n` +
+                     `💜 **Особисте життя та здоров'я**: рекомендації щодо стосунків та самопочуття.\n` +
+                     `🔑 **Порада дня**: лаконічна мудрість на сьогодні.\n\n` +
+                     `Напиши гороскоп українською мовою. Стиль повинен бути натхненним, класичним, але легким для сприйняття. Загальна довжина гороскопу — до 5-6 речень.`;
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${apiKey}`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{ text: promptText }]
+      }]
+    })
+  });
+  
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    if (response.status === 400 || response.status === 403) {
+      localStorage.removeItem('gemini_api_key');
+    }
+    throw new Error(errData.error?.message || "Помилка запиту до Google API");
+  }
+  
+  const data = await response.json();
+  return data.candidates[0].content.parts[0].text;
+}

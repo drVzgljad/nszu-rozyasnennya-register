@@ -552,24 +552,44 @@ async function getAiAnalysis() {
   responseContainer.innerHTML = '<em>Штучний інтелекту формує експертний висновок на основі стандартів...</em>';
 
   try {
-    // We send a POST to the `/api/ai-analyze` endpoint on the server
-    const res = await fetch("/api/ai-analyze", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        proposal: selectedProposal.proposal,
-        analysis: selectedProposal.analysis,
-        position_nhsu: selectedProposal.position_nhsu,
-        package_name: selectedProposal.package_name
-      })
-    });
-
-    if (!res.ok) throw new Error("Server responded with error");
-    const data = await res.json();
-    responseContainer.innerHTML = `<strong>🤖 Рекомендація AI-Співдоповідача:</strong><br>${escapeHtml(data.response || data.message)}`;
+    const isFileProtocol = window.location.protocol === "file:";
+    const isLocalHost = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost";
+    
+    let responseText = "";
+    
+    if (isFileProtocol || isLocalHost) {
+      const fetchUrl = isFileProtocol ? "http://127.0.0.1:8042/api/ai-analyze" : "/api/ai-analyze";
+      const res = await fetch(fetchUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          proposal: selectedProposal.proposal,
+          analysis: selectedProposal.analysis,
+          position_nhsu: selectedProposal.position_nhsu,
+          package_name: selectedProposal.package_name
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        responseText = data.response || data.message || "";
+      } else {
+        throw new Error("Local server error");
+      }
+    } else {
+      // Internet mode (static hosting) - query Gemini directly
+      responseText = await getAiAnalysisDirect();
+    }
+    
+    responseContainer.innerHTML = `<strong>🤖 Рекомендація AI-Співдоповідача:</strong><br>${escapeHtml(responseText)}`;
   } catch (err) {
-    console.error("AI Analysis failed:", err);
-    responseContainer.innerHTML = '<strong>❌ Помилка:</strong> Не вдалося отримати висновок AI. Переконайтеся, що на сервері налаштований GEMINI_API_KEY.';
+    console.warn("AI Analysis failed, trying direct fallback:", err);
+    try {
+      const responseText = await getAiAnalysisDirect();
+      responseContainer.innerHTML = `<strong>🤖 Рекомендація AI-Співдоповідача:</strong><br>${escapeHtml(responseText)}`;
+    } catch (fallbackErr) {
+      console.error("Direct fallback failed:", fallbackErr);
+      responseContainer.innerHTML = '<strong>❌ Помилка:</strong> Не вдалося отримати висновок AI. ' + escapeHtml(fallbackErr.message || "Переконайтеся, що бекенд-сервер запущено або вкажіть API-ключ.");
+    }
   } finally {
     btn.disabled = false;
     btn.textContent = "💡 AI-Співдоповідач (Аналіз Gemini)";
@@ -660,3 +680,47 @@ function escapeHtml(text) {
 }
 
 window.addEventListener("DOMContentLoaded", init);
+
+async function getAiAnalysisDirect() {
+  let apiKey = localStorage.getItem('gemini_api_key');
+  if (!apiKey) {
+    apiKey = prompt("Для роботи ШІ в інтернеті введіть ваш Gemini API-ключ (він збережеться локально у вашому браузері):");
+    if (!apiKey) {
+      throw new Error("API-ключ не вказано");
+    }
+    localStorage.setItem('gemini_api_key', apiKey.trim());
+  }
+
+  const promptText = `Ти — провідний експерт Департаменту стратегії НСЗУ. Твоє завдання — проаналізувати пропозицію експерта робочої групи до пакета медичних гарантій '${selectedProposal.package_name}'.\n\n` +
+                     `Пропозиція: '${selectedProposal.proposal}'\n` +
+                     `Нормативно-правове обґрунтування пропозиції: '${selectedProposal.analysis}'\n` +
+                     `Проєкт рішення департаменту: '${selectedProposal.position_nhsu}'\n\n` +
+                     `Будь ласка, надай стислий аналітичний висновок (до 3-4 речень) українською мовою. Оціни ризики, переваги та дай чітку рекомендацію: прийняти, відхилити або прийняти частково (та в якій редакції).`;
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key={apiKey}`;
+  // Wait! In URL we have {apiKey} but we need string interpolation: key=${apiKey}!
+  // Let's make sure it is key=\${apiKey}!
+  const fetchUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${apiKey}`;
+  const response = await fetch(fetchUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      contents: [{
+        parts: [{ text: promptText }]
+      }]
+    })
+  });
+
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    if (response.status === 400 || response.status === 403) {
+      localStorage.removeItem('gemini_api_key');
+    }
+    throw new Error(errData.error?.message || "Помилка запиту до Google API");
+  }
+
+  const data = await response.json();
+  return data.candidates[0].content.parts[0].text;
+}
