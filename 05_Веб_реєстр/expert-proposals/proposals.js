@@ -115,19 +115,19 @@ function setupProfileUI() {
   if (!currentProfile) return;
 
   const userDept = currentProfile.department || currentProfile.Section || '';
-  const isClinical = userDept === 'clinical' || 
-                    userDept === 'Відділ наукової та клінічної експертизи' ||
-                    currentProfile.role === 'admin' || currentProfile.role === 'director';
-
-  const isStrategy = userDept === 'strategy' || 
-                    userDept === 'Відділ стратегічного розвитку ПМГ' ||
-                    userDept === 'Відділ стратегічного розвитку програми медичних гарантій' ||
-                    currentProfile.role === 'admin' || currentProfile.role === 'director';
-
   const isDirector = currentProfile.role === 'director' || 
                      currentProfile.role === 'admin' || 
                      currentProfile.role === 'deputy_director' || 
                      currentProfile.is_head === true;
+
+  const isClinical = userDept === 'clinical' || 
+                    userDept === 'Відділ наукової та клінічної експертизи' ||
+                    isDirector;
+
+  const isStrategy = userDept === 'strategy' || 
+                    userDept === 'Відділ стратегічного розвитку ПМГ' ||
+                    userDept === 'Відділ стратегічного розвитку програми медичних гарантій' ||
+                    isDirector;
 
   if (!isClinical) {
     byId("voteClinicalUpBtn").disabled = true;
