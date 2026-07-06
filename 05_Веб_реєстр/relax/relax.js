@@ -372,12 +372,16 @@ soundToggleButtons.forEach(btn => {
 
 async function generateHoroscopeDirect(signName) {
   let apiKey = localStorage.getItem('gemini_api_key');
+  if (apiKey === 'null' || apiKey === 'undefined') {
+    apiKey = null;
+  }
   if (!apiKey) {
     apiKey = prompt("Для роботи ШІ в інтернеті введіть ваш Gemini API-ключ (він збережеться локально у вашому браузері):");
     if (!apiKey) {
       throw new Error("API-ключ не вказано");
     }
-    localStorage.setItem('gemini_api_key', apiKey.trim());
+    apiKey = apiKey.trim();
+    localStorage.setItem('gemini_api_key', apiKey);
   }
   
   const current_date = new Date().toLocaleDateString('uk-UA');

@@ -136,6 +136,8 @@ function setupProfileUI() {
     byId("commentClinicalInput").placeholder = "Коментувати можуть лише співробітники відділу...";
     byId("addCommentClinicalBtn").disabled = true;
   } else {
+    byId("voteClinicalUpBtn").disabled = false;
+    byId("voteClinicalUpBtn").title = "";
     byId("commentClinicalInput").disabled = false;
     byId("commentClinicalInput").placeholder = "Додати коментар клінічної експертизи...";
     byId("addCommentClinicalBtn").disabled = false;
@@ -147,12 +149,16 @@ function setupProfileUI() {
     byId("commentStrategyInput").placeholder = "Коментувати можуть лише співробітники відділу...";
     byId("addCommentStrategyBtn").disabled = true;
   } else {
+    byId("voteStrategyUpBtn").disabled = false;
+    byId("voteStrategyUpBtn").title = "";
     byId("commentStrategyInput").disabled = false;
     byId("commentStrategyInput").placeholder = "Додати коментар відділу стратегії...";
     byId("addCommentStrategyBtn").disabled = false;
   }
   if (!isDirector) {
     byId("directorPanel").style.display = "none";
+  } else {
+    byId("directorPanel").style.display = "block";
   }
 }
 
@@ -683,12 +689,16 @@ window.addEventListener("DOMContentLoaded", init);
 
 async function getAiAnalysisDirect() {
   let apiKey = localStorage.getItem('gemini_api_key');
+  if (apiKey === 'null' || apiKey === 'undefined') {
+    apiKey = null;
+  }
   if (!apiKey) {
     apiKey = prompt("Для роботи ШІ в інтернеті введіть ваш Gemini API-ключ (він збережеться локально у вашому браузері):");
     if (!apiKey) {
       throw new Error("API-ключ не вказано");
     }
-    localStorage.setItem('gemini_api_key', apiKey.trim());
+    apiKey = apiKey.trim();
+    localStorage.setItem('gemini_api_key', apiKey);
   }
 
   const promptText = `Ти — провідний експерт Департаменту стратегії НСЗУ. Твоє завдання — проаналізувати пропозицію експерта робочої групи до пакета медичних гарантій '${selectedProposal.package_name}'.\n\n` +
