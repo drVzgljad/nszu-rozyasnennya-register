@@ -999,6 +999,19 @@ CREATE POLICY "Authenticated users can update expert proposals" ON public.expert
 ALTER PUBLICATION supabase_realtime ADD TABLE public.expert_proposals;
 
 
+-- =========================================================================
+-- МІГРАЦІЯ: МОДИФІКАЦІЯ СИСТЕМИ Д ДОРУЧЕНЬ ТА ЗАВДАНЬ (АСКОД + ВАЖЛИВІСТЬ)
+-- =========================================================================
+ALTER TABLE public.assigned_tasks ADD COLUMN IF NOT EXISTS task_type TEXT DEFAULT 'current';
+ALTER TABLE public.assigned_tasks ADD COLUMN IF NOT EXISTS askod_number TEXT;
+ALTER TABLE public.assigned_tasks ADD COLUMN IF NOT EXISTS askod_sender TEXT;
+ALTER TABLE public.assigned_tasks ADD COLUMN IF NOT EXISTS importance TEXT DEFAULT 'normal';
+
+-- Додавання таблиці доручень до Realtime публікації
+ALTER PUBLICATION supabase_realtime ADD TABLE public.assigned_tasks;
+
+
+
 
 
 

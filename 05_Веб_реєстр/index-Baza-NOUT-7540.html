@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Робочий простір експертів ПМГ 2026 — НавігаторПМГ26</title>
   <link rel="stylesheet" href="portal.css?v=20260603d">
-  <link rel="stylesheet" href="auth-v2.css?v=20260615b">
-  <script type="module" src="auth-v2.js?v=20260616b"></script>
+  <link rel="stylesheet" href="auth-v2.css?v=20260626b">
+  <script type="module" src="auth-v2.js?v=20260626b"></script>
 </head>
 <body>
 <div class="portal">
@@ -65,7 +65,6 @@
           </div>
           <div class="hero-tags" aria-label="Теги">
             <a href="rozjasnennya.html">Роз'яснення НСЗУ</a>
-            <a href="rozjasnennya_semantic.html" style="background: linear-gradient(135deg, #0284c7, #0d9488); color: white; border: none; font-weight: bold; padding: 4px 10px; border-radius: 9999px;">AI Семантичний пошук 💡</a>
             <a href="pakety/index.html">Пакети 2026</a>
             <a href="postanova/index.html">Постанова 1808</a>
             <a href="algorithms/index.html">Наказ 377</a>
@@ -133,16 +132,6 @@
           <p>Офіційні роз'яснення НСЗУ за темою, пакетом, номером, датою або словом
              з тексту — зі змістом, джерелом і пов'язаними матеріалами.</p>
           <div class="meta">Відкрити <span class="count">171 документ</span></div>
-        </a>
-
-        <!-- AI Семантичний пошук — feature card -->
-        <a class="hub-card span-3 feature" href="rozjasnennya_semantic.html" style="background: linear-gradient(135deg, #1e3a8a 0%, #0d9488 100%); color: white; border: none; box-shadow: 0 10px 20px rgba(13, 148, 136, 0.15);">
-          <span class="badge-tile" style="background: rgba(255, 255, 255, 0.2);">
-            <span style="font-size: 24px; filter: drop-shadow(0 0 4px #fff);">💡</span>
-          </span>
-          <h3 style="color: white; margin-top: 12px;">AI Семантичний пошук</h3>
-          <p style="color: rgba(255, 255, 255, 0.9);">Пошук відповідей за допомогою штучного інтелекту. Шукає смислові відповіді навіть за відсутності точних збігів слів у запиті.</p>
-          <div class="meta" style="color: rgba(255, 255, 255, 0.85);">Спробувати AI пошук <span class="count" style="background: rgba(255, 255, 255, 0.25); color: white;">Новий сервіс</span></div>
         </a>
 
         <!-- Пакети 2026 -->
@@ -213,6 +202,14 @@
           <div class="meta">Відкрити <span class="count">Збірка відповіді</span></div>
         </a>
 
+        <!-- Накопичувач пакетів -->
+        <a class="hub-card span-2" href="pakety/collector.html">
+          <span class="num-badge g">🧺</span>
+          <h3>Архів пакетів ПМГ</h3>
+          <p>Пошук, акумуляція та пакетне завантаження специфікацій та умов закупівлі за 2021-2026 роки у ZIP-архів.</p>
+          <div class="meta">Відкрити <span class="count">Акумулятор</span></div>
+        </a>
+
         <!-- Питання ЗОЗ — тільки для зареєстрованих -->
         <a class="hub-card span-3" href="zoz-questions/index.html" data-role="registered">
           <span class="num-badge">?</span>
@@ -229,16 +226,8 @@
           <div class="meta">Відкрити <span class="count">Стіна пропозицій</span></div>
         </a>
 
-        <!-- Пропозиції робочих груп — тільки для зареєстрованих -->
-        <a class="hub-card span-3" href="expert-proposals/index.html" data-role="registered">
-          <span class="num-badge">🧬</span>
-          <h3>Пропозиції робочих груп</h3>
-          <p>Опрацьовуйте пропозиції експертів робочих груп, беріть участь у голосуванні відділів та фіксуйте рішення.</p>
-          <div class="meta">Відкрити <span class="count">Робочі групи</span></div>
-        </a>
-
         <!-- СКО-Д — тільки для зареєстрованих -->
-        <a class="hub-card span-3" href="cabinet/index.html" data-role="registered">
+        <a class="hub-card span-3" href="skod/index.html" data-role="registered">
           <span class="num-badge">📊</span>
           <h3>Система СКО-Д</h3>
           <p>Вносьте щоденну діяльність та переглядайте індивідуальні й відділові звіти.</p>
@@ -261,14 +250,6 @@
           <h3>Робочий чат</h3>
           <p>Прямий оперативний зв'язок з експертами Департаменту в реальному часі.</p>
           <div class="meta">Відкрити <span class="count">Онлайн чат</span></div>
-        </a>
-
-        <!-- Хвилинка відпочинку — тільки для зареєстрованих експертів -->
-        <a class="hub-card span-3" href="relax/index.html" data-role="registered">
-          <span class="num-badge">🧘</span>
-          <h3>Хвилинка відпочинку</h3>
-          <p>Скиньте робочу напругу: дізнайтеся ваш кумедний астропрогноз на сьогодні, зробіть дихальну вправу або увімкніть звуки природи.</p>
-          <div class="meta">Відкрити <span class="count">Релакс-кабінет</span></div>
         </a>
 
       </div>
@@ -377,68 +358,24 @@
 
   async function loadDigest() {
     try {
-      // 1. Get current session
-      const { data: { session } } = await sb.auth.getSession();
-      if (!session || !session.user) {
+      const { data, error } = await sb
+        .from('news')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(3);
+      
+      if (error) {
+        console.warn('News digest loading skipped (likely guest or unauthorized):', error);
         document.getElementById('news-digest').style.display = 'none';
         return;
       }
       
-      // 2. Get role to ensure user has access (role != 'guest')
-      const { data: profile } = await sb.from('profiles').select('role').eq('id', session.user.id).single();
-      if (!profile || profile.role === 'guest') {
-        document.getElementById('news-digest').style.display = 'none';
-        return;
-      }
-      
-      let dbNews = [];
-      let localNews = [];
-      
-      // 3. Try load from Supabase
-      try {
-        const { data, error } = await sb
-          .from('news')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(5);
-        if (!error && data) {
-          dbNews = data;
-        }
-      } catch (e) {
-        console.warn('Failed to load news from Supabase, relying on local:', e);
-      }
-      
-      // 4. Try load from local JSON
-      try {
-        const res = await fetch('news/data/news.json');
-        if (res.ok) {
-          localNews = await res.json();
-        }
-      } catch (e) {
-        console.warn('Failed to load local news:', e);
-      }
-      
-      // 5. Merge news
-      const allNews = [...dbNews];
-      const dbIds = new Set(dbNews.map(n => n.id));
-      localNews.forEach(ln => {
-        if (!dbIds.has(ln.id)) {
-          allNews.push(ln);
-        }
-      });
-      
-      // Sort news by date
-      allNews.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      
-      // Take top 3
-      const digestItems = allNews.slice(0, 3);
-      
-      if (digestItems.length > 0) {
+      if (data && data.length > 0) {
         const container = document.getElementById('news-digest-grid');
         if (!container) return;
         container.innerHTML = "";
         
-        digestItems.forEach(n => {
+        data.forEach(n => {
           const card = document.createElement("a");
           card.href = `news/index.html?id=${n.id}`;
           

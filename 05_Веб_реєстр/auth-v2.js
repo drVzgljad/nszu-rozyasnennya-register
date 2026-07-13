@@ -65,7 +65,7 @@ async function fetchRole() {
 function applyAccess() {
   const pathParts = window.location.pathname.split('/');
   const isInSubdir = pathParts.some(part => [
-    'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'passport', 'regulatory', 'reminders', 'expert-proposals'
+    'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'passport', 'regulatory', 'reminders', 'expert-proposals', 'cabinet'
   ].includes(part.toLowerCase()));
   const prefix = isInSubdir ? '../' : './';
   const currentPath = window.location.pathname.toLowerCase();
@@ -207,7 +207,7 @@ function applyAccess() {
     const segments = normalized.split('/');
     
     if (normalized === 'index.html') {
-      const isSub = ['pakety', 'postanova', 'algorithms', 'zoz-questions', 'pmg-proposals', 'news', 'chat', 'rozjasnennya.html', 'zoz-dogovr', 'skod', 'dec', 'dept-tree.html', 'passport', 'regulatory', 'expert-proposals'].some(s => currentPath.includes(s));
+      const isSub = ['pakety', 'postanova', 'algorithms', 'zoz-questions', 'pmg-proposals', 'news', 'chat', 'rozjasnennya.html', 'zoz-dogovr', 'skod', 'dec', 'dept-tree.html', 'passport', 'regulatory', 'expert-proposals', 'cabinet'].some(s => currentPath.includes(s));
       return !isSub && (currentPath.endsWith('/') || currentPath.endsWith('index.html'));
     }
     
@@ -236,6 +236,7 @@ function applyAccess() {
 
     const coreItems = [
       { text: 'Головна', path: 'index.html' },
+      { text: 'Особистий кабінет', path: 'cabinet/index.html', role: 'expert' },
       { text: 'Реєстр', path: 'rozjasnennya.html' },
       { text: 'Пакети 2026', path: 'pakety/index.html' },
       { text: 'Паспорт пакета', path: 'passport/index.html' },
@@ -257,7 +258,7 @@ function applyAccess() {
       { text: 'Питання ЗОЗ', path: 'zoz-questions/index.html', role: 'expert' },
       { text: 'Пропозиції ПМГ', path: 'pmg-proposals/index.html', role: 'expert' },
       { text: 'Пропозиції робочих груп', path: 'expert-proposals/index.html', role: 'expert' },
-      { text: 'СКО-Д (Внесення)', path: 'skod/index.html', role: 'expert' },
+      { text: 'СКО-Д (Внесення)', path: 'cabinet/index.html', role: 'expert' },
       { text: 'СКО-Д (Звіти)', path: 'skod/reports.html', role: 'expert' },
       { text: 'СКО-Д (Доручення)', path: 'skod/tasks.html', role: 'manager' },
       { text: 'Новини', path: 'news/index.html', role: 'expert' },
@@ -338,28 +339,20 @@ function applyAccess() {
     }
   }
 
-  // Inject User Dashboard banner below header
+  // Inject News Alert Banner below header (old task dashboard removed)
   const header = document.querySelector('header.top');
   let dashboard = document.getElementById('user-task-dashboard');
+  if (dashboard) dashboard.remove(); // Clean up old banner if present
+  
   let alertBanner = document.getElementById('user-news-alert-banner');
   if (header) {
     if (!user || role === 'guest' || currentPath.includes('passport')) {
-      if (dashboard) dashboard.remove();
       if (alertBanner) alertBanner.remove();
     } else {
-      if (!dashboard) {
-        dashboard = document.createElement('div');
-        dashboard.id = 'user-task-dashboard';
-        dashboard.className = 'user-task-dashboard';
-        header.insertAdjacentElement('afterend', dashboard);
-      }
-      renderDashboard(dashboard, prefix);
-
-      // Inject News Alert Banner below dashboard
       if (!alertBanner) {
         alertBanner = document.createElement('div');
         alertBanner.id = 'user-news-alert-banner';
-        dashboard.insertAdjacentElement('afterend', alertBanner);
+        header.insertAdjacentElement('afterend', alertBanner);
       }
       renderAlertBanner(alertBanner, prefix);
     }
@@ -739,7 +732,7 @@ async function renderDashboard(dashboardEl, prefix) {
   try {
     const { data } = await sb
       .from('assigned_tasks')
-      .select('id, title, deadline, progress, status, description')
+      .select('id, title, deadline, progress, status, description, importance, task_type, askod_number, askod_sender')
       .eq('responsible_id', user.id)
       .neq('status', 'completed')
       .order('deadline', { ascending: true });
@@ -854,12 +847,20 @@ async function renderDashboard(dashboardEl, prefix) {
               const dateClass = daysLeft < 0 ? 'overdue' : (daysLeft <= 3 ? 'urgent' : 'normal');
               const daysText = daysLeft < 0 ? `(Протерміновано)` : (daysLeft === 0 ? `(Сьогодні!)` : `(залишилось ${daysLeft} дн.)`);
               const collapsedAttr = index >= 3 ? 'class="task-brief-item is-collapsed-hidden" style="display: none;"' : 'class="task-brief-item"';
+              
+              const impEmoji = t.importance === 'critical' ? '🔴' : (t.importance === 'important' ? '🟡' : '🟢');
+              const askodBadge = t.task_type === 'askod' && t.askod_number
+                ? `<span style="font-size:10px; font-weight:700; background:rgba(59, 130, 246, 0.15); color:var(--accent-deep); padding: 2px 6px; border-radius: 4px; font-family:monospace; margin-left: 6px; display:inline-block; vertical-align: middle;">№ ${t.askod_number}</span>`
+                : '';
+              
               return `
                 <div ${collapsedAttr}>
                   <div class="task-brief-content">
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 2px;">
                       <span class="task-brief-title" title="${t.title}">
-                        <a href="${prefix}skod/task-detail.html?id=${t.id}" target="_blank" style="color: inherit; text-decoration: none; border-bottom: 1px dashed var(--accent, #3b82f6); transition: color 0.2s;" onmouseover="this.style.color='var(--accent, #3b82f6)'" onmouseout="this.style.color='inherit'">${t.title}</a>
+                        <span style="font-size:12px; margin-right:4px; vertical-align: middle;" title="Важливість доручення">${impEmoji}</span>
+                        <a href="${prefix}skod/task-detail.html?id=${t.id}" target="_blank" style="color: inherit; text-decoration: none; border-bottom: 1px dashed var(--accent, #3b82f6); transition: color 0.2s; vertical-align: middle;" onmouseover="this.style.color='var(--accent, #3b82f6)'" onmouseout="this.style.color='inherit'">${t.title}</a>
+                        ${askodBadge}
                       </span>
                       <span class="task-brief-deadline ${dateClass}">до ${dateStr} ${daysText}</span>
                     </div>
@@ -970,6 +971,7 @@ async function init() {
 
   trackGlobalPresence();
   setupNewsRealtime();
+  setupTasksRealtime();
   
   // Daily Status Initialization
   loadUserDailyStatus();
@@ -987,6 +989,7 @@ async function init() {
     applyAccess();
     trackGlobalPresence();
     setupNewsRealtime();
+    setupTasksRealtime();
     
     // Daily Status update on Auth change
     loadUserDailyStatus();
@@ -1248,6 +1251,151 @@ function playNewsAlertSound() {
   } catch (e) {
     console.error("Audio beep error:", e);
   }
+}
+
+/* ── Realtime Tasks Subscription & Alerting ──────────────── */
+let tasksSubscription = null;
+
+function setupTasksRealtime() {
+  if (!user || role === 'guest') return;
+
+  if (tasksSubscription) {
+    sb.removeChannel(tasksSubscription);
+    tasksSubscription = null;
+  }
+
+  tasksSubscription = sb.channel('realtime_tasks_alerts')
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'assigned_tasks' }, payload => {
+      const newTask = payload.new;
+      if (newTask && newTask.responsible_id === user.id) {
+        triggerTaskAlertNotification(newTask);
+      }
+    })
+    .subscribe();
+}
+
+function triggerTaskAlertNotification(task) {
+  const notificationsEnabled = localStorage.getItem('news_notifications_enabled') !== 'false';
+  if (!notificationsEnabled) return;
+
+  playNewsAlertSound();
+
+  const importanceLabels = {
+    normal: '🟢 Звичайна важливість',
+    important: '🟡 Висока важливість',
+    critical: '🔴 Термінова важливість'
+  };
+  const impText = importanceLabels[task.importance] || 'Звичайна важливість';
+  const title = `Нове доручення (${impText})`;
+
+  const pathParts = window.location.pathname.split('/');
+  const isInSubdir = pathParts.some(part => [
+    'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'regulatory'
+  ].includes(part.toLowerCase()));
+  const prefix = isInSubdir ? '../' : './';
+  const targetUrl = prefix + "skod/task-detail.html?id=" + task.id;
+
+  const isTabHidden = document.hidden || !document.hasFocus();
+  if (isTabHidden && 'Notification' in window && Notification.permission === 'granted') {
+    const notification = new Notification(title, {
+      body: task.title,
+      icon: prefix + "assets/nszu-shield.svg",
+      tag: "task-alert",
+      renotify: true
+    });
+
+    notification.onclick = () => {
+      window.focus();
+      window.open(targetUrl, "_blank");
+      notification.close();
+    };
+  } else {
+    // Show premium on-screen toast notification when page is active or permissions are not set
+    showOnScreenToast(title, task.title, targetUrl);
+  }
+}
+
+function showOnScreenToast(title, body, url) {
+  let container = document.getElementById('portal-toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'portal-toast-container';
+    container.style.position = 'fixed';
+    container.style.bottom = '24px';
+    container.style.right = '24px';
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = '10px';
+    container.style.zIndex = '999999';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.style.background = 'var(--p-surface, #ffffff)';
+  toast.style.color = 'var(--p-ink, #0f172a)';
+  toast.style.padding = '16px 20px';
+  toast.style.borderRadius = '12px';
+  toast.style.boxShadow = '0 10px 30px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.05)';
+  toast.style.border = '1.5px solid var(--p-line, #e2e8f0)';
+  toast.style.minWidth = '320px';
+  toast.style.maxWidth = '400px';
+  toast.style.cursor = 'pointer';
+  toast.style.transition = 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+  toast.style.transform = 'translateY(20px)';
+  toast.style.opacity = '0';
+  toast.style.display = 'flex';
+  toast.style.flexDirection = 'column';
+  toast.style.gap = '6px';
+  toast.style.fontFamily = 'inherit';
+
+  if (!document.getElementById('toast-animation-style')) {
+    const style = document.createElement('style');
+    style.id = 'toast-animation-style';
+    style.textContent = `
+      .portal-toast-slide {
+        transform: translateY(0) !important;
+        opacity: 1 !important;
+      }
+      .portal-toast-slide:hover {
+        transform: translateY(-4px) !important;
+        box-shadow: 0 12px 35px rgba(0,0,0,0.2), 0 2px 5px rgba(0,0,0,0.08) !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  toast.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid var(--p-line); padding-bottom:6px;">
+      <strong style="color:var(--accent, #3b82f6); font-size:14px; font-weight:800; display:flex; align-items:center; gap:6px;">📋 ${title}</strong>
+      <button class="toast-close" style="background:none; border:none; color:var(--p-muted); font-size:18px; cursor:pointer; padding:0 4px; line-height:1;">&times;</button>
+    </div>
+    <div style="font-size:13px; font-weight:700; line-height:1.4; color:var(--p-ink);">${body}</div>
+    <div style="font-size:11px; color:var(--accent, #3b82f6); text-align:right; font-weight:800; margin-top:4px;">Відкрити доручення &rarr;</div>
+  `;
+
+  toast.querySelector('.toast-close').addEventListener('click', (e) => {
+    e.stopPropagation();
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(20px)';
+    setTimeout(() => toast.remove(), 300);
+  });
+
+  toast.addEventListener('click', () => {
+    window.open(url, '_blank');
+    toast.remove();
+  });
+
+  container.appendChild(toast);
+
+  setTimeout(() => toast.classList.add('portal-toast-slide'), 50);
+
+  setTimeout(() => {
+    if (toast.parentNode) {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(20px)';
+      setTimeout(() => toast.remove(), 300);
+    }
+  }, 8000);
 }
 
 

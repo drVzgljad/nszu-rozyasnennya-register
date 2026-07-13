@@ -132,29 +132,51 @@ async function loadTaskDetails() {
 
 function renderTaskHeader() {
   const deptBadge = document.getElementById('task-dept-badge');
+  const impBadge = document.getElementById('task-importance-badge');
   const titleEl = document.getElementById('task-title');
   const metaEl = document.getElementById('task-meta');
   const descEl = document.getElementById('task-description');
 
   if (deptBadge) deptBadge.textContent = currentTask.department;
+  
+  if (impBadge) {
+    const imp = currentTask.importance || 'normal';
+    const labels = {
+      normal: '🟢 Звичайна',
+      important: '🟡 Важлива',
+      critical: '🔴 Термінова'
+    };
+    impBadge.textContent = labels[imp] || 'Звичайна';
+    impBadge.className = `badge-importance ${imp}`;
+    impBadge.style.display = 'inline-block';
+  }
+  
   if (titleEl) titleEl.textContent = currentTask.title;
   
   if (metaEl) {
     const createdDate = new Date(currentTask.created_at).toLocaleDateString('uk-UA');
     const deadlineDate = new Date(currentTask.deadline).toLocaleDateString('uk-UA');
-    if (currentTask.is_ongoing) {
-      metaEl.innerHTML = `
-        <strong>Надав:</strong> ${currentTask.created_by_name} (${createdDate}) &bull; 
-        <strong>Виконавець:</strong> ${currentTask.responsible_name || 'Не призначено'} &bull; 
-        <strong>Тип доручення:</strong> <span style="font-weight: 700; color: var(--accent-deep);">Постійний посадовий обов'язок</span>
-      `;
+    
+    let taskTypeHtml = '';
+    if (currentTask.task_type === 'askod') {
+      taskTypeHtml = `💻 АСКОД (Лист № ${currentTask.askod_number || '—'} від ${currentTask.askod_sender || '—'})`;
     } else {
-      metaEl.innerHTML = `
-        <strong>Надав:</strong> ${currentTask.created_by_name} (${createdDate}) &bull; 
-        <strong>Виконавець:</strong> ${currentTask.responsible_name || 'Не призначено'} &bull; 
-        <strong>Термін виконання:</strong> <span style="font-weight: 700; color: var(--accent-deep);">${deadlineDate}</span>
-      `;
+      taskTypeHtml = `📌 Поточне завдання`;
     }
+    
+    let deadlineOrOngoingHtml = '';
+    if (currentTask.is_ongoing) {
+      deadlineOrOngoingHtml = `&bull; <strong>Обов'язок:</strong> <span style="font-weight: 700; color: var(--accent-deep);">Постійний посадовий</span>`;
+    } else {
+      deadlineOrOngoingHtml = `&bull; <strong>Термін виконання:</strong> <span style="font-weight: 700; color: var(--accent-deep);">${deadlineDate}</span>`;
+    }
+
+    metaEl.innerHTML = `
+      <strong>Надав:</strong> ${currentTask.created_by_name} (${createdDate}) &bull; 
+      <strong>Виконавець:</strong> ${currentTask.responsible_name || 'Не призначено'} &bull; 
+      <strong>Тип:</strong> ${taskTypeHtml}
+      ${deadlineOrOngoingHtml}
+    `;
   }
 
   const progressRightPanel = document.querySelector('#task-header-card > div > div:last-child');
@@ -497,6 +519,26 @@ function renderSubtasks() {
           const hh = String(now.getHours()).padStart(2, '0');
           const mm = String(now.getMinutes()).padStart(2, '0');
           form.querySelector('.log-start').value = `${hh}:${mm}`;
+
+          // Pre-fill ASKOD checkbox and askod number if parent task is askod
+          if (currentTask && currentTask.task_type === 'askod') {
+            const askodCheck = form.querySelector('.sub-is-askod');
+            const askodFieldsDiv = document.getElementById(`askod-fields-${subId}`);
+            const askodIn = askodFieldsDiv?.querySelector('.sub-askod-in');
+            const askodOut = askodFieldsDiv?.querySelector('.sub-askod-out');
+            
+            if (askodCheck) askodCheck.checked = true;
+            if (askodFieldsDiv) {
+              askodFieldsDiv.style.display = 'flex';
+              if (askodIn) {
+                askodIn.required = true;
+                if (currentTask.askod_number) {
+                  askodIn.value = currentTask.askod_number;
+                }
+              }
+              if (askodOut) askodOut.required = true;
+            }
+          }
         } else {
           wrapper.classList.remove('form-open');
         }
@@ -918,6 +960,19 @@ function showCompletionTimeForm() {
   const descInput = document.getElementById('completion-description');
   if (descInput && currentTask) {
     descInput.value = `Виконано доручення: ${currentTask.title}`;
+  }
+
+  // Auto pre-fill ASKOD fields for main completion form
+  const isAskodCheckbox = document.getElementById('completion-is-askod');
+  const askodFields = document.getElementById('completion-askod-fields');
+  const askodInInput = document.getElementById('completion-askod-in');
+  
+  if (currentTask && currentTask.task_type === 'askod') {
+    if (isAskodCheckbox) isAskodCheckbox.checked = true;
+    if (askodFields) askodFields.style.display = 'flex';
+    if (askodInInput && currentTask.askod_number) {
+      askodInInput.value = currentTask.askod_number;
+    }
   }
 }
 

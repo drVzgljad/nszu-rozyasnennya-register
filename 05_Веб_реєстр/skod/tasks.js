@@ -91,8 +91,79 @@ function setupManagerPanel() {
   const isDeptHead = userProfile.role === 'manager';
 
   if (isDirectorOrDeputy || isDeptHead) {
-    const card = document.getElementById('create-task-card');
-    if (card) card.style.display = 'block';
+    const triggerCard = document.getElementById('create-task-trigger-card');
+    if (triggerCard) triggerCard.style.display = 'block';
+
+    const modal = document.getElementById('create-task-modal');
+    const openBtn = document.getElementById('btn-open-create-modal');
+    const closeBtn = document.getElementById('modal-create-close');
+    const cancelBtn = document.getElementById('btn-close-create-modal');
+
+    // Open Modal
+    if (openBtn && modal) {
+      openBtn.addEventListener('click', () => {
+        modal.style.display = 'flex';
+      });
+    }
+
+    // Close Modal
+    const closeModal = () => {
+      if (modal) modal.style.display = 'none';
+    };
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+      });
+    }
+
+    // Tab switching
+    const tabAskod = document.getElementById('tab-askod');
+    const tabCurrent = document.getElementById('tab-current');
+    const askodGroup = document.getElementById('askod-fields-group');
+    const currentGroup = document.getElementById('current-fields-group');
+    const askodNumber = document.getElementById('task_askod_number');
+    const askodSender = document.getElementById('task_askod_sender');
+    const taskTitle = document.getElementById('task_title');
+
+    if (tabAskod && tabCurrent) {
+      tabAskod.addEventListener('click', () => {
+        tabAskod.classList.add('active');
+        tabCurrent.classList.remove('active');
+        tabAskod.style.background = 'var(--accent)';
+        tabAskod.style.color = '#fff';
+        tabAskod.style.border = 'none';
+        tabCurrent.style.background = 'var(--p-soft)';
+        tabCurrent.style.color = 'var(--p-ink)';
+        tabCurrent.style.border = '1px solid var(--p-line)';
+
+        if (askodGroup) askodGroup.style.display = 'block';
+        if (currentGroup) currentGroup.style.display = 'none';
+
+        if (askodNumber) askodNumber.required = true;
+        if (askodSender) askodSender.required = true;
+        if (taskTitle) taskTitle.required = false;
+      });
+
+      tabCurrent.addEventListener('click', () => {
+        tabCurrent.classList.add('active');
+        tabAskod.classList.remove('active');
+        tabCurrent.style.background = 'var(--accent)';
+        tabCurrent.style.color = '#fff';
+        tabCurrent.style.border = 'none';
+        tabAskod.style.background = 'var(--p-soft)';
+        tabAskod.style.color = 'var(--p-ink)';
+        tabAskod.style.border = '1px solid var(--p-line)';
+
+        if (askodGroup) askodGroup.style.display = 'none';
+        if (currentGroup) currentGroup.style.display = 'block';
+
+        if (askodNumber) askodNumber.required = false;
+        if (askodSender) askodSender.required = false;
+        if (taskTitle) taskTitle.required = true;
+      });
+    }
 
     const deptSelect = document.getElementById('task_dept');
     
@@ -130,14 +201,10 @@ function setupManagerPanel() {
       isOngoingInput.addEventListener('change', (e) => {
         if (e.target.checked) {
           deadlineInput.value = '2026-12-31';
-          deadlineInput.disabled = false;
-          deadlineInput.required = true;
         } else {
           const today = new Date();
           today.setDate(today.getDate() + 3);
           deadlineInput.value = today.toISOString().split('T')[0];
-          deadlineInput.disabled = false;
-          deadlineInput.required = true;
         }
       });
     }
@@ -147,18 +214,18 @@ function setupManagerPanel() {
     const prefillTitle = urlParams.get('prefill_title');
     const prefillDesc = urlParams.get('prefill_desc');
     
-    if (prefillTitle) {
-      const titleInput = document.getElementById('task_title');
-      if (titleInput) titleInput.value = prefillTitle;
-    }
-    if (prefillDesc) {
-      const descInput = document.getElementById('task_description');
-      if (descInput) descInput.value = prefillDesc;
-    }
-    
     if (prefillTitle || prefillDesc) {
-      if (card) {
-        card.scrollIntoView({ behavior: 'smooth' });
+      // Open current tab
+      if (tabCurrent) tabCurrent.click();
+      if (prefillTitle) {
+        if (taskTitle) taskTitle.value = prefillTitle;
+      }
+      if (prefillDesc) {
+        const descInput = document.getElementById('task_description');
+        if (descInput) descInput.value = prefillDesc;
+      }
+      if (modal) {
+        modal.style.display = 'flex';
       }
     }
   }
@@ -195,7 +262,31 @@ function populateResponsibleSelect() {
 // Create new task in Supabase
 async function createTask(e) {
   e.preventDefault();
-  const title = document.getElementById('task_title')?.value.trim();
+  
+  const task_type = document.getElementById('tab-askod').classList.contains('active') ? 'askod' : 'current';
+  const importance = document.querySelector('input[name="task_importance"]:checked')?.value || 'normal';
+  
+  let title = '';
+  let askod_number = null;
+  let askod_sender = null;
+
+  if (task_type === 'askod') {
+    askod_number = document.getElementById('task_askod_number')?.value.trim();
+    askod_sender = document.getElementById('task_askod_sender')?.value.trim();
+    title = `Лист № ${askod_number} від ${askod_sender}`;
+    
+    if (!askod_number || !askod_sender) {
+      alert("Будь ласка, заповніть номер листа та відправника.");
+      return;
+    }
+  } else {
+    title = document.getElementById('task_title')?.value.trim();
+    if (!title) {
+      alert("Будь ласка, введіть назву завдання.");
+      return;
+    }
+  }
+
   const department = document.getElementById('task_dept')?.value;
   const responsibleSelect = document.getElementById('task_responsible');
   const responsible_id = responsibleSelect?.value;
@@ -205,7 +296,7 @@ async function createTask(e) {
 
   const submitBtn = document.getElementById('btn-submit-task');
 
-  if (!title || !department || !responsible_id || !deadline) {
+  if (!department || !responsible_id || !deadline) {
     alert("Будь ласка, заповніть усі обов'язкові поля.");
     return;
   }
@@ -231,7 +322,11 @@ async function createTask(e) {
     progress: 0,
     status: 'assigned',
     description,
-    is_ongoing: is_ongoing
+    is_ongoing: is_ongoing,
+    task_type,
+    askod_number,
+    askod_sender,
+    importance
   };
 
   const { error } = await sb.from('assigned_tasks').insert([taskData]);
@@ -245,7 +340,16 @@ async function createTask(e) {
     alert("Помилка створення доручення: " + error.message);
   } else {
     // Reset Form
-    document.getElementById('task_title').value = '';
+    const tInput = document.getElementById('task_title');
+    if (tInput) tInput.value = '';
+    const askodNum = document.getElementById('task_askod_number');
+    if (askodNum) askodNum.value = '';
+    const askodSnd = document.getElementById('task_askod_sender');
+    if (askodSnd) askodSnd.value = '';
+    
+    const normalRadio = document.querySelector('input[name="task_importance"][value="normal"]');
+    if (normalRadio) normalRadio.checked = true;
+
     document.getElementById('task_description').value = '';
     if (responsibleSelect) responsibleSelect.selectedIndex = 0;
     
@@ -262,6 +366,10 @@ async function createTask(e) {
       }
     }
     
+    // Close Modal
+    const modal = document.getElementById('create-task-modal');
+    if (modal) modal.style.display = 'none';
+
     // Reload
     await loadTasks();
   }
@@ -415,9 +523,6 @@ function renderRegistry() {
     filteredTasks.forEach(task => {
       const tr = document.createElement('tr');
       
-      const deadlineDate = new Date(task.deadline);
-      const formattedDeadline = deadlineDate.toLocaleDateString('uk-UA');
-      
       // Delete button check
       const canDelete = task.created_by === currentUser.id || ['admin', 'director', 'deputy_director'].includes(userProfile.role);
       const deleteBtn = canDelete 
@@ -445,7 +550,51 @@ function renderRegistry() {
         evalCell = `<span style="color:var(--p-muted); font-size:12px;">В процесі</span>`;
       }
 
-      let deadlineVal = formattedDeadline;
+      // Importance cell
+      let impCell = '';
+      const imp = task.importance || 'normal';
+      if (imp === 'critical') {
+        impCell = `<span class="badge-importance critical">🔴 Термінова</span>`;
+      } else if (imp === 'important') {
+        impCell = `<span class="badge-importance important">🟡 Важлива</span>`;
+      } else {
+        impCell = `<span class="badge-importance normal">🟢 Звичайна</span>`;
+      }
+
+      // Urgency cell
+      let urgencyCell = '';
+      let deadlineVal = '';
+      if (task.is_ongoing) {
+        deadlineVal = '<span style="color:var(--p-muted); font-weight:normal;">Постійне</span>';
+        urgencyCell = `<span style="color:var(--p-muted); font-size:12px; font-style:italic;">Постійне</span>`;
+      } else {
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const deadlineDate = new Date(task.deadline);
+        deadlineDate.setHours(0,0,0,0);
+        const daysLeft = Math.ceil((deadlineDate - today) / (1000 * 60 * 60 * 24));
+        const formattedDeadline = new Date(task.deadline).toLocaleDateString('uk-UA');
+        deadlineVal = formattedDeadline;
+        
+        if (daysLeft < 0) {
+          urgencyCell = `<span style="color:#ef4444; font-weight:700; font-size:12px;">🚨 Прострочено (${Math.abs(daysLeft)} дн.)</span>`;
+        } else if (daysLeft === 0) {
+          urgencyCell = `<span style="color:#f59e0b; font-weight:700; font-size:12px;">⚠️ Сьогодні!</span>`;
+        } else if (daysLeft === 1) {
+          urgencyCell = `<span style="color:#f59e0b; font-weight:600; font-size:12px;">Завтра</span>`;
+        } else {
+          urgencyCell = `<span style="font-size:12px;">${formattedDeadline} <span style="color:var(--p-muted); font-size:10px;">(${daysLeft} дн.)</span></span>`;
+        }
+      }
+
+      // Letter number cell
+      let letterCell = '';
+      if (task.task_type === 'askod' && task.askod_number) {
+        letterCell = `<span style="font-family:monospace; font-weight:600; color:var(--p-ink); font-size:12.5px;">№ ${task.askod_number}</span>`;
+      } else {
+        letterCell = `<span style="font-size: 10px; font-weight: 700; background: var(--p-soft); color: var(--p-muted); padding: 4px 8px; border-radius: 6px; text-transform: uppercase;">📌 Поточне</span>`;
+      }
+
       let progressCell = `
         <div style="display:flex; align-items:center;">
           <div class="table-progress-bar-container">
@@ -457,26 +606,25 @@ function renderRegistry() {
       let statusBadge = `<span class="badge-status ${task.status}">${getStatusLabel(task.status)}</span>`;
 
       if (task.is_ongoing) {
-        deadlineVal = '<span style="color:var(--p-muted); font-weight:normal;">Постійне</span>';
         progressCell = `<span style="font-size:12px; color: var(--p-muted); font-style: italic;">Посадовий обов'язок</span>`;
         statusBadge = `<span class="badge-status ongoing" style="background: var(--accent-soft, rgba(74, 143, 199, 0.15)); color: var(--accent-deep, #2f6b9e); font-weight:700;">🔄 Посадовий обов'язок</span>`;
       }
 
       tr.innerHTML = `
+        <td>${impCell}</td>
+        <td>${urgencyCell}</td>
+        <td>${letterCell}</td>
         <td>
           <div style="font-weight: 700;">
             <a href="task-detail.html?id=${task.id}" target="_blank" style="color: var(--accent, #3b82f6); text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${task.title}</a>
           </div>
-          <div style="font-size:12px; color: var(--p-muted); margin-top: 4px;">Надав: ${task.created_by_name}</div>
+          <div style="font-size:11px; color: var(--p-muted); margin-top: 4px;">Надав: ${task.created_by_name}</div>
         </td>
-        <td><span style="font-size:13.5px; font-weight:600; color:var(--accent-deep);">${task.department}</span></td>
+        <td><span style="font-size:13px; font-weight:600; color:var(--accent-deep);">${task.department}</span></td>
         <td>
-          <div style="font-weight: 600;">${task.responsible_name || 'Не призначено'}</div>
+          <div style="font-weight: 600; font-size:13px;">${task.responsible_name || 'Не призначено'}</div>
         </td>
-        <td style="font-weight: 600; font-size:13.5px;">${deadlineVal}</td>
-        <td>
-          ${progressCell}
-        </td>
+        <td>${progressCell}</td>
         <td>${statusBadge}</td>
         <td>${evalCell}</td>
         <td style="text-align: center;">${deleteBtn}</td>

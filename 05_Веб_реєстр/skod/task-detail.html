@@ -239,6 +239,35 @@
     :root.dark-theme #task-completion-time-form textarea:focus {
       border-color: var(--accent);
     }
+
+    /* Importance Badge styles */
+    .badge-importance {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      text-align: center;
+      text-transform: uppercase;
+      vertical-align: middle;
+    }
+    .badge-importance.normal {
+      background: rgba(34, 197, 94, 0.15);
+      color: #166534;
+    }
+    .badge-importance.important {
+      background: rgba(245, 158, 11, 0.15);
+      color: #9a3412;
+    }
+    .badge-importance.critical {
+      background: rgba(239, 68, 68, 0.15);
+      color: #991b1b;
+      animation: pulse-border 1.5s infinite alternate;
+    }
+    @keyframes pulse-border {
+      from { box-shadow: 0 0 0 0px rgba(239, 68, 68, 0.4); }
+      to { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0); }
+    }
   </style>
 </head>
 <body data-required-role="expert">
@@ -281,6 +310,7 @@
       <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
         <div>
           <span id="task-dept-badge" class="user-dept-badge" style="display:inline-block; margin-bottom: 12px; font-size:12px;">Завантаження...</span>
+          <span id="task-importance-badge" class="badge-importance normal" style="display:none; margin-bottom: 12px; margin-left: 8px; font-size:11px;">Звичайна</span>
           <h1 id="task-title" style="margin: 0; font-family: var(--p-display); font-size: 28px; font-weight: 800; color: var(--p-ink);">Завантаження доручення...</h1>
           <p id="task-meta" style="color: var(--p-muted); margin-top: 8px; margin-bottom: 0; font-size: 13.5px;"></p>
         </div>
