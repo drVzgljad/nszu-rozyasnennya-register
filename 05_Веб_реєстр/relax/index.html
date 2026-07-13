@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="relax.css?v=20260713b">
   <link rel="stylesheet" href="horoscope-widget.css">
   <link rel="stylesheet" href="askod-game.css?v=6">
-  <link rel="stylesheet" href="orchid-game.css?v=1">
+  <link rel="stylesheet" href="orchid-game.css?v=2">
   <link rel="stylesheet" href="../auth-v2.css?v=20260615b">
   <script type="module" src="../auth-v2.js?v=20260615b"></script>
 </head>
@@ -154,12 +154,15 @@
     <div class="orchid-window">
       <div class="orchid-titlebar">
         <span class="orchid-title-text" id="orchidTitleText">🌸 Оранжерея НСЗУ — режим ніжності увімкнено</span>
-        <button type="button" class="orchid-close-btn" id="orchidCloseBtn" aria-label="Закрити гру">✕</button>
+        <span class="orchid-title-btns">
+          <button type="button" class="orchid-sound-btn" id="orchidSoundBtn" aria-label="Увімкнути або вимкнути звук">🔊</button>
+          <button type="button" class="orchid-close-btn" id="orchidCloseBtn" aria-label="Закрити гру">✕</button>
+        </span>
       </div>
       <div class="orchid-hud">
-        <span>⏱️ <span id="orchidTime">60</span> с</span>
-        <span>🌸 Бали: <span id="orchidScore">0</span></span>
-        <span>🔥 Серія: <span id="orchidCombo">—</span></span>
+        <span class="hud-chip">⏱️ <span id="orchidTime">60</span> с</span>
+        <span class="hud-chip">🌸 Бали: <span id="orchidScore">0</span></span>
+        <span class="hud-chip">🔥 Серія: <span id="orchidCombo">—</span></span>
         <span class="orchid-health-track" title="Настрій орхідеї"><span class="orchid-health-fill" id="orchidHealthFill"></span></span>
       </div>
       <div class="orchid-field" id="orchidField">
@@ -176,6 +179,6 @@
   <script src="horoscope-widget.js" defer></script>
   <script type="module" src="relax.js?v=2"></script>
   <script type="module" src="askod-game.js?v=6"></script>
-  <script type="module" src="orchid-game.js?v=1"></script>
+  <script type="module" src="orchid-game.js?v=2"></script>
 </body>
 </html>
