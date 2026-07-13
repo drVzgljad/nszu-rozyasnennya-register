@@ -1,17 +1,15 @@
 /* Симулятор АСКОД — міні-гра для Хвилинки відпочинку */
 
-.askod-card {
-  grid-column: 1 / -1;
-}
-
-/* Кнопка-ярлик запуску */
+/* Кнопка-ярлик запуску — компактна, в один рядок */
 .askod-launch {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 14px;
   align-items: center;
-  gap: 6px;
-  margin: 0 auto;
-  padding: 18px 34px;
+  text-align: left;
+  width: 100%;
+  padding: 12px 18px;
   background: rgba(255, 255, 255, 0.55);
   border: 1px dashed #94a3b8;
   border-radius: 16px;
@@ -44,12 +42,13 @@
 }
 
 .askod-launch-icon {
-  font-size: 3rem;
+  grid-row: 1 / span 2;
+  font-size: 2.2rem;
   filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.15));
 }
 
 .askod-launch-label {
-  font-size: 1.15rem;
+  font-size: 1rem;
   font-weight: 800;
   color: var(--ink, #1e293b);
 }
@@ -59,7 +58,7 @@
 }
 
 .askod-launch-hint {
-  font-size: 0.9rem;
+  font-size: 0.78rem;
   color: var(--muted, #64748b);
 }
 

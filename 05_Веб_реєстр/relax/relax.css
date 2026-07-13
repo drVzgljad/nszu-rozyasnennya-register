@@ -10,8 +10,8 @@
 .relax-hero p {
   color: rgba(255, 255, 255, 0.85);
   max-width: 800px;
-  font-size: clamp(1rem, 1.6vw, 1.15rem);
-  line-height: 1.7;
+  font-size: 1rem;
+  line-height: 1.6;
 }
 
 .relax-layout {
@@ -28,6 +28,11 @@
   .relax-layout {
     grid-template-columns: 1fr;
   }
+
+  /* На вузьких екранах компактні картки (гра, дихання, звуки) — вище гороскопа */
+  .relax-sidebar {
+    order: -1;
+  }
 }
 
 /* Glassmorphism Cards */
@@ -36,8 +41,8 @@
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 28px;
-  padding: clamp(1.5rem, 3vw, 2.25rem);
+  border-radius: 24px;
+  padding: clamp(1.25rem, 2.5vw, 1.75rem);
   box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.06);
 }
 
@@ -49,7 +54,7 @@
 
 .relax-card h2 {
   margin-top: 0;
-  font-size: clamp(1.4rem, 2.2vw, 1.65rem);
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
   font-weight: 800;
   color: var(--ink, #1e293b);
   display: flex;
@@ -59,10 +64,10 @@
 }
 
 .relax-card .subtitle {
-  margin: 10px 0 26px;
-  font-size: 1.02rem;
+  margin: 8px 0 20px;
+  font-size: 0.95rem;
   color: var(--muted, #64748b);
-  line-height: 1.6;
+  line-height: 1.55;
 }
 
 .relax-sidebar {
@@ -291,8 +296,8 @@
   gap: 1rem;
   background: rgba(255, 255, 255, 0.4);
   border: 1px solid rgba(226, 232, 240, 0.5);
-  border-radius: 18px;
-  padding: 16px 18px;
+  border-radius: 16px;
+  padding: 12px 16px;
   transition: all 0.2s ease;
 }
 
@@ -321,24 +326,24 @@
 
 .sound-details h4 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--ink, #1f2937);
 }
 
 .sound-details p {
-  margin: 3px 0 0;
-  font-size: 0.88rem;
+  margin: 2px 0 0;
+  font-size: 0.8rem;
   color: var(--muted, #6b7280);
   line-height: 1.45;
 }
 
 .sound-toggle-btn {
-  border-radius: 24px;
-  font-size: 0.95rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
   font-weight: 700;
-  padding: 10px 20px;
-  min-height: 44px;
+  padding: 8px 16px;
+  min-height: 40px;
   cursor: pointer;
   background: #fff;
   border: 1px solid #cbd5e1;
@@ -372,11 +377,11 @@
 
 /* ---------- Ергономіка та доступність ---------- */
 
-/* Великі, зручні кнопки дихальної вправи */
+/* Зручні кнопки дихальної вправи */
 .breathing-controls .action {
-  min-height: 48px;
-  padding: 12px 26px;
-  font-size: 1rem;
+  min-height: 44px;
+  padding: 10px 22px;
+  font-size: 0.95rem;
   font-weight: 700;
   border-radius: 14px;
 }
