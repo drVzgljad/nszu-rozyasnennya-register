@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="relax.css?v=20260713b">
   <link rel="stylesheet" href="horoscope-widget.css">
   <link rel="stylesheet" href="askod-game.css?v=6">
+  <link rel="stylesheet" href="orchid-game.css?v=1">
   <link rel="stylesheet" href="../auth-v2.css?v=20260615b">
   <script type="module" src="../auth-v2.js?v=20260615b"></script>
 </head>
@@ -53,6 +54,17 @@
           <span class="askod-launch-icon">🖥️</span>
           <span class="askod-launch-label">АСКОД.exe</span>
           <span class="askod-launch-hint">Натисніть, щоб запустити</span>
+        </button>
+      </section>
+
+      <!-- Гра «Моя чудова Квіточка» -->
+      <section class="relax-card orchid-card" aria-labelledby="orchidTitle">
+        <h2 id="orchidTitle">🌸 Моя чудова Квіточка</h2>
+        <p class="subtitle">Виростіть найпишнішу орхідею НСЗУ: доглядайте, підтримуйте та кажіть компліменти.</p>
+        <button id="orchidLaunchBtn" class="askod-launch" type="button">
+          <span class="askod-launch-icon">🌸</span>
+          <span class="askod-launch-label">Оранжерея</span>
+          <span class="askod-launch-hint">Натисніть, щоб увійти</span>
         </button>
       </section>
 
@@ -137,6 +149,26 @@
     </div>
   </div>
 
+  <!-- Модальне вікно гри «Моя чудова Квіточка» -->
+  <div class="askod-modal orchid-modal" id="orchidModal" role="dialog" aria-modal="true" aria-label="Моя чудова Квіточка">
+    <div class="orchid-window">
+      <div class="orchid-titlebar">
+        <span class="orchid-title-text" id="orchidTitleText">🌸 Оранжерея НСЗУ — режим ніжності увімкнено</span>
+        <button type="button" class="orchid-close-btn" id="orchidCloseBtn" aria-label="Закрити гру">✕</button>
+      </div>
+      <div class="orchid-hud">
+        <span>⏱️ <span id="orchidTime">60</span> с</span>
+        <span>🌸 Бали: <span id="orchidScore">0</span></span>
+        <span>🔥 Серія: <span id="orchidCombo">—</span></span>
+        <span class="orchid-health-track" title="Настрій орхідеї"><span class="orchid-health-fill" id="orchidHealthFill"></span></span>
+      </div>
+      <div class="orchid-field" id="orchidField">
+        <div class="orchid-stage" id="orchidStage"></div>
+        <div class="orchid-actions" id="orchidActions"></div>
+      </div>
+    </div>
+  </div>
+
   <footer class="site-footer" id="siteFooter">
     <p>&copy; 2026 НавігаторПМГ26. Зроблено з турботою про команду НСЗУ.</p>
   </footer>
@@ -144,5 +176,6 @@
   <script src="horoscope-widget.js" defer></script>
   <script type="module" src="relax.js?v=2"></script>
   <script type="module" src="askod-game.js?v=6"></script>
+  <script type="module" src="orchid-game.js?v=1"></script>
 </body>
 </html>
