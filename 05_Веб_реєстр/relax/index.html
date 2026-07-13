@@ -6,6 +6,7 @@
   <title>НавігаторПМГ26 | Хвилинка відпочинку</title>
   <link rel="stylesheet" href="../styles.css?v=20260531e">
   <link rel="stylesheet" href="relax.css">
+  <link rel="stylesheet" href="horoscope-widget.css">
   <link rel="stylesheet" href="../auth-v2.css?v=20260615b">
   <script type="module" src="../auth-v2.js?v=20260615b"></script>
 </head>
@@ -38,84 +39,8 @@
   </header>
 
   <main class="relax-layout">
-    <!-- Block 1: Horoscope -->
-    <section class="relax-card horoscope-card" aria-labelledby="horoscopeTitle">
-      <h2 id="horoscopeTitle">✨ Гороскоп успіху та гармонії</h2>
-      <p class="subtitle">Оберіть ваш знак зодіаку для отримання астрологічного прогнозу на сьогодні:</p>
-      
-      <div class="zodiac-grid">
-        <button class="zodiac-btn" data-sign="Овен" type="button">
-          <span class="zodiac-icon">♈</span>
-          <span class="zodiac-name">Овен</span>
-          <span class="zodiac-date">21.03 - 19.04</span>
-        </button>
-        <button class="zodiac-btn" data-sign="Телець" type="button">
-          <span class="zodiac-icon">♉</span>
-          <span class="zodiac-name">Телець</span>
-          <span class="zodiac-date">20.04 - 20.05</span>
-        </button>
-        <button class="zodiac-btn" data-sign="Близнюки" type="button">
-          <span class="zodiac-icon">♊</span>
-          <span class="zodiac-name">Близнюки</span>
-          <span class="zodiac-date">21.05 - 20.06</span>
-        </button>
-        <button class="zodiac-btn" data-sign="Рак" type="button">
-          <span class="zodiac-icon">♋</span>
-          <span class="zodiac-name">Рак</span>
-          <span class="zodiac-date">21.06 - 22.07</span>
-        </button>
-        <button class="zodiac-btn" data-sign="Лев" type="button">
-          <span class="zodiac-icon">♌</span>
-          <span class="zodiac-name">Лев</span>
-          <span class="zodiac-date">23.07 - 22.08</span>
-        </button>
-        <button class="zodiac-btn" data-sign="Діва" type="button">
-          <span class="zodiac-icon">♍</span>
-          <span class="zodiac-name">Діва</span>
-          <span class="zodiac-date">23.08 - 22.09</span>
-        </button>
-        <button class="zodiac-btn" data-sign="Терези" type="button">
-          <span class="zodiac-icon">♎</span>
-          <span class="zodiac-name">Терези</span>
-          <span class="zodiac-date">23.09 - 22.10</span>
-        </button>
-        <button class="zodiac-btn" data-sign="Скорпіон" type="button">
-          <span class="zodiac-icon">♏</span>
-          <span class="zodiac-name">Скорпіон</span>
-          <span class="zodiac-date">23.10 - 21.11</span>
-        </button>
-        <button class="zodiac-btn" data-sign="Стрілець" type="button">
-          <span class="zodiac-icon">♐</span>
-          <span class="zodiac-name">Стрілець</span>
-          <span class="zodiac-date">22.11 - 21.12</span>
-        </button>
-        <button class="zodiac-btn" data-sign="Козеріг" type="button">
-          <span class="zodiac-icon">♑</span>
-          <span class="zodiac-name">Козеріг</span>
-          <span class="zodiac-date">22.12 - 19.01</span>
-        </button>
-        <button class="zodiac-btn" data-sign="Водолій" type="button">
-          <span class="zodiac-icon">♒</span>
-          <span class="zodiac-name">Водолій</span>
-          <span class="zodiac-date">20.01 - 18.02</span>
-        </button>
-        <button class="zodiac-btn" data-sign="Риби" type="button">
-          <span class="zodiac-icon">♓</span>
-          <span class="zodiac-name">Риби</span>
-          <span class="zodiac-date">19.02 - 20.03</span>
-        </button>
-      </div>
-
-      <!-- Result Container -->
-      <div id="horoscopeResult" class="horoscope-result" style="display: none;">
-        <div class="result-header">
-          <span id="selectedSignIcon" class="result-sign-icon">✨</span>
-          <h3 id="selectedSignName">Прогноз</h3>
-        </div>
-        <p id="horoscopeText">Завантаження вашого зоряного прогнозу...</p>
-        <div class="loader" id="horoscopeLoader" style="display: none;"></div>
-      </div>
-    </section>
+    <!-- Block 1: Horoscope Widget 2026 -->
+    <div data-hz2026></div>
 
     <!-- Right Column: Breathing & Sound -->
     <div class="relax-sidebar">
@@ -188,6 +113,7 @@
     <p>&copy; 2026 НавігаторПМГ26. Зроблено з турботою про команду НСЗУ.</p>
   </footer>
 
+  <script src="horoscope-widget.js" defer></script>
   <script type="module" src="relax.js?v=2"></script>
 </body>
 </html>
