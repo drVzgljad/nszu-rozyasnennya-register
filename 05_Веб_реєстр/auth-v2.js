@@ -339,21 +339,29 @@ function applyAccess() {
     }
   }
 
-  // Inject News Alert Banner below header (old task dashboard removed)
+  // Inject User Dashboard banner below header
   const header = document.querySelector('header.top');
   let dashboard = document.getElementById('user-task-dashboard');
-  if (dashboard) dashboard.remove(); // Clean up old banner if present
+  if (dashboard) dashboard.remove();
   
   let alertBanner = document.getElementById('user-news-alert-banner');
   if (header) {
     if (!user || role === 'guest' || currentPath.includes('passport')) {
       if (alertBanner) alertBanner.remove();
     } else {
+      if (!dashboard) {
+        dashboard = document.createElement('div');
+        dashboard.id = 'user-task-dashboard';
+        dashboard.className = 'user-task-dashboard';
+        header.insertAdjacentElement('afterend', dashboard);
+      }
+      renderDashboard(dashboard, prefix);
+      
       if (!alertBanner) {
         alertBanner = document.createElement('div');
         alertBanner.id = 'user-news-alert-banner';
-        header.insertAdjacentElement('afterend', alertBanner);
       }
+      dashboard.insertAdjacentElement('afterend', alertBanner);
       renderAlertBanner(alertBanner, prefix);
     }
   }
@@ -1269,6 +1277,17 @@ function setupTasksRealtime() {
       const newTask = payload.new;
       if (newTask && newTask.responsible_id === user.id) {
         triggerTaskAlertNotification(newTask);
+
+        // Dynamically re-render dashboard list if present on the page
+        const dashboardEl = document.getElementById('user-task-dashboard');
+        if (dashboardEl) {
+          const pathParts = window.location.pathname.split('/');
+          const isInSubdir = pathParts.some(part => [
+            'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'regulatory'
+          ].includes(part.toLowerCase()));
+          const prefix = isInSubdir ? '../' : './';
+          renderDashboard(dashboardEl, prefix);
+        }
       }
     })
     .subscribe();
