@@ -856,29 +856,59 @@ async function renderDashboard(dashboardEl, prefix) {
               const daysText = daysLeft < 0 ? `(Протерміновано)` : (daysLeft === 0 ? `(Сьогодні!)` : `(залишилось ${daysLeft} дн.)`);
               const collapsedAttr = index >= 3 ? 'class="task-brief-item is-collapsed-hidden" style="display: none;"' : 'class="task-brief-item"';
               
-              const impEmoji = t.importance === 'critical' ? '🔴' : (t.importance === 'important' ? '🟡' : '🟢');
+              const bulbColor = daysLeft < 0 ? 'red' : (daysLeft <= 3 ? 'yellow' : 'green');
               const askodBadge = t.task_type === 'askod' && t.askod_number
                 ? `<span style="font-size:10px; font-weight:700; background:rgba(59, 130, 246, 0.15); color:var(--accent-deep); padding: 2px 6px; border-radius: 4px; font-family:monospace; margin-left: 6px; display:inline-block; vertical-align: middle;">№ ${t.askod_number}</span>`
                 : '';
               
               return `
                 <div ${collapsedAttr}>
-                  <div class="task-brief-content">
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 2px;">
-                      <span class="task-brief-title" title="${t.title}">
-                        <span style="font-size:12px; margin-right:4px; vertical-align: middle;" title="Важливість доручення">${impEmoji}</span>
-                        <a href="${prefix}skod/task-detail.html?id=${t.id}" target="_blank" style="color: inherit; text-decoration: none; border-bottom: 1px dashed var(--accent, #3b82f6); transition: color 0.2s; vertical-align: middle;" onmouseover="this.style.color='var(--accent, #3b82f6)'" onmouseout="this.style.color='inherit'">${t.title}</a>
+                  <!-- Header Row -->
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%;">
+                    <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
+                      <span class="glow-bulb ${bulbColor}" title="Терміновість: ${daysText}"></span>
+                      <span class="task-brief-title" style="font-weight: 700; font-size: 13px;" title="${t.title.replace(/"/g, '&quot;')}">
+                        <span style="color: var(--accent, #3b82f6); font-family: monospace; font-weight: 800; margin-right: 4px;">№ ${index + 1}</span>
+                        ${t.title}
                         ${askodBadge}
                       </span>
-                      <span class="task-brief-deadline ${dateClass}">до ${dateStr} ${daysText}</span>
                     </div>
-                    ${t.description ? `<div class="task-brief-desc" title="${t.description.replace(/"/g, '&quot;')}">${t.description}</div>` : ''}
+                    
+                    <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+                      <span style="font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px;" class="task-brief-deadline ${dateClass}">до ${dateStr}</span>
+                      <div class="task-brief-progress-wrapper" style="width: 80px; margin: 0; gap: 6px;">
+                        <div class="task-brief-progress-bg" style="height: 5px; margin: 0;">
+                          <div class="task-brief-progress-bar" style="width: ${t.progress}%"></div>
+                        </div>
+                        <span class="task-brief-progress-val" style="font-size: 10.5px; min-width: 25px;">${t.progress}%</span>
+                      </div>
+                      <span class="expand-arrow" style="font-size: 10px; color: var(--p-muted); transition: transform 0.2s;">▼</span>
+                    </div>
                   </div>
-                  <div class="task-brief-progress-wrapper">
-                    <div class="task-brief-progress-bg">
-                      <div class="task-brief-progress-bar" style="width: ${t.progress}%"></div>
+                  
+                  <!-- Short description preview (visible when collapsed) -->
+                  <div class="task-brief-desc-preview" style="font-size: 11px; color: var(--p-muted); padding-left: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">
+                    ${t.description || 'Опис відсутній'}
+                  </div>
+
+                  <!-- Expanded Details Panel -->
+                  <div class="task-brief-details" style="display: none; padding-top: 10px; margin-top: 8px; border-top: 1px dashed var(--p-line, #e2e8f0); font-size: 12px; color: var(--p-ink);">
+                    <div style="margin-bottom: 8px; line-height: 1.4;">
+                      <strong>📝 Опис доручення:</strong> 
+                      <div style="margin-top: 4px; background: var(--p-soft, #f7fafc); padding: 8px 12px; border-radius: 6px; color: var(--p-ink); font-size: 11.5px; border-left: 3px solid var(--accent); white-space: pre-line;">
+                        ${t.description || 'Детальний опис доручення відсутній.'}
+                      </div>
                     </div>
-                    <span class="task-brief-progress-val">${t.progress}%</span>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; flex-wrap: wrap; gap: 8px;">
+                      <span style="font-size: 11px; color: var(--p-muted);">
+                        Важливість: <strong>${t.importance === 'critical' ? '🔴 Термінова' : (t.importance === 'important' ? '🟡 Висока' : '🟢 Звичайна')}</strong>
+                        ${t.department ? ` | Підрозділ: <strong>${t.department}</strong>` : ''}
+                        ${t.askod_sender ? ` | Відправник: <strong>${t.askod_sender}</strong>` : ''}
+                      </span>
+                      <a href="${prefix}skod/task-detail.html?id=${t.id}" class="dashboard-action-btn primary" style="padding: 5px 12px; font-size: 11px; text-decoration: none; border-radius: 6px; background: var(--accent); color: white; display: inline-flex; align-items: center; gap: 4px; font-weight: 700;">
+                        🔗 Відкрити картку доручення
+                      </a>
+                    </div>
                   </div>
                 </div>
               `;
@@ -968,6 +998,23 @@ async function renderDashboard(dashboardEl, prefix) {
         : `Згорнути список нагадувань`;
     });
   }
+
+  // Add interactive click delegation for task-brief-item expansion
+  dashboardEl.addEventListener('click', (e) => {
+    const item = e.target.closest('.task-brief-item');
+    if (item) {
+      // Don't toggle if the user clicked on a link or button
+      if (e.target.closest('a') || e.target.closest('button')) {
+        return;
+      }
+      const details = item.querySelector('.task-brief-details');
+      if (details) {
+        const isVisible = details.style.display === 'block';
+        details.style.display = isVisible ? 'none' : 'block';
+        item.classList.toggle('is-expanded', !isVisible);
+      }
+    }
+  });
 }
 
 async function init() {
