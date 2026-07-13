@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>НавігаторПМГ26 | Хвилинка відпочинку</title>
   <link rel="stylesheet" href="../styles.css?v=20260531e">
-  <link rel="stylesheet" href="relax.css">
+  <link rel="stylesheet" href="relax.css?v=20260713a">
   <link rel="stylesheet" href="horoscope-widget.css">
+  <link rel="stylesheet" href="askod-game.css?v=5">
   <link rel="stylesheet" href="../auth-v2.css?v=20260615b">
   <script type="module" src="../auth-v2.js?v=20260615b"></script>
 </head>
@@ -107,7 +108,34 @@
         </div>
       </section>
     </div>
+
+    <!-- Block 4: Гра «Симулятор АСКОД» -->
+    <section class="relax-card askod-card" aria-labelledby="askodTitle">
+      <h2 id="askodTitle">🗂️ Симулятор АСКОД</h2>
+      <p class="subtitle">Тренажер стресостійкості держслужбовця: опрацюйте якомога більше документів за 60 секунд. АСКОД, звісно, буде проти.</p>
+      <button id="askodLaunchBtn" class="askod-launch" type="button">
+        <span class="askod-launch-icon">🖥️</span>
+        <span class="askod-launch-label">АСКОД.exe</span>
+        <span class="askod-launch-hint">Натисніть, щоб запустити</span>
+      </button>
+    </section>
   </main>
+
+  <!-- Модальне вікно гри «Симулятор АСКОД» -->
+  <div class="askod-modal" id="askodModal" role="dialog" aria-modal="true" aria-label="Симулятор АСКОД">
+    <div class="askod-window">
+      <div class="askod-titlebar">
+        <span class="askod-title-text" id="askodTitleText">АСКОД — Автоматизована система документообігу</span>
+        <span class="askod-fake-btns"><span>—</span><span>□</span><button type="button" class="askod-close-btn" id="askodCloseBtn" aria-label="Закрити гру">✕</button></span>
+      </div>
+      <div class="askod-hud">
+        <span>⏱️ Час: <span id="askodTime">60</span> с</span>
+        <span>📥 Опрацьовано: <span id="askodScore">0</span></span>
+        <span>⚠️ Помилки: <span id="askodErrCount">0/5</span></span>
+      </div>
+      <div class="askod-field" id="askodField"></div>
+    </div>
+  </div>
 
   <footer class="site-footer" id="siteFooter">
     <p>&copy; 2026 НавігаторПМГ26. Зроблено з турботою про команду НСЗУ.</p>
@@ -115,5 +143,6 @@
 
   <script src="horoscope-widget.js" defer></script>
   <script type="module" src="relax.js?v=2"></script>
+  <script type="module" src="askod-game.js?v=5"></script>
 </body>
 </html>

@@ -1,0 +1,597 @@
+/* Симулятор АСКОД — міні-гра для Хвилинки відпочинку */
+
+.askod-card {
+  grid-column: 1 / -1;
+}
+
+/* Кнопка-ярлик запуску */
+.askod-launch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin: 0 auto;
+  padding: 18px 34px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px dashed #94a3b8;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+:root.dark-theme .askod-launch {
+  background: rgba(15, 23, 42, 0.5);
+  border-color: #475569;
+}
+
+.askod-launch:hover {
+  transform: translateY(-3px);
+  border-color: #2563eb;
+  border-style: solid;
+  background: rgba(219, 234, 254, 0.6);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.18);
+}
+
+:root.dark-theme .askod-launch:hover {
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.askod-launch:disabled {
+  cursor: wait;
+  opacity: 0.8;
+  transform: none;
+}
+
+.askod-launch-icon {
+  font-size: 3rem;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.15));
+}
+
+.askod-launch-label {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--ink, #1e293b);
+}
+
+:root.dark-theme .askod-launch-label {
+  color: #e2e8f0;
+}
+
+.askod-launch-hint {
+  font-size: 0.9rem;
+  color: var(--muted, #64748b);
+}
+
+/* Модальне вікно */
+.askod-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.askod-modal.open {
+  display: flex;
+  animation: askodModalIn 0.2s ease;
+}
+
+@keyframes askodModalIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.askod-modal .askod-window {
+  width: min(1000px, 96vw);
+  animation: askodWindowIn 0.25s ease;
+}
+
+@keyframes askodWindowIn {
+  from { transform: scale(0.92) translateY(16px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.askod-window {
+  border: 1px solid #94a3b8;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #e2e8f0;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+  user-select: none;
+}
+
+:root.dark-theme .askod-window {
+  background: #334155;
+  border-color: #475569;
+}
+
+/* Титульна панель у стилі «того самого» вікна */
+.askod-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 7px 12px;
+}
+
+.askod-titlebar .askod-title-text {
+  flex-grow: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.askod-titlebar .askod-fake-btns {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.askod-fake-btns span,
+.askod-close-btn {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.25);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  line-height: 1;
+}
+
+.askod-close-btn {
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 0;
+  font-size: 10px;
+  transition: background 0.15s ease;
+}
+
+.askod-close-btn:hover {
+  background: #dc2626;
+}
+
+/* HUD */
+.askod-hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  align-items: center;
+  padding: 8px 14px;
+  background: #f1f5f9;
+  border-bottom: 1px solid #cbd5e1;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+:root.dark-theme .askod-hud {
+  background: #1e293b;
+  border-color: #475569;
+  color: #e2e8f0;
+}
+
+.askod-hud .hud-danger {
+  color: #dc2626;
+}
+
+:root.dark-theme .askod-hud .hud-danger {
+  color: #f87171;
+}
+
+/* Ігрове поле */
+.askod-field {
+  position: relative;
+  height: min(420px, 62vh);
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 34px, rgba(148, 163, 184, 0.12) 35px),
+    linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+  overflow: hidden;
+}
+
+:root.dark-theme .askod-field {
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 34px, rgba(148, 163, 184, 0.08) 35px),
+    linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+}
+
+@media (max-width: 640px) {
+  .askod-field { height: 480px; }
+}
+
+/* Документ */
+.askod-doc {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+  animation: askodDocIn 0.25s ease;
+  transition: opacity 0.4s ease, transform 0.2s ease;
+  max-width: 230px;
+  z-index: 2;
+}
+
+.askod-doc:hover {
+  transform: scale(1.05);
+  border-color: #1d4ed8;
+}
+
+:root.dark-theme .askod-doc {
+  background: #1e293b;
+  border-color: #475569;
+  color: #e2e8f0;
+}
+
+.askod-doc .doc-icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.askod-doc.urgent {
+  border-color: #dc2626;
+  box-shadow: 0 0 14px rgba(220, 38, 38, 0.35);
+  animation: askodDocIn 0.25s ease, askodUrgentPulse 0.7s ease-in-out infinite alternate;
+}
+
+.askod-doc.expiring {
+  opacity: 0.35;
+}
+
+@keyframes askodDocIn {
+  from { transform: scale(0.6); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes askodUrgentPulse {
+  from { box-shadow: 0 0 8px rgba(220, 38, 38, 0.25); }
+  to { box-shadow: 0 0 18px rgba(220, 38, 38, 0.55); }
+}
+
+/* Спливаючий +1 */
+.askod-float-score {
+  position: absolute;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #16a34a;
+  pointer-events: none;
+  z-index: 6;
+  animation: askodFloatUp 0.8s ease forwards;
+}
+
+@keyframes askodFloatUp {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(-40px); opacity: 0; }
+}
+
+/* Вікно помилки — класичний сірий діалог */
+.askod-error {
+  position: absolute;
+  width: 250px;
+  background: #ece9d8;
+  border: 1px solid #716f64;
+  border-radius: 6px;
+  box-shadow: 4px 4px 14px rgba(0, 0, 0, 0.35);
+  z-index: 5;
+  animation: askodDocIn 0.15s ease;
+  overflow: hidden;
+}
+
+.askod-error.shake {
+  animation: askodShake 0.3s ease;
+}
+
+@keyframes askodShake {
+  0%, 100% { margin-left: 0; }
+  25% { margin-left: -6px; }
+  75% { margin-left: 6px; }
+}
+
+.askod-error-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(180deg, #2563eb 0%, #1e3a8a 100%);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 8px;
+}
+
+.askod-error-body {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px;
+  font-size: 0.78rem;
+  color: #1e293b;
+  line-height: 1.35;
+}
+
+.askod-error-body .err-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.askod-error-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+
+.askod-error-actions button {
+  min-width: 84px;
+  min-height: 38px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: #f5f4ef;
+  border: 1px solid #716f64;
+  border-radius: 6px;
+  color: #1e293b;
+  cursor: pointer;
+}
+
+.askod-error-actions button:hover {
+  background: #fff;
+}
+
+/* Вікно техпідтримки — рідкісне й дорогоцінне */
+.askod-support {
+  position: absolute;
+  width: 260px;
+  background: #f0fdf4;
+  border: 1px solid #16a34a;
+  border-radius: 6px;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25), 4px 4px 18px rgba(0, 0, 0, 0.35);
+  z-index: 7;
+  animation: askodDocIn 0.15s ease, askodSupportPulse 0.8s ease-in-out infinite alternate;
+  overflow: hidden;
+}
+
+@keyframes askodSupportPulse {
+  from { box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2), 4px 4px 18px rgba(0, 0, 0, 0.35); }
+  to { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.45), 4px 4px 22px rgba(0, 0, 0, 0.4); }
+}
+
+.askod-support-titlebar {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(180deg, #16a34a 0%, #15803d 100%);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 8px;
+}
+
+.askod-support .askod-error-body {
+  color: #14532d;
+}
+
+.askod-support .askod-error-actions button {
+  background: #dcfce7;
+  border-color: #16a34a;
+  color: #14532d;
+  font-weight: 800;
+}
+
+.askod-support .askod-error-actions button:hover {
+  background: #bbf7d0;
+}
+
+/* Оверлеї старту та фіналу */
+.askod-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: #f8fafc;
+}
+
+.askod-overlay h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.askod-overlay p {
+  margin: 0;
+  font-size: 0.92rem;
+  max-width: 460px;
+  line-height: 1.5;
+  color: rgba(248, 250, 252, 0.9);
+}
+
+.askod-overlay .askod-rank {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #fbbf24;
+}
+
+.askod-overlay .askod-best {
+  font-size: 0.8rem;
+  color: rgba(248, 250, 252, 0.7);
+}
+
+.askod-overlay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.askod-overlay button {
+  padding: 10px 26px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+  transition: transform 0.15s ease;
+}
+
+.askod-overlay button:hover {
+  transform: translateY(-2px);
+}
+
+.askod-overlay button.secondary {
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: none;
+}
+
+.askod-save-status {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fbbf24;
+}
+
+/* Дошка пошани */
+.askod-overlay.askod-lb {
+  justify-content: flex-start;
+  overflow-y: auto;
+  gap: 12px;
+}
+
+.askod-lb-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  width: 100%;
+  max-width: 880px;
+}
+
+@media (max-width: 720px) {
+  .askod-lb-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.askod-lb-col {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 10px 14px;
+  text-align: left;
+}
+
+.askod-lb-col h4 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #fbbf24;
+  text-align: center;
+}
+
+.askod-lb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.askod-lb-table th {
+  text-align: left;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(248, 250, 252, 0.55);
+  padding: 4px 6px;
+  font-weight: 700;
+}
+
+.askod-lb-table td {
+  padding: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  vertical-align: top;
+}
+
+.askod-lb-table .lb-dept {
+  display: block;
+  font-size: 0.68rem;
+  color: rgba(248, 250, 252, 0.55);
+  margin-top: 1px;
+}
+
+.askod-lb-table .lb-score {
+  font-weight: 800;
+  color: #4ade80;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* «Синій екран» повного зависання */
+.askod-overlay.bsod {
+  background: #1e3a8a;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  font-family: 'Consolas', 'Courier New', monospace;
+  align-items: flex-start;
+  text-align: left;
+  justify-content: center;
+}
+
+.askod-overlay.bsod h3 {
+  font-family: inherit;
+}
+
+.askod-overlay.bsod p {
+  font-family: inherit;
+  max-width: 560px;
+}
+
+/* Доступність гри */
+.askod-launch:focus-visible,
+.askod-close-btn:focus-visible,
+.askod-window button:focus-visible {
+  outline: 3px solid #a855f7;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .askod-window *,
+  .askod-modal,
+  .askod-modal .askod-window,
+  .askod-launch {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+
+  .askod-doc.urgent,
+  .askod-support {
+    animation: none !important;
+  }
+}
