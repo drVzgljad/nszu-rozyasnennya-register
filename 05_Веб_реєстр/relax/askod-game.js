@@ -25,7 +25,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
   const GAME_TIME = 60;
   const MAX_ERRORS = 5;
-  const DOC_LIFETIME = 4200;
+  const DOC_LIFETIME = 3600;
   const BEST_KEY = 'askodBestScore';
 
   const DOC_TYPES = [
@@ -195,7 +195,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
   /* Рідкісне вікно техпідтримки — єдине, що лікує помилки */
   function scheduleSupport(minMs, maxMs) {
-    later(spawnSupport, rnd(minMs || 7000, maxMs || 13000));
+    later(spawnSupport, rnd(minMs || 12000, maxMs || 20000));
   }
 
   function spawnSupport() {
@@ -209,11 +209,11 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
     placeRandomly(win, 260, 140);
     field.appendChild(win);
 
-    // Вікно можливостей коротке — не проґавте
+    // Вікно можливостей дуже коротке — не проґавте
     const lifeId = later(() => {
       win.remove();
       scheduleSupport();
-    }, 4000);
+    }, 2500);
 
     win.querySelector('[data-act="fix"]').addEventListener('click', () => {
       if (!running) return;
@@ -416,7 +416,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
     later(tick, 1000);
     spawnDoc();
     later(() => { if (running) spawnError(); }, rnd(3000, 6000));
-    scheduleSupport(6000, 10000);
+    scheduleSupport(8000, 14000);
   }
 
   function showStartScreen() {
