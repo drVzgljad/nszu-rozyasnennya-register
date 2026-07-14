@@ -1090,13 +1090,46 @@ async function addCommentToTask(taskId, commentText) {
 function setupUIEvents() {
   // 1. Task filter tabs click handlers
   const filterTabs = document.querySelectorAll('.filter-tab');
+  const applyFilter = (filter) => {
+    const tab = document.querySelector(`.filter-tab[data-filter="${filter}"]`);
+    if (!tab) return;
+    filterTabs.forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    renderTasksList(filter);
+  };
   filterTabs.forEach(tab => {
     tab.addEventListener('click', (e) => {
-      filterTabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      renderTasksList(tab.dataset.filter);
+      applyFilter(tab.dataset.filter);
     });
   });
+
+  // 1a. Metric cards open the corresponding task list
+  const metricFilters = {
+    'metric-card-active': 'active',
+    'metric-card-hot': 'hot',
+    'metric-card-overdue': 'overdue'
+  };
+  Object.entries(metricFilters).forEach(([cardId, filter]) => {
+    const card = document.getElementById(cardId);
+    if (!card) return;
+    card.addEventListener('click', () => {
+      applyFilter(filter);
+      document.querySelector('.tasks-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+  const todayCard = document.getElementById('metric-card-today');
+  if (todayCard) {
+    todayCard.addEventListener('click', () => {
+      document.querySelector('.today-feed-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  // 1b. Deep link from the home page: cabinet/index.html?filter=hot
+  const urlFilter = new URLSearchParams(window.location.search).get('filter');
+  if (urlFilter && document.querySelector(`.filter-tab[data-filter="${urlFilter}"]`)) {
+    applyFilter(urlFilter);
+    document.querySelector('.tasks-panel')?.scrollIntoView({ block: 'start' });
+  }
 
   // 2. Branch selector changes
   const branchSel = document.getElementById('task_branch');

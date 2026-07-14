@@ -7,6 +7,71 @@
   <link rel="stylesheet" href="portal.css?v=20260603d">
   <link rel="stylesheet" href="auth-v2.css?v=20260615b">
   <script type="module" src="auth-v2.js?v=20260616b"></script>
+  <style>
+    /* ── Експрес-інфоблок кабінету на головній ── */
+    .home-metrics-section {
+      padding: 28px 0 8px;
+    }
+    .home-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+    }
+    .home-metric-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 20px;
+      background: var(--p-surface, #fff);
+      border: 1px solid var(--p-line, #e2e8f0);
+      border-radius: var(--pr-card, 16px);
+      box-shadow: var(--p-shadow-sm, 0 1px 3px rgba(0,0,0,.06));
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .home-metric-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--p-shadow, 0 8px 20px rgba(47,107,158,.12));
+    }
+    .home-metric-icon {
+      font-size: 28px;
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: var(--p-soft, #f1f5f9);
+      flex-shrink: 0;
+    }
+    .home-metric-details {
+      display: flex;
+      flex-direction: column;
+    }
+    .home-metric-num {
+      font-size: 24px;
+      font-weight: 800;
+      font-family: var(--p-display);
+      color: var(--p-ink, #0f172a);
+      line-height: 1.1;
+    }
+    .home-metric-lbl {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--p-muted, #64748b);
+    }
+    .home-metric-card.active .home-metric-icon { background: rgba(74, 143, 199, 0.1); }
+    .home-metric-card.warning .home-metric-icon { background: rgba(245, 158, 11, 0.1); }
+    .home-metric-card.danger .home-metric-icon { background: rgba(239, 68, 68, 0.1); }
+    .home-metric-card.success .home-metric-icon { background: rgba(84, 173, 132, 0.1); }
+    .home-metric-card.danger.has-overdue .home-metric-num {
+      animation: home-text-pulse 2s infinite alternate;
+    }
+    @keyframes home-text-pulse {
+      from { color: var(--p-ink, #0f172a); }
+      to { color: #dc2626; }
+    }
+  </style>
 </head>
 <body>
 <div class="portal">
@@ -85,6 +150,57 @@
         <div class="cell"><div class="num">46</div><div class="cap">пакетів ПМГ-2026</div></div>
         <div class="cell"><div class="num">29</div><div class="cap">напрямів медичної допомоги</div></div>
         <div class="cell"><div class="num">2026</div><div class="cap">редакція програми</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Експрес-інфоблок кабінету (лише для експертів) ── -->
+  <section class="home-metrics-section" id="home-metrics" style="display: none;">
+    <div class="wrap">
+      <div class="section-head" style="margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; width: 100%; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h2 style="margin: 0; font-size: 22px; font-family: var(--p-display); font-weight: 800; color: var(--p-ink);">
+              ⚡ Мій робочий стан
+            </h2>
+            <p style="margin: 4px 0 0 0; font-size: 14px; color: var(--p-muted);">
+              Експрес-огляд ваших доручень — натисніть на картку, щоб відкрити відповідний список у кабінеті
+            </p>
+          </div>
+          <a href="cabinet/index.html" style="font-size: 14px; font-weight: 600; color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+            Відкрити кабінет <span>→</span>
+          </a>
+        </div>
+      </div>
+      <div class="home-metrics-grid">
+        <a class="home-metric-card active" href="cabinet/index.html?filter=active">
+          <div class="home-metric-icon">📋</div>
+          <div class="home-metric-details">
+            <span class="home-metric-num" id="home-metric-active">0</span>
+            <span class="home-metric-lbl">Активні доручення</span>
+          </div>
+        </a>
+        <a class="home-metric-card warning" href="cabinet/index.html?filter=hot">
+          <div class="home-metric-icon">🔥</div>
+          <div class="home-metric-details">
+            <span class="home-metric-num" id="home-metric-hot">0</span>
+            <span class="home-metric-lbl">Гарячі (≤2 дн.)</span>
+          </div>
+        </a>
+        <a class="home-metric-card danger" href="cabinet/index.html?filter=overdue">
+          <div class="home-metric-icon">🚨</div>
+          <div class="home-metric-details">
+            <span class="home-metric-num" id="home-metric-overdue">0</span>
+            <span class="home-metric-lbl">Прострочені завдання</span>
+          </div>
+        </a>
+        <a class="home-metric-card success" href="cabinet/index.html">
+          <div class="home-metric-icon">⏱️</div>
+          <div class="home-metric-details">
+            <span class="home-metric-num" id="home-metric-today">0.0 год</span>
+            <span class="home-metric-lbl">Списано сьогодні (СКО-Д)</span>
+          </div>
+        </a>
       </div>
     </div>
   </section>
@@ -476,6 +592,71 @@
     }
   }
 
+  // ── Експрес-інфоблок кабінету: активні / гарячі / прострочені / списано сьогодні
+  async function loadHomeMetrics() {
+    const section = document.getElementById('home-metrics');
+    if (!section) return;
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session || !session.user) {
+        section.style.display = 'none';
+        return;
+      }
+
+      // Лише для експертів і вище (як у кабінеті)
+      const { data: profile } = await sb.from('profiles').select('role').eq('id', session.user.id).single();
+      const rolesOrder = ['guest', 'expert', 'manager', 'deputy_director', 'director', 'admin'];
+      if (!profile || rolesOrder.indexOf(profile.role) < rolesOrder.indexOf('expert')) {
+        section.style.display = 'none';
+        return;
+      }
+
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      const [{ data: tasks }, { data: logs }] = await Promise.all([
+        sb.from('assigned_tasks')
+          .select('status, deadline')
+          .eq('responsible_id', session.user.id),
+        sb.from('skod_logs')
+          .select('duration_minutes')
+          .eq('user_id', session.user.id)
+          .eq('log_date', todayStr)
+      ]);
+
+      // Та сама логіка підрахунку, що і в cabinet.js
+      const activeTasks = (tasks || []).filter(t => t.status !== 'completed' && t.status !== 'rejected');
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      let hotCount = 0;
+      let overdueCount = 0;
+      activeTasks.forEach(t => {
+        if (!t.deadline) return;
+        const dl = new Date(t.deadline);
+        dl.setHours(0, 0, 0, 0);
+        const diffDays = Math.ceil((dl - today) / (1000 * 60 * 60 * 24));
+        if (diffDays < 0) overdueCount++;
+        else if (diffDays <= 2) hotCount++;
+      });
+
+      const totalMinutes = (logs || []).reduce((acc, l) => acc + (l.duration_minutes || 0), 0);
+      const totalHours = (totalMinutes / 60).toFixed(1);
+
+      document.getElementById('home-metric-active').textContent = activeTasks.length;
+      document.getElementById('home-metric-hot').textContent = hotCount;
+      document.getElementById('home-metric-overdue').textContent = overdueCount;
+      document.getElementById('home-metric-today').textContent = `${totalHours} год`;
+
+      const overdueCard = document.querySelector('.home-metric-card.danger');
+      if (overdueCard) overdueCard.classList.toggle('has-overdue', overdueCount > 0);
+
+      section.style.display = 'block';
+    } catch (e) {
+      console.warn('Failed to load home cabinet metrics:', e);
+      section.style.display = 'none';
+    }
+  }
+
   async function loadRegulatoryCount() {
     try {
       const { count, error } = await sb
@@ -502,10 +683,12 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     loadDigest();
+    loadHomeMetrics();
     loadRegulatoryCount();
     if (sb.auth && typeof sb.auth.onAuthStateChange === 'function') {
       sb.auth.onAuthStateChange(() => {
         loadDigest();
+        loadHomeMetrics();
         loadRegulatoryCount();
       });
     }
