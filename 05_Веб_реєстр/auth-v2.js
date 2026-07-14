@@ -236,7 +236,7 @@ function applyAccess() {
 
     const coreItems = [
       { text: 'Головна', path: 'index.html' },
-      { text: 'Реєстр', path: 'rozjasnennya.html' },
+      { text: 'Роз\'яснення', path: 'rozjasnennya.html' },
       { text: 'Пакети 2026', path: 'pakety/index.html' },
       { text: 'Паспорт пакета', path: 'passport/index.html' }
     ];
