@@ -255,18 +255,55 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
     love: '<svg viewBox="0 0 48 48"><path class="t-heartbeat" d="M24 39 C10 29 8 18 15 13 C20 10 24 14 24 17 C24 14 28 10 33 13 C40 18 38 29 24 39 Z" fill="#ec84b6"/></svg>'
   };
 
+  // Canvas-двигун частинок: вода з гравітацією, пелюстки за вітром
+  let fxCanvas = null, fxCtx = null, fxParts = [], fxRaf = 0;
+  function fxEnsure() {
+    if (fxCanvas && fxCanvas.isConnected) return;
+    fxCanvas = document.createElement('canvas');
+    fxCanvas.className = 'orchid-fx';
+    fxCanvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5';
+    stageEl.appendChild(fxCanvas);
+    fxCtx = fxCanvas.getContext('2d');
+  }
+  function fxLoop() {
+    const w = fxCanvas.width = fxCanvas.offsetWidth, h = fxCanvas.height = fxCanvas.offsetHeight;
+    fxCtx.clearRect(0, 0, w, h);
+    fxParts = fxParts.filter((p) => p.life > 0);
+    for (const p of fxParts) {
+      p.life--; p.x += p.vx; p.y += p.vy;
+      if (p.kind === 'drop') {
+        p.vy += 0.35;
+        if (p.y > h * 0.82 && !p.hit) { p.hit = true; p.vy = -p.vy * 0.28; p.vx = rnd(-1.4, 1.4); p.life = Math.min(p.life, 14); }
+        fxCtx.fillStyle = 'rgba(127,212,247,' + Math.min(1, p.life / 22) + ')';
+        fxCtx.beginPath(); fxCtx.ellipse(p.x, p.y, 2.6, 4, 0, 0, 7); fxCtx.fill();
+      } else {
+        p.vy += 0.02; p.rot += p.vr;
+        fxCtx.save(); fxCtx.translate(p.x, p.y); fxCtx.rotate(p.rot);
+        fxCtx.fillStyle = 'rgba(236,132,182,' + Math.min(1, p.life / 30) + ')';
+        fxCtx.beginPath(); fxCtx.ellipse(0, 0, 6, 3.2, 0, 0, 7); fxCtx.fill(); fxCtx.restore();
+      }
+    }
+    fxRaf = fxParts.length ? requestAnimationFrame(fxLoop) : 0;
+  }
+  function fxSpawn(kind, count) {
+    fxEnsure();
+    const w = fxCanvas.offsetWidth, h = fxCanvas.offsetHeight;
+    for (let i = 0; i < count; i++) {
+      if (kind === 'drop') {
+        fxParts.push({ kind, x: w * rnd(0.42, 0.6), y: h * 0.14 + rnd(0, 20), vx: rnd(-0.5, 0.5), vy: rnd(0.5, 2.2), life: rnd(45, 70), rot: 0, vr: 0 });
+      } else {
+        fxParts.push({ kind, x: w * rnd(0.3, 0.55), y: h * rnd(0.3, 0.6), vx: rnd(2.2, 4.6), vy: rnd(-1.4, 0.4), life: rnd(40, 75), rot: rnd(0, 6), vr: rnd(-0.2, 0.2) });
+      }
+    }
+    if (!fxRaf) fxRaf = requestAnimationFrame(fxLoop);
+  }
+
   // Візуальний ефект догляду на сцені + радість рослини
   function careEffect(careId) {
     if (careId === 'water') {
-      for (let i = 0; i < 7; i++) {
-        const d = document.createElement('span');
-        d.className = 'orchid-drop';
-        d.style.left = rnd(40, 62) + '%';
-        d.style.animationDelay = (i * 60) + 'ms';
-        stageEl.appendChild(d);
-        later(() => d.remove(), 900 + i * 60);
-      }
+      fxSpawn('drop', 26);
     } else if (careId === 'air') {
+      fxSpawn('petal', 12);
       if (plantEl) {
         plantEl.classList.remove('gust');
         void plantEl.offsetWidth;
