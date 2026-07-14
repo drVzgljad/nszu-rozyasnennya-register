@@ -660,6 +660,42 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
       plantEl.style.setProperty('--tiltX', '0');
       plantEl.style.setProperty('--tiltY', '0');
     });
+
+    // Перемикач справжнього 3D (Three.js, довантажується на вимогу)
+    const btn3d = document.createElement('button');
+    btn3d.type = 'button';
+    btn3d.className = 'orchid-3d-toggle';
+    btn3d.textContent = '✨ 3D-режим';
+    stageEl.appendChild(btn3d);
+    btn3d.addEventListener('click', async () => {
+      try {
+        if (!window.Orchid3D) {
+          btn3d.disabled = true;
+          btn3d.textContent = 'Завантаження…';
+          await new Promise((res, rej) => {
+            const s = document.createElement('script');
+            s.src = 'orchid3d.js?v=20260714j';
+            s.onload = res;
+            s.onerror = rej;
+            document.head.appendChild(s);
+          });
+          btn3d.disabled = false;
+        }
+        if (window.Orchid3D.active()) {
+          window.Orchid3D.stop();
+          stageEl.classList.remove('mode-3d');
+          btn3d.textContent = '✨ 3D-режим';
+        } else {
+          await window.Orchid3D.start(stageEl);
+          stageEl.classList.add('mode-3d');
+          btn3d.textContent = '🌸 2D-режим';
+        }
+      } catch (err) {
+        btn3d.disabled = false;
+        btn3d.textContent = '3D недоступний тут';
+        later(() => { btn3d.textContent = '✨ 3D-режим'; }, 2000);
+      }
+    });
   }
 
   /* ---------- Supabase: результати та лідери ---------- */
