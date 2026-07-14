@@ -699,6 +699,9 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
         later(() => { btn3d.textContent = '✨ 3D-режим'; }, 2000);
       }
     });
+
+    // 3D — режим за замовчуванням (якщо WebGL недоступний, лишиться SVG)
+    later(() => { if (!stageEl.classList.contains('mode-3d')) btn3d.click(); }, 80);
   }
 
   /* ---------- Supabase: результати та лідери ---------- */
