@@ -235,6 +235,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
     plantEl.querySelectorAll('.orchid-bloom').forEach((el, i) => {
       el.classList.toggle('visible', i < visible);
     });
+    if (window.Orchid3D && window.Orchid3D.active()) window.Orchid3D.setBlooms(visible);
   }
 
   function hurtPlant() {
@@ -336,6 +337,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
       void plantEl.offsetWidth;
       plantEl.classList.add('happy');
     }
+    if (window.Orchid3D && window.Orchid3D.active()) window.Orchid3D.joy();
   }
 
   function sparkleBurst() {
@@ -674,7 +676,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
           btn3d.textContent = 'Завантаження…';
           await new Promise((res, rej) => {
             const s = document.createElement('script');
-            s.src = 'orchid3d.js?v=20260714j';
+            s.src = 'orchid3d.js?v=20260714m';
             s.onload = res;
             s.onerror = rej;
             document.head.appendChild(s);
@@ -689,6 +691,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
           await window.Orchid3D.start(stageEl);
           stageEl.classList.add('mode-3d');
           btn3d.textContent = '🌸 2D-режим';
+          window.Orchid3D.setBlooms(bloomsCount());
         }
       } catch (err) {
         btn3d.disabled = false;
