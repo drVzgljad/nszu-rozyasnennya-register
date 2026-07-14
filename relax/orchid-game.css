@@ -758,3 +758,28 @@
   .orchid-care-btn .care-tool, .tool-air .t-fan, .tool-love .t-heartbeat,
   .combo-hot .orchid-butterfly { animation: none !important; }
 }
+
+/* ═══════════ v2.1: псевдо-3D сцена (параллакс за курсором) ═══════════ */
+.orchid-stage { perspective: 900px; }
+.orchid-plant {
+  transform-style: preserve-3d;
+  transform: rotateY(calc(var(--tiltX, 0) * 1deg)) rotateX(calc(var(--tiltY, 0) * -1deg));
+  transition: transform .25s ease-out;
+  will-change: transform;
+}
+.orchid-plant .orchid-inner { transform-style: preserve-3d; }
+.orchid-plant > .orchid-inner > svg { transform: translateZ(0); }
+.orchid-bloom { transform: scale(0) translateZ(16px); }
+.orchid-bloom.visible { transform: scale(1) translateZ(16px); }
+.orchid-butterfly { transform: translateZ(34px); }
+.combo-hot .orchid-butterfly { animation-name: oFly3d; }
+@keyframes oFly3d {
+  0% { transform: translate3d(0,0,34px) rotate(0); }
+  25% { transform: translate3d(46px,-18px,44px) rotate(10deg); }
+  50% { transform: translate3d(88px,8px,28px) rotate(-8deg); }
+  75% { transform: translate3d(34px,26px,40px) rotate(6deg); }
+  100% { transform: translate3d(0,0,34px) rotate(0); }
+}
+@media (prefers-reduced-motion: reduce), (pointer: coarse) {
+  .orchid-plant { transform: none !important; }
+}

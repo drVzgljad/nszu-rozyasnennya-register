@@ -608,6 +608,21 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
         handleCare(btn.getAttribute('data-care'));
       }
     });
+
+    // Псевдо-3D: сцена нахиляється за курсором
+    stageEl.addEventListener('pointermove', (e) => {
+      if (!plantEl) return;
+      const r = stageEl.getBoundingClientRect();
+      const nx = (e.clientX - r.left) / r.width - 0.5;
+      const ny = (e.clientY - r.top) / r.height - 0.5;
+      plantEl.style.setProperty('--tiltX', (nx * 14).toFixed(2));
+      plantEl.style.setProperty('--tiltY', (ny * 10).toFixed(2));
+    });
+    stageEl.addEventListener('pointerleave', () => {
+      if (!plantEl) return;
+      plantEl.style.setProperty('--tiltX', '0');
+      plantEl.style.setProperty('--tiltY', '0');
+    });
   }
 
   /* ---------- Supabase: результати та лідери ---------- */
