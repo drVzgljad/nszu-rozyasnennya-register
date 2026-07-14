@@ -85,18 +85,18 @@ function applyAccess() {
     }
   }
 
-  // Update standalone SKOD Report button in top nav
-  const skodBtn = document.getElementById('auth-skod-btn');
-  if (skodBtn) {
-    skodBtn.href = prefix + 'skod/reports.html';
-    const hasSkodAccess = hasAccess('expert');
-    if (!hasSkodAccess) {
-      skodBtn.style.display = 'none';
+  // Update standalone Personal Cabinet button in top nav
+  const cabinetBtn = document.getElementById('auth-cabinet-btn');
+  if (cabinetBtn) {
+    cabinetBtn.href = prefix + 'cabinet/index.html';
+    const hasCabinetAccess = hasAccess('expert');
+    if (!hasCabinetAccess) {
+      cabinetBtn.style.display = 'none';
     } else {
-      skodBtn.style.display = '';
-      skodBtn.classList.remove('is-locked');
-      skodBtn.innerHTML = `Звіт СКО-Д`;
-      skodBtn.onclick = null;
+      cabinetBtn.style.display = '';
+      cabinetBtn.classList.remove('is-locked');
+      cabinetBtn.innerHTML = `👤 Особистий кабінет`;
+      cabinetBtn.onclick = null;
     }
   }
 
@@ -236,7 +236,6 @@ function applyAccess() {
 
     const coreItems = [
       { text: 'Головна', path: 'index.html' },
-      { text: 'Особистий кабінет', path: 'cabinet/index.html', role: 'expert' },
       { text: 'Реєстр', path: 'rozjasnennya.html' },
       { text: 'Пакети 2026', path: 'pakety/index.html' },
       { text: 'Паспорт пакета', path: 'passport/index.html' },
@@ -586,12 +585,12 @@ function inject() {
     topChatBtn.textContent = 'Робочий чат';
     container.appendChild(topChatBtn);
 
-    // Standalone SKOD Report button in top nav
-    const topSkodBtn = document.createElement('a');
-    topSkodBtn.id = 'auth-skod-btn';
-    topSkodBtn.className = 'auth-skod-btn';
-    topSkodBtn.textContent = 'Звіт СКО-Д';
-    container.appendChild(topSkodBtn);
+    // Standalone Personal Cabinet button in top nav
+    const topCabinetBtn = document.createElement('a');
+    topCabinetBtn.id = 'auth-cabinet-btn';
+    topCabinetBtn.className = 'auth-cabinet-btn';
+    topCabinetBtn.textContent = 'Особистий кабінет';
+    container.appendChild(topCabinetBtn);
 
     // Standalone Tasks button in top nav
     const topTasksBtn = document.createElement('a');

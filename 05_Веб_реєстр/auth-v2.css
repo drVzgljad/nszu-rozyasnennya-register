@@ -336,7 +336,7 @@
 }
 
 /* Force nowrap for all nav items on one line */
-.top-nav a, .section-switch a, .nav-dropdown-btn, .nav-chat-btn, .auth-chat-btn, .auth-skod-btn, .auth-tasks-btn {
+.top-nav a, .section-switch a, .nav-dropdown-btn, .nav-chat-btn, .auth-chat-btn, .auth-cabinet-btn, .auth-tasks-btn {
   white-space: nowrap;
 }
 
@@ -451,10 +451,10 @@
   opacity: 0.8;
 }
 
-/* ── Top Nav Bar SKOD Report Button ────────────────── */
-.auth-skod-btn {
+/* ── Top Nav Bar Personal Cabinet Button (primary CTA) ── */
+.auth-cabinet-btn {
   margin-left: 8px;
-  padding: 8px 14px;
+  padding: 8px 16px;
   border-radius: 9px;
   font-size: 13px;
   font-weight: 700;
@@ -467,32 +467,15 @@
   gap: 5px;
   transition: all 0.15s ease;
   box-sizing: border-box;
+  background: var(--cta-grad, linear-gradient(120deg, #4a8fc7, #54ad84));
+  color: #fff;
+  border: 1.5px solid transparent;
+  box-shadow: 0 6px 14px rgba(54, 124, 160, 0.26);
 }
-
-/* Unlocked SKOD button in top nav */
-.auth-skod-btn:not(.is-locked) {
-  background: var(--b-50, #eef6fc);
-  color: var(--b-700, #2f6b9e);
-  border: 1.5px solid rgba(74, 143, 199, 0.3);
-}
-.auth-skod-btn:not(.is-locked):hover {
-  background: #dcecf8;
-  color: #1c5282;
-  border-color: rgba(74, 143, 199, 0.5);
+.auth-cabinet-btn:hover {
+  color: #fff;
   transform: translateY(-1px);
-}
-
-/* Locked SKOD button in top nav */
-.auth-skod-btn.is-locked {
-  background: #f7fafc;
-  color: var(--muted, #647688);
-  border: 1.5px solid var(--line, #e3edf3);
-}
-.auth-skod-btn.is-locked:hover {
-  background: #f0f4f8;
-  color: var(--accent-dark, #2f6b9e);
-  border-color: rgba(74, 143, 199, 0.35);
-  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(54, 124, 160, 0.34);
 }
 /* ── Top Nav Bar SKOD Tasks Button ────────────────── */
 .auth-tasks-btn {
@@ -2051,7 +2034,7 @@
 }
 
 /* Force nowrap for all nav items */
-.top-nav a, .section-switch a, .nav-dropdown-btn, .nav-chat-btn, .auth-chat-btn, .auth-skod-btn, .auth-tasks-btn, .auth-regulatory-btn {
+.top-nav a, .section-switch a, .nav-dropdown-btn, .nav-chat-btn, .auth-chat-btn, .auth-cabinet-btn, .auth-tasks-btn, .auth-regulatory-btn {
   white-space: nowrap;
 }
 
