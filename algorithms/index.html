@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>НавігаторПМГ26 | Алгоритми та правила</title>
+  <link rel="stylesheet" href="../styles.css?v=20260531e">
+  <link rel="stylesheet" href="algorithms.css?v=20260612">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260714">
+  <script type="module" src="../auth-v2.js?v=20260714e"></script>
+</head>
+<body id="top">
+  <header class="hero algorithms-hero">
+    <div class="hero-copy">
+      <div class="overline">Наказ НСЗУ № 377</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів, постанови та правил</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Алгоритми та правила</h1>
+      <p>Пошук за кодами НК 025, назвами діагнозів, амбулаторно-асоційованими станами та правилами наказу № 377. Перший робочий шар: швидко знайти код, джерело, сторінку PDF і скопіювати висновок.</p>
+    </div>
+    <div class="stats" id="algorithmStats" aria-label="Статистика алгоритмів"></div>
+  </header>
+
+  <nav class="mobile-tabs" id="mobileTabs" aria-label="Навігація між панелями">
+    <button class="mobile-tab active" data-tab="browser" type="button">Пошук</button>
+    <button class="mobile-tab" data-tab="results" type="button">Результати <span id="mobileCount"></span></button>
+    <button class="mobile-tab" data-tab="reader" type="button">Деталі</button>
+  </nav>
+
+  <main class="algorithms-layout" data-active="browser">
+    <section class="algorithm-browser" aria-label="Пошук алгоритмів та правил">
+      <div class="search-panel algorithm-search">
+        <label class="search">
+          <span>Пошук у кодах і правилах</span>
+          <input id="algorithmSearch" type="search" placeholder="Наприклад: A08.0, Z00.1, ротавірус, профілактика..." autocomplete="off">
+        </label>
+        <div class="algorithm-filters">
+          <label>Джерело
+            <select id="sourceFilter"><option value="">Усі джерела</option></select>
+          </label>
+          <label>Пакет / правило
+            <select id="packageFilter"><option value="">Усі пакети</option></select>
+          </label>
+        </div>
+        <div class="results-summary">
+          <span id="algorithmCount"></span>
+          <button id="clearAlgorithms" type="button">Очистити</button>
+        </div>
+      </div>
+      <div class="source-panel">
+        <h2>Джерела</h2>
+        <div id="sourceCards" class="source-cards"></div>
+      </div>
+    </section>
+
+    <section class="algorithm-results" aria-label="Знайдені коди">
+      <div class="algorithm-cards" id="algorithmCards"></div>
+    </section>
+
+    <article class="algorithm-reader reader-empty" id="algorithmReader" aria-live="polite">
+      <p>Оберіть код або правило, щоб побачити деталі й сформувати текст для копіювання.</p>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Розділ створено для швидкої навігації наказом № 377, додатками та порівняльними матеріалами.</p>
+      </div>
+    </div>
+  </footer>
+
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <script src="algorithms.js?v=20260612" defer></script>
+</body>
+</html>

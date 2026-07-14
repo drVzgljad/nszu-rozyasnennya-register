@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>НавігаторПМГ26 | Пакети 2026</title>
+  <link rel="stylesheet" href="../styles.css?v=20260531e">
+  <link rel="stylesheet" href="packages.css?v=20260531e">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260714">
+  <script type="module" src="../auth-v2.js?v=20260714e"></script>
+</head>
+<body id="top">
+  <header class="hero package-hero">
+    <div class="hero-copy">
+      <div class="overline">Програма медичних гарантій 2026</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Пакетний навігатор 26</h1>
+      <p>Знайдіть пакет, вимогу, спеціаліста або обладнання. Відкривайте конкретні пункти умов закупівлі й пов'язані роз'яснення.</p>
+    </div>
+    <div class="stats" id="packageStats" aria-label="Статистика пакетів"></div>
+  </header>
+
+  <main class="packages-layout">
+    <section class="package-browser" aria-label="Пошук пакетів">
+      <div class="search-panel package-search">
+        <label class="search">
+          <span>Пошук у пакетах</span>
+          <input id="packageSearch" type="search" placeholder="Наприклад: ШВЛ, паліативна, стаціонарно..." autocomplete="off">
+        </label>
+        <div class="tag-filters" id="tagFilters" aria-label="Фільтри умов"></div>
+        <div class="results-summary">
+          <span id="packageCount"></span>
+          <span class="package-search-actions">
+            <button id="clearPackages" type="button">Очистити</button>
+          </span>
+        </div>
+      </div>
+      <div class="package-cards" id="packageCards"></div>
+    </section>
+
+    <aside class="package-outline" id="packageOutline" aria-live="polite"></aside>
+    <article class="package-reader" id="packageReader" aria-live="polite"></article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Навігатор створено для швидкого доступу до вимог пакетів Програми медичних гарантій 2026.</p>
+      </div>
+    </div>
+  </footer>
+
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <script src="packages.js?v=20260612" defer></script>
+</body>
+</html>

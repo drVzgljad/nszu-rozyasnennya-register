@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Паспорт пакета ПМГ 2026 — НавігаторПМГ26</title>
+  <link rel="stylesheet" href="../portal.css?v=20260603d">
+  <link rel="stylesheet" href="../styles.css?v=20260531e">
+  <link rel="stylesheet" href="passport.css?v=20260609">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260714">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script type="module" src="../auth-v2.js?v=20260714e"></script>
+</head>
+<body>
+<div class="portal">
+
+  <!-- ── Top Bar ────────────────────────────────────────── -->
+  <header class="top">
+    <div class="wrap top-inner">
+      <div class="top-row-1">
+        <a class="lockup" href="../index.html" aria-label="На головну">
+          <img class="shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true" style="width:44px;height:auto">
+          <span class="wm">
+            <span class="wm-1">Робочий простір експертів</span>
+            <span class="wm-2">Програма медичних гарантій 2026</span>
+          </span>
+        </a>
+        <div class="top-row-1-right">
+          <nav class="section-switch top-auth" aria-label="Авторизація"></nav>
+          <span class="agency-chip">
+            <img src="../assets/nszu-shield.svg" alt="">НСЗУ
+          </span>
+        </div>
+      </div>
+      <div class="top-row-2">
+        <nav class="top-nav" aria-label="Головне меню"></nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main Dashboard Layout ───────────────────────────── -->
+  <main class="passport-layout">
+    
+    <!-- Left Sidebar (Package Switcher) -->
+    <aside class="passport-sidebar">
+      <div class="sidebar-brand">
+        <img src="../assets/nszu-shield.svg" alt="" aria-hidden="true" class="brand-logo">
+        <div class="brand-meta">
+          <span class="brand-title">НавігаторПМГ26</span>
+          <a class="brand-back-link" href="../index.html">← На головну</a>
+        </div>
+      </div>
+
+      <div class="sidebar-search">
+        <input type="search" id="sidebarSearchInput" placeholder="Шукати пакет за номером або назвою..." autocomplete="off">
+      </div>
+
+      <div class="sidebar-list" id="sidebarPackageList">
+        <div class="sidebar-loading">Завантаження пакетів...</div>
+      </div>
+    </aside>
+
+    <!-- Right Content Window -->
+    <section class="passport-main" aria-live="polite">
+      
+      <!-- Welcome Empty State -->
+      <div class="passport-welcome" id="passportWelcome">
+        <div class="welcome-box">
+          <div class="welcome-icon">📋</div>
+          <h2>Паспорт пакета медичних послуг 2026</h2>
+          <p>Оберіть пакет зі списку ліворуч, щоб переглянути його повний паспорт: специфікації, норми оплати Постанови 1808, листи-роз'яснення, аналітику за договорами ЗОЗ та клінічні протоколи ДЕЦ МОЗ.</p>
+        </div>
+      </div>
+
+      <!-- Passport Content -->
+      <div class="passport-content" id="passportContent" style="display: none;">
+        
+        <!-- Passport Header -->
+        <div class="passport-header">
+          <div class="header-badge-row">
+            <span class="badge direction" id="passportDirection">Напрям</span>
+            <span class="badge help-type" id="passportHelpType">Вид допомоги</span>
+            <span class="badge program" id="passportProgram">Програма</span>
+          </div>
+          <div class="header-main-row">
+            <div class="header-title-box">
+              <h1 id="passportTitle">Назва пакета</h1>
+            </div>
+            <div class="header-actions">
+              <button class="passport-btn btn-excel" id="btnExportExcel" type="button">
+                <span class="icon">📥</span> Завантажити Excel Паспорт
+              </button>
+            </div>
+          </div>
+          
+          <!-- Key Indicators Grid -->
+          <div class="indicators-grid">
+            <div class="indicator-card">
+              <span class="ind-label">Загальний бюджет пакета</span>
+              <strong class="ind-value value-sum" id="indTotalSum">0,00 ₴</strong>
+            </div>
+            <div class="indicator-card">
+              <span class="ind-label">Кількість надавачів (ЗОЗ)</span>
+              <strong class="ind-value" id="indProvidersCount">0</strong>
+            </div>
+            <div class="indicator-card">
+              <span class="ind-label">Пов'язані роз'яснення</span>
+              <strong class="ind-value" id="indExplanationsCount">0</strong>
+            </div>
+            <div class="indicator-card">
+              <span class="ind-label">Клінічні стандарти ДЕЦ</span>
+              <strong class="ind-value" id="indDecCount">0</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Passport Navigation Tabs -->
+        <div class="passport-tabs-nav">
+          <button class="tab-link active" data-tab="analytics" type="button">📊 Аналітика та ЗОЗ</button>
+          <button class="tab-link" data-tab="requirements" type="button">📋 Вимоги закупівлі</button>
+          <button class="tab-link" data-tab="tariffs" type="button">💳 Оплата (Постанова 1808)</button>
+          <button class="tab-link" data-tab="explanations" type="button">✉️ Роз'яснення НСЗУ</button>
+          <button class="tab-link" data-tab="dec" type="button">🩺 Протоколи ДЕЦ</button>
+        </div>
+
+        <!-- Tab Contents -->
+        <div class="passport-tab-content-wrap">
+          
+          <!-- Tab 1: Analytics and ZOZ -->
+          <div class="tab-pane active" id="tab-analytics">
+            <div class="analytics-split">
+              <!-- Analytical charts & statistics -->
+              <div class="analytics-charts">
+                <div class="chart-card">
+                  <h3>🏥 Розподіл за формою власності</h3>
+                  <div class="chart-bar-list" id="ownershipChart">
+                    <!-- Dynamic ownership bars -->
+                  </div>
+                </div>
+                <div class="chart-card">
+                  <h3>🕸️ Розподіл за спроможною мережею</h3>
+                  <div class="chart-bar-list" id="networkChart">
+                    <!-- Dynamic network bars -->
+                  </div>
+                </div>
+                <div class="chart-card span-2">
+                  <h3>📍 Топ-5 регіонів за фінансуванням</h3>
+                  <div class="chart-bar-list" id="regionsChart">
+                    <!-- Dynamic regions bars -->
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contracted Hospitals Table -->
+            <div class="hospitals-section">
+              <div class="hospitals-header">
+                <h3>Перелік законтрактованих медичних закладів</h3>
+                <div class="hospitals-filter-row">
+                  <input type="search" id="hospitalSearchInput" placeholder="Шукати за назвою, ЄДРПОУ чи областю..." autocomplete="off">
+                  <select id="hospitalOblastFilter">
+                    <option value="">Усі області</option>
+                  </select>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="hospitals-table">
+                  <thead>
+                    <tr>
+                      <th data-sort="edrpou" class="sortable">ЄДРПОУ</th>
+                      <th data-sort="name" class="sortable">Назва закладу</th>
+                      <th data-sort="oblast" class="sortable">Область</th>
+                      <th data-sort="network" class="sortable">Мережа</th>
+                      <th data-sort="ownership" class="sortable">Власність</th>
+                      <th data-sort="sum" class="sortable number active desc">Сума договору (₴)</th>
+                      <th>Контакти</th>
+                    </tr>
+                  </thead>
+                  <tbody id="hospitalsTableBody">
+                    <!-- Dynamic hospital rows -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="table-pagination" id="tablePagination">
+                <!-- Pagination buttons -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 2: Requirements (Specification) -->
+          <div class="tab-pane" id="tab-requirements">
+            <div class="specification-panel">
+              <div class="spec-accordion" id="specAccordion">
+                <!-- Dynamic accordion categories -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 3: Tariffs (Resolution 1808) -->
+          <div class="tab-pane" id="tab-tariffs">
+            <div class="tariffs-container" id="tariffsContainer">
+              <!-- Dynamic tariff clauses and tariff calculations -->
+            </div>
+          </div>
+
+          <!-- Tab 4: Explanations (Clarifications) -->
+          <div class="tab-pane" id="tab-explanations">
+            <div class="explanations-list" id="explanationsList">
+              <!-- Dynamic explanation documents list -->
+            </div>
+          </div>
+
+          <!-- Tab 5: Clinical Protocols (DEC) -->
+          <div class="tab-pane" id="tab-dec">
+            <div class="dec-container" id="decContainer">
+              <!-- Dynamic DEC documents list -->
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+</div>
+<script src="passport.js?v=20260609" defer></script>
+</body>
+</html>

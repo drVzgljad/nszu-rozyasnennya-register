@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>НавігаторПМГ26 | Нормативно-правова база</title>
+  <link rel="stylesheet" href="../styles.css?v=20260612c">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260714">
+  <script type="module" src="../auth-v2.js?v=20260714e"></script>
+  <style>
+    /* ============ NPA Service v2 — Search hub + Document workstation ============ */
+
+    .npa-view { display: none; }
+    .npa-view.visible { display: block; }
+
+    /* ---------- SEARCH HUB ---------- */
+    .hub {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 18px 24px 40px;
+    }
+    .hub-searchbar {
+      position: relative;
+      margin-bottom: 14px;
+    }
+    .hub-searchbar input {
+      width: 100%;
+      padding: 16px 52px 16px 50px;
+      font-size: 16.5px;
+      border: 2px solid var(--line);
+      border-radius: 14px;
+      background: var(--surface);
+      color: var(--ink);
+      outline: none;
+      box-shadow: 0 6px 18px rgba(31, 51, 71, 0.06);
+      transition: border-color .15s, box-shadow .15s;
+      font-family: inherit;
+    }
+    .hub-searchbar input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(74, 143, 199, 0.13);
+    }
+    .hub-searchbar .search-ico {
+      position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
+      font-size: 18px; color: var(--muted); pointer-events: none;
+    }
+    .hub-searchbar .search-clear {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      border: none; background: var(--soft); color: var(--muted);
+      width: 30px; height: 30px; border-radius: 50%;
+      cursor: pointer; font-size: 14px; display: none;
+    }
+    .hub-searchbar .search-clear:hover { background: var(--accent-soft); color: var(--accent-dark); }
+    .hub-searchbar.has-query .search-clear { display: block; }
+
+    .hub-filters {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .hub-filters label {
+      display: flex; flex-direction: column;
+      font-size: 11.5px; font-weight: 700; color: var(--muted);
+      letter-spacing: .02em;
+    }
+    .hub-filters select, .hub-filters input {
+      margin-top: 5px; padding: 9px 10px;
+      border: 1px solid var(--line); border-radius: 9px;
+      background: var(--surface); color: var(--ink);
+      font: inherit; font-size: 13px; outline: none; width: 100%;
+    }
+    .hub-filters select:focus, .hub-filters input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(74, 143, 199, 0.12);
+    }
+
+    .hub-meta {
+      display: flex; justify-content: space-between; align-items: center;
+      margin: 14px 2px 12px; gap: 12px; flex-wrap: wrap;
+    }
+    .hub-meta .result-line { font-size: 13.5px; color: var(--muted); }
+    .hub-meta .result-line strong { color: var(--ink); }
+    .hub-meta-actions { display: flex; gap: 8px; align-items: center; }
+    .hub-meta select {
+      padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px;
+      background: var(--surface); font: inherit; font-size: 12.5px; color: var(--ink);
+      cursor: pointer; outline: none;
+    }
+    .btn-ghost {
+      border: 1px solid var(--line); background: var(--surface); color: var(--muted);
+      padding: 7px 14px; border-radius: 8px; font: inherit; font-size: 12.5px;
+      font-weight: 600; cursor: pointer; transition: all .15s;
+    }
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent-dark); background: var(--accent-soft); }
+
+    .doc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 14px;
+    }
+    .doc-tile {
+      text-align: left;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 18px;
+      cursor: pointer;
+      font: inherit;
+      display: flex; flex-direction: column; gap: 8px;
+      transition: transform .15s, box-shadow .15s, border-color .15s;
+    }
+    .doc-tile:hover {
+      transform: translateY(-2px);
+      border-color: var(--accent);
+      box-shadow: 0 10px 24px rgba(31, 51, 71, 0.09);
+    }
+    .doc-tile .tile-tags { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .doc-tile .tile-title {
+      font-size: 14.5px; font-weight: 700; color: var(--ink); line-height: 1.4;
+    }
+    .doc-tile .tile-req { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+    .doc-tile .tile-snippet {
+      font-size: 12.5px; color: var(--muted); line-height: 1.5;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .doc-tile .tile-hits {
+      font-size: 12px; color: var(--accent-dark); font-weight: 700;
+      background: var(--accent-soft); border-radius: 7px; padding: 4px 9px;
+      align-self: flex-start;
+    }
+    .doc-tile .tile-foot {
+      margin-top: auto; padding-top: 8px; border-top: 1px dashed var(--line);
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 11.5px; color: var(--muted);
+    }
+    .doc-tile .tile-open { color: var(--accent-dark); font-weight: 700; }
+
+    .pill {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2.5px 9px; border-radius: 999px;
+      font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em;
+      border: 1px solid transparent;
+    }
+    .pill.t-zakon      { background: #eef2ff; color: #4338ca; border-color: #e0e7ff; }
+    .pill.t-postanova  { background: #ecfeff; color: #0e7490; border-color: #cffafe; }
+    .pill.t-nakaz-moz  { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+    .pill.t-nakaz-nszu { background: #f0fdf4; color: #166534; border-color: #dcfce7; }
+    .pill.t-other      { background: var(--soft); color: var(--muted); border-color: var(--line); }
+    .pill.s-active     { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
+    .pill.s-draft      { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
+    .pill.s-expired    { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+    .pill.has-text     { background: var(--accent-soft); color: var(--accent-dark); border-color: #d7e9f7; }
+
+    .hub-empty {
+      text-align: center; padding: 60px 20px; color: var(--muted);
+    }
+    .hub-empty .ico { font-size: 40px; margin-bottom: 10px; }
+
+    /* ---------- DOCUMENT WORKSTATION ---------- */
+    .ws {
+      max-width: 1650px;
+      margin: 0 auto;
+      padding: 14px 24px 30px;
+    }
+    .ws-topbar {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 14px; flex-wrap: wrap;
+    }
+    .btn-back {
+      border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+      padding: 9px 16px; border-radius: 10px; font: inherit; font-size: 13px;
+      font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
+      transition: all .15s; white-space: nowrap;
+    }
+    .btn-back:hover { border-color: var(--accent); color: var(--accent-dark); background: var(--accent-soft); }
+    .ws-doc-title {
+      font-size: 17px; font-weight: 800; color: var(--ink); line-height: 1.3; flex: 1; min-width: 250px;
+    }
+
+    /* Passport */
+    .ws-passport {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 14px rgba(31,51,71,.05);
+    }
+    .ws-passport-head {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap;
+    }
+    .ws-passport-tags { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+    .ws-passport-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      border: 1px solid var(--line); border-radius: 9px;
+      background: var(--surface); color: var(--accent-dark);
+      padding: 7px 13px; font-size: 12.5px; font-weight: 700;
+      text-decoration: none; cursor: pointer; font-family: inherit; transition: all .15s;
+    }
+    .btn-link:hover { background: var(--accent-soft); border-color: var(--accent); }
+    .btn-link.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-link.primary:hover { background: var(--accent-dark); }
+
+    .ws-passport-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 8px 18px;
+      margin-top: 13px;
+      padding-top: 13px;
+      border-top: 1px dashed var(--line);
+    }
+    .pp-item .pp-label {
+      font-size: 10.5px; font-weight: 800; text-transform: uppercase;
+      color: var(--muted); letter-spacing: .04em; margin-bottom: 3px;
+    }
+    .pp-item .pp-value { font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.35; }
+    .ws-passport-desc {
+      margin: 12px 0 0; font-size: 13px; color: var(--muted); line-height: 1.55;
+      border-left: 3px solid var(--accent); padding-left: 12px;
+    }
+    .ws-passport-toggle {
+      border: none; background: none; color: var(--accent-dark); cursor: pointer;
+      font: inherit; font-size: 12px; font-weight: 700; padding: 4px 0; margin-top: 8px;
+    }
+
+    /* Workspace body: tree + content */
+    .ws-body {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 16px;
+      height: calc(100vh - 130px);
+      min-height: 480px;
+    }
+    .ws-body.passport-open { height: auto; min-height: 560px; }
+
+    .ws-tree {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow-y: auto;
+      padding: 12px 10px;
+    }
+    .ws-tree-head {
+      font-size: 11px; font-weight: 800; text-transform: uppercase;
+      color: var(--muted); letter-spacing: .05em; padding: 4px 8px 8px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .tree-node { user-select: none; }
+    .tree-row {
+      display: flex; align-items: center; gap: 2px;
+      border-radius: 7px;
+    }
+    .tree-row:hover { background: rgba(74,143,199,.07); }
+    .tree-row.active { background: var(--accent-soft); }
+    .tree-row.active .tree-label { color: var(--accent-dark); font-weight: 700; }
+    .tree-caret {
+      border: none; background: none; cursor: pointer; padding: 4px 2px;
+      width: 20px; flex-shrink: 0; color: var(--muted); font-size: 10px;
+      transition: transform .12s; transform: rotate(0deg);
+    }
+    .tree-caret.open { transform: rotate(90deg); }
+    .tree-caret.leaf { visibility: hidden; }
+    .tree-label {
+      flex: 1; text-align: left; border: none; background: none; cursor: pointer;
+      font: inherit; font-size: 12.5px; color: var(--ink); padding: 5px 4px;
+      line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .tree-count {
+      font-size: 10px; color: var(--muted); padding-right: 6px; font-weight: 600;
+    }
+    .tree-children { padding-left: 14px; display: none; }
+    .tree-children.open { display: block; }
+
+    .ws-content {
+      display: flex; flex-direction: column;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .ws-toolbar {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+      background: var(--soft);
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    .ws-toolbar .in-search {
+      position: relative; flex: 1; min-width: 200px;
+    }
+    .ws-toolbar .in-search input {
+      width: 100%; padding: 8px 92px 8px 32px;
+      border: 1px solid var(--line); border-radius: 9px;
+      font: inherit; font-size: 13px; outline: none; background: var(--surface); color: var(--ink);
+    }
+    .ws-toolbar .in-search input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(74,143,199,.12); }
+    .ws-toolbar .in-search .ico {
+      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+      color: var(--muted); font-size: 13px; pointer-events: none;
+    }
+    .in-search-nav {
+      position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+      display: flex; align-items: center; gap: 2px;
+    }
+    .in-search-nav .match-count { font-size: 11px; color: var(--muted); font-weight: 700; padding: 0 4px; }
+    .in-search-nav button {
+      border: none; background: var(--soft); color: var(--ink); cursor: pointer;
+      width: 22px; height: 22px; border-radius: 5px; font-size: 11px; line-height: 1;
+    }
+    .in-search-nav button:hover { background: var(--accent-soft); color: var(--accent-dark); }
+
+    .ws-toolbar select {
+      padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px;
+      background: var(--surface); font: inherit; font-size: 12.5px; color: var(--ink);
+      cursor: pointer; outline: none;
+      width: auto !important; max-width: 220px; flex: 0 0 auto;
+    }
+    .btn-toggle {
+      border: 1px solid var(--line); background: var(--surface); color: var(--muted);
+      padding: 8px 13px; border-radius: 9px; font: inherit; font-size: 12.5px;
+      font-weight: 700; cursor: pointer; transition: all .15s; white-space: nowrap;
+    }
+    .btn-toggle:hover { border-color: var(--accent); color: var(--accent-dark); }
+    .btn-toggle.on { background: #fff7ed; border-color: #fb923c; color: #c2410c; }
+
+    .ws-breadcrumb {
+      padding: 8px 16px; font-size: 12px; color: var(--muted);
+      border-bottom: 1px solid var(--line); flex-shrink: 0;
+      display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    }
+    .ws-breadcrumb .crumb-path { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ws-breadcrumb .crumb-reset {
+      border: none; background: none; color: var(--accent-dark); cursor: pointer;
+      font: inherit; font-size: 12px; font-weight: 700; white-space: nowrap;
+    }
+
+    .ws-chunks {
+      flex: 1; overflow-y: auto; padding: 14px 18px 30px;
+      scroll-behavior: smooth;
+    }
+    .chunk {
+      position: relative;
+      border: 1px solid transparent;
+      border-left: 3px solid var(--line);
+      border-radius: 0 10px 10px 0;
+      padding: 10px 14px 10px 16px;
+      margin-bottom: 10px;
+      transition: background .15s, border-color .15s;
+    }
+    .chunk:hover { background: rgba(74,143,199,.04); border-left-color: var(--accent); }
+    .chunk.flash { background: rgba(255, 235, 59, 0.18); border-left-color: #f59e0b; }
+    .chunk-head {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;
+    }
+    .chunk-path {
+      font-size: 11px; font-weight: 700; color: var(--accent-dark);
+      background: var(--accent-soft); border-radius: 6px; padding: 2.5px 8px;
+      cursor: pointer; border: none; font-family: inherit;
+    }
+    .chunk-path:hover { background: #dcebf7; }
+    .chunk-text {
+      font-size: 13.5px; line-height: 1.65; color: var(--ink); white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .chunk-tools {
+      position: absolute; top: 8px; right: 10px; display: flex; gap: 4px;
+      opacity: 0; transition: opacity .15s;
+    }
+    .chunk:hover .chunk-tools { opacity: 1; }
+    .chunk-tools button {
+      border: 1px solid var(--line); background: var(--surface); cursor: pointer;
+      border-radius: 7px; padding: 4px 9px; font-size: 11.5px; color: var(--muted);
+      font-family: inherit; font-weight: 600; transition: all .12s;
+    }
+    .chunk-tools button:hover { color: var(--accent-dark); border-color: var(--accent); background: var(--accent-soft); }
+
+    .fn-badge {
+      display: inline-flex; align-items: center;
+      padding: 2px 8px; border-radius: 6px;
+      font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .02em;
+    }
+    .fn-badge.obligation  { background: rgba(240,173,78,.16); color: #b7791f; }
+    .fn-badge.right       { background: rgba(92,184,92,.16);  color: #2f855a; }
+    .fn-badge.prohibition { background: rgba(217,83,79,.16);  color: #c53030; }
+    .fn-badge.procedure   { background: rgba(91,192,222,.16); color: #2b6cb0; }
+    .fn-badge.definition  { background: rgba(156,39,176,.12); color: #7b1fa2; }
+    .fn-badge.approval    { background: rgba(99,102,241,.12); color: #4f46e5; }
+
+    .chunk.f-obligation  { border-left-color: #f0ad4e; }
+    .chunk.f-prohibition { border-left-color: #d9534f; }
+    .chunk.f-right       { border-left-color: #5cb85c; }
+
+    mark {
+      background: rgba(255, 235, 59, .45);
+      border-bottom: 2px solid #f59e0b;
+      color: inherit; padding: 0 1px; border-radius: 2px;
+    }
+    mark.current {
+      background: #fb923c; color: #fff; border-bottom-color: #c2410c;
+    }
+
+    .ws-notext {
+      padding: 50px 30px; text-align: center; color: var(--muted);
+    }
+    .ws-notext .ico { font-size: 36px; margin-bottom: 12px; }
+    .ws-notext h3 { color: var(--ink); margin: 0 0 8px; }
+
+    .copy-toast {
+      position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: var(--ink); color: #fff; border-radius: 10px;
+      padding: 10px 22px; font-size: 13px; font-weight: 600;
+      transition: transform .25s ease; z-index: 999; pointer-events: none;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    }
+    .copy-toast.show { transform: translateX(-50%) translateY(0); }
+
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    @media (max-width: 1000px) {
+      .hub-filters { grid-template-columns: repeat(2, 1fr); }
+      .ws-body { grid-template-columns: 1fr; height: auto; }
+      .ws-tree { max-height: 280px; }
+      .ws-chunks { max-height: 70vh; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-copy">
+      <div class="overline">Нормативна база Департаменту стратегії НСЗУ</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Нормативно-правова база
+        <a href="admin.html" class="action" data-role="expert" style="margin-left: 15px; font-size: 14px; vertical-align: middle; padding: 8px 18px; text-decoration: none; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; line-height: 1.2;">⚙️ Управління базою</a>
+      </h1>
+      <p>Знайдіть документ за назвою, номером, датою чи ключовими словами — і працюйте з його повним текстом: структура, глибокий пошук, копіювання фрагментів.</p>
+    </div>
+    <div class="stats" id="stats" aria-label="Статистика бази"></div>
+  </header>
+
+  <!-- ================= VIEW 1: SEARCH HUB ================= -->
+  <main class="npa-view visible hub" id="view-hub">
+    <div class="hub-searchbar" id="hubSearchWrap">
+      <span class="search-ico">🔎</span>
+      <input id="hubSearch" type="search" autocomplete="off"
+             placeholder="Пошук: назва, номер, дата, ключові слова — шукає й у повних текстах документів…">
+      <button class="search-clear" id="hubSearchClear" title="Очистити" aria-label="Очистити пошук">✕</button>
+    </div>
+
+    <div class="hub-filters">
+      <label>Вид документа
+        <select id="f-type"><option value="">Усі види</option></select>
+      </label>
+      <label>Статус
+        <select id="f-status"><option value="">Усі статуси</option></select>
+      </label>
+      <label>Напрям / тема
+        <select id="f-category"><option value="">Усі напрями</option></select>
+      </label>
+      <label>Рік прийняття
+        <select id="f-year"><option value="">Усі роки</option></select>
+      </label>
+      <label>Реєстраційний №
+        <input id="f-number" type="text" placeholder="напр. 1808">
+      </label>
+      <label>Наявність тексту
+        <select id="f-text">
+          <option value="">Будь-яка</option>
+          <option value="yes">З повним текстом</option>
+          <option value="no">Лише картка</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="hub-meta">
+      <div class="result-line" id="resultLine">Завантаження…</div>
+      <div class="hub-meta-actions">
+        <select id="f-sort">
+          <option value="relevance">За релевантністю</option>
+          <option value="date-desc" selected>Новіші спочатку</option>
+          <option value="date-asc">Старіші спочатку</option>
+          <option value="title">За назвою</option>
+        </select>
+        <button class="btn-ghost" id="resetFilters" type="button">Скинути все</button>
+      </div>
+    </div>
+
+    <div class="doc-grid" id="docGrid"></div>
+    <div class="hub-empty" id="hubEmpty" style="display:none;">
+      <div class="ico">🗂️</div>
+      <h3>Нічого не знайдено</h3>
+      <p>Спробуйте змінити запит або скинути фільтри.</p>
+    </div>
+  </main>
+
+  <!-- ================= VIEW 2: DOCUMENT WORKSTATION ================= -->
+  <main class="npa-view ws" id="view-doc">
+    <div class="ws-topbar">
+      <button class="btn-back" id="btnBack" type="button">← До пошуку</button>
+      <div class="ws-doc-title" id="wsTitle"></div>
+    </div>
+
+    <section class="ws-passport" id="wsPassport"></section>
+
+    <div class="ws-body" id="wsBody">
+      <aside class="ws-tree" id="wsTree" aria-label="Структура документа"></aside>
+
+      <section class="ws-content">
+        <div class="ws-toolbar">
+          <div class="in-search">
+            <span class="ico">🔎</span>
+            <input id="inSearch" type="search" placeholder="Пошук у тексті документа… (Enter — наступний збіг)" autocomplete="off">
+            <div class="in-search-nav" id="inSearchNav" style="display:none;">
+              <span class="match-count" id="matchCount"></span>
+              <button id="matchPrev" title="Попередній збіг" aria-label="Попередній збіг">▲</button>
+              <button id="matchNext" title="Наступний збіг" aria-label="Наступний збіг">▼</button>
+            </div>
+          </div>
+          <select id="fnFilter">
+            <option value="">Усі типи норм</option>
+          </select>
+          <button class="btn-toggle" id="keyMomentsBtn" type="button" title="Показати лише обов'язки та заборони">⚠️ Ключові вимоги</button>
+        </div>
+
+        <div class="ws-breadcrumb" id="wsCrumb" style="display:none;">
+          <span class="crumb-path" id="crumbPath"></span>
+          <button class="crumb-reset" id="crumbReset" type="button">Показати весь документ</button>
+        </div>
+
+        <div class="ws-chunks" id="wsChunks"></div>
+      </section>
+    </div>
+  </main>
+
+  <div class="copy-toast" id="copyToast">Скопійовано</div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>База нормативно-правової регламентації підтримується Департаментом для консолідації та зручного пошуку чинного законодавства в межах роботи програми медичних гарантій.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js?v=20260612d" defer></script>
+</body>
+</html>

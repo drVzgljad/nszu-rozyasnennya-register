@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Звіти діяльності СКО-Д — НавігаторПМГ26</title>
+  <link rel="stylesheet" href="../portal.css?v=20260603d">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260714">
+  <link rel="stylesheet" href="skod.css?v=20260608">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script type="module" src="../auth-v2.js?v=20260714e"></script>
+  <script type="module" src="skod.js?v=20260714c"></script>
+</head>
+<body data-required-role="registered">
+<div class="portal">
+
+  <!-- ── Top bar ─────────────────────────────────────── -->
+  <header class="top">
+    <div class="wrap top-inner">
+      <div class="top-row-1">
+        <a class="lockup" href="../index.html" aria-label="На головну">
+          <img class="shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true" style="width:44px;height:auto">
+          <span class="wm">
+            <span class="wm-1">Робочий простір експертів</span>
+            <span class="wm-2">Програма медичних гарантій 2026</span>
+          </span>
+        </a>
+        <div class="top-row-1-right">
+          <!-- auth-v2.js?v=20260714e inject point -->
+          <nav class="section-switch top-auth" aria-label="Авторизація"></nav>
+          <span class="agency-chip">
+            <img src="../assets/nszu-shield.svg" alt="">НСЗУ
+          </span>
+        </div>
+      </div>
+      <div class="top-row-2">
+        <nav class="top-nav" aria-label="Головне меню"></nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main Content ────────────────────────────────── -->
+  <main class="wrap skod-container" id="skod-reports-container">
+    <div class="skod-title-area">
+      <div>
+        <h1>Аналітика та Звіти <span>СКО-Д</span></h1>
+        <p style="color: var(--p-muted); margin-top: 6px; margin-bottom: 0;">Перегляд індивідуальних, відділових та загальних звітів ефективності.</p>
+      </div>
+      <div class="skod-btn-group">
+        <a href="index.html" class="btn btn-primary" style="text-decoration: none; padding: 10px 18px; font-size: 14px; background: var(--b-700)">
+          ✍️ Внести діяльність
+        </a>
+      </div>
+    </div>
+
+    <!-- Tab Switcher -->
+    <div class="skod-tab-switcher">
+      <button type="button" class="tab-btn active" id="tab-analytics">📊 Основна аналітика СКО-Д</button>
+      <button type="button" class="tab-btn" id="tab-37d">📝 Звіт 37-Д</button>
+    </div>
+
+    <div id="analytics-section">
+      <!-- Filter Panel -->
+      <section class="filter-panel">
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <label for="report-start-date">Період з:</label>
+        <input type="date" id="report-start-date">
+        <label for="report-end-date">по:</label>
+        <input type="date" id="report-end-date">
+      </div>
+
+      <div class="skod-preset-buttons" style="display: flex; align-items: center; gap: 6px;">
+        <button type="button" class="btn-preset active" id="preset-today">Сьогодні</button>
+        <button type="button" class="btn-preset" id="preset-week">Тиждень</button>
+        <button type="button" class="btn-preset" id="preset-month">Місяць</button>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <label for="report-level">Рівень:</label>
+        <select id="report-level">
+          <option value="personal">Мій звіт (Індивідуальний)</option>
+          <option value="department">Звіт відділу</option>
+          <option value="department-wide">Звіт департаменту (Зведений)</option>
+          <option value="user-statuses">📊 Статус присутності (Офіс/Дом)</option>
+        </select>
+      </div>
+
+      <div id="report-dept-group" style="display: none; align-items: center; gap: 8px;">
+        <label for="report-department">Відділ:</label>
+        <select id="report-department">
+          <!-- JavaScript populated -->
+        </select>
+      </div>
+
+      <div id="report-employee-group" style="display: none; align-items: center; gap: 8px;">
+        <label for="report-employee">Співробітник:</label>
+        <select id="report-employee">
+          <option value="all">Всі співробітники</option>
+          <!-- JavaScript populated -->
+        </select>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <label for="report-branch">Напрям:</label>
+        <select id="report-branch">
+          <option value="all">Всі напрями</option>
+          <option value="askod">АСКОД</option>
+          <option value="department">Робота відділу</option>
+          <option value="tasks">Доручення</option>
+        </select>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <label for="report-severity">Складність:</label>
+        <select id="report-severity">
+          <option value="all">Всі складності</option>
+          <option value="easy">Легка</option>
+          <option value="medium">Середня</option>
+          <option value="hard">Складна</option>
+          <option value="expert">Експертна</option>
+        </select>
+      </div>
+
+      <button id="btn-run-report" class="btn btn-primary" style="padding: 8px 20px; font-size: 14px;">
+        Сформувати
+      </button>
+    </section>
+
+     <!-- Report Results Container -->
+    <section id="report-results" style="min-height: 250px;">
+      <div class="empty-state" style="background: var(--p-surface); border: 1px solid var(--p-line); border-radius: var(--pr-tile); padding: 40px; text-align: center; color: var(--p-muted);">
+        Оберіть parameters та натисніть "Сформувати" для перегляду аналітики.
+      </div>
+    </section>
+  </div> <!-- End of #analytics-section -->
+
+  <!-- Section for 37-D Report -->
+  <div id="section-37d" style="display: none;">
+    <!-- Filter Panel for 37-D -->
+    <section class="filter-panel">
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <label for="report-37d-start-date">Період з:</label>
+        <input type="date" id="report-37d-start-date">
+        <label for="report-37d-end-date">по:</label>
+        <input type="date" id="report-37d-end-date">
+      </div>
+
+      <div class="skod-preset-buttons" style="display: flex; align-items: center; gap: 6px;">
+        <button type="button" class="btn-preset active" id="preset-37d-tuesday">Щовівторковий звіт</button>
+        <button type="button" class="btn-preset" id="preset-37d-today">Сьогодні</button>
+        <button type="button" class="btn-preset" id="preset-37d-week">Тиждень</button>
+        <button type="button" class="btn-preset" id="preset-37d-month">Місяць</button>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <label for="report-37d-level">Рівень звіту:</label>
+        <select id="report-37d-level">
+          <option value="department-wide" selected>Весь Департамент</option>
+          <option value="department">Звіт відділу</option>
+          <option value="personal">Мій звіт (Індивідуальний)</option>
+        </select>
+      </div>
+
+      <div id="report-37d-dept-group" style="display: flex; align-items: center; gap: 8px;">
+        <label for="report-37d-department">Відділ:</label>
+        <select id="report-37d-department">
+          <!-- JavaScript populated -->
+        </select>
+      </div>
+
+      <div id="report-37d-employee-group" style="display: flex; align-items: center; gap: 8px;">
+        <label for="report-37d-employee">Співробітник:</label>
+        <select id="report-37d-employee">
+          <option value="all" selected>Всі співробітники</option>
+          <!-- JavaScript populated -->
+        </select>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <label for="report-37d-status">Стан 37-Д:</label>
+        <select id="report-37d-status">
+          <option value="all" selected>Всі стани (крім скасованих)</option>
+          <option value="заплановано">заплановано</option>
+          <option value="у роботі">у роботі</option>
+          <option value="виконано">виконано</option>
+          <option value="очікує погодження">очікує погодження</option>
+          <option value="готово до включення в довідку">готово до включення в довідку</option>
+          <option value="включено в довідку">включено в довідку</option>
+          <option value="скасовано / неактуально">скасовано / неактуально</option>
+        </select>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <label for="report-37d-info-type">Тип інформації:</label>
+        <select id="report-37d-info-type">
+          <option value="all" selected>Всі типи</option>
+          <option value="заплановані зміни для ЗОЗ, аптек, пацієнтів">заплановані зміни</option>
+          <option value="презентація для публічного заходу">презентація</option>
+          <option value="аналітична довідка для МОЗ або іншого ЦОВВ">аналітична довідка</option>
+          <option value="масовий лист-роз’яснення">лист-роз’яснення</option>
+          <option value="інша інформація, що може потребувати комунікаційної підтримки">інше</option>
+        </select>
+      </div>
+
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button id="btn-run-37d" class="btn btn-primary" style="padding: 8px 16px; font-size: 13.5px;">
+          🔍 Сформувати
+        </button>
+        <button id="btn-excel-37d" class="btn btn-primary" style="padding: 8px 16px; font-size: 13.5px; background-color: #16a34a; border-color: #16a34a;">
+          📥 Завантажити Excel
+        </button>
+        <button id="btn-mark-included-37d" class="btn btn-primary" style="padding: 8px 16px; font-size: 13.5px; background-color: #4f46e5; border-color: #4f46e5; display: none;">
+          ✓ Включено в довідку
+        </button>
+        <button id="btn-clear-37d" class="btn" style="padding: 8px 16px; font-size: 13.5px; background: var(--p-soft); border: 1px solid var(--p-line); color: var(--p-ink);">
+          Очистити
+        </button>
+      </div>
+    </section>
+
+    <!-- 37-D Results Preview Container -->
+    <section id="results-37d" style="min-height: 250px;">
+      <div class="empty-state" style="background: var(--p-surface); border: 1px solid var(--p-line); border-radius: var(--pr-tile); padding: 40px; text-align: center; color: var(--p-muted);">
+        Оберіть параметри та натисніть "Сформувати" для попереднього перегляду довідки 37-Д.
+      </div>
+    </section>
+  </div>
+</main>
+
+  <!-- ── Footer ───────────────────────────────────────── -->
+  <footer class="p-footer">
+    <div class="wrap">
+      <div class="p-foot-grid">
+        <div>
+          <div class="f-lockup">
+            <img class="shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true" style="width:44px;height:auto">
+            <span class="wm">
+              <span class="wm-1">Робочий простір експертів</span>
+              <span class="wm-2">Програма медичних гарантій 2026</span>
+            </span>
+          </div>
+          <p>Довідковий портал за Програмою медичних гарантій 2026 року.</p>
+        </div>
+        <div class="f-col">
+          <h4>Розділи</h4>
+          <a href="../rozjasnennya.html">Роз'яснення</a>
+          <a href="../pakety/index.html">Пакети 2026</a>
+          <a href="../postanova/index.html">Постанова 1808</a>
+          <a href="../algorithms/index.html">Алгоритми та правила</a>
+        </div>
+        <div class="f-col">
+          <h4>Належність</h4>
+          <a href="../#dept">Департамент стратегії</a>
+          <a href="../#dept">НСЗУ</a>
+          <a href="../#top">Про портал</a>
+        </div>
+      </div>
+      <div class="p-foot-base">
+        <span>© 2026 НСЗУ · Департамент стратегії універсального охоплення населення медичними послугами</span>
+        <span>Розроблено силами Департаменту</span>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+<!-- Access Denied Modal Overlay -->
+<div id="access-denied-overlay" class="access-denied-overlay" style="display:none">
+  <div class="access-denied-box">
+    <h2>Доступ обмежено</h2>
+    <p id="access-denied-msg">Ця сторінка доступна лише для зареєстрованих співробітників.</p>
+    <button class="auth-submit" id="access-denied-btn">Увійти / Зареєструватись</button>
+  </div>
+</div>
+
+</body>
+</html>

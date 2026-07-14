@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>НавігаторПМГ26 | Хвилинка відпочинку</title>
+  <link rel="stylesheet" href="../styles.css?v=20260531e">
+  <link rel="stylesheet" href="relax.css?v=20260713b">
+  <link rel="stylesheet" href="horoscope-widget.css">
+  <link rel="stylesheet" href="askod-game.css?v=6">
+  <link rel="stylesheet" href="orchid-game.css?v=2">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260714">
+  <script type="module" src="../auth-v2.js?v=20260714e"></script>
+</head>
+<body id="top">
+  
+  <header class="hero relax-hero">
+    <div class="hero-copy">
+      <div class="overline">🧘 Кабінет емоційного розвантаження</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">робочий простір експертів ПМГ</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      
+      <div class="title-row">
+        <h1>Хвилинка відпочинку</h1>
+      </div>
+      <p>Коли Excel-таблиці та палкі дискусії вимагають паузи. Знайдіть свій знак зодіаку для веселого прогнозу, налаштуйте дихання або увімкніть розслаблюючі звуки природи.</p>
+    </div>
+  </header>
+
+  <main class="relax-layout">
+    <!-- Block 1: Horoscope Widget 2026 -->
+    <div data-hz2026></div>
+
+    <!-- Right Column: Game, Breathing & Sound -->
+    <div class="relax-sidebar">
+      <!-- Гра «Симулятор АСКОД» -->
+      <section class="relax-card askod-card" aria-labelledby="askodTitle">
+        <h2 id="askodTitle">🗂️ Симулятор АСКОД</h2>
+        <p class="subtitle">Опрацюйте якомога більше документів за 60 секунд. АСКОД, звісно, буде проти.</p>
+        <button id="askodLaunchBtn" class="askod-launch" type="button">
+          <span class="askod-launch-icon">🖥️</span>
+          <span class="askod-launch-label">АСКОД.exe</span>
+          <span class="askod-launch-hint">Натисніть, щоб запустити</span>
+        </button>
+      </section>
+
+      <!-- Гра «Моя чудова Квіточка» -->
+      <section class="relax-card orchid-card" aria-labelledby="orchidTitle">
+        <h2 id="orchidTitle">🌸 Моя чудова Квіточка</h2>
+        <p class="subtitle">Виростіть найпишнішу орхідею НСЗУ: доглядайте, підтримуйте та кажіть компліменти.</p>
+        <button id="orchidLaunchBtn" class="askod-launch" type="button">
+          <span class="askod-launch-icon">🌸</span>
+          <span class="askod-launch-label">Оранжерея</span>
+          <span class="askod-launch-hint">Натисніть, щоб увійти</span>
+        </button>
+      </section>
+
+      <!-- Block 2: Breathing Guide -->
+      <section class="relax-card breathing-card" aria-labelledby="breathingTitle">
+        <h2 id="breathingTitle">🌬️ Космічне Дихання (4-7-8)</h2>
+        <p class="subtitle">Практика швидкого зняття стресу. Концентруйтеся на колі та слідуйте інструкціям:</p>
+        
+        <div class="breathing-session-container">
+          <div class="breathing-circle-wrapper">
+            <div id="breathingCircle" class="breathing-circle"></div>
+            <div id="breathingActionText" class="breathing-action-text">Вдих</div>
+            <div id="breathingTimer" class="breathing-timer">4</div>
+          </div>
+          
+          <div class="breathing-controls">
+            <button id="startBreathingBtn" class="action primary" type="button">▶️ Почати вправу</button>
+            <button id="stopBreathingBtn" class="action" type="button" style="display: none;">⏹️ Зупинити</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Block 3: Ambient Sound Generator -->
+      <section class="relax-card sound-card" aria-labelledby="soundTitle">
+        <h2 id="soundTitle">🎵 Генератор Фонові звуків</h2>
+        <p class="subtitle">Увімкніть заспокійливі природні вібрації для фонового супроводу роботи:</p>
+        
+        <div class="sound-grid">
+          <div class="sound-item">
+            <span class="sound-icon">🌧️</span>
+            <div class="sound-details">
+              <h4>М'який дощ</h4>
+              <p>Шум літньої зливи</p>
+            </div>
+            <button class="sound-toggle-btn" data-sound="rain" type="button">▶️ Грати</button>
+          </div>
+          
+          <div class="sound-item">
+            <span class="sound-icon">🌳</span>
+            <div class="sound-details">
+              <h4>Шелест лісу</h4>
+              <p>Вітер у кронах дерев</p>
+            </div>
+            <button class="sound-toggle-btn" data-sound="forest" type="button">▶️ Грати</button>
+          </div>
+          
+          <div class="sound-item">
+            <span class="sound-icon">🌊</span>
+            <div class="sound-details">
+              <h4>Морські хвилі</h4>
+              <p>Прибій біля берега</p>
+            </div>
+            <button class="sound-toggle-btn" data-sound="sea" type="button">▶️ Грати</button>
+          </div>
+
+          <div class="sound-item">
+            <span class="sound-icon">🌌</span>
+            <div class="sound-details">
+              <h4>Космічний гул</h4>
+              <p>Медитативний дрон</p>
+            </div>
+            <button class="sound-toggle-btn" data-sound="space" type="button">▶️ Грати</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Модальне вікно гри «Симулятор АСКОД» -->
+  <div class="askod-modal" id="askodModal" role="dialog" aria-modal="true" aria-label="Симулятор АСКОД">
+    <div class="askod-window">
+      <div class="askod-titlebar">
+        <span class="askod-title-text" id="askodTitleText">АСКОД — Автоматизована система документообігу</span>
+        <span class="askod-fake-btns"><span>—</span><span>□</span><button type="button" class="askod-close-btn" id="askodCloseBtn" aria-label="Закрити гру">✕</button></span>
+      </div>
+      <div class="askod-hud">
+        <span>⏱️ Час: <span id="askodTime">60</span> с</span>
+        <span>📥 Опрацьовано: <span id="askodScore">0</span></span>
+        <span>⚠️ Помилки: <span id="askodErrCount">0/5</span></span>
+      </div>
+      <div class="askod-field" id="askodField"></div>
+    </div>
+  </div>
+
+  <!-- Модальне вікно гри «Моя чудова Квіточка» -->
+  <div class="askod-modal orchid-modal" id="orchidModal" role="dialog" aria-modal="true" aria-label="Моя чудова Квіточка">
+    <div class="orchid-window">
+      <div class="orchid-titlebar">
+        <span class="orchid-title-text" id="orchidTitleText">🌸 Оранжерея НСЗУ — режим ніжності увімкнено</span>
+        <span class="orchid-title-btns">
+          <button type="button" class="orchid-sound-btn" id="orchidSoundBtn" aria-label="Увімкнути або вимкнути звук">🔊</button>
+          <button type="button" class="orchid-close-btn" id="orchidCloseBtn" aria-label="Закрити гру">✕</button>
+        </span>
+      </div>
+      <div class="orchid-hud">
+        <span class="hud-chip">⏱️ <span id="orchidTime">60</span> с</span>
+        <span class="hud-chip">🌸 Бали: <span id="orchidScore">0</span></span>
+        <span class="hud-chip">🔥 Серія: <span id="orchidCombo">—</span></span>
+        <span class="orchid-health-track" title="Настрій орхідеї"><span class="orchid-health-fill" id="orchidHealthFill"></span></span>
+      </div>
+      <div class="orchid-field" id="orchidField">
+        <div class="orchid-stage" id="orchidStage"></div>
+        <div class="orchid-actions" id="orchidActions"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer" id="siteFooter">
+    <p>&copy; 2026 НавігаторПМГ26. Зроблено з турботою про команду НСЗУ.</p>
+  </footer>
+
+  <script src="horoscope-widget.js" defer></script>
+  <script type="module" src="relax.js?v=2"></script>
+  <script type="module" src="askod-game.js?v=6"></script>
+  <script type="module" src="orchid-game.js?v=2"></script>
+</body>
+</html>

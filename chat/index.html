@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>НавігаторПМГ26 | Робочий чат Департаменту</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="../assets/icon-192.png">
+  <link rel="apple-touch-icon" href="../assets/icon-192.png">
+  <meta name="theme-color" content="#2f6b9e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="../styles.css?v=20260531e">
+  <link rel="stylesheet" href="chat.css">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260714">
+  <script type="module" src="../auth-v2.js?v=20260714e"></script>
+</head>
+<body id="top" data-required-role="full">
+  <header class="hero chat-hero">
+    <div class="hero-copy">
+      <div class="overline">Оперативний зв'язок НСЗУ</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Робочий чат Департаменту</h1>
+      <p>Спілкування з експертами Департаменту стратегії та колегами в реальному часі. Ставте запитання та отримуйте оперативні відповіді.</p>
+    </div>
+    <div class="stats" id="chatStats" aria-label="Статистика чату"></div>
+  </header>
+
+  <main class="chat-layout">
+    <!-- Left sidebar with info/instructions -->
+    <aside class="chat-sidebar">
+      <div class="chat-info-card pinned-messages-card" id="pinnedMessagesCard">
+        <h3>Важливі оголошення 📌</h3>
+        <div class="pinned-messages-list" id="pinnedMessagesList">
+          <div class="pinned-placeholder" style="font-size: 12.5px; color: var(--muted); line-height: 1.45; font-style: italic;">Немає закріплених оголошень. Наведіть на повідомлення та натисніть 📌, щоб додати його сюди.</div>
+        </div>
+      </div>
+      <div class="chat-info-card channels-card" id="channelsCard">
+        <h3 style="display: flex; justify-content: space-between; align-items: center;">
+          <span>Діалоги & Канали 💬</span>
+          <button type="button" id="openCreateGroupBtn" title="Створити приватну групу" style="background: none; border: none; font-size: 16px; cursor: pointer; padding: 4px; line-height: 1; opacity: 0.7; transition: opacity 0.15s; display: inline-flex; align-items: center; justify-content: center;">➕</button>
+        </h3>
+        <div class="channels-list" id="channelsList">
+          <div class="channel-item active" data-type="group" id="channelGroupMain">
+            <span class="channel-icon">📢</span>
+            <span class="channel-name">Загальний чат</span>
+          </div>
+        </div>
+      </div>
+      <div class="chat-info-card connection-status-card">
+        <h3>Статус підключення</h3>
+        <div class="status-indicator">
+          <span class="status-dot offline" id="statusDot"></span>
+          <span class="status-text" id="statusText">Підключення...</span>
+        </div>
+      </div>
+      <div class="chat-info-card notification-card" id="notificationCard" style="display: none;">
+        <h3>Сповіщення на робочий стіл</h3>
+        <p style="font-size: 12px; color: var(--muted); margin: 0 0 10px; line-height: 1.45;">
+          Отримуйте візуальні та звукові повідомлення, коли вкладка згорнута або у фоні.
+        </p>
+        <button id="enableNotificationsBtn" class="action" type="button" style="width: 100%; text-align: center; justify-content: center; font-size: 13px; padding: 8px 12px; border-radius: 9px; cursor: pointer; display: flex; align-items: center; gap: 6px; background: #fff; border: 1px solid rgba(0,111,201,.22); color: var(--accent-dark);">
+          <span>Увімкнути сповіщення</span>
+        </button>
+      </div>
+      <div class="chat-info-card online-users-card" id="onlineUsersCard">
+        <h3>Зараз у чаті (<span id="onlineCount">0</span>)</h3>
+        <div class="online-users-list" id="onlineUsersList">
+          <div class="online-user-item system">Завантаження списку...</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Right area: the Chat itself -->
+    <section class="chat-window" aria-label="Вікно повідомлень" id="chatWindow">
+      <div class="chat-window-header" id="chatWindowHeader">
+        <div class="chat-header-info">
+          <span class="chat-header-dot"></span>
+          <span class="chat-header-title">Робочий чат Департаменту</span>
+        </div>
+        <div class="chat-header-actions">
+          <button type="button" id="pipToggleBtn" class="chat-header-btn" title="Згорнути у плаваюче вікно">🗖</button>
+        </div>
+      </div>
+      <div class="chat-messages-wrapper" id="chatMessagesWrapper">
+        <div class="chat-messages" id="chatMessages">
+          <div class="chat-system-message">Завантаження повідомлень...</div>
+        </div>
+      </div>
+      
+      <!-- Editing Banner -->
+      <div id="chatEditBanner" style="display: none; align-items: center; justify-content: space-between; padding: 10px 24px; background: #fdfae7; border-top: 1px solid #f6e5a6; border-bottom: 1px solid #f6e5a6; font-size: 13px; color: #8a731c;">
+        <span>Редагування повідомлення...</span>
+        <button type="button" id="cancelEditBtn" style="background: none; border: none; color: #b73a2e; font-weight: 700; cursor: pointer; font-family: inherit;">Скасувати</button>
+      </div>
+
+      <form class="chat-input-panel" id="chatInputForm" style="position: relative;">
+        <!-- Hidden File Input -->
+        <input type="file" id="chatFileInput" style="display: none;">
+
+        <!-- Emoji Picker Popup -->
+        <div class="emoji-picker-popup" id="emojiPickerPopup" style="display: none; position: absolute; bottom: 80px; right: 24px; background: rgba(255,255,255,0.96); backdrop-filter: blur(12px); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 10px 30px rgba(14,30,55,0.15); padding: 12px; z-index: 200; width: 280px; max-width: 90vw;">
+          <div class="emoji-picker-title" style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; letter-spacing: 0.05em; border-bottom: 1px solid var(--line); padding-bottom: 4px;">Швидкі смайлики</div>
+          <div class="emoji-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;"></div>
+        </div>
+
+        <div class="chat-input-wrapper" style="position: relative; flex: 1; display: flex;">
+          <input type="text" id="chatMessageInput" placeholder="Введіть повідомлення експертам департаменту..." autocomplete="off" required style="padding-right: 76px; width: 100%;">
+          <button class="attach-file-btn" type="button" id="attachFileBtn" title="Додати файл" style="position: absolute; right: 42px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 18px; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; opacity: 0.6; transition: opacity .15s;">📎</button>
+          <button class="emoji-trigger-btn" type="button" id="emojiTriggerBtn" title="Додати смайлик" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 20px; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; opacity: 0.6; transition: opacity .15s;">😊</button>
+        </div>
+        <button class="action primary send-btn" type="submit" id="sendBtn">
+          <span>Надіслати</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </form>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Реєстр розроблено силами Департаменту без зовнішнього сприяння та проєктів.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Modal for Group Chat Creation -->
+  <div class="chat-modal" id="createGroupModal" style="display: none;">
+    <div class="chat-modal-content">
+      <h3>Створити приватну групу 👥</h3>
+      <div style="margin-bottom: 16px;">
+        <label for="newGroupNameInput" style="display: block; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.05em;">Назва групи</label>
+        <input type="text" id="newGroupNameInput" placeholder="Назва групи (напр. Аналітика ПМГ)..." required style="width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; font-size: 14px; outline: none; background: var(--soft);">
+      </div>
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.05em;">Оберіть учасників</label>
+        <div class="modal-members-list" id="modalMembersList" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--line); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 8px; background: var(--surface, #fff);">
+          <!-- Will be dynamically populated with checkboxes -->
+        </div>
+      </div>
+      <div class="modal-actions" style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button type="button" class="action" id="closeGroupModalBtn" style="padding: 10px 18px; font-size: 13.5px; border-radius: 12px; background: var(--soft); border: 1px solid var(--line); color: var(--ink); cursor: pointer; font-weight: 700;">Скасувати</button>
+        <button type="button" class="action primary" id="submitCreateGroupBtn" style="padding: 10px 22px; font-size: 13.5px; border-radius: 12px; background: var(--accent); color: #fff; border: none; cursor: pointer; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(74, 143, 199, 0.2);">Створити</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="chat.js" defer></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('Service Worker registered successfully!', reg))
+          .catch(err => console.error('Service Worker registration failed!', err));
+      });
+    }
+  </script>
+</body>
+</html>

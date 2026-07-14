@@ -1,0 +1,654 @@
+/* «Моя чудова Квіточка» — гра-догляд за орхідеєю */
+
+/* Вікно оранжереї */
+.orchid-window {
+  width: min(760px, 96vw);
+  border: 1px solid #d8b4fe;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fdf4ff;
+  box-shadow: 0 10px 34px rgba(88, 28, 135, 0.25);
+  user-select: none;
+  animation: askodWindowIn 0.25s ease;
+}
+
+.orchid-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(180deg, #db2777 0%, #9d174d 100%);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 7px 12px;
+}
+
+.orchid-titlebar .orchid-title-text {
+  flex-grow: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.orchid-title-btns {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.orchid-close-btn,
+.orchid-sound-btn {
+  min-width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.22);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 0 4px;
+  transition: background 0.15s ease;
+}
+
+.orchid-sound-btn:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.orchid-close-btn:hover {
+  background: #dc2626;
+}
+
+/* HUD */
+.orchid-hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  padding: 8px 12px;
+  background: #fae8ff;
+  border-bottom: 1px solid #e9d5ff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #6b21a8;
+}
+
+.orchid-hud .hud-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(217, 70, 239, 0.18);
+  border-radius: 999px;
+  padding: 4px 12px;
+  white-space: nowrap;
+}
+
+.orchid-hud .hud-chip.bump {
+  animation: orchidBump 0.3s ease;
+}
+
+@keyframes orchidBump {
+  0%, 100% { transform: scale(1); }
+  40% { transform: scale(1.12); }
+}
+
+.orchid-health-track {
+  flex: 1 1 110px;
+  min-width: 90px;
+  height: 14px;
+  border-radius: 9px;
+  background: rgba(107, 33, 168, 0.15);
+  overflow: hidden;
+  border: 1px solid rgba(217, 70, 239, 0.18);
+}
+
+.orchid-health-fill {
+  height: 100%;
+  width: 100%;
+  border-radius: 9px;
+  background: linear-gradient(90deg, #22c55e, #84cc16);
+  transition: width 0.3s ease, background 0.3s ease;
+}
+
+.orchid-health-fill.low {
+  background: linear-gradient(90deg, #ef4444, #f97316);
+  animation: orchidLowPulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes orchidLowPulse {
+  from { opacity: 1; }
+  to { opacity: 0.55; }
+}
+
+/* Ігрове поле — атмосфера оранжереї */
+.orchid-field {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: min(500px, 70vh);
+  background:
+    radial-gradient(circle at 82% 6%, rgba(253, 224, 71, 0.4), transparent 34%),
+    radial-gradient(circle at 12% 16%, rgba(240, 171, 252, 0.28), transparent 36%),
+    linear-gradient(180deg, #fdf2f8 0%, #f5f3ff 55%, #ecfdf5 100%);
+  overflow: hidden;
+}
+
+/* Сонячні промені та пилинки */
+.orchid-stage::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  pointer-events: none;
+  background: conic-gradient(from 200deg at 85% -5%,
+    transparent, rgba(253, 224, 71, 0.14) 8%, transparent 16%,
+    rgba(253, 224, 71, 0.1) 24%, transparent 32%);
+}
+
+.orchid-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.9) 0 1.2px, transparent 2px),
+    radial-gradient(circle, rgba(240, 171, 252, 0.8) 0 1px, transparent 1.8px);
+  background-position: 0 0, 37px 53px;
+  background-size: 90px 90px, 130px 130px;
+  animation: orchidDust 26s linear infinite;
+}
+
+@keyframes orchidDust {
+  from { background-position: 0 0, 37px 53px; }
+  to { background-position: -90px 90px, -53px 183px; }
+}
+
+/* Сцена з рослиною */
+.orchid-stage {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 0;
+}
+
+.orchid-plant {
+  position: relative;
+  width: 250px;
+  height: 310px;
+  max-height: 100%;
+  transition: filter 0.5s ease, transform 0.5s ease;
+  z-index: 1;
+}
+
+.orchid-inner {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 95%;
+  animation: orchidSway 6s ease-in-out infinite alternate;
+}
+
+@keyframes orchidSway {
+  from { transform: rotate(-1.2deg); }
+  to { transform: rotate(1.2deg); }
+}
+
+.orchid-plant.wilted {
+  filter: grayscale(0.8) brightness(0.85);
+  transform: rotate(4deg);
+}
+
+.orchid-plant.wilted .orchid-inner {
+  animation: none;
+}
+
+.orchid-plant.hurt {
+  animation: orchidHurt 0.4s ease;
+}
+
+@keyframes orchidHurt {
+  0%, 100% { transform: translateX(0); }
+  30% { transform: translateX(-7px) rotate(-2deg); }
+  70% { transform: translateX(7px) rotate(2deg); }
+}
+
+.orchid-inner > svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.orchid-bloom {
+  position: absolute;
+  transform: scale(0);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+  filter: drop-shadow(0 2px 3px rgba(157, 23, 77, 0.28));
+  margin: -15px 0 0 -15px;
+}
+
+.orchid-bloom.visible {
+  transform: scale(1);
+  animation: orchidBloomSway 3.4s ease-in-out infinite alternate;
+}
+
+@keyframes orchidBloomSway {
+  from { transform: scale(1) rotate(-4deg); }
+  to { transform: scale(1) rotate(4deg); }
+}
+
+/* Іскри за комбо */
+.orchid-sparkle {
+  position: absolute;
+  font-size: 18px;
+  z-index: 4;
+  pointer-events: none;
+  opacity: 0;
+  animation: orchidSparkle 0.9s ease forwards;
+}
+
+@keyframes orchidSparkle {
+  0% { opacity: 0; transform: scale(0.4) translateY(6px); }
+  35% { opacity: 1; transform: scale(1.15) translateY(-6px); }
+  100% { opacity: 0; transform: scale(0.7) translateY(-22px); }
+}
+
+/* Дощ із пелюсток (фінальний екран) */
+.orchid-petal {
+  position: absolute;
+  top: -32px;
+  z-index: 1;
+  pointer-events: none;
+  animation-name: orchidPetalFall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes orchidPetalFall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  8% { opacity: 0.9; }
+  100% { transform: translateY(560px) rotate(300deg); opacity: 0.15; }
+}
+
+/* Бульбашка потреби */
+.orchid-need {
+  position: absolute;
+  top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border: 2px solid #f0abfc;
+  border-radius: 18px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #86198f;
+  box-shadow: 0 6px 18px rgba(134, 25, 143, 0.18);
+  animation: orchidNeedIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 3;
+  max-width: 280px;
+}
+
+@keyframes orchidNeedIn {
+  from { transform: scale(0.6) translateY(-8px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* Хвостик бульбашки */
+.orchid-need::after {
+  content: "";
+  position: absolute;
+  bottom: -9px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-right: 2px solid #f0abfc;
+  border-bottom: 2px solid #f0abfc;
+  transform: rotate(45deg);
+  border-radius: 0 0 4px 0;
+}
+
+.orchid-need.slot-left::after { left: 34px; }
+.orchid-need.slot-right::after { right: 34px; }
+
+.orchid-need.urgent {
+  border-color: #fb7185;
+  animation: orchidUrgent 0.4s ease-in-out infinite alternate;
+}
+
+.orchid-need.urgent::after {
+  border-color: #fb7185;
+}
+
+@keyframes orchidUrgent {
+  from { box-shadow: 0 6px 18px rgba(190, 18, 60, 0.2); }
+  to { box-shadow: 0 6px 24px rgba(190, 18, 60, 0.5); transform: translateY(-2px); }
+}
+
+.orchid-need .need-icon {
+  font-size: 1.7rem;
+  flex-shrink: 0;
+}
+
+.orchid-need .need-body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 130px;
+}
+
+.orchid-need .need-timer {
+  height: 5px;
+  border-radius: 4px;
+  background: rgba(134, 25, 143, 0.15);
+  overflow: hidden;
+}
+
+.orchid-need .need-timer-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #d946ef, #ec4899);
+  animation-name: orchidTimer;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes orchidTimer {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+.orchid-need.slot-left { left: 18px; }
+.orchid-need.slot-right { right: 18px; }
+
+/* Спливаючі повідомлення */
+.orchid-toast {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 130px;
+  z-index: 4;
+  background: rgba(134, 25, 143, 0.92);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 14px;
+  pointer-events: none;
+  animation: orchidToast 1.6s ease forwards;
+  white-space: nowrap;
+  max-width: 92%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.orchid-toast.good {
+  background: rgba(22, 101, 52, 0.92);
+}
+
+@keyframes orchidToast {
+  0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  12%, 78% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-14px); }
+}
+
+.orchid-float-score {
+  position: absolute;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #db2777;
+  pointer-events: none;
+  z-index: 5;
+  animation: askodFloatUp 0.85s ease forwards;
+  text-shadow: 0 1px 0 #fff;
+}
+
+/* Кнопки догляду */
+.orchid-actions {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 10px 14px 14px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-top: 1px solid #f3e8ff;
+  position: relative;
+  z-index: 2;
+}
+
+.orchid-care-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 48px;
+  padding: 8px 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: inherit;
+  color: #6b21a8;
+  background: linear-gradient(180deg, #fff, #fdf4ff);
+  border: 1px solid #e9d5ff;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(134, 25, 143, 0.08);
+}
+
+.orchid-care-btn:hover {
+  border-color: #d946ef;
+  background: linear-gradient(180deg, #fdf4ff, #fae8ff);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(134, 25, 143, 0.16);
+}
+
+.orchid-care-btn:active,
+.orchid-care-btn.pressed {
+  transform: scale(0.95);
+  box-shadow: none;
+}
+
+.orchid-care-btn .care-icon {
+  font-size: 1.25rem;
+}
+
+.orchid-care-btn kbd {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-family: inherit;
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #a855f7;
+  background: rgba(168, 85, 247, 0.1);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  border-radius: 4px;
+  padding: 1px 4px;
+  line-height: 1.2;
+}
+
+@media (max-width: 560px) {
+  .orchid-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .orchid-care-btn {
+    font-size: 0.78rem;
+  }
+
+  .orchid-care-btn kbd {
+    display: none;
+  }
+}
+
+/* Оверлеї (старт, фінал, лідери) */
+.orchid-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  padding: 24px;
+  background: rgba(80, 7, 36, 0.78);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: #fdf2f8;
+  overflow: hidden;
+}
+
+.orchid-overlay h3 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  position: relative;
+  z-index: 2;
+}
+
+.orchid-overlay p {
+  margin: 0;
+  font-size: 0.92rem;
+  max-width: 470px;
+  line-height: 1.5;
+  color: rgba(253, 242, 248, 0.92);
+  position: relative;
+  z-index: 2;
+}
+
+/* Статистика фінального екрана */
+.orchid-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  position: relative;
+  z-index: 2;
+}
+
+.orchid-stats .stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 76px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+}
+
+.orchid-stats .stat b {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #f9a8d4;
+}
+
+.orchid-stats .stat span {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(253, 242, 248, 0.7);
+  font-weight: 700;
+}
+
+.orchid-overlay .orchid-rank {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #f9a8d4;
+  position: relative;
+  z-index: 2;
+}
+
+.orchid-overlay .orchid-best {
+  font-size: 0.8rem;
+  color: rgba(253, 242, 248, 0.7);
+  position: relative;
+  z-index: 2;
+}
+
+.orchid-overlay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  position: relative;
+  z-index: 2;
+}
+
+.orchid-overlay button {
+  padding: 10px 26px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #db2777, #9333ea);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(219, 39, 119, 0.4);
+  transition: transform 0.15s ease;
+}
+
+.orchid-overlay button:hover {
+  transform: translateY(-2px);
+}
+
+.orchid-overlay button.secondary {
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: none;
+}
+
+.orchid-save-status {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #f9a8d4;
+}
+
+/* Дошка пошани оранжереї — використовує таблиці askod-lb */
+.orchid-overlay.orchid-lb {
+  justify-content: flex-start;
+  overflow-y: auto;
+  gap: 12px;
+}
+
+.orchid-overlay .askod-lb-col h4 {
+  color: #f9a8d4;
+}
+
+/* Доступність */
+.orchid-window button:focus-visible {
+  outline: 3px solid #f0abfc;
+  outline-offset: 2px;
+}
+
+/* Смужка таймера потреби — функціональний елемент, її не вимикаємо */
+@media (prefers-reduced-motion: reduce) {
+  .orchid-window *:not(.need-timer-fill),
+  .orchid-modal .orchid-window,
+  .orchid-stage::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+
+  .orchid-inner,
+  .orchid-bloom.visible,
+  .orchid-petal,
+  .orchid-stage::after {
+    animation: none !important;
+  }
+}

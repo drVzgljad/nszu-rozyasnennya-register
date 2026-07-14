@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>НавігаторПМГ26 | Запитання ЗОЗ</title>
+  <link rel="stylesheet" href="../styles.css?v=20260531e">
+  <link rel="stylesheet" href="questions.css">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260714">
+  <script type="module" src="../auth-v2.js?v=20260714e"></script>
+</head>
+<body id="top" data-required-role="registered">
+  <header class="hero questions-hero">
+    <div class="hero-copy">
+      <div class="overline">Зворотний зв'язок ЗОЗ</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Запитання ЗОЗ за ПМГ</h1>
+      <p>Задайте питання експертам Департаменту НСЗУ або перегляньте базу наданих роз'яснень щодо умов укладення договорів за ПМГ та фінансування.</p>
+    </div>
+    <div class="stats" id="questionsStats" aria-label="Статистика запитань"></div>
+  </header>
+
+  <main class="questions-layout">
+    <section class="questions-browser" aria-label="Пошук питань">
+      <div class="search-panel questions-search">
+        <label class="search">
+          <span>Пошук у питаннях ЗОЗ</span>
+          <input id="questionSearch" type="search" placeholder="Наприклад: укладення договорів, терапевтичний пакет, лікарі..." autocomplete="off">
+        </label>
+        <div class="questions-filters">
+          <label>Категорія питання
+            <select id="categoryFilter">
+              <option value="">Усі категорії</option>
+              <option value="contracting">Укладення договорів за ПМГ</option>
+              <option value="coding">Кодування та ЕМЗ</option>
+              <option value="billing">Оплата та тарифи</option>
+              <option value="technical">Технічні вимоги</option>
+              <option value="other">Інші питання</option>
+            </select>
+          </label>
+        </div>
+        <div class="results-summary">
+          <span id="questionCount">Завантаження запитань...</span>
+          <button id="askQuestionBtn" class="action primary" type="button">Поставити питання</button>
+        </div>
+      </div>
+
+      <div class="question-cards" id="questionCards"></div>
+    </section>
+
+    <!-- Side details or Question Form -->
+    <aside class="question-panel-side" id="questionPanelSide" aria-live="polite">
+      <!-- Default empty state -->
+      <div class="empty-state" id="panelEmptyState">
+        <div class="empty-icon">?</div>
+        <h2>Оберіть запитання</h2>
+        <p>Тут з'явиться детальний текст питання, статус відповіді та роз'яснення експертів НСЗУ.</p>
+      </div>
+
+      <!-- Question Form (Hidden by default) -->
+      <div class="question-form-container" id="questionFormContainer" style="display:none">
+        <h2>Поставити нове питання</h2>
+        <p class="form-lead">Ваше питання буде передано департаменту на опрацювання. Після надання відповіді воно з'явиться в загальному переліку.</p>
+        <form id="newQuestionForm">
+          <div class="form-field">
+            <label for="qCategory">Категорія</label>
+            <select id="qCategory" required>
+              <option value="contracting">Укладення договорів за ПМГ</option>
+              <option value="coding">Кодування та ЕМЗ</option>
+              <option value="billing">Оплата та тарифи</option>
+              <option value="technical">Технічні вимоги</option>
+              <option value="other">Інші питання</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="qText">Текст запитання</label>
+            <textarea id="qText" required placeholder="Опишіть ваше питання детально. Вкажіть номер пакета чи пункту постанови, якщо необхідно..." rows="6"></textarea>
+          </div>
+          <div class="form-actions">
+            <button class="action primary" type="submit" id="submitQuestionBtn">Надіслати запит</button>
+            <button class="action" type="button" id="cancelQuestionBtn">Скасувати</button>
+          </div>
+          <div class="form-status" id="formStatus"></div>
+        </form>
+      </div>
+
+      <!-- Question Detail Viewer (Hidden by default) -->
+      <div class="question-detail-viewer" id="questionDetailViewer" style="display:none">
+        <div class="detail-category-badge" id="detCategory">Категорія</div>
+        <h2 id="detQuestionTitle">Питання від закладу</h2>
+        <p class="detail-author" id="detAuthor">Автор: ...</p>
+        
+        <div class="section-title">Текст запитання</div>
+        <div class="excerpt question-body" id="detText">Текст запитання...</div>
+
+        <div class="answer-section" id="detAnswerSection">
+          <div class="section-title">Офіційна відповідь Департаменту</div>
+          <div class="answer-box" id="detAnswer">Відповідь експертів...</div>
+          <p class="answer-date" id="detAnswerDate">Надано: ...</p>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Реєстр розроблено силами Департаменту без зовнішнього сприяння та проєктів.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="questions.js" defer></script>
+</body>
+</html>

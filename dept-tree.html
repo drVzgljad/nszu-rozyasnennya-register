@@ -1,0 +1,806 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>НавігаторПМГ26 | Структура департаменту</title>
+  <link rel="stylesheet" href="styles.css?v=20260531e">
+  <link rel="stylesheet" href="auth-v2.css?v=20260714">
+  <link rel="stylesheet" href="dept-tree.css?v=20260616h">
+  <script type="module" src="auth-v2.js?v=20260714e"></script>
+</head>
+<body data-required-role="expert">
+  <header class="hero dept-hero">
+    <div class="hero-copy">
+      <div class="overline">Організаційна структура</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="index.html" aria-label="На головну">
+            <img class="brand-shield" src="assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">робочий простір експертів ПМГ</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Структура департаменту</h1>
+      <p>
+        Департамент стратегії універсального охоплення населення медичними послугами:
+        керівництво, відділи, керівники відділів та головні спеціалісти.
+      </p>
+      
+      <div class="dept-hero-widgets">
+        <div class="stats dept-summary" aria-label="Коротка статистика">
+          <div class="stat">
+            <strong id="stat-total-people">0</strong>
+            <span>співробітників</span>
+          </div>
+          <div class="stat">
+            <strong id="stat-total-depts">0</strong>
+            <span>відділів</span>
+          </div>
+          <div class="stat">
+            <strong id="stat-total-heads">0</strong>
+            <span>керівних ролей</span>
+          </div>
+        </div>
+
+        <div class="presence-widget" aria-label="Статистика присутності">
+          <div class="presence-widget-title">Статус сьогодні</div>
+          <div class="presence-widget-content">
+            <div class="presence-chart-container">
+              <div class="presence-doughnut" id="presence-doughnut"></div>
+              <div class="presence-chart-center">
+                <span class="presence-chart-number" id="presence-chart-number">0</span>
+                <span class="presence-chart-label">співр.</span>
+              </div>
+            </div>
+            <div class="presence-legend" id="presence-legend"></div>
+          </div>
+        </div>
+
+        <div class="depts-presence-widget" aria-label="Статус по відділах">
+          <div class="presence-widget-title">Статус по відділах</div>
+          <div class="depts-presence-content" id="depts-presence-content"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="dept-page">
+    <section class="tree-toolbar" aria-label="Пошук і фільтри">
+      <label class="tree-search-wrapper">
+        <span class="visually-hidden">Пошук у структурі</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="search" id="tree-search-input" placeholder="Шукати за іменем, посадою або відділом..." autocomplete="off">
+      </label>
+      <div class="tree-filters-wrapper" id="department-filters" aria-label="Фільтр відділів"></div>
+    </section>
+
+    <section class="org-map" aria-label="Органіграма департаменту">
+      <aside class="support-rail" aria-label="Системна підтримка">
+        <div class="support-label">Системна підтримка</div>
+        <div id="support-row"></div>
+      </aside>
+      <div class="leadership-row" id="leadership-row"></div>
+      <div class="tree-connector" aria-hidden="true"></div>
+      <div class="deputy-row" id="deputy-row"></div>
+      <div class="tree-connector departments-connector" aria-hidden="true"></div>
+      <div class="departments-grid" id="departments-grid"></div>
+      <div class="empty-result" id="empty-result" hidden>За цим запитом нічого не знайдено.</div>
+    </section>
+  </main>
+
+  <dialog class="person-dialog" id="person-dialog">
+    <button class="dialog-close" id="dialog-close" aria-label="Закрити">&times;</button>
+    <div class="dialog-avatar" id="dialog-avatar"></div>
+    <h2 id="dialog-name"></h2>
+    <p id="dialog-role"></p>
+    <dl>
+      <div>
+        <dt>Підрозділ</dt>
+        <dd id="dialog-department"></dd>
+      </div>
+      <div>
+        <dt>Рівень у структурі</dt>
+        <dd id="dialog-level"></dd>
+      </div>
+    </dl>
+  </dialog>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Візуалізація побудована за затвердженою структурою департаменту з робочого документа.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
+    const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const ORG = {
+      director: {
+        name: "Дудник Світлана",
+        role: "Директор",
+        level: "Керівництво департаменту",
+        badge: "director"
+      },
+      deputy: {
+        name: "Альбіна Волошина",
+        role: "Заступник директора",
+        department: "Відділ стратегічного розвитку програми медичних гарантій",
+        level: "Керівництво департаменту",
+        badge: "deputy"
+      },
+      administrator: {
+        name: "Костянтин Ткач",
+        role: "Адміністратор системи",
+        level: "Системна підтримка",
+        badge: "admin"
+      },
+      departments: [
+        {
+          id: "partners",
+          title: "Відділ взаємодії з надавачами медичних послуг",
+          shortTitle: "Взаємодія",
+          color: "partners",
+          manager: "Ірина Білолипецька",
+          specialists: ["Анастасія Левченко", "Анна Ліщишина", "Оксана Кирилюк"]
+        },
+        {
+          id: "cost",
+          title: "Відділ розрахунку вартості медичних послуг",
+          shortTitle: "Вартість",
+          color: "cost",
+          manager: "Володимир Якубівський",
+          specialists: ["Марина Риженко", "Олена Задорожня", "Наталія Вервейко"]
+        },
+        {
+          id: "data",
+          title: "Відділ роботи з електронними медичними даними",
+          shortTitle: "Дані",
+          color: "data",
+          manager: "Євгеній Горох",
+          specialists: ["Костянтин Звєрєв", "Олег Коваль"]
+        },
+        {
+          id: "reimbursement",
+          title: "Відділ розвитку програми реімбурсації",
+          shortTitle: "Реімбурсація",
+          color: "reimbursement",
+          manager: "",
+          specialists: ["Михайло Фортельний", "Сергій Гончаренко"]
+        },
+        {
+          id: "clinical",
+          title: "Відділ наукової та клінічної експертизи",
+          shortTitle: "Експертиза",
+          color: "clinical",
+          manager: "",
+          specialists: ["Вікторія Ісаюк", "Юлія Савка", "Костянтин Ткач"]
+        },
+        {
+          id: "strategy",
+          title: "Відділ стратегічного розвитку ПМГ",
+          shortTitle: "Стратегія",
+          color: "strategy",
+          manager: "Альбіна Волошина",
+          specialists: ["Олена Ковалева"]
+        }
+      ]
+    };
+
+    const state = {
+      search: "",
+      department: "all",
+      profileIdsByName: new Map(),
+      profileNamesById: new Map(),
+      onlineIds: new Set(),
+      presenceChannel: null
+    };
+
+    const $ = (selector) => document.querySelector(selector);
+
+    function peopleCount() {
+      return getUniquePeopleNames().length;
+    }
+
+    function initials(name) {
+      return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[char]));
+    }
+
+    function createPersonCard(person, className = "") {
+      const department = person.department || person.level || "Департамент";
+      const role = person.role || "Головний спеціаліст";
+      const badge = person.badge || "specialist";
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = `person-card ${className} badge-${badge}`;
+      card.dataset.search = `${person.name} ${role} ${department}`.toLowerCase();
+      card.dataset.personName = person.name;
+      card.innerHTML = `
+        <span class="person-avatar">${escapeHtml(initials(person.name))}</span>
+        <span class="online-lamp" aria-hidden="true"></span>
+        <span class="person-name">
+          ${escapeHtml(person.name)}
+          <span class="person-status-indicator" data-status-name="${person.name}"></span>
+        </span>
+        <span class="person-role">${escapeHtml(role)}</span>
+        <span class="person-chip">${escapeHtml(badgeLabel(badge))}</span>
+      `;
+      card.addEventListener("click", () => openPersonDialog({ ...person, role, department }));
+      return card;
+    }
+
+    function badgeLabel(badge) {
+      return {
+        director: "Директор",
+        deputy: "Заступник",
+        admin: "Адміністратор",
+        manager: "Керівник",
+        specialist: "Спеціаліст",
+        vacant: "Вакансія"
+      }[badge] || "Співробітник";
+    }
+
+    function render() {
+      renderFilters();
+      renderDepartments();
+      applyFilters();
+    }
+
+    function renderLeadership() {
+      const row = $("#leadership-row");
+      row.innerHTML = "";
+      row.appendChild(createPersonCard(ORG.director, "lead-card"));
+
+      const supportRow = $("#support-row");
+      supportRow.innerHTML = "";
+      supportRow.appendChild(createPersonCard(ORG.administrator, "support-card"));
+
+      const deputyRow = $("#deputy-row");
+      deputyRow.innerHTML = "";
+      deputyRow.appendChild(createPersonCard(ORG.deputy, "deputy-card"));
+    }
+
+    function renderFilters() {
+      const filters = $("#department-filters");
+      const buttons = [
+        ["all", "Всі відділи"],
+        ...ORG.departments.map((dept) => [dept.id, dept.shortTitle])
+      ];
+      filters.innerHTML = buttons.map(([id, label]) =>
+        `<button class="tree-filter-btn${id === state.department ? " active" : ""}" type="button" data-dept="${id}">${escapeHtml(label)}</button>`
+      ).join("");
+
+      filters.querySelectorAll("button").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.department = button.dataset.dept;
+          render();
+        });
+      });
+    }
+
+    function renderDepartments() {
+      const grid = $("#departments-grid");
+      grid.innerHTML = "";
+
+      ORG.departments.forEach((dept) => {
+        const section = document.createElement("article");
+        section.className = `department-card theme-${dept.color}`;
+        section.dataset.dept = dept.id;
+        section.dataset.search = `${dept.title} ${dept.manager} ${dept.specialists.join(" ")}`.toLowerCase();
+
+        section.innerHTML = `
+          <header class="department-head">
+            <span class="department-index">${escapeHtml(String(ORG.departments.indexOf(dept) + 1).padStart(2, "0"))}</span>
+            <div>
+              <h2>${escapeHtml(dept.title)}</h2>
+              <div class="dept-meta-row">
+                <p>${dept.specialists.length} головн${dept.specialists.length === 1 ? "ий спеціаліст" : "і спеціалісти"}</p>
+                <span class="dept-status-badge" data-dept-status-id="${dept.id}"></span>
+              </div>
+            </div>
+          </header>
+          <div class="manager-slot"></div>
+          <div class="specialists-group">
+            <div class="group-label">Головні спеціалісти</div>
+            <div class="specialists-list"></div>
+          </div>
+        `;
+
+        const managerSlot = section.querySelector(".manager-slot");
+        managerSlot.appendChild(createPersonCard(dept.manager
+          ? {
+              name: dept.manager,
+              role: "Керівник відділу",
+              department: dept.title,
+              level: "Відділ",
+              badge: "manager"
+            }
+          : {
+              name: "Керівник не призначений",
+              role: "Вакантна керівна роль",
+              department: dept.title,
+              level: "Відділ",
+              badge: "vacant"
+            },
+          dept.manager ? "manager-card" : "manager-card vacant-card"
+        ));
+
+        const list = section.querySelector(".specialists-list");
+        dept.specialists.forEach((name) => {
+          list.appendChild(createPersonCard({
+            name,
+            role: "Головний спеціаліст",
+            department: dept.title,
+            level: "Відділ",
+            badge: "specialist"
+          }, "specialist-card"));
+        });
+
+        grid.appendChild(section);
+      });
+    }
+
+    function applyFilters() {
+      const query = state.search.trim().toLowerCase();
+      let visibleDepartments = 0;
+
+      document.querySelectorAll(".department-card").forEach((card) => {
+        const byDepartment = state.department === "all" || card.dataset.dept === state.department;
+        const byText = !query || card.dataset.search.includes(query);
+        const personMatches = [...card.querySelectorAll(".person-card")].some((person) => person.dataset.search.includes(query));
+        const show = byDepartment && (byText || personMatches);
+        card.hidden = !show;
+        if (show) visibleDepartments += 1;
+
+        card.querySelectorAll(".person-card").forEach((person) => {
+          person.classList.toggle("is-match", Boolean(query && person.dataset.search.includes(query)));
+        });
+      });
+
+      document.querySelectorAll("#leadership-row .person-card, #deputy-row .person-card, #support-row .person-card").forEach((person) => {
+        person.classList.toggle("is-match", Boolean(query && person.dataset.search.includes(query)));
+      });
+
+      $("#empty-result").hidden = visibleDepartments > 0;
+      document.querySelectorAll(".tree-filter-btn").forEach((button) => {
+        button.classList.toggle("active", button.dataset.dept === state.department);
+      });
+    }
+
+    function syncOnlineCards() {
+      document.querySelectorAll(".person-card").forEach((card) => {
+        const profileId = state.profileIdsByName.get(card.dataset.personName);
+        const isOnline = Boolean(profileId && state.onlineIds.has(profileId));
+        card.classList.toggle("is-online", isOnline);
+        card.setAttribute("aria-label", `${card.dataset.personName}${isOnline ? " зараз у мережі" : ""}`);
+      });
+    }
+
+    function updateOnlineState(presenceState) {
+      const onlineIds = new Set();
+      Object.values(presenceState || {}).forEach((presences) => {
+        (presences || []).forEach((presence) => {
+          if (presence?.user_id) onlineIds.add(presence.user_id);
+        });
+      });
+      state.onlineIds = onlineIds;
+      syncOnlineCards();
+    }
+
+    async function loadProfileIds() {
+      try {
+        const { data, error } = await sb.from("profiles").select("id, full_name");
+        if (error) throw error;
+        (data || []).forEach((profile) => {
+          if (profile.full_name) {
+            const trimmedName = profile.full_name.trim();
+            state.profileIdsByName.set(trimmedName, profile.id);
+            state.profileNamesById.set(profile.id, trimmedName);
+          }
+        });
+        syncOnlineCards();
+      } catch (error) {
+        console.warn("Не вдалося завантажити профілі для онлайн-індикаторів:", error);
+      }
+    }
+
+    async function setupPresence() {
+      await loadProfileIds();
+
+      state.presenceChannel = sb.channel("chat_room", {
+        config: { presence: { key: `dept-tree-${crypto.randomUUID()}` } }
+      });
+
+      state.presenceChannel
+        .on("presence", { event: "sync" }, () => {
+          updateOnlineState(state.presenceChannel.presenceState());
+        })
+        .subscribe(async (status) => {
+          if (status !== "SUBSCRIBED") return;
+          try {
+            const { data: { user } } = await sb.auth.getUser();
+            if (user) {
+              await state.presenceChannel.track({
+                user_id: user.id,
+                user_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email,
+                online_at: new Date().toISOString()
+              });
+            }
+          } catch (error) {
+            console.warn("Не вдалося позначити поточну присутність:", error);
+          }
+        });
+    }
+
+    function openPersonDialog(person) {
+      const dialog = $("#person-dialog");
+      $("#dialog-avatar").textContent = initials(person.name);
+      $("#dialog-name").textContent = person.name;
+      $("#dialog-role").textContent = person.role;
+      $("#dialog-department").textContent = person.department || "Департамент";
+      $("#dialog-level").textContent = person.level || "Структура департаменту";
+      if (typeof dialog.showModal === "function") {
+        dialog.showModal();
+      } else {
+        dialog.setAttribute("open", "");
+      }
+    }
+
+    function setupEvents() {
+      $("#tree-search-input").addEventListener("input", (event) => {
+        state.search = event.target.value;
+        applyFilters();
+      });
+
+      $("#dialog-close").addEventListener("click", () => $("#person-dialog").close());
+      $("#person-dialog").addEventListener("click", (event) => {
+        if (event.target.id === "person-dialog") {
+          event.currentTarget.close();
+        }
+      });
+    }
+
+    function renderStats() {
+      $("#stat-total-people").textContent = peopleCount();
+      $("#stat-total-depts").textContent = ORG.departments.length;
+      $("#stat-total-heads").textContent = 1 + 1 + ORG.departments.filter((dept) => dept.manager).length;
+    }
+
+    function getLocalDateString() {
+      const d = new Date();
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function getUniquePeopleNames() {
+      const names = new Set();
+      names.add(ORG.director.name);
+      names.add(ORG.deputy.name);
+      names.add(ORG.administrator.name);
+      ORG.departments.forEach(dept => {
+        if (dept.manager) names.add(dept.manager);
+        dept.specialists.forEach(sp => names.add(sp));
+      });
+      return Array.from(names);
+    }
+
+    function calculatePresenceStats(statusesData) {
+      const uniqueNames = getUniquePeopleNames();
+      const stats = {
+        office: 0,
+        home: 0,
+        sick: 0,
+        vacation: 0,
+        agreement: 0,
+        unregistered: 0
+      };
+
+      const registeredNames = new Set();
+      (statusesData || []).forEach(item => {
+        if (item.user_name) {
+          const dbNameLower = item.user_name.trim().toLowerCase();
+          const matchedName = uniqueNames.find(uname => {
+            const unameLower = uname.trim().toLowerCase();
+            if (unameLower === dbNameLower) return true;
+            
+            const unameWords = unameLower.split(/\s+/).filter(Boolean);
+            const dbWords = dbNameLower.split(/\s+/).filter(Boolean);
+            return unameWords.length === dbWords.length && unameWords.every(w => dbWords.includes(w));
+          });
+          
+          if (matchedName && !registeredNames.has(matchedName)) {
+            registeredNames.add(matchedName);
+            if (stats[item.status] !== undefined) {
+              stats[item.status]++;
+            }
+          }
+        }
+      });
+
+      stats.unregistered = uniqueNames.length - registeredNames.size;
+
+      const total = uniqueNames.length;
+      const order = ['office', 'home', 'sick', 'vacation', 'agreement', 'unregistered'];
+      const segments = [];
+      let currentPercent = 0;
+
+      order.forEach(key => {
+        const val = stats[key] || 0;
+        if (val > 0) {
+          const pct = (val / total) * 100;
+          const nextPercent = currentPercent + pct;
+          segments.push(`var(--status-${key}) ${currentPercent.toFixed(1)}% ${nextPercent.toFixed(1)}%`);
+          currentPercent = nextPercent;
+        }
+      });
+
+      const doughnut = document.getElementById('presence-doughnut');
+      if (doughnut) {
+        if (segments.length > 0) {
+          doughnut.style.background = `conic-gradient(${segments.join(', ')})`;
+        } else {
+          doughnut.style.background = 'var(--status-unregistered)';
+        }
+      }
+
+      const legend = document.getElementById('presence-legend');
+      if (legend) {
+        const config = {
+          office: { label: 'Офіс', icon: '🏢' },
+          home: { label: 'Вдома', icon: '🏡' },
+          sick: { label: 'Лікарняний', icon: '🏥' },
+          vacation: { label: 'Відпустка', icon: '🌴' },
+          agreement: { label: 'За домовл.', icon: '🤝' },
+          unregistered: { label: 'Не вказано', icon: '❓' }
+        };
+
+        legend.innerHTML = order.map(key => {
+          const count = stats[key] || 0;
+          return `
+            <div class="presence-legend-item">
+              <span class="presence-legend-dot" style="background: var(--status-${key})"></span>
+              <span class="presence-legend-icon">${config[key].icon}</span>
+              <span class="presence-legend-text">${config[key].label}: <strong>${count}</strong></span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const chartNumber = document.getElementById('presence-chart-number');
+      if (chartNumber) {
+        chartNumber.textContent = total;
+      }
+    }
+
+    function updateDepartmentStatusBadges(statusesData) {
+      const statusMap = new Map();
+      (statusesData || []).forEach(item => {
+        if (item.user_name && item.status) {
+          statusMap.set(item.user_name.trim().toLowerCase(), item.status);
+        }
+      });
+
+      const deptsPresenceContent = document.getElementById('depts-presence-content');
+      let deptsHtml = '';
+
+      ORG.departments.forEach(dept => {
+        const members = new Set();
+        if (dept.manager) members.add(dept.manager);
+        dept.specialists.forEach(sp => members.add(sp));
+        
+        const stats = {
+          office: 0,
+          home: 0,
+          sick: 0,
+          vacation: 0,
+          agreement: 0,
+          unregistered: 0
+        };
+
+        members.forEach(member => {
+          const dbNameLower = member.trim().toLowerCase();
+          let status = null;
+          if (statusMap.has(dbNameLower)) {
+            status = statusMap.get(dbNameLower);
+          } else {
+            const targetWords = dbNameLower.split(/\s+/).filter(Boolean);
+            for (const [dbName, dbStatus] of statusMap.entries()) {
+              const dbWords = dbName.split(/\s+/).filter(Boolean);
+              if (dbWords.length === targetWords.length && dbWords.every(w => targetWords.includes(w))) {
+                status = dbStatus;
+                break;
+              }
+            }
+          }
+
+          if (status) {
+            if (stats[status] !== undefined) {
+              stats[status]++;
+            }
+          } else {
+            stats.unregistered++;
+          }
+        });
+
+        const parts = [];
+        const badgeParts = [];
+
+        if (stats.office > 0) {
+          parts.push(`О${stats.office}`);
+          badgeParts.push(`<span class="micro-status m-office" title="Офіс">О${stats.office}</span>`);
+        }
+        if (stats.home > 0) {
+          parts.push(`Д${stats.home}`);
+          badgeParts.push(`<span class="micro-status m-home" title="Вдома">Д${stats.home}</span>`);
+        }
+        if (stats.sick > 0) {
+          parts.push(`Л${stats.sick}`);
+          badgeParts.push(`<span class="micro-status m-sick" title="Лікарняний">Л${stats.sick}</span>`);
+        }
+        if (stats.vacation > 0) {
+          parts.push(`В${stats.vacation}`);
+          badgeParts.push(`<span class="micro-status m-vacation" title="Відпустка">В${stats.vacation}</span>`);
+        }
+        if (stats.agreement > 0) {
+          parts.push(`ЗД${stats.agreement}`);
+          badgeParts.push(`<span class="micro-status m-agreement" title="За домовленістю">ЗД${stats.agreement}</span>`);
+        }
+        if (stats.unregistered > 0) {
+          parts.push(`Б/С${stats.unregistered}`);
+          badgeParts.push(`<span class="micro-status m-unregistered" title="Без статусу">Б/С${stats.unregistered}</span>`);
+        }
+
+        const badgeText = parts.join(' ');
+        const badgeHtml = badgeParts.join('');
+
+        const badge = document.querySelector(`[data-dept-status-id="${dept.id}"]`);
+        if (badge) {
+          badge.textContent = badgeText;
+          badge.style.display = parts.length > 0 ? 'inline-flex' : 'none';
+        }
+
+        // Add to department summary dashboard widget
+        deptsHtml += `
+          <div class="dept-presence-box theme-${dept.color}">
+            <span class="dept-presence-title" title="${escapeHtml(dept.title)}">${escapeHtml(dept.shortTitle)}</span>
+            <div class="dept-presence-badge">${badgeHtml || '<span class="micro-status m-unregistered">Б/С</span>'}</div>
+          </div>
+        `;
+      });
+
+      if (deptsPresenceContent) {
+        deptsPresenceContent.innerHTML = deptsHtml;
+      }
+    }
+
+    async function loadDailyStatuses() {
+      const todayStr = getLocalDateString();
+      try {
+        const { data, error } = await sb
+          .from("user_daily_statuses")
+          .select("user_id, user_name, status")
+          .eq("status_date", todayStr);
+          
+        if (error) throw error;
+        
+        const normalizedData = (data || []).map(item => {
+          let resolvedName = item.user_name;
+          if (item.user_id && state.profileNamesById.has(item.user_id)) {
+            resolvedName = state.profileNamesById.get(item.user_id);
+          }
+          return {
+            ...item,
+            user_name: resolvedName
+          };
+        });
+        
+        const statusMap = new Map();
+        normalizedData.forEach(item => {
+          if (item.user_name) {
+            statusMap.set(item.user_name.trim().toLowerCase(), item.status);
+          }
+        });
+        
+        applyStatusesToCards(statusMap);
+        calculatePresenceStats(normalizedData);
+        updateDepartmentStatusBadges(normalizedData);
+      } catch (error) {
+        console.warn("Не вдалося завантажити щоденні статуси для структури:", error);
+      }
+    }
+    
+    function applyStatusesToCards(statusMap) {
+      document.querySelectorAll(".person-status-indicator").forEach(el => {
+        const personName = el.dataset.statusName;
+        if (!personName) return;
+        
+        let status = null;
+        const targetNameLower = personName.trim().toLowerCase();
+        
+        // Try exact match first
+        if (statusMap.has(targetNameLower)) {
+          status = statusMap.get(targetNameLower);
+        } else {
+          // Fallback to word-set matching (e.g. 'Дудник Світлана' matches 'Світлана Дудник')
+          const targetWords = targetNameLower.split(/\s+/).filter(Boolean);
+          for (const [dbName, dbStatus] of statusMap.entries()) {
+            const dbWords = dbName.split(/\s+/).filter(Boolean);
+            if (dbWords.length === targetWords.length && dbWords.every(w => targetWords.includes(w))) {
+              status = dbStatus;
+              break;
+            }
+          }
+        }
+        
+        el.className = 'person-status-indicator';
+        el.innerHTML = '';
+        
+        if (status) {
+          const config = {
+            office: { text: '🏢 Офіс', className: 'status-office' },
+            home: { text: '🏡 Вдома', className: 'status-home' },
+            sick: { text: '🏥 Лікарняний', className: 'status-sick' },
+            vacation: { text: '🌴 Відпустка', className: 'status-vacation' },
+            agreement: { text: '🤝 За домовл.', className: 'status-agreement' }
+          };
+          
+          const sConf = config[status];
+          if (sConf) {
+            el.classList.add(sConf.className);
+            el.textContent = sConf.text;
+            el.style.display = 'inline-flex';
+          }
+        } else {
+          el.style.display = 'none';
+        }
+      });
+    }
+
+    function setupStatusesRealtime() {
+      sb.channel('realtime_dept_tree_statuses')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'user_daily_statuses' }, () => {
+          loadDailyStatuses();
+        })
+        .subscribe();
+    }
+
+    renderStats();
+    renderLeadership();
+    render();
+    setupEvents();
+    setupPresence();
+    loadDailyStatuses();
+    setupStatusesRealtime();
+  </script>
+</body>
+</html>

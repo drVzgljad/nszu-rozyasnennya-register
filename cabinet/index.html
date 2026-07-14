@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Особистий кабінет експерта — НавігаторПМГ26</title>
+  <link rel="stylesheet" href="../portal.css?v=20260603d">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260714">
+  <link rel="stylesheet" href="cabinet.css?v=20260708">
+  <script type="module" src="../auth-v2.js?v=20260714e"></script>
+  <script type="module" src="cabinet.js?v=20260714"></script>
+</head>
+<body data-required-role="expert">
+<div class="portal">
+
+  <!-- ── Top bar ─────────────────────────────────────── -->
+  <header class="top">
+    <div class="wrap top-inner">
+      <div class="top-row-1">
+        <a class="lockup" href="../index.html" aria-label="На головну">
+          <img class="shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true" style="width:44px;height:auto">
+          <span class="wm">
+            <span class="wm-1">Робочий простір експертів</span>
+            <span class="wm-2">Програма медичних гарантій 2026</span>
+          </span>
+        </a>
+        <div class="top-row-1-right">
+          <nav class="section-switch top-auth" aria-label="Авторизація"></nav>
+          <span class="agency-chip">
+            <img src="../assets/nszu-shield.svg" alt="">НСЗУ
+          </span>
+        </div>
+      </div>
+      <div class="top-row-2">
+        <nav class="top-nav" aria-label="Головне меню"></nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- Access Denied Overlay (Controlled by auth-v2.js) -->
+  <div id="access-denied-overlay" class="access-denied-overlay" style="display:none">
+    <div class="access-denied-box">
+      <h2>Доступ обмежено</h2>
+      <p id="access-denied-msg">Ця сторінка доступна лише для зареєстрованих співробітників.</p>
+      <button class="auth-submit" id="access-denied-btn">Увійти / Зареєструватись</button>
+    </div>
+  </div>
+
+  <!-- ── Main Workspace ────────────────────────────── -->
+  <main class="wrap cabinet-container">
+    
+    <!-- User Welcome Profile Banner -->
+    <section class="cabinet-profile-card">
+      <div class="profile-avatar" id="user-avatar">?</div>
+      <div class="profile-info">
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+          <h1 id="user-display-name">Завантаження...</h1>
+          <span class="auth-role-badge role-expert" id="user-display-role">Експерт</span>
+        </div>
+        <p id="user-display-dept">Відділ стратегічного розвитку програми медичних гарантій</p>
+      </div>
+    </section>
+
+    <!-- Quick Info Dashboard (Metrics Grid) -->
+    <section class="cabinet-metrics-grid">
+      <div class="metric-card active" id="metric-card-active">
+        <div class="metric-icon">📋</div>
+        <div class="metric-details">
+          <span class="metric-num" id="metric-active-count">0</span>
+          <span class="metric-lbl">Активні доручення</span>
+        </div>
+      </div>
+      <div class="metric-card warning" id="metric-card-hot">
+        <div class="metric-icon">🔥</div>
+        <div class="metric-details">
+          <span class="metric-num" id="metric-hot-count">0</span>
+          <span class="metric-lbl">Гарячі (≤2 дн.)</span>
+        </div>
+      </div>
+      <div class="metric-card danger" id="metric-card-overdue">
+        <div class="metric-icon">🚨</div>
+        <div class="metric-details">
+          <span class="metric-num" id="metric-overdue-count">0</span>
+          <span class="metric-lbl">Прострочені завдання</span>
+        </div>
+      </div>
+      <div class="metric-card success" id="metric-card-today">
+        <div class="metric-icon">⏱️</div>
+        <div class="metric-details">
+          <span class="metric-num" id="metric-score-value">0.0 год</span>
+          <span class="metric-lbl">Списано сьогодні (СКО-Д)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Split Grid Layout -->
+    <div class="cabinet-split-grid">
+      
+      <!-- Left Column: Tasks List -->
+      <section class="cabinet-panel tasks-panel">
+        <div class="panel-header">
+          <h2>📋 Мої доручення та завдання</h2>
+          <div class="tasks-filter-tabs">
+            <button class="filter-tab active" data-filter="active">Активні</button>
+            <button class="filter-tab" data-filter="hot">🔥 Гарячі</button>
+            <button class="filter-tab" data-filter="overdue">🚨 Прострочені</button>
+            <button class="filter-tab" data-filter="ongoing">🔄 Постійні</button>
+            <button class="filter-tab" data-filter="all">Всі</button>
+          </div>
+        </div>
+        
+        <div class="tasks-scroll-container">
+          <div id="cabinet-tasks-list" class="tasks-cards-list">
+            <div class="loading-state">Завантаження завдань...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Work Logging Form & Today's Logs -->
+      <div class="cabinet-right-column">
+        
+        <!-- Logging Form Card -->
+        <section class="cabinet-panel log-form-panel">
+          <h2 class="panel-title-icon">✍️ Внести виконану роботу</h2>
+          
+          <form id="cabinet-log-form" autocomplete="off" novalidate>
+            
+            <div class="form-group">
+              <label for="task_branch">Гілка діяльності *</label>
+              <select id="task_branch" required>
+                <option value="tasks" selected>Виконання доручення керівника</option>
+                <option value="department">Внутрішня робота відділу</option>
+                <option value="askod">Робота в АСКОД</option>
+              </select>
+            </div>
+
+            <!-- Linked Task Selector -->
+            <div class="form-group" id="form-assigned-task-group">
+              <label for="link_assigned_task">Оберіть доручення *</label>
+              <select id="link_assigned_task" required>
+                <option value="" selected disabled>-- Завантаження завдань... --</option>
+              </select>
+            </div>
+
+            <!-- Inline Checklist Updates for Task (dynamically inserted) -->
+            <div class="form-group" id="subtask-checklist-group" style="display: none;">
+              <label>Виконані підзавдання</label>
+              <div id="cabinet-subtasks-checklist" class="checkbox-list-container">
+                <!-- Checklist checkboxes -->
+              </div>
+            </div>
+
+            <!-- Inline Progress Slider for Task -->
+            <div class="form-group" id="task-progress-group" style="display: none;">
+              <label for="task_progress" style="display: flex; justify-content: space-between;">
+                <span>Загальний прогрес виконання доручення</span>
+                <span class="progress-val-badge" id="task_progress_val">0%</span>
+              </label>
+              <div class="progress-slider-container">
+                <input type="range" id="task_progress" min="0" max="100" value="0">
+              </div>
+            </div>
+
+            <div class="form-group" id="form-askod-reg-group" style="display: none;">
+              <label for="askod_reg_number">Реєстраційний номер в АСКОД *</label>
+              <input type="text" id="askod_reg_number" placeholder="наприклад, 1234/12-26">
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="start_time">Час початку *</label>
+                <input type="time" id="start_time" required>
+              </div>
+              <div class="form-group">
+                <label for="duration_preset">Тривалість *</label>
+                <select id="duration_preset" required>
+                  <option value="30">30 хв (0.5 год)</option>
+                  <option value="60" selected>1 година (60 хв)</option>
+                  <option value="90">1.5 години (90 хв)</option>
+                  <option value="120">2 години (120 хв)</option>
+                  <option value="180">3 години (180 хв)</option>
+                  <option value="240">4 години (240 хв)</option>
+                  <option value="300">5 годин (300 хв)</option>
+                  <option value="custom">Інше (вказати у хвилинах)...</option>
+                </select>
+                <input type="number" id="duration_minutes" placeholder="Хвилин..." min="5" max="480" style="display: none; margin-top: 8px;" required>
+              </div>
+            </div>
+
+            <div class="form-group" id="task-type-wrapper" style="display: none;">
+              <label>Тип завдання *</label>
+              <div id="task_type_container" class="checkbox-options-grid">
+                <!-- Checkboxes -->
+              </div>
+            </div>
+
+            <div class="form-group" id="task-category-wrapper" style="display: none;">
+              <label>Категорія завдання *</label>
+              <div id="task_category_container" class="checkbox-options-grid">
+                <!-- Checkboxes -->
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="severity_level">Ступінь важкості *</label>
+              <select id="severity_level" required>
+                <option value="easy">Легкий (коеф. 1.0)</option>
+                <option value="medium" selected>Середній (коеф. 1.3)</option>
+                <option value="hard">Складний (коеф. 1.8)</option>
+                <option value="expert">Експертний (коеф. 2.5)</option>
+              </select>
+            </div>
+
+            <!-- Form 37-D Toggle -->
+            <div class="form-group-checkbox">
+              <input type="checkbox" id="include_37d">
+              <label for="include_37d">📝 Додати до Звіту Форми 37-Д</label>
+            </div>
+
+            <!-- Form 37-D Extra Fields -->
+            <div id="block-37d-fields" style="display: none;">
+              <div class="form-group">
+                <label for="process_name">Назва комунікаційного процесу *</label>
+                <input type="text" id="process_name" placeholder="наприклад, Підготовка листа-роз'яснення..." list="processes-list">
+                <datalist id="processes-list"></datalist>
+              </div>
+
+              <div class="form-group">
+                <label for="info_type_37d">Тип інформації для 37-Д</label>
+                <select id="info_type_37d">
+                  <option value="" selected disabled>-- Оберіть тип --</option>
+                  <option value="заплановані зміни для ЗОЗ, аптек, пацієнтів">заплановані зміни для ЗОЗ, аптек, пацієнтів</option>
+                  <option value="презентація для публічного заходу">презентація для публічного заходу</option>
+                  <option value="аналітична довідка для МОЗ або іншого ЦОВВ">аналітична довідка для МОЗ або іншого ЦОВВ</option>
+                  <option value="масовий лист-роз’яснення">масовий лист-роз’яснення</option>
+                  <option value="інша інформація, що може потребувати комунікаційної підтримки">інша інформація, що може потребувати комунікаційної підтримки</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="current_state_text">Поточний стан виконання *</label>
+                <textarea id="current_state_text" rows="2" placeholder="Опишіть поточний стан виконання..."></textarea>
+              </div>
+
+              <div class="form-group">
+                <label for="status_37d">Статус процесу 37-Д *</label>
+                <select id="status_37d">
+                  <option value="заплановано">заплановано</option>
+                  <option value="у роботі">у роботі</option>
+                  <option value="виконано" selected>виконано</option>
+                  <option value="очікує погодження">очікує погодження</option>
+                  <option value="готово до включення в довідку">готово до включення в довідку</option>
+                  <option value="включено в довідку">включено в довідку</option>
+                  <option value="скасовано / неактуально">скасовано / неактуально</option>
+                </select>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="event_date">Дата події *</label>
+                  <input type="date" id="event_date">
+                </div>
+                <div class="form-group">
+                  <label for="contact_person_select">Контактна особа *</label>
+                  <select id="contact_person_select"></select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="document_link">Посилання на документ / реєстраційний номер</label>
+                <input type="text" id="document_link" placeholder="АСКОД № або Google Docs посилання...">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="description">Короткий опис виконаної роботи *</label>
+              <textarea id="description" rows="3" placeholder="Опишіть, що конкретно було зролено..." required></textarea>
+            </div>
+
+            <!-- Live Points Calculation Gauge -->
+            <div class="live-points-container">
+              <span class="points-lbl">Очікувані бали СКО-Д:</span>
+              <span class="points-val" id="live-score-val">0.00 балів</span>
+            </div>
+
+            <button type="submit" class="btn btn-primary submit-btn" id="btn-submit-task">
+              💾 Зберегти виконану роботу
+            </button>
+          </form>
+        </section>
+        
+        <!-- Today's Activity Feed -->
+        <section class="cabinet-panel today-feed-panel">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+            <h2 style="margin: 0; font-size: 16px;">⏱️ Стрічка активності за сьогодні</h2>
+            <div style="font-size: 12.5px; font-weight: 700; color: var(--accent-deep);" id="today-summary-label">
+              0.0 год · 0.00 балів
+            </div>
+          </div>
+          
+          <div id="today-logs-list" class="today-logs-list">
+            <div class="empty-state">Сьогодні ви ще не вносили записи про діяльність.</div>
+          </div>
+        </section>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ── Task Detail Modal ─────────────────────────── -->
+  <div class="modal-overlay" id="cabinet-task-modal" style="display: none;">
+    <div class="modal-card">
+      <button class="modal-close-btn" id="modal-close-btn" aria-label="Закрити">&times;</button>
+      
+      <div class="modal-header">
+        <h3 id="modal-task-title">Назва доручення</h3>
+        <div class="modal-status-bar" id="modal-task-status-bar">
+          <span class="badge-status in_progress" id="modal-task-status">У роботі</span>
+          <span class="modal-deadline" id="modal-task-deadline">до 12.06.2026</span>
+        </div>
+      </div>
+      
+      <div class="modal-body-scroll">
+        <div class="modal-section">
+          <h4>Опис завдання</h4>
+          <p id="modal-task-desc" class="modal-description-text">Опис відсутній</p>
+        </div>
+        
+        <div class="modal-section" id="modal-subtasks-section">
+          <h4>Чек-лист підзавдань</h4>
+          <div id="modal-task-checklist" class="modal-checklist">
+            <!-- Subtasks list -->
+          </div>
+        </div>
+
+        <div class="modal-section" id="modal-attachments-section">
+          <h4>Прикріплені матеріали</h4>
+          <div id="modal-task-attachments" class="modal-attachments-list">
+            <!-- Attachments list -->
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <h4>Коментарі та обговорення</h4>
+          <div id="modal-task-comments" class="modal-comments-list">
+            <!-- Comments -->
+          </div>
+          
+          <!-- Add Comment Form -->
+          <form id="modal-add-comment-form" class="modal-comment-form">
+            <input type="text" id="modal-new-comment-text" placeholder="Напишіть коментар..." required>
+            <button type="submit" class="btn btn-primary" style="padding: 8px 16px; font-size: 13px;">Надіслати</button>
+          </form>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="modal-btn-close">Закрити</button>
+        <button class="btn btn-primary" id="modal-btn-log-work">✍️ Внести роботу за цим дорученням</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Footer ───────────────────────────────────────── -->
+  <footer class="p-footer">
+    <div class="wrap">
+      <div class="p-foot-grid">
+        <div>
+          <div class="f-lockup">
+            <img class="shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true"
+              style="width:44px;height:auto">
+            <span class="wm">
+              <span class="wm-1">Робочий простір експертів</span>
+              <span class="wm-2">Програма медичних гарантій 2026</span>
+            </span>
+          </div>
+          <p>Довідковий портал за Програмою медичних гарантій 2026 року.</p>
+        </div>
+        <div class="f-col">
+          <h4>Розділи</h4>
+          <a href="../rozjasnennya.html">Роз'яснення</a>
+          <a href="../pakety/index.html">Пакети 2026</a>
+          <a href="../postanova/index.html">Постанова 1808</a>
+          <a href="../algorithms/index.html">Алгоритми та правила</a>
+        </div>
+        <div class="f-col">
+          <h4>Належність</h4>
+          <a href="#dept">Департамент стратегії</a>
+          <a href="#dept">НСЗУ</a>
+          <a href="../index.html#top">Про портал</a>
+        </div>
+      </div>
+      <div class="p-foot-base">
+        <span>© 2026 НСЗУ · Департамент стратегії універсального охоплення населення медичними послугами</span>
+        <span>Розроблено силами Департаменту</span>
+      </div>
+    </div>
+  </footer>
+
+</div><!-- /.portal -->
+</body>
+</html>

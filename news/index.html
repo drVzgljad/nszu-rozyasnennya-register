@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>НавігаторПМГ26 | Аналітичні Новини</title>
+  <link rel="stylesheet" href="../styles.css?v=20260531e">
+  <link rel="stylesheet" href="news.css">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260714">
+  <script type="module" src="../auth-v2.js?v=20260714e"></script>
+</head>
+<body id="top" data-required-role="full">
+  <header class="hero news-hero">
+    <div class="hero-copy">
+      <div class="overline">Експертний вісник ПМГ</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Новини та Аналітика</h1>
+      <p>Ексклюзивні аналітичні звіти, оперативні новини укладення договорів за ПМГ та роз'яснення змін нормативно-правової бази від Департаменту.</p>
+    </div>
+    <div class="stats" id="newsStats" aria-label="Статистика новин"></div>
+  </header>
+
+  <main class="news-layout">
+    <section class="news-browser" aria-label="Стрічка новин">
+      <div class="search-panel news-search">
+        <label class="search">
+          <span>Пошук у новинах</span>
+          <input id="newsSearch" type="search" placeholder="Наприклад: звіт, зміни тарифів, роз'яснення..." autocomplete="off">
+        </label>
+        <div class="results-summary" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <span id="newsCount">Завантаження новин...</span>
+          <button id="createNewsBtn" class="btn btn-primary" type="button" style="display: none; padding: 6px 14px; font-size: 13px; font-weight: 600; border-radius: 999px;">
+            ➕ Створити новину
+          </button>
+        </div>
+      </div>
+
+      <div class="news-grid" id="newsGrid"></div>
+    </section>
+
+    <!-- Side detail panel for news read -->
+    <aside class="news-panel-side" id="newsPanelSide" aria-live="polite">
+      <div class="empty-state" id="panelEmptyState">
+        <div class="empty-icon">📰</div>
+        <h2>Оберіть новину</h2>
+        <p>Виберіть статтю зі стрічки новин для детального перегляду її повного змісту.</p>
+      </div>
+
+      <div class="news-detail-viewer" id="newsDetailViewer" style="display:none">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; width: 100%;">
+          <button class="action back-btn" id="closeNewsBtn" type="button" style="margin-bottom: 0;">← Назад до списку</button>
+          <button class="btn btn-secondary" id="editNewsBtn" type="button" style="display: none; background: #e6f7ff; color: #1890ff; border-color: #91d5ff; padding: 6px 14px; font-size: 13px; font-weight: 600; border-radius: var(--pr-pill, 999px); margin-left: auto;">
+            ✏️ Редагувати новину
+          </button>
+          <button class="btn btn-secondary" id="deleteNewsBtn" type="button" style="display: none; background: #fff1f0; color: #cf1322; border-color: #ffa39e; padding: 6px 14px; font-size: 13px; font-weight: 600; border-radius: var(--pr-pill, 999px); margin-left: 10px;">
+            🗑️ Видалити новину
+          </button>
+        </div>
+        <img class="detail-cover" id="detCover" src="" alt="" style="display:none">
+        <div class="detail-tags" id="detTags"></div>
+        <h2 id="detTitle">Назва новини</h2>
+        <p class="detail-date" id="detDate">Дата публікації...</p>
+        
+        <div class="news-content-body" id="detContent">Зміст новини...</div>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Реєстр розроблено силами Департаменту без зовнішнього сприяння та проєктів.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Modal for Creating/Publishing News -->
+  <div class="news-modal-overlay" id="publishModal" style="display: none;">
+    <div class="news-modal-card">
+      <div class="news-modal-header">
+        <h2>➕ Створити аналітичну новину</h2>
+        <button class="news-modal-close" id="closePublishModalBtn" type="button">&times;</button>
+      </div>
+      <form id="publishForm" class="news-modal-form">
+        <div class="form-group">
+          <span>Заголовок новини <span class="required">*</span></span>
+          <input type="text" id="pubTitle" required placeholder="Введіть короткий та змістовний заголовок..." autocomplete="off">
+        </div>
+        
+        <div class="form-group">
+          <span>Короткий опис (Summary) <span class="required">*</span></span>
+          <textarea id="pubSummary" required rows="2" placeholder="Короткий опис для картки в стрічці та дайджесті..."></textarea>
+        </div>
+        
+        <div class="form-group">
+          <span>Зміст (Content) <span class="required">*</span></span>
+          <textarea id="pubContent" required rows="8" placeholder="Повний текст новини. Підтримує заголовки (##, ###), списки (*, -) та цитати (>)..."></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-6">
+            <span>Статус важливості</span>
+            <select id="pubImportance">
+              <option value="normal">Звичайна новина</option>
+              <option value="important">⚠️ Важлива</option>
+              <option value="urgent">🚨 Термінова (пульсуюча)</option>
+            </select>
+          </div>
+          
+          <div class="form-group col-6">
+            <span>Теги (через кому)</span>
+            <input type="text" id="pubTags" placeholder="Наприклад: Оголошення, СКО-Д, Постанова">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <span>Посилання на зображення (Image URL - опціонально)</span>
+          <input type="url" id="pubImageUrl" placeholder="https://example.com/image.jpg">
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="cancelPublishBtn">Скасувати</button>
+          <button type="submit" class="btn btn-primary">Опублікувати новину</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="news.js" defer></script>
+</body>
+</html>

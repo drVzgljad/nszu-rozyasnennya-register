@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>НавігаторПМГ26 | Укладені договори про медобслуговування</title>
+  <link rel="stylesheet" href="../styles.css?v=20260531e">
+  <link rel="stylesheet" href="contracts.css?v=20260602">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260714">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+  <script type="module" src="../auth-v2.js?v=20260714e"></script>
+</head>
+<body id="top">
+  <header class="hero contracts-hero">
+    <div class="hero-copy">
+      <div class="overline">Аналітика та реєстри ПМГ</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Укладені договори про медобслуговування</h1>
+      <p>Шукайте та аналізуйте договори закладу охорони здоров'я (ЗОЗ) з НСЗУ: суми фінансування, переліки медичних послуг, місця надання послуг та коефіцієнти.</p>
+    </div>
+    <div class="stats" id="contractsStats" aria-label="Статистика договорів">
+      <div class="stat">
+        <strong id="statContractsCount">-</strong>
+        <span>договорів</span>
+      </div>
+      <div class="stat">
+        <strong id="statProvidersCount">-</strong>
+        <span>надавачів (ЗОЗ)</span>
+      </div>
+      <div class="stat">
+        <strong id="statTotalSum">-</strong>
+        <span>загальна сума (грн)</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout contracts-layout">
+    <section class="contracts-browser" aria-label="Пошук договорів">
+      <div class="search-panel contracts-search">
+        <label class="search">
+          <span>Пошук договору</span>
+          <input id="contractSearch" type="search" placeholder="Код ЄДРПОУ, назва закладу, номер договору, населений пункт..." autocomplete="off">
+        </label>
+        
+        <div class="filters contracts-filters">
+          <div class="filter-group">
+            <span class="filter-label">Область реєстрації</span>
+            <div class="multiselect-dropdown" id="dropdownOblast">
+              <button type="button" class="multiselect-btn" id="btnOblast">Усі області</button>
+              <div class="multiselect-menu">
+                <div class="multiselect-search-container">
+                  <input type="text" class="multiselect-search" placeholder="Пошук області..." id="searchOblast">
+                </div>
+                <div class="multiselect-actions">
+                  <button type="button" class="multiselect-action-btn select-all" id="selectAllOblast">Обрати всі</button>
+                  <button type="button" class="multiselect-action-btn clear-all" id="clearOblast">Скинути</button>
+                </div>
+                <div class="multiselect-options" id="optionsOblast"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <span class="filter-label">Пакет послуг</span>
+            <div class="multiselect-dropdown" id="dropdownPackage">
+              <button type="button" class="multiselect-btn" id="btnPackage">Усі пакети</button>
+              <div class="multiselect-menu">
+                <div class="multiselect-search-container">
+                  <input type="text" class="multiselect-search" placeholder="Пошук пакета..." id="searchPackage">
+                </div>
+                <div class="multiselect-actions">
+                  <button type="button" class="multiselect-action-btn select-all" id="selectAllPackage">Обрати всі</button>
+                  <button type="button" class="multiselect-action-btn clear-all" id="clearPackage">Скинути</button>
+                </div>
+                <div class="multiselect-options" id="optionsPackage"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <span class="filter-label">Форма власності</span>
+            <div class="multiselect-dropdown" id="dropdownOwnership">
+              <button type="button" class="multiselect-btn" id="btnOwnership">Усі форми</button>
+              <div class="multiselect-menu">
+                <div class="multiselect-actions">
+                  <button type="button" class="multiselect-action-btn select-all" id="selectAllOwnership">Обрати всі</button>
+                  <button type="button" class="multiselect-action-btn clear-all" id="clearOwnership">Скинути</button>
+                </div>
+                <div class="multiselect-options" id="optionsOwnership"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <span class="filter-label">Спроможна мережа</span>
+            <div class="multiselect-dropdown" id="dropdownNetwork">
+              <button type="button" class="multiselect-btn" id="btnNetwork">Усі типи</button>
+              <div class="multiselect-menu">
+                <div class="multiselect-actions">
+                  <button type="button" class="multiselect-action-btn select-all" id="selectAllNetwork">Обрати всі</button>
+                  <button type="button" class="multiselect-action-btn clear-all" id="clearNetwork">Скинути</button>
+                </div>
+                <div class="multiselect-options" id="optionsNetwork"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <span class="filter-label">Програма фінансування</span>
+            <div class="multiselect-dropdown" id="dropdownProgram">
+              <button type="button" class="multiselect-btn" id="btnProgram">Усі програми</button>
+              <div class="multiselect-menu">
+                <div class="multiselect-actions">
+                  <button type="button" class="multiselect-action-btn select-all" id="selectAllProgram">Обрати всі</button>
+                  <button type="button" class="multiselect-action-btn clear-all" id="clearProgram">Скинути</button>
+                </div>
+                <div class="multiselect-options" id="optionsProgram"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="results-summary" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+            <span id="resultsCount">Завантаження даних...</span>
+            <div class="view-toggle" style="display: flex; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); padding: 2px; gap: 2px;">
+              <button id="toggleList" class="toggle-btn active" style="border: 0; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 600; cursor: pointer; background: var(--surface); color: var(--ink);" type="button">📋 Список</button>
+              <button id="toggleMap" class="toggle-btn" style="border: 0; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 600; cursor: pointer; background: transparent; color: var(--muted);" type="button">🗺️ Карта</button>
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <button id="exportExcel" class="action" style="padding: 6px 12px; font-size: 13px; border-radius: 8px;" type="button">📥 Експорт в Excel</button>
+            <button id="exportEmails" class="action" style="padding: 6px 12px; font-size: 13px; border-radius: 8px; background: var(--teal-dark); border-color: var(--teal-dark); color: #ffffff;" type="button">📧 Експорт e-mail</button>
+            <button id="resetFilters" style="border: 0; background: transparent; color: var(--accent-dark); font-weight: 600; cursor: pointer; font-size: 13px;" type="button">Очистити</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cards" id="contractCards"></div>
+      <div id="contractsMap" style="display: none; height: calc(100vh - 365px); border-radius: 15px; border: 1px solid var(--line); box-shadow: var(--shadow); position: relative; z-index: 10;">
+        <button id="mapFullscreenBtn" type="button" style="position: absolute; top: 10px; right: 10px; z-index: 1000; background: #fff; border: 1px solid rgba(0,0,0,0.15); border-radius: 8px; padding: 8px 12px; font-size: 12px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 6px; font-family: inherit; color: var(--ink);">
+          <span class="fs-icon">🖥️</span> <span class="fs-text">На весь екран</span>
+        </button>
+        
+        <!-- Floating details drawer inside the map -->
+        <div id="mapDetailsDrawer" class="map-details-drawer hidden-drawer">
+          <button id="closeMapDrawer" class="close-drawer-btn" type="button" title="Закрити панель">&times;</button>
+          <div id="mapDrawerContent"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sidebar details -->
+    <aside class="detail" id="contractDetailViewer" aria-live="polite">
+      <div class="empty-state" id="detailEmptyState">
+        <div class="empty-icon">i</div>
+        <h2>Оберіть договір для перегляду</h2>
+        <p>Виберіть картку договору зі списку ліворуч, щоб переглянути реквізити, перелік місць надання послуг (МНП) та суми фінансування.</p>
+      </div>
+      
+      <div class="detail-content" id="detailContent" style="display:none">
+        <!-- Content will be injected dynamically via JS -->
+      </div>
+    </aside>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Навігатор створено для швидкого аналізу укладених договорів та специфікацій медичної допомоги.</p>
+      </div>
+    </div>
+  </footer>
+
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="contracts.js?v=20260602" defer></script>
+</body>
+</html>

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Конструктор зв'язків ДЕЦ та ПМГ — НавігаторПМГ26</title>
+  <link rel="stylesheet" href="../styles.css?v=20260531e">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260714">
+  <link rel="stylesheet" href="linker.css?v=20260609">
+  <script type="module" src="../auth-v2.js?v=20260714e"></script>
+</head>
+<body data-required-role="expert">
+<div class="portal">
+
+  <!-- ── Top Header ────────────────────────────────────── -->
+  <header class="hero" style="padding-bottom: 20px;">
+    <div class="hero-copy">
+      <div class="overline">Державний експертний центр МОЗ України</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">Панель адміністрування зв'язків</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи"></nav>
+        </div>
+      </div>
+      <h1>🔗 Конструктор зв'язків стандартів ДЕЦ та пакетів ПМГ</h1>
+      <p>Оберіть клінічну тему ДЕЦ, щоб налаштувати її кодування МКХ-10/АКМІ та пов'язати з відповідними пакетами ПМГ 2026 року з додаванням приміток та етапів лікування.</p>
+    </div>
+  </header>
+
+  <!-- ── Main Workspace ────────────────────────────────── -->
+  <main class="layout linker-workspace">
+    
+    <!-- Left Panel: Category Selector & Codes Editor -->
+    <section class="linker-panel category-panel">
+      <h2>📁 Клінічна тема ДЕЦ</h2>
+      <div class="form-group">
+        <label for="categorySelector">Оберіть тему:</label>
+        <select id="categorySelector" class="form-control">
+          <option value="">Завантаження тем...</option>
+        </select>
+      </div>
+
+      <div id="codesEditor" class="codes-editor-box" style="display: none;">
+        <h3>🏷️ Медичні коди теми</h3>
+        
+        <div class="form-group">
+          <label for="icd10Codes">Коди діагнозів (МКХ-10) <span class="hint">(через кому)</span>:</label>
+          <input type="text" id="icd10Codes" class="form-control" placeholder="Наприклад: C50, D05">
+        </div>
+
+        <div class="form-group">
+          <label for="achiCodes">Коди процедур (АКМІ) <span class="hint">(через кому)</span>:</label>
+          <input type="text" id="achiCodes" class="form-control" placeholder="Наприклад: 35500-00, 35503-00">
+        </div>
+
+        <button type="button" id="btnUpdateCodes" class="btn btn-secondary">Оновити коди теми</button>
+
+        <div class="form-group code-search-group" style="margin-top: 20px; padding-top: 20px; border-top: 1px dashed var(--line, #dde6ee);">
+          <label for="searchClassifierInput">🔍 Пошук у Нац. класифікаторах:</label>
+          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <input type="text" id="searchClassifierInput" class="form-control" placeholder="Введіть код або назву (від 3 символів)...">
+            <select id="classifierTypeSelect" class="form-control" style="width: 140px; margin: 0; padding: 10px;">
+              <option value="icd">МКХ-10-АМ</option>
+              <option value="achi">АКМІ (ACHI)</option>
+            </select>
+          </div>
+          <div id="searchClassifierResults" style="max-height: 200px; overflow-y: auto; border: 1.5px solid var(--line, #dde6ee); border-radius: 10px; background: var(--surface, #fff); display: none;">
+            <!-- Dynamic search results -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Panel: Package Mappings list -->
+    <section class="linker-panel packages-panel">
+      <div class="panel-header-row">
+        <h2>📦 Зв'язки з пакетами ПМГ 2026</h2>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" id="btnReindex" class="btn btn-secondary" style="display: none;" title="Оновити коди та зв'язки з першоджерел (PDF/Word)">🔄 Оновити класифікатори</button>
+          <button type="button" id="btnSaveLinks" class="btn btn-primary" style="display: none;">💾 Зберегти зміни</button>
+        </div>
+      </div>
+      
+      <div id="packagesLoading" class="packages-loading">Оберіть клінічну тему ліворуч для завантаження пакетів.</div>
+      
+      <div id="packagesList" class="packages-grid-list" style="display: none;">
+        <!-- Dynamic package rows with checkboxes, stages, and notes -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Notification Banner -->
+  <div id="toastNotification" class="toast-banner" style="display: none;">
+    <span id="toastMessage">Збережено!</span>
+  </div>
+
+</div>
+<script src="linker.js" defer></script>
+</body>
+</html>

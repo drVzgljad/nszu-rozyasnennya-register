@@ -1,0 +1,1694 @@
+[
+  {
+    "name": "01_Первинна_медична_допомога_2026.docx",
+    "year": 2026,
+    "size": 121490,
+    "path": "library/pakety-2026/01_Pervynna_medychna_dopomoha_2026.docx"
+  },
+  {
+    "name": "02_Екстрена_медична_допомога_2026.docx",
+    "year": 2026,
+    "size": 103555,
+    "path": "library/pakety-2026/02_Ekstrena_medychna_dopomoha_2026.docx"
+  },
+  {
+    "name": "03_Хірургія_стаціонар_2026.docx",
+    "year": 2026,
+    "size": 143294,
+    "path": "library/pakety-2026/03_Khirurhiia_statsionar_2026.docx"
+  },
+  {
+    "name": "04_Стаціонар_без_операцій_2026.docx",
+    "year": 2026,
+    "size": 129199,
+    "path": "library/pakety-2026/04_Statsionar_bez_operatsii_2026.docx"
+  },
+  {
+    "name": "05_Гострий_інсульт_2026.docx",
+    "year": 2026,
+    "size": 130552,
+    "path": "library/pakety-2026/05_Hostryi_insult_2026.docx"
+  },
+  {
+    "name": "06_Гострий_інфаркт_2026.docx",
+    "year": 2026,
+    "size": 111595,
+    "path": "library/pakety-2026/06_Hostryi_infarkt_2026.docx"
+  },
+  {
+    "name": "07_Пологи_2026.docx",
+    "year": 2026,
+    "size": 130965,
+    "path": "library/pakety-2026/07_Polohy_2026.docx"
+  },
+  {
+    "name": "08_Складні_неонатальні_випадки_2026.docx",
+    "year": 2026,
+    "size": 131474,
+    "path": "library/pakety-2026/08_Skladni_neonatalni_vypadky_2026.docx"
+  },
+  {
+    "name": "09_Амбулаторна_допомога_2026.docx",
+    "year": 2026,
+    "size": 258369,
+    "path": "library/pakety-2026/09_Ambulatorna_dopomoha_2026.docx"
+  },
+  {
+    "name": "10_Мамографія_2026.docx",
+    "year": 2026,
+    "size": 96684,
+    "path": "library/pakety-2026/10_Mamohrafiia_2026.docx"
+  },
+  {
+    "name": "11_Гістероскопія_2026.docx",
+    "year": 2026,
+    "size": 99831,
+    "path": "library/pakety-2026/11_Histeroskopiia_2026.docx"
+  },
+  {
+    "name": "12_ЕГДС_2026.docx",
+    "year": 2026,
+    "size": 100994,
+    "path": "library/pakety-2026/12_EHDS_2026.docx"
+  },
+  {
+    "name": "13_Колоноскопія_2026.docx",
+    "year": 2026,
+    "size": 101160,
+    "path": "library/pakety-2026/13_Kolonoskopiia_2026.docx"
+  },
+  {
+    "name": "14_Цистоскопія_2026.docx",
+    "year": 2026,
+    "size": 99630,
+    "path": "library/pakety-2026/14_Tsystoskopiia_2026.docx"
+  },
+  {
+    "name": "15_Бронхоскопія_2026.docx",
+    "year": 2026,
+    "size": 101617,
+    "path": "library/pakety-2026/15_Bronkhoskopiia_2026.docx"
+  },
+  {
+    "name": "16_Гемодіаліз_амбулаторний_2026.docx",
+    "year": 2026,
+    "size": 102371,
+    "path": "library/pakety-2026/16_Hemodializ_ambulatornyi_2026.docx"
+  },
+  {
+    "name": "17_Хіміотерапія_онкологія_2026.docx",
+    "year": 2026,
+    "size": 126695,
+    "path": "library/pakety-2026/17_Khimioterapiia_onkolohiia_2026.docx"
+  },
+  {
+    "name": "18_Радіологічне_лікування_онкологія_2026.docx",
+    "year": 2026,
+    "size": 115173,
+    "path": "library/pakety-2026/18_Radiolohichne_likuvannia_onkolohiia_2026.docx"
+  },
+  {
+    "name": "19_Психіатрія_стаціонар_2026.docx",
+    "year": 2026,
+    "size": 112281,
+    "path": "library/pakety-2026/19_Psykhiatriia_statsionar_2026.docx"
+  },
+  {
+    "name": "20_Туберкульоз_2026.docx",
+    "year": 2026,
+    "size": 115437,
+    "path": "library/pakety-2026/20_Tuberkuloz_2026.docx"
+  },
+  {
+    "name": "21_ВІЛ_2026.docx",
+    "year": 2026,
+    "size": 106221,
+    "path": "library/pakety-2026/21_VIL_2026.docx"
+  },
+  {
+    "name": "22_ЗПТ_опіоїдні_розлади_2026.docx",
+    "year": 2026,
+    "size": 103548,
+    "path": "library/pakety-2026/22_ZPT_opioidni_rozlady_2026.docx"
+  },
+  {
+    "name": "23_Паліативна_стаціонарна_2026.docx",
+    "year": 2026,
+    "size": 128531,
+    "path": "library/pakety-2026/23_Paliatyvna_statsionarna_2026.docx"
+  },
+  {
+    "name": "24_Паліативна_мобільна_2026.docx",
+    "year": 2026,
+    "size": 122436,
+    "path": "library/pakety-2026/24_Paliatyvna_mobilna_2026.docx"
+  },
+  {
+    "name": "25_Реабілітація_немовлят_2026.docx",
+    "year": 2026,
+    "size": 104492,
+    "path": "library/pakety-2026/25_Reabilitatsiia_nemovliat_2026.docx"
+  },
+  {
+    "name": "34_Стоматологічна_допомога_2026.docx",
+    "year": 2026,
+    "size": 99259,
+    "path": "library/pakety-2026/34_Stomatolohichna_dopomoha_2026.docx"
+  },
+  {
+    "name": "35_Ведення_вагітності_2026.docx",
+    "year": 2026,
+    "size": 108609,
+    "path": "library/pakety-2026/35_Vedennia_vahitnosti_2026.docx"
+  },
+  {
+    "name": "37_Перитонеальний_діаліз_2026.docx",
+    "year": 2026,
+    "size": 104007,
+    "path": "library/pakety-2026/37_Perytonealnyi_dializ_2026.docx"
+  },
+  {
+    "name": "38_Гематологія_онкогематологія_2026.docx",
+    "year": 2026,
+    "size": 128142,
+    "path": "library/pakety-2026/38_Hematolohiia_onkohematolohiia_2026.docx"
+  },
+  {
+    "name": "42_Готовність_НС_2026.docx",
+    "year": 2026,
+    "size": 140191,
+    "path": "library/pakety-2026/42_Hotovnist_NS_2026.docx"
+  },
+  {
+    "name": "47_Стаціонар_одного_дня_2026.docx",
+    "year": 2026,
+    "size": 109363,
+    "path": "library/pakety-2026/47_Statsionar_odnoho_dnia_2026.docx"
+  },
+  {
+    "name": "48_Неонатальний_скринінг_2026.docx",
+    "year": 2026,
+    "size": 115728,
+    "path": "library/pakety-2026/48_Neonatalnyi_skryninh_2026.docx"
+  },
+  {
+    "name": "49_Збереження_кадрового_потенціалу_бойові_дії_2026.docx",
+    "year": 2026,
+    "size": 92943,
+    "path": "library/pakety-2026/49_Zberezhennia_kadrovoho_potentsialu_boiovi_dii_2026.docx"
+  },
+  {
+    "name": "50_Лікарі_інтерни_кадровий_потенціал_2026.docx",
+    "year": 2026,
+    "size": 94234,
+    "path": "library/pakety-2026/50_Likari_interny_kadrovyi_potentsial_2026.docx"
+  },
+  {
+    "name": "53_Реабілітація_стаціонарна_2026.docx",
+    "year": 2026,
+    "size": 117497,
+    "path": "library/pakety-2026/53_Reabilitatsiia_statsionarna_2026.docx"
+  },
+  {
+    "name": "54_Реабілітація_амбулаторна_2026.docx",
+    "year": 2026,
+    "size": 117027,
+    "path": "library/pakety-2026/54_Reabilitatsiia_ambulatorna_2026.docx"
+  },
+  {
+    "name": "55_Секційне_дослідження_2026.docx",
+    "year": 2026,
+    "size": 97560,
+    "path": "library/pakety-2026/55_Sektsiine_doslidzhennia_2026.docx"
+  },
+  {
+    "name": "57_Готовність_бойові_дії_2026.docx",
+    "year": 2026,
+    "size": 99471,
+    "path": "library/pakety-2026/57_Hotovnist_boiovi_dii_2026.docx"
+  },
+  {
+    "name": "60_Огляд_ТЦК_та_СП_2026.docx",
+    "year": 2026,
+    "size": 99762,
+    "path": "library/pakety-2026/60_Ohliad_TTsK_ta_SP_2026.docx"
+  },
+  {
+    "name": "63_ДРТ_IVF_2026.docx",
+    "year": 2026,
+    "size": 108053,
+    "path": "library/pakety-2026/63_DRT_IVF_2026.docx"
+  },
+  {
+    "name": "64_Трансплантація_органів_2026.docx",
+    "year": 2026,
+    "size": 156000,
+    "path": "library/pakety-2026/64_Transplantatsiia_orhaniv_2026.docx"
+  },
+  {
+    "name": "65_Трансплантація_ГСК_2026.docx",
+    "year": 2026,
+    "size": 127861,
+    "path": "library/pakety-2026/65_Transplantatsiia_HSK_2026.docx"
+  },
+  {
+    "name": "68_Перехідне_фінансування_2026.docx",
+    "year": 2026,
+    "size": 93121,
+    "path": "library/pakety-2026/68_Perekhidne_finansuvannia_2026.docx"
+  },
+  {
+    "name": "70_Радіоізотопна_візуалізація_ПЕТ_2026.docx",
+    "year": 2026,
+    "size": 104317,
+    "path": "library/pakety-2026/70_Radioizotopna_vizualizatsiia_PET_2026.docx"
+  },
+  {
+    "name": "72_Центри_ментального_здоровя_2026.docx",
+    "year": 2026,
+    "size": 103742,
+    "path": "library/pakety-2026/72_Tsentry_mentalnoho_zdorovia_2026.docx"
+  },
+  {
+    "name": "86_Діти_лікування_спостереження_2026.docx",
+    "year": 2026,
+    "size": 101980,
+    "path": "library/pakety-2026/86_Dity_likuvannia_sposterezhennia_2026.docx"
+  },
+  {
+    "name": "23.СТАЦІОНАРНА ПАЛІАТИВНА МЕДИЧНА ДОПОМОГА ДОРОСЛИМ І ДІТЯМ_2025.docx",
+    "year": 2025,
+    "size": 33453,
+    "path": "library/pakety-archive/2025/23.STATsIONARNA_PALIATYVNA_MEDYChNA_DOPOMOHA_DOROSLYM_I_DITYaM_2025.docx"
+  },
+  {
+    "name": "24.МОБІЛЬНА ПАЛІАТИВНА МЕДИЧНА ДОПОМОГА ДОРОСЛИМ І ДІТЯМ_2025.docx",
+    "year": 2025,
+    "size": 34964,
+    "path": "library/pakety-archive/2025/24.MOBILNA_PALIATYVNA_MEDYChNA_DOPOMOHA_DOROSLYM_I_DITYaM_2025.docx"
+  },
+  {
+    "name": "3.ХІРУРГІЧНІ ОПЕРАЦІЇ ДОРОСЛИМ ТА ДІТЯМ У СТАЦІОНАРНИХ УМОВАХ_2025.docx",
+    "year": 2025,
+    "size": 43881,
+    "path": "library/pakety-archive/2025/3.KhIRURHIChNI_OPERATsIYi_DOROSLYM_TA_DITYaM_U_STATsIONARNYKh_UMOVAKh_2025.docx"
+  },
+  {
+    "name": "4.СТАЦІОНАРНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ БЕЗ ПРОВЕДЕННЯ ХІРУРГІЧНИХ ОПЕРАЦІЙ_2025.docx",
+    "year": 2025,
+    "size": 30391,
+    "path": "library/pakety-archive/2025/4.STATsIONARNA_DOPOMOHA_DOROSLYM_TA_DITYaM_BEZ_PROVEDENNYa_KhIRURHIChNYKh_OPERATsIY_2025.docx"
+  },
+  {
+    "name": "57.ГОТОВНІСТЬ ТА ЗАБЕЗПЕЧЕННЯ НАДАННЯ МЕДИЧНОЇ ДОПОМОГИ_2025.pdf",
+    "year": 2025,
+    "size": 190660,
+    "path": "library/pakety-archive/2025/57.HOTOVNIST_TA_ZABEZPEChENNYa_NADANNYa_MEDYChNOYi_DOPOMOHY_2025.pdf"
+  },
+  {
+    "name": "60.МЕДИЧНИЙ ОГЛЯД ОСІБ, ЯКИЙ ОРГАНІЗОВУЄТЬСЯ ТЕРИТОРІАЛЬНИМИ ЦЕНТРАМИ КОМПЛЕК..._2025.docx",
+    "year": 2025,
+    "size": 29044,
+    "path": "library/pakety-archive/2025/60.MEDYChNYY_OHLYaD_OSIB_YaKYY_ORHANIZOVUYeTSYa_TERYTORIALNYMY_TsENTRAMY_KOMPLEK..._2025.docx"
+  },
+  {
+    "name": "9.ПРОФІЛАКТИКА, ДІАГНОСТИКА, СПОСТЕРЕЖЕННЯ ТА ЛІКУВАННЯ В_2025.pdf",
+    "year": 2025,
+    "size": 413895,
+    "path": "library/pakety-archive/2025/9.PROFILAKTYKA_DIAHNOSTYKA_SPOSTEREZhENNYa_TA_LIKUVANNYa_V_2025.pdf"
+  },
+  {
+    "name": "БРОНХОСКОПІЯ_2025.docx",
+    "year": 2025,
+    "size": 19582,
+    "path": "library/pakety-archive/2025/BRONKhOSKOPIYa_2025.docx"
+  },
+  {
+    "name": "ВЕДЕННЯ ВАГІТНОСТІ В АМБУЛАТОРНИХ УМОВАХ_2025.docx",
+    "year": 2025,
+    "size": 27192,
+    "path": "library/pakety-archive/2025/VEDENNYa_VAHITNOSTI_V_AMBULATORNYKh_UMOVAKh_2025.docx"
+  },
+  {
+    "name": "ГІСТЕРОСКОПІЯ_2025.docx",
+    "year": 2025,
+    "size": 17728,
+    "path": "library/pakety-archive/2025/HISTEROSKOPIYa_2025.docx"
+  },
+  {
+    "name": "ГОТОВНІСТЬ ЗАКЛАДУ ОХОРОНИ ЗДОРОВ’Я ДО НАДАННЯ МЕДИЧНОЇ ДОПОМОГИ В НАДЗВИЧАЙНИХ СИТУАЦІЯХ_2025.docx",
+    "year": 2025,
+    "size": 46763,
+    "path": "library/pakety-archive/2025/HOTOVNIST_ZAKLADU_OKhORONY_ZDOROVYa_DO_NADANNYa_MEDYChNOYi_DOPOMOHY_V_NADZVYChAYNYKh_SYTUATsIYaKh_2025.docx"
+  },
+  {
+    "name": "ДІАГНОСТИКА ТА ЛІКУВАННЯ ДОРОСЛИХ І ДІТЕЙ, ХВОРИХ НА ТУБЕРКУЛЬОЗ, У СТАЦІОНАР..._2025.docx",
+    "year": 2025,
+    "size": 32076,
+    "path": "library/pakety-archive/2025/DIAHNOSTYKA_TA_LIKUVANNYa_DOROSLYKh_I_DITEY_KhVORYKh_NA_TUBERKULOZ_U_STATsIONAR..._2025.docx"
+  },
+  {
+    "name": "ДІАГНОСТИКА, ЛІКУВАННЯ ТА СУПРОВІД ОСІБ ІЗ ВІЛ (ТА ПІДОЗРОЮ НА ВІЛ)_2025.docx",
+    "year": 2025,
+    "size": 21192,
+    "path": "library/pakety-archive/2025/DIAHNOSTYKA_LIKUVANNYa_TA_SUPROVID_OSIB_IZ_VIL_(TA_PIDOZROYu_NA_VIL)_2025.docx"
+  },
+  {
+    "name": "ЕЗОФАГОГАСТРОДУОДЕНОСКОПІЯ_2025.docx",
+    "year": 2025,
+    "size": 18416,
+    "path": "library/pakety-archive/2025/EZOFAHOHASTRODUODENOSKOPIYa_2025.docx"
+  },
+  {
+    "name": "ЕКСТРЕНА МЕДИЧНА ДОПОМОГА_2025.docx",
+    "year": 2025,
+    "size": 19739,
+    "path": "library/pakety-archive/2025/EKSTRENA_MEDYChNA_DOPOMOHA_2025.docx"
+  },
+  {
+    "name": "ЗАБЕЗПЕЧЕННЯ КАДРОВОГО ПОТЕНЦІАЛУ СИСТЕМИ ОХОРОНИ ЗДОРОВ’Я ШЛЯХОМ ОРГАНІЗАЦІЇ..._2025.docx",
+    "year": 2025,
+    "size": 14969,
+    "path": "library/pakety-archive/2025/ZABEZPEChENNYa_KADROVOHO_POTENTsIALU_SYSTEMY_OKhORONY_ZDOROVYa_ShLYaKhOM_ORHANIZATsIYi..._2025.docx"
+  },
+  {
+    "name": "КОЛОНОСКОПІЯ_2025.docx",
+    "year": 2025,
+    "size": 18292,
+    "path": "library/pakety-archive/2025/KOLONOSKOPIYa_2025.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ БЕЗПЛІДДЯ ЗА ДОПОМОГОЮ ДОПОМІЖНИХ РЕПРОДУКТИВНИХ ТЕХНОЛОГІЙ (ЗАПЛІДНЕННЯ ІN VITRO)_2025.docx",
+    "year": 2025,
+    "size": 26888,
+    "path": "library/pakety-archive/2025/LIKUVANNYa_BEZPLIDDYa_ZA_DOPOMOHOYu_DOPOMIZhNYKh_REPRODUKTYVNYKh_TEKhNOLOHIY_(ZAPLIDNENNYa_IN_VITRO)_2025.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ДОРОСЛИХ ТА ДІТЕЙ МЕТОДОМ ТРАНСПЛАНТАЦІЇ ГЕМОПОЕТИЧНИХ СТОВБУРОВИХ КЛІТИН_2025.docx",
+    "year": 2025,
+    "size": 40571,
+    "path": "library/pakety-archive/2025/LIKUVANNYa_DOROSLYKh_TA_DITEY_METODOM_TRANSPLANTATsIYi_HEMOPOETYChNYKh_STOVBUROVYKh_KLITYN_2025.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ДОРОСЛИХ ТА ДІТЕЙ МЕТОДОМ ТРАНСПЛАНТАЦІЇ ОРГАНІВ_2025.docx",
+    "year": 2025,
+    "size": 45694,
+    "path": "library/pakety-archive/2025/LIKUVANNYa_DOROSLYKh_TA_DITEY_METODOM_TRANSPLANTATsIYi_ORHANIV_2025.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ОСІБ ІЗ ПСИХІЧНИМИ ТА ПОВЕДІНКОВИМИ РОЗЛАДАМИ ВНАСЛІДОК ВЖИВАННЯ ОП..._2025.docx",
+    "year": 2025,
+    "size": 19877,
+    "path": "library/pakety-archive/2025/LIKUVANNYa_OSIB_IZ_PSYKhIChNYMY_TA_POVEDINKOVYMY_ROZLADAMY_VNASLIDOK_VZhYVANNYa_OP..._2025.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ПАЦІЄНТІВ МЕТОДОМ ГЕМОДІАЛІЗУ В АМБУЛАТОРНИХ УМОВАХ_2025.docx",
+    "year": 2025,
+    "size": 19242,
+    "path": "library/pakety-archive/2025/LIKUVANNYa_PATsIYeNTIV_METODOM_HEMODIALIZU_V_AMBULATORNYKh_UMOVAKh_2025.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ПАЦІЄНТІВ МЕТОДОМ ПЕРИТОНЕАЛЬНОГО ДІАЛІЗУ В АМБУЛАТОРНИХ УМОВАХ_2025.docx",
+    "year": 2025,
+    "size": 20498,
+    "path": "library/pakety-archive/2025/LIKUVANNYa_PATsIYeNTIV_METODOM_PERYTONEALNOHO_DIALIZU_V_AMBULATORNYKh_UMOVAKh_2025.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ТА СУПРОВІД ПАЦІЄНТІВ З ГЕМАТОЛОГІЧНИМИ ТА ОНКОГЕМАТОЛОГІЧНИМИ ЗАХВ..._2025.docx",
+    "year": 2025,
+    "size": 49434,
+    "path": "library/pakety-archive/2025/LIKUVANNYa_TA_SUPROVID_PATsIYeNTIV_Z_HEMATOLOHIChNYMY_TA_ONKOHEMATOLOHIChNYMY_ZAKhV..._2025.docx"
+  },
+  {
+    "name": "МАМОГРАФІЯ_2025.docx",
+    "year": 2025,
+    "size": 16542,
+    "path": "library/pakety-archive/2025/MAMOHRAFIYa_2025.docx"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА НОВОНАРОДЖЕНИМ У СКЛАДНИХ НЕОНАТАЛЬНИХ ВИПАДКАХ_2025.docx",
+    "year": 2025,
+    "size": 31538,
+    "path": "library/pakety-archive/2025/MEDYChNA_DOPOMOHA_NOVONARODZhENYM_U_SKLADNYKh_NEONATALNYKh_VYPADKAKh_2025.docx"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА ПРИ ГОСТРОМУ ІНФАРКТІ МІОКАРДА_2025.docx",
+    "year": 2025,
+    "size": 23152,
+    "path": "library/pakety-archive/2025/MEDYChNA_DOPOMOHA_PRY_HOSTROMU_INFARKTI_MIOKARDA_2025.docx"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА ПРИ ГОСТРОМУ МОЗКОВОМУ ІНСУЛЬТІ_2025.docx",
+    "year": 2025,
+    "size": 30721,
+    "path": "library/pakety-archive/2025/MEDYChNA_DOPOMOHA_PRY_HOSTROMU_MOZKOVOMU_INSULTI_2025.docx"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА ПРИ ПОЛОГАХ_2025.docx",
+    "year": 2025,
+    "size": 39424,
+    "path": "library/pakety-archive/2025/MEDYChNA_DOPOMOHA_PRY_POLOHAKh_2025.docx"
+  },
+  {
+    "name": "МЕДИЧНА РЕАБІЛІТАЦІЯ ДОРОСЛИХ ТА ДІТЕЙ ВІД ТРЬОХ РОКІВ З УРАЖЕННЯМ НЕРВОВОЇ СИСТЕМИ_2025.docx",
+    "year": 2025,
+    "size": 21915,
+    "path": "library/pakety-archive/2025/MEDYChNA_REABILITATsIYa_DOROSLYKh_TA_DITEY_VID_TROKh_ROKIV_Z_URAZhENNYaM_NERVOVOYi_SYSTEMY_2025.docx"
+  },
+  {
+    "name": "МЕДИЧНА РЕАБІЛІТАЦІЯ НЕМОВЛЯТ, ЯКІ НАРОДИЛИСЬ ПЕРЕДЧАСНО_2025.pdf",
+    "year": 2025,
+    "size": 121401,
+    "path": "library/pakety-archive/2025/MEDYChNA_REABILITATsIYa_NEMOVLYaT_YaKI_NARODYLYS_PEREDChASNO_2025.pdf"
+  },
+  {
+    "name": "НЕОНАТАЛЬНИЙ СКРИНІНГ_2025.docx",
+    "year": 2025,
+    "size": 27149,
+    "path": "library/pakety-archive/2025/NEONATALNYY_SKRYNINH_2025.docx"
+  },
+  {
+    "name": "ПЕРВИННА МЕДИЧНА ДОПОМОГА_2025.docx",
+    "year": 2025,
+    "size": 30451,
+    "path": "library/pakety-archive/2025/PERVYNNA_MEDYChNA_DOPOMOHA_2025.docx"
+  },
+  {
+    "name": "ПСИХІАТРИЧНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ У СТАЦІОНАРНИХ УМОВАХ_2025.docx",
+    "year": 2025,
+    "size": 22493,
+    "path": "library/pakety-archive/2025/PSYKhIATRYChNA_DOPOMOHA_DOROSLYM_TA_DITYaM_U_STATsIONARNYKh_UMOVAKh_2025.docx"
+  },
+  {
+    "name": "Перехідне фінансове забезпечення надання медичних послуг закладами охорони здоров’я_2025.docx",
+    "year": 2025,
+    "size": 19151,
+    "path": "library/pakety-archive/2025/Perekhidne_finansove_zabezpechennia_nadannia_medychnykh_posluh_zakladamy_okhorony_zdorovia_2025.docx"
+  },
+  {
+    "name": "Проведення досліджень з радіоізотопної медичної візуалізації та діагностики (..._2025.docx",
+    "year": 2025,
+    "size": 27608,
+    "path": "library/pakety-archive/2025/Provedennia_doslidzhen_z_radioizotopnoi_medychnoi_vizualizatsii_ta_diahnostyky_(..._2025.docx"
+  },
+  {
+    "name": "Психосоціальна та психіатрична допомога дорослим та дітям, що організовується..._2025.docx",
+    "year": 2025,
+    "size": 20309,
+    "path": "library/pakety-archive/2025/Psykhosotsialna_ta_psykhiatrychna_dopomoha_doroslym_ta_ditiam_shcho_orhanizovuietsia..._2025.docx"
+  },
+  {
+    "name": "РАДІОЛОГІЧНЕ ЛІКУВАННЯ ТА СУПРОВІД ПАЦІЄНТІВ З ОНКОЛОГІЧНИМИ ЗАХВОРЮВАННЯМИ В..._2025.docx",
+    "year": 2025,
+    "size": 37680,
+    "path": "library/pakety-archive/2025/RADIOLOHIChNE_LIKUVANNYa_TA_SUPROVID_PATsIYeNTIV_Z_ONKOLOHIChNYMY_ZAKhVORYuVANNYaMY_V..._2025.docx"
+  },
+  {
+    "name": "РЕАБІЛІТАЦІЙНА ДОПОМОГА ДОРОСЛИМ І ДІТЯМ У АМБУЛАТОРНИХ УМОВАХ_2025.docx",
+    "year": 2025,
+    "size": 20074,
+    "path": "library/pakety-archive/2025/REABILITATsIYNA_DOPOMOHA_DOROSLYM_I_DITYaM_U_AMBULATORNYKh_UMOVAKh_2025.docx"
+  },
+  {
+    "name": "РЕАБІЛІТАЦІЙНА ДОПОМОГА ДОРОСЛИМ І ДІТЯМ У АМБУЛАТОРНИХ_2025.pdf",
+    "year": 2025,
+    "size": 219033,
+    "path": "library/pakety-archive/2025/REABILITATsIYNA_DOPOMOHA_DOROSLYM_I_DITYaM_U_AMBULATORNYKh_2025.pdf"
+  },
+  {
+    "name": "РЕАБІЛІТАЦІЙНА ДОПОМОГА ДОРОСЛИМ І ДІТЯМ У СТАЦІОНАРНИХ УМОВАХ_2025.docx",
+    "year": 2025,
+    "size": 26116,
+    "path": "library/pakety-archive/2025/REABILITATsIYNA_DOPOMOHA_DOROSLYM_I_DITYaM_U_STATsIONARNYKh_UMOVAKh_2025.docx"
+  },
+  {
+    "name": "СЕКЦІЙНЕ ДОСЛІДЖЕННЯ_2025.docx",
+    "year": 2025,
+    "size": 16030,
+    "path": "library/pakety-archive/2025/SEKTsIYNE_DOSLIDZhENNYa_2025.docx"
+  },
+  {
+    "name": "СТОМАТОЛОГІЧНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ_2025.docx",
+    "year": 2025,
+    "size": 16294,
+    "path": "library/pakety-archive/2025/STOMATOLOHIChNA_DOPOMOHA_DOROSLYM_TA_DITYaM_2025.docx"
+  },
+  {
+    "name": "ХІМІОТЕРАПЕВТИЧНЕ ЛІКУВАННЯ ТА СУПРОВІД ПАЦІЄНТІВ З_2025.pdf",
+    "year": 2025,
+    "size": 380667,
+    "path": "library/pakety-archive/2025/KhIMIOTERAPEVTYChNE_LIKUVANNYa_TA_SUPROVID_PATsIYeNTIV_Z_2025.pdf"
+  },
+  {
+    "name": "ХІРУРГІЧНІ ОПЕРАЦІЇ ДОРОСЛИМ ТА ДІТЯМ В УМОВАХ СТАЦІОНАРУ ОДНОГО ДНЯ_2025.docx",
+    "year": 2025,
+    "size": 20177,
+    "path": "library/pakety-archive/2025/KhIRURHIChNI_OPERATsIYi_DOROSLYM_TA_DITYaM_V_UMOVAKh_STATsIONARU_ODNOHO_DNYa_2025.docx"
+  },
+  {
+    "name": "ЦИСТОСКОПІЯ_2025.docx",
+    "year": 2025,
+    "size": 16595,
+    "path": "library/pakety-archive/2025/TsYSTOSKOPIYa_2025.docx"
+  },
+  {
+    "name": "Бронхоскопія_2024.docx",
+    "year": 2024,
+    "size": 19419,
+    "path": "library/pakety-archive/2024/Bronkhoskopiia_2024.docx"
+  },
+  {
+    "name": "ВЕДЕННЯ ВАГІТНОСТІ В АМБУЛАТОРНИХ УМОВАХ_2024.docx",
+    "year": 2024,
+    "size": 27551,
+    "path": "library/pakety-archive/2024/VEDENNYa_VAHITNOSTI_V_AMBULATORNYKh_UMOVAKh_2024.docx"
+  },
+  {
+    "name": "ГОТОВНІСТЬ ЗАКЛАДУ ОХОРОНИ ЗДОРОВ’Я ДО НАДАННЯ МЕДИЧНОЇ_2024.docx",
+    "year": 2024,
+    "size": 48138,
+    "path": "library/pakety-archive/2024/HOTOVNIST_ZAKLADU_OKhORONY_ZDOROVYa_DO_NADANNYa_MEDYChNOYi_2024.docx"
+  },
+  {
+    "name": "ГОТОВНІСТЬ ТА ЗАБЕЗПЕЧЕННЯ НАДАННЯ МЕДИЧНОЇ ДОПОМОГИ НАСЕЛЕННЮ, ЯКЕ ПЕРЕБУВАЄ..._2024.docx",
+    "year": 2024,
+    "size": 21137,
+    "path": "library/pakety-archive/2024/HOTOVNIST_TA_ZABEZPEChENNYa_NADANNYa_MEDYChNOYi_DOPOMOHY_NASELENNYu_YaKE_PEREBUVAYe..._2024.docx"
+  },
+  {
+    "name": "Гістероскопія_2024.docx",
+    "year": 2024,
+    "size": 19246,
+    "path": "library/pakety-archive/2024/Histeroskopiia_2024.docx"
+  },
+  {
+    "name": "ДІАГНОСТИКА ТА ЛІКУВАННЯ ДОРОСЛИХ І ДІТЕЙ, ХВОРИХ НА ТУБЕРКУЛЬОЗ, У СТАЦІОНАР..._2024.docx",
+    "year": 2024,
+    "size": 31353,
+    "path": "library/pakety-archive/2024/DIAHNOSTYKA_TA_LIKUVANNYa_DOROSLYKh_I_DITEY_KhVORYKh_NA_TUBERKULOZ_U_STATsIONAR..._2024.docx"
+  },
+  {
+    "name": "ДІАГНОСТИКА, ЛІКУВАННЯ ТА СУПРОВІД ОСІБ ІЗ ВІЛ (ТА ПІДОЗРОЮ НА ВІЛ)_2024.docx",
+    "year": 2024,
+    "size": 25855,
+    "path": "library/pakety-archive/2024/DIAHNOSTYKA_LIKUVANNYa_TA_SUPROVID_OSIB_IZ_VIL_(TA_PIDOZROYu_NA_VIL)_2024.docx"
+  },
+  {
+    "name": "ЕЗОФАГОГАСТРОДУОДЕНОСКОПІЯ_2024.docx",
+    "year": 2024,
+    "size": 20195,
+    "path": "library/pakety-archive/2024/EZOFAHOHASTRODUODENOSKOPIYa_2024.docx"
+  },
+  {
+    "name": "ЕКСТРЕНА МЕДИЧНА ДОПОМОГА_2024.docx",
+    "year": 2024,
+    "size": 21813,
+    "path": "library/pakety-archive/2024/EKSTRENA_MEDYChNA_DOPOMOHA_2024.docx"
+  },
+  {
+    "name": "ЗАБЕЗПЕЧЕННЯ КАДРОВОГО ПОТЕНЦІАЛУ СИСТЕМИ ОХОРОНИ ЗДОРОВ’Я ШЛЯХОМ ОРГАНІЗАЦІЇ..._2024.docx",
+    "year": 2024,
+    "size": 15549,
+    "path": "library/pakety-archive/2024/ZABEZPEChENNYa_KADROVOHO_POTENTsIALU_SYSTEMY_OKhORONY_ZDOROVYa_ShLYaKhOM_ORHANIZATsIYi..._2024.docx"
+  },
+  {
+    "name": "КОЛОНОСКОПІЯ_2024.docx",
+    "year": 2024,
+    "size": 19959,
+    "path": "library/pakety-archive/2024/KOLONOSKOPIYa_2024.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ БЕЗПЛІДДЯ ЗА ДОПОМОГОЮ ДОПОМІЖНИХ РЕПРОДУКТИВНИХ ТЕХНОЛОГІЙ_2024.docx",
+    "year": 2024,
+    "size": 32826,
+    "path": "library/pakety-archive/2024/LIKUVANNYa_BEZPLIDDYa_ZA_DOPOMOHOYu_DOPOMIZhNYKh_REPRODUKTYVNYKh_TEKhNOLOHIY_2024.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ДОРОСЛИХ ТА ДІТЕЙ МЕТОДОМ ТРАНСПЛАНТАЦІЇ ГЕМОПОЕТИЧНИХ СТОВБУРОВИХ КЛІТИН_2024.docx",
+    "year": 2024,
+    "size": 53020,
+    "path": "library/pakety-archive/2024/LIKUVANNYa_DOROSLYKh_TA_DITEY_METODOM_TRANSPLANTATsIYi_HEMOPOETYChNYKh_STOVBUROVYKh_KLITYN_2024.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ДОРОСЛИХ ТА ДІТЕЙ МЕТОДОМ ТРАНСПЛАНТАЦІЇ ОРГАНІВ_2024.docx",
+    "year": 2024,
+    "size": 63734,
+    "path": "library/pakety-archive/2024/LIKUVANNYa_DOROSLYKh_TA_DITEY_METODOM_TRANSPLANTATsIYi_ORHANIV_2024.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ОСІБ ІЗ ПСИХІЧНИМИ ТА ПОВЕДІНКОВИМИ РОЗЛАДАМИ ВНАСЛІДОК ВЖИВАННЯ ОП..._2024.docx",
+    "year": 2024,
+    "size": 23104,
+    "path": "library/pakety-archive/2024/LIKUVANNYa_OSIB_IZ_PSYKhIChNYMY_TA_POVEDINKOVYMY_ROZLADAMY_VNASLIDOK_VZhYVANNYa_OP..._2024.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ПАЦІЄНТІВ МЕТОДОМ ГЕМОДІАЛІЗУ В АМБУЛАТОРНИХ УМОВАХ_2024.docx",
+    "year": 2024,
+    "size": 21297,
+    "path": "library/pakety-archive/2024/LIKUVANNYa_PATsIYeNTIV_METODOM_HEMODIALIZU_V_AMBULATORNYKh_UMOVAKh_2024.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ПАЦІЄНТІВ МЕТОДОМ ПЕРИТОНЕАЛЬНОГО ДІАЛІЗУ В АМБУЛАТОРНИХ УМОВАХ_2024.docx",
+    "year": 2024,
+    "size": 22823,
+    "path": "library/pakety-archive/2024/LIKUVANNYa_PATsIYeNTIV_METODOM_PERYTONEALNOHO_DIALIZU_V_AMBULATORNYKh_UMOVAKh_2024.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ТА СУПРОВІД ПАЦІЄНТІВ З ГЕМАТОЛОГІЧНИМИ ТА ОНКОГЕМАТОЛОГІЧНИМИ ЗАХВ..._2024.docx",
+    "year": 2024,
+    "size": 34576,
+    "path": "library/pakety-archive/2024/LIKUVANNYa_TA_SUPROVID_PATsIYeNTIV_Z_HEMATOLOHIChNYMY_TA_ONKOHEMATOLOHIChNYMY_ZAKhV..._2024.docx"
+  },
+  {
+    "name": "МАМОГРАФІЯ_2024.docx",
+    "year": 2024,
+    "size": 17882,
+    "path": "library/pakety-archive/2024/MAMOHRAFIYa_2024.docx"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА НОВОНАРОДЖЕНИМ У СКЛАДНИХ НЕОНАТАЛЬНИХ ВИПАДКАХ_2024.docx",
+    "year": 2024,
+    "size": 36748,
+    "path": "library/pakety-archive/2024/MEDYChNA_DOPOMOHA_NOVONARODZhENYM_U_SKLADNYKh_NEONATALNYKh_VYPADKAKh_2024.docx"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА ПРИ ГОСТРОМУ ІНФАРКТІ МІОКАРДА_2024.docx",
+    "year": 2024,
+    "size": 27200,
+    "path": "library/pakety-archive/2024/MEDYChNA_DOPOMOHA_PRY_HOSTROMU_INFARKTI_MIOKARDA_2024.docx"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА ПРИ ГОСТРОМУ МОЗКОВОМУ ІНСУЛЬТІ_2024.docx",
+    "year": 2024,
+    "size": 37750,
+    "path": "library/pakety-archive/2024/MEDYChNA_DOPOMOHA_PRY_HOSTROMU_MOZKOVOMU_INSULTI_2024.docx"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА ПРИ ПОЛОГАХ_2024.docx",
+    "year": 2024,
+    "size": 39354,
+    "path": "library/pakety-archive/2024/MEDYChNA_DOPOMOHA_PRY_POLOHAKh_2024.docx"
+  },
+  {
+    "name": "МЕДИЧНА РЕАБІЛІТАЦІЯ НЕМОВЛЯТ, ЯКІ НАРОДИЛИСЬ ПЕРЕДЧАСНО ТААБО ХВОРИМИ, ПРОТЯ..._2024.docx",
+    "year": 2024,
+    "size": 23333,
+    "path": "library/pakety-archive/2024/MEDYChNA_REABILITATsIYa_NEMOVLYaT_YaKI_NARODYLYS_PEREDChASNO_TAABO_KhVORYMY_PROTYa..._2024.docx"
+  },
+  {
+    "name": "МЕДИЧНИЙ ОГЛЯД ОСІБ, ЯКИЙ ОРГАНІЗОВУЄТЬСЯ ТЕРИТОРІАЛЬНИМИ ЦЕНТРАМИ КОМПЛЕКТУВ..._2024.docx",
+    "year": 2024,
+    "size": 21208,
+    "path": "library/pakety-archive/2024/MEDYChNYY_OHLYaD_OSIB_YaKYY_ORHANIZOVUYeTSYa_TERYTORIALNYMY_TsENTRAMY_KOMPLEKTUV..._2024.docx"
+  },
+  {
+    "name": "МОБІЛЬНА ПАЛІАТИВНА МЕДИЧНА ДОПОМОГА ДОРОСЛИМ І ДІТЯМ_2024.docx",
+    "year": 2024,
+    "size": 24379,
+    "path": "library/pakety-archive/2024/MOBILNA_PALIATYVNA_MEDYChNA_DOPOMOHA_DOROSLYM_I_DITYaM_2024.docx"
+  },
+  {
+    "name": "НЕОНАТАЛЬНИЙ СКРИНІНГ_2024.docx",
+    "year": 2024,
+    "size": 21677,
+    "path": "library/pakety-archive/2024/NEONATALNYY_SKRYNINH_2024.docx"
+  },
+  {
+    "name": "ПЕРВИННА МЕДИЧНА ДОПОМОГА_2024.docx",
+    "year": 2024,
+    "size": 39329,
+    "path": "library/pakety-archive/2024/PERVYNNA_MEDYChNA_DOPOMOHA_2024.docx"
+  },
+  {
+    "name": "ПРОФІЛАКТИКА, ДІАГНОСТИКА, СПОСТЕРЕЖЕННЯ ТА ЛІКУВАННЯ В АМБУЛАТОРНИХ УМОВАХ_2024.docx",
+    "year": 2024,
+    "size": 34374,
+    "path": "library/pakety-archive/2024/PROFILAKTYKA_DIAHNOSTYKA_SPOSTEREZhENNYa_TA_LIKUVANNYa_V_AMBULATORNYKh_UMOVAKh_2024.docx"
+  },
+  {
+    "name": "ПСИХІАТРИЧНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ У СТАЦІОНАРНИХ УМОВАХ_2024.docx",
+    "year": 2024,
+    "size": 26359,
+    "path": "library/pakety-archive/2024/PSYKhIATRYChNA_DOPOMOHA_DOROSLYM_TA_DITYaM_U_STATsIONARNYKh_UMOVAKh_2024.docx"
+  },
+  {
+    "name": "ПСИХІАТРИЧНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ, ЯКА НАДАЄТЬСЯ МОБІЛЬНИМИ МУЛЬТИДИСЦИ..._2024.docx",
+    "year": 2024,
+    "size": 23667,
+    "path": "library/pakety-archive/2024/PSYKhIATRYChNA_DOPOMOHA_DOROSLYM_TA_DITYaM_YaKA_NADAYeTSYa_MOBILNYMY_MULTYDYSTsY..._2024.docx"
+  },
+  {
+    "name": "РАДІОЛОГІЧНЕ ЛІКУВАННЯ ТА СУПРОВІД ПАЦІЄНТІВ З ОНКОЛОГІЧНИМИ ЗАХВОРЮВАННЯМИ В..._2024.docx",
+    "year": 2024,
+    "size": 30453,
+    "path": "library/pakety-archive/2024/RADIOLOHIChNE_LIKUVANNYa_TA_SUPROVID_PATsIYeNTIV_Z_ONKOLOHIChNYMY_ZAKhVORYuVANNYaMY_V..._2024.docx"
+  },
+  {
+    "name": "РЕАБІЛІТАЦІЙНА ДОПОМОГА ДОРОСЛИМ І ДІТЯМ У АМБУЛАТОРНИХ УМОВАХ_2024.docx",
+    "year": 2024,
+    "size": 24976,
+    "path": "library/pakety-archive/2024/REABILITATsIYNA_DOPOMOHA_DOROSLYM_I_DITYaM_U_AMBULATORNYKh_UMOVAKh_2024.docx"
+  },
+  {
+    "name": "РЕАБІЛІТАЦІЙНА ДОПОМОГА ДОРОСЛИМ І ДІТЯМ У СТАЦІОНАРНИХ УМОВАХ_2024.docx",
+    "year": 2024,
+    "size": 34666,
+    "path": "library/pakety-archive/2024/REABILITATsIYNA_DOPOMOHA_DOROSLYM_I_DITYaM_U_STATsIONARNYKh_UMOVAKh_2024.docx"
+  },
+  {
+    "name": "СЕКЦІЙНЕ ДОСЛІДЖЕННЯ_2024.docx",
+    "year": 2024,
+    "size": 24164,
+    "path": "library/pakety-archive/2024/SEKTsIYNE_DOSLIDZhENNYa_2024.docx"
+  },
+  {
+    "name": "СТАЦІОНАРНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ БЕЗ ПРОВЕДЕННЯ ХІРУРГІЧНИХ ОПЕРАЦІЙ_2024.docx",
+    "year": 2024,
+    "size": 37613,
+    "path": "library/pakety-archive/2024/STATsIONARNA_DOPOMOHA_DOROSLYM_TA_DITYaM_BEZ_PROVEDENNYa_KhIRURHIChNYKh_OPERATsIY_2024.docx"
+  },
+  {
+    "name": "СТАЦІОНАРНА ПАЛІАТИВНА МЕДИЧНА ДОПОМОГА ДОРОСЛИМ І ДІТЯМ_2024.docx",
+    "year": 2024,
+    "size": 27680,
+    "path": "library/pakety-archive/2024/STATsIONARNA_PALIATYVNA_MEDYChNA_DOPOMOHA_DOROSLYM_I_DITYaM_2024.docx"
+  },
+  {
+    "name": "СТОМАТОЛОГІЧНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ_2024.docx",
+    "year": 2024,
+    "size": 20625,
+    "path": "library/pakety-archive/2024/STOMATOLOHIChNA_DOPOMOHA_DOROSLYM_TA_DITYaM_2024.docx"
+  },
+  {
+    "name": "СУПРОВІД І ЛІКУВАННЯ ДОРОСЛИХ ТА ДІТЕЙ З ПСИХІЧНИМИ РОЗЛАДАМИ НА ПЕРВИННОМУ Р..._2024.docx",
+    "year": 2024,
+    "size": 25383,
+    "path": "library/pakety-archive/2024/SUPROVID_I_LIKUVANNYa_DOROSLYKh_TA_DITEY_Z_PSYKhIChNYMY_ROZLADAMY_NA_PERVYNNOMU_R..._2024.docx"
+  },
+  {
+    "name": "СУПРОВІД ТА ЛІКУВАННЯ ДОРОСЛИХ ТА ДІТЕЙ, ХВОРИХ НА ТУБЕРКУЛЬОЗ, НА ПЕРВИННОМУ..._2024.docx",
+    "year": 2024,
+    "size": 23464,
+    "path": "library/pakety-archive/2024/SUPROVID_TA_LIKUVANNYa_DOROSLYKh_TA_DITEY_KhVORYKh_NA_TUBERKULOZ_NA_PERVYNNOMU..._2024.docx"
+  },
+  {
+    "name": "ХІМІОТЕРАПЕВТИЧНЕ ЛІКУВАННЯ ТА СУПРОВІД ПАЦІЄНТІВ З ОНКОЛОГІЧНИМИ ЗАХВОРЮВАНН..._2024.docx",
+    "year": 2024,
+    "size": 31509,
+    "path": "library/pakety-archive/2024/KhIMIOTERAPEVTYChNE_LIKUVANNYa_TA_SUPROVID_PATsIYeNTIV_Z_ONKOLOHIChNYMY_ZAKhVORYuVANN..._2024.docx"
+  },
+  {
+    "name": "ХІРУРГІЧНІ ОПЕРАЦІЇ ДОРОСЛИМ ТА ДІТЯМ В УМОВАХ СТАЦІОНАРУ ОДНОГО ДНЯ_2024.docx",
+    "year": 2024,
+    "size": 24411,
+    "path": "library/pakety-archive/2024/KhIRURHIChNI_OPERATsIYi_DOROSLYM_TA_DITYaM_V_UMOVAKh_STATsIONARU_ODNOHO_DNYa_2024.docx"
+  },
+  {
+    "name": "ХІРУРГІЧНІ ОПЕРАЦІЇ ДОРОСЛИМ ТА ДІТЯМ У СТАЦІОНАРНИХ УМОВАХ_2024.docx",
+    "year": 2024,
+    "size": 43372,
+    "path": "library/pakety-archive/2024/KhIRURHIChNI_OPERATsIYi_DOROSLYM_TA_DITYaM_U_STATsIONARNYKh_UMOVAKh_2024.docx"
+  },
+  {
+    "name": "ЦИСТОСКОПІЯ_2024.docx",
+    "year": 2024,
+    "size": 18763,
+    "path": "library/pakety-archive/2024/TsYSTOSKOPIYa_2024.docx"
+  },
+  {
+    "name": "БРОНХОСКОПІЯ_2023.docx",
+    "year": 2023,
+    "size": 18968,
+    "path": "library/pakety-archive/2023/BRONKhOSKOPIYa_2023.docx"
+  },
+  {
+    "name": "ВЕДЕННЯ ВАГІТНОСТІ В АМБУЛАТОРНИХ УМОВАХ_2023.docx",
+    "year": 2023,
+    "size": 27443,
+    "path": "library/pakety-archive/2023/VEDENNYa_VAHITNOSTI_V_AMBULATORNYKh_UMOVAKh_2023.docx"
+  },
+  {
+    "name": "ГІСТЕРОСКОПІЯ_2023.docx",
+    "year": 2023,
+    "size": 19527,
+    "path": "library/pakety-archive/2023/HISTEROSKOPIYa_2023.docx"
+  },
+  {
+    "name": "ГОТОВНІСТЬ ЗАКЛАДУ ОХОРОНИ ЗДОРОВ’Я ДО НАДАННЯ МЕДИЧНОЇ_2023.docx",
+    "year": 2023,
+    "size": 34833,
+    "path": "library/pakety-archive/2023/HOTOVNIST_ZAKLADU_OKhORONY_ZDOROVYa_DO_NADANNYa_MEDYChNOYi_2023.docx"
+  },
+  {
+    "name": "ГОТОВНІСТЬ ТА ЗАБЕЗПЕЧЕННЯ НАДАННЯ МЕДИЧНОЇ ДОПОМОГИ НАСЕЛЕННЮ, ЯКЕ ПЕРЕ..._2023.docx",
+    "year": 2023,
+    "size": 18146,
+    "path": "library/pakety-archive/2023/HOTOVNIST_TA_ZABEZPEChENNYa_NADANNYa_MEDYChNOYi_DOPOMOHY_NASELENNYu_YaKE_PERE..._2023.docx"
+  },
+  {
+    "name": "ДІАГНОСТИКА ТА ЛІКУВАННЯ ДОРОСЛИХ І ДІТЕЙ, ХВОРИХ НА ТУБЕРКУЛЬОЗ, У СТАЦ..._2023.docx",
+    "year": 2023,
+    "size": 27093,
+    "path": "library/pakety-archive/2023/DIAHNOSTYKA_TA_LIKUVANNYa_DOROSLYKh_I_DITEY_KhVORYKh_NA_TUBERKULOZ_U_STATs..._2023.docx"
+  },
+  {
+    "name": "ДІАГНОСТИКА, ЛІКУВАННЯ ТА СУПРОВІД ОСІБ ІЗ ВІРУСОМ ІМУНОДЕФІЦИТУ ЛЮДИНИ..._2023.docx",
+    "year": 2023,
+    "size": 27153,
+    "path": "library/pakety-archive/2023/DIAHNOSTYKA_LIKUVANNYa_TA_SUPROVID_OSIB_IZ_VIRUSOM_IMUNODEFITsYTU_LYuDYNY..._2023.docx"
+  },
+  {
+    "name": "ЕЗОФАГОГАСТРОДУОДЕНОСКОПІЯ_2023.docx",
+    "year": 2023,
+    "size": 20811,
+    "path": "library/pakety-archive/2023/EZOFAHOHASTRODUODENOSKOPIYa_2023.docx"
+  },
+  {
+    "name": "ЕКСТРЕНА МЕДИЧНА ДОПОМОГА_2023.docx",
+    "year": 2023,
+    "size": 20986,
+    "path": "library/pakety-archive/2023/EKSTRENA_MEDYChNA_DOPOMOHA_2023.docx"
+  },
+  {
+    "name": "ЗАБЕЗПЕЧЕННЯ ЗБЕРЕЖЕННЯ КАДРОВОГО ПОТЕНЦІАЛУ ДЛЯ НАДАННЯ МЕДИЧНОЇ ДОПОМО..._2023.docx",
+    "year": 2023,
+    "size": 15159,
+    "path": "library/pakety-archive/2023/ZABEZPEChENNYa_ZBEREZhENNYa_KADROVOHO_POTENTsIALU_DLYa_NADANNYa_MEDYChNOYi_DOPOMO..._2023.docx"
+  },
+  {
+    "name": "ЗАБЕЗПЕЧЕННЯ КАДРОВОГО ПОТЕНЦІАЛУ СИСТЕМИ ОХОРОНИ ЗДОРОВ’Я ШЛЯХОМ ОРГАНІ..._2023.docx",
+    "year": 2023,
+    "size": 16190,
+    "path": "library/pakety-archive/2023/ZABEZPEChENNYa_KADROVOHO_POTENTsIALU_SYSTEMY_OKhORONY_ZDOROVYa_ShLYaKhOM_ORHANI..._2023.docx"
+  },
+  {
+    "name": "КОЛОНОСКОПІЯ_2023.docx",
+    "year": 2023,
+    "size": 21141,
+    "path": "library/pakety-archive/2023/KOLONOSKOPIYa_2023.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ОСІБ ІЗ ПСИХІЧНИМИ ТА ПОВЕДІНКОВИМИ РОЗЛАДАМИ ВНАСЛІДОК ВЖИВАН..._2023.docx",
+    "year": 2023,
+    "size": 19892,
+    "path": "library/pakety-archive/2023/LIKUVANNYa_OSIB_IZ_PSYKhIChNYMY_TA_POVEDINKOVYMY_ROZLADAMY_VNASLIDOK_VZhYVAN..._2023.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ПАЦІЄНТІВ МЕТОДОМ ГЕМОДІАЛІЗУ В АМБУЛАТОРНИХ УМОВАХ_2023.docx",
+    "year": 2023,
+    "size": 19762,
+    "path": "library/pakety-archive/2023/LIKUVANNYa_PATsIYeNTIV_METODOM_HEMODIALIZU_V_AMBULATORNYKh_UMOVAKh_2023.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ПАЦІЄНТІВ МЕТОДОМ ПЕРИТОНЕАЛЬНОГО ДІАЛІЗУ В АМБУЛАТОРНИХ УМОВАХ_2023.docx",
+    "year": 2023,
+    "size": 21061,
+    "path": "library/pakety-archive/2023/LIKUVANNYa_PATsIYeNTIV_METODOM_PERYTONEALNOHO_DIALIZU_V_AMBULATORNYKh_UMOVAKh_2023.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ТА СУПРОВІД ПАЦІЄНТІВ З ГЕМАТОЛОГІЧНИМИ ТА ОНКОГЕМАТОЛОГІЧНИМИ..._2023.docx",
+    "year": 2023,
+    "size": 30529,
+    "path": "library/pakety-archive/2023/LIKUVANNYa_TA_SUPROVID_PATsIYeNTIV_Z_HEMATOLOHIChNYMY_TA_ONKOHEMATOLOHIChNYMY..._2023.docx"
+  },
+  {
+    "name": "МАМОГРАФІЯ_2023.docx",
+    "year": 2023,
+    "size": 16782,
+    "path": "library/pakety-archive/2023/MAMOHRAFIYa_2023.docx"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА НОВОНАРОДЖЕНИМ У СКЛАДНИХ НЕОНАТАЛЬНИХ ВИПАДКАХ_2023.docx",
+    "year": 2023,
+    "size": 30338,
+    "path": "library/pakety-archive/2023/MEDYChNA_DOPOMOHA_NOVONARODZhENYM_U_SKLADNYKh_NEONATALNYKh_VYPADKAKh_2023.docx"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА ПРИ ГОСТРОМУ ІНФАРКТІ МІОКАРДА_2023.docx",
+    "year": 2023,
+    "size": 24289,
+    "path": "library/pakety-archive/2023/MEDYChNA_DOPOMOHA_PRY_HOSTROMU_INFARKTI_MIOKARDA_2023.docx"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА ПРИ ПОЛОГАХ_2023.docx",
+    "year": 2023,
+    "size": 29575,
+    "path": "library/pakety-archive/2023/MEDYChNA_DOPOMOHA_PRY_POLOHAKh_2023.docx"
+  },
+  {
+    "name": "МЕДИЧНА РЕАБІЛІТАЦІЯ НЕМОВЛЯТ, ЯКІ НАРОДИЛИСЬ ПЕРЕДЧАСНО ТААБО ХВОРИМИ,..._2023.docx",
+    "year": 2023,
+    "size": 20842,
+    "path": "library/pakety-archive/2023/MEDYChNA_REABILITATsIYa_NEMOVLYaT_YaKI_NARODYLYS_PEREDChASNO_TAABO_KhVORYMY..._2023.docx"
+  },
+  {
+    "name": "МЕДИЧНИЙ ОГЛЯД ОСІБ, ЯКИЙ ОРГАНІЗОВУЄТЬСЯ ТЕРИТОРІАЛЬНИМИ ЦЕНТРАМИ КОМПЛ..._2023.docx",
+    "year": 2023,
+    "size": 21380,
+    "path": "library/pakety-archive/2023/MEDYChNYY_OHLYaD_OSIB_YaKYY_ORHANIZOVUYeTSYa_TERYTORIALNYMY_TsENTRAMY_KOMPL..._2023.docx"
+  },
+  {
+    "name": "МОБІЛЬНА ПАЛІАТИВНА МЕДИЧНА ДОПОМОГА ДОРОСЛИМ І ДІТЯМ_2023.docx",
+    "year": 2023,
+    "size": 22244,
+    "path": "library/pakety-archive/2023/MOBILNA_PALIATYVNA_MEDYChNA_DOPOMOHA_DOROSLYM_I_DITYaM_2023.docx"
+  },
+  {
+    "name": "НЕОНАТАЛЬНИЙ СКРИНІНГ_2023.docx",
+    "year": 2023,
+    "size": 21352,
+    "path": "library/pakety-archive/2023/NEONATALNYY_SKRYNINH_2023.docx"
+  },
+  {
+    "name": "ПЕРВИННА МЕДИЧНА ДОПОМОГА_2023.docx",
+    "year": 2023,
+    "size": 23207,
+    "path": "library/pakety-archive/2023/PERVYNNA_MEDYChNA_DOPOMOHA_2023.docx"
+  },
+  {
+    "name": "ПРОФІЛАКТИКА, ДІАГНОСТИКА, СПОСТЕРЕЖЕННЯ ТА ЛІКУВАННЯ В АМБУЛАТОРНИХ УМОВАХ_2023.docx",
+    "year": 2023,
+    "size": 34248,
+    "path": "library/pakety-archive/2023/PROFILAKTYKA_DIAHNOSTYKA_SPOSTEREZhENNYa_TA_LIKUVANNYa_V_AMBULATORNYKh_UMOVAKh_2023.docx"
+  },
+  {
+    "name": "ПСИХІАТРИЧНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ У СТАЦІОНАРНИХ УМОВАХ_2023.docx",
+    "year": 2023,
+    "size": 22816,
+    "path": "library/pakety-archive/2023/PSYKhIATRYChNA_DOPOMOHA_DOROSLYM_TA_DITYaM_U_STATsIONARNYKh_UMOVAKh_2023.docx"
+  },
+  {
+    "name": "ПСИХІАТРИЧНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ, ЯКА НАДАЄТЬСЯ МОБІЛЬНИМИ МУЛЬТИ..._2023.docx",
+    "year": 2023,
+    "size": 18586,
+    "path": "library/pakety-archive/2023/PSYKhIATRYChNA_DOPOMOHA_DOROSLYM_TA_DITYaM_YaKA_NADAYeTSYa_MOBILNYMY_MULTY..._2023.docx"
+  },
+  {
+    "name": "РАДІОЛОГІЧНЕ ЛІКУВАННЯ ТА СУПРОВІД ПАЦІЄНТІВ З ОНКОЛОГІЧНИМИ ЗАХВОРЮВАНН..._2023.docx",
+    "year": 2023,
+    "size": 27191,
+    "path": "library/pakety-archive/2023/RADIOLOHIChNE_LIKUVANNYa_TA_SUPROVID_PATsIYeNTIV_Z_ONKOLOHIChNYMY_ZAKhVORYuVANN..._2023.docx"
+  },
+  {
+    "name": "РЕАБІЛІТАЦІЙНА ДОПОМОГА ДОРОСЛИМ І ДІТЯМ У АМБУЛАТОРНИХ УМОВАХ_2023.docx",
+    "year": 2023,
+    "size": 20191,
+    "path": "library/pakety-archive/2023/REABILITATsIYNA_DOPOMOHA_DOROSLYM_I_DITYaM_U_AMBULATORNYKh_UMOVAKh_2023.docx"
+  },
+  {
+    "name": "РЕАБІЛІТАЦІЙНА ДОПОМОГА ДОРОСЛИМ І ДІТЯМ У СТАЦІОНАРНИХ УМОВАХ_2023.docx",
+    "year": 2023,
+    "size": 52641,
+    "path": "library/pakety-archive/2023/REABILITATsIYNA_DOPOMOHA_DOROSLYM_I_DITYaM_U_STATsIONARNYKh_UMOVAKh_2023.docx"
+  },
+  {
+    "name": "СЕКЦІЙНЕ ДОСЛІДЖЕННЯ_2023.docx",
+    "year": 2023,
+    "size": 16905,
+    "path": "library/pakety-archive/2023/SEKTsIYNE_DOSLIDZhENNYa_2023.docx"
+  },
+  {
+    "name": "СТАЦІОНАРНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ БЕЗ ПРОВЕДЕННЯ ХІРУРГІЧНИХ ОПЕРАЦІЙ_2023.docx",
+    "year": 2023,
+    "size": 35152,
+    "path": "library/pakety-archive/2023/STATsIONARNA_DOPOMOHA_DOROSLYM_TA_DITYaM_BEZ_PROVEDENNYa_KhIRURHIChNYKh_OPERATsIY_2023.docx"
+  },
+  {
+    "name": "СТАЦІОНАРНА ПАЛІАТИВНА МЕДИЧНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ_2023.docx",
+    "year": 2023,
+    "size": 24493,
+    "path": "library/pakety-archive/2023/STATsIONARNA_PALIATYVNA_MEDYChNA_DOPOMOHA_DOROSLYM_TA_DITYaM_2023.docx"
+  },
+  {
+    "name": "СТОМАТОЛОГІЧНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ_2023.docx",
+    "year": 2023,
+    "size": 24218,
+    "path": "library/pakety-archive/2023/STOMATOLOHIChNA_DOPOMOHA_DOROSLYM_TA_DITYaM_2023.docx"
+  },
+  {
+    "name": "СУПРОВІД І ЛІКУВАННЯ ДОРОСЛИХ ТА ДІТЕЙ З ПСИХІЧНИМИ РОЗЛАДАМИ НА ПЕРВИНН..._2023.docx",
+    "year": 2023,
+    "size": 20801,
+    "path": "library/pakety-archive/2023/SUPROVID_I_LIKUVANNYa_DOROSLYKh_TA_DITEY_Z_PSYKhIChNYMY_ROZLADAMY_NA_PERVYNN..._2023.docx"
+  },
+  {
+    "name": "ХІМІОТЕРАПЕВТИЧНЕ ЛІКУВАННЯ ТА СУПРОВІД ПАЦІЄНТІВ З ОНКОЛОГІЧНИМИ ЗАХВОР..._2023.docx",
+    "year": 2023,
+    "size": 26136,
+    "path": "library/pakety-archive/2023/KhIMIOTERAPEVTYChNE_LIKUVANNYa_TA_SUPROVID_PATsIYeNTIV_Z_ONKOLOHIChNYMY_ZAKhVOR..._2023.docx"
+  },
+  {
+    "name": "ХІРУРГІЧНІ ОПЕРАЦІЇ ДОРОСЛИМ ТА ДІТЯМ В УМОВАХ СТАЦІОНАРУ ОДНОГО ДНЯ_2023.docx",
+    "year": 2023,
+    "size": 22650,
+    "path": "library/pakety-archive/2023/KhIRURHIChNI_OPERATsIYi_DOROSLYM_TA_DITYaM_V_UMOVAKh_STATsIONARU_ODNOHO_DNYa_2023.docx"
+  },
+  {
+    "name": "ХІРУРГІЧНІ ОПЕРАЦІЇ ДОРОСЛИМ ТА ДІТЯМ У СТАЦІОНАРНИХ УМОВАХ_2023.docx",
+    "year": 2023,
+    "size": 36162,
+    "path": "library/pakety-archive/2023/KhIRURHIChNI_OPERATsIYi_DOROSLYM_TA_DITYaM_U_STATsIONARNYKh_UMOVAKh_2023.docx"
+  },
+  {
+    "name": "ЦИСТОСКОПІЯ_2023.docx",
+    "year": 2023,
+    "size": 18497,
+    "path": "library/pakety-archive/2023/TsYSTOSKOPIYa_2023.docx"
+  },
+  {
+    "name": "БРОНХОСКОПІЯ (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 15880,
+    "path": "library/pakety-archive/2022/BRONKhOSKOPIYa_(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "БРОНХОСКОПІЯ (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 20005,
+    "path": "library/pakety-archive/2022/BRONKhOSKOPIYa_(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "ВАКЦИНАЦІЯ ВІД ГОСТРОЇ РЕСПІРАТОРНОЇ ХВОРОБИ COVID-19, СПРИЧИНЕНОЇ КОРОН... (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 14974,
+    "path": "library/pakety-archive/2022/VAKTsYNATsIYa_VID_HOSTROYi_RESPIRATORNOYi_KhVOROBY_COVID-19_SPRYChYNENOYi_KORON..._(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "ВАКЦИНАЦІЯ ВІД ГОСТРОЇ РЕСПІРАТОРНОЇ ХВОРОБИ COVID-19, СПРИЧИНЕНОЇ КОРОН... (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 18588,
+    "path": "library/pakety-archive/2022/VAKTsYNATsIYa_VID_HOSTROYi_RESPIRATORNOYi_KhVOROBY_COVID-19_SPRYChYNENOYi_KORON..._(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "ВЕДЕННЯ ВАГІТНОСТІ В АМБУЛАТОРНИХ УМОВАХ (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 19699,
+    "path": "library/pakety-archive/2022/VEDENNYa_VAHITNOSTI_V_AMBULATORNYKh_UMOVAKh_(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "ВЕДЕННЯ ВАГІТНОСТІ В АМБУЛАТОРНИХ УМОВАХ (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 18116,
+    "path": "library/pakety-archive/2022/VEDENNYa_VAHITNOSTI_V_AMBULATORNYKh_UMOVAKh_(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "ГІСТЕРОСКОПІЯ (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 15463,
+    "path": "library/pakety-archive/2022/HISTEROSKOPIYa_(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "ГІСТЕРОСКОПІЯ (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 18467,
+    "path": "library/pakety-archive/2022/HISTEROSKOPIYa_(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "ГОТОВНІСТЬ ДО НАДАННЯ МЕДИЧНОЇ ДОПОМОГИ В УМОВАХ ПОШИРЕННЯ ІНФЕКЦІЙНИХ З... (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 17183,
+    "path": "library/pakety-archive/2022/HOTOVNIST_DO_NADANNYa_MEDYChNOYi_DOPOMOHY_V_UMOVAKh_POShYRENNYa_INFEKTsIYNYKh_Z..._(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "ДІАГНОСТИКА ТА ЛІКУВАННЯ ДОРОСЛИХ І ДІТЕЙ ІЗ ТУБЕРКУЛЬОЗОМ У АМБУЛАТОРНИ... (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 19356,
+    "path": "library/pakety-archive/2022/DIAHNOSTYKA_TA_LIKUVANNYa_DOROSLYKh_I_DITEY_IZ_TUBERKULOZOM_U_AMBULATORNY..._(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "ДІАГНОСТИКА ТА ЛІКУВАННЯ ДОРОСЛИХ І ДІТЕЙ ІЗ ТУБЕРКУЛЬОЗОМ У АМБУЛАТОРНИ... (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 23522,
+    "path": "library/pakety-archive/2022/DIAHNOSTYKA_TA_LIKUVANNYa_DOROSLYKh_I_DITEY_IZ_TUBERKULOZOM_U_AMBULATORNY..._(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "ДІАГНОСТИКА, ЛІКУВАННЯ ТА СУПРОВІД ОСІБ ІЗ ВІЛ (ТА ПІДОЗРОЮ НА ВІЛ) (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 18186,
+    "path": "library/pakety-archive/2022/DIAHNOSTYKA_LIKUVANNYa_TA_SUPROVID_OSIB_IZ_VIL_(TA_PIDOZROYu_NA_VIL)_(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "ЕЗОФАГОГАСТРОДУОДЕНОСКОПІЯ (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 15959,
+    "path": "library/pakety-archive/2022/EZOFAHOHASTRODUODENOSKOPIYa_(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "ЕЗОФАГОГАСТРОДУОДЕНОСКОПІЯ (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 18811,
+    "path": "library/pakety-archive/2022/EZOFAHOHASTRODUODENOSKOPIYa_(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "ЕКСТРЕНА МЕДИЧНА ДОПОМОГА (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 17537,
+    "path": "library/pakety-archive/2022/EKSTRENA_MEDYChNA_DOPOMOHA_(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "ЕКСТРЕНА МЕДИЧНА ДОПОМОГА (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 19033,
+    "path": "library/pakety-archive/2022/EKSTRENA_MEDYChNA_DOPOMOHA_(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "КОЛОНОСКОПІЯ (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 15673,
+    "path": "library/pakety-archive/2022/KOLONOSKOPIYa_(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "КОЛОНОСКОПІЯ (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 18833,
+    "path": "library/pakety-archive/2022/KOLONOSKOPIYa_(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "КОМПЛЕКСНА РЕАБІЛІТАЦІЙНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ У СТАЦІОНАРНИХ УМОВАХ (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 21713,
+    "path": "library/pakety-archive/2022/KOMPLEKSNA_REABILITATsIYNA_DOPOMOHA_DOROSLYM_TA_DITYaM_U_STATsIONARNYKh_UMOVAKh_(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "КОМПЛЕКСНА РЕАБІЛІТАЦІЙНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ У СТАЦІОНАРНИХ УМОВАХ (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 28583,
+    "path": "library/pakety-archive/2022/KOMPLEKSNA_REABILITATsIYNA_DOPOMOHA_DOROSLYM_TA_DITYaM_U_STATsIONARNYKh_UMOVAKh_(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ОСІБ ІЗ ПСИХІЧНИМИ ТА ПОВЕДІНКОВИМИ РОЗЛАДАМИ ВНАСЛІДОК ВЖИВАН... (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 18840,
+    "path": "library/pakety-archive/2022/LIKUVANNYa_OSIB_IZ_PSYKhIChNYMY_TA_POVEDINKOVYMY_ROZLADAMY_VNASLIDOK_VZhYVAN..._(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ОСІБ ІЗ ПСИХІЧНИМИ ТА ПОВЕДІНКОВИМИ РОЗЛАДАМИ ВНАСЛІДОК ВЖИВАН... (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 18264,
+    "path": "library/pakety-archive/2022/LIKUVANNYa_OSIB_IZ_PSYKhIChNYMY_TA_POVEDINKOVYMY_ROZLADAMY_VNASLIDOK_VZhYVAN..._(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ПАЦІЄНТІВ МЕТОДОМ ГЕМОДІАЛІЗУ В АМБУЛАТОРНИХ УМОВАХ (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 17681,
+    "path": "library/pakety-archive/2022/LIKUVANNYa_PATsIYeNTIV_METODOM_HEMODIALIZU_V_AMBULATORNYKh_UMOVAKh_(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ПАЦІЄНТІВ МЕТОДОМ ГЕМОДІАЛІЗУ В АМБУЛАТОРНИХ УМОВАХ (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 19105,
+    "path": "library/pakety-archive/2022/LIKUVANNYa_PATsIYeNTIV_METODOM_HEMODIALIZU_V_AMBULATORNYKh_UMOVAKh_(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ПАЦІЄНТІВ МЕТОДОМ ПЕРИТОНЕАЛЬНОГО ДІАЛІЗУ В АМБУЛАТОРНИХ УМОВАХ (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 17856,
+    "path": "library/pakety-archive/2022/LIKUVANNYa_PATsIYeNTIV_METODOM_PERYTONEALNOHO_DIALIZU_V_AMBULATORNYKh_UMOVAKh_(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ПАЦІЄНТІВ МЕТОДОМ ПЕРИТОНЕАЛЬНОГО ДІАЛІЗУ В АМБУЛАТОРНИХ УМОВАХ (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 19674,
+    "path": "library/pakety-archive/2022/LIKUVANNYa_PATsIYeNTIV_METODOM_PERYTONEALNOHO_DIALIZU_V_AMBULATORNYKh_UMOVAKh_(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ТА СУПРОВІД ДОРОСЛИХ І ДІТЕЙ З ГЕМАТОЛОГІЧНИМИ ТА ОНКОГЕМАТОЛО... (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 18984,
+    "path": "library/pakety-archive/2022/LIKUVANNYa_TA_SUPROVID_DOROSLYKh_I_DITEY_Z_HEMATOLOHIChNYMY_TA_ONKOHEMATOLO..._(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "ЛІКУВАННЯ ТА СУПРОВІД ДОРОСЛИХ І ДІТЕЙ З ГЕМАТОЛОГІЧНИМИ ТА ОНКОГЕМАТОЛО... (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 26193,
+    "path": "library/pakety-archive/2022/LIKUVANNYa_TA_SUPROVID_DOROSLYKh_I_DITEY_Z_HEMATOLOHIChNYMY_TA_ONKOHEMATOLO..._(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "МАМОГРАФІЯ (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 15583,
+    "path": "library/pakety-archive/2022/MAMOHRAFIYa_(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "МАМОГРАФІЯ (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 17674,
+    "path": "library/pakety-archive/2022/MAMOHRAFIYa_(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА НОВОНАРОДЖЕНИМ У СКЛАДНИХ НЕОНАТАЛЬНИХ ВИПАДКАХ (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 18008,
+    "path": "library/pakety-archive/2022/MEDYChNA_DOPOMOHA_NOVONARODZhENYM_U_SKLADNYKh_NEONATALNYKh_VYPADKAKh_(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА НОВОНАРОДЖЕНИМ У СКЛАДНИХ НЕОНАТАЛЬНИХ ВИПАДКАХ (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 23308,
+    "path": "library/pakety-archive/2022/MEDYChNA_DOPOMOHA_NOVONARODZhENYM_U_SKLADNYKh_NEONATALNYKh_VYPADKAKh_(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА ПРИ ГОСТРОМУ ІНФАРКТІ МІОКАРДА (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 17013,
+    "path": "library/pakety-archive/2022/MEDYChNA_DOPOMOHA_PRY_HOSTROMU_INFARKTI_MIOKARDA_(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА ПРИ ГОСТРОМУ ІНФАРКТІ МІОКАРДА (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 21005,
+    "path": "library/pakety-archive/2022/MEDYChNA_DOPOMOHA_PRY_HOSTROMU_INFARKTI_MIOKARDA_(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА ПРИ ГОСТРОМУ МОЗКОВОМУ ІНСУЛЬТІ (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 18223,
+    "path": "library/pakety-archive/2022/MEDYChNA_DOPOMOHA_PRY_HOSTROMU_MOZKOVOMU_INSULTI_(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА ПРИ ГОСТРОМУ МОЗКОВОМУ ІНСУЛЬТІ (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 24519,
+    "path": "library/pakety-archive/2022/MEDYChNA_DOPOMOHA_PRY_HOSTROMU_MOZKOVOMU_INSULTI_(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА ПРИ ПОЛОГАХ (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 18712,
+    "path": "library/pakety-archive/2022/MEDYChNA_DOPOMOHA_PRY_POLOHAKh_(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА ПРИ ПОЛОГАХ (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 23108,
+    "path": "library/pakety-archive/2022/MEDYChNA_DOPOMOHA_PRY_POLOHAKh_(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "МЕДИЧНА РЕАБІЛІТАЦІЯ ДОРОСЛИХ ТА ДІТЕЙ ВІД ТРЬОХ РОКІВ З УРАЖЕННЯМ НЕРВО... (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 21915,
+    "path": "library/pakety-archive/2022/MEDYChNA_REABILITATsIYa_DOROSLYKh_TA_DITEY_VID_TROKh_ROKIV_Z_URAZhENNYaM_NERVO..._(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "МЕДИЧНА РЕАБІЛІТАЦІЯ ДОРОСЛИХ ТА ДІТЕЙ ВІД ТРЬОХ РОКІВ З УРАЖЕННЯМ ОПОРН... (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 16657,
+    "path": "library/pakety-archive/2022/MEDYChNA_REABILITATsIYa_DOROSLYKh_TA_DITEY_VID_TROKh_ROKIV_Z_URAZhENNYaM_OPORN..._(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "МЕДИЧНА РЕАБІЛІТАЦІЯ ДОРОСЛИХ ТА ДІТЕЙ ВІД ТРЬОХ РОКІВ З УРАЖЕННЯМ ОПОРН... (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 22366,
+    "path": "library/pakety-archive/2022/MEDYChNA_REABILITATsIYa_DOROSLYKh_TA_DITEY_VID_TROKh_ROKIV_Z_URAZhENNYaM_OPORN..._(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "МЕДИЧНА РЕАБІЛІТАЦІЯ НЕМОВЛЯТ, ЯКІ НАРОДИЛИСЬ ПЕРЕДЧАСНО ТААБО ХВОРИМИ,... (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 17235,
+    "path": "library/pakety-archive/2022/MEDYChNA_REABILITATsIYa_NEMOVLYaT_YaKI_NARODYLYS_PEREDChASNO_TAABO_KhVORYMY..._(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "МЕДИЧНА РЕАБІЛІТАЦІЯ НЕМОВЛЯТ, ЯКІ НАРОДИЛИСЬ ПЕРЕДЧАСНО ТААБО ХВОРИМИ,... (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 19699,
+    "path": "library/pakety-archive/2022/MEDYChNA_REABILITATsIYa_NEMOVLYaT_YaKI_NARODYLYS_PEREDChASNO_TAABO_KhVORYMY..._(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "МОБІЛЬНА ПАЛІАТИВНА МЕДИЧНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 22449,
+    "path": "library/pakety-archive/2022/MOBILNA_PALIATYVNA_MEDYChNA_DOPOMOHA_DOROSLYM_TA_DITYaM_(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "ПЕРВИННА МЕДИЧНА ДОПОМОГА (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 18276,
+    "path": "library/pakety-archive/2022/PERVYNNA_MEDYChNA_DOPOMOHA_(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "ПЕРВИННА МЕДИЧНА ДОПОМОГА (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 22998,
+    "path": "library/pakety-archive/2022/PERVYNNA_MEDYChNA_DOPOMOHA_(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "ПРОФІЛАКТИКА, ДІАГНОСТИКА, СПОСТЕРЕЖЕННЯ, ЛІКУВАННЯ ТА РЕАБІЛІТАЦІЯ ПАЦІ... (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 24444,
+    "path": "library/pakety-archive/2022/PROFILAKTYKA_DIAHNOSTYKA_SPOSTEREZhENNYa_LIKUVANNYa_TA_REABILITATsIYa_PATsI..._(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "ПСИХІАТРИЧНА ДОПОМОГА, ЯКА НАДАЄТЬСЯ МОБІЛЬНИМИ МУЛЬТИДИСЦИПЛІНАРНИМИ КО... (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 16244,
+    "path": "library/pakety-archive/2022/PSYKhIATRYChNA_DOPOMOHA_YaKA_NADAYeTSYa_MOBILNYMY_MULTYDYSTsYPLINARNYMY_KO..._(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "ПСИХІАТРИЧНА ДОПОМОГА, ЯКА НАДАЄТЬСЯ МОБІЛЬНИМИ МУЛЬТИДИСЦИПЛІНАРНИМИ КО... (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 21318,
+    "path": "library/pakety-archive/2022/PSYKhIATRYChNA_DOPOMOHA_YaKA_NADAYeTSYa_MOBILNYMY_MULTYDYSTsYPLINARNYMY_KO..._(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "РАДІОЛОГІЧНЕ ЛІКУВАННЯ ТА СУПРОВІД ДОРОСЛИХ І ДІТЕЙ З ОНКОЛОГІЧНИМИ ЗАХВ... (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 18899,
+    "path": "library/pakety-archive/2022/RADIOLOHIChNE_LIKUVANNYa_TA_SUPROVID_DOROSLYKh_I_DITEY_Z_ONKOLOHIChNYMY_ZAKhV..._(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "СТАЦІОНАРНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ БЕЗ ПРОВЕДЕННЯ ХІРУРГІЧНИХ ОПЕРАЦІЙ (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 18391,
+    "path": "library/pakety-archive/2022/STATsIONARNA_DOPOMOHA_DOROSLYM_TA_DITYaM_BEZ_PROVEDENNYa_KhIRURHIChNYKh_OPERATsIY_(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "СТАЦІОНАРНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ БЕЗ ПРОВЕДЕННЯ ХІРУРГІЧНИХ ОПЕРАЦІЙ (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 24731,
+    "path": "library/pakety-archive/2022/STATsIONARNA_DOPOMOHA_DOROSLYM_TA_DITYaM_BEZ_PROVEDENNYa_KhIRURHIChNYKh_OPERATsIY_(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "СТАЦІОНАРНА МЕДИЧНА ДОПОМОГА ПАЦІЄНТАМ З ГОСТРОЮ РЕСПІРАТОРНОЮ ХВОРОБОЮ... (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 17158,
+    "path": "library/pakety-archive/2022/STATsIONARNA_MEDYChNA_DOPOMOHA_PATsIYeNTAM_Z_HOSTROYu_RESPIRATORNOYu_KhVOROBOYu..._(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "СТАЦІОНАРНА МЕДИЧНА ДОПОМОГА ПАЦІЄНТАМ З ГОСТРОЮ РЕСПІРАТОРНОЮ ХВОРОБОЮ... (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 22092,
+    "path": "library/pakety-archive/2022/STATsIONARNA_MEDYChNA_DOPOMOHA_PATsIYeNTAM_Z_HOSTROYu_RESPIRATORNOYu_KhVOROBOYu..._(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "СТАЦІОНАРНА ПАЛІАТИВНА МЕДИЧНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 17612,
+    "path": "library/pakety-archive/2022/STATsIONARNA_PALIATYVNA_MEDYChNA_DOPOMOHA_DOROSLYM_TA_DITYaM_(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "СТАЦІОНАРНА ПСИХІАТРИЧНА ДОПОМОГА (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 19097,
+    "path": "library/pakety-archive/2022/STATsIONARNA_PSYKhIATRYChNA_DOPOMOHA_(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "СТАЦІОНАРНА ПСИХІАТРИЧНА ДОПОМОГА (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 23170,
+    "path": "library/pakety-archive/2022/STATsIONARNA_PSYKhIATRYChNA_DOPOMOHA_(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "СТОМАТОЛОГІЧНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 15343,
+    "path": "library/pakety-archive/2022/STOMATOLOHIChNA_DOPOMOHA_DOROSLYM_TA_DITYaM_(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "СТОМАТОЛОГІЧНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 18712,
+    "path": "library/pakety-archive/2022/STOMATOLOHIChNA_DOPOMOHA_DOROSLYM_TA_DITYaM_(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "СУПРОВІД І ЛІКУВАННЯ ДОРОСЛИХ ТА ДІТЕЙ З ПСИХІЧНИМИ РОЗЛАДАМИ НА ПЕРВИНН... (Специфікація) (1)_2022.docx",
+    "year": 2022,
+    "size": 20692,
+    "path": "library/pakety-archive/2022/SUPROVID_I_LIKUVANNYa_DOROSLYKh_TA_DITEY_Z_PSYKhIChNYMY_ROZLADAMY_NA_PERVYNN..._(Spetsyfikatsiia)_(1)_2022.docx"
+  },
+  {
+    "name": "СУПРОВІД І ЛІКУВАННЯ ДОРОСЛИХ ТА ДІТЕЙ З ПСИХІЧНИМИ РОЗЛАДАМИ НА ПЕРВИНН... (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 20692,
+    "path": "library/pakety-archive/2022/SUPROVID_I_LIKUVANNYa_DOROSLYKh_TA_DITEY_Z_PSYKhIChNYMY_ROZLADAMY_NA_PERVYNN..._(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "СУПРОВІД І ЛІКУВАННЯ ДОРОСЛИХ ТА ДІТЕЙ З ПСИХІЧНИМИ РОЗЛАДАМИ НА ПЕРВИНН... (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 23649,
+    "path": "library/pakety-archive/2022/SUPROVID_I_LIKUVANNYa_DOROSLYKh_TA_DITEY_Z_PSYKhIChNYMY_ROZLADAMY_NA_PERVYNN..._(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "ХІМІОТЕРАПЕВТИЧНЕ ЛІКУВАННЯ ТА СУПРОВІД ДОРОСЛИХ І ДІТЕЙ З ОНКОЛОГІЧНИМИ... (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 18932,
+    "path": "library/pakety-archive/2022/KhIMIOTERAPEVTYChNE_LIKUVANNYa_TA_SUPROVID_DOROSLYKh_I_DITEY_Z_ONKOLOHIChNYMY..._(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "ХІМІОТЕРАПЕВТИЧНЕ ЛІКУВАННЯ ТА СУПРОВІД ДОРОСЛИХ І ДІТЕЙ З ОНКОЛОГІЧНИМИ... (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 24312,
+    "path": "library/pakety-archive/2022/KhIMIOTERAPEVTYChNE_LIKUVANNYa_TA_SUPROVID_DOROSLYKh_I_DITEY_Z_ONKOLOHIChNYMY..._(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "ХІРУРГІЧНІ ОПЕРАЦІЇ ДОРОСЛИМ ТА ДІТЯМ В УМОВАХ СТАЦІОНАРУ ОДНОГО ДНЯ (Умови закупівлі) (1)_2022.docx",
+    "year": 2022,
+    "size": 16100,
+    "path": "library/pakety-archive/2022/KhIRURHIChNI_OPERATsIYi_DOROSLYM_TA_DITYaM_V_UMOVAKh_STATsIONARU_ODNOHO_DNYa_(Umovy_zakupivli)_(1)_2022.docx"
+  },
+  {
+    "name": "ХІРУРГІЧНІ ОПЕРАЦІЇ ДОРОСЛИМ ТА ДІТЯМ В УМОВАХ СТАЦІОНАРУ ОДНОГО ДНЯ (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 25601,
+    "path": "library/pakety-archive/2022/KhIRURHIChNI_OPERATsIYi_DOROSLYM_TA_DITYaM_V_UMOVAKh_STATsIONARU_ODNOHO_DNYa_(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "ХІРУРГІЧНІ ОПЕРАЦІЇ ДОРОСЛИМ ТА ДІТЯМ У СТАЦІОНАРНИХ УМОВАХ (Умови закупівлі) (1)_2022.docx",
+    "year": 2022,
+    "size": 18888,
+    "path": "library/pakety-archive/2022/KhIRURHIChNI_OPERATsIYi_DOROSLYM_TA_DITYaM_U_STATsIONARNYKh_UMOVAKh_(Umovy_zakupivli)_(1)_2022.docx"
+  },
+  {
+    "name": "ХІРУРГІЧНІ ОПЕРАЦІЇ ДОРОСЛИМ ТА ДІТЯМ У СТАЦІОНАРНИХ УМОВАХ (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 36745,
+    "path": "library/pakety-archive/2022/KhIRURHIChNI_OPERATsIYi_DOROSLYM_TA_DITYaM_U_STATsIONARNYKh_UMOVAKh_(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "ЦИСТОСКОПІЯ (Специфікація)_2022.docx",
+    "year": 2022,
+    "size": 15515,
+    "path": "library/pakety-archive/2022/TsYSTOSKOPIYa_(Spetsyfikatsiia)_2022.docx"
+  },
+  {
+    "name": "ЦИСТОСКОПІЯ (Умови закупівлі)_2022.docx",
+    "year": 2022,
+    "size": 18380,
+    "path": "library/pakety-archive/2022/TsYSTOSKOPIYa_(Umovy_zakupivli)_2022.docx"
+  },
+  {
+    "name": "pmg-booklet_2021.pdf",
+    "year": 2021,
+    "size": 1519828,
+    "path": "library/pakety-archive/2021/pmg-booklet_2021.pdf"
+  },
+  {
+    "name": "БРОНХОСКОПІЯ_2021.pdf",
+    "year": 2021,
+    "size": 243018,
+    "path": "library/pakety-archive/2021/BRONKhOSKOPIYa_2021.pdf"
+  },
+  {
+    "name": "ВАКЦИНАЦІЯ ВІД ГОСТРОЇ РЕСПІРАТОРНОЇ ХВОРОБИ COVID-19, СПРИЧИНЕНОЇ КОРОН..._2021.pdf",
+    "year": 2021,
+    "size": 245328,
+    "path": "library/pakety-archive/2021/VAKTsYNATsIYa_VID_HOSTROYi_RESPIRATORNOYi_KhVOROBY_COVID-19_SPRYChYNENOYi_KORON..._2021.pdf"
+  },
+  {
+    "name": "ВЕДЕННЯ ВАГІТНОСТІ В АМБУЛАТОРНИХ УМОВАХ_2021.pdf",
+    "year": 2021,
+    "size": 248844,
+    "path": "library/pakety-archive/2021/VEDENNYa_VAHITNOSTI_V_AMBULATORNYKh_UMOVAKh_2021.pdf"
+  },
+  {
+    "name": "ГІСТЕРОСКОПІЯ_2021.pdf",
+    "year": 2021,
+    "size": 236916,
+    "path": "library/pakety-archive/2021/HISTEROSKOPIYa_2021.pdf"
+  },
+  {
+    "name": "ГОТОВНІСТЬ ДО РЕАГУВАННЯ НА ІНФЕКЦІЙНІ ЗАХВОРЮВАННЯ ТА ЕПІДЕМІЇ_2021.pdf",
+    "year": 2021,
+    "size": 254867,
+    "path": "library/pakety-archive/2021/HOTOVNIST_DO_REAHUVANNYa_NA_INFEKTsIYNI_ZAKhVORYuVANNYa_TA_EPIDEMIYi_2021.pdf"
+  },
+  {
+    "name": "ДІАГНОСТИКА, ЛІКУВАННЯ ТА СУПРОВІД ОСІБ ІЗ ВІЛ (ТА ПІДОЗРОЮ НА ВІЛ)_2021.pdf",
+    "year": 2021,
+    "size": 244695,
+    "path": "library/pakety-archive/2021/DIAHNOSTYKA_LIKUVANNYa_TA_SUPROVID_OSIB_IZ_VIL_(TA_PIDOZROYu_NA_VIL)_2021.pdf"
+  },
+  {
+    "name": "ЕЗОФАГОГАСТРОДУОДЕНОСКОПІЯ_2021.pdf",
+    "year": 2021,
+    "size": 243816,
+    "path": "library/pakety-archive/2021/EZOFAHOHASTRODUODENOSKOPIYa_2021.pdf"
+  },
+  {
+    "name": "ЕКСТРЕНА МЕДИЧНА ДОПОМОГА_2021.pdf",
+    "year": 2021,
+    "size": 260437,
+    "path": "library/pakety-archive/2021/EKSTRENA_MEDYChNA_DOPOMOHA_2021.pdf"
+  },
+  {
+    "name": "КОЛОНОСКОПІЯ_2021.pdf",
+    "year": 2021,
+    "size": 236881,
+    "path": "library/pakety-archive/2021/KOLONOSKOPIYa_2021.pdf"
+  },
+  {
+    "name": "ЛІКУВАННЯ ДОРОСЛИХ ТА ДІТЕЙ ІЗ ТУБЕРКУЛЬОЗОМ У СТАЦІОНАРНИХ ТА АМБУЛАТОР..._2021.pdf",
+    "year": 2021,
+    "size": 256964,
+    "path": "library/pakety-archive/2021/LIKUVANNYa_DOROSLYKh_TA_DITEY_IZ_TUBERKULOZOM_U_STATsIONARNYKh_TA_AMBULATOR..._2021.pdf"
+  },
+  {
+    "name": "ЛІКУВАННЯ ОСІБ ІЗ ПСИХІЧНИМИ ТА ПОВЕДІНКОВИМИ РОЗЛАДАМИ ВНАСЛІДОК ВЖИВАН..._2021.pdf",
+    "year": 2021,
+    "size": 243365,
+    "path": "library/pakety-archive/2021/LIKUVANNYa_OSIB_IZ_PSYKhIChNYMY_TA_POVEDINKOVYMY_ROZLADAMY_VNASLIDOK_VZhYVAN..._2021.pdf"
+  },
+  {
+    "name": "ЛІКУВАННЯ ПАЦІЄНТІВ МЕТОДОМ ГЕМОДІАЛІЗУ В АМБУЛАТОРНИХ УМОВАХ_2021.pdf",
+    "year": 2021,
+    "size": 236327,
+    "path": "library/pakety-archive/2021/LIKUVANNYa_PATsIYeNTIV_METODOM_HEMODIALIZU_V_AMBULATORNYKh_UMOVAKh_2021.pdf"
+  },
+  {
+    "name": "ЛІКУВАННЯ ПАЦІЄНТІВ МЕТОДОМ ПЕРИТОНЕАЛЬНОГО ДІАЛІЗУ В АМБУЛАТОРНИХ УМОВАХ_2021.pdf",
+    "year": 2021,
+    "size": 250433,
+    "path": "library/pakety-archive/2021/LIKUVANNYa_PATsIYeNTIV_METODOM_PERYTONEALNOHO_DIALIZU_V_AMBULATORNYKh_UMOVAKh_2021.pdf"
+  },
+  {
+    "name": "ЛІКУВАННЯ ТА СУПРОВІД ПАЦІЄНТІВ З ГЕМАТОЛОГІЧНИМИ ТА ОНКОГЕМАТОЛОГІЧНИМИ..._2021.pdf",
+    "year": 2021,
+    "size": 262898,
+    "path": "library/pakety-archive/2021/LIKUVANNYa_TA_SUPROVID_PATsIYeNTIV_Z_HEMATOLOHIChNYMY_TA_ONKOHEMATOLOHIChNYMY..._2021.pdf"
+  },
+  {
+    "name": "МАМОГРАФІЯ_2021.pdf",
+    "year": 2021,
+    "size": 185102,
+    "path": "library/pakety-archive/2021/MAMOHRAFIYa_2021.pdf"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ В АМБУЛАТОРНИХ УМОВАХ (ПРОФІЛАКТИКА,..._2021.pdf",
+    "year": 2021,
+    "size": 261383,
+    "path": "library/pakety-archive/2021/MEDYChNA_DOPOMOHA_DOROSLYM_TA_DITYaM_V_AMBULATORNYKh_UMOVAKh_(PROFILAKTYKA..._2021.pdf"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА НОВОНАРОДЖЕНИМ У СКЛАДНИХ НЕОНАТАЛЬНИХ ВИПАДКАХ_2021.pdf",
+    "year": 2021,
+    "size": 269460,
+    "path": "library/pakety-archive/2021/MEDYChNA_DOPOMOHA_NOVONARODZhENYM_U_SKLADNYKh_NEONATALNYKh_VYPADKAKh_2021.pdf"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА ПРИ ГОСТРОМУ ІНФАРКТІ МІОКАРДА_2021.pdf",
+    "year": 2021,
+    "size": 250577,
+    "path": "library/pakety-archive/2021/MEDYChNA_DOPOMOHA_PRY_HOSTROMU_INFARKTI_MIOKARDA_2021.pdf"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА ПРИ ГОСТРОМУ МОЗКОВОМУ ІНСУЛЬТІ В СТАЦІОНАРНИХ УМОВАХ_2021.pdf",
+    "year": 2021,
+    "size": 261382,
+    "path": "library/pakety-archive/2021/MEDYChNA_DOPOMOHA_PRY_HOSTROMU_MOZKOVOMU_INSULTI_V_STATsIONARNYKh_UMOVAKh_2021.pdf"
+  },
+  {
+    "name": "МЕДИЧНА ДОПОМОГА ПРИ ПОЛОГАХ_2021.pdf",
+    "year": 2021,
+    "size": 256900,
+    "path": "library/pakety-archive/2021/MEDYChNA_DOPOMOHA_PRY_POLOHAKh_2021.pdf"
+  },
+  {
+    "name": "МЕДИЧНА РЕАБІЛІТАЦІЯ ДОРОСЛИХ ТА ДІТЕЙ ВІД ТРЬОХ РОКІВ З УРАЖЕННЯМ НЕРВО..._2021.pdf",
+    "year": 2021,
+    "size": 253881,
+    "path": "library/pakety-archive/2021/MEDYChNA_REABILITATsIYa_DOROSLYKh_TA_DITEY_VID_TROKh_ROKIV_Z_URAZhENNYaM_NERVO..._2021.pdf"
+  },
+  {
+    "name": "МЕДИЧНА РЕАБІЛІТАЦІЯ ДОРОСЛИХ ТА ДІТЕЙ ВІД ТРЬОХ РОКІВ З УРАЖЕННЯМ ОПОРН..._2021.pdf",
+    "year": 2021,
+    "size": 250611,
+    "path": "library/pakety-archive/2021/MEDYChNA_REABILITATsIYa_DOROSLYKh_TA_DITEY_VID_TROKh_ROKIV_Z_URAZhENNYaM_OPORN..._2021.pdf"
+  },
+  {
+    "name": "МЕДИЧНА РЕАБІЛІТАЦІЯ НЕМОВЛЯТ, ЯКІ НАРОДИЛИСЬ ПЕРЕДЧАСНО ТААБО ХВОРИМИ,..._2021.pdf",
+    "year": 2021,
+    "size": 246514,
+    "path": "library/pakety-archive/2021/MEDYChNA_REABILITATsIYa_NEMOVLYaT_YaKI_NARODYLYS_PEREDChASNO_TAABO_KhVORYMY..._2021.pdf"
+  },
+  {
+    "name": "МОБІЛЬНА ПАЛІАТИВНА МЕДИЧНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ_2021.pdf",
+    "year": 2021,
+    "size": 256180,
+    "path": "library/pakety-archive/2021/MOBILNA_PALIATYVNA_MEDYChNA_DOPOMOHA_DOROSLYM_TA_DITYaM_2021.pdf"
+  },
+  {
+    "name": "ПЕРВИННА МЕДИЧНА ДОПОМОГА_2021.pdf",
+    "year": 2021,
+    "size": 220716,
+    "path": "library/pakety-archive/2021/PERVYNNA_MEDYChNA_DOPOMOHA_2021.pdf"
+  },
+  {
+    "name": "ПСИХІАТРИЧНА ДОПОМОГА, ЯКА НАДАЄТЬСЯ МОБІЛЬНИМИ МУЛЬТИДИСЦИПЛІНАРНИМИ КО..._2021.pdf",
+    "year": 2021,
+    "size": 247403,
+    "path": "library/pakety-archive/2021/PSYKhIATRYChNA_DOPOMOHA_YaKA_NADAYeTSYa_MOBILNYMY_MULTYDYSTsYPLINARNYMY_KO..._2021.pdf"
+  },
+  {
+    "name": "РАДІОЛОГІЧНЕ ЛІКУВАННЯ ТА СУПРОВІД ПАЦІЄНТІВ З ОНКОЛОГІЧНИМИ ЗАХВОРЮВАНН..._2021.pdf",
+    "year": 2021,
+    "size": 270325,
+    "path": "library/pakety-archive/2021/RADIOLOHIChNE_LIKUVANNYa_TA_SUPROVID_PATsIYeNTIV_Z_ONKOLOHIChNYMY_ZAKhVORYuVANN..._2021.pdf"
+  },
+  {
+    "name": "СТАЦІОНАРНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ БЕЗ ПРОВЕДЕННЯ ХІРУРГІЧНИХ ОПЕРАЦІЙ_2021.pdf",
+    "year": 2021,
+    "size": 252992,
+    "path": "library/pakety-archive/2021/STATsIONARNA_DOPOMOHA_DOROSLYM_TA_DITYaM_BEZ_PROVEDENNYa_KhIRURHIChNYKh_OPERATsIY_2021.pdf"
+  },
+  {
+    "name": "СТАЦІОНАРНА ДОПОМОГА ПАЦІЄНТАМ З ГОСТРОЮ РЕСПІРАТОРНОЮ ХВОРОБОЮ COVID-19..._2021.pdf",
+    "year": 2021,
+    "size": 250924,
+    "path": "library/pakety-archive/2021/STATsIONARNA_DOPOMOHA_PATsIYeNTAM_Z_HOSTROYu_RESPIRATORNOYu_KhVOROBOYu_COVID-19..._2021.pdf"
+  },
+  {
+    "name": "СТАЦІОНАРНА ПАЛІАТИВНА МЕДИЧНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ_2021.pdf",
+    "year": 2021,
+    "size": 252832,
+    "path": "library/pakety-archive/2021/STATsIONARNA_PALIATYVNA_MEDYChNA_DOPOMOHA_DOROSLYM_TA_DITYaM_2021.pdf"
+  },
+  {
+    "name": "СТОМАТОЛОГІЧНА МЕДИЧНА ДОПОМОГА В АМБУЛАТОРНИХ УМОВАХ_2021.pdf",
+    "year": 2021,
+    "size": 237172,
+    "path": "library/pakety-archive/2021/STOMATOLOHIChNA_MEDYChNA_DOPOMOHA_V_AMBULATORNYKh_UMOVAKh_2021.pdf"
+  },
+  {
+    "name": "СУПРОВІД І ЛІКУВАННЯ ДОРОСЛИХ ТА ДІТЕЙ, ХВОРИХ НА ТУБЕРКУЛЬОЗ, НА ПЕРВИН..._2021.pdf",
+    "year": 2021,
+    "size": 228859,
+    "path": "library/pakety-archive/2021/SUPROVID_I_LIKUVANNYa_DOROSLYKh_TA_DITEY_KhVORYKh_NA_TUBERKULOZ_NA_PERVYN..._2021.pdf"
+  },
+  {
+    "name": "ХІМІОТЕРАПЕВТИЧНЕ ЛІКУВАННЯ ТА СУПРОВІД ПАЦІЄНТІВ З ОНКОЛОГІЧНИМИ ЗАХВОР..._2021.pdf",
+    "year": 2021,
+    "size": 256942,
+    "path": "library/pakety-archive/2021/KhIMIOTERAPEVTYChNE_LIKUVANNYa_TA_SUPROVID_PATsIYeNTIV_Z_ONKOLOHIChNYMY_ZAKhVOR..._2021.pdf"
+  },
+  {
+    "name": "ХІРУРГІЧНІ ОПЕРАЦІЇ ДОРОСЛИМ ТА ДІТЯМ У СТАЦІОНАРНИХ УМОВАХ_2021.pdf",
+    "year": 2021,
+    "size": 252736,
+    "path": "library/pakety-archive/2021/KhIRURHIChNI_OPERATsIYi_DOROSLYM_TA_DITYaM_U_STATsIONARNYKh_UMOVAKh_2021.pdf"
+  },
+  {
+    "name": "ЦИСТОСКОПІЯ_2021.pdf",
+    "year": 2021,
+    "size": 237570,
+    "path": "library/pakety-archive/2021/TsYSTOSKOPIYa_2021.pdf"
+  }
+]
