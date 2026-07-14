@@ -356,25 +356,29 @@ function applyAccess() {
   const header = document.querySelector('header.top');
   let dashboard = document.getElementById('user-task-dashboard');
   if (dashboard) dashboard.remove();
-  
+  dashboard = null;
+
+  // На головній сторінці дашборд не потрібен — там власний інфоблок «Мій робочий стан»
+  const isHomePage = !isInSubdir && document.getElementById('home-metrics') !== null;
+
   let alertBanner = document.getElementById('user-news-alert-banner');
   if (header) {
     if (!user || role === 'guest' || currentPath.includes('passport')) {
       if (alertBanner) alertBanner.remove();
     } else {
-      if (!dashboard) {
+      if (!isHomePage) {
         dashboard = document.createElement('div');
         dashboard.id = 'user-task-dashboard';
         dashboard.className = 'user-task-dashboard';
         header.insertAdjacentElement('afterend', dashboard);
+        renderDashboard(dashboard, prefix);
       }
-      renderDashboard(dashboard, prefix);
-      
+
       if (!alertBanner) {
         alertBanner = document.createElement('div');
         alertBanner.id = 'user-news-alert-banner';
       }
-      dashboard.insertAdjacentElement('afterend', alertBanner);
+      (dashboard || header).insertAdjacentElement('afterend', alertBanner);
       renderAlertBanner(alertBanner, prefix);
     }
   }
