@@ -238,16 +238,22 @@ function applyAccess() {
       { text: 'Головна', path: 'index.html' },
       { text: 'Реєстр', path: 'rozjasnennya.html' },
       { text: 'Пакети 2026', path: 'pakety/index.html' },
-      { text: 'Паспорт пакета', path: 'passport/index.html' },
+      { text: 'Паспорт пакета', path: 'passport/index.html' }
+    ];
+
+    // Довідково-нормативні розділи — згруповані в дропдаун «Документи»
+    const documentsItems = [
       { text: 'Постанова 1808', path: 'postanova/index.html' },
-      { text: 'Алгоритми та правила', path: 'algorithms/index.html' },
-      { text: 'Укладені договори', path: 'zoz-dogovr/index.html' },
-      { text: 'ДЕЦ МОЗ', path: 'dec/index.html' },
+      { text: 'Алгоритми та правила (наказ 377)', path: 'algorithms/index.html' },
       { text: 'Нормативна база', path: 'regulatory/index.html' },
+      { text: 'ДЕЦ МОЗ', path: 'dec/index.html' },
+      { text: 'Укладені договори', path: 'zoz-dogovr/index.html' }
+    ];
+
+    const tailItems = [
       { text: 'Структура', path: 'dept-tree.html', role: 'expert' },
       { text: 'Робочий чат', path: 'chat/index.html', isChat: true, role: 'expert' }
     ];
-
 
     const dropdownItems = [
       { text: 'Архів пакетів ПМГ', path: 'pakety/collector.html' },
@@ -264,59 +270,67 @@ function applyAccess() {
       { text: 'Хвилинка відпочинку', path: 'relax/index.html', role: 'expert' }
     ];
 
-    // 1. Core navigation tabs
-    coreItems.forEach(item => {
-      if (item.role && !hasAccess(item.role)) {
-        return; // Hide completely
-      }
-      const a = document.createElement('a');
-      a.href = prefix + item.path;
-      
-      if (item.isChat) {
-        a.className = 'nav-chat-btn';
-      }
-      a.textContent = item.text;
+    const appendNavLinks = (items) => {
+      items.forEach(item => {
+        if (item.role && !hasAccess(item.role)) {
+          return; // Hide completely
+        }
+        const a = document.createElement('a');
+        a.href = prefix + item.path;
 
-      if (isActive(item.path)) {
-        a.classList.add('active');
-        a.setAttribute('aria-current', 'page');
-      }
-      navContainer.appendChild(a);
-    });
+        if (item.isChat) {
+          a.className = 'nav-chat-btn';
+        }
+        a.textContent = item.text;
 
-    // 2. Dropdown menu for role-gated items
-    const visibleDropdownItems = dropdownItems.filter(item => hasAccess(item.role));
-    if (visibleDropdownItems.length > 0) {
-      const isDropdownActive = visibleDropdownItems.some(item => isActive(item.path));
-      
+        if (isActive(item.path)) {
+          a.classList.add('active');
+          a.setAttribute('aria-current', 'page');
+        }
+        navContainer.appendChild(a);
+      });
+    };
+
+    const appendDropdown = (label, items) => {
+      const visibleItems = items.filter(item => hasAccess(item.role));
+      if (visibleItems.length === 0) return;
+
+      const isDropdownActive = visibleItems.some(item => isActive(item.path));
+
       const dropdownDiv = document.createElement('div');
       dropdownDiv.className = 'nav-dropdown';
-      
+
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'nav-dropdown-btn';
       if (isDropdownActive) btn.classList.add('active');
-      btn.innerHTML = `Сервіси <span class="nav-dropdown-arrow">▼</span>`;
-      
+      btn.innerHTML = `${label} <span class="nav-dropdown-arrow">▼</span>`;
+
       const menuDiv = document.createElement('div');
       menuDiv.className = 'nav-dropdown-menu';
-      
-      visibleDropdownItems.forEach(item => {
+
+      visibleItems.forEach(item => {
         const a = document.createElement('a');
         a.href = prefix + item.path;
         a.innerHTML = `<span>${item.text}</span>`;
-        
+
         if (isActive(item.path)) {
           a.classList.add('active');
           a.setAttribute('aria-current', 'page');
         }
         menuDiv.appendChild(a);
       });
-      
+
       dropdownDiv.appendChild(btn);
       dropdownDiv.appendChild(menuDiv);
       navContainer.appendChild(dropdownDiv);
-    }
+    };
+
+    // Головна · Реєстр · Пакети · Паспорт · Документи ▼ · Сервіси ▼ · Структура · Чат
+    appendNavLinks(coreItems);
+    appendDropdown('Документи', documentsItems);
+    appendDropdown('Сервіси', dropdownItems);
+    appendNavLinks(tailItems);
   }
 
   // Page-level guard
