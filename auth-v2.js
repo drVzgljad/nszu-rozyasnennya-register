@@ -347,15 +347,16 @@ function applyAccess() {
   if (dashboard) dashboard.remove();
   dashboard = null;
 
-  // На головній сторінці дашборд не потрібен — там власний інфоблок «Мій робочий стан»
+  // Дашборд не потрібен: на головній є «Мій робочий стан», в особистому кабінеті — власні метрики
   const isHomePage = !isInSubdir && document.getElementById('home-metrics') !== null;
+  const isCabinetPage = currentPath.includes('cabinet');
 
   let alertBanner = document.getElementById('user-news-alert-banner');
   if (header) {
     if (!user || role === 'guest' || currentPath.includes('passport')) {
       if (alertBanner) alertBanner.remove();
     } else {
-      if (!isHomePage) {
+      if (!isHomePage && !isCabinetPage) {
         dashboard = document.createElement('div');
         dashboard.id = 'user-task-dashboard';
         dashboard.className = 'user-task-dashboard';
