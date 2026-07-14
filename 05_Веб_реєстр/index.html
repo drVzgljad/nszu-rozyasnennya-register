@@ -101,6 +101,57 @@
     </div>
   </header>
 
+  <!-- ── Експрес-інфоблок кабінету (лише для експертів) ── -->
+  <section class="home-metrics-section" id="home-metrics" style="display: none;">
+    <div class="wrap">
+      <div class="section-head" style="margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; width: 100%; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h2 style="margin: 0; font-size: 22px; font-family: var(--p-display); font-weight: 800; color: var(--p-ink);">
+              ⚡ Мій робочий стан
+            </h2>
+            <p style="margin: 4px 0 0 0; font-size: 14px; color: var(--p-muted);">
+              Експрес-огляд ваших доручень — натисніть на картку, щоб відкрити відповідний список у кабінеті
+            </p>
+          </div>
+          <a href="cabinet/index.html" style="font-size: 14px; font-weight: 600; color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+            Відкрити кабінет <span>→</span>
+          </a>
+        </div>
+      </div>
+      <div class="home-metrics-grid">
+        <a class="home-metric-card active" href="cabinet/index.html?filter=active">
+          <div class="home-metric-icon">📋</div>
+          <div class="home-metric-details">
+            <span class="home-metric-num" id="home-metric-active">0</span>
+            <span class="home-metric-lbl">Активні доручення</span>
+          </div>
+        </a>
+        <a class="home-metric-card warning" href="cabinet/index.html?filter=hot">
+          <div class="home-metric-icon">🔥</div>
+          <div class="home-metric-details">
+            <span class="home-metric-num" id="home-metric-hot">0</span>
+            <span class="home-metric-lbl">Гарячі (≤2 дн.)</span>
+          </div>
+        </a>
+        <a class="home-metric-card danger" href="cabinet/index.html?filter=overdue">
+          <div class="home-metric-icon">🚨</div>
+          <div class="home-metric-details">
+            <span class="home-metric-num" id="home-metric-overdue">0</span>
+            <span class="home-metric-lbl">Прострочені завдання</span>
+          </div>
+        </a>
+        <a class="home-metric-card success" href="cabinet/index.html">
+          <div class="home-metric-icon">⏱️</div>
+          <div class="home-metric-details">
+            <span class="home-metric-num" id="home-metric-today">0.0 год</span>
+            <span class="home-metric-lbl">Списано сьогодні (СКО-Д)</span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
   <!-- ── Hero ────────────────────────────────────────── -->
   <section class="hero" id="top">
     <div class="plus-field" aria-hidden="true"></div>
@@ -150,57 +201,6 @@
         <div class="cell"><div class="num">46</div><div class="cap">пакетів ПМГ-2026</div></div>
         <div class="cell"><div class="num">29</div><div class="cap">напрямів медичної допомоги</div></div>
         <div class="cell"><div class="num">2026</div><div class="cap">редакція програми</div></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── Експрес-інфоблок кабінету (лише для експертів) ── -->
-  <section class="home-metrics-section" id="home-metrics" style="display: none;">
-    <div class="wrap">
-      <div class="section-head" style="margin-bottom: 16px;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; width: 100%; flex-wrap: wrap; gap: 12px;">
-          <div>
-            <h2 style="margin: 0; font-size: 22px; font-family: var(--p-display); font-weight: 800; color: var(--p-ink);">
-              ⚡ Мій робочий стан
-            </h2>
-            <p style="margin: 4px 0 0 0; font-size: 14px; color: var(--p-muted);">
-              Експрес-огляд ваших доручень — натисніть на картку, щоб відкрити відповідний список у кабінеті
-            </p>
-          </div>
-          <a href="cabinet/index.html" style="font-size: 14px; font-weight: 600; color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
-            Відкрити кабінет <span>→</span>
-          </a>
-        </div>
-      </div>
-      <div class="home-metrics-grid">
-        <a class="home-metric-card active" href="cabinet/index.html?filter=active">
-          <div class="home-metric-icon">📋</div>
-          <div class="home-metric-details">
-            <span class="home-metric-num" id="home-metric-active">0</span>
-            <span class="home-metric-lbl">Активні доручення</span>
-          </div>
-        </a>
-        <a class="home-metric-card warning" href="cabinet/index.html?filter=hot">
-          <div class="home-metric-icon">🔥</div>
-          <div class="home-metric-details">
-            <span class="home-metric-num" id="home-metric-hot">0</span>
-            <span class="home-metric-lbl">Гарячі (≤2 дн.)</span>
-          </div>
-        </a>
-        <a class="home-metric-card danger" href="cabinet/index.html?filter=overdue">
-          <div class="home-metric-icon">🚨</div>
-          <div class="home-metric-details">
-            <span class="home-metric-num" id="home-metric-overdue">0</span>
-            <span class="home-metric-lbl">Прострочені завдання</span>
-          </div>
-        </a>
-        <a class="home-metric-card success" href="cabinet/index.html">
-          <div class="home-metric-icon">⏱️</div>
-          <div class="home-metric-details">
-            <span class="home-metric-num" id="home-metric-today">0.0 год</span>
-            <span class="home-metric-lbl">Списано сьогодні (СКО-Д)</span>
-          </div>
-        </a>
       </div>
     </div>
   </section>
