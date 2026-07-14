@@ -176,8 +176,10 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
     }
     return '<svg viewBox="-21 -21 42 42" width="' + spot.s + '" height="' + spot.s + '" aria-hidden="true"><g>' +
       petals +
-      '<circle r="5" fill="' + center + '"/>' +
-      '<circle r="2.4" fill="#fbbf24"/>' +
+      // губа (лабелум) — фірмова риса фаленопсиса
+      '<path d="M-4.5 1.5 C-6.5 8 0 12.5 0 12.5 C0 12.5 6.5 8 4.5 1.5 C2.5 4.8 -2.5 4.8 -4.5 1.5 Z" fill="' + center + '"/>' +
+      '<circle r="4.2" fill="' + center + '"/>' +
+      '<circle r="2.2" fill="#fbbf24"/>' +
       '</g></svg>';
   }
 
@@ -199,16 +201,21 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
       '<rect x="78" y="250" width="84" height="5" rx="2.5" fill="#e3925f"/>' +
       // мох
       '<ellipse cx="120" cy="252" rx="36" ry="5" fill="#65803a"/>' +
-      // листя
+      // листя (дихає)
+      '<g class="o-leaves">' +
       '<path d="M118 252 C68 242 52 210 60 194 C92 198 112 224 118 252 Z" fill="#3f9142"/>' +
       '<path d="M122 252 C172 240 186 206 178 192 C148 196 128 222 122 252 Z" fill="#4caf50"/>' +
       '<path d="M116 252 C90 236 86 214 92 202 C112 210 118 234 116 252 Z" fill="#57b85c"/>' +
       '<path d="M124 252 C150 238 156 216 150 204 C130 212 124 234 124 252 Z" fill="#49a34e"/>' +
-      // стебла
+      '</g>' +
+      // стебла (погойдуються)
+      '<g class="o-stems">' +
       '<path d="M120 252 C118 200 103 158 86 94" stroke="url(#orchStem)" stroke-width="5.5" fill="none" stroke-linecap="round"/>' +
       '<path d="M122 252 C128 196 144 148 160 56" stroke="url(#orchStem)" stroke-width="5.5" fill="none" stroke-linecap="round"/>' +
       '<path d="M121 220 C112 190 100 170 92 150" stroke="url(#orchStem)" stroke-width="4" fill="none" stroke-linecap="round"/>' +
-      '</svg>';
+      '</g>' +
+      '</svg>' +
+      '<span class="orchid-butterfly" aria-hidden="true">🦋</span>';
     for (let i = 0; i < BLOOM_SPOTS.length; i++) {
       const s = BLOOM_SPOTS[i];
       inner += '<span class="orchid-bloom" data-bloom="' + i + '" style="left:' + s.x + '%;top:' + s.y +
@@ -235,6 +242,63 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
     plantEl.classList.remove('hurt');
     void plantEl.offsetWidth;
     plantEl.classList.add('hurt');
+  }
+
+  /* ---------- Анімовані інструменти ---------- */
+
+  const TOOL_SVGS = {
+    water: '<svg viewBox="0 0 48 48"><g class="t-body"><path d="M16 18 L34 18 L31 34 L19 34 Z" fill="#4a8fc7"/><path d="M16 21 L7 13 L5 16 L14 25 Z" fill="#4a8fc7"/><circle cx="6.5" cy="14.5" r="3.4" fill="#3b7ab0"/><path d="M33 21 C41 22 41 30 33 31" stroke="#3b7ab0" stroke-width="3" fill="none"/></g><g class="t-drops"><circle cx="6" cy="22" r="1.5" fill="#7fd4f7"/><circle cx="9.5" cy="24" r="1.5" fill="#7fd4f7"/></g></svg>',
+    light: '<svg viewBox="0 0 48 48"><rect x="22" y="6" width="4" height="9" fill="#8a5a2b"/><path d="M14 14 L34 14 L29 25 L19 25 Z" fill="#f59e0b"/><g class="t-rays"><path d="M18 30 L16 37 M24 31 L24 39 M30 30 L32 37" stroke="#fbbf24" stroke-width="2.4" stroke-linecap="round"/></g></svg>',
+    warm: '<svg viewBox="0 0 48 48"><rect x="10" y="20" width="28" height="18" rx="4" fill="#c2703e"/><rect x="13" y="25" width="22" height="3" rx="1.5" fill="#8f4d24"/><rect x="13" y="31" width="22" height="3" rx="1.5" fill="#8f4d24"/><g class="t-heat"><path d="M16 16 q2 -4 0 -8 M24 16 q2 -4 0 -8 M32 16 q2 -4 0 -8" stroke="#fb923c" stroke-width="2.4" fill="none" stroke-linecap="round"/></g></svg>',
+    air: '<svg viewBox="0 0 48 48"><circle cx="24" cy="20" r="15" fill="none" stroke="#8ea3bd" stroke-width="2"/><g class="t-fan"><ellipse cx="24" cy="12" rx="4" ry="7.5" fill="#a9bcd4"/><ellipse cx="24" cy="28" rx="4" ry="7.5" fill="#a9bcd4"/><ellipse cx="16" cy="20" rx="7.5" ry="4" fill="#a9bcd4"/><ellipse cx="32" cy="20" rx="7.5" ry="4" fill="#a9bcd4"/></g><circle cx="24" cy="20" r="3.2" fill="#5b7292"/><rect x="21" y="35" width="6" height="6" fill="#8ea3bd"/><rect x="15" y="41" width="18" height="3" rx="1.5" fill="#5b7292"/></svg>',
+    bug: '<svg viewBox="0 0 48 48"><rect x="17" y="18" width="13" height="22" rx="3.5" fill="#54ad84"/><rect x="19" y="9" width="9" height="9" rx="2" fill="#3a8462"/><rect x="28" y="10.5" width="8" height="5" rx="2" fill="#2f6b4f"/><g class="t-spray"><circle cx="40" cy="11" r="1.8" fill="#a7f3d0"/><circle cx="44" cy="9" r="1.4" fill="#a7f3d0"/><circle cx="43" cy="14" r="1.2" fill="#a7f3d0"/></g></svg>',
+    love: '<svg viewBox="0 0 48 48"><path class="t-heartbeat" d="M24 39 C10 29 8 18 15 13 C20 10 24 14 24 17 C24 14 28 10 33 13 C40 18 38 29 24 39 Z" fill="#ec84b6"/></svg>'
+  };
+
+  // Візуальний ефект догляду на сцені + радість рослини
+  function careEffect(careId) {
+    if (careId === 'water') {
+      for (let i = 0; i < 7; i++) {
+        const d = document.createElement('span');
+        d.className = 'orchid-drop';
+        d.style.left = rnd(40, 62) + '%';
+        d.style.animationDelay = (i * 60) + 'ms';
+        stageEl.appendChild(d);
+        later(() => d.remove(), 900 + i * 60);
+      }
+    } else if (careId === 'air') {
+      if (plantEl) {
+        plantEl.classList.remove('gust');
+        void plantEl.offsetWidth;
+        plantEl.classList.add('gust');
+      }
+    } else if (careId === 'love') {
+      for (let i = 0; i < 5; i++) {
+        const h = document.createElement('span');
+        h.className = 'orchid-heart';
+        h.textContent = '💗';
+        h.style.left = rnd(36, 62) + '%';
+        h.style.animationDelay = (i * 90) + 'ms';
+        stageEl.appendChild(h);
+        later(() => h.remove(), 1300 + i * 90);
+      }
+    } else if (careId === 'bug') {
+      const b = document.createElement('span');
+      b.className = 'orchid-bug-run';
+      b.textContent = '🐛';
+      stageEl.appendChild(b);
+      later(() => b.remove(), 900);
+    } else if (careId === 'light' || careId === 'warm') {
+      const g = document.createElement('span');
+      g.className = 'orchid-glow' + (careId === 'warm' ? ' warm' : '');
+      stageEl.appendChild(g);
+      later(() => g.remove(), 900);
+    }
+    if (plantEl) {
+      plantEl.classList.remove('happy');
+      void plantEl.offsetWidth;
+      plantEl.classList.add('happy');
+    }
   }
 
   function sparkleBurst() {
@@ -301,6 +365,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
       need.urgentId = later(() => el.classList.add('urgent'), Math.round(life * 0.55));
       need.expireId = later(() => missNeed(need), life);
       activeNeeds.push(need);
+      if (plantEl) plantEl.classList.add('mood-' + def.id);
     }
     later(spawnNeed, rnd(1500, 2900));
   }
@@ -310,12 +375,14 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
     clearTimeout(need.urgentId);
     need.el.remove();
     activeNeeds = activeNeeds.filter((n) => n !== need);
+    if (plantEl) plantEl.classList.remove('mood-' + need.def.id);
   }
 
   function missNeed(need) {
     if (!running) return;
     removeNeed(need);
     combo = 0;
+    stageEl.classList.remove('combo-hot');
     health -= 14;
     stats.missed++;
     hurtPlant();
@@ -336,6 +403,8 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
       const pts = 10 + Math.min(combo - 1, 5);
       score += pts;
       sndGood();
+      careEffect(careId);
+      stageEl.classList.toggle('combo-hot', combo >= 3);
       floatScore('+' + pts + (combo > 1 ? ' 🔥' : ''));
       bump(scoreEl);
       if (careId === 'love') toast('💬 «' + pick(COMPLIMENTS) + '»', true);
@@ -344,6 +413,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
       updateBlooms();
     } else {
       combo = 0;
+      stageEl.classList.remove('combo-hot');
       stats.wrongs++;
       health -= careId === 'water' ? 12 : 8;
       hurtPlant();
@@ -395,7 +465,8 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
   function clearGameElements() {
     activeNeeds.forEach((n) => { clearTimeout(n.expireId); clearTimeout(n.urgentId); });
     activeNeeds = [];
-    stageEl.querySelectorAll('.orchid-need, .orchid-toast, .orchid-float-score, .orchid-sparkle').forEach((el) => el.remove());
+    stageEl.querySelectorAll('.orchid-need, .orchid-toast, .orchid-float-score, .orchid-sparkle, .orchid-drop, .orchid-heart, .orchid-bug-run, .orchid-glow').forEach((el) => el.remove());
+    stageEl.classList.remove('combo-hot');
   }
 
   function petalRain(ov) {
@@ -524,13 +595,18 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
   function renderActions() {
     actionsEl.innerHTML = NEEDS.map((n, i) =>
-      '<button type="button" class="orchid-care-btn" data-care="' + n.id + '">' +
-      '<span class="care-icon">' + n.btnIcon + '</span><span>' + n.btnLabel + '</span>' +
+      '<button type="button" class="orchid-care-btn tool-' + n.id + '" data-care="' + n.id + '" aria-label="' + n.btnLabel + '">' +
+      '<span class="care-tool" aria-hidden="true">' + TOOL_SVGS[n.id] + '</span><span class="care-lbl">' + n.btnLabel + '</span>' +
       '<kbd>' + (i + 1) + '</kbd></button>'
     ).join('');
     actionsEl.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-care]');
-      if (btn) handleCare(btn.getAttribute('data-care'));
+      if (btn) {
+        btn.classList.remove('pressed');
+        void btn.offsetWidth;
+        btn.classList.add('pressed');
+        handleCare(btn.getAttribute('data-care'));
+      }
     });
   }
 

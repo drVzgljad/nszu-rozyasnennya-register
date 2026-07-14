@@ -652,3 +652,109 @@
     animation: none !important;
   }
 }
+
+/* ═══════════ v2: жива орхідея + анімовані інструменти ═══════════ */
+
+/* Постійне життя рослини */
+.orchid-plant svg { overflow: visible; }
+.orchid-plant .o-leaves {
+  animation: oBreathe 4s ease-in-out infinite;
+  transform-box: view-box; transform-origin: 50% 84%;
+}
+.orchid-plant .o-stems {
+  animation: oSway 5.5s ease-in-out infinite;
+  transform-box: view-box; transform-origin: 50% 84%;
+}
+@keyframes oBreathe { 0%,100% { transform: scaleY(1); } 50% { transform: scaleY(1.035); } }
+@keyframes oSway { 0%,100% { transform: rotate(-1.6deg); } 50% { transform: rotate(2deg); } }
+.orchid-bloom.visible svg { animation: oBloomPulse 6s ease-in-out infinite; }
+@keyframes oBloomPulse { 0%,100% { transform: scale(1) rotate(-2deg); } 50% { transform: scale(1.07) rotate(2.5deg); } }
+
+/* Настрої: спрагла / змерзла / сумна */
+.orchid-plant.mood-water .orchid-bloom { filter: saturate(.55); }
+.orchid-plant.mood-water .orchid-bloom svg { animation: oDroop 1.8s ease-in-out infinite; }
+@keyframes oDroop { 0%,100% { transform: rotate(0) translateY(0); } 50% { transform: rotate(-7deg) translateY(3px); } }
+.orchid-plant.mood-warm .orchid-inner { animation: oShiver .3s linear infinite; filter: saturate(.75) hue-rotate(18deg); }
+@keyframes oShiver { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-1.5px); } 75% { transform: translateX(1.5px); } }
+.orchid-plant.mood-love .o-stems { animation: none; transform: rotate(-4deg); }
+.orchid-plant.mood-air .o-leaves { animation-duration: 1.6s; }
+
+/* Радість після догляду */
+.orchid-plant.happy { animation: oJoy .55s ease; }
+@keyframes oJoy { 0% { transform: translateY(0); } 35% { transform: translateY(-9px) scale(1.03); } 70% { transform: translateY(1px); } 100% { transform: translateY(0); } }
+
+/* Порив вітру (провітрити) */
+.orchid-plant.gust .o-stems { animation: oGust .8s ease; }
+.orchid-plant.gust .o-leaves { animation: oGustL .8s ease; }
+@keyframes oGust { 0% { transform: rotate(0); } 35% { transform: rotate(6deg); } 70% { transform: rotate(-3deg); } 100% { transform: rotate(0); } }
+@keyframes oGustL { 0%,100% { transform: skewX(0); } 40% { transform: skewX(-5deg); } }
+
+/* Метелик при комбо x3+ */
+.orchid-butterfly { position: absolute; left: 18%; top: 12%; font-size: 22px; opacity: 0; pointer-events: none; }
+.combo-hot .orchid-butterfly { opacity: 1; animation: oFly 7s ease-in-out infinite; }
+@keyframes oFly {
+  0% { transform: translate(0,0) rotate(0); }
+  25% { transform: translate(46px,-18px) rotate(10deg); }
+  50% { transform: translate(88px,8px) rotate(-8deg); }
+  75% { transform: translate(34px,26px) rotate(6deg); }
+  100% { transform: translate(0,0) rotate(0); }
+}
+
+/* Ефекти догляду на сцені */
+.orchid-drop {
+  position: absolute; top: 18%; width: 7px; height: 11px; border-radius: 50% 50% 60% 60%;
+  background: #7fd4f7; opacity: 0; pointer-events: none;
+  animation: oDropFall .8s ease-in forwards;
+}
+@keyframes oDropFall { 0% { opacity: 0; transform: translateY(0); } 15% { opacity: .95; } 100% { opacity: 0; transform: translateY(180px); } }
+.orchid-heart {
+  position: absolute; top: 58%; font-size: 17px; opacity: 0; pointer-events: none;
+  animation: oHeartUp 1.2s ease-out forwards;
+}
+@keyframes oHeartUp { 0% { opacity: 0; transform: translateY(0) scale(.6); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(-120px) scale(1.25); } }
+.orchid-bug-run {
+  position: absolute; left: 52%; top: 55%; font-size: 20px; pointer-events: none;
+  animation: oBugRun .85s ease-in forwards;
+}
+@keyframes oBugRun { 0% { opacity: 1; transform: translateX(0) scaleX(-1); } 100% { opacity: 0; transform: translateX(140px) scaleX(-1) rotate(20deg); } }
+.orchid-glow {
+  position: absolute; left: 50%; top: 40%; width: 150px; height: 150px; margin: -75px;
+  border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(251,191,36,.4), transparent 70%);
+  animation: oGlow .9s ease-out forwards;
+}
+.orchid-glow.warm { background: radial-gradient(circle, rgba(251,146,60,.45), transparent 70%); }
+@keyframes oGlow { 0% { opacity: 0; transform: scale(.5); } 30% { opacity: 1; } 100% { opacity: 0; transform: scale(1.3); } }
+
+/* Полиця інструментів замість кнопок */
+.orchid-care-btn { flex-direction: column; gap: 4px; padding: 8px 10px 6px; }
+.care-tool { display: block; width: 46px; height: 46px; }
+.care-tool svg { width: 100%; height: 100%; overflow: visible; }
+.care-lbl { font-size: 11.5px; }
+.orchid-care-btn .care-tool { animation: oToolBob 3.4s ease-in-out infinite; }
+.orchid-care-btn:nth-child(2n) .care-tool { animation-delay: .9s; }
+.orchid-care-btn:nth-child(3n) .care-tool { animation-delay: 1.7s; }
+@keyframes oToolBob { 0%,100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-2.5px) rotate(-2deg); } }
+.orchid-care-btn:hover .care-tool { animation: none; transform: translateY(-4px) scale(1.08); }
+
+/* Анімації самих інструментів */
+.t-drops, .t-rays, .t-heat, .t-spray { opacity: 0; }
+.tool-water.pressed .t-body { animation: tPour .7s ease; transform-box: view-box; transform-origin: 55% 55%; }
+.tool-water.pressed .t-drops { opacity: 1; animation: tDrip .7s ease-in; }
+@keyframes tPour { 0%,100% { transform: rotate(0); } 30%,70% { transform: rotate(-24deg); } }
+@keyframes tDrip { 0% { opacity: 0; transform: translateY(0); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(14px); } }
+.tool-light.pressed .t-rays, .tool-warm.pressed .t-heat, .tool-bug.pressed .t-spray { opacity: 1; animation: tFlash .7s ease; }
+@keyframes tFlash { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
+.tool-air .t-fan { animation: tSpin 2.8s linear infinite; transform-box: view-box; transform-origin: 50% 41.7%; }
+.tool-air:hover .t-fan, .tool-air.pressed .t-fan { animation-duration: .45s; }
+@keyframes tSpin { to { transform: rotate(360deg); } }
+.tool-bug.pressed .care-tool { transform: rotate(-12deg); }
+.tool-love .t-heartbeat { transform-box: view-box; transform-origin: 50% 50%; animation: tBeat 1.6s ease-in-out infinite; }
+.tool-love.pressed .t-heartbeat { animation-duration: .35s; }
+@keyframes tBeat { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .orchid-plant .o-leaves, .orchid-plant .o-stems, .orchid-bloom.visible svg,
+  .orchid-care-btn .care-tool, .tool-air .t-fan, .tool-love .t-heartbeat,
+  .combo-hot .orchid-butterfly { animation: none !important; }
+}
