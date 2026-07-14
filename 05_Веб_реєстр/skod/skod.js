@@ -1024,22 +1024,6 @@ async function setupReports() {
     });
   }
 
-  // Pre-select tab and run status reports if URL parameter ?type=statuses is present
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('type') === 'statuses' || urlParams.get('tab') === 'statuses') {
-    if (reportLevelSel) {
-      reportLevelSel.value = 'user-statuses';
-      reportLevelSel.dispatchEvent(new Event('change'));
-      
-      const presetWeekBtn = document.getElementById('preset-week');
-      if (presetWeekBtn) {
-        presetWeekBtn.click();
-      } else {
-        runReport();
-      }
-    }
-  }
-
   // Setup presets
   const presetToday = document.getElementById('preset-today');
   const presetWeek = document.getElementById('preset-week');
@@ -1095,6 +1079,19 @@ async function setupReports() {
     endDateInput.addEventListener('change', () => {
       document.querySelectorAll('.btn-preset').forEach(b => b.classList.remove('active'));
     });
+  }
+
+  // Pre-select status report level if URL parameter ?type=statuses is present.
+  // Must run AFTER preset listeners are attached, so presetWeek.click() actually
+  // sets the week range; the report itself is run by the auto runReport() below.
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('type') === 'statuses' || urlParams.get('tab') === 'statuses') {
+    if (reportLevelSel) {
+      reportLevelSel.value = 'user-statuses';
+      reportLevelSel.dispatchEvent(new Event('change'));
+      const presetWeekBtn = document.getElementById('preset-week');
+      if (presetWeekBtn) presetWeekBtn.click();
+    }
   }
 
   // Mutation observer to detect theme changes and redraw charts dynamically
@@ -2067,7 +2064,7 @@ async function runStatusReport(startDateVal, endDateVal, deptVal, empVal) {
 
   if (empVal && empVal !== 'all') {
     query = query.eq('user_id', empVal);
-  } else if (deptVal && deptVal !== 'Поза відділами') {
+  } else if (deptVal && deptVal !== 'all' && deptVal !== 'Поза відділами') {
     query = query.eq('department', deptVal);
   }
 
