@@ -10,7 +10,8 @@ SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz'
 
 # Resolve paths
 SCRIPT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SCRIPT_DIR.parent.parent # Робоча_розяснення_НСЗУ
+# Джерела даних перенесено з OneDrive у D:\pmg-data (15.07.2026); репо сайту — D:\rpe-pmg
+PROJECT_ROOT = Path(r"D:\pmg-data")
 PORTAL_ROOT = SCRIPT_DIR.parent # 05_Веб_реєстр
 OUTPUT_JSON_PATH = SCRIPT_DIR / "data" / "packages_list.json"
 

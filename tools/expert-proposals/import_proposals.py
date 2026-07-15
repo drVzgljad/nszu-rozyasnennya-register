@@ -10,7 +10,8 @@ SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co'
 SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz'
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SCRIPT_DIR.parent.parent  # Робоча_розяснення_НСЗУ
+# Джерела даних перенесено з OneDrive у D:\pmg-data (15.07.2026); репо сайту — D:\rpe-pmg
+PROJECT_ROOT = Path(r"D:\pmg-data")
 EXCEL_FOLDER = PROJECT_ROOT / "16_робочі групи"
 OUTPUT_JSON_PATH = SCRIPT_DIR / "data" / "expert_proposals.json"
 
