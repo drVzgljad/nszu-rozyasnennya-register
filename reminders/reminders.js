@@ -141,6 +141,7 @@ function getProfileEmail(p) {
   if (p.email) return p.email;
   if (p.full_name === 'Дудник Світлана') return 's.dudnik@nszu.gov.ua';
   if (p.full_name === 'Волошина Альбіна') return 'a.voloshyna@nszu.gov.ua';
+  if (p.full_name === 'Веселовський Микола' || p.full_name === 'Микола Веселовський') return 'Mykola.Veselovskyi@nszu.gov.ua';
   // Generate transliterated email
   const translit = transliterate(p.full_name).toLowerCase().replace(/\s+/g, '.');
   return `${translit}@nszu.gov.ua`;
