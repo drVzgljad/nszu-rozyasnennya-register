@@ -20,9 +20,12 @@ const QUICK_FILTERS = {
   moz:  (n) => /моз|цгз/i.test(n.source_name || '') || /\bмоз\b/i.test(n.title || '')
 };
 
+const PAGE_SIZE = 24;
+
 let feedList = [];
 let activeCategory = 'all';
 let activeQuick = null;
+let visibleCount = PAGE_SIZE;
 
 const byId = (id) => document.getElementById(id);
 
@@ -30,7 +33,7 @@ async function init() {
   await Promise.all([loadFeed(), loadChannels()]);
 
   const searchInput = byId('feedSearch');
-  if (searchInput) searchInput.addEventListener('input', filterAndRender);
+  if (searchInput) searchInput.addEventListener('input', () => { visibleCount = PAGE_SIZE; filterAndRender(); });
 
   const tabs = byId('categoryTabs');
   if (tabs) {
@@ -39,6 +42,7 @@ async function init() {
       if (!btn) return;
       activeCategory = btn.dataset.cat;
       tabs.querySelectorAll('.category-tab').forEach(t => t.classList.toggle('active', t === btn));
+      visibleCount = PAGE_SIZE;
       filterAndRender();
     });
   }
@@ -51,6 +55,7 @@ async function init() {
       activeQuick = activeQuick === btn.dataset.quick ? null : btn.dataset.quick;
       quick.querySelectorAll('.quick-filter').forEach(b =>
         b.classList.toggle('active', b.dataset.quick === activeQuick));
+      visibleCount = PAGE_SIZE;
       filterAndRender();
     });
   }
@@ -133,7 +138,12 @@ function filterAndRender() {
 
   renderGrid(filtered);
   const countEl = byId('feedCount');
-  if (countEl) countEl.textContent = `Знайдено новин: ${filtered.length}`;
+  if (countEl) {
+    const shown = Math.min(visibleCount, filtered.length);
+    countEl.textContent = filtered.length > shown
+      ? `Показано ${shown} з ${filtered.length} новин`
+      : `Знайдено новин: ${filtered.length}`;
+  }
 }
 
 function dayLabel(isoString) {
@@ -156,8 +166,10 @@ function renderGrid(list) {
     return;
   }
 
+  const visible = list.slice(0, visibleCount);
+
   let currentDay = null;
-  list.forEach(n => {
+  visible.forEach(n => {
     // Роздільник за днями — структурування стрічки
     const label = dayLabel(n.published_at || n.created_at);
     if (label !== currentDay) {
@@ -193,6 +205,22 @@ function renderGrid(list) {
     `;
     container.appendChild(card);
   });
+
+  // «Показати ще» — щоб сторінка не розтягувалась на кілометр
+  if (list.length > visibleCount) {
+    const moreWrap = document.createElement('div');
+    moreWrap.className = 'show-more-wrap';
+    const moreBtn = document.createElement('button');
+    moreBtn.type = 'button';
+    moreBtn.className = 'show-more-btn';
+    moreBtn.textContent = `Показати ще ${Math.min(PAGE_SIZE, list.length - visibleCount)} новин ↓ (залишилось ${list.length - visibleCount})`;
+    moreBtn.addEventListener('click', () => {
+      visibleCount += PAGE_SIZE;
+      filterAndRender();
+    });
+    moreWrap.appendChild(moreBtn);
+    container.appendChild(moreWrap);
+  }
 }
 
 function renderStats() {
