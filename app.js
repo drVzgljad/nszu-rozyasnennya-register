@@ -103,10 +103,14 @@ function applyFilters() {
   refreshFilterMenus();
   const filters = currentFilters();
   if (!hasActiveFilters(filters)) {
-    state.visible = [];
+    // Стартовий екран: показуємо нещодавно опубліковані документи
+    state.visible = [...state.data.documents]
+      .filter((doc) => doc.publication_date)
+      .sort((left, right) => right.publication_date.localeCompare(left.publication_date))
+      .slice(0, 8);
     state.selected = null;
-    el("resultCount").textContent = "Оберіть фільтр або введіть запит";
-    renderCards(true);
+    el("resultCount").textContent = "Нещодавно опубліковані на сайті НСЗУ — або оберіть фільтр чи введіть запит";
+    renderCards();
     renderWelcome();
     return;
   }
@@ -154,20 +158,41 @@ function searchScore(doc, query) {
   return score;
 }
 
+function highlightText(text, query) {
+  const safe = escapeHtml(text);
+  if (!query || query.length < 3) return safe;
+  const pattern = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return safe.replace(new RegExp(`(${pattern})`, "gi"), "<mark>$1</mark>");
+}
+
+function cardDateLabel(doc) {
+  if (doc.document_date_display) return doc.document_date_display;
+  if (doc.publication_date) return formatDate(doc.publication_date);
+  return doc.year;
+}
+
 function renderCards(isBlank = false) {
   const container = el("cards");
   container.innerHTML = "";
   if (isBlank) return;
   if (!state.visible.length) {
-    container.innerHTML = '<div class="no-results">За цими умовами документів не знайдено. Спробуйте коротше слово або очистіть фільтри.</div>';
+    const query = el("search").value.trim();
+    const aiHint = query
+      ? `<p style="margin-top:10px;"><a class="action" href="rozjasnennya_semantic.html?q=${encodeURIComponent(query)}" style="display:inline-block;">🤖 Спробувати AI-семантичний пошук →</a></p>`
+      : "";
+    container.innerHTML = `<div class="no-results">За цими умовами документів не знайдено. Спробуйте коротше слово або очистіть фільтри.${aiHint}</div>`;
     return;
   }
+  const query = el("search").value.trim().toLowerCase();
   state.visible.forEach((doc) => {
     const card = el("cardTemplate").content.firstElementChild.cloneNode(true);
     card.classList.toggle("active", state.selected?.id === doc.id);
+    const attachTag = doc.parent_id
+      ? '<span class="tag attach">📎 Додаток</span>'
+      : (doc.attachment_ids?.length ? `<span class="tag attach">📎 +${doc.attachment_ids.length} додат.</span>` : "");
     card.querySelector(".card-tags").innerHTML =
-      `<span class="tag">${escapeHtml(doc.document_date_display || doc.year)}</span><span class="tag file">${escapeHtml(doc.format)}</span>`;
-    card.querySelector("strong").textContent = doc.title;
+      `<span class="tag">${escapeHtml(cardDateLabel(doc))}</span><span class="tag file">${escapeHtml(doc.format)}</span>${attachTag}`;
+    card.querySelector("strong").innerHTML = highlightText(doc.title, query);
     card.querySelector(".card-subtitle").textContent =
       `${doc.direction.replace(/-/g, " ")} | ${doc.package.replace(/-/g, " ")}`;
     card.addEventListener("click", () => selectDocument(doc.id));
@@ -236,6 +261,30 @@ function renderDetail(doc) {
     return `<button data-related="${other.id}"><strong>${escapeHtml(other.title)}</strong><span>${escapeHtml(relationship.reason)}</span></button>`;
   }).join("");
 
+  // Зв'язки «основний документ ↔ додатки» (з архіву НСЗУ)
+  const findDoc = (id) => state.data.documents.find((item) => item.id === id);
+  let familyBlock = "";
+  if (doc.parent_id) {
+    const parent = findDoc(doc.parent_id);
+    if (parent) {
+      familyBlock += `
+        <div class="section-title">📎 Це додаток до документа</div>
+        <div class="related">
+          <button data-related="${parent.id}"><strong>${escapeHtml(parent.title)}</strong><span>основний документ</span></button>
+        </div>`;
+    }
+  }
+  if (doc.attachment_ids?.length) {
+    const attachments = doc.attachment_ids.map(findDoc).filter(Boolean);
+    if (attachments.length) {
+      familyBlock += `
+        <div class="section-title">📎 Додатки до цього документа (${attachments.length})</div>
+        <div class="related">
+          ${attachments.map((att) => `<button data-related="${att.id}"><strong>${escapeHtml(att.title)}</strong><span>${escapeHtml(att.format)} · додаток</span></button>`).join("")}
+        </div>`;
+    }
+  }
+
   const foundCodes = extractCodesFromTextJS(doc.title + " " + doc.name + " " + doc.excerpt);
   const codeLinks = foundCodes.length > 0
     ? `<div class="section-title">Правила Наказу № 377</div>
@@ -255,6 +304,7 @@ function renderDetail(doc) {
     <div class="meta">
       <div class="meta-item"><span>Дата документа</span><strong>${escapeHtml(doc.document_date_display || "Не визначено")}</strong></div>
       <div class="meta-item"><span>Номер документа</span><strong>${escapeHtml(doc.document_number ? `№ ${doc.document_number}` : "Не визначено")}</strong></div>
+      <div class="meta-item"><span>Публікація на сайті НСЗУ</span><strong>${escapeHtml(doc.publication_date ? formatDate(doc.publication_date) : "Не визначено")}</strong></div>
       <div class="meta-item"><span>${yearLabel}</span><strong>${escapeHtml(doc.year)}</strong></div>
       <div class="meta-item"><span>Формат</span><strong>${escapeHtml(doc.format)}</strong></div>
       <div class="meta-item"><span>Тема</span><strong>${escapeHtml(doc.topic)}</strong></div>
@@ -264,6 +314,7 @@ function renderDetail(doc) {
       <a class="action primary" href="${localHref(doc.local_path)}" target="_blank">Відкрити файл</a>
       <a class="action" href="${escapeHtml(doc.source_url)}" target="_blank" rel="noopener">Джерело НСЗУ</a>
     </div>
+    ${familyBlock}
     ${codeLinks}
     <div class="section-title">Назва у бібліотеці</div>
     <div class="excerpt">${escapeHtml(doc.name)}</div>
@@ -280,7 +331,8 @@ function renderDetail(doc) {
 }
 
 async function init() {
-  const response = await fetch("data/documents.json");
+  // no-cache: браузер ревалідує за ETag і підхоплює оновлення бази без повного перезавантаження
+  const response = await fetch("data/documents.json", { cache: "no-cache" });
   state.data = await response.json();
   renderStats();
   ["search", "direction", "package", "year", "documentDate", "documentNumber", "format", "quality"].forEach((id) => {
