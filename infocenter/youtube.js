@@ -10,9 +10,27 @@ const STATUS_META = {
   pending:     { label: 'Очікує', cls: 'st-pending' }
 };
 
+// Тематичні фільтри — за назвою відео та topics з аналізу
+const TOPIC_FILTERS = {
+  pmg:       (v) => /пмг|pmg|пакет|тариф|гарант|постанов|коефіцієнт|smp 20|sgp 20/i.test(searchableText(v)),
+  esoz:      (v) => /есоз|ehealth|e-health|emr|емз|е-рецепт|eprescription|направлен|медичн\w* запис|ehr/i.test(searchableText(v)),
+  nszu:      (v) => /нсзу|nszu|nhsu|договір|контракт|звіт|моніторинг/i.test(searchableText(v)),
+  screening: (v) => /скринінг|screening|чекап|checkup|check-up|40\s*\+/i.test(searchableText(v))
+};
+
+function searchableText(v) {
+  return `${v.title || ''} ${(v.topics || []).join(' ')}`;
+}
+
+function videoYear(v) {
+  return v.published_at ? v.published_at.slice(0, 4) : null;
+}
+
 let videoIndex = [];
 let channels = [];
 let activeChannel = 'all';
+let activeYear = 'all';
+let activeTopic = null;
 let selectedVideoId = null;
 const analysisCache = new Map();
 
@@ -36,6 +54,29 @@ async function init() {
 
   const onlyAnalyzed = byId('onlyAnalyzed');
   if (onlyAnalyzed) onlyAnalyzed.addEventListener('change', filterAndRender);
+
+  const yearTabs = byId('yearTabs');
+  if (yearTabs) {
+    yearTabs.addEventListener('click', (e) => {
+      const btn = e.target.closest('.category-tab');
+      if (!btn) return;
+      activeYear = btn.dataset.year;
+      yearTabs.querySelectorAll('.category-tab').forEach(t => t.classList.toggle('active', t === btn));
+      filterAndRender();
+    });
+  }
+
+  const topicFilters = byId('topicFilters');
+  if (topicFilters) {
+    topicFilters.addEventListener('click', (e) => {
+      const btn = e.target.closest('.quick-filter');
+      if (!btn) return;
+      activeTopic = activeTopic === btn.dataset.topic ? null : btn.dataset.topic;
+      topicFilters.querySelectorAll('.quick-filter').forEach(b =>
+        b.classList.toggle('active', b.dataset.topic === activeTopic));
+      filterAndRender();
+    });
+  }
 
   const closeBtn = byId('closeVideoBtn');
   if (closeBtn) closeBtn.addEventListener('click', showDefaultState);
@@ -94,10 +135,14 @@ function filterAndRender() {
   const filtered = videoIndex.filter(v => {
     const matchesChannel = activeChannel === 'all' || v.channel_handle === activeChannel;
     const matchesStatus = !onlyAnalyzed || v.status === 'analyzed';
+    const year = videoYear(v);
+    const matchesYear = activeYear === 'all' ||
+      (activeYear === 'older' ? (year && year <= '2023') : year === activeYear);
+    const matchesTopic = !activeTopic || TOPIC_FILTERS[activeTopic](v);
     const matchesSearch = !searchVal ||
       (v.title && v.title.toLowerCase().includes(searchVal)) ||
       (v.topics && v.topics.some(t => t.toLowerCase().includes(searchVal)));
-    return matchesChannel && matchesStatus && matchesSearch;
+    return matchesChannel && matchesStatus && matchesYear && matchesTopic && matchesSearch;
   });
 
   renderList(filtered);

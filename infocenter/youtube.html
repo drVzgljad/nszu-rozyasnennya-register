@@ -6,7 +6,7 @@
   <title>НавігаторПМГ26 | Аналіз YouTube-каналів МІС</title>
   <link rel="stylesheet" href="../styles.css?v=20260531e">
   <link rel="stylesheet" href="../news/news.css">
-  <link rel="stylesheet" href="infocenter.css?v=20260716b">
+  <link rel="stylesheet" href="infocenter.css?v=20260716c">
   <link rel="stylesheet" href="../auth-v2.css?v=20260615b">
   <script type="module" src="../auth-v2.js?v=20260716c"></script>
 </head>
@@ -39,6 +39,22 @@
     <section class="yt-browser" aria-label="Список відео">
       <div class="category-tabs" id="channelTabs">
         <button class="category-tab active" data-channel="all" type="button">Усі канали</button>
+      </div>
+
+      <div class="category-tabs year-tabs" id="yearTabs" aria-label="Фільтр за роком виходу">
+        <button class="category-tab active" data-year="all" type="button">Усі роки</button>
+        <button class="category-tab" data-year="2026" type="button">📅 2026</button>
+        <button class="category-tab" data-year="2025" type="button">2025</button>
+        <button class="category-tab" data-year="2024" type="button">2024</button>
+        <button class="category-tab" data-year="older" type="button">2023 і старіші</button>
+      </div>
+
+      <div class="quick-filters" id="topicFilters" aria-label="Фільтр за темами">
+        <span class="quick-filters-label">Теми:</span>
+        <button class="quick-filter qf-pmg" data-topic="pmg" type="button">⭐ ПМГ</button>
+        <button class="quick-filter qf-moz" data-topic="esoz" type="button">💻 ЕСОЗ</button>
+        <button class="quick-filter qf-nszu" data-topic="nszu" type="button">🏥 НСЗУ</button>
+        <button class="quick-filter qf-screening" data-topic="screening" type="button">🩺 Скринінг</button>
       </div>
 
       <div class="search-panel feed-search">
@@ -91,6 +107,6 @@
     </div>
   </footer>
 
-  <script type="module" src="youtube.js?v=20260716b" defer></script>
+  <script type="module" src="youtube.js?v=20260716c" defer></script>
 </body>
 </html>
