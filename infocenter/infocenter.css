@@ -464,3 +464,85 @@
   .yt-panel { position: static; min-height: auto; }
   .infocenter-layout { padding: 16px; }
 }
+
+/* ===== Темна тема (:root.dark-theme — змінні з auth-v2.css) ===== */
+
+:root.dark-theme .category-tab {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--muted);
+}
+:root.dark-theme .category-tab:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+  color: var(--ink);
+}
+:root.dark-theme .category-tab.active {
+  background: var(--accent, #0ea5e9);
+  border-color: var(--accent, #0ea5e9);
+  color: #0f172a;
+}
+
+:root.dark-theme .feed-card,
+:root.dark-theme .yt-channel-card,
+:root.dark-theme .yt-video-card {
+  background: var(--surface);
+  border-color: var(--line);
+}
+:root.dark-theme .feed-card:hover,
+:root.dark-theme .yt-video-card:hover,
+:root.dark-theme .yt-video-card.active {
+  background: var(--accent-soft, #1e293b);
+  border-color: rgba(56, 189, 248, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+:root.dark-theme .yt-channel-card:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+:root.dark-theme .feed-card .card-source { color: #38bdf8; }
+
+/* Бейджі категорій — темні варіанти */
+:root.dark-theme .cat-badge.cat-political  { background: rgba(14, 165, 233, 0.15); color: #7dd3fc; border-color: rgba(14, 165, 233, 0.4); }
+:root.dark-theme .cat-badge.cat-medical    { background: rgba(34, 197, 94, 0.15);  color: #86efac; border-color: rgba(34, 197, 94, 0.4); }
+:root.dark-theme .cat-badge.cat-legal      { background: rgba(168, 85, 247, 0.15); color: #d8b4fe; border-color: rgba(168, 85, 247, 0.4); }
+:root.dark-theme .cat-badge.cat-financial  { background: rgba(245, 158, 11, 0.15); color: #fcd34d; border-color: rgba(245, 158, 11, 0.4); }
+:root.dark-theme .cat-badge.cat-high       { background: rgba(236, 72, 153, 0.15); color: #f9a8d4; border-color: rgba(236, 72, 153, 0.4); }
+
+:root.dark-theme .yt-progress-bar,
+:root.dark-theme .verdict-bar,
+:root.dark-theme .yt-video-thumb { background: var(--soft, #0f172a); }
+
+/* Статуси відео */
+:root.dark-theme .status-badge.st-analyzed    { background: rgba(34, 197, 94, 0.18); color: #86efac; }
+:root.dark-theme .status-badge.st-transcribed { background: rgba(14, 165, 233, 0.18); color: #7dd3fc; }
+:root.dark-theme .status-badge.st-pending     { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+
+/* Чіпи вердиктів */
+:root.dark-theme .verdict-chip.vc-confirmed    { background: rgba(34, 197, 94, 0.15);  color: #86efac; border-color: rgba(34, 197, 94, 0.4); }
+:root.dark-theme .verdict-chip.vc-questionable { background: rgba(245, 158, 11, 0.15); color: #fcd34d; border-color: rgba(245, 158, 11, 0.4); }
+:root.dark-theme .verdict-chip.vc-false        { background: rgba(239, 68, 68, 0.15);  color: #fca5a5; border-color: rgba(239, 68, 68, 0.4); }
+
+/* Таблиця тверджень */
+:root.dark-theme .claims-table th { background: var(--soft, #0f172a); color: var(--muted); border-bottom-color: var(--line); }
+:root.dark-theme .claims-table td { border-bottom-color: var(--line); }
+:root.dark-theme .claims-table tr.row-confirmed    { background: rgba(34, 197, 94, 0.07); }
+:root.dark-theme .claims-table tr.row-questionable { background: rgba(245, 158, 11, 0.08); }
+:root.dark-theme .claims-table tr.row-false        { background: rgba(239, 68, 68, 0.09); }
+:root.dark-theme .claims-table .claim-quote { border-left-color: var(--line); color: var(--muted); }
+:root.dark-theme .claims-table .claim-refs a { color: #38bdf8; }
+:root.dark-theme .claims-table .ts-badge { background: var(--soft, #0f172a); color: var(--muted); }
+
+:root.dark-theme .yt-summary-body { color: var(--ink); }
+:root.dark-theme .yt-summary-body blockquote { background: var(--soft); color: var(--muted); }
+
+:root.dark-theme .pending-note {
+  background: var(--soft, #0f172a);
+  border-color: var(--line);
+  color: var(--muted);
+}
+:root.dark-theme .disclaimer-note {
+  background: var(--warning-bg, #452a0a);
+  border-color: var(--warning-border, #7c2d12);
+  color: var(--warning-text, #fb923c);
+}
