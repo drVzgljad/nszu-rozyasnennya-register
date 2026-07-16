@@ -240,6 +240,7 @@ function applyAccess() {
     ];
 
     const tailItems = [
+      { text: '📡 Інфоцентр', path: 'infocenter/index.html', role: 'expert' },
       { text: 'Структура', path: 'dept-tree.html', role: 'expert' },
       { text: 'Робочий чат', path: 'chat/index.html', isChat: true, role: 'expert' }
     ];
