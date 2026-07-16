@@ -54,7 +54,7 @@ async function fetchRole() {
 function applyAccess() {
   const pathParts = window.location.pathname.split('/');
   const isInSubdir = pathParts.some(part => [
-    'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'passport', 'regulatory', 'reminders', 'expert-proposals', 'cabinet'
+    'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'passport', 'regulatory', 'reminders', 'expert-proposals', 'cabinet', 'infocenter'
   ].includes(part.toLowerCase()));
   const prefix = isInSubdir ? '../' : './';
   const currentPath = window.location.pathname.toLowerCase();
@@ -196,7 +196,7 @@ function applyAccess() {
     const segments = normalized.split('/');
     
     if (normalized === 'index.html') {
-      const isSub = ['pakety', 'postanova', 'algorithms', 'zoz-questions', 'pmg-proposals', 'news', 'chat', 'rozjasnennya.html', 'zoz-dogovr', 'skod', 'dec', 'dept-tree.html', 'passport', 'regulatory', 'expert-proposals', 'cabinet'].some(s => currentPath.includes(s));
+      const isSub = ['pakety', 'postanova', 'algorithms', 'zoz-questions', 'pmg-proposals', 'news', 'chat', 'rozjasnennya.html', 'zoz-dogovr', 'skod', 'dec', 'dept-tree.html', 'passport', 'regulatory', 'expert-proposals', 'cabinet', 'infocenter'].some(s => currentPath.includes(s));
       return !isSub && (currentPath.endsWith('/') || currentPath.endsWith('index.html'));
     }
     
@@ -256,6 +256,7 @@ function applyAccess() {
       { text: 'СКО-Д (Звіти)', path: 'skod/reports.html', role: 'expert' },
       { text: 'СКО-Д (Доручення)', path: 'skod/tasks.html', role: 'manager' },
       { text: 'Новини', path: 'news/index.html', role: 'expert' },
+      { text: 'Інфоцентр', path: 'infocenter/index.html', role: 'expert' },
       { text: 'Хвилинка відпочинку', path: 'relax/index.html', role: 'expert' }
     ];
 
@@ -1236,7 +1237,7 @@ function setupNewsRealtime() {
         if (alertBanner) {
           const pathParts = window.location.pathname.split('/');
           const isInSubdir = pathParts.some(part => [
-            'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'regulatory'
+            'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'regulatory', 'infocenter'
           ].includes(part.toLowerCase()));
           const prefix = isInSubdir ? '../' : './';
           renderAlertBanner(alertBanner, prefix);
@@ -1259,7 +1260,7 @@ function triggerNewsAlertNotification(newsItem) {
     const title = newsItem.importance === 'urgent' ? '🚨 Термінове оголошення!' : '⚠️ Важливе оголошення!';
     const pathParts = window.location.pathname.split('/');
     const isInSubdir = pathParts.some(part => [
-      'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'regulatory'
+      'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'regulatory', 'infocenter'
     ].includes(part.toLowerCase()));
     const prefix = isInSubdir ? '../' : './';
 
@@ -1337,7 +1338,7 @@ function setupTasksRealtime() {
         if (dashboardEl) {
           const pathParts = window.location.pathname.split('/');
           const isInSubdir = pathParts.some(part => [
-            'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'regulatory'
+            'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'regulatory', 'infocenter'
           ].includes(part.toLowerCase()));
           const prefix = isInSubdir ? '../' : './';
           renderDashboard(dashboardEl, prefix);
@@ -1363,7 +1364,7 @@ function triggerTaskAlertNotification(task) {
 
   const pathParts = window.location.pathname.split('/');
   const isInSubdir = pathParts.some(part => [
-    'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'regulatory'
+    'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'regulatory', 'infocenter'
   ].includes(part.toLowerCase()));
   const prefix = isInSubdir ? '../' : './';
   const targetUrl = prefix + "skod/task-detail.html?id=" + task.id;

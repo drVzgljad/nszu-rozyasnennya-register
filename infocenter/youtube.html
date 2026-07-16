@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>НавігаторПМГ26 | Аналіз YouTube-каналів МІС</title>
+  <link rel="stylesheet" href="../styles.css?v=20260531e">
+  <link rel="stylesheet" href="../news/news.css">
+  <link rel="stylesheet" href="infocenter.css">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260615b">
+  <script type="module" src="../auth-v2.js?v=20260716a"></script>
+</head>
+<body id="top" data-required-role="full">
+  <header class="hero news-hero">
+    <div class="hero-copy">
+      <div class="overline">Інфоцентр · Відеоаналітика</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>🎬 Аналіз YouTube-каналів МІС</h1>
+      <p>Структурований розбір кожного відео: резюме, ключові твердження та їх перевірка на відповідність нормам ПМГ-2026, Постанови № 1808 та іншим НПА.</p>
+    </div>
+    <div class="stats" id="ytStats" aria-label="Статистика аналізу"></div>
+  </header>
+
+  <main class="yt-layout">
+    <section class="yt-browser" aria-label="Список відео">
+      <div class="category-tabs" id="channelTabs">
+        <button class="category-tab active" data-channel="all" type="button">Усі канали</button>
+      </div>
+
+      <div class="search-panel feed-search">
+        <label class="search">
+          <span>Пошук у відео</span>
+          <input id="ytSearch" type="search" placeholder="Наприклад: 9 пакет, форма 066, е-рецепт..." autocomplete="off">
+        </label>
+        <div class="results-summary">
+          <span id="ytCount">Завантаження відео...</span>
+          <label style="display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--muted); cursor:pointer;">
+            <input type="checkbox" id="onlyAnalyzed"> Лише проаналізовані
+          </label>
+        </div>
+      </div>
+
+      <div class="yt-list" id="ytList"></div>
+    </section>
+
+    <aside class="yt-panel" id="ytPanel" aria-live="polite">
+      <div class="empty-state" id="ytEmptyState">
+        <div class="empty-icon">🎬</div>
+        <h2>Оберіть відео</h2>
+        <p>Виберіть відео зі списку, щоб переглянути детальний аналіз: резюме, твердження та вердикти з посиланнями на норми.</p>
+      </div>
+
+      <div id="ytDetailViewer" style="display:none">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
+          <button class="action back-btn" id="closeVideoBtn" type="button" style="margin-bottom:0;">← Назад до списку</button>
+          <a id="watchOnYoutube" class="btn btn-secondary" href="#" target="_blank" rel="noopener" style="padding:6px 14px; font-size:13px; font-weight:600; border-radius:999px; text-decoration:none;">▶ Дивитися на YouTube</a>
+        </div>
+        <h2 id="vidTitle"></h2>
+        <p class="panel-meta" id="vidMeta"></p>
+        <div class="verdict-summary" id="vidVerdicts"></div>
+        <div class="yt-summary-body" id="vidSummary"></div>
+        <div id="vidClaimsBlock"></div>
+        <div class="disclaimer-note">
+          ⚠️ Аналіз підготовлено автоматизовано на основі авто-субтитрів відео та звірено з нормами ПМГ-2026 і НПА станом на дату аналізу. Вердикт «не відповідає нормі» стосується конкретного твердження, а не каналу чи компанії загалом. Норми змінюються — завжди перевіряйте першоджерело за посиланнями.
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Реєстр розроблено силами Департаменту без зовнішнього сприяння та проєктів.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="youtube.js" defer></script>
+</body>
+</html>

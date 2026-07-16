@@ -371,6 +371,14 @@
           <div class="meta">Відкрити <span class="count">Стрічка новин</span></div>
         </a>
 
+        <!-- Інфоцентр — тільки для повного доступу -->
+        <a class="hub-card span-3" href="infocenter/index.html" data-role="full">
+          <span class="num-badge">📡</span>
+          <h3>Інфоцентр</h3>
+          <p>Автоматичний моніторинг політичних, медичних, юридичних і фінансових новин та детальний аналіз YouTube-каналів МІС.</p>
+          <div class="meta">Відкрити <span class="count">Новини + YouTube</span></div>
+        </a>
+
         <!-- Робочий чат — тільки для повного доступу -->
         <a class="hub-card span-3" href="chat/index.html" data-role="full">
           <span class="num-badge">💬</span>
@@ -548,12 +556,33 @@
       
       // Take top 3
       const digestItems = allNews.slice(0, 3);
-      
-      if (digestItems.length > 0) {
+
+      // 5.1 Інфоцентр: останні автоматично агреговані новини (Supabase → фолбек feed.json)
+      let infoItems = [];
+      try {
+        const { data } = await sb
+          .from('infocenter_news')
+          .select('*')
+          .order('published_at', { ascending: false })
+          .limit(3);
+        if (data && data.length) infoItems = data;
+      } catch (e) {
+        console.warn('Failed to load infocenter news from Supabase:', e);
+      }
+      if (infoItems.length === 0) {
+        try {
+          const res = await fetch('infocenter/data/feed.json');
+          if (res.ok) infoItems = (await res.json()).slice(0, 3);
+        } catch (e) {
+          console.warn('Failed to load local infocenter feed:', e);
+        }
+      }
+
+      if (digestItems.length > 0 || infoItems.length > 0) {
         const container = document.getElementById('news-digest-grid');
         if (!container) return;
         container.innerHTML = "";
-        
+
         digestItems.forEach(n => {
           const card = document.createElement("a");
           card.href = `news/index.html?id=${n.id}`;
@@ -581,7 +610,27 @@
           `;
           container.appendChild(card);
         });
-        
+
+        // Картки Інфоцентру (автоматичний моніторинг)
+        const infoCatLabels = {
+          political: '🏛 Політичні', medical: '⚕️ Медичні',
+          legal: '⚖️ Юридичні', financial: '💰 Фінансові'
+        };
+        infoItems.forEach(n => {
+          const card = document.createElement("a");
+          card.href = 'infocenter/index.html';
+          card.className = 'news-digest-card importance-normal';
+          card.innerHTML = `
+            <div class="news-digest-card-meta">
+              <span class="news-digest-badge normal">📡 ${infoCatLabels[n.category] || 'Інфоцентр'}</span>
+              <span class="news-digest-date">${formatDate(n.published_at || n.created_at)}</span>
+            </div>
+            <h3>${escapeHtml(n.title)}</h3>
+            <p>${escapeHtml(n.summary || "")}</p>
+          `;
+          container.appendChild(card);
+        });
+
         document.getElementById('news-digest').style.display = 'block';
       } else {
         document.getElementById('news-digest').style.display = 'none';

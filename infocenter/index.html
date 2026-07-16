@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>НавігаторПМГ26 | Інфоцентр</title>
+  <link rel="stylesheet" href="../styles.css?v=20260531e">
+  <link rel="stylesheet" href="../news/news.css">
+  <link rel="stylesheet" href="infocenter.css">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260615b">
+  <script type="module" src="../auth-v2.js?v=20260716a"></script>
+</head>
+<body id="top" data-required-role="full">
+  <header class="hero news-hero">
+    <div class="hero-copy">
+      <div class="overline">Автоматичний моніторинг</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>📡 Інфоцентр</h1>
+      <p>Автоматично агреговані політичні, медичні, юридичні та фінансові новини з офіційних джерел, а також детальний експертний аналіз YouTube-каналів медичних інформаційних систем.</p>
+    </div>
+    <div class="stats" id="feedStats" aria-label="Статистика стрічки"></div>
+  </header>
+
+  <main class="infocenter-layout">
+    <section aria-label="Стрічка новин">
+      <div class="category-tabs" id="categoryTabs">
+        <button class="category-tab active" data-cat="all" type="button">Усі</button>
+        <button class="category-tab" data-cat="political" type="button">🏛 Політичні</button>
+        <button class="category-tab" data-cat="medical" type="button">⚕️ Медичні</button>
+        <button class="category-tab" data-cat="legal" type="button">⚖️ Юридичні</button>
+        <button class="category-tab" data-cat="financial" type="button">💰 Фінансові</button>
+      </div>
+
+      <div class="search-panel feed-search">
+        <label class="search">
+          <span>Пошук у новинах</span>
+          <input id="feedSearch" type="search" placeholder="Наприклад: тарифи, бюджет, законопроєкт..." autocomplete="off">
+        </label>
+        <div class="results-summary">
+          <span id="feedCount">Завантаження новин...</span>
+        </div>
+      </div>
+
+      <div class="feed-grid" id="feedGrid"></div>
+    </section>
+
+    <section class="yt-hub-section" aria-label="Аналіз YouTube-каналів">
+      <h2>🎬 Аналіз YouTube-каналів МІС</h2>
+      <p class="yt-hub-sub">Детальний розбір відео каналів розробників медичних інформаційних систем: резюме, ключові твердження та їх перевірка на відповідність нормам ПМГ-2026 і НПА.</p>
+      <div class="yt-channels-grid" id="ytChannelsGrid">
+        <div class="no-results">Завантаження даних каналів...</div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Реєстр розроблено силами Департаменту без зовнішнього сприяння та проєктів.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="infocenter.js" defer></script>
+</body>
+</html>
