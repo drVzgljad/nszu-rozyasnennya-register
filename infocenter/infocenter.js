@@ -11,8 +11,18 @@ const CATEGORY_META = {
   financial: { label: '💰 Фінансові', cls: 'cat-financial' }
 };
 
+// Швидкі фільтри за джерелами/темами
+const QUICK_FILTERS = {
+  pmg:  (n) => n.relevance === 'high' ||
+               (n.tags || []).some(t => /пмг|медичн.*гарант/i.test(t)) ||
+               /пмг|медичн\w* гарант/i.test(n.title || ''),
+  nszu: (n) => /нсзу/i.test(n.source_name || '') || /нсзу/i.test(n.title || ''),
+  moz:  (n) => /моз|цгз/i.test(n.source_name || '') || /\bмоз\b/i.test(n.title || '')
+};
+
 let feedList = [];
 let activeCategory = 'all';
+let activeQuick = null;
 
 const byId = (id) => document.getElementById(id);
 
@@ -29,6 +39,18 @@ async function init() {
       if (!btn) return;
       activeCategory = btn.dataset.cat;
       tabs.querySelectorAll('.category-tab').forEach(t => t.classList.toggle('active', t === btn));
+      filterAndRender();
+    });
+  }
+
+  const quick = byId('quickFilters');
+  if (quick) {
+    quick.addEventListener('click', (e) => {
+      const btn = e.target.closest('.quick-filter');
+      if (!btn) return;
+      activeQuick = activeQuick === btn.dataset.quick ? null : btn.dataset.quick;
+      quick.querySelectorAll('.quick-filter').forEach(b =>
+        b.classList.toggle('active', b.dataset.quick === activeQuick));
       filterAndRender();
     });
   }
@@ -69,6 +91,30 @@ async function loadFeed() {
   feedList = allNews;
   filterAndRender();
   renderStats();
+  renderUpdateTime();
+}
+
+function renderUpdateTime() {
+  const el = byId('updateTimeText');
+  if (!el) return;
+  let latest = null;
+  feedList.forEach(n => {
+    const d = new Date(n.created_at || n.published_at);
+    if (!isNaN(d) && (!latest || d > latest)) latest = d;
+  });
+  if (!latest) { el.textContent = 'Даних ще немає'; return; }
+
+  const now = new Date();
+  const time = latest.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
+  const sameDay = latest.toDateString() === now.toDateString();
+  const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+  if (sameDay) {
+    el.textContent = `Оновлено сьогодні о ${time}`;
+  } else if (latest.toDateString() === yesterday.toDateString()) {
+    el.textContent = `Оновлено вчора о ${time}`;
+  } else {
+    el.textContent = `Оновлено ${formatDate(latest.toISOString())} о ${time}`;
+  }
 }
 
 function filterAndRender() {
@@ -76,17 +122,28 @@ function filterAndRender() {
 
   const filtered = feedList.filter(n => {
     const matchesCategory = activeCategory === 'all' || n.category === activeCategory;
+    const matchesQuick = !activeQuick || QUICK_FILTERS[activeQuick](n);
     const matchesSearch = !searchVal ||
       (n.title && n.title.toLowerCase().includes(searchVal)) ||
       (n.summary && n.summary.toLowerCase().includes(searchVal)) ||
       (n.source_name && n.source_name.toLowerCase().includes(searchVal)) ||
       (n.tags && n.tags.some(tag => tag.toLowerCase().includes(searchVal)));
-    return matchesCategory && matchesSearch;
+    return matchesCategory && matchesQuick && matchesSearch;
   });
 
   renderGrid(filtered);
   const countEl = byId('feedCount');
   if (countEl) countEl.textContent = `Знайдено новин: ${filtered.length}`;
+}
+
+function dayLabel(isoString) {
+  const d = new Date(isoString);
+  if (isNaN(d)) return 'Раніше';
+  const now = new Date();
+  const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1);
+  if (d.toDateString() === now.toDateString()) return '📅 Сьогодні';
+  if (d.toDateString() === yesterday.toDateString()) return 'Вчора';
+  return d.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 function renderGrid(list) {
@@ -99,7 +156,17 @@ function renderGrid(list) {
     return;
   }
 
+  let currentDay = null;
   list.forEach(n => {
+    // Роздільник за днями — структурування стрічки
+    const label = dayLabel(n.published_at || n.created_at);
+    if (label !== currentDay) {
+      currentDay = label;
+      const header = document.createElement('div');
+      header.className = 'day-header';
+      header.textContent = label;
+      container.appendChild(header);
+    }
     const card = document.createElement('a');
     card.className = 'feed-card';
     card.href = n.source_url || '#';
@@ -157,6 +224,14 @@ async function loadChannels() {
   if (!channels.length) {
     container.innerHTML = '<div class="no-results">Дані каналів ще не зібрано.</div>';
     return;
+  }
+
+  // Прогрес аналізу у верхній кнопці
+  const topProgress = byId('ytTopProgress');
+  if (topProgress) {
+    const analyzed = channels.reduce((s, c) => s + (c.analyzed_videos || 0), 0);
+    const total = channels.reduce((s, c) => s + (c.total_videos || 0), 0);
+    topProgress.textContent = `Розібрано ${analyzed} з ${total} відео · вердикти тверджень`;
   }
 
   container.innerHTML = '';

@@ -6,7 +6,7 @@
   <title>НавігаторПМГ26 | Інфоцентр</title>
   <link rel="stylesheet" href="../styles.css?v=20260531e">
   <link rel="stylesheet" href="../news/news.css">
-  <link rel="stylesheet" href="infocenter.css">
+  <link rel="stylesheet" href="infocenter.css?v=20260716b">
   <link rel="stylesheet" href="../auth-v2.css?v=20260615b">
   <script type="module" src="../auth-v2.js?v=20260716a"></script>
 </head>
@@ -36,6 +36,19 @@
   </header>
 
   <main class="infocenter-layout">
+    <!-- Верхня панель дій: YouTube-аналіз + час оновлення -->
+    <div class="infocenter-topbar">
+      <a class="yt-top-btn" href="youtube.html">
+        🎬 Аналіз YouTube-каналів МІС
+        <span class="yt-top-btn-sub" id="ytTopProgress">МедЕйр · Health24</span>
+        <span class="yt-top-arrow">→</span>
+      </a>
+      <div class="update-time" id="updateTime" title="Час останнього автоматичного збору новин">
+        <span class="update-dot"></span>
+        <span id="updateTimeText">Оновлення...</span>
+      </div>
+    </div>
+
     <section aria-label="Стрічка новин">
       <div class="category-tabs" id="categoryTabs">
         <button class="category-tab active" data-cat="all" type="button">Усі</button>
@@ -43,6 +56,13 @@
         <button class="category-tab" data-cat="medical" type="button">⚕️ Медичні</button>
         <button class="category-tab" data-cat="legal" type="button">⚖️ Юридичні</button>
         <button class="category-tab" data-cat="financial" type="button">💰 Фінансові</button>
+      </div>
+
+      <div class="quick-filters" id="quickFilters" aria-label="Швидкі фільтри за джерелами">
+        <span class="quick-filters-label">Швидкі фільтри:</span>
+        <button class="quick-filter qf-pmg" data-quick="pmg" type="button">⭐ ПМГ</button>
+        <button class="quick-filter qf-nszu" data-quick="nszu" type="button">🏥 НСЗУ</button>
+        <button class="quick-filter qf-moz" data-quick="moz" type="button">⚕️ МОЗ</button>
       </div>
 
       <div class="search-panel feed-search">
@@ -77,6 +97,6 @@
     </div>
   </footer>
 
-  <script type="module" src="infocenter.js" defer></script>
+  <script type="module" src="infocenter.js?v=20260716b" defer></script>
 </body>
 </html>
