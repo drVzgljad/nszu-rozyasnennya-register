@@ -43,7 +43,7 @@ function currentFilters() {
 }
 
 function matchesFilters(doc, filters, ignored = "") {
-  if (filters.query && !doc.search_text.includes(filters.query)) return false;
+  if (filters.query && !doc._lc.includes(filters.query)) return false;
   if (ignored !== "direction" && filters.direction && doc.direction !== filters.direction) return false;
   if (ignored !== "package" && filters.package && doc.package !== filters.package) return false;
   if (ignored !== "year" && filters.year && doc.year !== filters.year) return false;
@@ -171,6 +171,21 @@ function cardDateLabel(doc) {
   return doc.year;
 }
 
+function snippetFor(doc, query) {
+  if (!query || query.length < 3) return "";
+  const idx = doc._lc.indexOf(query);
+  if (idx < 0) return "";
+  const source = doc.search_text;
+  const start = Math.max(0, idx - 70);
+  const end = Math.min(source.length, idx + query.length + 90);
+  let prefix = source.slice(start, idx);
+  let match = source.slice(idx, idx + query.length);
+  let suffix = source.slice(idx + query.length, end);
+  if (start > 0) prefix = "…" + prefix.replace(/^\S{0,15}\s/, "");
+  if (end < source.length) suffix = suffix.replace(/\s\S{0,15}$/, "") + "…";
+  return `<span class="card-snippet">${escapeHtml(prefix)}<mark>${escapeHtml(match)}</mark>${escapeHtml(suffix)}</span>`;
+}
+
 function renderCards(isBlank = false) {
   const container = el("cards");
   container.innerHTML = "";
@@ -193,8 +208,9 @@ function renderCards(isBlank = false) {
     card.querySelector(".card-tags").innerHTML =
       `<span class="tag">${escapeHtml(cardDateLabel(doc))}</span><span class="tag file">${escapeHtml(doc.format)}</span>${attachTag}`;
     card.querySelector("strong").innerHTML = highlightText(doc.title, query);
-    card.querySelector(".card-subtitle").textContent =
-      `${doc.direction.replace(/-/g, " ")} | ${doc.package.replace(/-/g, " ")}`;
+    const snippet = snippetFor(doc, query);
+    card.querySelector(".card-subtitle").innerHTML =
+      escapeHtml(`${doc.direction.replace(/-/g, " ")} | ${doc.package.replace(/-/g, " ")}`) + snippet;
     card.addEventListener("click", () => selectDocument(doc.id));
     container.appendChild(card);
   });
@@ -311,7 +327,8 @@ function renderDetail(doc) {
       <div class="meta-item"><span>Запис в архіві</span><strong>№ ${escapeHtml(doc.record_ids.join(", "))}</strong></div>
     </div>
     <div class="actions">
-      <a class="action primary" href="${localHref(doc.local_path)}" target="_blank">Відкрити файл</a>
+      ${doc.has_text ? '<button class="action primary" type="button" id="openReaderBtn">📖 Читати текст</button>' : ""}
+      <a class="action ${doc.has_text ? "" : "primary"}" href="${localHref(doc.local_path)}" target="_blank">Відкрити файл</a>
       <a class="action" href="${escapeHtml(doc.source_url)}" target="_blank" rel="noopener">Джерело НСЗУ</a>
     </div>
     ${familyBlock}
@@ -328,12 +345,126 @@ function renderDetail(doc) {
   detail.querySelectorAll("[data-related]").forEach((button) => {
     button.addEventListener("click", () => selectDocument(Number(button.dataset.related)));
   });
+  const readerBtn = detail.querySelector("#openReaderBtn");
+  if (readerBtn) readerBtn.addEventListener("click", () => openReader(doc));
+}
+
+/* ── Режим читання документа ─────────────────────────────── */
+const readerCache = new Map();
+
+function ensureReaderDom() {
+  if (el("readerOverlay")) return;
+  const overlay = document.createElement("div");
+  overlay.id = "readerOverlay";
+  overlay.innerHTML = `
+    <div class="reader-card">
+      <div class="reader-head">
+        <h2 id="readerTitle"></h2>
+        <div class="reader-tools">
+          <span id="readerMatchInfo"></span>
+          <button type="button" id="readerPrev" title="Попередній збіг">↑</button>
+          <button type="button" id="readerNext" title="Наступний збіг">↓</button>
+          <button type="button" id="readerClose" title="Закрити">✕</button>
+        </div>
+      </div>
+      <div class="reader-body">
+        <aside class="reader-toc" id="readerToc"></aside>
+        <article class="reader-content" id="readerContent"></article>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener("click", (event) => { if (event.target === overlay) closeReader(); });
+  el("readerClose").addEventListener("click", closeReader);
+  el("readerPrev").addEventListener("click", () => stepMatch(-1));
+  el("readerNext").addEventListener("click", () => stepMatch(1));
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeReader();
+  });
+}
+
+function closeReader() {
+  const overlay = el("readerOverlay");
+  if (overlay) overlay.style.display = "none";
+  document.body.style.overflow = "";
+}
+
+let readerMatches = [];
+let readerMatchIndex = -1;
+
+function stepMatch(delta) {
+  if (!readerMatches.length) return;
+  readerMatchIndex = (readerMatchIndex + delta + readerMatches.length) % readerMatches.length;
+  readerMatches.forEach((mark, index) => mark.classList.toggle("current", index === readerMatchIndex));
+  readerMatches[readerMatchIndex].scrollIntoView({ behavior: "smooth", block: "center" });
+  el("readerMatchInfo").textContent = `${readerMatchIndex + 1} з ${readerMatches.length}`;
+}
+
+async function openReader(doc) {
+  ensureReaderDom();
+  const overlay = el("readerOverlay");
+  overlay.style.display = "flex";
+  document.body.style.overflow = "hidden";
+  el("readerTitle").textContent = doc.title;
+  el("readerContent").innerHTML = '<p class="reader-loading">Завантаження тексту...</p>';
+  el("readerToc").innerHTML = "";
+
+  let payload = readerCache.get(doc.id);
+  if (!payload) {
+    try {
+      const response = await fetch(`data/doc_texts/${doc.id}.json`, { cache: "no-cache" });
+      if (response.ok) {
+        payload = await response.json();
+        readerCache.set(doc.id, payload);
+      }
+    } catch (error) { /* нижче — повідомлення */ }
+  }
+  if (!payload) {
+    el("readerContent").innerHTML = "<p>Не вдалося завантажити текст. Відкрийте файл документа.</p>";
+    return;
+  }
+
+  const query = el("search").value.trim();
+  const renderBlock = (block, index) => {
+    const text = highlightText(block.text, query.length >= 3 ? query : "");
+    if (block.t === "h") return `<h3 data-block="${index}">${text}</h3>`;
+    if (block.t === "q") return `<div class="reader-q" data-block="${index}">${text}</div>`;
+    if (block.t === "li") return `<p class="reader-li" data-block="${index}">${text}</p>`;
+    return `<p data-block="${index}">${text}</p>`;
+  };
+  el("readerContent").innerHTML =
+    (payload.ocr ? '<p class="reader-ocr-note">⚠️ Текст розпізнано зі скану (OCR) — можливі спотворення. Звіряйте з файлом.</p>' : "") +
+    payload.blocks.map(renderBlock).join("");
+
+  const toc = el("readerToc");
+  if (payload.outline && payload.outline.length > 1) {
+    toc.innerHTML = "<h4>Зміст</h4>" + payload.outline.map((item) =>
+      `<button type="button" data-goto="${item.i}">${escapeHtml(item.text)}</button>`).join("");
+    toc.style.display = "";
+    toc.querySelectorAll("[data-goto]").forEach((button) => {
+      button.addEventListener("click", () => {
+        el("readerContent").querySelector(`[data-block="${button.dataset.goto}"]`)
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+  } else {
+    toc.style.display = "none";
+  }
+
+  readerMatches = [...el("readerContent").querySelectorAll("mark")];
+  readerMatchIndex = -1;
+  const hasMatches = readerMatches.length > 0;
+  el("readerMatchInfo").textContent = hasMatches ? `Збігів: ${readerMatches.length}` : (query.length >= 3 ? "Збігів немає" : "");
+  el("readerPrev").style.display = hasMatches ? "" : "none";
+  el("readerNext").style.display = hasMatches ? "" : "none";
+  if (hasMatches) stepMatch(1);
 }
 
 async function init() {
   // no-cache: браузер ревалідує за ETag і підхоплює оновлення бази без повного перезавантаження
   const response = await fetch("data/documents.json", { cache: "no-cache" });
   state.data = await response.json();
+  // кеш нижнього регістру — щоб пошук був швидким, а сніпети зберігали оригінальний регістр
+  state.data.documents.forEach((doc) => { doc._lc = (doc.search_text || "").toLowerCase(); });
   renderStats();
   ["search", "direction", "package", "year", "documentDate", "documentNumber", "format", "quality"].forEach((id) => {
     el(id).addEventListener(id === "search" ? "input" : "change", applyFilters);

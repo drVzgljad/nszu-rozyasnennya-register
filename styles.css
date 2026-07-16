@@ -883,3 +883,81 @@ select {
   border-color: rgba(147, 197, 253, 0.2);
 }
 
+
+
+/* ── Режим читання документа (роз'яснення) ── */
+#readerOverlay {
+  position: fixed; inset: 0; z-index: 3000; display: flex;
+  align-items: center; justify-content: center; padding: 24px;
+  background: rgba(15, 30, 45, 0.55); backdrop-filter: blur(6px);
+}
+.reader-card {
+  width: min(1200px, 100%); height: min(88vh, 100%);
+  background: #fff; border-radius: 20px; display: flex; flex-direction: column;
+  box-shadow: 0 30px 80px rgba(10, 25, 40, 0.35); overflow: hidden;
+}
+.reader-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 16px 22px; border-bottom: 1px solid var(--line, #e3edf3);
+}
+.reader-head h2 { margin: 0; font-size: 16.5px; line-height: 1.35; color: var(--ink, #1f3347); }
+.reader-tools { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.reader-tools span { font-size: 12.5px; color: var(--muted, #647688); font-weight: 700; white-space: nowrap; }
+.reader-tools button {
+  min-width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--line, #e3edf3);
+  background: #f8fafc; color: var(--ink, #1f3347); font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.reader-tools button:hover { border-color: rgba(0, 111, 201, 0.45); color: #0284c7; }
+.reader-body { display: flex; flex: 1; min-height: 0; }
+.reader-toc {
+  width: 280px; min-width: 220px; overflow-y: auto; padding: 16px;
+  border-right: 1px solid var(--line, #e3edf3); background: #f8fafc;
+}
+.reader-toc h4 { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted, #647688); }
+.reader-toc button {
+  display: block; width: 100%; text-align: left; margin-bottom: 6px; padding: 7px 10px;
+  border: none; border-radius: 8px; background: transparent; cursor: pointer;
+  font-size: 12.5px; line-height: 1.4; color: var(--ink, #33475b);
+}
+.reader-toc button:hover { background: #eaf3fb; color: #0284c7; }
+.reader-content { flex: 1; overflow-y: auto; padding: 22px 30px 40px; font-size: 14.5px; line-height: 1.65; color: #2c3e50; }
+.reader-content p { margin: 0 0 12px; }
+.reader-content h3 { margin: 22px 0 10px; font-size: 15.5px; color: var(--ink, #1f3347); }
+.reader-content .reader-q {
+  margin: 18px 0 10px; padding: 10px 14px; border-left: 4px solid #0d9488;
+  background: #e9f7f3; border-radius: 0 10px 10px 0; font-weight: 700; color: #08705e;
+}
+.reader-content mark { background: #fff3bf; padding: 0 2px; border-radius: 3px; }
+.reader-content mark.current { background: #ffd43b; outline: 2px solid #f59e0b; }
+.reader-ocr-note {
+  padding: 10px 14px; background: #fffbe6; border: 1px solid #ffe58f;
+  border-radius: 10px; font-size: 12.5px; color: #874d00;
+}
+.card-snippet {
+  display: block; margin-top: 6px; font-size: 12px; line-height: 1.5;
+  color: var(--muted, #647688); font-weight: 400;
+}
+.card-snippet mark { background: #fff3bf; padding: 0 1px; border-radius: 3px; }
+@media (max-width: 900px) {
+  .reader-toc { display: none !important; }
+  #readerOverlay { padding: 8px; }
+}
+:root.dark-theme .reader-card { background: var(--surface, #1e293b); }
+:root.dark-theme .reader-head { border-bottom-color: var(--line, #334155); }
+:root.dark-theme .reader-head h2 { color: var(--ink, #e2e8f0); }
+:root.dark-theme .reader-tools button { background: var(--soft, #0f172a); border-color: var(--line, #334155); color: var(--ink, #e2e8f0); }
+:root.dark-theme .reader-toc { background: var(--soft, #0f172a); border-right-color: var(--line, #334155); }
+:root.dark-theme .reader-toc button { color: var(--muted, #94a3b8); }
+:root.dark-theme .reader-toc button:hover { background: rgba(56, 189, 248, 0.12); color: #7dd3fc; }
+:root.dark-theme .reader-content { color: var(--ink, #e2e8f0); }
+:root.dark-theme .reader-content .reader-q { background: rgba(34, 197, 94, 0.12); color: #86efac; border-left-color: #22c55e; }
+:root.dark-theme .reader-content mark, :root.dark-theme .card-snippet mark { background: rgba(245, 158, 11, 0.35); color: inherit; }
+:root.dark-theme .reader-content mark.current { background: rgba(245, 158, 11, 0.65); outline-color: #f59e0b; }
+:root.dark-theme .reader-ocr-note { background: var(--warning-bg, #452a0a); border-color: var(--warning-border, #7c2d12); color: var(--warning-text, #fb923c); }
+
+.reader-content .reader-li {
+  margin: 0 0 6px 22px; position: relative;
+}
+.reader-content .reader-li::before {
+  content: "4"; position: absolute; left: -20px; color: #0d9488; font-weight: 700;
+}
