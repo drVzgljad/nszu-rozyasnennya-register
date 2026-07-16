@@ -34,6 +34,61 @@
     <div class="stats" id="resolutionStats" aria-label="Статистика постанови"></div>
   </header>
 
+  <!-- Актуальність документа (автооновлення: infocenter_pipeline/track_documents.py) -->
+  <section id="docStatusSection" style="max-width:1480px; margin:18px auto 0; padding:0 24px; display:none;">
+    <div id="docStatusBanner" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; padding:14px 20px; border:1px solid var(--line,#e3edf3); border-radius:14px; background:var(--surface,#fff); font-size:13.5px;"></div>
+    <div id="docAmendments" style="display:none; margin-top:10px; padding:16px 20px; border:1px solid var(--line,#e3edf3); border-radius:14px; background:var(--surface,#fff);"></div>
+  </section>
+  <script type="module">
+  (async () => {
+    function escapeHtml(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+    try {
+      const res = await fetch('data/document_status.json');
+      if (!res.ok) return;
+      const st = await res.json();
+      const banner = document.getElementById('docStatusBanner');
+      const listEl = document.getElementById('docAmendments');
+      const n = (st.amendments || []).length;
+      const checked = st.checked_at ? new Date(st.checked_at).toLocaleString('uk-UA', {day:'numeric', month:'long', hour:'2-digit', minute:'2-digit'}) : '';
+      banner.innerHTML = `
+        <span style="font-weight:800; color:var(--ink,#1f3347);">📅 Поточна редакція: ${escapeHtml(st.current_revision) || '—'}</span>
+        <span style="color:var(--muted,#647688);">підстава: № ${escapeHtml(st.current_basis) || '—'}</span>
+        <span style="color:var(--muted,#647688);">змін внесено: ${n}</span>
+        <span style="color:var(--muted,#647688); font-size:12px;">автоперевірка: ${checked}</span>
+        <button id="docAmendToggle" type="button" style="margin-left:auto; padding:6px 14px; border-radius:999px; border:1px solid var(--line,#e3edf3); background:transparent; color:var(--accent,#0284c7); font-weight:700; cursor:pointer; font-size:12.5px;">Показати зміни ▾</button>
+        <a href="${escapeHtml(st.rada_url)}" target="_blank" rel="noopener" style="font-size:12.5px; color:var(--accent,#0284c7); font-weight:600; text-decoration:none;">zakon.rada.gov.ua ↗</a>`;
+      listEl.innerHTML = (st.amendments || []).map(a => `
+        <details style="margin-bottom:10px;">
+          <summary style="cursor:pointer; font-weight:700; color:var(--ink,#1f3347); font-size:13.5px;">
+            ${escapeHtml(a.effective_date)} — ${escapeHtml(a.title)} <span style="color:var(--muted,#647688); font-weight:600;">(№ ${escapeHtml(a.doc_id)})</span>
+          </summary>
+          <div style="margin:8px 0 4px; font-size:12.5px;">
+            <a href="${escapeHtml(a.url)}" target="_blank" rel="noopener" style="color:var(--accent,#0284c7);">Повний документ на zakon.rada.gov.ua ↗</a>
+          </div>
+          <pre data-file="${escapeHtml(a.text_file || '')}" style="white-space:pre-wrap; font-family:inherit; font-size:12.5px; line-height:1.55; color:var(--muted,#4a5b6c); max-height:420px; overflow:auto; background:var(--soft,#f6fafd); padding:12px 14px; border-radius:10px;">Завантаження тексту змін...</pre>
+        </details>`).join('') || '<em>Змін ще не було.</em>';
+      document.getElementById('docStatusSection').style.display = 'block';
+      document.getElementById('docAmendToggle').addEventListener('click', (e) => {
+        const open = listEl.style.display !== 'none';
+        listEl.style.display = open ? 'none' : 'block';
+        e.target.textContent = open ? 'Показати зміни ▾' : 'Сховати зміни ▴';
+      });
+      listEl.querySelectorAll('details').forEach(d => {
+        d.addEventListener('toggle', async () => {
+          if (!d.open) return;
+          const pre = d.querySelector('pre');
+          if (!pre || !pre.dataset.file || pre.dataset.loaded) return;
+          pre.dataset.loaded = '1';
+          try {
+            const r = await fetch('data/amendments/' + pre.dataset.file);
+            pre.textContent = r.ok ? await r.text() : 'Текст недоступний — див. посилання вище.';
+          } catch { pre.textContent = 'Текст недоступний — див. посилання вище.'; }
+        });
+      });
+    } catch (e) { console.warn('doc status load failed', e); }
+  })();
+  </script>
+
   <main class="resolution-layout">
     <section class="resolution-browser" aria-label="Пошук норм постанови та Порядку">
       <div class="search-panel resolution-search">
