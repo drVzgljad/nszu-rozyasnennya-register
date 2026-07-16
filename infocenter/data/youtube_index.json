@@ -38,38 +38,92 @@
   {
     "video_id": "p_G8DcZkZmQ",
     "channel_handle": "@MIS_MedEir",
-    "title": "40+ Screening. Screening registry/report/printable form",
+    "title": "Скринінг 40+. Реєстр записів на скринінг/звіт/друкована форма",
     "url": "https://www.youtube.com/watch?v=p_G8DcZkZmQ",
-    "published_at": "2026-06-26",
+    "published_at": "2026-06-25",
     "duration_sec": 223,
     "playlist_position": 3,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "скринінг 40+",
+      "національний скринінг",
+      "реєстр записів",
+      "звіт скринінг здоров'я",
+      "друкована форма",
+      "консультативний висновок",
+      "QR-код відгуку",
+      "МІС МедЕір",
+      "електронні медичні записи"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/p_G8DcZkZmQ/mqdefault.jpg"
   },
   {
     "video_id": "RmR0QA8FPvo",
     "channel_handle": "@MIS_MedEir",
-    "title": "40+ Screening. EHR Registration",
+    "title": "Скринінг 40+. Реєстрація ЕМЗ",
     "url": "https://www.youtube.com/watch?v=RmR0QA8FPvo",
-    "published_at": "2026-06-17",
-    "duration_sec": 1005,
+    "published_at": "2026-05-26",
+    "duration_sec": 1004,
     "playlist_position": 4,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 8,
+      "questionable": 2,
+      "false": 0
+    },
+    "topics": [
+      "національний скринінг",
+      "скринінг 40+",
+      "ЕСОЗ",
+      "електронні медичні записи",
+      "епізод А98",
+      "епізод профілактика",
+      "ICPC-2",
+      "МКХ-10",
+      "Z00.8",
+      "SCORE2",
+      "FINDRISC",
+      "діагностичний звіт",
+      "спостереження LOINC",
+      "інші джерела фінансування",
+      "MedEir"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/RmR0QA8FPvo/mqdefault.jpg"
   },
   {
     "video_id": "I6Ehrhpabow",
     "channel_handle": "@MIS_MedEir",
-    "title": "Automatic generation of services provided in eHealth discharge summaries.",
+    "title": "Автоматичне формування наданих послуг у виписці eHealth.",
     "url": "https://www.youtube.com/watch?v=I6Ehrhpabow",
-    "published_at": "2026-06-17",
+    "published_at": "2026-05-26",
     "duration_sec": 489,
     "playlist_position": 5,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 2,
+      "questionable": 3,
+      "false": 0
+    },
+    "topics": [
+      "виписний епікриз",
+      "стаціонарна виписка",
+      "надані послуги",
+      "ЕСОЗ",
+      "НК 026",
+      "класифікатор медичних інтервенцій",
+      "кодування послуг",
+      "діагностичний звіт",
+      "процедури",
+      "мапінг лабораторних послуг",
+      "КЕП",
+      "МедЕйр"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/I6Ehrhpabow/mqdefault.jpg"
   },
   {
     "video_id": "6bwgJ7NL9Cg",
@@ -207,14 +261,30 @@
   {
     "video_id": "hiBkHfqTuoY",
     "channel_handle": "@MIS_MedEir",
-    "title": "Screening 40+. Registration of EN for tests | Referral templates",
+    "title": "Скринінг 40+. Реєстрація ЕН на аналізи | Шаблони направлень",
     "url": "https://www.youtube.com/watch?v=hiBkHfqTuoY",
-    "published_at": "2026-02-17",
+    "published_at": "2026-01-29",
     "duration_sec": 253,
     "playlist_position": 14,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 1,
+      "questionable": 1,
+      "false": 0
+    },
+    "topics": [
+      "скринінг 40+",
+      "національний скринінг",
+      "електронне направлення",
+      "лабораторні дослідження",
+      "ліпідний профіль",
+      "вуглеводний обмін",
+      "шаблони направлень",
+      "інші джерела фінансування",
+      "МІС МедЕір",
+      "групи скринінгу"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/hiBkHfqTuoY/mqdefault.jpg"
   },
   {
     "video_id": "k4lmoN9CLq4",
@@ -3135,14 +3205,26 @@
   {
     "video_id": "jyqKseYqJ8E",
     "channel_handle": "@MICHealth24",
-    "title": "NSZU Reconciliation Protocols",
+    "title": "Протоколи звірки з НСЗУ",
     "url": "https://www.youtube.com/watch?v=jyqKseYqJ8E",
-    "published_at": "2026-06-17",
-    "duration_sec": 76,
+    "published_at": "2026-06-05",
+    "duration_sec": 75,
     "playlist_position": 18,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 1,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "протоколи звірки з НСЗУ",
+      "ID ЄМЗ",
+      "копіювання масиву ID",
+      "форма 066",
+      "звітність НСЗУ",
+      "Health24"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/jyqKseYqJ8E/mqdefault.jpg"
   },
   {
     "video_id": "ac7QROs18Js",
@@ -3195,14 +3277,28 @@
   {
     "video_id": "Onw5ed5Pjdc",
     "channel_handle": "@MICHealth24",
-    "title": "NSZU Reconciliation Protocol",
+    "title": "Протокол звірки з НСЗУ",
     "url": "https://www.youtube.com/watch?v=Onw5ed5Pjdc",
-    "published_at": "2026-06-17",
+    "published_at": "2026-05-28",
     "duration_sec": 170,
     "playlist_position": 23,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 1,
+      "questionable": 2,
+      "false": 0
+    },
+    "topics": [
+      "звірка з НСЗУ",
+      "розшифровка НСЗУ",
+      "електронні медичні записи",
+      "статуси ЕМЗ",
+      "ДРГ",
+      "оплата за пакетами",
+      "звіт про медичні послуги",
+      "Health24"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/Onw5ed5Pjdc/mqdefault.jpg"
   },
   {
     "video_id": "AQKdXZN401M",
@@ -3785,12 +3881,28 @@
     "channel_handle": "@MICHealth24",
     "title": "Перевірки зарахованих пакетів послуг по пацієнту",
     "url": "https://www.youtube.com/watch?v=Ph9sweN4dp8",
-    "published_at": "2026-02-17",
+    "published_at": "2026-01-29",
     "duration_sec": 248,
     "playlist_position": 72,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 6,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "перевірка зарахування послуг",
+      "пакет 9 амбулаторна допомога",
+      "пріоритетні амбулаторні пакети 10-15",
+      "пакет 60 ВЛК",
+      "пакет 54 амбулаторна реабілітація",
+      "мобільна паліативна допомога",
+      "оплата НСЗУ",
+      "епізоди лікування",
+      "МІС Health24",
+      "ДСГ"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/Ph9sweN4dp8/mqdefault.jpg"
   },
   {
     "video_id": "KfJN6i5SsOc",
@@ -3965,24 +4077,56 @@
     "channel_handle": "@MICHealth24",
     "title": "Проведення прийому \"Національний скринінг 40+\" ПМД (первинка)",
     "url": "https://www.youtube.com/watch?v=zt2eZpxveiA",
-    "published_at": "2026-01-17",
+    "published_at": "2025-12-30",
     "duration_sec": 201,
     "playlist_position": 87,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 3,
+      "false": 0
+    },
+    "topics": [
+      "національний скринінг",
+      "скринінг 40+",
+      "первинна медична допомога",
+      "епізод А98",
+      "ICPC-2",
+      "фактори ризику",
+      "діагностичні звіти",
+      "спостереження",
+      "індекс маси тіла",
+      "МІС Health24"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/zt2eZpxveiA/mqdefault.jpg"
   },
   {
     "video_id": "sH5a2IFJB1o",
     "channel_handle": "@MICHealth24",
     "title": "Проведення прийому \"Національний скринінг 40+\" СМД (вторинка)",
     "url": "https://www.youtube.com/watch?v=sH5a2IFJB1o",
-    "published_at": "2026-01-17",
-    "duration_sec": 157,
+    "published_at": "2025-12-30",
+    "duration_sec": 156,
     "playlist_position": 88,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 3,
+      "false": 0
+    },
+    "topics": [
+      "національний скринінг",
+      "скринінг 40+",
+      "спеціалізована медична допомога",
+      "вторинка",
+      "епізод профілактика",
+      "МКХ-10",
+      "діагностичні звіти",
+      "спостереження",
+      "індекс маси тіла",
+      "МІС Health24"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/sH5a2IFJB1o/mqdefault.jpg"
   },
   {
     "video_id": "uGKB7IxKgeU",
@@ -9886,26 +10030,67 @@
   {
     "video_id": "ryxkTTs55ik",
     "channel_handle": "@MICHealth24",
-    "title": "A Nurse's Work in the Health24 System",
+    "title": "Робота медичної сестри в системі Health24",
     "url": "https://www.youtube.com/watch?v=ryxkTTs55ik",
-    "published_at": "2026-06-17",
+    "published_at": "2026-05-22",
     "duration_sec": 3225,
     "playlist_position": 2,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 10,
+      "questionable": 3,
+      "false": 0
+    },
+    "topics": [
+      "медична сестра",
+      "асистент",
+      "ЕСОЗ",
+      "КЕП",
+      "реєстрація працівника",
+      "кібербезпека",
+      "декларація",
+      "імунізація",
+      "електронне направлення",
+      "пакетна обробка",
+      "діагностичний звіт",
+      "стаціонар",
+      "листок лікарських призначень",
+      "пакет 9",
+      "Health24"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/ryxkTTs55ik/mqdefault.jpg"
   },
   {
     "video_id": "X2zCs0qGQFg",
     "channel_handle": "@MICHealth24",
-    "title": "New Cybersecurity Rules from eHealth: What Will Change for Healthcare Workers?",
+    "title": "Нові правила кібербезпеки від ЕСОЗ: що зміниться для медичних працівників?",
     "url": "https://www.youtube.com/watch?v=X2zCs0qGQFg",
-    "published_at": "2026-05-17",
-    "duration_sec": 3493,
+    "published_at": "2026-05-13",
+    "duration_sec": 3492,
     "playlist_position": 3,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 4,
+      "questionable": 7,
+      "false": 0
+    },
+    "topics": [
+      "кібербезпека",
+      "ЕСОЗ",
+      "двофакторна автентифікація",
+      "наказ НСЗУ 138",
+      "КЕП",
+      "Дія",
+      "блокування акаунта",
+      "одна активна сесія",
+      "медична сестра",
+      "асистент",
+      "е-направлення",
+      "е-рецепт",
+      "декларація",
+      "Health24"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/X2zCs0qGQFg/mqdefault.jpg"
   },
   {
     "video_id": "TlqNHt5XfmI",
@@ -9984,14 +10169,34 @@
   {
     "video_id": "XL4oF4g5fEI",
     "channel_handle": "@MICHealth24",
-    "title": "How to optimize the 40+ Screening with Health24",
+    "title": "Як оптимізувати проведення Скринінгу 40+ з Health24",
     "url": "https://www.youtube.com/watch?v=XL4oF4g5fEI",
-    "published_at": "2026-04-17",
+    "published_at": "2026-04-08",
     "duration_sec": 2760,
     "playlist_position": 7,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 4,
+      "questionable": 8,
+      "false": 0
+    },
+    "topics": [
+      "національний скринінг",
+      "скринінг 40+",
+      "Health24",
+      "анкетування",
+      "онлайн-запис",
+      "Дія.Картка",
+      "2000 грн",
+      "POS-термінал",
+      "еквайринг",
+      "анкета зворотного зв'язку",
+      "закриття епізоду",
+      "е-направлення",
+      "інші джерела фінансування",
+      "ЕКГ"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/XL4oF4g5fEI/mqdefault.jpg"
   },
   {
     "video_id": "i6PDDrTgaN4",
@@ -10041,12 +10246,34 @@
     "channel_handle": "@MICHealth24",
     "title": "Програма медичних гарантій 2026: що нового? (Проєкт постанови)",
     "url": "https://www.youtube.com/watch?v=czrb2uroTMU",
-    "published_at": "2026-01-17",
-    "duration_sec": 2996,
+    "published_at": "2025-12-24",
+    "duration_sec": 2995,
     "playlist_position": 10,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 15,
+      "questionable": 3,
+      "false": 2
+    },
+    "topics": [
+      "ПМГ-2026",
+      "проєкт постанови",
+      "Постанова № 1808",
+      "первинна медична допомога",
+      "капітаційна ставка",
+      "стаціонарні пакети",
+      "референтні значення",
+      "ДСГ",
+      "понижуючі коефіцієнти",
+      "пакет 9 амбулаторний",
+      "онкогематологія",
+      "психіатрична допомога",
+      "реабілітація немовлят",
+      "перехідне фінансування",
+      "мобільна паліативна допомога",
+      "будинки дитини"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/czrb2uroTMU/mqdefault.jpg"
   },
   {
     "video_id": "czinzfEt-eM",
