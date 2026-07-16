@@ -25,6 +25,7 @@ const PAGE_SIZE = 24;
 let feedList = [];
 let activeCategory = 'all';
 let activeQuick = null;
+let activePeriodDays = null; // null = увесь час
 let visibleCount = PAGE_SIZE;
 
 const byId = (id) => document.getElementById(id);
@@ -55,6 +56,18 @@ async function init() {
       activeQuick = activeQuick === btn.dataset.quick ? null : btn.dataset.quick;
       quick.querySelectorAll('.quick-filter').forEach(b =>
         b.classList.toggle('active', b.dataset.quick === activeQuick));
+      visibleCount = PAGE_SIZE;
+      filterAndRender();
+    });
+  }
+
+  const periods = byId('periodFilters');
+  if (periods) {
+    periods.addEventListener('click', (e) => {
+      const btn = e.target.closest('.period-pill');
+      if (!btn) return;
+      activePeriodDays = btn.dataset.days === 'all' ? null : parseInt(btn.dataset.days, 10);
+      periods.querySelectorAll('.period-pill').forEach(b => b.classList.toggle('active', b === btn));
       visibleCount = PAGE_SIZE;
       filterAndRender();
     });
@@ -125,15 +138,24 @@ function renderUpdateTime() {
 function filterAndRender() {
   const searchVal = byId('feedSearch') ? byId('feedSearch').value.toLowerCase().trim() : '';
 
+  let cutoff = null;
+  if (activePeriodDays) {
+    cutoff = new Date();
+    cutoff.setHours(0, 0, 0, 0);
+    cutoff.setDate(cutoff.getDate() - (activePeriodDays - 1));
+  }
+
   const filtered = feedList.filter(n => {
     const matchesCategory = activeCategory === 'all' || n.category === activeCategory;
     const matchesQuick = !activeQuick || QUICK_FILTERS[activeQuick](n);
+    const itemDate = new Date(n.published_at || n.created_at);
+    const matchesPeriod = !cutoff || (!isNaN(itemDate) && itemDate >= cutoff);
     const matchesSearch = !searchVal ||
       (n.title && n.title.toLowerCase().includes(searchVal)) ||
       (n.summary && n.summary.toLowerCase().includes(searchVal)) ||
       (n.source_name && n.source_name.toLowerCase().includes(searchVal)) ||
       (n.tags && n.tags.some(tag => tag.toLowerCase().includes(searchVal)));
-    return matchesCategory && matchesQuick && matchesSearch;
+    return matchesCategory && matchesQuick && matchesPeriod && matchesSearch;
   });
 
   renderGrid(filtered);

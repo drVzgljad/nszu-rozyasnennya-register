@@ -6,7 +6,7 @@
   <title>НавігаторПМГ26 | Інфоцентр</title>
   <link rel="stylesheet" href="../styles.css?v=20260531e">
   <link rel="stylesheet" href="../news/news.css">
-  <link rel="stylesheet" href="infocenter.css?v=20260716d">
+  <link rel="stylesheet" href="infocenter.css?v=20260716e">
   <link rel="stylesheet" href="../auth-v2.css?v=20260615b">
   <script type="module" src="../auth-v2.js?v=20260716c"></script>
 </head>
@@ -65,6 +65,14 @@
         <button class="quick-filter qf-moz" data-quick="moz" type="button">⚕️ МОЗ</button>
       </div>
 
+      <div class="quick-filters" id="periodFilters" aria-label="Фільтр за датою">
+        <span class="quick-filters-label">Період:</span>
+        <button class="period-pill active" data-days="all" type="button">Увесь час</button>
+        <button class="period-pill" data-days="1" type="button">Сьогодні</button>
+        <button class="period-pill" data-days="7" type="button">7 днів</button>
+        <button class="period-pill" data-days="30" type="button">30 днів</button>
+      </div>
+
       <div class="search-panel feed-search">
         <label class="search">
           <span>Пошук у новинах</span>
@@ -97,6 +105,6 @@
     </div>
   </footer>
 
-  <script type="module" src="infocenter.js?v=20260716d" defer></script>
+  <script type="module" src="infocenter.js?v=20260716e" defer></script>
 </body>
 </html>

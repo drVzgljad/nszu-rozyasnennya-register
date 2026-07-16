@@ -95,6 +95,27 @@
 
 .quick-filter:hover { transform: translateY(-1px); filter: brightness(1.03); }
 
+/* Пігулки періоду (фільтр за датою) */
+.period-pill {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #fff;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  transition: border-color .15s, background .15s, color .15s;
+}
+
+.period-pill:hover { border-color: rgba(0, 111, 201, 0.4); color: var(--ink); }
+
+.period-pill.active {
+  background: var(--ink, #1f3347);
+  border-color: var(--ink, #1f3347);
+  color: #fff;
+}
+
 .quick-filter.qf-pmg  { background: #fff0f6; color: #eb2f96; border-color: #ffadd2; }
 .quick-filter.qf-nszu { background: #e9f7f3; color: #08705e; border-color: #9fd8cb; }
 .quick-filter.qf-moz  { background: #e6f7ff; color: #096dd9; border-color: #91d5ff; }
@@ -672,6 +693,18 @@
 
 :root.dark-theme .yt-summary-body { color: var(--ink); }
 :root.dark-theme .yt-summary-body blockquote { background: var(--soft); color: var(--muted); }
+
+:root.dark-theme .period-pill {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--muted);
+}
+:root.dark-theme .period-pill:hover { border-color: rgba(56, 189, 248, 0.4); color: var(--ink); }
+:root.dark-theme .period-pill.active {
+  background: var(--accent, #0ea5e9);
+  border-color: var(--accent, #0ea5e9);
+  color: #0f172a;
+}
 
 :root.dark-theme .show-more-btn {
   background: var(--surface);
