@@ -132,6 +132,17 @@
   align-items: start;
 }
 
+/* Захист від «grid blowout»: довгий контент (назви доручень у select,
+   посилання в описах) не має розширювати колонки за межі екрана */
+.cabinet-split-grid > * {
+  min-width: 0;
+}
+
+.cabinet-panel {
+  min-width: 0;
+  max-width: 100%;
+}
+
 @media (max-width: 960px) {
   .cabinet-split-grid {
     grid-template-columns: 1fr;
@@ -376,6 +387,8 @@
 
 .form-group input, .form-group select, .form-group textarea {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   padding: 10px 12px;
   border: 1.5px solid var(--p-line);
   border-radius: 8px;
@@ -396,6 +409,10 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+
+.form-row > .form-group {
+  min-width: 0;
 }
 
 /* Checkbox options grid layout */
@@ -524,6 +541,8 @@
   padding: 10px 14px;
   font-size: 13px;
   transition: all 0.15s;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .today-log-card:hover {
