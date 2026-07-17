@@ -2,38 +2,87 @@
   {
     "video_id": "H8yDSes_GU8",
     "channel_handle": "@MIS_MedEir",
-    "title": "EMR. Surgical interventions",
+    "title": "ЕМЗ. Оперативне втручання",
     "url": "https://www.youtube.com/watch?v=H8yDSes_GU8",
-    "published_at": "2026-07-08",
-    "duration_sec": 590,
+    "published_at": "2026-07-06",
+    "duration_sec": 589,
     "playlist_position": 0,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "оперативне втручання",
+      "стаціонарний модуль",
+      "електронні медичні записи",
+      "передопераційний огляд анестезіолога",
+      "протокол знеболення",
+      "переливання трансфузійних рідин",
+      "протокол патологоанатомічного дослідження",
+      "класифікатор медичних інтервенцій",
+      "шкала ASA",
+      "МІС МедЕйр"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/H8yDSes_GU8/mqdefault.jpg"
   },
   {
     "video_id": "TI2JLvEtCig",
     "channel_handle": "@MIS_MedEir",
-    "title": "Quality Indicators. PHC Dashboard, PHC Consolidated Report",
+    "title": "Індикатори якості. Дашборд ПМД, зведений звіт ПМД",
     "url": "https://www.youtube.com/watch?v=TI2JLvEtCig",
-    "published_at": "2026-07-08",
+    "published_at": "2026-07-06",
     "duration_sec": 369,
     "playlist_position": 1,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 4,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "індикатори якості ПМД",
+      "дашборд лікаря",
+      "наказ МОЗ 504",
+      "скринінги раннього виявлення",
+      "верифікація пацієнтів",
+      "капітаційна ставка",
+      "вакцинація дітей",
+      "профілактичні огляди 40+",
+      "зведений звіт про роботу лікарів",
+      "реімбурсація",
+      "МІС МедЕйр"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/TI2JLvEtCig/mqdefault.jpg"
   },
   {
     "video_id": "DgHXxxoS6Dk",
     "channel_handle": "@MIS_MedEir",
-    "title": "Patient Personal Data in eHealth",
+    "title": "Персональні дані пацієнта в ЕСОЗ",
     "url": "https://www.youtube.com/watch?v=DgHXxxoS6Dk",
-    "published_at": "2026-07-08",
-    "duration_sec": 132,
+    "published_at": "2026-07-06",
+    "duration_sec": 131,
     "playlist_position": 2,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 1,
+      "questionable": 2,
+      "false": 0
+    },
+    "topics": [
+      "ЕСОЗ",
+      "персональні дані пацієнта",
+      "реєстраційні дані",
+      "згода пацієнта",
+      "доступ до даних",
+      "код верифікації",
+      "SMS-підтвердження",
+      "електронна медична картка",
+      "МІС МедЕйр",
+      "захист персональних даних"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/DgHXxxoS6Dk/mqdefault.jpg"
   },
   {
     "video_id": "p_G8DcZkZmQ",
@@ -2989,26 +3038,56 @@
   {
     "video_id": "aDhiGAQPiQk",
     "channel_handle": "@MICHealth24",
-    "title": "Templates for forms and documents in the Health24 HIS",
+    "title": "Шаблони форм та документів в МІС Health24",
     "url": "https://www.youtube.com/watch?v=aDhiGAQPiQk",
     "published_at": "2026-07-16",
-    "duration_sec": 141,
+    "duration_sec": 140,
     "playlist_position": 0,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "шаблони документів",
+      "Health24",
+      "форми МОЗ",
+      "анамнез та об'єктивне обстеження",
+      "електронна медична картка",
+      "скринінг здоров'я",
+      "друк документів",
+      "особистий кабінет пацієнта",
+      "продуктовий туторіал"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/aDhiGAQPiQk/mqdefault.jpg"
   },
   {
     "video_id": "vjYt9UFoulM",
     "channel_handle": "@MICHealth24",
-    "title": "Conclusion template in a diagnostic report in HIS Health24",
+    "title": "Шаблон заключення в діагностичному звіті в МІС Health24",
     "url": "https://www.youtube.com/watch?v=vjYt9UFoulM",
     "published_at": "2026-07-16",
-    "duration_sec": 93,
+    "duration_sec": 92,
     "playlist_position": 1,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "МІС Health24",
+      "діагностичний звіт",
+      "шаблон заключення",
+      "шаблон документа",
+      "медичний запис",
+      "електронне направлення",
+      "спостереження",
+      "підписання в ЕСОЗ",
+      "картка пацієнта"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/vjYt9UFoulM/mqdefault.jpg"
   },
   {
     "video_id": "ui2s_J8mz1I",
@@ -9990,11 +10069,33 @@
     "title": "Шаблони в Health24: як лікарю заощадити час на документації",
     "url": "https://www.youtube.com/watch?v=KiKofApXDPo",
     "published_at": "2026-07-16",
-    "duration_sec": null,
+    "duration_sec": 2395,
     "playlist_position": 0,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 5,
+      "questionable": 2,
+      "false": 0
+    },
+    "topics": [
+      "шаблони",
+      "Health24",
+      "медичні записи",
+      "анамнез та об'єктивне обстеження",
+      "спостереження",
+      "план лікування",
+      "лікарські призначення",
+      "е-рецепт",
+      "електронне направлення",
+      "діагностичні звіти",
+      "форми МОЗ",
+      "форма 027/о",
+      "національний скринінг 40+",
+      "індикатори ПМД",
+      "виписка зі стаціонару",
+      "ЕСОЗ"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/KiKofApXDPo/mqdefault.jpg"
   },
   {
     "video_id": "DuGnx0h_WU8",
