@@ -66,8 +66,8 @@
     "playlist_position": 2,
     "status": "analyzed",
     "stats": {
-      "confirmed": 1,
-      "questionable": 2,
+      "confirmed": 2,
+      "questionable": 1,
       "false": 0
     },
     "topics": [
@@ -239,8 +239,8 @@
     "playlist_position": 8,
     "status": "analyzed",
     "stats": {
-      "confirmed": 1,
-      "questionable": 4,
+      "confirmed": 4,
+      "questionable": 1,
       "false": 0
     },
     "topics": [
@@ -268,8 +268,8 @@
     "playlist_position": 9,
     "status": "analyzed",
     "stats": {
-      "confirmed": 5,
-      "questionable": 1,
+      "confirmed": 6,
+      "questionable": 0,
       "false": 0
     },
     "topics": [
