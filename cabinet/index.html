@@ -6,9 +6,9 @@
   <title>Особистий кабінет експерта — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260603d">
   <link rel="stylesheet" href="../auth-v2.css?v=20260714">
-  <link rel="stylesheet" href="cabinet.css?v=20260716a">
+  <link rel="stylesheet" href="cabinet.css?v=20260717">
   <script type="module" src="../auth-v2.js?v=20260716c"></script>
-  <script type="module" src="cabinet.js?v=20260714"></script>
+  <script type="module" src="cabinet.js?v=20260717"></script>
 </head>
 <body data-required-role="expert">
 <div class="portal">
@@ -96,7 +96,23 @@
     <!-- Split Grid Layout -->
     <div class="cabinet-split-grid">
       
-      <!-- Left Column: Tasks List -->
+      <!-- Left Column: Completed Work Feed + Tasks List -->
+      <div class="cabinet-left-column">
+
+      <!-- Completed Work Feed -->
+      <section class="cabinet-panel today-feed-panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+          <h2 style="margin: 0; font-size: 16px;">✅ Виконана робота</h2>
+          <div style="font-size: 12.5px; font-weight: 700; color: var(--accent-deep);" id="today-summary-label">
+            0.0 год · 0.00 балів
+          </div>
+        </div>
+
+        <div id="today-logs-list" class="today-logs-list">
+          <div class="empty-state">Сьогодні ви ще не вносили записи про діяльність.</div>
+        </div>
+      </section>
+
       <section class="cabinet-panel tasks-panel">
         <div class="panel-header">
           <h2>📋 Мої доручення та завдання</h2>
@@ -116,7 +132,9 @@
         </div>
       </section>
 
-      <!-- Right Column: Work Logging Form & Today's Logs -->
+      </div><!-- /.cabinet-left-column -->
+
+      <!-- Right Column: Work Logging Form -->
       <div class="cabinet-right-column">
         
         <!-- Logging Form Card -->
@@ -164,6 +182,11 @@
             <div class="form-group" id="form-askod-reg-group" style="display: none;">
               <label for="askod_reg_number">Реєстраційний номер в АСКОД *</label>
               <input type="text" id="askod_reg_number" placeholder="наприклад, 1234/12-26">
+            </div>
+
+            <div class="form-group" id="form-askod-reply-group" style="display: none;">
+              <label for="askod_reply_number">Відповідь на лист № (необов'язково)</label>
+              <input type="text" id="askod_reply_number" placeholder="номер вхідного листа, на який надається відповідь">
             </div>
 
             <div class="form-row">
@@ -288,20 +311,6 @@
             </button>
           </form>
         </section>
-        
-        <!-- Today's Activity Feed -->
-        <section class="cabinet-panel today-feed-panel">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-            <h2 style="margin: 0; font-size: 16px;">⏱️ Стрічка активності за сьогодні</h2>
-            <div style="font-size: 12.5px; font-weight: 700; color: var(--accent-deep);" id="today-summary-label">
-              0.0 год · 0.00 балів
-            </div>
-          </div>
-          
-          <div id="today-logs-list" class="today-logs-list">
-            <div class="empty-state">Сьогодні ви ще не вносили записи про діяльність.</div>
-          </div>
-        </section>
       </div>
 
     </div>
@@ -357,6 +366,62 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" id="modal-btn-close">Закрити</button>
         <button class="btn btn-primary" id="modal-btn-log-work">✍️ Внести роботу за цим дорученням</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Log Edit Modal ────────────────────────────── -->
+  <div class="modal-overlay" id="log-edit-modal" style="display: none;">
+    <div class="modal-card" style="max-width: 520px;">
+      <button class="modal-close-btn" id="log-edit-close-btn" aria-label="Закрити">&times;</button>
+
+      <div class="modal-header">
+        <h3>✏️ Редагування запису про виконану роботу</h3>
+      </div>
+
+      <div class="modal-body-scroll">
+        <form id="log-edit-form" autocomplete="off" novalidate>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="edit_start_time">Час початку *</label>
+              <input type="time" id="edit_start_time" required>
+            </div>
+            <div class="form-group">
+              <label for="edit_duration">Тривалість (хв) *</label>
+              <input type="number" id="edit_duration" min="5" max="480" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="edit_severity">Ступінь важкості *</label>
+            <select id="edit_severity">
+              <option value="easy">Легкий (коеф. 1.0)</option>
+              <option value="medium">Середній (коеф. 1.3)</option>
+              <option value="hard">Складний (коеф. 1.8)</option>
+              <option value="expert">Експертний (коеф. 2.5)</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="edit-askod-num-group">
+            <label for="edit_askod_number">Реєстраційний номер в АСКОД *</label>
+            <input type="text" id="edit_askod_number" placeholder="наприклад, 1234/12-26">
+          </div>
+
+          <div class="form-group" id="edit-askod-reply-group">
+            <label for="edit_reply_number">Відповідь на лист № (необов'язково)</label>
+            <input type="text" id="edit_reply_number" placeholder="номер вхідного листа">
+          </div>
+
+          <div class="form-group">
+            <label for="edit_description">Короткий опис виконаної роботи *</label>
+            <textarea id="edit_description" rows="3" required></textarea>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="log-edit-cancel">Скасувати</button>
+        <button class="btn btn-primary" id="log-edit-save">💾 Зберегти зміни</button>
       </div>
     </div>
   </div>

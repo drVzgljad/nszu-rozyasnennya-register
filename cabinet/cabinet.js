@@ -22,21 +22,52 @@ const COEFFICIENTS = {
 
 const BRANCH_CONFIG = {
   askod: {
+    // Типи документів за довідником АСКОД (код — назва)
     types: [
-      "Лист",
-      "Звернення громадян",
-      "Запит на інформацію",
-      "Внутрішній документ",
-      "Протокол",
+      "01 — Лист",
+      "22 — Судові документи",
+      "44 — Претензія",
+      "45 — Нормативно-правові акти",
+      "46 — Запрошення",
+      "47 — Лист-запит",
+      "49 — Проект розпорядження КМУ",
+      "50 — Проект ЗУ",
+      "51 — Проект указу Президента України",
+      "52 — Проект постанови КМУ",
       "Інше (вказати в описі)"
     ],
+    // Справи за номенклатурою Департаменту (АСКОД)
     categories: [
-      "Зміст роз'яснення ПМГ",
-      "Договірні питання",
-      "Надавачі медичних послуг",
-      "Листи МОЗ / КМУ",
-      "Звернення пацієнта",
-      "Контрактування ЗОЗ",
+      "1-01 — Заяви з кадрових питань",
+      "1-02 — Заява про перерахування коштів",
+      "1-03 — Документи при звільненні працівника",
+      "1-04 — Оцінювання державних службовців",
+      "1-05 — Проходження випробування",
+      "8-01 — Закони, укази, акти ВРУ та Президента",
+      "8-02 — Постанови, розпорядження КМУ",
+      "8-03 — Доручення Верховної Ради України",
+      "8-04 — Доручення Офісу Президента України",
+      "8-05 — Доручення Кабінету Міністрів України",
+      "8-06 — Доручення (листи) МОЗ України",
+      "8-07 — Доручення Голови НСЗУ та заступників",
+      "8-08 — Накази НСЗУ з основної діяльності",
+      "8-09 — Депутатські запити та звернення",
+      "8-10 — Запити на публічну інформацію",
+      "8-11 — Звернення громадян",
+      "8-12 — Службові записки, довідки з основної діяльності",
+      "8-13 — Положення про Департамент, посадові інструкції",
+      "8-14 — Листування з ЦОВВ та місцевими органами влади",
+      "8-15 — Листування з підприємствами та установами",
+      "8-16 — Доручення директора департаменту",
+      "8-17 — Рішення колегії НСЗУ",
+      "8-18 — Журнал інструктажів з охорони праці",
+      "8-19 — Плани роботи Департаменту",
+      "8-20 — Звіти про виконання планів Департаменту",
+      "8.2-01 — Засідання колегіальних органів",
+      "8.2-02 — Службові записки відділу",
+      "8.2-03 — Положення про відділ, посадові інструкції",
+      "8.2-04 — Плани роботи відділу",
+      "8.2-05 — Звіти про виконання планів відділу",
       "Інше"
     ]
   },
@@ -454,15 +485,17 @@ function handleBranchChange() {
   const checklistGroup = document.getElementById('subtask-checklist-group');
   const progressGroup = document.getElementById('task-progress-group');
   const askodGroup = document.getElementById('form-askod-reg-group');
+  const askodReplyGroup = document.getElementById('form-askod-reply-group');
   const typeWrapper = document.getElementById('task-type-wrapper');
   const catWrapper = document.getElementById('task-category-wrapper');
 
   if (branch === 'tasks') {
     taskSelectorGroup.style.display = 'block';
     askodGroup.style.display = 'none';
+    askodReplyGroup.style.display = 'none';
     typeWrapper.style.display = 'none';
     catWrapper.style.display = 'none';
-    
+
     // Trigger checklist show if task is already selected
     handleTaskChange();
   } else {
@@ -474,8 +507,10 @@ function handleBranchChange() {
 
     if (branch === 'askod') {
       askodGroup.style.display = 'block';
+      askodReplyGroup.style.display = 'block';
     } else {
       askodGroup.style.display = 'none';
+      askodReplyGroup.style.display = 'none';
     }
 
     populateTypesAndCategories(branch);
@@ -640,17 +675,34 @@ function renderTodayLogsFeed() {
 
     const startFormatted = log.start_time ? log.start_time.slice(0, 5) : '';
 
+    // Підсвічений реєстраційний номер листа АСКОД + номер листа, на який надано відповідь
+    const askodNumBadge = log.askod_reg_number
+      ? `<span class="askod-num-badge" title="Реєстраційний номер в АСКОД">№ ${escapeHtml(log.askod_reg_number)}</span>`
+      : '';
+    const replyNumBadge = log.reply_to_number
+      ? `<span class="reply-num-badge" title="Відповідь на вхідний лист">↩ на № ${escapeHtml(log.reply_to_number)}</span>`
+      : '';
+
     card.innerHTML = `
       <div class="today-log-info">
         <div class="today-log-header">
           <span class="today-log-tag ${branchBadgeClass}">${branchLabel}</span>
           <span class="today-log-time">${startFormatted} · ${log.duration_minutes} хв</span>
+          ${askodNumBadge}
+          ${replyNumBadge}
         </div>
         <div class="today-log-desc" title="${escapeHtml(log.description)}">${escapeHtml(log.description)}</div>
       </div>
       <div class="today-log-points">${parseFloat(log.score).toFixed(2)} б.</div>
+      <button class="btn-edit-log" data-id="${log.id}" title="Редагувати запис">✏️</button>
       <button class="btn-delete-log" data-id="${log.id}" title="Видалити">&times;</button>
     `;
+
+    // Handle log editing
+    const editBtn = card.querySelector('.btn-edit-log');
+    editBtn.addEventListener('click', () => {
+      openLogEditModal(log);
+    });
 
     // Handle single log deletion
     const delBtn = card.querySelector('.btn-delete-log');
@@ -672,6 +724,90 @@ function renderTodayLogsFeed() {
   if (summaryLabel) {
     summaryLabel.textContent = `${totalHours} год · ${totalScore.toFixed(2)} балів`;
   }
+}
+
+// ── Log Edit Modal logic ─────────────────────────
+let editingLog = null;
+
+function openLogEditModal(log) {
+  editingLog = log;
+
+  document.getElementById('edit_start_time').value = log.start_time ? log.start_time.slice(0, 5) : '';
+  document.getElementById('edit_duration').value = log.duration_minutes || 60;
+  document.getElementById('edit_severity').value = log.severity_level || 'medium';
+  document.getElementById('edit_askod_number').value = log.askod_reg_number || '';
+  document.getElementById('edit_reply_number').value = log.reply_to_number || '';
+  document.getElementById('edit_description').value = log.description || '';
+
+  // Поля номерів АСКОД показуємо лише для записів гілки АСКОД
+  const isAskod = log.branch === 'askod';
+  document.getElementById('edit-askod-num-group').style.display = isAskod ? 'flex' : 'none';
+  document.getElementById('edit-askod-reply-group').style.display = isAskod ? 'flex' : 'none';
+
+  document.getElementById('log-edit-modal').style.display = 'flex';
+}
+
+function closeLogEditModal() {
+  editingLog = null;
+  document.getElementById('log-edit-modal').style.display = 'none';
+}
+
+async function saveLogEdit() {
+  if (!editingLog) return;
+
+  const startVal = document.getElementById('edit_start_time').value;
+  const duration = parseInt(document.getElementById('edit_duration').value, 10);
+  const severity = document.getElementById('edit_severity').value;
+  const askodNum = document.getElementById('edit_askod_number').value.trim();
+  const replyNum = document.getElementById('edit_reply_number').value.trim();
+  const desc = document.getElementById('edit_description').value.trim();
+
+  if (!desc) {
+    alert("Вкажіть короткий опис виконаної роботи.");
+    return;
+  }
+  if (!duration || duration < 5) {
+    alert("Вкажіть коректну тривалість (від 5 хвилин).");
+    return;
+  }
+  if (editingLog.branch === 'askod' && !askodNum) {
+    alert("Вкажіть реєстраційний номер АСКОД.");
+    return;
+  }
+
+  const coef = COEFFICIENTS[severity] || 1.0;
+  const score = parseFloat(((duration / 60) * coef).toFixed(2));
+
+  const btn = document.getElementById('log-edit-save');
+  btn.disabled = true;
+  btn.textContent = 'Збереження...';
+
+  const updateData = {
+    start_time: startVal ? startVal + ':00' : editingLog.start_time,
+    duration_minutes: duration,
+    severity_level: severity,
+    complexity_coefficient: coef,
+    score: score,
+    description: desc
+  };
+
+  if (editingLog.branch === 'askod') {
+    updateData.askod_reg_number = askodNum;
+    updateData.reply_to_number = replyNum || null;
+  }
+
+  const { error } = await sb.from('skod_logs').update(updateData).eq('id', editingLog.id);
+
+  btn.disabled = false;
+  btn.textContent = '💾 Зберегти зміни';
+
+  if (error) {
+    alert("Помилка збереження змін: " + error.message);
+    return;
+  }
+
+  closeLogEditModal();
+  await loadDatabaseData();
 }
 
 async function handleLogFormSubmit(e) {
@@ -718,12 +854,12 @@ async function handleLogFormSubmit(e) {
     }
 
     let askodNum = null;
+    let askodReplyNum = null;
     let assignedTaskId = null;
 
     if (branch === 'askod') {
-      taskType = 'Робота в АСКОД';
-      taskCategory = 'Опрацювання документа';
       askodNum = document.getElementById('askod_reg_number').value.trim();
+      askodReplyNum = document.getElementById('askod_reply_number').value.trim() || null;
       if (!askodNum) {
         alert("Вкажіть реєстраційний номер АСКОД.");
         btn.disabled = false;
@@ -758,6 +894,7 @@ async function handleLogFormSubmit(e) {
       description: desc,
       assigned_task_id: assignedTaskId,
       askod_reg_number: askodNum,
+      reply_to_number: askodReplyNum,
       include_37d: include37d
     };
 
@@ -1190,9 +1327,25 @@ function setupUIEvents() {
 
   if (closeBtn1) closeBtn1.addEventListener('click', closeModal);
   if (closeBtn2) closeBtn2.addEventListener('click', closeModal);
-  
+
   window.addEventListener('click', (e) => {
     if (e.target === modal) closeModal();
+  });
+
+  // 8. Log edit modal events
+  const editModal = document.getElementById('log-edit-modal');
+  const editCloseBtn = document.getElementById('log-edit-close-btn');
+  const editCancelBtn = document.getElementById('log-edit-cancel');
+  const editSaveBtn = document.getElementById('log-edit-save');
+  const editForm = document.getElementById('log-edit-form');
+
+  if (editCloseBtn) editCloseBtn.addEventListener('click', closeLogEditModal);
+  if (editCancelBtn) editCancelBtn.addEventListener('click', closeLogEditModal);
+  if (editSaveBtn) editSaveBtn.addEventListener('click', saveLogEdit);
+  if (editForm) editForm.addEventListener('submit', (e) => { e.preventDefault(); saveLogEdit(); });
+
+  window.addEventListener('click', (e) => {
+    if (e.target === editModal) closeLogEditModal();
   });
 
   // Trigger default branch setup
