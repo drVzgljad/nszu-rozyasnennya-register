@@ -177,50 +177,115 @@
   {
     "video_id": "6bwgJ7NL9Cg",
     "channel_handle": "@MIS_MedEir",
-    "title": "Cytological studies. Laboratory module",
+    "title": "Цитологічні дослідження. Лабораторний модуль",
     "url": "https://www.youtube.com/watch?v=6bwgJ7NL9Cg",
-    "published_at": "2026-05-17",
-    "duration_sec": 499,
+    "published_at": "2026-05-11",
+    "duration_sec": 498,
     "playlist_position": 6,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "МІС МедЕйр",
+      "лабораторний модуль",
+      "цитологічні дослідження",
+      "цитологія гінекологічна та негінекологічна",
+      "класифікація Бетесда",
+      "МКХ-10 морфологія новоутворень",
+      "направлення на аналізи",
+      "реєстр цитологічних досліджень",
+      "робоче місце лікаря-лаборанта"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/6bwgJ7NL9Cg/mqdefault.jpg"
   },
   {
     "video_id": "v8hjkXjJiCg",
     "channel_handle": "@MIS_MedEir",
-    "title": "2FA. Two-factor authentication. Digital signature login",
+    "title": "2FA. Двофакторна автентифікація. Вхід за цифровим підписом",
     "url": "https://www.youtube.com/watch?v=v8hjkXjJiCg",
-    "published_at": "2026-05-17",
-    "duration_sec": 335,
+    "published_at": "2026-05-11",
+    "duration_sec": 334,
     "playlist_position": 7,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "двофакторна автентифікація",
+      "2FA",
+      "КЕП",
+      "ЕЦП",
+      "сертифікат ключа",
+      "файловий носій",
+      "токен",
+      "вхід у МІС",
+      "налаштування ЕЦП",
+      "МІС МедЕйр"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/v8hjkXjJiCg/mqdefault.jpg"
   },
   {
     "video_id": "W2sSIt2Ei40",
     "channel_handle": "@MIS_MedEir",
     "title": "2FA. Двофакторна автентифікація. Вхід за Дія Підпис, БанкID та ЕЦП",
     "url": "https://www.youtube.com/watch?v=W2sSIt2Ei40",
-    "published_at": "2026-05-17",
-    "duration_sec": 204,
+    "published_at": "2026-04-27",
+    "duration_sec": 203,
     "playlist_position": 8,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 1,
+      "questionable": 4,
+      "false": 0
+    },
+    "topics": [
+      "двофакторна автентифікація",
+      "2FA",
+      "id.gov.ua",
+      "Дія.Підпис",
+      "BankID",
+      "КЕП",
+      "ЕСОЗ",
+      "заборона мультисесії",
+      "автоматичне завершення сесії",
+      "ПІБ у електронному ключі",
+      "МІС МедЕйр"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/W2sSIt2Ei40/mqdefault.jpg"
   },
   {
     "video_id": "yWMF3uwMQ5o",
     "channel_handle": "@MIS_MedEir",
     "title": "Опрацювання заявок на Декларації",
     "url": "https://www.youtube.com/watch?v=yWMF3uwMQ5o",
-    "published_at": "2026-03-17",
+    "published_at": "2026-03-11",
     "duration_sec": 342,
     "playlist_position": 9,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 5,
+      "questionable": 1,
+      "false": 0
+    },
+    "topics": [
+      "декларація про вибір лікаря",
+      "заявки на декларації",
+      "електронний кабінет пацієнта",
+      "ліміти декларацій",
+      "наказ МОЗ 504",
+      "наказ МОЗ 503",
+      "первинна медична допомога",
+      "зміна лікаря",
+      "припинення декларації",
+      "канал ПІС",
+      "МІС МедЕйр"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/yWMF3uwMQ5o/mqdefault.jpg"
   },
   {
     "video_id": "kbIp7uNkjtI",
@@ -3092,110 +3157,221 @@
   {
     "video_id": "ui2s_J8mz1I",
     "channel_handle": "@MICHealth24",
-    "title": "Medical appointment templates in the Health24 MIS treatment plan",
+    "title": "Шаблон призначень в плані лікування в МІС Health24",
     "url": "https://www.youtube.com/watch?v=ui2s_J8mz1I",
     "published_at": "2026-07-16",
     "duration_sec": 116,
     "playlist_position": 2,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "МІС Health24",
+      "план лікування",
+      "шаблони призначень",
+      "лікарські призначення",
+      "ЕСОЗ",
+      "підписання послуг",
+      "автоматизація роботи лікаря"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/ui2s_J8mz1I/mqdefault.jpg"
   },
   {
     "video_id": "8lwlyUcT0ZU",
     "channel_handle": "@MICHealth24",
-    "title": "Referral templates in the Health24 HIS",
+    "title": "Шаблон направлень в МІС Health24",
     "url": "https://www.youtube.com/watch?v=8lwlyUcT0ZU",
     "published_at": "2026-07-16",
     "duration_sec": 56,
     "playlist_position": 3,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "МІС Health24",
+      "направлення",
+      "шаблони послуг",
+      "електронне направлення",
+      "автоматизація роботи лікаря"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/8lwlyUcT0ZU/mqdefault.jpg"
   },
   {
     "video_id": "iqqg7NNraMw",
     "channel_handle": "@MICHealth24",
-    "title": "Prescription template in HIS Health24",
+    "title": "Шаблон рецепту в МІС Health24",
     "url": "https://www.youtube.com/watch?v=iqqg7NNraMw",
     "published_at": "2026-07-16",
-    "duration_sec": 78,
+    "duration_sec": 77,
     "playlist_position": 4,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "МІС Health24",
+      "електронний рецепт",
+      "шаблон рецепта",
+      "медична програма",
+      "ЕСОЗ",
+      "виписування рецептів"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/iqqg7NNraMw/mqdefault.jpg"
   },
   {
     "video_id": "9yO1nyi4ZT8",
     "channel_handle": "@MICHealth24",
-    "title": "Observation Templates in Health24 HIS",
+    "title": "Шаблон спостережень в МІС Health24",
     "url": "https://www.youtube.com/watch?v=9yO1nyi4ZT8",
     "published_at": "2026-07-16",
-    "duration_sec": 68,
+    "duration_sec": 67,
     "playlist_position": 5,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "МІС Health24",
+      "спостереження",
+      "коди спостережень",
+      "шаблони спостережень",
+      "взаємодія з пацієнтом",
+      "медичні записи"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/9yO1nyi4ZT8/mqdefault.jpg"
   },
   {
     "video_id": "UqKEFxHZcGs",
     "channel_handle": "@MICHealth24",
-    "title": "Service Template in Health24 HIS",
+    "title": "Шаблон послуг в МІС  Health24",
     "url": "https://www.youtube.com/watch?v=UqKEFxHZcGs",
     "published_at": "2026-07-16",
     "duration_sec": 60,
     "playlist_position": 6,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "МІС Health24",
+      "шаблон послуг",
+      "медичний запис",
+      "процедури",
+      "діагностичні звіти",
+      "автоматизація роботи лікаря"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/UqKEFxHZcGs/mqdefault.jpg"
   },
   {
     "video_id": "Ty1RpMkQCuA",
     "channel_handle": "@MICHealth24",
-    "title": "Anamnesis and Physical Examination Template in Health24 HIS",
+    "title": "Шаблон анамнезу та об'єктивного обстеження в МІС Health24",
     "url": "https://www.youtube.com/watch?v=Ty1RpMkQCuA",
     "published_at": "2026-07-16",
     "duration_sec": 138,
     "playlist_position": 7,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "МІС Health24",
+      "анамнез",
+      "об'єктивне обстеження",
+      "медична документація",
+      "електронна картка пацієнта",
+      "шаблони документів",
+      "друк документів",
+      "доступ пацієнта до документів"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/Ty1RpMkQCuA/mqdefault.jpg"
   },
   {
     "video_id": "8L3MBBAxFyg",
     "channel_handle": "@MICHealth24",
-    "title": "Medical record template in Health24 HIS",
+    "title": "Шаблон медичного запису в МІС Health24",
     "url": "https://www.youtube.com/watch?v=8L3MBBAxFyg",
     "published_at": "2026-07-16",
     "duration_sec": 60,
     "playlist_position": 8,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "МІС Health24",
+      "медичний запис",
+      "шаблон медзапису",
+      "епізод медичної допомоги",
+      "автоматизація роботи лікаря"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/8L3MBBAxFyg/mqdefault.jpg"
   },
   {
     "video_id": "T8dnflG5u8s",
     "channel_handle": "@MICHealth24",
-    "title": "Ordering medicine via \"Ukrposhta.Apteka\" in the Health24 mobile app",
+    "title": "Замовлення ліків через \"Укрпошта.Аптека\" у мобільному застосунку Health24",
     "url": "https://www.youtube.com/watch?v=T8dnflG5u8s",
-    "published_at": "2026-07-12",
+    "published_at": "2026-07-10",
     "duration_sec": 36,
     "playlist_position": 9,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "Health24",
+      "мобільний застосунок",
+      "Укрпошта.Аптека",
+      "електронний рецепт",
+      "замовлення ліків",
+      "доставка ліків",
+      "медкарта пацієнта"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/T8dnflG5u8s/mqdefault.jpg"
   },
   {
     "video_id": "rCDvZuyWzog",
     "channel_handle": "@MICHealth24",
     "title": "Замовлення ліків через \"Укрпошта.Аптека\" у МІС Health24",
     "url": "https://www.youtube.com/watch?v=rCDvZuyWzog",
-    "published_at": "2026-07-11",
+    "published_at": "2026-07-10",
     "duration_sec": 70,
     "playlist_position": 10,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "МІС Health24",
+      "Укрпошта.Аптека",
+      "електронний рецепт",
+      "код погашення рецепта",
+      "замовлення ліків",
+      "доставка ліків",
+      "ЕСОЗ"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/rCDvZuyWzog/mqdefault.jpg"
   },
   {
     "video_id": "RwkblfQXX9g",
@@ -10198,12 +10374,26 @@
     "channel_handle": "@MICHealth24",
     "title": "Спільний доступ до медичних документів у Health24: нові можливості для лікаря та пацієнта",
     "url": "https://www.youtube.com/watch?v=TlqNHt5XfmI",
-    "published_at": "2026-05-17",
+    "published_at": "2026-05-07",
     "duration_sec": 1250,
     "playlist_position": 4,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 1,
+      "false": 0
+    },
+    "topics": [
+      "Health24",
+      "спільний доступ до документів",
+      "медичний кабінет пацієнта",
+      "електронний медичний архів",
+      "контроль доступу пацієнта",
+      "завантаження документів",
+      "конфіденційність медичних даних",
+      "мобільний застосунок Health24"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/TlqNHt5XfmI/mqdefault.jpg"
   },
   {
     "video_id": "atTLs-etqjY",
@@ -10304,12 +10494,23 @@
     "channel_handle": "@MICHealth24",
     "title": "Результати розіграшу до дня народження Health24",
     "url": "https://www.youtube.com/watch?v=i6PDDrTgaN4",
-    "published_at": "2026-04-17",
-    "duration_sec": 711,
+    "published_at": "2026-03-18",
+    "duration_sec": 710,
     "playlist_position": 8,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "Health24",
+      "розіграш",
+      "маркетинг",
+      "день народження компанії",
+      "прямий ефір"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/i6PDDrTgaN4/mqdefault.jpg"
   },
   {
     "video_id": "PpnSzSGFSw8",
