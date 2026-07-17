@@ -319,14 +319,30 @@
   {
     "video_id": "HPhP9-woYeg",
     "channel_handle": "@MIS_MedEir",
-    "title": "Equipment in the EMS. References to equipment used in providing medical care",
+    "title": "Обладнання в ЕМЗ. Посилання на використане обладнання при надані медичної допомоги",
     "url": "https://www.youtube.com/watch?v=HPhP9-woYeg",
-    "published_at": "2026-03-17",
-    "duration_sec": 190,
+    "published_at": "2026-02-23",
+    "duration_sec": 189,
     "playlist_position": 11,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 2,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "обладнання в ЕМЗ",
+      "посилання на використане обладнання",
+      "процедури",
+      "діагностичний звіт",
+      "спостереження",
+      "ЕСОЗ",
+      "МІС МедЕйр",
+      "реєстрація обладнання",
+      "місце надання послуг",
+      "КЕП"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/HPhP9-woYeg/mqdefault.jpg"
   },
   {
     "video_id": "6rD5GLjsEtk",
@@ -363,14 +379,30 @@
   {
     "video_id": "FQg06GVPw8c",
     "channel_handle": "@MIS_MedEir",
-    "title": "Making a separate entry in Interactions (Consultations/Excerpts) by mistake",
+    "title": "Внесення помилковим окремого запису у Взаємодії (Консультації/Виписки)",
     "url": "https://www.youtube.com/watch?v=FQg06GVPw8c",
-    "published_at": "2026-02-17",
+    "published_at": "2026-01-29",
     "duration_sec": 204,
     "playlist_position": 13,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 3,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "помилково внесений запис",
+      "виправлення помилок",
+      "взаємодія",
+      "скасування сутності",
+      "діагностичний звіт",
+      "процедура",
+      "імунізація",
+      "електронні медичні записи",
+      "ЕСОЗ",
+      "МІС МедЕір"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/FQg06GVPw8c/mqdefault.jpg"
   },
   {
     "video_id": "hiBkHfqTuoY",
@@ -403,38 +435,86 @@
   {
     "video_id": "k4lmoN9CLq4",
     "channel_handle": "@MIS_MedEir",
-    "title": "e-Request for DSR and test strips | Changes to the assigned Treatment Plan",
+    "title": "е-Запит на ДЗР та тест-смужки | Зміни в призначені Плану лікування",
     "url": "https://www.youtube.com/watch?v=k4lmoN9CLq4",
-    "published_at": "2026-02-17",
+    "published_at": "2026-01-29",
     "duration_sec": 335,
     "playlist_position": 15,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 6,
+      "questionable": 1,
+      "false": 0
+    },
+    "topics": [
+      "електронний запит",
+      "медичні вироби",
+      "тест-смужки",
+      "глюкометр",
+      "ДЗР",
+      "допоміжні засоби реабілітації",
+      "план лікування",
+      "медична програма",
+      "реімбурсація",
+      "ЕСОЗ",
+      "МІС МедЕір",
+      "КЕП"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/k4lmoN9CLq4/mqdefault.jpg"
   },
   {
     "video_id": "H4n0VEqKkFI",
     "channel_handle": "@MIS_MedEir",
-    "title": "Issuance (repayment) of Medical Products. DZR and test strips",
+    "title": "Видача (погашення) Медичних виробів. ДЗР та тест-смужки",
     "url": "https://www.youtube.com/watch?v=H4n0VEqKkFI",
-    "published_at": "2026-02-17",
+    "published_at": "2026-01-29",
     "duration_sec": 146,
     "playlist_position": 16,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 3,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "видача медичних виробів",
+      "погашення е-запиту",
+      "медичні вироби",
+      "ДЗР",
+      "допоміжні пристрої",
+      "тест-смужки",
+      "взаємодія",
+      "СМД",
+      "ЕСОЗ",
+      "МІС МедЕір"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/H4n0VEqKkFI/mqdefault.jpg"
   },
   {
     "video_id": "1iXfjtnlCfI",
     "channel_handle": "@MIS_MedEir",
-    "title": "Outpatient consultation. Involved specialists",
+    "title": "Консиліум в амбулаторному прийому. Залучені спеціалісти",
     "url": "https://www.youtube.com/watch?v=1iXfjtnlCfI",
-    "published_at": "2026-01-17",
+    "published_at": "2025-12-30",
     "duration_sec": 99,
     "playlist_position": 17,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "консиліум",
+      "залучені спеціалісти",
+      "тип взаємодії",
+      "амбулаторний прийом",
+      "спеціалізована медична допомога",
+      "взаємодія",
+      "ЕСОЗ",
+      "МІС МедЕір"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/1iXfjtnlCfI/mqdefault.jpg"
   },
   {
     "video_id": "bdY6TTGuzxI",
@@ -3378,72 +3458,142 @@
     "channel_handle": "@MICHealth24",
     "title": "Оформлення замовлення на сайті \"Укрпошта.Аптека\"",
     "url": "https://www.youtube.com/watch?v=RwkblfQXX9g",
-    "published_at": "2026-07-11",
+    "published_at": "2026-07-10",
     "duration_sec": 98,
     "playlist_position": 11,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "Укрпошта.Аптека",
+      "електронний рецепт",
+      "код погашення рецепта",
+      "замовлення ліків онлайн",
+      "доставка ліків",
+      "доплата за препарат",
+      "національний кешбек",
+      "МІС туторіал"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/RwkblfQXX9g/mqdefault.jpg"
   },
   {
     "video_id": "kwyYCgadgok",
     "channel_handle": "@MICHealth24",
     "title": "Двофакторна автентифікація в Health24 через мобільний застосунок для лікарів",
     "url": "https://www.youtube.com/watch?v=kwyYCgadgok",
-    "published_at": "2026-07-03",
+    "published_at": "2026-06-30",
     "duration_sec": 24,
     "playlist_position": 12,
-    "status": "pending",
+    "status": "no_captions",
     "stats": null,
-    "topics": []
+    "topics": [],
+    "thumbnail_url": "https://i.ytimg.com/vi/kwyYCgadgok/mqdefault.jpg"
   },
   {
     "video_id": "kpapnn4uEZI",
     "channel_handle": "@MICHealth24",
-    "title": "\"Select Medical Records\" button during inpatient discharge",
+    "title": "Кнопка \"Обрати мед. записи\" при виписці пацієнта зі стаціонару",
     "url": "https://www.youtube.com/watch?v=kpapnn4uEZI",
-    "published_at": "2026-07-03",
-    "duration_sec": 57,
+    "published_at": "2026-06-30",
+    "duration_sec": 56,
     "playlist_position": 13,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "виписка зі стаціонару",
+      "ЕСОЗ",
+      "медичні записи",
+      "діагностичні звіти",
+      "процедури",
+      "госпіталізація",
+      "МІС туторіал"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/kpapnn4uEZI/mqdefault.jpg"
   },
   {
     "video_id": "-_6nElpm4fI",
     "channel_handle": "@MICHealth24",
-    "title": "Using a Discharge Summary Created by Another Practitioner and Adding Diagnostic Reports and Proce...",
+    "title": "Використання виписки створеної іншим працівником з додаванням ДЗ і процедур із локальних документів",
     "url": "https://www.youtube.com/watch?v=-_6nElpm4fI",
-    "published_at": "2026-07-03",
+    "published_at": "2026-06-29",
     "duration_sec": 146,
     "playlist_position": 14,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "виписка зі стаціонару",
+      "зміна лікуючого лікаря",
+      "автор виписки",
+      "локальні документи",
+      "ЕСОЗ",
+      "процедури",
+      "діагностичні звіти",
+      "послуги",
+      "госпіталізація",
+      "МІС туторіал"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/-_6nElpm4fI/mqdefault.jpg"
   },
   {
     "video_id": "POv32z0wfLw",
     "channel_handle": "@MICHealth24",
-    "title": "Tracking Laboratory Test Results Trends",
+    "title": "Динаміка показників лабораторних досліджень",
     "url": "https://www.youtube.com/watch?v=POv32z0wfLw",
-    "published_at": "2026-07-03",
+    "published_at": "2026-06-29",
     "duration_sec": 66,
     "playlist_position": 15,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "лабораторні дослідження",
+      "динаміка показників",
+      "інтеграція з лабораторною системою",
+      "електронна історія хвороби",
+      "картка пацієнта",
+      "експорт PDF Excel",
+      "МІС туторіал"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/POv32z0wfLw/mqdefault.jpg"
   },
   {
     "video_id": "HzFTFMZ3RMM",
     "channel_handle": "@MICHealth24",
-    "title": "Changing the Interpreter and Executor of a Procedure or Diagnostic Report if Dismissed in eHealth",
+    "title": "Зміна інтерпретатора і виконавця процедури чи ДЗ, якщо його звільнено в ЕСОЗ",
     "url": "https://www.youtube.com/watch?v=HzFTFMZ3RMM",
-    "published_at": "2026-07-03",
-    "duration_sec": 53,
+    "published_at": "2026-06-29",
+    "duration_sec": 52,
     "playlist_position": 16,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 0,
+      "questionable": 0,
+      "false": 0
+    },
+    "topics": [
+      "виписка зі стаціонару",
+      "виконавець процедури",
+      "інтерпретатор діагностичного звіту",
+      "звільнення працівника в ЕСОЗ",
+      "діагностичні звіти",
+      "процедури",
+      "МІС туторіал"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/HzFTFMZ3RMM/mqdefault.jpg"
   },
   {
     "video_id": "Vap78pb18bg",
@@ -10614,24 +10764,64 @@
     "channel_handle": "@MICHealth24",
     "title": "Зміни за пакетом №9 з 1 вересня 2025 року",
     "url": "https://www.youtube.com/watch?v=Ax_57hmGkJw",
-    "published_at": "2025-09-17",
-    "duration_sec": 5736,
+    "published_at": "2025-08-20",
+    "duration_sec": 5735,
     "playlist_position": 12,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 12,
+      "questionable": 5,
+      "false": 2
+    },
+    "topics": [
+      "пакет 9",
+      "амбулаторна допомога",
+      "зміни з 1 вересня 2025",
+      "ОДК23А",
+      "діагнози Z",
+      "профілактичні огляди",
+      "клінічний психолог",
+      "психотерапевт",
+      "накладання пов'язки та знеболення",
+      "лабораторна діагностика",
+      "діагностичний звіт",
+      "кодування ЕМЗ",
+      "ЕСОЗ",
+      "епізод лікування",
+      "денний стаціонар",
+      "оплата один раз на епізод"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/Ax_57hmGkJw/mqdefault.jpg"
   },
   {
     "video_id": "LTNLSMun83Y",
     "channel_handle": "@MICHealth24",
     "title": "Ведення електронної історії хвороби в стаціонарі: шаблони документів",
     "url": "https://www.youtube.com/watch?v=LTNLSMun83Y",
-    "published_at": "2025-08-17",
-    "duration_sec": 3581,
+    "published_at": "2025-07-31",
+    "duration_sec": 3580,
     "playlist_position": 13,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 3,
+      "questionable": 2,
+      "false": 0
+    },
+    "topics": [
+      "стаціонар",
+      "електронна історія хвороби",
+      "шаблони документів",
+      "форма 003",
+      "медична карта стаціонарного хворого",
+      "форма 027",
+      "виписка",
+      "госпіталізація",
+      "щоденники",
+      "конструктор форм",
+      "медичні записи",
+      "Health24"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/LTNLSMun83Y/mqdefault.jpg"
   },
   {
     "video_id": "Gb8kPOiLNQA",
@@ -10668,24 +10858,65 @@
     "channel_handle": "@MICHealth24",
     "title": "Запуск стаціонару через МІС Health24: створення структури",
     "url": "https://www.youtube.com/watch?v=rFR-i7dFeXA",
-    "published_at": "2025-07-17",
-    "duration_sec": 1861,
+    "published_at": "2025-06-03",
+    "duration_sec": 1860,
     "playlist_position": 15,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 7,
+      "questionable": 2,
+      "false": 0
+    },
+    "topics": [
+      "стаціонар",
+      "структура закладу",
+      "відділення",
+      "палати",
+      "ліжка",
+      "ліжковий фонд",
+      "нумератор історії хвороби",
+      "форма 007",
+      "форма 016",
+      "коди спостережень",
+      "пакет 9",
+      "реєстрація медичного обладнання",
+      "кодування інтервенцій",
+      "коефіцієнт 0,8",
+      "чутливі дані",
+      "ЕСОЗ",
+      "Health24"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/rFR-i7dFeXA/mqdefault.jpg"
   },
   {
     "video_id": "14_GzkgYIMA",
     "channel_handle": "@MICHealth24",
     "title": "Реєстрація та облік медичного обладнання в ЕСОЗ",
     "url": "https://www.youtube.com/watch?v=14_GzkgYIMA",
-    "published_at": "2025-07-17",
+    "published_at": "2025-05-27",
     "duration_sec": 2715,
     "playlist_position": 16,
-    "status": "pending",
-    "stats": null,
-    "topics": []
+    "status": "analyzed",
+    "stats": {
+      "confirmed": 5,
+      "questionable": 4,
+      "false": 0
+    },
+    "topics": [
+      "реєстрація обладнання в ЕСОЗ",
+      "наказ МОЗ № 697",
+      "наказ МОЗ № 2243",
+      "Реєстр суб'єктів господарювання",
+      "медичні вироби",
+      "статуси обладнання",
+      "Health24",
+      "імпорт обладнання з Excel",
+      "контрактування 2026",
+      "вимоги до обладнання",
+      "умови закупівлі",
+      "МНП"
+    ],
+    "thumbnail_url": "https://i.ytimg.com/vi/14_GzkgYIMA/mqdefault.jpg"
   },
   {
     "video_id": "Evh84xKIcuc",
