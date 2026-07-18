@@ -456,7 +456,12 @@ function populateTaskDropdown() {
   activeTasks.forEach(t => {
     const opt = document.createElement('option');
     opt.value = t.id;
-    opt.textContent = t.is_ongoing ? `[Постійне] ${t.title}` : t.title;
+    let label = t.is_ongoing ? `[Постійне] ${t.title}` : t.title;
+    if (t.description) {
+      const shortDesc = t.description.length > 60 ? t.description.slice(0, 60) + '…' : t.description;
+      label += ` — ${shortDesc}`;
+    }
+    opt.textContent = label;
     select.appendChild(opt);
   });
 
@@ -555,9 +560,12 @@ function handleTaskChange() {
   const progressInput = document.getElementById('task_progress');
   const progressVal = document.getElementById('task_progress_val');
 
+  const descHint = document.getElementById('task-desc-hint');
+
   if (!taskId) {
     checklistGroup.style.display = 'none';
     progressGroup.style.display = 'none';
+    if (descHint) descHint.style.display = 'none';
     activeTaskForLog = null;
     return;
   }
@@ -566,6 +574,16 @@ function handleTaskChange() {
   activeTaskForLog = task;
 
   if (!task) return;
+
+  // Show task description under the select so the executor sees what the task is about
+  if (descHint) {
+    if (task.description) {
+      descHint.textContent = `📝 ${task.description}`;
+      descHint.style.display = 'block';
+    } else {
+      descHint.style.display = 'none';
+    }
+  }
 
   // Populate progress slider
   if (progressInput && progressVal) {

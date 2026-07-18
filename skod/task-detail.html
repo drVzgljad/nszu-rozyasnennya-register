@@ -369,6 +369,15 @@
             <label style="font-size:12px; font-weight:700; color:var(--p-muted);">Тривалість (хв) *</label>
             <input type="number" id="completion-duration" placeholder="наприклад, 60" min="5" max="480" style="padding: 10px; border-radius:8px; border:1.5px solid var(--p-line); outline:none; font-family:inherit; width:100%;" required>
           </div>
+          <div style="flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size:12px; font-weight:700; color:var(--p-muted);">Ступінь важкості *</label>
+            <select id="completion-severity" style="padding: 10px; border-radius:8px; border:1.5px solid var(--p-line); outline:none; font-family:inherit; width:100%; background: var(--p-surface);">
+              <option value="easy">Легкий (коеф. 1.0)</option>
+              <option value="medium" selected>Середній (коеф. 1.3)</option>
+              <option value="hard">Складний (коеф. 1.8)</option>
+              <option value="expert">Експертний (коеф. 2.5)</option>
+            </select>
+          </div>
         </div>
         <div style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px;">
           <label style="font-size:12px; font-weight:700; color:var(--p-muted);">Опис виконаної роботи *</label>

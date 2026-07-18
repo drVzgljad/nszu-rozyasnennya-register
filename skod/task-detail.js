@@ -1078,11 +1078,13 @@ function setupStaticForms() {
         submitBtn.textContent = 'Збереження...';
       }
 
-      // Save log with standard 1.0 easy complexity
-      const coef = 1.0;
+      // Severity + coefficient synced with the cabinet «Внести виконану роботу» form
+      const SEVERITY_COEFFICIENTS = { easy: 1.0, medium: 1.3, hard: 1.8, expert: 2.5 };
+      const severity = document.getElementById('completion-severity')?.value || 'easy';
+      const coef = SEVERITY_COEFFICIENTS[severity] || 1.0;
       const score = parseFloat(((duration / 60) * coef).toFixed(2));
 
-      // Insert into skod_logs
+      // Insert into skod_logs (task_type/category — same values as the cabinet form writes)
       const logData = {
         user_id: currentUser.id,
         user_name: userProfile.full_name,
@@ -1091,9 +1093,9 @@ function setupStaticForms() {
         start_time: startTime + ':00',
         duration_minutes: duration,
         branch: isAskod ? 'askod' : 'tasks',
-        task_type: isAskod ? 'Робота в АСКОД' : 'Виконання доручення керівництва',
-        category: isAskod ? 'Опрацювання документа' : 'Планове завдання',
-        severity_level: 'easy',
+        task_type: isAskod ? 'Робота в АСКОД' : 'Доручення',
+        category: isAskod ? 'Опрацювання документа' : 'Виконання доручення',
+        severity_level: severity,
         complexity_coefficient: coef,
         score: score,
         status: 'completed',
