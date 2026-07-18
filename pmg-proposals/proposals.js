@@ -18,6 +18,19 @@ const TOPIC_LABELS = {
   'taryfy': 'Тарифи'
 };
 
+const RESPONSE_LABELS = {
+  'sluzhbova': 'Службова записка керівництву',
+  'rozjasnennya': "Роз'яснення НСЗУ",
+  'lyst': 'Лист-відповідь заявнику',
+  'zmina-postanovy': 'Зміни до постанови ПМГ',
+  'zmina-spec': 'Зміни до специфікацій / умов закупівлі',
+  'moz': 'Передати на розгляд МОЗ',
+  'bez-reahuvannya': 'Без реагування (до відома)'
+};
+
+const isProcessed = (p) => !!(p.processed_at || p.analysis || p.implementation || p.risks ||
+  (Array.isArray(p.response_types) && p.response_types.length));
+
 const byId = (id) => document.getElementById(id);
 
 async function init() {
@@ -46,6 +59,11 @@ async function init() {
   byId("btnResReset").addEventListener("click", () => {
     if (selectedProposal) handleResolution(selectedProposal, 'null');
   });
+  byId("editProcessingBtn").addEventListener("click", showProcessingForm);
+  byId("cancelProcessingBtn").addEventListener("click", () => {
+    if (selectedProposal) renderProcessing(selectedProposal);
+  });
+  byId("processingForm").addEventListener("submit", handleProcessingSubmit);
   byId("toggleDescFullscreenBtn").addEventListener("click", showDescriptionModal);
   byId("descModalCloseBtn").addEventListener("click", hideDescriptionModal);
   byId("descModalBackdrop").addEventListener("click", hideDescriptionModal);
@@ -137,12 +155,16 @@ function renderCards(list) {
       ? `<span class="letter-badge">📄 Лист № ${escapeHtml(p.letter_number)}</span>`
       : '';
 
+    const processedBadge = isProcessed(p)
+      ? '<span class="processed-badge">🛠 Опрацьовано</span>'
+      : '';
+
     card.innerHTML = `
       <div class="proposal-card-content">
         <strong>${escapeHtml(p.title)}</strong>
         <div class="proposal-card-meta">
           <p>${metaParts.join(' · ')}</p>
-          <div class="card-badges">${letterBadge}${resolutionBadge}</div>
+          <div class="card-badges">${letterBadge}${processedBadge}${resolutionBadge}</div>
         </div>
       </div>
       <div class="proposal-card-votes">
@@ -214,7 +236,9 @@ async function selectProposal(p) {
   }
 
   byId("detDesc").textContent = p.description;
-  
+
+  renderProcessing(p);
+
   // Show upvotes and downvotes
   byId("detUpvotes").textContent = p.upvotes || 0;
   byId("detDownvotes").textContent = p.downvotes || 0;
@@ -498,13 +522,144 @@ async function handleResolution(proposal, status) {
   }
 }
 
+// ── Опрацювання пропозиції ──
+
+function renderProcessing(p) {
+  byId("processingForm").style.display = "none";
+  byId("processingStatus").textContent = "";
+
+  if (!isProcessed(p)) {
+    byId("processingView").style.display = "none";
+    byId("processingEmpty").style.display = "block";
+    byId("editProcessingBtn").textContent = "🛠 Опрацювати";
+    return;
+  }
+
+  byId("processingEmpty").style.display = "none";
+  byId("processingView").style.display = "block";
+  byId("editProcessingBtn").textContent = "✏️ Редагувати";
+
+  const fillBlock = (blockId, viewId, value) => {
+    byId(blockId).style.display = value ? "block" : "none";
+    byId(viewId).textContent = value || "";
+  };
+
+  fillBlock("procAnalysisBlock", "procAnalysisView", p.analysis);
+  fillBlock("procImplementationBlock", "procImplementationView", p.implementation);
+  fillBlock("procRisksBlock", "procRisksView", p.risks);
+
+  const types = Array.isArray(p.response_types) ? p.response_types : [];
+  const badgesEl = byId("procResponseView");
+  badgesEl.innerHTML = types
+    .filter(t => RESPONSE_LABELS[t])
+    .map(t => `<span class="response-badge">${escapeHtml(RESPONSE_LABELS[t])}</span>`)
+    .join("");
+  byId("procResponseCommentView").textContent = p.response_comment || "";
+  byId("procResponseBlock").style.display = (types.length || p.response_comment) ? "block" : "none";
+
+  byId("procMetaView").textContent = p.processed_by
+    ? `Опрацював(ла): ${p.processed_by}${p.processed_at ? ` · ${formatDate(p.processed_at)}` : ""}`
+    : "";
+}
+
+function showProcessingForm() {
+  const p = selectedProposal;
+  if (!p) return;
+
+  byId("processingEmpty").style.display = "none";
+  byId("processingView").style.display = "none";
+  byId("processingForm").style.display = "block";
+  byId("processingStatus").textContent = "";
+
+  byId("procAnalysis").value = p.analysis || "";
+  byId("procImplementation").value = p.implementation || "";
+  byId("procRisks").value = p.risks || "";
+  byId("procResponseComment").value = p.response_comment || "";
+
+  const types = Array.isArray(p.response_types) ? p.response_types : [];
+  byId("responseOptions").querySelectorAll("input[type=checkbox]").forEach(cb => {
+    cb.checked = types.includes(cb.value);
+  });
+}
+
+async function handleProcessingSubmit(e) {
+  e.preventDefault();
+  const p = selectedProposal;
+  if (!p) return;
+
+  const statusEl = byId("processingStatus");
+  const saveBtn = byId("saveProcessingBtn");
+
+  const analysis = byId("procAnalysis").value.trim();
+  const implementation = byId("procImplementation").value.trim();
+  const risks = byId("procRisks").value.trim();
+  const responseComment = byId("procResponseComment").value.trim();
+  const responseTypes = [...byId("responseOptions").querySelectorAll("input[type=checkbox]:checked")]
+    .map(cb => cb.value);
+
+  if (!analysis && !implementation && !risks && !responseTypes.length && !responseComment) {
+    statusEl.style.color = '#c0392b';
+    statusEl.textContent = 'Заповніть хоча б одне поле опрацювання.';
+    return;
+  }
+
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Збереження...';
+  statusEl.textContent = '';
+
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) {
+    statusEl.style.color = '#c0392b';
+    statusEl.textContent = 'Авторизуйтесь, щоб зберегти опрацювання.';
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Зберегти опрацювання';
+    return;
+  }
+
+  const profileName = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
+  const processedAt = new Date().toISOString();
+
+  const { error } = await sb.from('proposals')
+    .update({
+      analysis: analysis || null,
+      implementation: implementation || null,
+      risks: risks || null,
+      response_types: responseTypes,
+      response_comment: responseComment || null,
+      processed_by: profileName,
+      processed_at: processedAt
+    })
+    .eq('id', p.id);
+
+  saveBtn.disabled = false;
+  saveBtn.textContent = 'Зберегти опрацювання';
+
+  if (error) {
+    statusEl.style.color = '#c0392b';
+    statusEl.textContent = /column|schema/i.test(error.message || '')
+      ? 'У базі ще немає полів опрацювання — виконайте міграцію в Supabase (migration_2026-07-18_proposal_letters.sql).'
+      : error.message;
+  } else {
+    p.analysis = analysis || null;
+    p.implementation = implementation || null;
+    p.risks = risks || null;
+    p.response_types = responseTypes;
+    p.response_comment = responseComment || null;
+    p.processed_by = profileName;
+    p.processed_at = processedAt;
+
+    renderProcessing(p);
+    loadProposals();
+  }
+}
+
 function renderStats() {
   const container = byId("proposalsStats");
   if (!container) return;
 
   const total = proposalsList.length;
   const totalVotes = proposalsList.reduce((acc, p) => acc + (p.upvotes || 0), 0);
-  const mostPopular = total > 0 ? proposalsList[0].upvotes || 0 : 0;
+  const processedCount = proposalsList.filter(isProcessed).length;
 
   container.innerHTML = `
     <div class="stat">
@@ -516,8 +671,8 @@ function renderStats() {
       <span>Підтримок колег</span>
     </div>
     <div class="stat">
-      <strong>${mostPopular}</strong>
-      <span>Макс. голосів</span>
+      <strong>${processedCount}</strong>
+      <span>Опрацьовано</span>
     </div>
   `;
 }

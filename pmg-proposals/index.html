@@ -154,6 +154,75 @@
         </div>
         <div class="proposal-body" id="detDesc">Опис пропозиції...</div>
 
+        <!-- Processing (опрацювання) Section -->
+        <div class="processing-section" id="processingSection">
+          <div class="desc-header-row" style="display: flex; justify-content: space-between; align-items: center; margin: 4px 0 9px;">
+            <div class="section-title" style="margin: 0;">Опрацювання пропозиції</div>
+            <button class="action" id="editProcessingBtn" type="button" style="font-size: 12.5px; padding: 6px 12px;">🛠 Опрацювати</button>
+          </div>
+
+          <div class="processing-empty" id="processingEmpty">Пропозицію ще не опрацьовано. Натисніть «Опрацювати», щоб додати аналіз, варіанти імплементації, ризики та реагування.</div>
+
+          <!-- Read view -->
+          <div class="processing-view" id="processingView" style="display:none">
+            <div class="processing-block" id="procAnalysisBlock">
+              <div class="processing-label">📊 Аналіз пропозиції</div>
+              <div class="processing-text" id="procAnalysisView"></div>
+            </div>
+            <div class="processing-block" id="procImplementationBlock">
+              <div class="processing-label">⚙️ Варіанти імплементації</div>
+              <div class="processing-text" id="procImplementationView"></div>
+            </div>
+            <div class="processing-block" id="procRisksBlock">
+              <div class="processing-label">⚠️ Ризики</div>
+              <div class="processing-text" id="procRisksView"></div>
+            </div>
+            <div class="processing-block" id="procResponseBlock">
+              <div class="processing-label">📨 Реагування на пропозицію</div>
+              <div class="processing-badges" id="procResponseView"></div>
+              <div class="processing-text" id="procResponseCommentView" style="margin-top:6px;"></div>
+            </div>
+            <div class="processing-meta" id="procMetaView"></div>
+          </div>
+
+          <!-- Edit form -->
+          <form class="processing-form" id="processingForm" style="display:none">
+            <div class="form-field">
+              <label for="procAnalysis">Аналіз пропозиції</label>
+              <textarea id="procAnalysis" rows="4" placeholder="Оцінка суті пропозиції, відповідність нормативній базі, поточний стан питання у ПМГ-2026..."></textarea>
+            </div>
+            <div class="form-field">
+              <label for="procImplementation">Варіанти імплементації</label>
+              <textarea id="procImplementation" rows="4" placeholder="Як можна реалізувати: зміни до постанови чи специфікацій, тарифів; етапність, потреба в розрахунках..."></textarea>
+            </div>
+            <div class="form-field">
+              <label for="procRisks">Ризики</label>
+              <textarea id="procRisks" rows="4" placeholder="Фінансові, юридичні, операційні ризики; вплив на мережу надавачів і пацієнтів..."></textarea>
+            </div>
+            <div class="form-field">
+              <label>Варіанти реагування</label>
+              <div class="response-options" id="responseOptions">
+                <label class="checkbox-option"><input type="checkbox" value="sluzhbova"> Службова записка керівництву</label>
+                <label class="checkbox-option"><input type="checkbox" value="rozjasnennya"> Роз'яснення НСЗУ</label>
+                <label class="checkbox-option"><input type="checkbox" value="lyst"> Лист-відповідь заявнику</label>
+                <label class="checkbox-option"><input type="checkbox" value="zmina-postanovy"> Зміни до постанови ПМГ</label>
+                <label class="checkbox-option"><input type="checkbox" value="zmina-spec"> Зміни до специфікацій / умов закупівлі</label>
+                <label class="checkbox-option"><input type="checkbox" value="moz"> Передати на розгляд МОЗ</label>
+                <label class="checkbox-option"><input type="checkbox" value="bez-reahuvannya"> Без реагування (до відома)</label>
+              </div>
+            </div>
+            <div class="form-field">
+              <label for="procResponseComment">Коментар щодо реагування</label>
+              <input type="text" id="procResponseComment" placeholder="Напр.: підготувати службову до 25.07, виконавець — відділ ПМД" autocomplete="off">
+            </div>
+            <div class="form-actions">
+              <button class="action primary" type="submit" id="saveProcessingBtn">Зберегти опрацювання</button>
+              <button class="action" type="button" id="cancelProcessingBtn">Скасувати</button>
+            </div>
+            <div class="form-status" id="processingStatus"></div>
+          </form>
+        </div>
+
         <div class="voting-section">
           <div class="vote-status-box">
             <div class="vote-col">
