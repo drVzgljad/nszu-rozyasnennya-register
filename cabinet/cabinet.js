@@ -494,6 +494,9 @@ function handleBranchChange() {
   const typeWrapper = document.getElementById('task-type-wrapper');
   const catWrapper = document.getElementById('task-category-wrapper');
 
+  const askodToggleGroup = document.getElementById('task-askod-toggle-group');
+  const closeGroup = document.getElementById('task-close-group');
+
   if (branch === 'tasks') {
     taskSelectorGroup.style.display = 'block';
     askodGroup.style.display = 'none';
@@ -507,6 +510,8 @@ function handleBranchChange() {
     taskSelectorGroup.style.display = 'none';
     checklistGroup.style.display = 'none';
     progressGroup.style.display = 'none';
+    if (askodToggleGroup) askodToggleGroup.style.display = 'none';
+    if (closeGroup) closeGroup.style.display = 'none';
     typeWrapper.style.display = 'block';
     catWrapper.style.display = 'block';
 
@@ -565,13 +570,15 @@ function handleTaskChange() {
   const progressVal = document.getElementById('task_progress_val');
 
   const descHint = document.getElementById('task-desc-hint');
-  const askodGroup = document.getElementById('form-askod-reg-group');
-  const askodReplyGroup = document.getElementById('form-askod-reply-group');
+  const askodToggleGroup = document.getElementById('task-askod-toggle-group');
 
   if (!taskId) {
     checklistGroup.style.display = 'none';
     progressGroup.style.display = 'none';
     if (descHint) descHint.style.display = 'none';
+    if (askodToggleGroup) askodToggleGroup.style.display = 'none';
+    const closeGroup = document.getElementById('task-close-group');
+    if (closeGroup) closeGroup.style.display = 'none';
     activeTaskForLog = null;
     return;
   }
@@ -591,27 +598,21 @@ function handleTaskChange() {
     }
   }
 
-  // АСКОД-доручення: показуємо поля номерів АСКОД (як у гілці «Робота в АСКОД»),
-  // але необов'язкові; «відповідь на лист №» підставляємо з вхідного номера доручення
+  // Перемикач «Робота в АСКОД за цим дорученням»: доступний для будь-якого доручення,
+  // для АСКОД-доручень вмикається автоматично; «відповідь на лист №» підставляємо
+  // з вхідного номера доручення
   const isAskodTask = task.task_type === 'askod' || !!task.askod_number;
-  if (askodGroup && askodReplyGroup) {
+  const askodToggle = document.getElementById('task_link_askod');
+  if (askodToggleGroup && askodToggle) {
+    askodToggleGroup.style.display = 'block';
+    askodToggle.checked = isAskodTask;
+
     const regInput = document.getElementById('askod_reg_number');
     const replyInput = document.getElementById('askod_reply_number');
-    const regLabel = askodGroup.querySelector('label');
+    if (regInput) regInput.value = '';
+    if (replyInput) replyInput.value = task.askod_number || '';
 
-    if (isAskodTask) {
-      askodGroup.style.display = 'block';
-      askodReplyGroup.style.display = 'block';
-      if (regLabel) regLabel.textContent = 'Вихідний реєстраційний № в АСКОД (необов\'язково)';
-      if (regInput) regInput.value = '';
-      if (replyInput) replyInput.value = task.askod_number || '';
-    } else {
-      askodGroup.style.display = 'none';
-      askodReplyGroup.style.display = 'none';
-      if (regLabel) regLabel.textContent = 'Реєстраційний номер в АСКОД *';
-      if (regInput) regInput.value = '';
-      if (replyInput) replyInput.value = '';
-    }
+    toggleTaskAskodFields();
   }
 
   // Populate progress slider
@@ -645,6 +646,28 @@ function handleTaskChange() {
   } else {
     checklistGroup.style.display = 'none';
   }
+}
+
+// Показ полів АСКОД у гілці доручень залежно від перемикача «Робота в АСКОД»
+function toggleTaskAskodFields() {
+  const branch = document.getElementById('task_branch').value;
+  if (branch !== 'tasks') return;
+
+  const on = document.getElementById('task_link_askod')?.checked || false;
+  const askodGroup = document.getElementById('form-askod-reg-group');
+  const askodReplyGroup = document.getElementById('form-askod-reply-group');
+  const closeGroup = document.getElementById('task-close-group');
+  const closeCb = document.getElementById('task_close_on_log');
+
+  if (askodGroup) {
+    askodGroup.style.display = on ? 'block' : 'none';
+    const regLabel = askodGroup.querySelector('label');
+    if (regLabel) regLabel.textContent = on ? "Вихідний реєстраційний № в АСКОД (необов'язково)" : 'Реєстраційний номер в АСКОД *';
+  }
+  if (askodReplyGroup) askodReplyGroup.style.display = on ? 'block' : 'none';
+  if (closeGroup) closeGroup.style.display = on ? 'block' : 'none';
+  // Внесення даних в АСКОД за замовчуванням закриває доручення (можна вимкнути)
+  if (closeCb) closeCb.checked = on;
 }
 
 function recalculateProgressFromChecklist() {
@@ -903,6 +926,7 @@ async function handleLogFormSubmit(e) {
     let askodNum = null;
     let askodReplyNum = null;
     let assignedTaskId = null;
+    let closeTaskOnLog = false;
 
     if (branch === 'askod') {
       askodNum = document.getElementById('askod_reg_number').value.trim();
@@ -921,11 +945,13 @@ async function handleLogFormSubmit(e) {
         btn.textContent = '💾 Зберегти виконану роботу';
         return;
       }
-      // АСКОД-доручення: номери АСКОД зберігаємо разом із записом (необов'язкові)
-      const taskAskodGroup = document.getElementById('form-askod-reg-group');
-      if (taskAskodGroup && taskAskodGroup.style.display !== 'none') {
+      // Робота в АСКОД за дорученням: номери зберігаємо разом із записом (необов'язкові),
+      // а внесення в АСКОД (якщо не вимкнено чекбокс) закриває доручення
+      const askodLinked = document.getElementById('task_link_askod')?.checked || false;
+      if (askodLinked) {
         askodNum = document.getElementById('askod_reg_number').value.trim() || null;
         askodReplyNum = document.getElementById('askod_reply_number').value.trim() || null;
+        closeTaskOnLog = document.getElementById('task_close_on_log')?.checked || false;
       }
     }
 
@@ -986,9 +1012,9 @@ async function handleLogFormSubmit(e) {
 
     // 2. If branch is Tasks, update progress, subtasks & comments of the task
     if (branch === 'tasks' && activeTaskForLog) {
-      const progressInput = document.getElementById('task_progress').value;
+      let progressVal = parseInt(document.getElementById('task_progress').value, 10) || 0;
       const subtaskBoxes = document.querySelectorAll('.subtask-log-cb');
-      
+
       const subtasks = activeTaskForLog.subtasks || [];
       subtaskBoxes.forEach(cb => {
         const subId = cb.dataset.id;
@@ -998,16 +1024,23 @@ async function handleLogFormSubmit(e) {
         }
       });
 
+      // Закриття доручення після внесення відповіді в АСКОД
+      if (closeTaskOnLog) {
+        progressVal = 100;
+      }
+
       // Status logic: if progress is 100%, set status to completed. Otherwise set to in_progress
       let taskStatus = activeTaskForLog.status;
-      if (parseInt(progressInput, 10) === 100) {
+      if (progressVal === 100) {
         taskStatus = 'completed';
       } else if (activeTaskForLog.status === 'assigned') {
         taskStatus = 'in_progress';
       }
 
       // Add system comment to document this progress log
-      const systemMsg = `${userProfile.full_name} вніс роботу (${duration} хв) та оновив прогрес до ${progressInput}%: "${desc}"`;
+      const systemMsg = closeTaskOnLog
+        ? `${userProfile.full_name} вніс роботу (${duration} хв), зареєстрував відповідь в АСКОД${askodNum ? ` № ${askodNum}` : ''} та закрив доручення: "${desc}"`
+        : `${userProfile.full_name} вніс роботу (${duration} хв) та оновив прогрес до ${progressVal}%: "${desc}"`;
       const comments = [...(activeTaskForLog.comments || []), {
         id: crypto.randomUUID(),
         author: 'Система',
@@ -1020,7 +1053,7 @@ async function handleLogFormSubmit(e) {
       const { error: taskErr } = await sb
         .from('assigned_tasks')
         .update({
-          progress: parseInt(progressInput, 10),
+          progress: progressVal,
           subtasks: subtasks,
           status: taskStatus,
           comments: comments
@@ -1331,6 +1364,12 @@ function setupUIEvents() {
   const taskSel = document.getElementById('link_assigned_task');
   if (taskSel) {
     taskSel.addEventListener('change', handleTaskChange);
+  }
+
+  // 3b. «Робота в АСКОД за цим дорученням» toggle
+  const taskAskodToggle = document.getElementById('task_link_askod');
+  if (taskAskodToggle) {
+    taskAskodToggle.addEventListener('change', toggleTaskAskodFields);
   }
 
   // 4. Live points inputs changes
