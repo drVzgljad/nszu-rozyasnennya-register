@@ -2439,3 +2439,56 @@
   .global-search-btn .gs-btn-lbl,
   .global-search-btn .gs-btn-kbd { display: none; }
 }
+
+/* ── Global Search bar (рядок між банером і навігацією) ────────── */
+.global-search-row {
+  padding: 4px 0 10px;
+}
+
+.global-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid var(--line, #e3edf3);
+  background: var(--soft, #f2f8fb);
+  color: var(--muted, #647688);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.global-search-bar .gs-bar-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.global-search-bar:hover {
+  background: var(--accent-soft, #eef6fc);
+  border-color: var(--accent, #4a8fc7);
+  color: var(--accent-dark, #2f6b9e);
+  box-shadow: 0 4px 10px rgba(74, 143, 199, 0.1);
+}
+
+:root.dark-theme .global-search-bar {
+  background: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+:root.dark-theme .global-search-bar:hover {
+  background: #334155;
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+@media (max-width: 560px) {
+  .global-search-bar .gs-btn-kbd { display: none; }
+}
