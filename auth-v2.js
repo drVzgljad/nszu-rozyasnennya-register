@@ -16,6 +16,22 @@ let user = null;
 let role = null; // null = guest | 'registered' | 'full'
 let isHead = false;
 
+// Єдиний перелік підтек порталу: якщо сторінка лежить в одній з них,
+// відносні посилання на кореневі ресурси потребують префікса '../'.
+const PORTAL_SUBDIRS = [
+  'algorithms', 'cabinet', 'chat', 'dec', 'expert-proposals', 'infocenter',
+  'news', 'pakety', 'passport', 'pmg-proposals', 'postanova', 'regulatory',
+  'relax', 'reminders', 'skod', 'zoz-dogovr', 'zoz-questions'
+];
+
+function isInPortalSubdir() {
+  return window.location.pathname.split('/').some(part => PORTAL_SUBDIRS.includes(part.toLowerCase()));
+}
+
+function getPathPrefix() {
+  return isInPortalSubdir() ? '../' : './';
+}
+
 function hasAccess(required) {
   if (!required) return true;
   if (!user) return false;
@@ -52,10 +68,7 @@ async function fetchRole() {
 }
 
 function applyAccess() {
-  const pathParts = window.location.pathname.split('/');
-  const isInSubdir = pathParts.some(part => [
-    'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'passport', 'regulatory', 'reminders', 'expert-proposals', 'cabinet', 'infocenter'
-  ].includes(part.toLowerCase()));
+  const isInSubdir = isInPortalSubdir();
   const prefix = isInSubdir ? '../' : './';
   const currentPath = window.location.pathname.toLowerCase();
 
@@ -196,7 +209,7 @@ function applyAccess() {
     const segments = normalized.split('/');
     
     if (normalized === 'index.html') {
-      const isSub = ['pakety', 'postanova', 'algorithms', 'zoz-questions', 'pmg-proposals', 'news', 'chat', 'rozjasnennya.html', 'zoz-dogovr', 'skod', 'dec', 'dept-tree.html', 'passport', 'regulatory', 'expert-proposals', 'cabinet', 'infocenter'].some(s => currentPath.includes(s));
+      const isSub = [...PORTAL_SUBDIRS, 'rozjasnennya.html', 'dept-tree.html'].some(s => currentPath.includes(s));
       return !isSub && (currentPath.endsWith('/') || currentPath.endsWith('index.html'));
     }
     
@@ -971,7 +984,7 @@ async function renderDashboard(dashboardEl, prefix) {
       </div>
 
       <div class="dashboard-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
-        <a href="${prefix}skod/index.html" class="dashboard-action-btn">✍️ Внести роботу</a>
+        <a href="${prefix}cabinet/index.html" class="dashboard-action-btn">✍️ Внести роботу</a>
         <a href="${prefix}skod/reports.html" class="dashboard-action-btn" style="background: var(--p-soft); border: 1px solid var(--p-line); color: var(--p-ink); display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none;">📊 Звіти та аналітика</a>
         ${showManagerAction ? `<a href="${prefix}skod/tasks.html" class="dashboard-action-btn primary">📋 Надати доручення</a>` : ''}
       </div>
@@ -1243,12 +1256,7 @@ function setupNewsRealtime() {
         // Re-render the alert banner dynamically if it's on screen
         const alertBanner = document.getElementById('user-news-alert-banner');
         if (alertBanner) {
-          const pathParts = window.location.pathname.split('/');
-          const isInSubdir = pathParts.some(part => [
-            'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'regulatory', 'infocenter'
-          ].includes(part.toLowerCase()));
-          const prefix = isInSubdir ? '../' : './';
-          renderAlertBanner(alertBanner, prefix);
+          renderAlertBanner(alertBanner, getPathPrefix());
         }
       }
     })
@@ -1266,11 +1274,7 @@ function triggerNewsAlertNotification(newsItem) {
   const isTabHidden = document.hidden || !document.hasFocus();
   if (isTabHidden && Notification.permission === 'granted') {
     const title = newsItem.importance === 'urgent' ? '🚨 Термінове оголошення!' : '⚠️ Важливе оголошення!';
-    const pathParts = window.location.pathname.split('/');
-    const isInSubdir = pathParts.some(part => [
-      'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'regulatory', 'infocenter'
-    ].includes(part.toLowerCase()));
-    const prefix = isInSubdir ? '../' : './';
+    const prefix = getPathPrefix();
 
     const notification = new Notification(title, {
       body: newsItem.title,
@@ -1344,12 +1348,7 @@ function setupTasksRealtime() {
         // Dynamically re-render dashboard list if present on the page
         const dashboardEl = document.getElementById('user-task-dashboard');
         if (dashboardEl) {
-          const pathParts = window.location.pathname.split('/');
-          const isInSubdir = pathParts.some(part => [
-            'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'regulatory', 'infocenter'
-          ].includes(part.toLowerCase()));
-          const prefix = isInSubdir ? '../' : './';
-          renderDashboard(dashboardEl, prefix);
+          renderDashboard(dashboardEl, getPathPrefix());
         }
       }
     })
@@ -1370,11 +1369,7 @@ function triggerTaskAlertNotification(task) {
   const impText = importanceLabels[task.importance] || 'Звичайна важливість';
   const title = `Нове доручення (${impText})`;
 
-  const pathParts = window.location.pathname.split('/');
-  const isInSubdir = pathParts.some(part => [
-    'zoz-questions', 'pmg-proposals', 'news', 'chat', 'pakety', 'postanova', 'algorithms', 'zoz-dogovr', 'skod', 'dec', 'regulatory', 'infocenter'
-  ].includes(part.toLowerCase()));
-  const prefix = isInSubdir ? '../' : './';
+  const prefix = getPathPrefix();
   const targetUrl = prefix + "skod/task-detail.html?id=" + task.id;
 
   const isTabHidden = document.hidden || !document.hasFocus();
