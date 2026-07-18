@@ -764,3 +764,28 @@ async function renderVoters(p) {
 }
 
 document.addEventListener("DOMContentLoaded", init);
+
+/* ── Файли листів із приватного бакета (підписані URL) ── */
+/* letter_url у БД — старий публічний URL; після переведення бакета в приватний
+   доступ іде через короткоживучий підписаний URL при відкритті. */
+const STORAGE_PUBLIC_RE = /\/storage\/v1\/object\/public\/([^/]+)\/([^?]+)/;
+
+async function signedStorageUrl(url) {
+  const m = (url || '').match(STORAGE_PUBLIC_RE);
+  if (!m) return null;
+  try {
+    const { data } = await sb.storage.from(m[1]).createSignedUrl(decodeURIComponent(m[2]), 3600);
+    return (data && data.signedUrl) || null;
+  } catch (_) { return null; }
+}
+
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('a[href*="/storage/v1/object/public/"]');
+  if (!a) return;
+  e.preventDefault();
+  const w = window.open('', '_blank');
+  signedStorageUrl(a.href).then((signed) => {
+    const target = signed || a.href;
+    if (w) { w.location = target; } else { window.open(target, '_blank'); }
+  });
+});

@@ -1182,7 +1182,7 @@ async function handleFileUpload(e) {
 
   if (error) {
     console.error("Storage upload error:", error);
-    alert("Помилка завантаження файлу. Переконайтеся, що в консолі вашого Supabase створено ПУБЛІЧНИЙ бакет з назвою 'chat-attachments'.\nДеталі: " + error.message);
+    alert("Помилка завантаження файлу. Переконайтеся, що в консолі вашого Supabase створено бакет з назвою 'chat-attachments'.\nДеталі: " + error.message);
     if (progressMsg) progressMsg.remove();
     return;
   }
@@ -1962,3 +1962,37 @@ async function deletePrivateDialogue(userId, userName) {
 }
 
 document.addEventListener("DOMContentLoaded", init);
+
+/* ── Вкладення з приватних бакетів (підписані URL) ── */
+/* Старі повідомлення містять публічні URL сховища. Після переведення бакета
+   в приватний доступ іде через короткоживучі підписані URL при відкритті. */
+const STORAGE_PUBLIC_RE = /\/storage\/v1\/object\/public\/([^/]+)\/([^?]+)/;
+
+async function signedStorageUrl(url) {
+  const m = (url || '').match(STORAGE_PUBLIC_RE);
+  if (!m) return null;
+  try {
+    const { data } = await sb.storage.from(m[1]).createSignedUrl(decodeURIComponent(m[2]), 3600);
+    return (data && data.signedUrl) || null;
+  } catch (_) { return null; }
+}
+
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('a[href*="/storage/v1/object/public/"]');
+  if (!a) return;
+  e.preventDefault();
+  const w = window.open('', '_blank');
+  signedStorageUrl(a.href).then((signed) => {
+    const target = signed || a.href;
+    if (w) { w.location = target; } else { window.open(target, '_blank'); }
+  });
+});
+
+function fixStorageImages() {
+  document.querySelectorAll('img[src*="/storage/v1/object/public/"]:not([data-signed])').forEach((img) => {
+    img.dataset.signed = '1';
+    signedStorageUrl(img.src).then((signed) => { if (signed) img.src = signed; });
+  });
+}
+new MutationObserver(fixStorageImages).observe(document.body, { childList: true, subtree: true });
+fixStorageImages();
