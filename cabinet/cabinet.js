@@ -513,6 +513,10 @@ function handleBranchChange() {
     if (branch === 'askod') {
       askodGroup.style.display = 'block';
       askodReplyGroup.style.display = 'block';
+      const regLabel = askodGroup.querySelector('label');
+      if (regLabel) regLabel.textContent = 'Реєстраційний номер в АСКОД *';
+      const replyInput = document.getElementById('askod_reply_number');
+      if (replyInput) replyInput.value = '';
     } else {
       askodGroup.style.display = 'none';
       askodReplyGroup.style.display = 'none';
@@ -561,6 +565,8 @@ function handleTaskChange() {
   const progressVal = document.getElementById('task_progress_val');
 
   const descHint = document.getElementById('task-desc-hint');
+  const askodGroup = document.getElementById('form-askod-reg-group');
+  const askodReplyGroup = document.getElementById('form-askod-reply-group');
 
   if (!taskId) {
     checklistGroup.style.display = 'none';
@@ -582,6 +588,29 @@ function handleTaskChange() {
       descHint.style.display = 'block';
     } else {
       descHint.style.display = 'none';
+    }
+  }
+
+  // АСКОД-доручення: показуємо поля номерів АСКОД (як у гілці «Робота в АСКОД»),
+  // але необов'язкові; «відповідь на лист №» підставляємо з вхідного номера доручення
+  const isAskodTask = task.task_type === 'askod' || !!task.askod_number;
+  if (askodGroup && askodReplyGroup) {
+    const regInput = document.getElementById('askod_reg_number');
+    const replyInput = document.getElementById('askod_reply_number');
+    const regLabel = askodGroup.querySelector('label');
+
+    if (isAskodTask) {
+      askodGroup.style.display = 'block';
+      askodReplyGroup.style.display = 'block';
+      if (regLabel) regLabel.textContent = 'Вихідний реєстраційний № в АСКОД (необов\'язково)';
+      if (regInput) regInput.value = '';
+      if (replyInput) replyInput.value = task.askod_number || '';
+    } else {
+      askodGroup.style.display = 'none';
+      askodReplyGroup.style.display = 'none';
+      if (regLabel) regLabel.textContent = 'Реєстраційний номер в АСКОД *';
+      if (regInput) regInput.value = '';
+      if (replyInput) replyInput.value = '';
     }
   }
 
@@ -757,10 +786,10 @@ function openLogEditModal(log) {
   document.getElementById('edit_reply_number').value = log.reply_to_number || '';
   document.getElementById('edit_description').value = log.description || '';
 
-  // Поля номерів АСКОД показуємо лише для записів гілки АСКОД
-  const isAskod = log.branch === 'askod';
-  document.getElementById('edit-askod-num-group').style.display = isAskod ? 'flex' : 'none';
-  document.getElementById('edit-askod-reply-group').style.display = isAskod ? 'flex' : 'none';
+  // Поля номерів АСКОД: для гілки АСКОД (обов'язкові) та записів за дорученням (необов'язкові)
+  const showAskod = log.branch === 'askod' || log.branch === 'tasks';
+  document.getElementById('edit-askod-num-group').style.display = showAskod ? 'flex' : 'none';
+  document.getElementById('edit-askod-reply-group').style.display = showAskod ? 'flex' : 'none';
 
   document.getElementById('log-edit-modal').style.display = 'flex';
 }
@@ -809,8 +838,8 @@ async function saveLogEdit() {
     description: desc
   };
 
-  if (editingLog.branch === 'askod') {
-    updateData.askod_reg_number = askodNum;
+  if (editingLog.branch === 'askod' || editingLog.branch === 'tasks') {
+    updateData.askod_reg_number = askodNum || null;
     updateData.reply_to_number = replyNum || null;
   }
 
@@ -891,6 +920,12 @@ async function handleLogFormSubmit(e) {
         btn.disabled = false;
         btn.textContent = '💾 Зберегти виконану роботу';
         return;
+      }
+      // АСКОД-доручення: номери АСКОД зберігаємо разом із записом (необов'язкові)
+      const taskAskodGroup = document.getElementById('form-askod-reg-group');
+      if (taskAskodGroup && taskAskodGroup.style.display !== 'none') {
+        askodNum = document.getElementById('askod_reg_number').value.trim() || null;
+        askodReplyNum = document.getElementById('askod_reply_number').value.trim() || null;
       }
     }
 

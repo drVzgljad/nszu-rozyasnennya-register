@@ -796,7 +796,7 @@ async function loadTodayLogs() {
       if (log.branch === 'askod') {
         branchLabel = `АСКОД ${log.askod_reg_number ? `№ ${log.askod_reg_number}` : ''}`;
       } else if (log.branch === 'tasks') {
-        branchLabel = 'Доручення';
+        branchLabel = log.askod_reg_number ? `Доручення · АСКОД № ${log.askod_reg_number}` : 'Доручення';
       }
       const categoryLabel = log.category ? ` &bull; ${log.category}` : '';
 
@@ -1608,7 +1608,7 @@ function renderPersonalDetails(logs, container, breadcrumb) {
     if (log.branch === 'askod') {
       branchLabel = `АСКОД ${log.askod_reg_number ? `№ ${log.askod_reg_number}` : ''}`;
     } else if (log.branch === 'tasks') {
-      branchLabel = 'Доручення';
+      branchLabel = log.askod_reg_number ? `Доручення · АСКОД № ${log.askod_reg_number}` : 'Доручення';
     }
     const categoryLabel = log.category ? ` &bull; ${log.category}` : '';
     const scoreVal = log.status === 'in_progress' ? 'В процесі' : parseFloat(log.score || 0).toFixed(2);
