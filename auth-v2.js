@@ -383,16 +383,18 @@ function applyAccess() {
   if (dashboard) dashboard.remove();
   dashboard = null;
 
-  // Дашборд не потрібен: на головній є «Мій робочий стан», в особистому кабінеті — власні метрики
+  // Дашборд не потрібен: на головній є «Мій робочий стан», в особистому кабінеті — власні метрики,
+  // на сторінці доручень — власний реєстр і кнопка створення (дашборд її лише дублював)
   const isHomePage = !isInSubdir && document.getElementById('home-metrics') !== null;
   const isCabinetPage = currentPath.includes('cabinet');
+  const isTasksPage = currentPath.includes('skod/tasks');
 
   let alertBanner = document.getElementById('user-news-alert-banner');
   if (header) {
     if (!user || role === 'guest' || currentPath.includes('passport')) {
       if (alertBanner) alertBanner.remove();
     } else {
-      if (!isHomePage && !isCabinetPage) {
+      if (!isHomePage && !isCabinetPage && !isTasksPage) {
         dashboard = document.createElement('div');
         dashboard.id = 'user-task-dashboard';
         dashboard.className = 'user-task-dashboard';
