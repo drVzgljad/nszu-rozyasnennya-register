@@ -440,7 +440,8 @@ async function onRegister(e) {
     options:  { data: {
       full_name:    document.getElementById('reg-name').value.trim(),
       department:   document.getElementById('reg-dept').value,
-      position:     document.getElementById('reg-position').value,
+      position:     document.getElementById('reg-dept').value === 'Гість (інший департамент)'
+                      ? '' : document.getElementById('reg-position').value,
       organization: 'Департамент стратегії універсального охоплення населення медичними послугами'
     }},
   });
@@ -671,11 +672,10 @@ function inject() {
           <option value="розвиток програми реімбурсації">розвиток програми реімбурсації</option>
           <option value="наукова та клінічна експертиза">наукова та клінічна експертиза</option>
           <option value="стратегічного розвитку програми медичних гарантій">стратегічного розвитку програми медичних гарантій</option>
-          <option value="Поза відділами">Поза відділами</option>
           <option value="Гість (інший департамент)">Гість (інший департамент)</option>
         </select>
       </div>
-      <div class="auth-field">
+      <div class="auth-field" id="reg-position-field">
         <label for="reg-position">Посада *</label>
         <select id="reg-position" required>
           <option value="Експерт">Експерт</option>
@@ -719,7 +719,6 @@ function inject() {
       const name = regName.value.trim().toLowerCase();
       if (name === 'світлана дудник' || name === 'дудник світлана') {
         regPos.value = 'Директор';
-        regDept.value = 'Поза відділами';
       } else if (name === 'волошина альбіна' || name === 'альбіна волошина' || name === 'волошина альбіна сергіївна') {
         regPos.value = 'Заступник директора';
         regDept.value = 'стратегічного розвитку програми медичних гарантій';
@@ -727,12 +726,20 @@ function inject() {
     });
 
     regPos.addEventListener('change', () => {
-      if (regPos.value === 'Директор' || regPos.value === 'Адміністратор') {
-        regDept.value = 'Поза відділами';
-      } else if (regPos.value === 'Заступник директора') {
+      if (regPos.value === 'Заступник директора') {
         regDept.value = 'стратегічного розвитку програми медичних гарантій';
       }
     });
+
+    // Гість з іншого департаменту: посада не вказується
+    const posField = document.getElementById('reg-position-field');
+    const syncGuestFields = () => {
+      const isGuest = regDept.value === 'Гість (інший департамент)';
+      posField.style.display = isGuest ? 'none' : '';
+      regPos.required = !isGuest;
+    };
+    regDept.addEventListener('change', syncGuestFields);
+    syncGuestFields();
   }
 }
 
