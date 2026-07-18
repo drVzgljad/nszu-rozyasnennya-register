@@ -93,7 +93,10 @@ async function init() {
       resolutionRes
     ] = await Promise.all([
       fetch("../pakety/data/packages_2026.json").then(r => r.json()),
-      fetch("../data/contracts.json").then(r => r.json()),
+      // Полегшена версія договорів (4.5 МБ замість 19); якщо її немає — повна
+      fetch("../data/contracts_slim.json")
+        .then(r => { if (!r.ok) throw new Error("no slim"); return r.json(); })
+        .catch(() => fetch("../data/contracts.json").then(r => r.json())),
       fetch("../data/dec_documents.json").then(r => r.json()).catch(() => ({ documents: [] })),
       fetch("../dec/data/package_dec_links.json").then(r => r.json()).catch(() => ({})),
       fetch("../data/documents.json").then(r => r.json()),
