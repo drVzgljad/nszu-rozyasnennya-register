@@ -5,3 +5,6 @@ __pycache__/
 tools/
 library/reestr/
 library/pakety-archive/*.7z
+
+# Векторна база ШІ-пошуку — лише локально (74 МБ, на сайті пошук офлайн-only)
+data/embeddings.json

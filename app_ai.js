@@ -194,13 +194,15 @@ async function init() {
     embeddingIndex = await res.json();
     console.log(`Loaded ${embeddingIndex.length} embeddings chunks.`);
   } catch (err) {
+    // Векторна база (data/embeddings.json, ~74 МБ) свідомо не публікується на сайт —
+    // ШІ-пошук працює лише в локальній копії порталу.
     el("aiResults").innerHTML = `
       <div style="text-align: center; padding: 40px; color: #ea580c; border: 1px dashed #fdba74; border-radius:12px; background:#fff7ed;">
-        <div style="font-size: 36px; margin-bottom: 8px;">📂 База знань не створена</div>
-        <p>Векторна база знань (embeddings.json) не знайдена.</p>
+        <div style="font-size: 36px; margin-bottom: 8px;">🖥️ Лише офлайн-режим</div>
+        <p>Семантичний (ШІ) пошук доступний тільки в локальній версії порталу.</p>
         <p style="font-size: 14px; margin-top: 12px; color: #475569;">
-          Запустіть у папці проекту команду для генерації бази знань:<br>
-          <code>python 04_Реєстр/build_embeddings.py</code>
+          Скористайтеся <a href="rozjasnennya.html" style="color:#2563eb;">звичайним пошуком по базі роз'яснень</a> —
+          він охоплює ті самі документи.
         </p>
       </div>`;
   }
