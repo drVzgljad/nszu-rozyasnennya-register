@@ -1,2 +1,7 @@
 __pycache__/
 *.pyc
+
+# Збиральний інструментарій та бінарники — потрібні локально, але не публікуються на сайт
+tools/
+library/reestr/
+library/pakety-archive/*.7z
