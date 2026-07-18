@@ -32,6 +32,27 @@ function getPathPrefix() {
   return isInPortalSubdir() ? '../' : './';
 }
 
+// Глобальний пошук «одне вікно» (Ctrl+K) — модуль вантажиться ліниво при першому виклику
+let globalSearchModule = null;
+async function openGlobalSearch() {
+  try {
+    if (!globalSearchModule) {
+      // Шлях відносно МОДУЛЯ auth-v2.js (обидва лежать у корені), а не сторінки
+      globalSearchModule = await import('./global-search.js?v=20260719b');
+    }
+    globalSearchModule.open(getPathPrefix());
+  } catch (err) {
+    console.error('Global search failed to load:', err);
+  }
+}
+
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && e.code === 'KeyK') {
+    e.preventDefault();
+    openGlobalSearch();
+  }
+});
+
 function hasAccess(required) {
   if (!required) return true;
   if (!user) return false;
@@ -474,6 +495,16 @@ function inject() {
   // Auth elements inside nav/container
   const container = document.querySelector('.auth-container') || document.querySelector('nav.section-switch');
   if (container) {
+    // Global Search button (Ctrl+K)
+    const searchBtn = document.createElement('button');
+    searchBtn.id = 'global-search-btn';
+    searchBtn.className = 'global-search-btn';
+    searchBtn.type = 'button';
+    searchBtn.title = 'Глобальний пошук по порталу (Ctrl+K)';
+    searchBtn.innerHTML = '🔍 <span class="gs-btn-lbl">Пошук</span><kbd class="gs-btn-kbd">Ctrl K</kbd>';
+    searchBtn.addEventListener('click', openGlobalSearch);
+    container.appendChild(searchBtn);
+
     // Global Online counter pill
     const onlineChip = document.createElement('div');
     onlineChip.id = 'portal-online-chip';

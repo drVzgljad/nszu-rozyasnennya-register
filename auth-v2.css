@@ -2376,3 +2376,66 @@
 
 
 
+
+/* ── Global Search button (Ctrl+K) ────────── */
+.global-search-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: 1.5px solid var(--line, #e3edf3);
+  background: var(--soft, #f2f8fb);
+  color: var(--muted, #647688);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.global-search-btn .gs-btn-lbl {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.global-search-btn .gs-btn-kbd {
+  font: 600 10.5px/1 system-ui, sans-serif;
+  color: var(--muted, #647688);
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--line, #e3edf3);
+  border-radius: 5px;
+  padding: 3px 5px;
+}
+
+.global-search-btn:hover {
+  background: var(--accent-soft, #eef6fc);
+  border-color: var(--accent, #4a8fc7);
+  color: var(--accent-dark, #2f6b9e);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(74, 143, 199, 0.1);
+}
+
+:root.dark-theme .global-search-btn {
+  background: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+:root.dark-theme .global-search-btn .gs-btn-kbd {
+  background: #334155;
+  border-color: #475569;
+  color: #cbd5e1;
+}
+
+:root.dark-theme .global-search-btn:hover {
+  background: #334155;
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+@media (max-width: 720px) {
+  .global-search-btn .gs-btn-lbl,
+  .global-search-btn .gs-btn-kbd { display: none; }
+}
