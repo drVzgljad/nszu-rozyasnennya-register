@@ -197,9 +197,9 @@
         </div>
       </div>
       <div class="stat-strip" aria-label="Статистика порталу">
-        <div class="cell"><div class="num">171</div><div class="cap">документ у бібліотеці</div></div>
-        <div class="cell"><div class="num">46</div><div class="cap">пакетів ПМГ-2026</div></div>
-        <div class="cell"><div class="num">29</div><div class="cap">напрямів медичної допомоги</div></div>
+        <div class="cell"><div class="num" data-stat="documents">171</div><div class="cap">документів у бібліотеці</div></div>
+        <div class="cell"><div class="num" data-stat="packages">46</div><div class="cap">пакетів ПМГ-2026</div></div>
+        <div class="cell"><div class="num" data-stat="directions">29</div><div class="cap">напрямів медичної допомоги</div></div>
         <div class="cell"><div class="num">2026</div><div class="cap">редакція програми</div></div>
       </div>
     </div>
@@ -248,7 +248,7 @@
           <h3>Роз'яснення</h3>
           <p>Офіційні роз'яснення НСЗУ за темою, пакетом, номером, датою або словом
              з тексту — зі змістом, джерелом і пов'язаними матеріалами.</p>
-          <div class="meta">Відкрити <span class="count">171 документ</span></div>
+          <div class="meta">Відкрити <span class="count" data-stat="documents" data-plural="документ|документи|документів">171 документ</span></div>
         </a>
 
         <!-- AI Семантичний пошук — feature card -->
@@ -263,11 +263,11 @@
 
         <!-- Пакети 2026 -->
         <a class="hub-card span-3" href="pakety/index.html">
-          <span class="num-badge g">46</span>
+          <span class="num-badge g" data-stat="packages">46</span>
           <h3>Пакети 2026</h3>
           <p>Навігатор по 46 пакетах Програми медичних гарантій: специфікації, умови
              закупівлі, вимоги до спеціалістів та обладнання.</p>
-          <div class="meta">Відкрити <span class="count">46 пакетів</span></div>
+          <div class="meta">Відкрити <span class="count" data-stat="packages" data-plural="пакет|пакети|пакетів">46 пакетів</span></div>
         </a>
 
         <!-- Постанова 1808 -->
@@ -289,18 +289,18 @@
 
         <!-- Укладені договори -->
         <a class="hub-card span-2" href="zoz-dogovr/index.html">
-          <span class="num-badge">7739</span>
+          <span class="num-badge" data-stat="contracts">7739</span>
           <h3>Укладені договори</h3>
           <p>Пошук та аналітика договорів ЗОЗ з НСЗУ: суми фінансування, перелік наданих пакетів послуг та місця надання послуг.</p>
-          <div class="meta">Відкрити <span class="count">7739 договорів</span></div>
+          <div class="meta">Відкрити <span class="count" data-stat="contracts" data-plural="договір|договори|договорів">7739 договорів</span></div>
         </a>
 
         <!-- ДЕЦ МОЗ -->
         <a class="hub-card span-2" href="dec/index.html">
-          <span class="num-badge g">742</span>
+          <span class="num-badge g" data-stat="dec_documents">742</span>
           <h3>ДЕЦ МОЗ</h3>
           <p>Стандарти медичної допомоги, клінічні настанови, уніфіковані протоколи та накази ДЕЦ МОЗ України.</p>
-          <div class="meta">Відкрити <span class="count">742 документи</span></div>
+          <div class="meta">Відкрити <span class="count" data-stat="dec_documents" data-plural="документ|документи|документів">742 документи</span></div>
         </a>
 
         <!-- Нормативна база -->
@@ -470,6 +470,26 @@
     const q = document.getElementById('hero-q').value.trim();
     window.location.href = q ? 'rozjasnennya.html?q=' + encodeURIComponent(q) : 'rozjasnennya.html';
   }
+
+  // Живі лічильники: data/portal_stats.json генерує tools/build_global_search.py.
+  // Захардкожені числа в розмітці — резерв на випадок, якщо файл недоступний.
+  fetch('data/portal_stats.json')
+    .then(r => r.ok ? r.json() : null)
+    .then(stats => {
+      if (!stats) return;
+      const plural = (n, forms) => {
+        const f = forms.split('|'), m10 = n % 10, m100 = n % 100;
+        if (m10 === 1 && m100 !== 11) return f[0];
+        return (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) ? f[1] : f[2];
+      };
+      document.querySelectorAll('[data-stat]').forEach(el => {
+        const value = stats[el.dataset.stat];
+        if (typeof value !== 'number') return;
+        const num = value.toLocaleString('uk-UA');
+        el.textContent = el.dataset.plural ? `${num} ${plural(value, el.dataset.plural)}` : num;
+      });
+    })
+    .catch(() => {});
 </script>
 
 <script type="module">
