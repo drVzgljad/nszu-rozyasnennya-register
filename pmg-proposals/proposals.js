@@ -8,6 +8,16 @@ let proposalsList = [];
 let selectedProposal = null;
 let packagesMap = {}; // mapping number -> title
 
+const LETTERS_BUCKET = 'proposal-letters';
+const MAX_LETTER_SIZE = 20 * 1024 * 1024; // 20 МБ
+
+const TOPIC_LABELS = {
+  'zahalne': 'ПМГ — загальні питання',
+  'zmina-paketu': 'Зміна пакета',
+  'novyi-paket': 'Новий пакет',
+  'taryfy': 'Тарифи'
+};
+
 const byId = (id) => document.getElementById(id);
 
 async function init() {
@@ -17,6 +27,7 @@ async function init() {
   // Event listeners
   byId("proposalSearch").addEventListener("input", filterAndRender);
   byId("packageFilter").addEventListener("change", filterAndRender);
+  byId("topicFilter").addEventListener("change", filterAndRender);
   byId("addProposalBtn").addEventListener("click", showProposalForm);
   byId("cancelProposalBtn").addEventListener("click", showDefaultState);
   byId("newProposalForm").addEventListener("submit", handleProposalSubmit);
@@ -76,16 +87,20 @@ async function loadProposals() {
 function filterAndRender() {
   const searchVal = byId("proposalSearch").value.toLowerCase().trim();
   const pkgVal = byId("packageFilter").value;
+  const topicVal = byId("topicFilter").value;
 
   const filtered = proposalsList.filter(p => {
-    const matchesSearch = !searchVal || 
-      (p.title && p.title.toLowerCase().includes(searchVal)) || 
+    const matchesSearch = !searchVal ||
+      (p.title && p.title.toLowerCase().includes(searchVal)) ||
       (p.description && p.description.toLowerCase().includes(searchVal)) ||
-      (p.user_name && p.user_name.toLowerCase().includes(searchVal));
-    
+      (p.user_name && p.user_name.toLowerCase().includes(searchVal)) ||
+      (p.submitter && p.submitter.toLowerCase().includes(searchVal)) ||
+      (p.letter_number && p.letter_number.toLowerCase().includes(searchVal));
+
     const matchesPkg = !pkgVal || p.package_id === pkgVal;
-    
-    return matchesSearch && matchesPkg;
+    const matchesTopic = !topicVal || p.topic === topicVal;
+
+    return matchesSearch && matchesPkg && matchesTopic;
   });
 
   renderCards(filtered);
@@ -107,20 +122,27 @@ function renderCards(list) {
     card.className = `proposal-card ${selectedProposal && selectedProposal.id === p.id ? "active" : ""}`;
     card.dataset.id = p.id;
 
-    const pkgTitle = packagesMap[p.package_id] || `Пакет ${p.package_id}`;
-    
-    const resolutionBadge = p.resolution === 'in_work' 
+    const resolutionBadge = p.resolution === 'in_work'
       ? '<span class="resolution-badge in-work">📥 В роботу</span>'
       : p.resolution === 'rejected'
       ? '<span class="resolution-badge rejected">❌ Відхилено</span>'
+      : '';
+
+    const metaParts = [];
+    if (p.topic && TOPIC_LABELS[p.topic]) metaParts.push(TOPIC_LABELS[p.topic]);
+    if (p.package_id) metaParts.push(`Пакет ${escapeHtml(p.package_id)}`);
+    metaParts.push(`Пропонує: ${escapeHtml(p.submitter || p.user_name || "Користувач")}`);
+
+    const letterBadge = p.letter_number
+      ? `<span class="letter-badge">📄 Лист № ${escapeHtml(p.letter_number)}</span>`
       : '';
 
     card.innerHTML = `
       <div class="proposal-card-content">
         <strong>${escapeHtml(p.title)}</strong>
         <div class="proposal-card-meta">
-          <p>Пакет ${escapeHtml(p.package_id)} · Автор: ${escapeHtml(p.user_name || "Користувач")}</p>
-          ${resolutionBadge}
+          <p>${metaParts.join(' · ')}</p>
+          <div class="card-badges">${letterBadge}${resolutionBadge}</div>
         </div>
       </div>
       <div class="proposal-card-votes">
@@ -146,10 +168,51 @@ async function selectProposal(p) {
   byId("voteStatusMsg").textContent = "";
   byId("resolutionStatusMsg").textContent = "";
 
-  const pkgTitle = packagesMap[p.package_id] || `Пакет ${p.package_id}`;
-  byId("detPackage").textContent = `Пакет ${p.package_id}: ${pkgTitle}`;
+  // Topic badge
+  const topicEl = byId("detTopic");
+  if (p.topic && TOPIC_LABELS[p.topic]) {
+    topicEl.textContent = TOPIC_LABELS[p.topic];
+    topicEl.style.display = "inline-flex";
+  } else {
+    topicEl.style.display = "none";
+  }
+
+  // Package badge
+  if (p.package_id) {
+    const pkgTitle = packagesMap[p.package_id] || `Пакет ${p.package_id}`;
+    byId("detPackage").textContent = `Пакет ${p.package_id}: ${pkgTitle}`;
+    byId("detPackage").style.display = "inline-flex";
+  } else {
+    byId("detPackage").style.display = "none";
+  }
+
   byId("detProposalTitle").textContent = p.title;
-  byId("detAuthor").textContent = `Подано: ${p.user_name || "Користувач"} · ${formatDate(p.created_at)}`;
+
+  const authorParts = [];
+  if (p.submitter) authorParts.push(`Пропонує: ${p.submitter}`);
+  authorParts.push(`Вніс до реєстру: ${p.user_name || "Користувач"} · ${formatDate(p.created_at)}`);
+  byId("detAuthor").textContent = authorParts.join(" — ");
+
+  // Letter info (number, date, attachment link)
+  const letterInfo = byId("detLetterInfo");
+  if (p.letter_number || p.letter_date || p.letter_url) {
+    let letterText = "📄 Лист";
+    if (p.letter_number) letterText += ` № ${p.letter_number}`;
+    if (p.letter_date) letterText += ` від ${formatDate(p.letter_date)}`;
+    byId("detLetterText").textContent = letterText;
+
+    const link = byId("detLetterLink");
+    if (p.letter_url) {
+      link.href = p.letter_url;
+      link.style.display = "inline-flex";
+    } else {
+      link.style.display = "none";
+    }
+    letterInfo.style.display = "flex";
+  } else {
+    letterInfo.style.display = "none";
+  }
+
   byId("detDesc").textContent = p.description;
   
   // Show upvotes and downvotes
@@ -211,13 +274,35 @@ function showDefaultState() {
 
 async function handleProposalSubmit(e) {
   e.preventDefault();
+  const topic = byId("pTopic").value;
   const pkgId = byId("pPackage").value;
+  const submitter = byId("pSubmitter").value.trim();
+  const letterNumber = byId("pLetterNumber").value.trim();
+  const letterDate = byId("pLetterDate").value;
+  const letterFile = byId("pLetterFile").files[0] || null;
   const title = byId("pTitle").value.trim();
   const description = byId("pDesc").value.trim();
   const statusEl = byId("formStatus");
   const submitBtn = byId("submitProposalBtn");
 
-  if (!title || !description || !pkgId) return;
+  const fail = (msg) => {
+    statusEl.style.color = '#c0392b';
+    statusEl.textContent = msg;
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Опублікувати пропозицію';
+  };
+
+  if (!title || !description || !topic) return;
+
+  if (topic === 'zmina-paketu' && !pkgId) {
+    fail('Для теми «Зміна пакета» оберіть пакет ПМГ.');
+    return;
+  }
+
+  if (letterFile && letterFile.size > MAX_LETTER_SIZE) {
+    fail('Файл листа завеликий (понад 20 МБ). Стисніть PDF або завантажте меншу версію.');
+    return;
+  }
 
   submitBtn.disabled = true;
   submitBtn.textContent = 'Опублікування...';
@@ -225,24 +310,67 @@ async function handleProposalSubmit(e) {
 
   const { data: { session } } = await sb.auth.getSession();
   if (!session) {
-    statusEl.style.color = '#c0392b';
-    statusEl.textContent = 'Помилка: Ви не авторизовані!';
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Опублікувати пропозицію';
+    fail('Помилка: Ви не авторизовані!');
     return;
+  }
+
+  // Upload the letter file (if attached) to Supabase Storage
+  let letterUrl = null;
+  if (letterFile) {
+    submitBtn.textContent = 'Завантаження листа...';
+    const ext = (letterFile.name.split('.').pop() || 'pdf').toLowerCase();
+    const path = `${session.user.id}/${Date.now()}.${ext}`;
+    const { error: upErr } = await sb.storage.from(LETTERS_BUCKET).upload(path, letterFile, {
+      contentType: letterFile.type || undefined,
+      upsert: false
+    });
+    if (upErr) {
+      fail(`Не вдалося завантажити файл листа: ${upErr.message}. Спробуйте ще раз або подайте без файла.`);
+      return;
+    }
+    const { data: pub } = sb.storage.from(LETTERS_BUCKET).getPublicUrl(path);
+    letterUrl = pub?.publicUrl || null;
+    submitBtn.textContent = 'Опублікування...';
   }
 
   const profileName = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
 
-  const { error } = await sb.from('proposals').insert({
+  const payload = {
     user_id: session.user.id,
     user_name: profileName,
-    package_id: pkgId,
+    package_id: pkgId || null,
     title: title,
     description: description,
+    topic: topic,
+    submitter: submitter || null,
+    letter_number: letterNumber || null,
+    letter_date: letterDate || null,
+    letter_url: letterUrl,
     upvotes: 0,
     voted_users: []
-  });
+  };
+
+  let { error } = await sb.from('proposals').insert(payload);
+
+  // Fallback for legacy schema (new columns not yet added): keep letter meta inside description
+  if (error && /column|schema/i.test(error.message || '')) {
+    const metaLines = [];
+    if (submitter) metaLines.push(`Пропонує: ${submitter}`);
+    if (letterNumber || letterDate) metaLines.push(`Лист${letterNumber ? ` № ${letterNumber}` : ''}${letterDate ? ` від ${letterDate}` : ''}`);
+    if (TOPIC_LABELS[topic]) metaLines.push(`Тема: ${TOPIC_LABELS[topic]}`);
+    if (letterUrl) metaLines.push(`Файл листа: ${letterUrl}`);
+    const legacyDesc = metaLines.length ? `${metaLines.join('\n')}\n\n${description}` : description;
+
+    ({ error } = await sb.from('proposals').insert({
+      user_id: session.user.id,
+      user_name: profileName,
+      package_id: pkgId || '0',
+      title: title,
+      description: legacyDesc,
+      upvotes: 0,
+      voted_users: []
+    }));
+  }
 
   submitBtn.disabled = false;
   submitBtn.textContent = 'Опублікувати пропозицію';

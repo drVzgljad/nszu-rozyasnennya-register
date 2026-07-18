@@ -48,6 +48,15 @@
               <!-- Populated dynamically via JS -->
             </select>
           </label>
+          <label>Тема пропозиції
+            <select id="topicFilter">
+              <option value="">Усі теми</option>
+              <option value="zahalne">ПМГ — загальні питання</option>
+              <option value="zmina-paketu">Зміна пакета</option>
+              <option value="novyi-paket">Новий пакет</option>
+              <option value="taryfy">Тарифи</option>
+            </select>
+          </label>
         </div>
         <div class="results-summary">
           <span id="proposalCount">Завантаження пропозицій...</span>
@@ -70,21 +79,52 @@
       <!-- Proposal Form (Hidden by default) -->
       <div class="proposal-form-container" id="proposalFormContainer" style="display:none">
         <h2>Подати нову пропозицію</h2>
-        <p class="form-lead">Вкажіть назву, детальний опис та виберіть пакет ПМГ, до якого відноситься пропозиція.</p>
+        <p class="form-lead">Подайте пропозицію від себе або від імені громадського об'єднання, ЗОЗ чи іншої організації, що надіслала її офіційним листом.</p>
         <form id="newProposalForm">
           <div class="form-field">
+            <label for="pTopic">Тема пропозиції</label>
+            <select id="pTopic" required>
+              <option value="" disabled selected>Оберіть тему...</option>
+              <option value="zahalne">ПМГ — загальні питання</option>
+              <option value="zmina-paketu">Зміна пакета</option>
+              <option value="novyi-paket">Новий пакет</option>
+              <option value="taryfy">Тарифи</option>
+            </select>
+          </div>
+          <div class="form-field">
             <label for="pPackage">Пакет ПМГ</label>
-            <select id="pPackage" required>
+            <select id="pPackage">
+              <option value="">— Не стосується конкретного пакета —</option>
               <!-- Populated dynamically via JS -->
             </select>
+          </div>
+          <div class="form-field">
+            <label for="pSubmitter">Хто пропонує</label>
+            <input type="text" id="pSubmitter" placeholder="ГО, ЗОЗ чи особа (напр.: Координаційна рада громадських об'єднань ветеранів м. Києва)" autocomplete="off">
+            <div class="field-hint">Залиште порожнім, якщо подаєте пропозицію від себе.</div>
+          </div>
+          <div class="form-field-row">
+            <div class="form-field">
+              <label for="pLetterNumber">№ листа</label>
+              <input type="text" id="pLetterNumber" placeholder="Напр.: 1606/2026" autocomplete="off">
+            </div>
+            <div class="form-field">
+              <label for="pLetterDate">Дата листа</label>
+              <input type="date" id="pLetterDate">
+            </div>
           </div>
           <div class="form-field">
             <label for="pTitle">Заголовок пропозиції</label>
             <input type="text" id="pTitle" required placeholder="Коротко опишіть суть (наприклад: Спрощення вимог до анестезіологів)" autocomplete="off">
           </div>
           <div class="form-field">
-            <label for="pDesc">Опис пропозиції</label>
+            <label for="pDesc">Суть пропозиції</label>
             <textarea id="pDesc" required placeholder="Детально опишіть обґрунтування змін, посилання на нормативні акти чи статистику..." rows="7"></textarea>
+          </div>
+          <div class="form-field">
+            <label for="pLetterFile">Лист із пропозицією (файл)</label>
+            <input type="file" id="pLetterFile" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">
+            <div class="field-hint">PDF, Word або скан (JPG/PNG), до 20 МБ. Необов'язково.</div>
           </div>
           <div class="form-actions">
             <button class="action primary" type="submit" id="submitProposalBtn">Опублікувати пропозицію</button>
@@ -96,10 +136,18 @@
 
       <!-- Proposal Detail Viewer (Hidden by default) -->
       <div class="proposal-detail-viewer" id="proposalDetailViewer" style="display:none">
-        <div class="detail-package-badge" id="detPackage">Пакет 0</div>
+        <div class="detail-badges">
+          <div class="detail-package-badge topic-badge" id="detTopic" style="display:none">Тема</div>
+          <div class="detail-package-badge" id="detPackage">Пакет 0</div>
+        </div>
         <h2 id="detProposalTitle">Суть пропозиції</h2>
         <p class="detail-author" id="detAuthor">Автор: ...</p>
-        
+
+        <div class="letter-info" id="detLetterInfo" style="display:none">
+          <div class="letter-info-text" id="detLetterText">📄 Лист</div>
+          <a class="action letter-link" id="detLetterLink" href="#" target="_blank" rel="noopener" style="display:none">📎 Переглянути лист</a>
+        </div>
+
         <div class="desc-header-row" style="display: flex; justify-content: space-between; align-items: center; margin: 22px 0 9px;">
           <div class="section-title" style="margin: 0;">Обґрунтування та опис зміни</div>
           <button class="action-link" id="toggleDescFullscreenBtn" type="button" style="font-size: 12.5px; background: none; border: none; color: var(--accent-dark); cursor: pointer; font-weight: 600; padding: 0; display: flex; align-items: center; gap: 4px;">↕ Розгорнути</button>

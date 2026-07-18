@@ -152,6 +152,121 @@
   box-shadow: 0 0 0 3px rgba(0, 111, 201, 0.12);
 }
 
+/* Form structure */
+.proposal-form-container .form-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 14px;
+}
+
+.proposal-form-container .form-field label {
+  font-weight: 700;
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+
+.proposal-form-container input[type="date"] {
+  width: 100%;
+  padding: 11px 12px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  border: 1.5px solid #cddbe7;
+  border-radius: 11px;
+  outline: none;
+  background: var(--soft);
+}
+
+.proposal-form-container input[type="file"] {
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  padding: 9px;
+  border: 1.5px dashed #cddbe7;
+  border-radius: 11px;
+  background: var(--soft);
+  cursor: pointer;
+}
+
+.form-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.field-hint {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* Detail badges row */
+.detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+
+.detail-badges .detail-package-badge {
+  margin-bottom: 0;
+}
+
+.topic-badge {
+  background: rgba(8, 112, 94, 0.1);
+  color: var(--teal, #08705e);
+}
+
+/* Letter badge on cards */
+.card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.letter-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-top: 6px;
+  width: fit-content;
+  background: #fdf7ec;
+  color: #92600a;
+  border: 1px solid rgba(180, 128, 26, 0.3);
+}
+
+/* Letter info box in detail view */
+.letter-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fdf7ec;
+  border: 1px solid rgba(180, 128, 26, 0.25);
+}
+
+.letter-info-text {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #92600a;
+}
+
+.letter-link {
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 7px 12px;
+  text-decoration: none;
+}
+
 /* Detail Viewer */
 .proposal-detail-viewer {
   display: flex;
@@ -376,6 +491,29 @@
   background: rgba(220, 38, 38, 0.15);
   color: #f87171;
   border-color: rgba(220, 38, 38, 0.25);
+}
+
+:root.dark-theme .letter-badge,
+:root.dark-theme .letter-info {
+  background: rgba(217, 158, 46, 0.12);
+  border-color: rgba(217, 158, 46, 0.3);
+}
+
+:root.dark-theme .letter-badge,
+:root.dark-theme .letter-info-text {
+  color: #e8b45a;
+}
+
+:root.dark-theme .topic-badge {
+  background: rgba(45, 212, 191, 0.12);
+  color: #2dd4bf;
+}
+
+:root.dark-theme .proposal-form-container input[type="date"],
+:root.dark-theme .proposal-form-container input[type="file"] {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--ink);
 }
 
 /* Fullscreen Description Modal */
