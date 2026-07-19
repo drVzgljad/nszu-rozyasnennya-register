@@ -114,8 +114,14 @@
       display: grid;
       grid-template-columns: minmax(0, 1.45fr) minmax(420px, 0.75fr);
       align-items: stretch;
+      width: calc(100% - 48px);
+      max-width: 1760px;
+      margin: 24px auto 32px;
       background: linear-gradient(115deg, rgba(47, 107, 158, 0.03), rgba(58, 132, 98, 0.04));
-      border-bottom: 1px solid var(--p-line, #e2e8f0);
+      border: 1px solid rgba(47, 107, 158, 0.18);
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(31, 51, 71, 0.12);
     }
     .home-dashboard-shell > .hero {
       grid-column: 1;
@@ -180,7 +186,8 @@
     }
     :root.dark-theme .home-dashboard-shell {
       background: linear-gradient(115deg, #0b1724, #0d1d1c);
-      border-bottom-color: rgba(71, 85, 105, 0.72);
+      border-color: rgba(74, 181, 145, 0.24);
+      box-shadow: 0 28px 76px rgba(2, 8, 23, 0.42), 0 0 0 1px rgba(56, 189, 248, 0.04);
     }
     :root.dark-theme .home-dashboard-shell > .home-metrics-section {
       border-left-color: rgba(56, 189, 248, 0.16);
@@ -273,6 +280,11 @@
     }
     /* Мобільний: «Мій робочий стан» — один рядок плиток без підписів */
     @media (max-width: 768px) {
+      .home-dashboard-shell {
+        width: calc(100% - 20px);
+        margin: 10px auto 18px;
+        border-radius: 20px;
+      }
       .home-metrics-section { padding: 14px 0 12px; }
       .home-work-heading { flex-direction: column !important; align-items: flex-start !important; margin-bottom: 10px; }
       .home-work-title { font-size: 18px; }
