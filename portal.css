@@ -451,10 +451,20 @@ body {
   }
   .hero-tags::-webkit-scrollbar { display: none; }
   .hero-tags a { flex-shrink: 0; }
-  .stat-strip { margin-top: 22px; }
-  .stat-strip .cell { padding: 14px 16px; }
-  .stat-strip .num { font-size: 24px; }
-  .stat-strip .cap { font-size: 12px; }
+  /* Лічильники: один компактний рядок, лише цифри (підпис у title) */
+  .stat-strip {
+    margin-top: 16px;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+  .stat-strip .cell {
+    padding: 9px 4px;
+    text-align: center;
+    border-bottom: 0 !important;
+    border-right: 1px solid var(--p-line) !important;
+  }
+  .stat-strip .cell:last-child { border-right: 0 !important; }
+  .stat-strip .num { font-size: 17px; }
+  .stat-strip .cap { display: none; }
   .hub { padding: 36px 0; }
   .section-head h2 { font-size: 24px; }
   .section-head { margin-bottom: 18px; }

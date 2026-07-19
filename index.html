@@ -9,9 +9,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Робочий простір експертів ПМГ 2026 — НавігаторПМГ26</title>
-  <link rel="stylesheet" href="portal.css?v=20260719d">
-  <link rel="stylesheet" href="auth-v2.css?v=20260719j">
-  <script type="module" src="auth-v2.js?v=20260719i"></script>
+  <link rel="stylesheet" href="portal.css?v=20260719e">
+  <link rel="stylesheet" href="auth-v2.css?v=20260719k">
+  <script type="module" src="auth-v2.js?v=20260719j"></script>
   <style>
     /* ── Експрес-інфоблок кабінету на головній ── */
     .home-metrics-section {
@@ -76,6 +76,33 @@
       from { color: var(--p-ink, #0f172a); }
       to { color: #dc2626; }
     }
+    /* Мобільний: «Мій робочий стан» — один рядок плиток без підписів */
+    @media (max-width: 768px) {
+      .home-metrics-section { padding: 14px 0 4px; }
+      .home-metrics-section .section-head { margin-bottom: 8px !important; }
+      .home-metrics-section .section-head h2 { font-size: 16px !important; }
+      .home-metrics-section .section-head p { display: none; }
+      .home-metrics-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .home-metric-card {
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 9px 4px;
+        text-align: center;
+      }
+      .home-metric-icon {
+        width: 34px;
+        height: 34px;
+        font-size: 17px;
+        border-radius: 9px;
+      }
+      .home-metric-details { align-items: center; }
+      .home-metric-num { font-size: 15px; }
+      .home-metric-lbl { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -93,7 +120,7 @@
           </span>
         </a>
         <div class="top-row-1-right">
-          <!-- auth-v2.js?v=20260719i inject point -->
+          <!-- auth-v2.js?v=20260719j inject point -->
           <nav class="section-switch top-auth" aria-label="Авторизація"></nav>
           <span class="agency-chip">
             <img src="assets/nszu-shield.svg" alt="">НСЗУ

@@ -358,8 +358,11 @@ function applyAccess() {
     appendNavLinks(tailItems);
   }
 
-  // Мобільна нижня панель навігації (видима лише ≤768px, стилі в auth-v2.css)
+  // Мобільна нижня панель навігації (стилі в auth-v2.css)
   buildMobileTabbar(prefix, hasAccess, isActive);
+
+  // Мобільний макет шапки: банер департаменту + статус окремим рядком
+  applyMobileHeaderLayout();
 
   // Page-level guard
   const required = document.body.dataset.requiredRole;
@@ -2015,6 +2018,55 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
   `;
   sheet.querySelector('.mms-backdrop').addEventListener('click', toggleMobileMoreSheet);
   document.body.appendChild(sheet);
+}
+
+/* ── Мобільний макет шапки ──────────────────────────────────────────
+   1) Банер з назвою департаменту над планкою (лише ≤980px, через CSS).
+   2) Кнопка статусу переїжджає з планки в окремий повноширинний рядок
+      під шапкою — дропдаун відкривається в межах екрана. */
+let mobileLayoutResizeHooked = false;
+
+function applyMobileHeaderLayout() {
+  const isMobile = window.matchMedia('(max-width: 980px)').matches;
+
+  // Банер департаменту — створюємо один раз, видимість керує CSS
+  const headerEl = document.querySelector('header.top') || document.querySelector('header.hero');
+  if (headerEl && !document.getElementById('mobile-dept-banner')) {
+    const banner = document.createElement('div');
+    banner.id = 'mobile-dept-banner';
+    banner.innerHTML = `
+      <span class="mdb-agency">НСЗУ</span>
+      <span class="mdb-name">Департамент стратегії універсального охоплення населення медичними послугами</span>`;
+    headerEl.parentElement.insertBefore(banner, headerEl);
+  }
+
+  // Кнопка статусу окремим рядком
+  const chip = document.getElementById('portal-status-chip');
+  if (chip) {
+    let rowEl = document.getElementById('mobile-status-row');
+    if (isMobile) {
+      if (!rowEl) {
+        rowEl = document.createElement('div');
+        rowEl.id = 'mobile-status-row';
+        const anchor = document.querySelector('header.top') || document.querySelector('.nav-row-1');
+        if (anchor) anchor.insertAdjacentElement('afterend', rowEl);
+        else document.body.prepend(rowEl);
+      }
+      if (chip.parentElement !== rowEl) rowEl.appendChild(chip);
+      // Рядок видно лише коли чіп видимий (гостям статус не показуємо)
+      rowEl.style.display = (chip.style.display === 'none') ? 'none' : 'block';
+    } else if (rowEl) {
+      const authNav = document.querySelector('.top-auth') ||
+                      document.querySelector('.auth-container nav.section-switch');
+      if (authNav && chip.parentElement === rowEl) authNav.appendChild(chip);
+      rowEl.remove();
+    }
+  }
+
+  if (!mobileLayoutResizeHooked) {
+    mobileLayoutResizeHooked = true;
+    window.matchMedia('(max-width: 980px)').addEventListener('change', applyMobileHeaderLayout);
+  }
 }
 
 function toggleMobileMoreSheet() {
