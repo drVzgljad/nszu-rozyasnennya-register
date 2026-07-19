@@ -109,6 +109,92 @@
       border-color: #334155;
       color: #e2e8f0;
     }
+    /* Головний екран: бренд і рольова панель працюють як одна композиція. */
+    .home-dashboard-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(420px, 0.75fr);
+      align-items: stretch;
+      background: linear-gradient(115deg, rgba(47, 107, 158, 0.03), rgba(58, 132, 98, 0.04));
+      border-bottom: 1px solid var(--p-line, #e2e8f0);
+    }
+    .home-dashboard-shell > .hero {
+      grid-column: 1;
+      grid-row: 1;
+      min-width: 0;
+      border-bottom: 0;
+    }
+    .home-dashboard-shell > .home-metrics-section {
+      grid-column: 2;
+      grid-row: 1;
+      min-width: 0;
+      height: 100%;
+      padding: 42px 0;
+      border-left: 1px solid rgba(47, 107, 158, 0.14);
+      border-bottom: 0;
+      background:
+        radial-gradient(circle at 10% 20%, rgba(47, 107, 158, 0.15), transparent 42%),
+        radial-gradient(circle at 90% 85%, rgba(58, 132, 98, 0.16), transparent 40%),
+        var(--p-soft, #f3f8fb);
+    }
+    .home-dashboard-shell > .home-metrics-section .wrap {
+      width: 100%;
+      max-width: none;
+      padding-inline: 28px;
+    }
+    .home-dashboard-shell .home-work-heading {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .home-dashboard-shell .home-work-actions {
+      justify-content: flex-start;
+    }
+    .home-dashboard-shell .home-metrics-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .home-dashboard-shell .home-metric-card {
+      min-width: 0;
+      padding: 16px;
+    }
+    .home-dashboard-shell .home-metric-icon {
+      width: 44px;
+      height: 44px;
+      font-size: 22px;
+    }
+    :root.dark-theme .home-dashboard-shell {
+      background: linear-gradient(115deg, #0b1724, #0d1d1c);
+      border-bottom-color: rgba(71, 85, 105, 0.72);
+    }
+    :root.dark-theme .home-dashboard-shell > .home-metrics-section {
+      border-left-color: rgba(56, 189, 248, 0.16);
+      background:
+        radial-gradient(circle at 10% 20%, rgba(14, 165, 233, 0.16), transparent 42%),
+        radial-gradient(circle at 90% 85%, rgba(34, 197, 94, 0.14), transparent 40%),
+        #0f172a;
+    }
+    @media (max-width: 1180px) {
+      .home-dashboard-shell { grid-template-columns: minmax(0, 1fr); }
+      .home-dashboard-shell > .hero { grid-column: 1; grid-row: 1; }
+      .home-dashboard-shell > .home-metrics-section {
+        grid-column: 1;
+        grid-row: 2;
+        padding: 24px 0;
+        border-left: 0;
+        border-top: 1px solid var(--p-line, #e2e8f0);
+      }
+      .home-dashboard-shell > .home-metrics-section .wrap {
+        max-width: var(--p-wrap, 1200px);
+        padding-inline: 24px;
+      }
+      .home-dashboard-shell .home-work-heading {
+        flex-direction: row;
+        align-items: flex-end;
+      }
+      .home-dashboard-shell .home-work-actions { justify-content: flex-end; }
+      .home-dashboard-shell .home-metrics-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
     .home-metrics-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -171,7 +257,7 @@
     /* Мобільний: «Мій робочий стан» — один рядок плиток без підписів */
     @media (max-width: 768px) {
       .home-metrics-section { padding: 14px 0 12px; }
-      .home-work-heading { align-items: flex-start; margin-bottom: 10px; }
+      .home-work-heading { flex-direction: column !important; align-items: flex-start !important; margin-bottom: 10px; }
       .home-work-title { font-size: 18px; }
       .home-work-subtitle { display: none; }
       .home-work-actions { gap: 6px; }
@@ -229,7 +315,8 @@
     </div>
   </header>
 
-  <!-- ── Експрес-інфоблок кабінету (лише для експертів) ── -->
+  <div class="home-dashboard-shell">
+  <!-- ── Рольова робоча панель ──────────────────────────── -->
   <section class="home-metrics-section" id="home-metrics" style="display: none;">
     <div class="wrap">
       <div class="home-work-heading">
@@ -329,6 +416,8 @@
       </div>
     </div>
   </section>
+
+  </div><!-- /.home-dashboard-shell -->
 
   <!-- ── Informational Digest ────────────────────────── -->
   <section class="news-digest-section" id="news-digest" style="display: none;">
