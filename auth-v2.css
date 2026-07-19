@@ -2575,6 +2575,41 @@
   color: #94a3b8;
 }
 
+/* ── Планшетна адаптація шапки (залогінений стан додає чіп статусу,
+      «в мережі», бейдж ролі та ім'я — на 700–1100px вони не вміщаються) ── */
+@media (max-width: 1100px) {
+  /* Другорядні елементи ховаємо, головні стискаємо */
+  .portal-online-chip { display: none !important; }
+  .auth-role-badge { display: none !important; }
+  .theme-toggle-btn,
+  .news-notify-toggle-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 15px;
+    margin-left: 4px;
+  }
+  .auth-nav-btn {
+    margin-left: 4px;
+    padding: 8px 11px;
+    font-size: 12.5px;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .portal-status-chip {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+  .portal-status-chip .status-lbl {
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .top-auth { gap: 4px; }
+}
+
 /* ── Мобільна адаптація авторизаційного блоку в шапці ──────────── */
 @media (max-width: 640px) {
   .theme-toggle-btn,
@@ -2582,20 +2617,15 @@
     width: 32px;
     height: 32px;
     font-size: 14px;
-    margin-left: 4px;
   }
   .auth-nav-btn {
-    margin-left: 4px;
     padding: 7px 10px;
     font-size: 12px;
     max-width: 110px;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
-  /* Чип «в мережі» займає забагато місця на телефоні */
-  .portal-online-chip { display: none !important; }
+  .portal-status-chip .status-lbl { max-width: 90px; }
 }
-@media (max-width: 520px) {
-  /* Бейдж ролі має inline-стилі з JS, тому потрібен !important */
-  .auth-role-badge { display: none !important; }
+@media (max-width: 420px) {
+  /* На вузьких телефонах підпис статусу згортаємо до іконки */
+  .portal-status-chip .status-lbl { display: none; }
 }

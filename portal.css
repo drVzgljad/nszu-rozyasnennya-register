@@ -418,13 +418,27 @@ body {
   .stat-strip .cell { border-right: 0 !important; border-bottom: 1px solid var(--p-line); }
   .stat-strip .cell:last-child { border-bottom: 0; }
 }
+/* Планшети: логотип поступається місцем авторизаційному блоку */
+@media (max-width: 1100px) {
+  .top-row-1 { gap: 10px; }
+  .lockup {
+    min-width: 0;
+    flex-shrink: 1;
+  }
+  .wm { min-width: 0; }
+  .wm-1,
+  .wm-2 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  .top-row-1-right { flex-shrink: 0; }
+  .agency-chip { display: none; }
+}
 @media (max-width: 600px) {
   .top-inner {
     height: 64px;
     gap: 8px;
-  }
-  .agency-chip {
-    display: none;
   }
   .wm-2 {
     display: none;
@@ -434,21 +448,10 @@ body {
   }
   .lockup {
     gap: 8px;
-    min-width: 0;
-    flex-shrink: 1;
   }
   .shield {
     width: 32px !important;
   }
-  /* Логотип стискається з трикрапкою, авторизаційний блок — ні */
-  .top-row-1 { gap: 10px; }
-  .wm { min-width: 0; }
-  .wm-1 {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-  }
-  .top-row-1-right { flex-shrink: 0; }
 }
 
 /* ============================================================
