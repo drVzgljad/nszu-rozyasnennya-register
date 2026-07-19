@@ -1930,4 +1930,57 @@ if ('serviceWorker' in navigator &&
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
 
+// ── PWA: власна кнопка «Встановити застосунок» ─────────────────────
+// Chrome/Samsung Internet кидають beforeinstallprompt, коли сайт готовий
+// до установки — показуємо банер, щоб не шукати пункт у меню браузера.
+let deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  if (localStorage.getItem('pwa_install_dismissed') === 'true') return;
+  showInstallBanner();
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  document.getElementById('pwa-install-banner')?.remove();
+  localStorage.setItem('pwa_install_dismissed', 'true');
+});
+
+function showInstallBanner() {
+  if (document.getElementById('pwa-install-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'pwa-install-banner';
+  banner.style.cssText = [
+    'position:fixed', 'left:50%', 'transform:translateX(-50%)', 'bottom:18px',
+    'z-index:999998', 'display:flex', 'align-items:center', 'gap:12px',
+    'max-width:calc(100vw - 24px)', 'padding:12px 14px', 'border-radius:14px',
+    'background:#2f6b9e', 'color:#fff', 'box-shadow:0 12px 32px rgba(15,30,45,.35)',
+    'font-size:13.5px', 'font-weight:600'
+  ].join(';');
+  banner.innerHTML = `
+    <span style="font-size:22px;">📲</span>
+    <span>Встановіть портал як застосунок — швидкий доступ з головного екрана</span>
+    <button id="pwa-install-yes" style="flex-shrink:0;border:none;border-radius:9px;background:#fff;color:#2f6b9e;font:inherit;font-weight:800;padding:9px 14px;cursor:pointer;">Встановити</button>
+    <button id="pwa-install-no" aria-label="Закрити" style="flex-shrink:0;border:none;background:transparent;color:rgba(255,255,255,.8);font-size:18px;cursor:pointer;padding:4px;">✕</button>
+  `;
+  document.body.appendChild(banner);
+
+  banner.querySelector('#pwa-install-yes').addEventListener('click', async () => {
+    if (!deferredInstallPrompt) { banner.remove(); return; }
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    banner.remove();
+    if (outcome !== 'accepted') {
+      localStorage.setItem('pwa_install_dismissed', 'true');
+    }
+  });
+  banner.querySelector('#pwa-install-no').addEventListener('click', () => {
+    banner.remove();
+    localStorage.setItem('pwa_install_dismissed', 'true');
+  });
+}
+
 document.addEventListener('DOMContentLoaded', init);
