@@ -131,25 +131,23 @@ body {
   min-width: 0;
   width: fit-content;
 }
-.dept-header-logo {
+.header-nszu-logo {
   display: block;
-  width: 54px;
-  height: 54px;
-  flex: 0 0 54px;
+  width: 44px;
+  height: auto;
+  flex: 0 0 44px;
   object-fit: contain;
-  border-radius: 12px;
-  background: rgba(255,255,255,.88);
-  box-shadow: 0 6px 18px rgba(38,78,112,.10);
 }
-.wm { display: flex; flex-direction: column; line-height: 1.12; }
+.wm { display: flex; flex-direction: column; line-height: 1.08; }
 .wm-1 {
   font-family: var(--p-display); font-weight: 800; font-size: 16px;
   letter-spacing: -.02em; color: var(--p-ink); white-space: nowrap;
 }
 .wm-2 {
-  margin-top: 3px; font-size: 11.5px; font-weight: 600; color: var(--p-muted);
+  margin-top: 3px; font-size: 10.8px; font-weight: 600; color: var(--p-muted);
   letter-spacing: .005em; white-space: nowrap;
 }
+.wm-3 { margin-top: 1px; }
 .top-spacer { display: none; }
 .top-nav { display: flex; gap: 4px; margin: 0; }
 .top-nav a {
@@ -173,9 +171,7 @@ body {
 .top-auth > .auth-nav-btn {
   min-height: 38px;
 }
-/* Робочі розділи вже є в головній навігації та рольовій панелі. */
-.top-auth .auth-chat-btn,
-.top-auth .auth-cabinet-btn,
+/* Доручення та нормативка вже є в головній навігації та рольовій панелі. */
 .top-auth .auth-tasks-btn,
 .top-auth .auth-regulatory-btn {
   display: none !important;
@@ -520,6 +516,12 @@ body {
   .top-row-1-right { flex-shrink: 0; }
   .agency-chip { display: none; }
 }
+@media (max-width: 1400px) {
+  .top-auth .auth-chat-btn,
+  .top-auth .auth-cabinet-btn {
+    display: none !important;
+  }
+}
 @media (max-width: 600px) {
   .top-inner {
     height: 64px;
@@ -535,11 +537,9 @@ body {
   .lockup {
     gap: 8px;
   }
-  .dept-header-logo {
-    width: 42px;
-    height: 42px;
-    flex-basis: 42px;
-    border-radius: 9px;
+  .header-nszu-logo {
+    width: 34px;
+    flex-basis: 34px;
   }
   .shield {
     width: 32px !important;
