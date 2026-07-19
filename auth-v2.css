@@ -2610,6 +2610,10 @@
     text-wrap: balance;
   }
 
+  /* Рядок глобального пошуку в шапці на телефоні зайвий:
+     пошук є у вкладці 🔍 нижньої панелі (і в банері головної) */
+  .global-search-row { display: none; }
+
   #mobile-status-row {
     position: relative;
     padding: 8px 12px;
