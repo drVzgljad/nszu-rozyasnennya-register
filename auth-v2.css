@@ -2614,6 +2614,10 @@
      пошук є у вкладці 🔍 нижньої панелі (і в банері головної) */
   .global-search-row { display: none; }
 
+  /* Тема і сповіщення переїхали в шторку «Ще» → «⚙️ Налаштування» */
+  .theme-toggle-btn,
+  .news-notify-toggle-btn { display: none !important; }
+
   #mobile-status-row {
     position: relative;
     padding: 8px 12px;
@@ -2762,6 +2766,14 @@
     border-color: var(--accent, #4a8fc7);
     background: var(--accent-soft, #eef6fc);
   }
+  /* Плитки-кнопки (⚙️ Налаштування) */
+  button.mms-item {
+    border: 1px solid var(--line, #e3edf3);
+    font: inherit;
+    cursor: pointer;
+  }
+  .mms-settings-title { margin-top: 16px; }
+  .mms-settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .mms-icon { font-size: 22px; line-height: 1; }
   .mms-lbl {
     font-size: 11px;

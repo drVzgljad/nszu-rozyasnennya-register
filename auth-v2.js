@@ -2014,10 +2014,43 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
             <span class="mms-lbl">${s.label}</span>
           </a>`).join('')}
       </div>
+      <div class="mms-title mms-settings-title">⚙️ Налаштування</div>
+      <div class="mms-grid mms-settings-grid">
+        <button type="button" class="mms-item" id="mms-theme-tile">
+          <span class="mms-icon">🌙</span>
+          <span class="mms-lbl">Темна тема</span>
+        </button>
+        <button type="button" class="mms-item" id="mms-notify-tile">
+          <span class="mms-icon">🔔</span>
+          <span class="mms-lbl">Сповіщення</span>
+        </button>
+      </div>
     </div>
   `;
   sheet.querySelector('.mms-backdrop').addEventListener('click', toggleMobileMoreSheet);
   document.body.appendChild(sheet);
+
+  // Плитки налаштувань керують тими самими кнопками, що сховані з планки
+  const themeTile = sheet.querySelector('#mms-theme-tile');
+  const notifyTile = sheet.querySelector('#mms-notify-tile');
+  const updateSettingsTiles = () => {
+    const dark = document.documentElement.classList.contains('dark-theme') ||
+                 document.body.classList.contains('dark-theme');
+    themeTile.querySelector('.mms-icon').textContent = dark ? '☀️' : '🌙';
+    themeTile.querySelector('.mms-lbl').textContent = dark ? 'Світла тема' : 'Темна тема';
+    const notifyOn = localStorage.getItem('news_notifications_enabled') !== 'false';
+    notifyTile.querySelector('.mms-icon').textContent = notifyOn ? '🔔' : '🔕';
+    notifyTile.querySelector('.mms-lbl').textContent = notifyOn ? 'Сповіщення: увімк.' : 'Сповіщення: вимк.';
+  };
+  updateSettingsTiles();
+  themeTile.addEventListener('click', () => {
+    document.getElementById('theme-toggle-btn')?.click();
+    setTimeout(updateSettingsTiles, 50);
+  });
+  notifyTile.addEventListener('click', () => {
+    document.getElementById('news-notify-btn')?.click();
+    setTimeout(updateSettingsTiles, 50);
+  });
 }
 
 /* ── Мобільний макет шапки ──────────────────────────────────────────
