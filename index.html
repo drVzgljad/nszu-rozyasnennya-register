@@ -875,7 +875,8 @@
       if (attempt < 8) setTimeout(() => placeGlobalSearchForRole(role, attempt + 1), 200);
       return;
     }
-    if (role === 'admin') {
+    const panelRoles = ['expert', 'manager', 'deputy_director', 'director', 'admin'];
+    if (panelRoles.includes(role)) {
       panelSlot.hidden = false;
       panelSlot.appendChild(searchRow);
       searchRow.classList.add('is-portal-management-search');
