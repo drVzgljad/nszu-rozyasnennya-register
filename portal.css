@@ -121,6 +121,7 @@ body {
 .top-row-2 {
   display: flex;
   align-items: center;
+  justify-content: center;
   width: 100%;
   margin-top: 10px;
   border-top: 1px solid rgba(0, 111, 201, 0.05);
@@ -149,7 +150,7 @@ body {
 }
 .wm-3 { margin-top: 1px; }
 .top-spacer { display: none; }
-.top-nav { display: flex; gap: 4px; margin: 0; }
+.top-nav { display: flex; justify-content: center; gap: 4px; margin: 0; }
 .top-nav a {
   padding: 9px 14px; border-radius: var(--pr-pill);
   color: var(--p-muted); font-size: 14px; font-weight: 600; text-decoration: none;
@@ -520,6 +521,16 @@ body {
   .top-auth .auth-chat-btn,
   .top-auth .auth-cabinet-btn {
     display: none !important;
+  }
+}
+@media (min-width: 1600px) {
+  .top-row-1 {
+    grid-template-columns: minmax(320px, 1fr) auto minmax(320px, 1fr);
+  }
+  .top-row-1-right {
+    grid-column: 2;
+    justify-self: center;
+    justify-content: center;
   }
 }
 @media (max-width: 600px) {
