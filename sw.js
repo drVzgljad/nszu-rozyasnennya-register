@@ -2,7 +2,7 @@
    Стратегія: HTML — network-first (щоб оновлення доїжджали одразу),
    статика — cache-first із фоновим оновленням (версії ?v= у HTML).
    Запити до Supabase та інших доменів не перехоплюються. */
-const CACHE = 'pmg-portal-v2';
+const CACHE = 'pmg-portal-v3';
 const CORE = [
   '/',
   '/index.html',
@@ -40,8 +40,10 @@ self.addEventListener('fetch', (e) => {
   if (url.origin !== location.origin) return; // Supabase/CDN — напряму
 
   if (req.mode === 'navigate') {
+    // no-cache: GitHub Pages ставить max-age=600, без цього браузер до 10 хв
+    // показує стару сторінку; ревалідація за ETag — дешева
     e.respondWith(
-      fetch(req)
+      fetch(req, { cache: 'no-cache' })
         .then((res) => {
           const copy = res.clone();
           caches.open(CACHE).then((c) => c.put(req, copy));
