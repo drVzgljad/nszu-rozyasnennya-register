@@ -599,6 +599,7 @@ function inject() {
     statusChip.className = 'portal-status-chip';
     statusChip.style.display = 'none'; // Hidden by default, shown when logged in
     statusChip.innerHTML = `
+      <span class="status-caption">Статус сьогодні:</span>
       <span class="status-icon">❓</span>
       <span class="status-lbl">Вкажіть статус</span>
       <div class="status-dropdown" id="portal-status-dropdown">
@@ -629,6 +630,9 @@ function inject() {
       </div>
     `;
     container.appendChild(statusChip);
+    // Статус — першочергова щоденна дія, тому він стоїть перед
+    // перемикачем теми, сповіщеннями та бейджем ролі у верхній панелі.
+    container.insertBefore(statusChip, themeBtn);
 
     statusChip.addEventListener('click', (e) => {
       const optBtn = e.target.closest('.status-opt-btn');

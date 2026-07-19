@@ -2074,12 +2074,12 @@
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
+  gap: 7px;
+  padding: 8px 13px 8px 11px;
   border-radius: 9px;
-  background: var(--soft, #f2f8fb);
-  border: 1.5px solid var(--line, #e3edf3);
-  color: var(--muted, #647688);
+  background: linear-gradient(105deg, rgba(47, 107, 158, 0.08), rgba(58, 132, 98, 0.1));
+  border: 1.5px solid rgba(58, 132, 98, 0.38);
+  color: var(--p-ink, #1e293b);
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
@@ -2087,6 +2087,15 @@
   transition: all 0.2s ease;
   user-select: none;
   box-sizing: border-box;
+  box-shadow: inset 3px 0 0 rgba(58, 132, 98, 0.78);
+}
+
+.portal-status-chip .status-caption {
+  color: var(--muted, #647688);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
 }
 
 .portal-status-chip:hover {
@@ -2140,6 +2149,40 @@
   background: #eef8f7 !important;
   color: #007b83 !important;
   border-color: #d2f1f2 !important;
+}
+
+/* У темній темі статус продовжує гру корпоративних синьо-зелених кольорів. */
+:root.dark-theme .portal-status-chip {
+  background: linear-gradient(105deg, rgba(47, 107, 158, 0.22), rgba(58, 132, 98, 0.2));
+  border-color: rgba(74, 181, 145, 0.5);
+  color: #e2e8f0;
+  box-shadow: inset 3px 0 0 rgba(74, 181, 145, 0.9), 0 4px 16px rgba(4, 15, 27, 0.2);
+}
+:root.dark-theme .portal-status-chip .status-caption { color: #a9c8d5; }
+:root.dark-theme .portal-status-chip.status-office {
+  background: rgba(34, 197, 94, 0.15) !important;
+  color: #86efac !important;
+  border-color: rgba(74, 222, 128, 0.38) !important;
+}
+:root.dark-theme .portal-status-chip.status-home {
+  background: rgba(14, 165, 233, 0.15) !important;
+  color: #7dd3fc !important;
+  border-color: rgba(56, 189, 248, 0.38) !important;
+}
+:root.dark-theme .portal-status-chip.status-sick {
+  background: rgba(239, 68, 68, 0.14) !important;
+  color: #fca5a5 !important;
+  border-color: rgba(248, 113, 113, 0.36) !important;
+}
+:root.dark-theme .portal-status-chip.status-vacation {
+  background: rgba(168, 85, 247, 0.14) !important;
+  color: #d8b4fe !important;
+  border-color: rgba(192, 132, 252, 0.36) !important;
+}
+:root.dark-theme .portal-status-chip.status-agreement {
+  background: rgba(20, 184, 166, 0.14) !important;
+  color: #99f6e4 !important;
+  border-color: rgba(45, 212, 191, 0.36) !important;
 }
 
 /* Dropdown styling */
@@ -2630,6 +2673,9 @@
     padding: 11px 14px;
     font-size: 13.5px;
     background: var(--surface, #fff);
+  }
+  #mobile-status-row .portal-status-chip .status-caption {
+    display: inline;
   }
   /* Повний підпис статусу — місця тепер вдосталь */
   #mobile-status-row .portal-status-chip .status-lbl {
