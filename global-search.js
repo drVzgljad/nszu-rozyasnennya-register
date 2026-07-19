@@ -150,7 +150,16 @@ html.dark-theme .gs-item.selected, html.dark-theme .gs-item:hover { background: 
 html.dark-theme .gs-item-title { color: #f1f5f9; }
 html.dark-theme .gs-item-title mark { background: #a16207; }
 html.dark-theme .gs-group, html.dark-theme .gs-item-sub, html.dark-theme .gs-empty { color: #94a3b8; }
-@media (max-width: 560px) { .gs-overlay { padding-top: 4vh; } .gs-box { max-height: 86vh; } }
+@media (max-width: 768px) {
+  /* На телефоні палітра стає повноекранною — зручніше з клавіатурою */
+  .gs-overlay { padding: 0; align-items: stretch; }
+  .gs-box { max-width: none; max-height: none; height: 100%; border-radius: 0; }
+  .gs-input-row { padding: 14px 14px calc(14px); }
+  .gs-kbd { display: none; }
+  .gs-footer { display: none; }
+  .gs-item { padding: 12px 16px; }
+  .gs-results { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+}
 `;
 
 function ensureOverlay() {

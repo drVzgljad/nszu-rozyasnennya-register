@@ -38,7 +38,7 @@ async function openGlobalSearch() {
   try {
     if (!globalSearchModule) {
       // Шлях відносно МОДУЛЯ auth-v2.js (обидва лежать у корені), а не сторінки
-      globalSearchModule = await import('./global-search.js?v=20260719b');
+      globalSearchModule = await import('./global-search.js?v=20260719c');
     }
     globalSearchModule.open(getPathPrefix());
   } catch (err) {
@@ -357,6 +357,9 @@ function applyAccess() {
     appendDropdown('Сервіси', dropdownItems);
     appendNavLinks(tailItems);
   }
+
+  // Мобільна нижня панель навігації (видима лише ≤768px, стилі в auth-v2.css)
+  buildMobileTabbar(prefix, hasAccess, isActive);
 
   // Page-level guard
   const required = document.body.dataset.requiredRole;
@@ -1921,6 +1924,107 @@ function setupRealtimeStatus() {
       }
     })
     .subscribe();
+}
+
+/* ── Мобільна нижня панель навігації (як у застосунках) ─────────────
+   Інжектиться на кожній сторінці; перебудовується при зміні авторизації.
+   Видимість керується CSS (@media max-width: 768px в auth-v2.css). */
+function buildMobileTabbar(prefix, hasAccess, isActive) {
+  document.getElementById('mobile-tabbar')?.remove();
+  document.getElementById('mobile-more-sheet')?.remove();
+  document.body.classList.add('has-mobile-tabbar');
+
+  const isExpert = hasAccess('expert');
+
+  // 4 основні вкладки + «Ще»
+  const tabs = isExpert ? [
+    { icon: '🏠', label: 'Головна', path: 'index.html' },
+    { icon: '🔍', label: 'Пошук', action: 'search' },
+    { icon: '📋', label: 'Кабінет', path: 'cabinet/index.html' },
+    { icon: '🗓️', label: 'План', path: 'cabinet/planner.html' },
+    { icon: '☰', label: 'Ще', action: 'more' }
+  ] : [
+    { icon: '🏠', label: 'Головна', path: 'index.html' },
+    { icon: '🔍', label: 'Пошук', action: 'search' },
+    { icon: '📄', label: 'Реєстр', path: 'rozjasnennya.html' },
+    { icon: '📦', label: 'Пакети', path: 'pakety/index.html' },
+    { icon: '☰', label: 'Ще', action: 'more' }
+  ];
+
+  // Повний список розділів для шторки «Ще»
+  const moreSections = [
+    { icon: '📄', label: 'Роз\'яснення', path: 'rozjasnennya.html' },
+    { icon: '💡', label: 'AI-пошук', path: 'rozjasnennya_semantic.html' },
+    { icon: '📦', label: 'Пакети 2026', path: 'pakety/index.html' },
+    { icon: '🪪', label: 'Паспорт пакета', path: 'passport/index.html' },
+    { icon: '📜', label: 'Постанова 1808', path: 'postanova/index.html' },
+    { icon: '🧮', label: 'Наказ 377', path: 'algorithms/index.html' },
+    { icon: '⚖️', label: 'Нормативна база', path: 'regulatory/index.html' },
+    { icon: '🏥', label: 'ДЕЦ МОЗ', path: 'dec/index.html' },
+    { icon: '📑', label: 'Договори ЗОЗ', path: 'zoz-dogovr/index.html' },
+    { icon: '👤', label: 'Кабінет', path: 'cabinet/index.html', role: 'expert' },
+    { icon: '🗓️', label: 'Планувальник', path: 'cabinet/planner.html', role: 'expert' },
+    { icon: '📊', label: 'Звіти СКО-Д', path: 'skod/reports.html', role: 'expert' },
+    { icon: '✅', label: 'Доручення', path: 'skod/tasks.html', role: 'manager' },
+    { icon: '👥', label: 'Структура', path: 'dept-tree.html', role: 'expert' },
+    { icon: '💬', label: 'Робочий чат', path: 'chat/index.html', role: 'expert' },
+    { icon: '📰', label: 'Новини', path: 'news/index.html', role: 'expert' },
+    { icon: '📡', label: 'Інфоцентр', path: 'infocenter/index.html', role: 'expert' },
+    { icon: '⏰', label: 'Нагадування', path: 'reminders/index.html', role: 'expert' },
+    { icon: '❓', label: 'Питання ЗОЗ', path: 'zoz-questions/index.html', role: 'expert' },
+    { icon: '🗳️', label: 'Пропозиції ПМГ', path: 'pmg-proposals/index.html', role: 'expert' },
+    { icon: '🤝', label: 'Пропозиції РГ', path: 'expert-proposals/index.html', role: 'expert' },
+    { icon: '🌿', label: 'Відпочинок', path: 'relax/index.html', role: 'expert' }
+  ].filter(s => hasAccess(s.role));
+
+  const bar = document.createElement('nav');
+  bar.id = 'mobile-tabbar';
+  bar.setAttribute('aria-label', 'Мобільна навігація');
+  tabs.forEach(t => {
+    const el = document.createElement(t.path ? 'a' : 'button');
+    el.className = 'mtab';
+    if (t.path) {
+      el.href = prefix + t.path;
+      if (isActive(t.path)) el.classList.add('active');
+    } else {
+      el.type = 'button';
+    }
+    el.innerHTML = `<span class="mtab-icon">${t.icon}</span><span class="mtab-lbl">${t.label}</span>`;
+    if (t.action === 'search') el.addEventListener('click', openGlobalSearch);
+    if (t.action === 'more') el.addEventListener('click', toggleMobileMoreSheet);
+    bar.appendChild(el);
+  });
+  document.body.appendChild(bar);
+
+  // Шторка «Ще»
+  const sheet = document.createElement('div');
+  sheet.id = 'mobile-more-sheet';
+  sheet.innerHTML = `
+    <div class="mms-backdrop"></div>
+    <div class="mms-panel" role="dialog" aria-label="Усі розділи порталу">
+      <div class="mms-grip"></div>
+      <div class="mms-title">Усі розділи</div>
+      <div class="mms-grid">
+        ${moreSections.map(s => `
+          <a class="mms-item${isActive(s.path) ? ' active' : ''}" href="${prefix}${s.path}">
+            <span class="mms-icon">${s.icon}</span>
+            <span class="mms-lbl">${s.label}</span>
+          </a>`).join('')}
+      </div>
+    </div>
+  `;
+  sheet.querySelector('.mms-backdrop').addEventListener('click', toggleMobileMoreSheet);
+  document.body.appendChild(sheet);
+}
+
+function toggleMobileMoreSheet() {
+  const sheet = document.getElementById('mobile-more-sheet');
+  if (!sheet) return;
+  const willOpen = !sheet.classList.contains('open');
+  sheet.classList.toggle('open', willOpen);
+  document.getElementById('mobile-tabbar')?.querySelectorAll('.mtab').forEach(t => {
+    if (t.querySelector('.mtab-lbl')?.textContent === 'Ще') t.classList.toggle('active', willOpen);
+  });
 }
 
 // ── PWA: реєстрація service worker (працює на будь-якій сторінці порталу) ──

@@ -2575,6 +2575,138 @@
   color: #94a3b8;
 }
 
+/* ── Мобільна нижня панель навігації ───────────────────────────── */
+#mobile-tabbar {
+  display: none;
+}
+#mobile-more-sheet { display: none; }
+
+@media (max-width: 768px) {
+  #mobile-tabbar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 11000;
+    display: flex;
+    align-items: stretch;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: saturate(140%) blur(12px);
+    border-top: 1px solid var(--line, #e3edf3);
+    padding-bottom: env(safe-area-inset-bottom);
+    box-shadow: 0 -6px 24px rgba(15, 30, 45, 0.08);
+  }
+  body.has-mobile-tabbar {
+    padding-bottom: calc(62px + env(safe-area-inset-bottom));
+  }
+  .mtab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 58px;
+    border: none;
+    background: transparent;
+    text-decoration: none;
+    color: var(--muted, #647688);
+    font: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mtab-icon { font-size: 21px; line-height: 1; }
+  .mtab-lbl { font-size: 10.5px; font-weight: 700; letter-spacing: .01em; }
+  .mtab.active { color: var(--accent-dark, #2f6b9e); }
+  .mtab.active .mtab-lbl { color: var(--accent-dark, #2f6b9e); }
+  .mtab:active { transform: scale(.94); }
+
+  /* Шторка «Ще» */
+  #mobile-more-sheet.open { display: block; }
+  #mobile-more-sheet .mms-backdrop {
+    position: fixed; inset: 0;
+    z-index: 11001;
+    background: rgba(15, 30, 45, 0.45);
+  }
+  #mobile-more-sheet .mms-panel {
+    position: fixed;
+    left: 0; right: 0;
+    bottom: calc(58px + env(safe-area-inset-bottom));
+    z-index: 11002;
+    background: var(--surface, #fff);
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -18px 48px rgba(15, 30, 45, 0.25);
+    padding: 8px 14px calc(16px);
+    max-height: 68vh;
+    overflow-y: auto;
+    animation: mmsSlideUp .22s ease;
+  }
+  @keyframes mmsSlideUp {
+    from { transform: translateY(24px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .mms-grip {
+    width: 40px; height: 4px;
+    border-radius: 999px;
+    background: var(--line, #dde6ee);
+    margin: 6px auto 10px;
+  }
+  .mms-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--muted, #647688);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin-bottom: 10px;
+  }
+  .mms-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .mms-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 74px;
+    padding: 10px 6px;
+    border-radius: 12px;
+    background: var(--soft, #f2f8fb);
+    border: 1px solid var(--line, #e3edf3);
+    text-decoration: none;
+    text-align: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mms-item:active { transform: scale(.96); }
+  .mms-item.active {
+    border-color: var(--accent, #4a8fc7);
+    background: var(--accent-soft, #eef6fc);
+  }
+  .mms-icon { font-size: 22px; line-height: 1; }
+  .mms-lbl {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ink, #1f3347);
+    line-height: 1.25;
+  }
+}
+
+:root.dark-theme #mobile-tabbar {
+  background: rgba(15, 23, 42, 0.96);
+  border-top-color: #334155;
+}
+:root.dark-theme .mms-panel { background: #1e293b !important; }
+:root.dark-theme .mms-grip { background: #334155; }
+:root.dark-theme .mms-item {
+  background: #0f172a;
+  border-color: #334155;
+}
+:root.dark-theme .mms-item.active {
+  border-color: #60a5fa;
+  background: rgba(96, 165, 250, 0.12);
+}
+:root.dark-theme .mms-lbl { color: #e2e8f0; }
+
 /* ── Планшетна адаптація шапки (залогінений стан додає чіп статусу,
       «в мережі», бейдж ролі та ім'я — на 700–1100px вони не вміщаються) ── */
 @media (max-width: 1100px) {

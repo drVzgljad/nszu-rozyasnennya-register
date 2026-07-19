@@ -963,3 +963,21 @@ select {
 .reader-content .reader-li::before {
   content: "4"; position: absolute; left: -20px; color: #0d9488; font-weight: 700;
 }
+
+/* ── Мобільний компактний hero (усі сторінки на styles.css) ────── */
+@media (max-width: 768px) {
+  .hero {
+    padding: 18px 16px 20px;
+    gap: 16px;
+  }
+  h1 { font-size: clamp(24px, 6.6vw, 32px); }
+  .hero-copy p {
+    font-size: 13.5px;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .overline { margin-bottom: 8px; font-size: 11px; }
+}

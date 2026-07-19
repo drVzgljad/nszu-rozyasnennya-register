@@ -418,6 +418,49 @@ body {
   .stat-strip .cell { border-right: 0 !important; border-bottom: 1px solid var(--p-line); }
   .stat-strip .cell:last-child { border-bottom: 0; }
 }
+/* ── Мобільна головна: компактний «app-like» екран ─────────────── */
+@media (max-width: 768px) {
+  .hero-inner { padding: 26px 0 26px; }
+  .eyebrow { margin-bottom: 14px; font-size: 12px; padding: 6px 11px 6px 7px; }
+  .hero h1 {
+    font-size: clamp(25px, 7.4vw, 34px);
+    margin-bottom: 12px;
+    line-height: 1.08;
+  }
+  .hero-lead {
+    font-size: 14.5px;
+    line-height: 1.5;
+    margin-bottom: 18px;
+    /* На телефоні довгий опис згортаємо до трьох рядків */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .hero-search { padding: 6px 6px 6px 14px; }
+  .hero-search input { font-size: 15px; }
+  .btn-primary { padding: 11px 16px; font-size: 14px; }
+  /* Теги-посилання: одна прокручувана стрічка замість «килима» */
+  .hero-tags {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-top: 14px;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .hero-tags::-webkit-scrollbar { display: none; }
+  .hero-tags a { flex-shrink: 0; }
+  .stat-strip { margin-top: 22px; }
+  .stat-strip .cell { padding: 14px 16px; }
+  .stat-strip .num { font-size: 24px; }
+  .stat-strip .cap { font-size: 12px; }
+  .hub { padding: 36px 0; }
+  .section-head h2 { font-size: 24px; }
+  .section-head { margin-bottom: 18px; }
+  .news-digest-section { padding: 26px 0 12px; }
+}
+
 /* Планшети: логотип поступається місцем авторизаційному блоку */
 @media (max-width: 1100px) {
   .top-row-1 { gap: 10px; }
