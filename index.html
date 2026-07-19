@@ -892,15 +892,28 @@
     }
     const panelRoles = ['expert', 'manager', 'deputy_director', 'director', 'admin'];
     if (panelRoles.includes(role)) {
+      document.body.dataset.guestSearchHidden = 'false';
+      searchRow.hidden = false;
       panelSlot.hidden = false;
       panelSlot.appendChild(searchRow);
       searchRow.classList.add('is-portal-management-search');
     } else {
+      document.body.dataset.guestSearchHidden = 'true';
+      searchRow.hidden = true;
       panelSlot.hidden = true;
       headerInner.insertBefore(searchRow, navRow);
       searchRow.classList.remove('is-portal-management-search');
     }
   }
+
+  // На гостьовій головній сторінці пошук повністю вимкнений, включно з Ctrl/Cmd+K.
+  document.addEventListener('keydown', (event) => {
+    const isSearchShortcut = (event.ctrlKey || event.metaKey) && !event.altKey && event.code === 'KeyK';
+    if (isSearchShortcut && document.body.dataset.guestSearchHidden === 'true') {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+  }, true);
 
   // ── Експрес-інфоблок кабінету: активні / гарячі / прострочені / списано сьогодні
   async function loadHomeMetrics() {
