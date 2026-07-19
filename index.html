@@ -148,6 +148,23 @@
     .home-dashboard-shell .home-work-actions {
       justify-content: flex-start;
     }
+    .home-panel-search {
+      width: 100%;
+      margin: 0 0 16px;
+    }
+    .home-panel-search .global-search-row {
+      width: 100%;
+      padding: 0;
+    }
+    .home-panel-search .global-search-bar {
+      min-height: 44px;
+      background: var(--p-surface, #fff);
+      border-color: rgba(47, 107, 158, 0.2);
+    }
+    :root.dark-theme .home-panel-search .global-search-bar {
+      background: rgba(30, 41, 59, 0.92);
+      border-color: rgba(74, 181, 145, 0.24);
+    }
     .home-dashboard-shell .home-metrics-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 14px;
@@ -329,6 +346,7 @@
           <a class="home-work-action secondary" id="home-work-secondary" href="skod/reports.html" hidden>Огляд команди</a>
         </div>
       </div>
+      <div class="home-panel-search" id="home-panel-search" hidden aria-label="Пошук у порталі"></div>
       <div class="home-metrics-grid">
         <a class="home-metric-card active" href="cabinet/index.html?filter=active">
           <div class="home-metric-icon">📋</div>
@@ -847,6 +865,27 @@
     }
   }
 
+  function placeGlobalSearchForRole(role, attempt = 0) {
+    const searchRow = document.querySelector('.global-search-row');
+    const panelSlot = document.getElementById('home-panel-search');
+    const headerInner = document.querySelector('header.top .top-inner');
+    const navRow = headerInner?.querySelector('.top-row-2');
+    if (!panelSlot || !headerInner || !navRow) return;
+    if (!searchRow) {
+      if (attempt < 8) setTimeout(() => placeGlobalSearchForRole(role, attempt + 1), 200);
+      return;
+    }
+    if (role === 'admin') {
+      panelSlot.hidden = false;
+      panelSlot.appendChild(searchRow);
+      searchRow.classList.add('is-portal-management-search');
+    } else {
+      panelSlot.hidden = true;
+      headerInner.insertBefore(searchRow, navRow);
+      searchRow.classList.remove('is-portal-management-search');
+    }
+  }
+
   // ── Експрес-інфоблок кабінету: активні / гарячі / прострочені / списано сьогодні
   async function loadHomeMetrics() {
     const section = document.getElementById('home-metrics');
@@ -854,6 +893,7 @@
     try {
       const { data: { session } } = await sb.auth.getSession();
       if (!session || !session.user) {
+        placeGlobalSearchForRole(null);
         section.style.display = 'none';
         return;
       }
@@ -862,6 +902,7 @@
       const { data: profile } = await sb.from('profiles').select('role').eq('id', session.user.id).single();
       const rolesOrder = ['guest', 'expert', 'manager', 'deputy_director', 'director', 'admin'];
       if (!profile || rolesOrder.indexOf(profile.role) < rolesOrder.indexOf('expert')) {
+        placeGlobalSearchForRole(profile?.role || null);
         section.style.display = 'none';
         return;
       }
@@ -894,6 +935,7 @@
         }
       };
       const panel = rolePanels[profile.role] || rolePanels.expert;
+      placeGlobalSearchForRole(profile.role);
       document.getElementById('home-work-kicker').textContent = panel.kicker;
       document.getElementById('home-work-title').textContent = panel.title;
       document.getElementById('home-work-role').textContent = panel.role;
@@ -953,6 +995,7 @@
       section.style.display = 'block';
     } catch (e) {
       console.warn('Failed to load home cabinet metrics:', e);
+      placeGlobalSearchForRole(null);
       section.style.display = 'none';
     }
   }
