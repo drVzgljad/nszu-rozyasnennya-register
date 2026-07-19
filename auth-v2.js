@@ -604,6 +604,15 @@ function inject() {
           <button class="status-opt-btn" data-status="vacation">🌴 Відпустка</button>
           <button class="status-opt-btn" data-status="agreement">🤝 За домовл.</button>
         </div>
+        <div class="status-until-row" id="status-until-row" style="display:none;">
+          <div class="until-title" id="status-until-title">До якої дати (включно)?</div>
+          <input type="date" id="status-until-input">
+          <div class="until-hint" id="status-until-hint">Статус проставиться на всі дні автоматично — щодня нічого натискати не треба.</div>
+          <div class="until-actions">
+            <button type="button" class="until-confirm" id="status-until-confirm">Зберегти</button>
+            <button type="button" class="until-cancel" id="status-until-cancel">Скасувати</button>
+          </div>
+        </div>
         <div class="dropdown-divider"></div>
         <div class="dropdown-title">Присутність колег сьогодні:</div>
         <ul class="colleagues-status-list" id="colleagues-status-list">
@@ -620,26 +629,52 @@ function inject() {
       if (optBtn) {
         e.stopPropagation();
         const selectedStatus = optBtn.dataset.status;
-        saveUserDailyStatus(selectedStatus);
+        if (selectedStatus === 'sick' || selectedStatus === 'vacation') {
+          openStatusUntilPicker(selectedStatus);
+        } else {
+          hideStatusUntilPicker();
+          saveUserDailyStatus(selectedStatus);
+        }
         return;
       }
-      
+
+      const untilRow = e.target.closest('#status-until-row');
+      if (untilRow) {
+        e.stopPropagation();
+        if (e.target.closest('#status-until-confirm')) {
+          const input = document.getElementById('status-until-input');
+          const untilDate = input?.value;
+          if (!untilDate || untilDate < getLocalDateString()) {
+            alert('Оберіть дату завершення (не раніше сьогодні).');
+            return;
+          }
+          const pendingStatus = untilRow.dataset.pendingStatus;
+          hideStatusUntilPicker();
+          saveUserDailyStatus(pendingStatus, untilDate);
+        } else if (e.target.closest('#status-until-cancel')) {
+          hideStatusUntilPicker();
+        }
+        return;
+      }
+
       const statsLink = e.target.closest('#view-status-stats-link');
       if (statsLink) {
         return;
       }
-      
+
       const dropdown = document.getElementById('portal-status-dropdown');
       if (dropdown) {
         e.stopPropagation();
         const willShow = !dropdown.classList.contains('show');
-        
+
         // Close other dropdowns if any
         document.querySelectorAll('.status-dropdown').forEach(d => d.classList.remove('show'));
-        
+
         if (willShow) {
           dropdown.classList.add('show');
           loadTeamPresence();
+        } else {
+          hideStatusUntilPicker();
         }
       }
     });
@@ -1528,7 +1563,76 @@ function showOnScreenToast(title, body, url) {
 
 /* ── Daily User Status Business Logic ─────────────────────── */
 let todayStatus = null;
+let todayStatusUntil = null; // YYYY-MM-DD — останній день поточної відпустки/лікарняного
 let statusSubscription = null;
+
+// ── Хелпери для статусів з діапазоном дат ─────────────────────────
+function isWeekendDateStr(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  const day = d.getDay();
+  return day === 0 || day === 6;
+}
+
+function isTodayWeekend() {
+  return isWeekendDateStr(getLocalDateString());
+}
+
+function addDaysToDateStr(dateStr, days) {
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setDate(d.getDate() + days);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
+}
+
+function formatDateShort(dateStr) {
+  if (!dateStr) return '';
+  const [, m, d] = dateStr.split('-');
+  return `${d}.${m}`;
+}
+
+// З відсортованих рядків одного користувача рахує останній безперервний день
+// того ж статусу, починаючи з сьогодні (кінець відпустки/лікарняного).
+function computeStatusUntil(rows, todayStr, status) {
+  const dates = rows
+    .filter(r => r.status === status && r.status_date >= todayStr)
+    .map(r => r.status_date)
+    .sort();
+  if (!dates.length || dates[0] !== todayStr) return null;
+  let until = todayStr;
+  for (let i = 1; i < dates.length; i++) {
+    if (dates[i] === addDaysToDateStr(until, 1)) until = dates[i];
+    else break;
+  }
+  return until === todayStr ? null : until;
+}
+
+function openStatusUntilPicker(status) {
+  const row = document.getElementById('status-until-row');
+  const title = document.getElementById('status-until-title');
+  const input = document.getElementById('status-until-input');
+  if (!row || !input) return;
+  const todayStr = getLocalDateString();
+  row.dataset.pendingStatus = status;
+  input.min = todayStr;
+  const isProlong = status === 'sick' && todayStatus === 'sick' && todayStatusUntil;
+  if (status === 'sick') {
+    title.textContent = isProlong
+      ? `Продовжити лікарняний (зараз до ${formatDateShort(todayStatusUntil)}). Хворію до:`
+      : 'Лікарняний до якої дати (включно)?';
+    input.value = isProlong ? addDaysToDateStr(todayStatusUntil, 3) : addDaysToDateStr(todayStr, 3);
+  } else {
+    title.textContent = 'Відпустка до якої дати (включно)?';
+    input.value = (todayStatus === 'vacation' && todayStatusUntil) ? todayStatusUntil : addDaysToDateStr(todayStr, 13);
+  }
+  row.style.display = 'block';
+}
+
+function hideStatusUntilPicker() {
+  const row = document.getElementById('status-until-row');
+  if (row) row.style.display = 'none';
+}
 
 function getLocalDateString() {
   const d = new Date();
@@ -1541,32 +1645,31 @@ function getLocalDateString() {
 async function loadUserDailyStatus() {
   if (!user || role === 'guest') return;
   const todayStr = getLocalDateString();
-  
+
   try {
     const { data, error } = await sb
       .from('user_daily_statuses')
-      .select('status')
+      .select('status, status_date')
       .eq('user_id', user.id)
-      .eq('status_date', todayStr)
-      .maybeSingle();
-      
+      .gte('status_date', todayStr)
+      .order('status_date', { ascending: true });
+
     if (error) {
       console.warn("Failed to load user daily status:", error);
       const cached = localStorage.getItem(`daily_status_${user.id}_${todayStr}`);
-      if (cached) {
-        updateStatusUI(cached);
-      } else {
-        updateStatusUI(null);
-      }
+      updateStatusUI(cached || null);
       return;
     }
-    
-    if (data) {
-      todayStatus = data.status;
+
+    const todayRow = (data || []).find(r => r.status_date === todayStr);
+    if (todayRow) {
+      todayStatus = todayRow.status;
+      todayStatusUntil = computeStatusUntil(data, todayStr, todayRow.status);
       localStorage.setItem(`daily_status_${user.id}_${todayStr}`, todayStatus);
-      updateStatusUI(todayStatus);
+      updateStatusUI(todayStatus, todayStatusUntil);
     } else {
       todayStatus = null;
+      todayStatusUntil = null;
       updateStatusUI(null);
     }
   } catch (err) {
@@ -1574,14 +1677,14 @@ async function loadUserDailyStatus() {
   }
 }
 
-function updateStatusUI(status) {
+function updateStatusUI(status, until) {
   const chip = document.getElementById('portal-status-chip');
   if (!chip) return;
-  
+
   chip.className = 'portal-status-chip';
   const iconEl = chip.querySelector('.status-icon');
   const lblEl = chip.querySelector('.status-lbl');
-  
+
   const statusConfig = {
     office: { icon: '🏢', text: 'Офіс', className: 'status-office' },
     home: { icon: '🏡', text: 'Вдома', className: 'status-home' },
@@ -1589,28 +1692,41 @@ function updateStatusUI(status) {
     vacation: { icon: '🌴', text: 'Відпустка', className: 'status-vacation' },
     agreement: { icon: '🤝', text: 'За домовл.', className: 'status-agreement' }
   };
-  
+
+  // Субота/неділя — у всіх вихідний, але відпустка/лікарняний важливіші за вихідний
+  if (isTodayWeekend() && status !== 'sick' && status !== 'vacation') {
+    iconEl.textContent = '🛌';
+    lblEl.textContent = 'Вихідний';
+    chip.classList.add('status-weekend');
+    document.querySelectorAll('.status-opt-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.status === status);
+    });
+    return;
+  }
+
   if (status && statusConfig[status]) {
     const config = statusConfig[status];
     iconEl.textContent = config.icon;
-    lblEl.textContent = config.text;
+    lblEl.textContent = until ? `${config.text} · до ${formatDateShort(until)}` : config.text;
     chip.classList.add(config.className);
   } else {
     iconEl.textContent = '❓';
     lblEl.textContent = 'Вкажіть статус';
     chip.classList.add('needs-activation');
   }
-  
+
   document.querySelectorAll('.status-opt-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.status === status);
   });
 }
 
-async function saveUserDailyStatus(status) {
+// status — код статусу; untilDate (YYYY-MM-DD, включно) — лише для sick/vacation:
+// рядки пишуться на кожен день діапазону, щодня нічого натискати не треба.
+async function saveUserDailyStatus(status, untilDate) {
   if (!user || role === 'guest') return;
   const todayStr = getLocalDateString();
   let displayName = user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0];
-  
+
   let userDept = '';
   try {
     const { data: prof } = await sb.from('profiles').select('Section, department, full_name').eq('id', user.id).single();
@@ -1619,34 +1735,66 @@ async function saveUserDailyStatus(status) {
       displayName = prof.full_name;
     }
   } catch(e) {}
-  
+
   try {
-    updateStatusUI(status);
-    
+    const isRanged = (status === 'sick' || status === 'vacation') && untilDate && untilDate > todayStr;
+    updateStatusUI(status, isRanged ? untilDate : null);
+
+    const baseRow = {
+      user_id: user.id,
+      user_name: displayName,
+      department: userDept,
+      status: status
+    };
+
+    let rows;
+    if (isRanged) {
+      rows = [];
+      let d = todayStr;
+      let guard = 0;
+      while (d <= untilDate && guard < 200) { // страховка: максимум ~пів року
+        rows.push({ ...baseRow, status_date: d });
+        d = addDaysToDateStr(d, 1);
+        guard++;
+      }
+    } else {
+      rows = [{ ...baseRow, status_date: todayStr }];
+    }
+
     const { error } = await sb
       .from('user_daily_statuses')
-      .upsert({
-        user_id: user.id,
-        user_name: displayName,
-        department: userDept,
-        status_date: todayStr,
-        status: status
-      }, { onConflict: 'user_id, status_date' });
-      
+      .upsert(rows, { onConflict: 'user_id, status_date' });
+
     if (error) {
       console.error("Failed to save daily status to DB:", error);
       localStorage.setItem(`daily_status_${user.id}_${todayStr}`, status);
       updateStatusUI(status);
       alert("Не вдалося зберегти статус у хмару, збережено локально.");
-    } else {
-      todayStatus = status;
-      localStorage.setItem(`daily_status_${user.id}_${todayStr}`, status);
-      
-      setTimeout(() => {
-        const dropdown = document.getElementById('portal-status-dropdown');
-        if (dropdown) dropdown.classList.remove('show');
-      }, 300);
+      return;
     }
+
+    // Якщо людина повернулась раніше (ставить звичайний статус) або скоротила
+    // діапазон — прибираємо зайві майбутні дні, щоб не висіла «хвостова» відпустка.
+    const clearAfter = isRanged ? untilDate : todayStr;
+    try {
+      await sb
+        .from('user_daily_statuses')
+        .delete()
+        .eq('user_id', user.id)
+        .gt('status_date', clearAfter);
+    } catch (e) {
+      console.warn('Failed to clear future statuses:', e);
+    }
+
+    todayStatus = status;
+    todayStatusUntil = isRanged ? untilDate : null;
+    localStorage.setItem(`daily_status_${user.id}_${todayStr}`, status);
+    updateStatusUI(todayStatus, todayStatusUntil);
+
+    setTimeout(() => {
+      const dropdown = document.getElementById('portal-status-dropdown');
+      if (dropdown) dropdown.classList.remove('show');
+    }, 300);
   } catch (err) {
     console.error("Error in saveUserDailyStatus:", err);
   }
@@ -1672,33 +1820,47 @@ async function loadTeamPresence() {
     
     const { data: statuses, error: statErr } = await sb
       .from('user_daily_statuses')
-      .select('user_id, user_name, status')
-      .eq('status_date', todayStr);
-      
+      .select('user_id, user_name, status, status_date')
+      .gte('status_date', todayStr);
+
     if (statErr) {
       console.warn("Failed to load daily statuses for presence:", statErr);
       listEl.innerHTML = '<li style="color:var(--muted)">Помилка завантаження статусів</li>';
       return;
     }
-    
+
     const statusMap = {};
+    const untilMap = {};
+    const rowsByUser = {};
     statuses?.forEach(s => {
-      statusMap[s.user_id] = s.status;
+      (rowsByUser[s.user_id] = rowsByUser[s.user_id] || []).push(s);
+      if (s.status_date === todayStr) statusMap[s.user_id] = s.status;
     });
-    
+    Object.keys(statusMap).forEach(uid => {
+      const st = statusMap[uid];
+      if (st === 'sick' || st === 'vacation') {
+        untilMap[uid] = computeStatusUntil(rowsByUser[uid] || [], todayStr, st);
+      }
+    });
+
+    const weekend = isTodayWeekend();
     const groups = {
       office: { title: '🏢 В офісі', names: [] },
       home: { title: '🏡 Вдома', names: [] },
       sick: { title: '🏥 Лікарняний', names: [] },
       vacation: { title: '🌴 Відпустка', names: [] },
       agreement: { title: '🤝 За домовл.', names: [] },
+      weekend: { title: '🛌 Вихідний', names: [] },
       none: { title: '🔴 Не вказано', names: [] }
     };
-    
+
     profiles?.forEach(p => {
       const status = statusMap[p.id];
-      const name = p.full_name || 'Співробітник';
-      if (status && groups[status]) {
+      let name = p.full_name || 'Співробітник';
+      if (untilMap[p.id]) name += ` (до ${formatDateShort(untilMap[p.id])})`;
+      if (weekend && status !== 'sick' && status !== 'vacation') {
+        groups.weekend.names.push(p.full_name || 'Співробітник');
+      } else if (status && groups[status]) {
         groups[status].names.push(name);
       } else {
         groups.none.names.push(name);
@@ -1759,6 +1921,13 @@ function setupRealtimeStatus() {
       }
     })
     .subscribe();
+}
+
+// ── PWA: реєстрація service worker (працює на будь-якій сторінці порталу) ──
+if ('serviceWorker' in navigator &&
+    (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') &&
+    !location.pathname.startsWith('/chat/')) { // чат має власний SW зі своїм scope
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
 
 document.addEventListener('DOMContentLoaded', init);

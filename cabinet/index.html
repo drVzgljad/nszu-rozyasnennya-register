@@ -3,12 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Особистий кабінет експерта — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260719b">
-  <link rel="stylesheet" href="../auth-v2.css?v=20260719f">
-  <link rel="stylesheet" href="cabinet.css?v=20260717">
-  <script type="module" src="../auth-v2.js?v=20260719e"></script>
-  <script type="module" src="cabinet.js?v=20260717"></script>
+  <link rel="stylesheet" href="../auth-v2.css?v=20260719g">
+  <link rel="stylesheet" href="cabinet.css?v=20260719a">
+  <script type="module" src="../auth-v2.js?v=20260719g"></script>
+  <script type="module" src="cabinet.js?v=20260719a"></script>
 </head>
 <body data-required-role="expert">
 <div class="portal">
@@ -59,6 +64,7 @@
         </div>
         <p id="user-display-dept">Відділ стратегічного розвитку програми медичних гарантій</p>
       </div>
+      <a class="planner-link-btn" href="planner.html" title="Плани на день, тиждень, місяць і рік">🗓️ Планувальник</a>
     </section>
 
     <!-- Quick Info Dashboard (Metrics Grid) -->
@@ -99,6 +105,26 @@
       <!-- Left Column: Completed Work Feed + Tasks List -->
       <div class="cabinet-left-column">
 
+      <!-- Панель доручень — перша, найпомітніша -->
+      <section class="cabinet-panel tasks-panel" id="tasks-panel">
+        <div class="panel-header">
+          <h2>📋 Мої доручення та завдання <span class="tasks-count-chip" id="tasks-count-chip" style="display:none;">0</span></h2>
+          <div class="tasks-filter-tabs">
+            <button class="filter-tab active" data-filter="active">Активні</button>
+            <button class="filter-tab" data-filter="hot">🔥 Гарячі</button>
+            <button class="filter-tab" data-filter="overdue">🚨 Прострочені</button>
+            <button class="filter-tab" data-filter="ongoing">🔄 Постійні</button>
+            <button class="filter-tab" data-filter="all">Всі</button>
+          </div>
+        </div>
+
+        <div class="tasks-scroll-container">
+          <div id="cabinet-tasks-list" class="tasks-cards-list">
+            <div class="loading-state">Завантаження завдань...</div>
+          </div>
+        </div>
+      </section>
+
       <!-- Completed Work Feed -->
       <section class="cabinet-panel today-feed-panel">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
@@ -110,25 +136,6 @@
 
         <div id="today-logs-list" class="today-logs-list">
           <div class="empty-state">Сьогодні ви ще не вносили записи про діяльність.</div>
-        </div>
-      </section>
-
-      <section class="cabinet-panel tasks-panel">
-        <div class="panel-header">
-          <h2>📋 Мої доручення та завдання</h2>
-          <div class="tasks-filter-tabs">
-            <button class="filter-tab active" data-filter="active">Активні</button>
-            <button class="filter-tab" data-filter="hot">🔥 Гарячі</button>
-            <button class="filter-tab" data-filter="overdue">🚨 Прострочені</button>
-            <button class="filter-tab" data-filter="ongoing">🔄 Постійні</button>
-            <button class="filter-tab" data-filter="all">Всі</button>
-          </div>
-        </div>
-        
-        <div class="tasks-scroll-container">
-          <div id="cabinet-tasks-list" class="tasks-cards-list">
-            <div class="loading-state">Завантаження завдань...</div>
-          </div>
         </div>
       </section>
 

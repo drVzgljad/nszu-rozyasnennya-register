@@ -1075,6 +1075,7 @@
   --status-sick: #c5221f;
   --status-vacation: #8616a6;
   --status-agreement: #007b83;
+  --status-weekend: #64748b;
   --status-unregistered: #9aa8b6;
 }
 
@@ -1085,7 +1086,29 @@
   --status-sick: #f28b82;
   --status-vacation: #d7aefb;
   --status-agreement: #80cbc4;
+  --status-weekend: #94a3b8;
   --status-unregistered: #4b5563;
+}
+
+/* Статус «вихідний» (сб/нд) */
+.person-status-indicator.status-weekend {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+:root.dark-theme .person-status-indicator.status-weekend {
+  background: rgba(148, 163, 184, 0.16) !important;
+  color: #cbd5e1 !important;
+  border-color: rgba(148, 163, 184, 0.3) !important;
+}
+.micro-status.m-weekend {
+  background: rgba(100, 116, 139, 0.12);
+  color: var(--status-weekend);
+  border: 1px solid rgba(100, 116, 139, 0.2);
+}
+:root.dark-theme .micro-status.m-weekend, .dark-theme .micro-status.m-weekend {
+  background: rgba(148, 163, 184, 0.16) !important;
+  border-color: rgba(148, 163, 184, 0.3) !important;
 }
 
 :root.dark-theme .presence-widget,

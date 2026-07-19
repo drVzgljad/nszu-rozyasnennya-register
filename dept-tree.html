@@ -3,11 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Структура департаменту</title>
   <link rel="stylesheet" href="styles.css?v=20260719b">
-  <link rel="stylesheet" href="auth-v2.css?v=20260719f">
-  <link rel="stylesheet" href="dept-tree.css?v=20260719a">
-  <script type="module" src="auth-v2.js?v=20260719e"></script>
+  <link rel="stylesheet" href="auth-v2.css?v=20260719g">
+  <link rel="stylesheet" href="dept-tree.css?v=20260719b">
+  <script type="module" src="auth-v2.js?v=20260719g"></script>
 </head>
 <body data-required-role="expert">
   <header class="hero dept-hero">
@@ -516,12 +521,14 @@
 
     function calculatePresenceStats(statusesData) {
       const uniqueNames = getUniquePeopleNames();
+      const weekend = isWeekendToday();
       const stats = {
         office: 0,
         home: 0,
         sick: 0,
         vacation: 0,
         agreement: 0,
+        weekend: 0,
         unregistered: 0
       };
 
@@ -532,25 +539,33 @@
           const matchedName = uniqueNames.find(uname => {
             const unameLower = uname.trim().toLowerCase();
             if (unameLower === dbNameLower) return true;
-            
+
             const unameWords = unameLower.split(/\s+/).filter(Boolean);
             const dbWords = dbNameLower.split(/\s+/).filter(Boolean);
             return unameWords.length === dbWords.length && unameWords.every(w => dbWords.includes(w));
           });
-          
+
           if (matchedName && !registeredNames.has(matchedName)) {
             registeredNames.add(matchedName);
-            if (stats[item.status] !== undefined) {
+            if (weekend && item.status !== 'sick' && item.status !== 'vacation') {
+              stats.weekend++;
+            } else if (stats[item.status] !== undefined) {
               stats[item.status]++;
             }
           }
         }
       });
 
-      stats.unregistered = uniqueNames.length - registeredNames.size;
+      if (weekend) {
+        // Сб/нд: усі, хто не у відпустці/лікарняному, — на вихідному
+        stats.weekend += uniqueNames.length - registeredNames.size;
+        stats.unregistered = 0;
+      } else {
+        stats.unregistered = uniqueNames.length - registeredNames.size;
+      }
 
       const total = uniqueNames.length;
-      const order = ['office', 'home', 'sick', 'vacation', 'agreement', 'unregistered'];
+      const order = ['office', 'home', 'sick', 'vacation', 'agreement', 'weekend', 'unregistered'];
       const segments = [];
       let currentPercent = 0;
 
@@ -581,10 +596,11 @@
           sick: { label: 'Лікарняний', icon: '🏥' },
           vacation: { label: 'Відпустка', icon: '🌴' },
           agreement: { label: 'За домовл.', icon: '🤝' },
+          weekend: { label: 'Вихідний', icon: '🛌' },
           unregistered: { label: 'Не вказано', icon: '❓' }
         };
 
-        legend.innerHTML = order.map(key => {
+        legend.innerHTML = order.filter(key => key !== 'weekend' || stats.weekend > 0).map(key => {
           const count = stats[key] || 0;
           return `
             <div class="presence-legend-item">
@@ -603,6 +619,7 @@
     }
 
     function updateDepartmentStatusBadges(statusesData) {
+      const weekend = isWeekendToday();
       const statusMap = new Map();
       (statusesData || []).forEach(item => {
         if (item.user_name && item.status) {
@@ -617,13 +634,14 @@
         const members = new Set();
         if (dept.manager) members.add(dept.manager);
         dept.specialists.forEach(sp => members.add(sp));
-        
+
         const stats = {
           office: 0,
           home: 0,
           sick: 0,
           vacation: 0,
           agreement: 0,
+          weekend: 0,
           unregistered: 0
         };
 
@@ -643,7 +661,9 @@
             }
           }
 
-          if (status) {
+          if (weekend && status !== 'sick' && status !== 'vacation') {
+            stats.weekend++;
+          } else if (status) {
             if (stats[status] !== undefined) {
               stats[status]++;
             }
@@ -675,6 +695,10 @@
           parts.push(`ЗД${stats.agreement}`);
           badgeParts.push(`<span class="micro-status m-agreement" title="За домовленістю">ЗД${stats.agreement}</span>`);
         }
+        if (stats.weekend > 0) {
+          parts.push(`Вх${stats.weekend}`);
+          badgeParts.push(`<span class="micro-status m-weekend" title="Вихідний">Вх${stats.weekend}</span>`);
+        }
         if (stats.unregistered > 0) {
           parts.push(`Б/С${stats.unregistered}`);
           badgeParts.push(`<span class="micro-status m-unregistered" title="Без статусу">Б/С${stats.unregistered}</span>`);
@@ -703,16 +727,27 @@
       }
     }
 
+    function isWeekendToday() {
+      const day = new Date().getDay();
+      return day === 0 || day === 6;
+    }
+
+    function addDayStr(dateStr, days) {
+      const d = new Date(dateStr + 'T12:00:00');
+      d.setDate(d.getDate() + days);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
     async function loadDailyStatuses() {
       const todayStr = getLocalDateString();
       try {
         const { data, error } = await sb
           .from("user_daily_statuses")
-          .select("user_id, user_name, status")
-          .eq("status_date", todayStr);
-          
+          .select("user_id, user_name, status, status_date")
+          .gte("status_date", todayStr);
+
         if (error) throw error;
-        
+
         const normalizedData = (data || []).map(item => {
           let resolvedName = item.user_name;
           if (item.user_id && state.profileNamesById.has(item.user_id)) {
@@ -723,33 +758,58 @@
             user_name: resolvedName
           };
         });
-        
+
+        const todayRows = normalizedData.filter(item => item.status_date === todayStr);
+
+        // Кінець відпустки/лікарняного: останній безперервний день того ж статусу
+        const untilMap = new Map(); // ім'я (lower) → 'ДД.ММ'
+        todayRows.forEach(item => {
+          if (!item.user_name || (item.status !== 'sick' && item.status !== 'vacation')) return;
+          const dates = normalizedData
+            .filter(r => r.user_id === item.user_id && r.status === item.status && r.status_date >= todayStr)
+            .map(r => r.status_date)
+            .sort();
+          let until = todayStr;
+          for (let i = 1; i < dates.length; i++) {
+            if (dates[i] === addDayStr(until, 1)) until = dates[i];
+            else break;
+          }
+          if (until !== todayStr) {
+            const [, m, dd] = until.split('-');
+            untilMap.set(item.user_name.trim().toLowerCase(), `${dd}.${m}`);
+          }
+        });
+
         const statusMap = new Map();
-        normalizedData.forEach(item => {
+        todayRows.forEach(item => {
           if (item.user_name) {
             statusMap.set(item.user_name.trim().toLowerCase(), item.status);
           }
         });
-        
-        applyStatusesToCards(statusMap);
-        calculatePresenceStats(normalizedData);
-        updateDepartmentStatusBadges(normalizedData);
+
+        applyStatusesToCards(statusMap, untilMap);
+        calculatePresenceStats(todayRows);
+        updateDepartmentStatusBadges(todayRows);
       } catch (error) {
         console.warn("Не вдалося завантажити щоденні статуси для структури:", error);
       }
     }
     
-    function applyStatusesToCards(statusMap) {
+    function applyStatusesToCards(statusMap, untilMap) {
+      const weekend = isWeekendToday();
+      untilMap = untilMap || new Map();
       document.querySelectorAll(".person-status-indicator").forEach(el => {
         const personName = el.dataset.statusName;
         if (!personName) return;
-        
+
         let status = null;
+        let matchedKey = null;
         const targetNameLower = personName.trim().toLowerCase();
-        
+
         // Try exact match first
         if (statusMap.has(targetNameLower)) {
           status = statusMap.get(targetNameLower);
+          matchedKey = targetNameLower;
         } else {
           // Fallback to word-set matching (e.g. 'Дудник Світлана' matches 'Світлана Дудник')
           const targetWords = targetNameLower.split(/\s+/).filter(Boolean);
@@ -757,14 +817,23 @@
             const dbWords = dbName.split(/\s+/).filter(Boolean);
             if (dbWords.length === targetWords.length && dbWords.every(w => targetWords.includes(w))) {
               status = dbStatus;
+              matchedKey = dbName;
               break;
             }
           }
         }
-        
+
         el.className = 'person-status-indicator';
         el.innerHTML = '';
-        
+
+        // Сб/нд — вихідний у всіх, крім тих, хто у відпустці чи на лікарняному
+        if (weekend && status !== 'sick' && status !== 'vacation') {
+          el.classList.add('status-weekend');
+          el.textContent = '🛌 Вихідний';
+          el.style.display = 'inline-flex';
+          return;
+        }
+
         if (status) {
           const config = {
             office: { text: '🏢 Офіс', className: 'status-office' },
@@ -773,11 +842,14 @@
             vacation: { text: '🌴 Відпустка', className: 'status-vacation' },
             agreement: { text: '🤝 За домовл.', className: 'status-agreement' }
           };
-          
+
           const sConf = config[status];
           if (sConf) {
             el.classList.add(sConf.className);
-            el.textContent = sConf.text;
+            let text = sConf.text;
+            const until = matchedKey ? untilMap.get(matchedKey) : null;
+            if (until) text += ` до ${until}`;
+            el.textContent = text;
             el.style.display = 'inline-flex';
           }
         } else {

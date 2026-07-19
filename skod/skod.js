@@ -2172,6 +2172,20 @@ function renderStatusDashboard(logs, startDateVal, endDateVal, deptVal, empVal) 
       </div>
     </div>
 
+    <!-- Табель обліку робочого часу (для бухгалтерії) -->
+    <div class="skod-card" style="padding: 24px; border-radius: var(--pr-tile); background: var(--p-surface); border: 1px solid var(--p-line); box-shadow: var(--p-shadow-sm); margin-bottom: 20px;">
+      <div class="skod-card-title" style="margin-bottom: 6px; font-weight:700; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+        <span>🧾 Табель для бухгалтерії</span>
+        <button id="timesheet-export-btn" type="button" style="border:none; border-radius:9px; background:#3a8462; color:#fff; font:inherit; font-size:13px; font-weight:700; padding:9px 16px; cursor:pointer;">⬇️ Експорт в Excel (CSV)</button>
+      </div>
+      <div style="font-size:12.5px; color: var(--p-muted); margin-bottom:14px; border-bottom: 1px solid var(--p-soft); padding-bottom: 12px;">
+        Умовні позначення: <strong>О</strong> — офіс, <strong>Д</strong> — дистанційно, <strong>Л</strong> — лікарняний, <strong>В</strong> — відпустка, <strong>ЗД</strong> — за домовленістю, <strong>Вх</strong> — вихідний (сб/нд), <strong>–</strong> — статус не вказано.
+      </div>
+      <div style="overflow-x: auto;">
+        ${buildTimesheetTable(logs, startDateVal, endDateVal)}
+      </div>
+    </div>
+
     <!-- Detailed history log -->
     <div class="skod-card" style="padding: 24px; border-radius: var(--pr-tile); background: var(--p-surface); border: 1px solid var(--p-line); box-shadow: var(--p-shadow-sm);">
       <div class="skod-card-title" style="margin-bottom: 20px; border-bottom: 1px solid var(--p-soft); padding-bottom: 12px; font-weight:700;">
@@ -2197,12 +2211,142 @@ function renderStatusDashboard(logs, startDateVal, endDateVal, deptVal, empVal) 
 
   resultsContainer.innerHTML = html;
 
+  const exportBtn = document.getElementById('timesheet-export-btn');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', () => exportTimesheetCSV(logs, startDateVal, endDateVal));
+  }
+
   // Destroy previous chart instances
   Object.values(chartInstances).forEach(c => c && c.destroy());
   chartInstances = {};
 
   const isDark = document.body.classList.contains('dark-theme') || document.documentElement.classList.contains('dark-theme');
   drawStatusCharts(logs, isDark);
+}
+
+// ── Табель обліку робочого часу ────────────────────────────────────
+const TIMESHEET_CODES = { office: 'О', home: 'Д', sick: 'Л', vacation: 'В', agreement: 'ЗД' };
+
+function timesheetDates(startDateVal, endDateVal) {
+  const dates = [];
+  let d = new Date(startDateVal + 'T12:00:00');
+  const end = new Date(endDateVal + 'T12:00:00');
+  let guard = 0;
+  while (d <= end && guard < 400) {
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    dates.push({ iso, day: d.getDate(), month: d.getMonth() + 1, weekend: d.getDay() === 0 || d.getDay() === 6 });
+    d.setDate(d.getDate() + 1);
+    guard++;
+  }
+  return dates;
+}
+
+// Клітинка табеля: сб/нд — завжди «Вх» (вимога бухобліку), інакше код статусу або «–»
+function timesheetCell(dateInfo, status) {
+  if (dateInfo.weekend) return 'Вх';
+  return TIMESHEET_CODES[status] || '–';
+}
+
+function buildTimesheetData(logs, startDateVal, endDateVal) {
+  const dates = timesheetDates(startDateVal, endDateVal);
+  const byUser = {};
+  logs.forEach(log => {
+    const name = log.user_name || 'Невідомий';
+    if (!byUser[name]) byUser[name] = { department: log.department || '', days: {} };
+    byUser[name].days[log.status_date] = log.status;
+    if (log.department) byUser[name].department = log.department;
+  });
+
+  const rows = Object.keys(byUser).sort((a, b) => a.localeCompare(b, 'uk')).map(name => {
+    const u = byUser[name];
+    const cells = dates.map(di => timesheetCell(di, u.days[di.iso]));
+    const totals = { work: 0, sick: 0, vacation: 0, weekend: 0, none: 0 };
+    cells.forEach(c => {
+      if (c === 'О' || c === 'Д' || c === 'ЗД') totals.work++;
+      else if (c === 'Л') totals.sick++;
+      else if (c === 'В') totals.vacation++;
+      else if (c === 'Вх') totals.weekend++;
+      else totals.none++;
+    });
+    return { name, department: u.department, cells, totals };
+  });
+
+  return { dates, rows };
+}
+
+function buildTimesheetTable(logs, startDateVal, endDateVal) {
+  const { dates, rows } = buildTimesheetData(logs, startDateVal, endDateVal);
+  if (!rows.length) return '<div class="empty-state">Немає даних для табеля.</div>';
+
+  const headDays = dates.map(di =>
+    `<th style="padding:6px 4px; min-width:26px; text-align:center; font-weight:700; ${di.weekend ? 'background: var(--p-soft); color: var(--p-muted);' : ''}" title="${di.iso}">${String(di.day).padStart(2, '0')}.${String(di.month).padStart(2, '0')}</th>`
+  ).join('');
+
+  const bodyRows = rows.map(r => {
+    const cellsHtml = r.cells.map((c, i) => {
+      const di = dates[i];
+      let color = '';
+      if (c === 'О') color = 'color:#137333;';
+      else if (c === 'Д') color = 'color:#1a73e8;';
+      else if (c === 'Л') color = 'color:#c5221f; font-weight:700;';
+      else if (c === 'В') color = 'color:#8616a6; font-weight:700;';
+      else if (c === 'ЗД') color = 'color:#007b83;';
+      else if (c === 'Вх') color = 'color:var(--p-muted);';
+      else color = 'color:var(--p-muted); opacity:.6;';
+      return `<td style="padding:6px 4px; text-align:center; ${color} ${di.weekend ? 'background: var(--p-soft);' : ''}">${c}</td>`;
+    }).join('');
+    return `
+      <tr style="border-bottom: 1px solid var(--p-soft);">
+        <td style="padding:8px 10px; white-space:nowrap; font-weight:600; position:sticky; left:0; background:var(--p-surface);">${r.name}</td>
+        ${cellsHtml}
+        <td style="padding:6px 8px; text-align:center; font-weight:700; color:#137333;">${r.totals.work}</td>
+        <td style="padding:6px 8px; text-align:center; color:#c5221f;">${r.totals.sick}</td>
+        <td style="padding:6px 8px; text-align:center; color:#8616a6;">${r.totals.vacation}</td>
+        <td style="padding:6px 8px; text-align:center; color:var(--p-muted);">${r.totals.weekend}</td>
+      </tr>`;
+  }).join('');
+
+  return `
+    <table class="skod-table" style="border-collapse: collapse; font-size: 12.5px; width:100%;">
+      <thead>
+        <tr style="border-bottom: 2px solid var(--p-line); text-align: left;">
+          <th style="padding:8px 10px; position:sticky; left:0; background:var(--p-surface);">Співробітник</th>
+          ${headDays}
+          <th style="padding:6px 8px; text-align:center;" title="Відпрацьовано (О+Д+ЗД)">Роб.</th>
+          <th style="padding:6px 8px; text-align:center;" title="Лікарняні">Л</th>
+          <th style="padding:6px 8px; text-align:center;" title="Відпустка">В</th>
+          <th style="padding:6px 8px; text-align:center;" title="Вихідні">Вх</th>
+        </tr>
+      </thead>
+      <tbody>${bodyRows}</tbody>
+    </table>`;
+}
+
+function exportTimesheetCSV(logs, startDateVal, endDateVal) {
+  const { dates, rows } = buildTimesheetData(logs, startDateVal, endDateVal);
+  const sep = ';';
+  const head = ['Співробітник', 'Відділ',
+    ...dates.map(di => `${String(di.day).padStart(2, '0')}.${String(di.month).padStart(2, '0')}`),
+    'Відпрацьовано (О+Д+ЗД)', 'Лікарняні', 'Відпустка', 'Вихідні', 'Без статусу'];
+  const lines = [head.join(sep)];
+  rows.forEach(r => {
+    lines.push([
+      `"${r.name.replace(/"/g, '""')}"`,
+      `"${(r.department || '').replace(/"/g, '""')}"`,
+      ...r.cells,
+      r.totals.work, r.totals.sick, r.totals.vacation, r.totals.weekend, r.totals.none
+    ].join(sep));
+  });
+  // BOM — щоб Excel коректно відкрив кирилицю
+  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Табель_${startDateVal}_${endDateVal}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 function buildStatusMatrixRows(logs) {

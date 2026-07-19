@@ -288,6 +288,20 @@ function renderMetrics() {
   if (hotCountEl) hotCountEl.textContent = hotCount;
   if (overdueCountEl) overdueCountEl.textContent = overdueCount;
   if (scoreValEl) scoreValEl.textContent = `${totalHours} год`;
+
+  // Бейдж-лічильник і сигнальна рамка панелі доручень
+  const countChip = document.getElementById('tasks-count-chip');
+  if (countChip) {
+    countChip.textContent = activeTasks.length;
+    countChip.style.display = activeTasks.length > 0 ? 'inline-flex' : 'none';
+    countChip.classList.toggle('chip-danger', overdueCount > 0);
+    countChip.classList.toggle('chip-hot', overdueCount === 0 && hotCount > 0);
+  }
+  const tasksPanel = document.getElementById('tasks-panel');
+  if (tasksPanel) {
+    tasksPanel.classList.toggle('has-overdue', overdueCount > 0);
+    tasksPanel.classList.toggle('has-hot', overdueCount === 0 && hotCount > 0);
+  }
 }
 
 function renderTasksList(filter = 'active') {

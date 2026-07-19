@@ -2493,6 +2493,88 @@
   .global-search-bar .gs-btn-kbd { display: none; }
 }
 
+/* ── Вибір дати завершення відпустки/лікарняного ───────────────── */
+.status-until-row {
+  margin: 10px 0 4px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--soft, #f2f8fb);
+  border: 1px solid var(--line, #e3edf3);
+}
+.status-until-row .until-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink, #1f3347);
+  margin-bottom: 8px;
+}
+.status-until-row input[type="date"] {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line, #cddbe7);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink, #1f3347);
+  font: inherit;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+.status-until-row .until-hint {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--muted, #647688);
+}
+.status-until-row .until-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.status-until-row .until-confirm,
+.status-until-row .until-cancel {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.status-until-row .until-confirm {
+  background: var(--accent, #4a8fc7);
+  color: #fff;
+}
+.status-until-row .until-confirm:hover { background: var(--accent-dark, #2f6b9e); }
+.status-until-row .until-cancel {
+  background: transparent;
+  border-color: var(--line, #cddbe7);
+  color: var(--muted, #647688);
+}
+.status-until-row .until-cancel:hover { color: var(--ink, #1f3347); }
+
+:root.dark-theme .status-until-row {
+  background: #0f172a;
+  border-color: #334155;
+}
+:root.dark-theme .status-until-row .until-title { color: #e2e8f0; }
+:root.dark-theme .status-until-row input[type="date"] {
+  background: #1e293b;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+/* Статус «вихідний» (сб/нд автоматично) */
+.portal-status-chip.status-weekend {
+  background: var(--soft, #f2f8fb);
+  border-color: var(--line, #e3edf3);
+  color: var(--muted, #647688);
+}
+:root.dark-theme .portal-status-chip.status-weekend {
+  background: #1e293b;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
 /* ── Мобільна адаптація авторизаційного блоку в шапці ──────────── */
 @media (max-width: 640px) {
   .theme-toggle-btn,

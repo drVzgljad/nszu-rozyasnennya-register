@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Планувальник — Особистий кабінет — НавігаторПМГ26</title>
+  <link rel="stylesheet" href="../portal.css?v=20260719b">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260719g">
+  <link rel="stylesheet" href="planner.css?v=20260719a">
+  <script type="module" src="../auth-v2.js?v=20260719g"></script>
+  <script type="module" src="planner.js?v=20260719a"></script>
+</head>
+<body data-required-role="expert">
+<div class="portal">
+
+  <!-- ── Top bar ─────────────────────────────────────── -->
+  <header class="top">
+    <div class="wrap top-inner">
+      <div class="top-row-1">
+        <a class="lockup" href="../index.html" aria-label="На головну">
+          <img class="shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true" style="width:44px;height:auto">
+          <span class="wm">
+            <span class="wm-1">Робочий простір експертів</span>
+            <span class="wm-2">Програма медичних гарантій 2026</span>
+          </span>
+        </a>
+        <div class="top-row-1-right">
+          <nav class="section-switch top-auth" aria-label="Авторизація"></nav>
+          <span class="agency-chip">
+            <img src="../assets/nszu-shield.svg" alt="">НСЗУ
+          </span>
+        </div>
+      </div>
+      <div class="top-row-2">
+        <nav class="top-nav" aria-label="Головне меню"></nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- Access Denied Overlay (Controlled by auth-v2.js) -->
+  <div id="access-denied-overlay" class="access-denied-overlay" style="display:none">
+    <div class="access-denied-box">
+      <h2>Доступ обмежено</h2>
+      <p id="access-denied-msg">Ця сторінка доступна лише для зареєстрованих співробітників.</p>
+      <button class="auth-submit" id="access-denied-btn">Увійти / Зареєструватись</button>
+    </div>
+  </div>
+
+  <main class="wrap planner-container">
+
+    <section class="planner-head">
+      <div class="planner-head-left">
+        <h1>🗓️ Планувальник</h1>
+        <p class="planner-subtitle">
+          Плани на день, тиждень, місяць і рік — синхронізовано з дорученнями керівництва.
+          <a href="index.html">← до кабінету</a>
+        </p>
+      </div>
+      <div class="planner-head-right">
+        <label class="planner-emp-select-wrap" id="planner-emp-select-wrap" style="display:none;">
+          <span>Співробітник:</span>
+          <select id="planner-emp-select"></select>
+        </label>
+        <button class="planner-add-btn" id="planner-add-btn">＋ Додати запис</button>
+      </div>
+    </section>
+
+    <!-- Моніторинг виконання за видимий період -->
+    <section class="planner-monitor" id="planner-monitor">
+      <div class="pm-cell">
+        <span class="pm-num" id="pm-total">0</span>
+        <span class="pm-lbl">записів у періоді</span>
+      </div>
+      <div class="pm-cell pm-done">
+        <span class="pm-num" id="pm-done">0</span>
+        <span class="pm-lbl">виконано</span>
+      </div>
+      <div class="pm-cell pm-overdue">
+        <span class="pm-num" id="pm-overdue">0</span>
+        <span class="pm-lbl">прострочено</span>
+      </div>
+      <div class="pm-cell pm-rate">
+        <span class="pm-num" id="pm-rate">–</span>
+        <span class="pm-lbl">виконання</span>
+      </div>
+      <div class="pm-cell pm-tasks">
+        <span class="pm-num" id="pm-deadlines">0</span>
+        <span class="pm-lbl">дедлайнів доручень</span>
+      </div>
+    </section>
+
+    <section class="planner-toolbar">
+      <div class="planner-views" role="tablist">
+        <button class="pv-btn" data-view="day">День</button>
+        <button class="pv-btn" data-view="week">Тиждень</button>
+        <button class="pv-btn active" data-view="month">Місяць</button>
+        <button class="pv-btn" data-view="year">Рік</button>
+      </div>
+      <div class="planner-nav">
+        <button class="pn-btn" id="planner-prev" aria-label="Попередній період">‹</button>
+        <button class="pn-btn pn-today" id="planner-today">Сьогодні</button>
+        <button class="pn-btn" id="planner-next" aria-label="Наступний період">›</button>
+      </div>
+      <div class="planner-period-label" id="planner-period-label"></div>
+    </section>
+
+    <section class="planner-body" id="planner-body">
+      <div class="planner-loading">Завантаження планувальника…</div>
+    </section>
+
+    <p class="planner-hint">
+      💡 Записи може додавати і сам співробітник, і його керівники. Дедлайни доручень
+      (📌) підтягуються автоматично з розділу доручень і закриваються там же.
+    </p>
+  </main>
+
+  <!-- Модальне вікно додавання/редагування запису -->
+  <div class="planner-modal-backdrop" id="planner-modal-backdrop" style="display:none;">
+    <div class="planner-modal">
+      <h3 id="planner-modal-title">Новий запис плану</h3>
+      <form id="planner-form">
+        <input type="hidden" id="pf-id">
+        <label>
+          <span>Назва *</span>
+          <input type="text" id="pf-title" required maxlength="300" placeholder="Напр., підготувати довідку по пакету 12">
+        </label>
+        <label>
+          <span>Опис</span>
+          <textarea id="pf-desc" rows="3" placeholder="Деталі, посилання, очікуваний результат…"></textarea>
+        </label>
+        <div class="pf-row">
+          <label>
+            <span>Дата *</span>
+            <input type="date" id="pf-date" required>
+          </label>
+          <label>
+            <span>З</span>
+            <input type="time" id="pf-start">
+          </label>
+          <label>
+            <span>До</span>
+            <input type="time" id="pf-end">
+          </label>
+        </div>
+        <div class="pf-assignee-note" id="pf-assignee-note" style="display:none;"></div>
+        <div class="pf-actions">
+          <button type="submit" class="pf-save" id="pf-save">Зберегти</button>
+          <button type="button" class="pf-cancel" id="pf-cancel">Скасувати</button>
+          <button type="button" class="pf-delete" id="pf-delete" style="display:none;">Видалити</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
