@@ -985,5 +985,32 @@ body.meeting-mode .comment-input-row textarea {
   border-color: #dc2626 !important;
 }
 
+/* ── Адаптивність (планшети та телефони) ─────────────────────── */
+@media (max-width: 1024px) {
+  .expert-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .expert-browser,
+  .detail-panel {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .expert-layout {
+    margin: 1rem auto;
+    padding: 0 0.75rem;
+  }
+
+  .expert-browser {
+    padding: 1rem;
+  }
+
+  .filters-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 
 

@@ -553,8 +553,10 @@ select {
 }
 @media (max-width: 650px) {
   .filters { grid-template-columns: 1fr; }
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); }
-  .stat { min-width: 0; }
+  .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .stat { min-width: 0; padding: 12px 10px; }
+  /* Довгі суми з нерозривними пробілами мають переноситися, а не розпирати плитку */
+  .stat strong { font-size: 18px; white-space: normal; overflow-wrap: anywhere; }
   .meta { grid-template-columns: 1fr; }
   .footer-inner {
     align-items: flex-start;

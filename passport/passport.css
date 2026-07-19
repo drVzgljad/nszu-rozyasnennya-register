@@ -1274,9 +1274,15 @@ header.top {
 /* ── Responsive styling ───────────────────────────────────── */
 @media (max-width: 1040px) {
   .passport-layout {
-    grid-template-columns: 1fr;
+    /* minmax(0,1fr): інакше трек росте під min-content вмісту й дає гор. скрол */
+    grid-template-columns: minmax(0, 1fr);
   }
-  
+
+  .passport-sidebar,
+  .passport-main {
+    min-width: 0;
+  }
+
   .passport-sidebar {
     height: auto;
     max-height: 300px;
@@ -1293,10 +1299,46 @@ header.top {
   }
   
   .analytics-charts {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
-  
+
   .chart-card.span-2 {
     grid-column: span 1;
+  }
+}
+
+/* Телефони */
+@media (max-width: 640px) {
+  .passport-main {
+    padding: 16px 12px 40px;
+  }
+
+  .header-main-row {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .header-title-box h1 {
+    font-size: 21px;
+  }
+
+  .indicators-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .hospitals-filter-row {
+    width: 100%;
+  }
+
+  .hospitals-filter-row input,
+  .hospitals-filter-row select {
+    width: 100%;
+  }
+
+  .table-pagination {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
   }
 }

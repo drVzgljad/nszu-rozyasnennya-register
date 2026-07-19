@@ -434,10 +434,21 @@ body {
   }
   .lockup {
     gap: 8px;
+    min-width: 0;
+    flex-shrink: 1;
   }
   .shield {
     width: 32px !important;
   }
+  /* Логотип стискається з трикрапкою, авторизаційний блок — ні */
+  .top-row-1 { gap: 10px; }
+  .wm { min-width: 0; }
+  .wm-1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  .top-row-1-right { flex-shrink: 0; }
 }
 
 /* ============================================================

@@ -2492,3 +2492,28 @@
 @media (max-width: 560px) {
   .global-search-bar .gs-btn-kbd { display: none; }
 }
+
+/* ── Мобільна адаптація авторизаційного блоку в шапці ──────────── */
+@media (max-width: 640px) {
+  .theme-toggle-btn,
+  .news-notify-toggle-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+    margin-left: 4px;
+  }
+  .auth-nav-btn {
+    margin-left: 4px;
+    padding: 7px 10px;
+    font-size: 12px;
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* Чип «в мережі» займає забагато місця на телефоні */
+  .portal-online-chip { display: none !important; }
+}
+@media (max-width: 520px) {
+  /* Бейдж ролі має inline-стилі з JS, тому потрібен !important */
+  .auth-role-badge { display: none !important; }
+}

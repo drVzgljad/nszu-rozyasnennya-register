@@ -1295,3 +1295,30 @@
   border-color: rgba(154, 168, 182, 0.3) !important;
 }
 
+/* ── Мобільна адаптація: блок наприкінці файлу, щоб перекрити
+      min-width віджетів, оголошені нижче за попередній @media 760 ── */
+@media (max-width: 760px) {
+  .presence-widget,
+  .depts-presence-widget {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .presence-widget-content {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .presence-legend {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .depts-presence-content {
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  }
+
+  .dept-summary {
+    min-width: 0;
+  }
+}
+
