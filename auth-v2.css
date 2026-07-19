@@ -2581,7 +2581,19 @@
 }
 #mobile-more-sheet { display: none; }
 
-@media (max-width: 768px) {
+/* Запобіжник: на телефонах і планшетах сторінка ніколи не ширша за екран.
+   Широкий вміст (таблиці тощо) прокручується у власних обгортках,
+   а випадковий «зайвий» елемент обрізається, не розтягуючи все полотно. */
+@media (max-width: 980px) {
+  html, body {
+    max-width: 100vw;
+    overflow-x: clip;
+  }
+}
+
+/* Панель показуємо до 980px — саме там ховається верхнє меню .top-nav,
+   інакше на планшетах узагалі немає навігації */
+@media (max-width: 980px) {
   #mobile-tabbar {
     position: fixed;
     left: 0; right: 0; bottom: 0;
@@ -2713,6 +2725,13 @@
   /* Другорядні елементи ховаємо, головні стискаємо */
   .portal-online-chip { display: none !important; }
   .auth-role-badge { display: none !important; }
+
+  /* Текстові кнопки-дублери зі шкали: на ≤980 вони є в нижній панелі
+     та шторці «Ще», на 981–1100 — у верхньому меню розділів */
+  .auth-chat-btn,
+  .auth-cabinet-btn,
+  .auth-tasks-btn,
+  .auth-regulatory-btn { display: none !important; }
   .theme-toggle-btn,
   .news-notify-toggle-btn {
     width: 34px;
