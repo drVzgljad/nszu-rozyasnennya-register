@@ -15,7 +15,99 @@
   <style>
     /* ── Експрес-інфоблок кабінету на головній ── */
     .home-metrics-section {
-      padding: 28px 0 8px;
+      position: relative;
+      padding: 24px 0;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 12% 30%, rgba(47, 107, 158, 0.12), transparent 36%),
+        radial-gradient(circle at 88% 70%, rgba(58, 132, 98, 0.12), transparent 34%),
+        var(--p-soft, #f3f8fb);
+      border-bottom: 1px solid var(--p-line, #e2e8f0);
+    }
+    :root.dark-theme .home-metrics-section {
+      background:
+        radial-gradient(circle at 10% 20%, rgba(14, 165, 233, 0.14), transparent 38%),
+        radial-gradient(circle at 88% 80%, rgba(34, 197, 94, 0.12), transparent 36%),
+        #0f172a;
+      border-bottom-color: rgba(71, 85, 105, 0.7);
+    }
+    .home-work-heading {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 16px;
+    }
+    .home-work-kicker {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--accent, #2f6b9e);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .home-work-title {
+      margin: 0;
+      color: var(--p-ink, #0f172a);
+      font-family: var(--p-display);
+      font-size: 24px;
+      font-weight: 800;
+    }
+    .home-work-subtitle {
+      margin: 5px 0 0;
+      color: var(--p-muted, #64748b);
+      font-size: 14px;
+    }
+    .home-work-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+    .home-work-role {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(47, 107, 158, 0.14), rgba(58, 132, 98, 0.16));
+      border: 1px solid rgba(58, 132, 98, 0.28);
+      color: var(--p-ink, #0f172a);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .home-work-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 36px;
+      padding: 8px 13px;
+      border-radius: 9px;
+      border: 1px solid var(--p-line, #e2e8f0);
+      background: var(--p-surface, #fff);
+      color: var(--p-ink, #0f172a);
+      font-size: 13px;
+      font-weight: 800;
+      text-decoration: none;
+    }
+    .home-work-action.primary {
+      border-color: transparent;
+      background: linear-gradient(135deg, #2f6b9e, #3a8462);
+      color: #fff;
+      box-shadow: 0 8px 20px rgba(47, 107, 158, 0.18);
+    }
+    .home-work-action:hover { transform: translateY(-1px); }
+    :root.dark-theme .home-work-role {
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(34, 197, 94, 0.14));
+      border-color: rgba(74, 181, 145, 0.34);
+      color: #dbeafe;
+    }
+    :root.dark-theme .home-work-action {
+      background: #1e293b;
+      border-color: #334155;
+      color: #e2e8f0;
     }
     .home-metrics-grid {
       display: grid;
@@ -78,10 +170,14 @@
     }
     /* Мобільний: «Мій робочий стан» — один рядок плиток без підписів */
     @media (max-width: 768px) {
-      .home-metrics-section { padding: 14px 0 4px; }
-      .home-metrics-section .section-head { margin-bottom: 8px !important; }
-      .home-metrics-section .section-head h2 { font-size: 16px !important; }
-      .home-metrics-section .section-head p { display: none; }
+      .home-metrics-section { padding: 14px 0 12px; }
+      .home-work-heading { align-items: flex-start; margin-bottom: 10px; }
+      .home-work-title { font-size: 18px; }
+      .home-work-subtitle { display: none; }
+      .home-work-actions { gap: 6px; }
+      .home-work-role { min-height: 30px; padding: 5px 8px; }
+      .home-work-action { min-height: 32px; padding: 6px 9px; font-size: 12px; }
+      .home-work-action.secondary { display: none; }
       .home-metrics-grid {
         grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 8px;
@@ -136,19 +232,16 @@
   <!-- ── Експрес-інфоблок кабінету (лише для експертів) ── -->
   <section class="home-metrics-section" id="home-metrics" style="display: none;">
     <div class="wrap">
-      <div class="section-head" style="margin-bottom: 16px;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; width: 100%; flex-wrap: wrap; gap: 12px;">
-          <div>
-            <h2 style="margin: 0; font-size: 22px; font-family: var(--p-display); font-weight: 800; color: var(--p-ink);">
-              ⚡ Мій робочий стан
-            </h2>
-            <p style="margin: 4px 0 0 0; font-size: 14px; color: var(--p-muted);">
-              Експрес-огляд ваших доручень — натисніть на картку, щоб відкрити відповідний список у кабінеті
-            </p>
-          </div>
-          <a href="cabinet/index.html" style="font-size: 14px; font-weight: 600; color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
-            Відкрити кабінет <span>→</span>
-          </a>
+      <div class="home-work-heading">
+        <div>
+          <span class="home-work-kicker" id="home-work-kicker">Моя робота</span>
+          <h2 class="home-work-title" id="home-work-title">Мій робочий стан</h2>
+          <p class="home-work-subtitle" id="home-work-subtitle">Експрес-огляд доручень і списаного робочого часу</p>
+        </div>
+        <div class="home-work-actions">
+          <span class="home-work-role" id="home-work-role">Експерт</span>
+          <a class="home-work-action primary" id="home-work-primary" href="cabinet/index.html">Відкрити кабінет</a>
+          <a class="home-work-action secondary" id="home-work-secondary" href="skod/reports.html" hidden>Огляд команди</a>
         </div>
       </div>
       <div class="home-metrics-grid">
@@ -711,6 +804,51 @@
         section.style.display = 'none';
         return;
       }
+
+      const rolePanels = {
+        expert: {
+          kicker: 'Моя робота', title: 'Мій робочий стан', role: 'Експерт',
+          subtitle: 'Експрес-огляд доручень і списаного робочого часу',
+          primary: ['Відкрити кабінет', 'cabinet/index.html'], secondary: null
+        },
+        manager: {
+          kicker: 'Мій відділ', title: 'Команда й доручення', role: 'Керівник відділу',
+          subtitle: 'Особисті завдання, контроль команди та швидке створення доручень',
+          primary: ['＋ Створити доручення', 'skod/tasks.html'], secondary: ['Огляд команди', 'skod/reports.html']
+        },
+        deputy_director: {
+          kicker: 'Управлінський огляд', title: 'Напрями під контролем', role: 'Заступник директора',
+          subtitle: 'Контроль доручень за напрямами та робота з виконавцями',
+          primary: ['＋ Створити доручення', 'skod/tasks.html'], secondary: ['Огляд напрямів', 'skod/reports.html']
+        },
+        director: {
+          kicker: 'Департамент', title: 'Управлінська панель', role: 'Директор',
+          subtitle: 'Доручення, строки та контроль роботи структурних підрозділів',
+          primary: ['＋ Створити доручення', 'skod/tasks.html'], secondary: ['Звітність департаменту', 'skod/reports.html']
+        },
+        admin: {
+          kicker: 'Повний доступ', title: 'Керування порталом', role: 'Адміністратор',
+          subtitle: 'Доручення, структура департаменту та контроль робочих сервісів',
+          primary: ['＋ Створити доручення', 'skod/tasks.html'], secondary: ['Структура департаменту', 'dept-tree.html']
+        }
+      };
+      const panel = rolePanels[profile.role] || rolePanels.expert;
+      document.getElementById('home-work-kicker').textContent = panel.kicker;
+      document.getElementById('home-work-title').textContent = panel.title;
+      document.getElementById('home-work-role').textContent = panel.role;
+      document.getElementById('home-work-subtitle').textContent = panel.subtitle;
+      const primaryAction = document.getElementById('home-work-primary');
+      primaryAction.textContent = panel.primary[0];
+      primaryAction.href = panel.primary[1];
+      const secondaryAction = document.getElementById('home-work-secondary');
+      if (panel.secondary) {
+        secondaryAction.textContent = panel.secondary[0];
+        secondaryAction.href = panel.secondary[1];
+        secondaryAction.hidden = false;
+      } else {
+        secondaryAction.hidden = true;
+      }
+      section.dataset.role = profile.role;
 
       const todayStr = new Date().toISOString().split('T')[0];
 
