@@ -16,7 +16,9 @@ let profilesList = [];        // для селектора співробітн�
 let selectedUserId = null;    // чий календар дивимось
 let selectedUserName = '';
 
-let view = 'month';           // day | week | month | year
+// На телефоні місячна сітка затісна — стартуємо з тижня
+let view = (typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches)
+  ? 'week' : 'month';         // day | week | month | year
 let anchorDate = new Date();  // точка відліку періоду
 
 let events = [];              // planner_events за видимий період
@@ -116,6 +118,8 @@ async function init() {
 }
 
 function setupToolbar() {
+  // Синхронізуємо активну вкладку зі стартовим view (на телефоні — тиждень)
+  document.querySelectorAll('.pv-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
   document.querySelectorAll('.pv-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       view = btn.dataset.view;

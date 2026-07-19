@@ -538,3 +538,21 @@
 @media (min-width: 641px) {
   .cal-day-dots { display: none; }
 }
+
+/* Дрібна мобільна поліровка планувальника */
+@media (max-width: 640px) {
+  .planner-container { padding-top: 14px; padding-bottom: 30px; }
+  .planner-head h1 { font-size: 22px; }
+  .planner-head { margin-bottom: 12px; gap: 10px; }
+  .planner-head-right { width: 100%; }
+  .planner-add-btn { flex: 1; }
+  .planner-emp-select-wrap { width: 100%; }
+  .planner-emp-select-wrap select { flex: 1; max-width: none; }
+  .planner-monitor { gap: 6px; margin-bottom: 12px; }
+  .pm-cell { padding: 9px 10px; border-radius: 10px; }
+  .pm-num { font-size: 18px; }
+  .pm-lbl { font-size: 10px; }
+  .planner-toolbar { gap: 8px; }
+  .pv-btn { padding: 8px 11px; font-size: 12.5px; }
+  .planner-period-label { font-size: 14px; }
+}

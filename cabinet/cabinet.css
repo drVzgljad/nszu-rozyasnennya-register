@@ -1076,3 +1076,78 @@
 @media (max-width: 640px) {
   .planner-link-btn { margin-left: 0; width: 100%; text-align: center; }
 }
+
+/* ── Мобільна версія кабінету ────────────────────────────────── */
+@media (max-width: 640px) {
+  .cabinet-container {
+    padding-top: 14px;
+    padding-bottom: 30px;
+    gap: 14px;
+  }
+
+  /* Профіль: компактний рядок */
+  .cabinet-profile-card {
+    padding: 14px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .profile-avatar { width: 48px; height: 48px; font-size: 20px; }
+  .cabinet-profile-card h1 { font-size: 18px; }
+  .cabinet-profile-card p { font-size: 12px; margin: 2px 0 0; }
+
+  /* Метрики: щільна сітка 2×2 */
+  .cabinet-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .metric-card {
+    padding: 12px;
+    gap: 10px;
+    border-radius: 12px;
+  }
+  .metric-card .metric-icon { font-size: 20px; }
+  .metric-num { font-size: 20px; }
+  .metric-lbl { font-size: 10.5px; }
+
+  .cabinet-panel { padding: 14px; border-radius: 14px; }
+  .panel-header h2 { font-size: 16px; }
+
+  /* Фільтри доручень: одна прокручувана стрічка */
+  .tasks-filter-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tasks-filter-tabs::-webkit-scrollbar { display: none; }
+  .filter-tab { flex-shrink: 0; }
+
+  /* Форма внесення роботи */
+  .log-form-panel { scroll-margin-top: 74px; }
+}
+
+/* Плаваюча кнопка «Внести роботу» (мобільний, над нижньою панеллю) */
+.cabinet-fab {
+  display: none;
+}
+@media (max-width: 960px) {
+  .cabinet-fab {
+    position: fixed;
+    right: 14px;
+    bottom: calc(74px + env(safe-area-inset-bottom));
+    z-index: 10500;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 13px 18px;
+    border-radius: 999px;
+    background: var(--accent-deep, #2f6b9e);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 800;
+    text-decoration: none;
+    box-shadow: 0 10px 28px rgba(47, 107, 158, 0.4);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .cabinet-fab:active { transform: scale(.95); }
+}

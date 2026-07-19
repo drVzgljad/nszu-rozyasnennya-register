@@ -11,7 +11,7 @@
   <title>Особистий кабінет експерта — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260719d">
   <link rel="stylesheet" href="../auth-v2.css?v=20260719i">
-  <link rel="stylesheet" href="cabinet.css?v=20260719a">
+  <link rel="stylesheet" href="cabinet.css?v=20260719b">
   <script type="module" src="../auth-v2.js?v=20260719i"></script>
   <script type="module" src="cabinet.js?v=20260719a"></script>
 </head>
@@ -140,6 +140,10 @@
       </section>
 
       </div><!-- /.cabinet-left-column -->
+
+      <!-- Мобільна плаваюча кнопка: стрибок до форми внесення роботи -->
+      <a class="cabinet-fab" href="#cabinet-log-form"
+         onclick="document.getElementById('cabinet-log-form').scrollIntoView({behavior:'smooth'}); return false;">✍️ Внести роботу</a>
 
       <!-- Right Column: Work Logging Form -->
       <div class="cabinet-right-column">
