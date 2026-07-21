@@ -338,3 +338,11 @@ del.amend-del, .amend-was del, .amend-legend .amend-del { background: rgba(239, 
 :root.dark-theme .amend-action { background: #1e293b; color: #cbd5e1; }
 :root.dark-theme .amend-filter-btn { background: transparent; color: #fbbf24; border-color: #8a6d1f; }
 :root.dark-theme .amend-filter-btn.active { background: #b45309; border-color: #b45309; color: #fff; }
+
+/* Кілька постанов у банері змін */
+.amend-banner-rows { flex-basis: 100%; display: grid; gap: 6px; margin-top: 4px; }
+.amend-banner-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 13px; }
+.amend-banner-row strong { color: #8a5a00; }
+.amend-banner-row .amend-title { flex-basis: 100%; font-size: 12px; color: #8a7040; }
+:root.dark-theme .amend-banner-row strong { color: #fbbf24; }
+:root.dark-theme .amend-banner-row .amend-title { color: #cbb26a; }
