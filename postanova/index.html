@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Постанова і Порядок № 1808</title>
   <link rel="stylesheet" href="../styles.css?v=20260719c">
-  <link rel="stylesheet" href="resolution.css?v=20260528f">
+  <link rel="stylesheet" href="resolution.css?v=20260721a">
   <link rel="stylesheet" href="../auth-v2.css?v=20260721a">
   <script type="module" src="../auth-v2.js?v=20260719l"></script>
 </head>
@@ -44,6 +44,9 @@
     <div id="docStatusBanner" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; padding:14px 20px; border:1px solid var(--line,#e3edf3); border-radius:14px; background:var(--surface,#fff); font-size:13.5px;"></div>
     <div id="docAmendments" style="display:none; margin-top:10px; padding:16px 20px; border:1px solid var(--line,#e3edf3); border-radius:14px; background:var(--surface,#fff);"></div>
   </section>
+
+  <!-- Підсвічування змін у тексті (накладка data/amendment_highlights.json, рендерить resolution.js) -->
+  <section id="amendHighlightSection" class="amend-banner-section" style="display:none;"></section>
   <script type="module">
   (async () => {
     function escapeHtml(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -123,6 +126,6 @@
     </div>
   </footer>
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
-  <script src="resolution.js?v=20260528e" defer></script>
+  <script src="resolution.js?v=20260721a" defer></script>
 </body>
 </html>

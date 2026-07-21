@@ -7,7 +7,12 @@ const resolutionState = {
   selectedParagraph: "",
   type: "",
   packageNumber: "",
+  amendments: [],
+  amendItemMap: {},
+  amendNodeSet: null,
+  amendOnly: false,
 };
+resolutionState.amendNodeSet = new Set();
 
 const byId = (id) => document.getElementById(id);
 
@@ -120,6 +125,115 @@ function renderStats() {
   ].map(([value, label]) => `<div class="stat"><strong>${value}</strong><span>${label}</span></div>`).join("");
 }
 
+// ── Підсвічування змін (накладка data/amendment_highlights.json) ──
+const AMEND_ACTION_LABELS = {
+  replace: "Замінено",
+  insert: "Доповнено",
+  "new-edition": "Нова редакція",
+  add: "Додано",
+  remove: "Виключено",
+};
+
+function amendChangesFor(itemId) {
+  return resolutionState.amendItemMap[itemId] || [];
+}
+
+function amendStatusLabel(amendment) {
+  return amendment.status === "effective"
+    ? `чинна з ${amendment.effective_date || amendment.date}`
+    : "очікує опублікування";
+}
+
+function renderAmendBanner() {
+  const section = byId("amendHighlightSection");
+  if (!section) return;
+  if (!resolutionState.amendments.length) {
+    section.style.display = "none";
+    return;
+  }
+  const amendment = resolutionState.amendments[0];
+  const itemCount = Object.keys(resolutionState.amendItemMap).length;
+  section.innerHTML = `
+    <div class="amend-banner">
+      <span>🖍️</span>
+      <strong>Зміни: постанова КМУ від ${escapeHtml(amendment.date)} № ${escapeHtml(amendment.number)}</strong>
+      <span class="amend-status">${escapeHtml(amendStatusLabel(amendment))}</span>
+      <span class="amend-count">зачеплено пунктів: ${itemCount}</span>
+      <span class="amend-legend">
+        <span class="amend-ins">нове / доповнено</span>
+        <span class="amend-del">виключено / замінено</span>
+      </span>
+      <button type="button" class="amend-filter-btn ${resolutionState.amendOnly ? "active" : ""}" id="amendFilterBtn">
+        ${resolutionState.amendOnly ? "Показати всі розділи" : "Лише змінені розділи"}
+      </button>
+    </div>
+    ${amendment.status_note ? `<div class="amend-note">${escapeHtml(amendment.status_note)}</div>` : ""}`;
+  section.style.display = "block";
+  byId("amendFilterBtn").addEventListener("click", () => {
+    resolutionState.amendOnly = !resolutionState.amendOnly;
+    renderAmendBanner();
+    applyFilters();
+  });
+}
+
+function amendInlineMarkup(html, changes) {
+  for (const change of changes) {
+    if (change.was && change.was.length >= 12) {
+      const fragment = escapeHtml(change.was);
+      if (html.includes(fragment)) html = html.replace(fragment, `<del class="amend-del">${fragment}</del>`);
+    }
+    if (change.now && change.now.length >= 12) {
+      const fragment = escapeHtml(change.now);
+      if (html.includes(fragment)) html = html.replace(fragment, `<ins class="amend-ins">${fragment}</ins>`);
+    }
+  }
+  return html;
+}
+
+function renderAmendDetails(changes) {
+  const amendment = changes[0]._amend;
+  const blocks = changes.map((change) => `
+    <div class="amend-change">
+      <span class="amend-action ${escapeHtml(change.action)}">${AMEND_ACTION_LABELS[change.action] || change.action}</span>
+      <span class="amend-target">${escapeHtml(change.target || "")}</span>
+      <div class="amend-summary">${escapeHtml(change.summary || "")}</div>
+      ${change.was ? `<div class="amend-was"><del>${escapeHtml(change.was)}</del></div>` : ""}
+      ${change.now ? `<div class="amend-now"><ins>${escapeHtml(change.now)}</ins></div>` : ""}
+    </div>`).join("");
+  return `
+    <div class="amend-flag">🖍️ Зміна: постанова № ${escapeHtml(amendment.number)} від ${escapeHtml(amendment.date)}
+      <span class="amend-status">${escapeHtml(amendStatusLabel(amendment))}</span>
+    </div>
+    <div class="amend-details">${blocks}</div>`;
+}
+
+function renderLawItem(item, query) {
+  const selectedClass = item.id === resolutionState.selectedParagraph ? " selected" : "";
+  const changes = amendChangesFor(item.id);
+  let html = highlight(item.text, query);
+  if (!changes.length) return `<div class="law-item${selectedClass}">${html}</div>`;
+  if (!query) html = amendInlineMarkup(html, changes);
+  return `<div class="law-item amended${selectedClass}">${html}${renderAmendDetails(changes)}</div>`;
+}
+
+async function loadAmendHighlights() {
+  try {
+    const response = await fetch("data/amendment_highlights.json");
+    if (!response.ok) return;
+    const payload = await response.json();
+    resolutionState.amendments = payload.amendments || [];
+    for (const amendment of resolutionState.amendments) {
+      for (const change of amendment.changes || []) {
+        change._amend = amendment;
+        (resolutionState.amendItemMap[change.item] = resolutionState.amendItemMap[change.item] || []).push(change);
+        resolutionState.amendNodeSet.add(change.node);
+      }
+    }
+  } catch (error) {
+    console.warn("Не вдалося завантажити накладку змін.", error);
+  }
+}
+
 function renderTypes() {
   const types = [...new Set(resolutionState.nodes.flatMap((node) => node.types))];
   byId("typeFilters").innerHTML = types.map((type) =>
@@ -159,7 +273,8 @@ function applyFilters() {
   resolutionState.visible = resolutionState.nodes.filter((node) =>
     (!query || searchTerms(query).every((term) => searchableText(node).includes(term))) &&
     (!resolutionState.type || node.types.includes(resolutionState.type)) &&
-    (!resolutionState.packageNumber || node.package_numbers.includes(resolutionState.packageNumber))
+    (!resolutionState.packageNumber || node.package_numbers.includes(resolutionState.packageNumber)) &&
+    (!resolutionState.amendOnly || resolutionState.amendNodeSet.has(node.id))
   );
   byId("resolutionCount").textContent = `Знайдено: ${resolutionState.visible.length} з ${resolutionState.nodes.length}`;
   if (!resolutionState.visible.some((node) => node.id === resolutionState.selected?.id)) {
@@ -179,8 +294,11 @@ function renderCards() {
   byId("resolutionCards").innerHTML = resolutionState.visible.map((node) => {
     const context = node.package_numbers.length ? `Пакети: ${node.package_numbers.join(", ")}` : `Стор. ${node.page_start}`;
     const match = query && firstMatchedParagraph(node, query) ? " · збіг у пункті" : "";
+    const amendBadge = resolutionState.amendNodeSet.has(node.id)
+      ? '<span class="amend-badge">🖍 зміни № 948</span>'
+      : "";
     return `<button class="resolution-card ${node.id === resolutionState.selected?.id ? "active" : ""}" data-node="${node.id}">
-      <span class="card-kind">${escapeHtml(sourceLabel(node))} · ${kindLabel(node)}</span>
+      <span class="card-kind">${escapeHtml(sourceLabel(node))} · ${kindLabel(node)}${amendBadge}</span>
       <strong>${escapeHtml(node.title)}</strong>
       <small>${escapeHtml(context + match)}</small>
     </button>`;
@@ -219,9 +337,12 @@ function renderOutline() {
   const paragraphs = node.items.map((item) => {
     const marker = item.marker || `${item.number}.`;
     const title = shortParagraphTitle(item);
+    const amendDot = amendChangesFor(item.id).length
+      ? '<span class="amend-dot" title="Пункт зачеплено змінами № 948"></span>'
+      : "";
     return `<div class="paragraph-row ${item.id === resolutionState.selectedParagraph ? "active" : ""}">
       <button class="paragraph-link" data-paragraph="${item.id}">
-        <span class="paragraph-main"><strong>${escapeHtml(marker)}</strong> ${escapeHtml(title)}</span>
+        <span class="paragraph-main"><strong>${escapeHtml(marker)}</strong> ${escapeHtml(title)}${amendDot}</span>
         <span class="paragraph-page">стор. ${item.page}</span>
       </button>
       <button class="copy-fragment" type="button" data-copy-paragraph="${item.id}" title="Копіювати текст пункту" aria-label="Копіювати текст пункту ${escapeHtml(marker)}">⧉</button>
@@ -483,7 +604,7 @@ function renderReader() {
   const content = node.kind === "appendix"
     ? renderAppendixContent(node, query)
     : node.items.length
-      ? `<div class="law-items">${node.items.map((item) => `<div class="law-item ${item.id === resolutionState.selectedParagraph ? "selected" : ""}">${highlight(item.text, query)}</div>`).join("")}</div>`
+      ? `<div class="law-items">${node.items.map((item) => renderLawItem(item, query)).join("")}</div>`
       : `<p class="law-text">${highlight(node.text, query)}</p>`;
   container.innerHTML = `
     <h2>${escapeHtml(node.title)}</h2>
@@ -512,6 +633,8 @@ async function initResolution() {
   const dataResponse = await fetch("data/resolution_1808.json");
   resolutionState.data = await dataResponse.json();
   resolutionState.nodes = [...resolutionState.data.parts, ...resolutionState.data.chapters, ...resolutionState.data.appendices];
+  await loadAmendHighlights();
+  renderAmendBanner();
   const params = new URLSearchParams(location.search);
   byId("resolutionSearch").value = params.get("q") || "";
   resolutionState.type = params.get("type") || "";
