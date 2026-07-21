@@ -351,6 +351,8 @@
             <label for="task_askod_number">Вхідний № листа *</label>
             <input type="text" id="task_askod_number" placeholder="наприклад, 1234/12-26" style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; border: 1.5px solid var(--p-line); background: var(--p-surface); font-family: inherit; font-size: 14px;" required>
           </div>
+          <!-- Результат перевірки: чи лист уже опрацьовано / чи є доручення за цим номером -->
+          <div id="askod-check-result" style="display: none; margin-bottom: 16px;"></div>
           <div class="skod-form-group" style="margin-bottom: 16px;">
             <label for="task_askod_sender">Відправник *</label>
             <input type="text" id="task_askod_sender" placeholder="наприклад, МОЗ України, НСЗУ..." style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; border: 1.5px solid var(--p-line); background: var(--p-surface); font-family: inherit; font-size: 14px;" required>

@@ -9,6 +9,8 @@ let currentUser = null;
 let userProfile = null;
 let allUsers = [];
 let allTasks = [];
+let askodMatchedLogs = [];   // записи СКО-Д, знайдені за номером листа
+let askodCheckTimer = null;
 
 // Initialize
 async function init() {
@@ -165,6 +167,15 @@ function setupManagerPanel() {
       });
     }
 
+    // Перевірка номера листа: чи вже опрацьовано / чи є дубль доручення
+    if (askodNumber) {
+      askodNumber.addEventListener('input', () => {
+        clearTimeout(askodCheckTimer);
+        askodCheckTimer = setTimeout(checkAskodNumber, 600);
+      });
+      askodNumber.addEventListener('blur', checkAskodNumber);
+    }
+
     const deptSelect = document.getElementById('task_dept');
     
     if (isDeptHead && !isDirectorOrDeputy) {
@@ -229,6 +240,80 @@ function setupManagerPanel() {
       }
     }
   }
+}
+
+// Перевірка за номером листа АСКОД: чи вже є запис роботи в СКО-Д або інше доручення
+async function checkAskodNumber() {
+  const num = document.getElementById('task_askod_number')?.value.trim();
+  const box = document.getElementById('askod-check-result');
+  if (!box) return;
+
+  askodMatchedLogs = [];
+  if (!num || num.length < 3) {
+    box.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+
+  // 1. Записи роботи в СКО-Д з цим номером (вхідним або номером відповіді)
+  const quoted = `"${num.replace(/"/g, '')}"`;
+  const { data: logs, error: logsErr } = await sb
+    .from('skod_logs')
+    .select('id, user_name, log_date, duration_minutes, description, askod_reg_number, reply_to_number')
+    .or(`askod_reg_number.eq.${quoted},reply_to_number.eq.${quoted}`)
+    .order('log_date', { ascending: false })
+    .limit(5);
+
+  if (logsErr) console.error('Помилка перевірки записів СКО-Д:', logsErr);
+  askodMatchedLogs = logs || [];
+
+  // 2. Наявні доручення з цим самим номером листа
+  const existingTasks = allTasks.filter(t => t.askod_number === num);
+
+  if (askodMatchedLogs.length === 0 && existingTasks.length === 0) {
+    box.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+
+  let html = '';
+
+  if (existingTasks.length > 0) {
+    const items = existingTasks.map(t =>
+      `<li>${escapeHtml(t.responsible_name || 'Не призначено')} — ${getStatusLabel(t.status)}, ${t.progress}% (надав ${escapeHtml(t.created_by_name)})</li>`
+    ).join('');
+    html += `
+      <div style="background: #fff7ed; border: 1.5px solid #fdba74; border-radius: 8px; padding: 12px; margin-bottom: 10px; font-size: 13px;">
+        <strong>⚠️ Доручення за листом № ${escapeHtml(num)} вже існує:</strong>
+        <ul style="margin: 6px 0 0 18px; padding: 0;">${items}</ul>
+      </div>`;
+  }
+
+  if (askodMatchedLogs.length > 0) {
+    const items = askodMatchedLogs.map(l => {
+      const d = l.log_date ? new Date(l.log_date).toLocaleDateString('uk-UA') : '';
+      const desc = l.description ? `: «${escapeHtml(l.description.slice(0, 120))}»` : '';
+      return `<li>${escapeHtml(l.user_name)}, ${d}, ${l.duration_minutes || 0} хв${desc}</li>`;
+    }).join('');
+    html += `
+      <div style="background: #eef6fc; border: 1.5px solid #93c5fd; border-radius: 8px; padding: 12px; font-size: 13px;">
+        <strong>✅ Цей лист уже опрацьовано в СКО-Д:</strong>
+        <ul style="margin: 6px 0 8px 18px; padding: 0;">${items}</ul>
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600;">
+          <input type="checkbox" id="askod_create_completed" checked>
+          <span>Створити доручення одразу як виконане (робота вже внесена в СКО-Д)</span>
+        </label>
+      </div>`;
+  }
+
+  box.innerHTML = html;
+  box.style.display = 'block';
+}
+
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
 }
 
 // Populate responsible users select dropdown based on chosen department
@@ -329,6 +414,28 @@ async function createTask(e) {
     importance
   };
 
+  // Лист уже опрацьовано в СКО-Д → створюємо доручення одразу як виконане
+  const createCompleted = task_type === 'askod'
+    && askodMatchedLogs.length > 0
+    && document.getElementById('askod_create_completed')?.checked;
+
+  if (createCompleted) {
+    const logsSummary = askodMatchedLogs.map(l => {
+      const d = l.log_date ? new Date(l.log_date).toLocaleDateString('uk-UA') : '';
+      return `${l.user_name} (${d}, ${l.duration_minutes || 0} хв)`;
+    }).join('; ');
+    taskData.status = 'completed';
+    taskData.progress = 100;
+    taskData.comments = [{
+      id: crypto.randomUUID(),
+      author: 'Система',
+      role: 'system',
+      text: `Доручення створено одразу як виконане: лист № ${askod_number} вже опрацьовано в СКО-Д — ${logsSummary}.`,
+      timestamp: new Date().toISOString(),
+      type: 'system'
+    }];
+  }
+
   const { error } = await sb.from('assigned_tasks').insert([taskData]);
 
   if (submitBtn) {
@@ -346,6 +453,14 @@ async function createTask(e) {
     if (askodNum) askodNum.value = '';
     const askodSnd = document.getElementById('task_askod_sender');
     if (askodSnd) askodSnd.value = '';
+
+    // Очистити результат перевірки номера АСКОД
+    askodMatchedLogs = [];
+    const checkBox = document.getElementById('askod-check-result');
+    if (checkBox) {
+      checkBox.style.display = 'none';
+      checkBox.innerHTML = '';
+    }
     
     const normalRadio = document.querySelector('input[name="task_importance"][value="normal"]');
     if (normalRadio) normalRadio.checked = true;
