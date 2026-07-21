@@ -228,7 +228,8 @@ function renderLawItem(item, query) {
 
 async function loadAmendHighlights() {
   try {
-    const response = await fetch("data/amendment_highlights.json");
+    // Явний cache-busting: SW кешує статику cache-first, а накладка мусить бути свіжою
+    const response = await fetch("data/amendment_highlights.json?t=" + Date.now(), { cache: "no-store" });
     if (!response.ok) return;
     const payload = await response.json();
     resolutionState.amendments = payload.amendments || [];
