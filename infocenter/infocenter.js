@@ -109,10 +109,42 @@ async function loadFeed() {
 
   allNews.sort((a, b) => new Date(b.published_at || b.created_at) - new Date(a.published_at || a.created_at));
 
-  feedList = allNews;
+  // Дайджести «Головне за 12 годин» — окрема панель, зі стрічки виключаються
+  const digests = allNews.filter(n => n.source_name === DIGEST_SOURCE);
+  feedList = allNews.filter(n => n.source_name !== DIGEST_SOURCE);
+  renderDigest(digests[0] || null);
   filterAndRender();
   renderStats();
   renderUpdateTime();
+}
+
+const DIGEST_SOURCE = 'Головне за 12 годин';
+
+function linkifyEscaped(text) {
+  // Спочатку екрануємо, потім перетворюємо URL на посилання і переноси на <br>
+  const escaped = escapeHtml(text || '');
+  return escaped
+    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
+    .replace(/\n/g, '<br>');
+}
+
+function renderDigest(digest) {
+  const panel = byId('digestPanel');
+  if (!panel) return;
+  if (!digest) {
+    panel.style.display = 'none';
+    return;
+  }
+  const when = new Date(digest.published_at || digest.created_at);
+  const freshHours = (Date.now() - when) / 36e5;
+  const stale = isNaN(freshHours) || freshHours > 24;
+  panel.innerHTML = `
+    <div class="digest-head">
+      <h2>${escapeHtml(digest.title)}</h2>
+      ${stale ? '<span class="digest-stale">архівний випуск</span>' : ''}
+    </div>
+    <div class="digest-body">${linkifyEscaped(digest.summary)}</div>`;
+  panel.style.display = 'block';
 }
 
 function renderUpdateTime() {
