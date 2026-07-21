@@ -317,6 +317,83 @@
       .home-metric-num { font-size: 15px; }
       .home-metric-lbl { display: none; }
     }
+
+    /* Кнопка «Внести виконану роботу» — показується лише в мобільному режимі залогіненого */
+    .home-work-action.log-work { display: none; }
+
+    /* ── Мобільна головна залогіненого: лише шапка + панель кабінету + нижня навігація ── */
+    @media (max-width: 980px) {
+      body.home-logged-in .home-dashboard-shell > .hero { display: none; }
+      body.home-logged-in .home-panel-search { display: none !important; }
+      body.home-logged-in .news-digest-section,
+      body.home-logged-in .hub,
+      body.home-logged-in .dept,
+      body.home-logged-in .p-footer { display: none !important; }
+
+      body.home-logged-in .home-dashboard-shell {
+        width: calc(100% - 20px);
+        margin: 10px auto 18px;
+        border-radius: 20px;
+      }
+      body.home-logged-in .home-dashboard-shell > .home-metrics-section {
+        margin: 10px;
+        padding: 16px 0 14px;
+      }
+      body.home-logged-in .home-work-heading {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      body.home-logged-in .home-work-actions {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+      }
+      body.home-logged-in .home-work-role { align-self: flex-start; }
+      body.home-logged-in .home-work-action {
+        justify-content: center;
+        min-height: 44px;
+        font-size: 14px;
+      }
+      body.home-logged-in .home-work-action.log-work {
+        display: inline-flex;
+        order: -1;
+        border-color: transparent;
+        background: linear-gradient(135deg, #2f6b9e, #3a8462);
+        color: #fff;
+        box-shadow: 0 8px 20px rgba(47, 107, 158, 0.18);
+      }
+      body.home-logged-in .home-work-action.secondary { display: none; }
+
+      /* Акуратні інфо-плитки: сітка 2×2 з підписами */
+      body.home-logged-in .home-metrics-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      body.home-logged-in .home-metric-card {
+        flex-direction: row;
+        align-items: center;
+        text-align: left;
+        gap: 10px;
+        padding: 12px;
+        border-radius: 14px;
+      }
+      body.home-logged-in .home-metric-icon {
+        width: 38px;
+        height: 38px;
+        font-size: 18px;
+        border-radius: 10px;
+      }
+      body.home-logged-in .home-metric-details { align-items: flex-start; }
+      body.home-logged-in .home-metric-num { font-size: 18px; }
+      body.home-logged-in .home-metric-lbl {
+        display: block;
+        font-size: 10.5px;
+        line-height: 1.25;
+      }
+    }
   </style>
 </head>
 <body>
@@ -359,6 +436,7 @@
           <span class="home-work-role" id="home-work-role">Експерт</span>
           <a class="home-work-action primary" id="home-work-primary" href="cabinet/index.html">Відкрити кабінет</a>
           <a class="home-work-action secondary" id="home-work-secondary" href="skod/reports.html" hidden>Огляд команди</a>
+          <a class="home-work-action log-work" id="home-work-log" href="cabinet/index.html#cabinet-log-form">✍️ Внести виконану роботу</a>
         </div>
       </div>
       <div class="home-panel-search" id="home-panel-search" hidden aria-label="Пошук у порталі"></div>
@@ -924,6 +1002,7 @@
       if (!session || !session.user) {
         placeGlobalSearchForRole(null);
         section.style.display = 'none';
+        document.body.classList.remove('home-logged-in');
         return;
       }
 
@@ -933,6 +1012,7 @@
       if (!profile || rolesOrder.indexOf(profile.role) < rolesOrder.indexOf('expert')) {
         placeGlobalSearchForRole(profile?.role || null);
         section.style.display = 'none';
+        document.body.classList.remove('home-logged-in');
         return;
       }
 
@@ -958,7 +1038,7 @@
           primary: ['＋ Створити доручення', 'skod/tasks.html'], secondary: ['Звітність департаменту', 'skod/reports.html']
         },
         admin: {
-          kicker: 'Повний доступ', title: 'Керування порталом', role: 'Адміністратор',
+          kicker: 'Повний доступ', title: 'Особистий кабінет', role: 'Адміністратор',
           subtitle: 'Доручення, структура департаменту та контроль робочих сервісів',
           primary: ['＋ Створити доручення', 'skod/tasks.html'], secondary: ['Структура департаменту', 'dept-tree.html']
         }
@@ -1022,10 +1102,13 @@
       if (overdueCard) overdueCard.classList.toggle('has-overdue', overdueCount > 0);
 
       section.style.display = 'block';
+      // Маркер для мобільного режиму: залогіненим ховаємо все, крім панелі кабінету
+      document.body.classList.add('home-logged-in');
     } catch (e) {
       console.warn('Failed to load home cabinet metrics:', e);
       placeGlobalSearchForRole(null);
       section.style.display = 'none';
+      document.body.classList.remove('home-logged-in');
     }
   }
 
