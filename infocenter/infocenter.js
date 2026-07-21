@@ -17,7 +17,10 @@ const QUICK_FILTERS = {
                (n.tags || []).some(t => /пмг|медичн.*гарант/i.test(t)) ||
                /пмг|медичн\w* гарант/i.test(n.title || ''),
   nszu: (n) => /нсзу/i.test(n.source_name || '') || /нсзу/i.test(n.title || ''),
-  moz:  (n) => /моз|цгз/i.test(n.source_name || '') || /\bмоз\b/i.test(n.title || '')
+  moz:  (n) => /моз|цгз/i.test(n.source_name || '') || /\bмоз\b/i.test(n.title || ''),
+  // Telegram-спільноти: Медиторія (БПР/навчання) та Користувачі МІС Health24 (ЕСОЗ/МІС)
+  community: (n) => /медитор|health24/i.test(n.source_name || '') ||
+                    (n.tags || []).some(t => /\bміс\b|есоз|health24/i.test(t))
 };
 
 const PAGE_SIZE = 24;
