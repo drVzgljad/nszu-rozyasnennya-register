@@ -387,9 +387,15 @@ function renderTasksList(filter = 'active') {
     const completedSubs = subtasks.filter(s => s.completed).length;
     const subtasksBadge = totalSubs > 0 ? `✔️ ${completedSubs}/${totalSubs}` : '';
 
+    // Бейдж гарячого копіювання номера листа АСКОД (копіюється чистий номер, без «№»)
+    const askodBadge = (t.task_type === 'askod' && t.askod_number)
+      ? `<button type="button" class="task-askod-copy" data-num="${escapeHtml(t.askod_number)}" title="Скопіювати номер листа">📋 ${escapeHtml(t.askod_number)}</button>`
+      : '';
+
     card.innerHTML = `
       <div class="task-card-header">
         <h3 class="task-card-title">${escapeHtml(t.title)}</h3>
+        ${askodBadge}
         <span class="task-card-date ${dlClass}">${dlText}</span>
       </div>
       ${t.description ? `<p class="task-card-desc">${escapeHtml(t.description)}</p>` : ''}
@@ -413,6 +419,32 @@ function renderTasksList(filter = 'active') {
       e.stopPropagation();
       selectTaskForWorkLog(t.id);
     });
+
+    // Гаряче копіювання номера листа (не відкриває модалку)
+    const copyBtn = card.querySelector('.task-askod-copy');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const num = copyBtn.dataset.num;
+        try {
+          await navigator.clipboard.writeText(num);
+        } catch {
+          const ta = document.createElement('textarea');
+          ta.value = num;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          ta.remove();
+        }
+        const original = copyBtn.textContent;
+        copyBtn.textContent = '✓ Скопійовано';
+        copyBtn.classList.add('copied');
+        setTimeout(() => {
+          copyBtn.textContent = original;
+          copyBtn.classList.remove('copied');
+        }, 1500);
+      });
+    }
 
     // Click on the rest of card opens details modal
     card.addEventListener('click', () => {
