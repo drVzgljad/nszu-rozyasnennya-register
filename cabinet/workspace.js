@@ -16,6 +16,14 @@ const STATUSES = [
   { key: 'done', label: '✅ Завершені' }
 ];
 const KIND_ICON = { gdoc: '🔗', file: '📎', external: '🗄️' };
+const KIND_LABEL = { gdoc: 'Google Doc / посилання', file: 'Завантажений файл', external: 'Зовнішнє посилання' };
+const STATUS_LABEL = { active: '🟢 Активний', parked: '🅿️ Паркування', done: '✅ Завершений' };
+// Маркування важливості документа
+const MARKING = {
+  main: { label: 'Основний', cls: 'ws-badge-main' },
+  base: { label: 'Базовий', cls: 'ws-badge-base' },
+  aux:  { label: 'Допоміжний', cls: 'ws-badge-aux' }
+};
 
 // Ролі, що бачать усі відділи (з фільтром)
 const LEADERSHIP = ['admin', 'director', 'deputy_director'];
@@ -281,6 +289,7 @@ function cardHtml(w) {
   const canEdit = canEditWork(w);
   const svc = w.service_meta || {};
   const badges = [];
+  if (w.marking && MARKING[w.marking]) badges.push(`<span class="ws-badge ${MARKING[w.marking].cls}">${MARKING[w.marking].label}</span>`);
   if (w.scope === 'org') badges.push('<span class="ws-badge ws-badge-org">🌐 наскрізний</span>');
   // Показуємо відділ: для наскрізних (джерело) та коли керівництво дивиться «Усі відділи»
   const showDept = (w.scope === 'org') || (isLeadership && deptFilter === 'all' && currentScope === 'department');
@@ -306,6 +315,7 @@ function cardHtml(w) {
         <span>${escapeHtml(w.owner_name || w.created_by_name || '')}</span>
       </div>
       <div class="ws-card-actions">
+        <button type="button" class="ws-card-view" data-view="${w.id}" title="Експрес-опис">👁️ Опис</button>
         ${openBtn}
         ${canEdit ? `<button type="button" class="ws-card-edit" data-edit="${w.id}">✏️ Змінити</button>` : ''}
       </div>
@@ -323,9 +333,80 @@ function wireCards() {
       if (w) openDocModal(w);
     });
   });
+  document.querySelectorAll('[data-view]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const w = works.find(x => x.id === btn.dataset.view);
+      if (w) openQuickView(w);
+    });
+  });
   document.querySelectorAll('[data-open-file]').forEach(btn => {
     btn.addEventListener('click', () => openFile(btn.dataset.openFile, btn));
   });
+}
+
+// ── Експрес-перегляд документа (лише читання) ──
+function openQuickView(w) {
+  const modal = document.getElementById('ws-qv-modal');
+  if (!modal) return;
+
+  document.getElementById('ws-qv-title').textContent = w.title || 'Без назви';
+
+  // Бейджі
+  const badges = [];
+  if (w.marking && MARKING[w.marking]) badges.push(`<span class="ws-badge ${MARKING[w.marking].cls}">${MARKING[w.marking].label}</span>`);
+  if (w.scope === 'org') badges.push('<span class="ws-badge ws-badge-org">🌐 наскрізний</span>');
+  if (w.visibility === 'restricted') badges.push('<span class="ws-badge ws-badge-restricted">🔒 обмежено</span>');
+  const svc = w.service_meta || {};
+  if (svc.type) badges.push(`<span class="ws-badge ws-badge-svc">${escapeHtml(svc.type)}</span>`);
+  document.getElementById('ws-qv-badges').innerHTML = badges.join(' ');
+
+  // Опис
+  const descEl = document.getElementById('ws-qv-desc');
+  descEl.textContent = w.description || 'Опис не додано.';
+  descEl.style.opacity = w.description ? '1' : '.6';
+
+  // Метадані
+  const rows = [];
+  rows.push(['Тип', KIND_LABEL[w.kind] || '—']);
+  rows.push(['Стан', STATUS_LABEL[w.status] || w.status || '—']);
+  if (w.department) rows.push(['Відділ', w.department]);
+  if (svc.marking) rows.push(['Реєстр. № / позначка', svc.marking]);
+  rows.push(['Власник', w.owner_name || w.created_by_name || '—']);
+  if (w.updated_at) rows.push(['Оновлено', fmtDate(w.updated_at)]);
+  else if (w.created_at) rows.push(['Створено', fmtDate(w.created_at)]);
+  document.getElementById('ws-qv-meta').innerHTML = rows
+    .map(([k, v]) => `<dt>${k}</dt><dd>${escapeHtml(String(v))}</dd>`).join('');
+
+  // Кнопки відкриття
+  const openLink = document.getElementById('ws-qv-open');
+  const openFileBtn = document.getElementById('ws-qv-open-file');
+  openLink.style.display = 'none';
+  openFileBtn.style.display = 'none';
+  if (w.kind === 'file' && w.storage_path) {
+    openFileBtn.style.display = '';
+    openFileBtn.onclick = () => openFile(w.id, openFileBtn);
+  } else if (w.url) {
+    openLink.style.display = '';
+    openLink.href = w.url;
+  }
+
+  // Кнопка «Змінити» — лише за наявності прав
+  const editBtn = document.getElementById('ws-qv-edit');
+  if (canEditWork(w)) {
+    editBtn.style.display = '';
+    editBtn.onclick = () => { modal.style.display = 'none'; openDocModal(w); };
+  } else {
+    editBtn.style.display = 'none';
+  }
+
+  modal.style.display = 'flex';
+}
+
+function fmtDate(iso) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString('uk-UA') + ' ' + d.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
+  } catch (_) { return iso; }
 }
 
 async function openFile(id, btn) {
@@ -429,6 +510,15 @@ function wireDocModal() {
 
   document.getElementById('ws-doc-save')?.addEventListener('click', saveDoc);
   document.getElementById('ws-doc-delete')?.addEventListener('click', deleteDoc);
+
+  // Модалка експрес-перегляду
+  const qv = document.getElementById('ws-qv-modal');
+  if (qv) {
+    const qvClose = () => { qv.style.display = 'none'; };
+    document.getElementById('ws-qv-close')?.addEventListener('click', qvClose);
+    document.getElementById('ws-qv-cancel')?.addEventListener('click', qvClose);
+    qv.addEventListener('click', (e) => { if (e.target === qv) qvClose(); });
+  }
 }
 
 function setEditKind(kind) {
@@ -451,6 +541,7 @@ function openDocModal(w) {
   document.getElementById('ws-doc-title').value = w?.title || '';
   document.getElementById('ws-doc-url').value = w?.url || '';
   document.getElementById('ws-doc-status').value = w?.status || 'active';
+  document.getElementById('ws-doc-marking').value = w?.marking || '';
   document.getElementById('ws-doc-desc').value = w?.description || '';
   document.getElementById('ws-doc-file').value = '';
 
@@ -528,6 +619,7 @@ async function saveDoc() {
       description: description || null,
       kind: editKind,
       status,
+      marking: document.getElementById('ws-doc-marking').value || null,
       visibility: canManage ? visibility : (id ? undefined : 'department')
     };
     if (rec.visibility === undefined) delete rec.visibility;

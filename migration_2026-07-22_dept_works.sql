@@ -43,6 +43,9 @@ CREATE TABLE IF NOT EXISTS public.dept_works (
   -- 'department' — бачить весь відділ, 'restricted' — власник + керівництво
   visibility TEXT NOT NULL DEFAULT 'department' CHECK (visibility IN ('department', 'restricted')),
 
+  -- Маркування важливості: 'main' — основний, 'base' — базовий, 'aux' — допоміжний
+  marking TEXT CHECK (marking IN ('main', 'base', 'aux')),
+
   -- Для space='service': маркування, тип документа тощо
   service_meta JSONB,
 
@@ -59,6 +62,15 @@ DO $$
 BEGIN
   ALTER TABLE public.dept_works
     ADD CONSTRAINT dept_works_scope_check CHECK (scope IN ('department', 'org'));
+EXCEPTION WHEN duplicate_object THEN
+  NULL;
+END $$;
+
+ALTER TABLE public.dept_works ADD COLUMN IF NOT EXISTS marking TEXT;
+DO $$
+BEGIN
+  ALTER TABLE public.dept_works
+    ADD CONSTRAINT dept_works_marking_check CHECK (marking IN ('main', 'base', 'aux'));
 EXCEPTION WHEN duplicate_object THEN
   NULL;
 END $$;

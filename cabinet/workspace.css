@@ -126,6 +126,44 @@
 }
 .ws-badge-org { background: #e6f4ea; color: #137333; }
 .ws-badge-dept { background: var(--p-soft, #f1f5f9); color: var(--p-muted, #64748b); }
+/* Маркування важливості */
+.ws-badge-main { background: #fce8e6; color: #c5221f; }
+.ws-badge-base { background: #e8f0fe; color: #1a73e8; }
+.ws-badge-aux  { background: #eef2f4; color: #5b6472; }
+
+/* Кнопка експрес-перегляду на картці */
+.ws-card-view {
+  border: 1px solid var(--p-line, #e2e8f0);
+  background: var(--p-surface, #fff);
+  color: var(--p-muted, #64748b);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ws-card-view:hover { background: var(--p-soft, #f1f5f9); color: var(--p-ink, #1e293b); }
+
+/* Модалка експрес-перегляду */
+.ws-qv-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.ws-qv-desc {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--p-ink, #1e293b);
+  white-space: pre-wrap;
+  margin-bottom: 16px;
+}
+.ws-qv-meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+  margin: 0;
+  font-size: 13px;
+}
+.ws-qv-meta dt { color: var(--p-muted, #64748b); font-weight: 600; }
+.ws-qv-meta dd { margin: 0; color: var(--p-ink, #1e293b); word-break: break-word; }
 
 /* Фільтр відділу (директор/заступник/адмін) */
 .ws-dept-filter {

@@ -12,10 +12,10 @@
   <link rel="stylesheet" href="../portal.css?v=20260719h">
   <link rel="stylesheet" href="../auth-v2.css?v=20260721a">
   <link rel="stylesheet" href="cabinet.css?v=20260722d">
-  <link rel="stylesheet" href="workspace.css?v=20260722c">
+  <link rel="stylesheet" href="workspace.css?v=20260722d">
   <script type="module" src="../auth-v2.js?v=20260722c"></script>
   <script type="module" src="cabinet.js?v=20260721a"></script>
-  <script type="module" src="workspace.js?v=20260722f"></script>
+  <script type="module" src="workspace.js?v=20260722g"></script>
 </head>
 <body data-required-role="expert">
 <div class="portal">
@@ -439,6 +439,16 @@
             </select>
           </div>
 
+          <div class="form-group">
+            <label for="ws-doc-marking">Маркування</label>
+            <select id="ws-doc-marking">
+              <option value="">— не вказано —</option>
+              <option value="main">🔴 Основний</option>
+              <option value="base">🔵 Базовий</option>
+              <option value="aux">⚪ Допоміжний</option>
+            </select>
+          </div>
+
           <!-- Область: наскрізний бачить кожен відділ (лише керівництво) -->
           <div class="form-group" id="ws-scope-group" style="display:none;">
             <label for="ws-doc-scope">Область дії</label>
@@ -463,7 +473,7 @@
               </select>
             </div>
             <div class="form-group">
-              <label for="ws-doc-svc-marking">Маркування</label>
+              <label for="ws-doc-svc-marking">Реєстр. № / позначка</label>
               <input type="text" id="ws-doc-svc-marking" placeholder="напр., реєстр. № / гриф / позначка">
             </div>
           </div>
@@ -489,6 +499,27 @@
         <button type="button" class="btn btn-danger ws-doc-delete" id="ws-doc-delete" style="display:none; margin-right:auto;">🗑 Видалити</button>
         <button type="button" class="btn btn-secondary" id="ws-doc-cancel">Скасувати</button>
         <button type="button" class="btn btn-primary" id="ws-doc-save">💾 Зберегти</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── РпВ: експрес-перегляд документа (лише читання) ── -->
+  <div class="modal-overlay" id="ws-qv-modal" style="display:none;">
+    <div class="modal-card" style="max-width: 520px;">
+      <button class="modal-close-btn" id="ws-qv-close" aria-label="Закрити">&times;</button>
+      <div class="modal-header">
+        <h3 id="ws-qv-title">Документ</h3>
+        <div class="ws-qv-badges" id="ws-qv-badges"></div>
+      </div>
+      <div class="modal-body-scroll">
+        <div class="ws-qv-desc" id="ws-qv-desc"></div>
+        <dl class="ws-qv-meta" id="ws-qv-meta"></dl>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="ws-qv-cancel">Закрити</button>
+        <a class="btn btn-primary" id="ws-qv-open" target="_blank" rel="noopener" style="display:none;">🔗 Відкрити</a>
+        <button type="button" class="btn btn-primary" id="ws-qv-open-file" style="display:none;">📎 Відкрити файл</button>
+        <button type="button" class="btn btn-secondary" id="ws-qv-edit" style="display:none;">✏️ Змінити</button>
       </div>
     </div>
   </div>
