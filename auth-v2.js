@@ -2141,6 +2141,62 @@ window.addEventListener('appinstalled', () => {
   localStorage.setItem('pwa_install_dismissed', 'true');
 });
 
+// ── iOS: Safari не надсилає beforeinstallprompt — показуємо власну
+// інструкцію «Поділитися → Додати на початковий екран». ────────────
+function isIosDevice() {
+  const ua = navigator.userAgent || '';
+  // iPadOS 13+ маскується під Macintosh — визначаємо за сенсорним екраном
+  return /iphone|ipad|ipod/i.test(ua)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+function isStandaloneApp() {
+  return window.navigator.standalone === true
+    || window.matchMedia('(display-mode: standalone)').matches;
+}
+
+function maybeShowIosInstallHint() {
+  if (!isIosDevice() || isStandaloneApp()) return;
+  if (localStorage.getItem('pwa_ios_hint_dismissed') === 'true') return;
+  if (document.getElementById('pwa-ios-hint')) return;
+
+  const hint = document.createElement('div');
+  hint.id = 'pwa-ios-hint';
+  hint.style.cssText = [
+    'position:fixed', 'left:50%', 'transform:translateX(-50%)', 'bottom:16px',
+    'z-index:999998', 'display:flex', 'flex-direction:column', 'gap:8px',
+    'width:calc(100vw - 24px)', 'max-width:420px', 'padding:14px 16px',
+    'border-radius:16px', 'background:#2f6b9e', 'color:#fff',
+    'box-shadow:0 12px 32px rgba(15,30,45,.35)', 'font-size:13.5px',
+    'font-weight:600', 'line-height:1.5'
+  ].join(';');
+
+  // Іконка «Поділитися» iOS (квадрат зі стрілкою вгору)
+  const shareIcon = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg>';
+
+  hint.innerHTML = `
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span style="font-size:22px;">📲</span>
+      <span style="flex:1;">Встановіть портал як застосунок на iPhone/iPad</span>
+      <button id="pwa-ios-close" aria-label="Закрити" style="flex-shrink:0;border:none;background:transparent;color:rgba(255,255,255,.85);font-size:18px;cursor:pointer;padding:2px 4px;">✕</button>
+    </div>
+    <div style="font-weight:500; opacity:.95;">
+      Натисніть ${shareIcon} <b>Поділитися</b> у Safari, потім оберіть <b>«На початковий екран»</b> (Add to Home Screen).
+    </div>
+  `;
+  document.body.appendChild(hint);
+
+  hint.querySelector('#pwa-ios-close').addEventListener('click', () => {
+    hint.remove();
+    localStorage.setItem('pwa_ios_hint_dismissed', 'true');
+  });
+}
+
+// Показуємо трохи згодом після завантаження, щоб не заважати першому екрану
+window.addEventListener('load', () => {
+  setTimeout(maybeShowIosInstallHint, 1800);
+});
+
 function showInstallBanner() {
   if (document.getElementById('pwa-install-banner')) return;
   const banner = document.createElement('div');
