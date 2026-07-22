@@ -11,6 +11,14 @@
   gap: 24px;
 }
 
+/* Обгортка особистого вигляду — зберігає той самий вертикальний ритм,
+   що й контейнер (інакше метрики та панелі злипаються) */
+#personal-view {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
 /* ── Profile Banner ─────────────────────────────────── */
 .cabinet-profile-card {
   display: flex;
