@@ -12,8 +12,10 @@
   <link rel="stylesheet" href="../portal.css?v=20260719h">
   <link rel="stylesheet" href="../auth-v2.css?v=20260721a">
   <link rel="stylesheet" href="cabinet.css?v=20260721a">
+  <link rel="stylesheet" href="workspace.css?v=20260722a">
   <script type="module" src="../auth-v2.js?v=20260719l"></script>
   <script type="module" src="cabinet.js?v=20260721a"></script>
+  <script type="module" src="workspace.js?v=20260722a"></script>
 </head>
 <body data-required-role="expert">
 <div class="portal">
@@ -64,8 +66,17 @@
         </div>
         <p id="user-display-dept">Відділ стратегічного розвитку програми медичних гарантій</p>
       </div>
-      <a class="planner-link-btn" href="planner.html" title="Плани на день, тиждень, місяць і рік">🗓️ Планувальник</a>
+      <div class="profile-actions">
+        <div class="ws-mode-switch" role="tablist" aria-label="Режим кабінету">
+          <button type="button" class="ws-mode-btn active" id="ws-mode-personal" role="tab" aria-selected="true">👤 Мій кабінет</button>
+          <button type="button" class="ws-mode-btn" id="ws-mode-department" role="tab" aria-selected="false">🏢 Простір відділу</button>
+        </div>
+        <a class="planner-link-btn" href="planner.html" title="Плани на день, тиждень, місяць і рік">🗓️ Планувальник</a>
+      </div>
     </section>
+
+    <!-- ═══ ОСОБИСТИЙ КАБІНЕТ ═══ -->
+    <div id="personal-view">
 
     <!-- Quick Info Dashboard (Metrics Grid) -->
     <section class="cabinet-metrics-grid">
@@ -336,7 +347,128 @@
       </div>
 
     </div>
+    </div><!-- /#personal-view -->
+
+    <!-- ═══ РОБОЧИЙ ПРОСТІР ВІДДІЛУ (РпВ) ═══ -->
+    <div id="workspace-view" style="display:none;">
+      <div class="ws-header">
+        <div>
+          <h2 class="ws-title">🏢 Робочий простір відділу</h2>
+          <p class="ws-subtitle" id="ws-dept-name">—</p>
+        </div>
+      </div>
+
+      <!-- Підпростори: робочі документи / службові -->
+      <div class="ws-space-tabs" role="tablist" aria-label="Простори">
+        <button type="button" class="ws-space-tab active" data-space="working" role="tab">📁 Робочі документи</button>
+        <button type="button" class="ws-space-tab" data-space="service" role="tab">🗂️ Службові</button>
+      </div>
+
+      <!-- Панель дій -->
+      <div class="ws-toolbar">
+        <div class="ws-toolbar-left">
+          <input type="search" id="ws-search" class="ws-search" placeholder="Пошук за назвою чи описом…" autocomplete="off">
+        </div>
+        <button type="button" class="btn btn-primary ws-add-btn" id="ws-add-btn">➕ Додати документ</button>
+      </div>
+
+      <!-- Дошка: Активні / Паркування / Завершені -->
+      <div class="ws-board" id="ws-board">
+        <div class="ws-loading">Завантаження робочого простору…</div>
+      </div>
+    </div><!-- /#workspace-view -->
+
   </main>
+
+  <!-- ── РпВ: модалка документа ────────────────────── -->
+  <div class="modal-overlay" id="ws-doc-modal" style="display:none;">
+    <div class="modal-card" style="max-width: 560px;">
+      <button class="modal-close-btn" id="ws-doc-close" aria-label="Закрити">&times;</button>
+      <div class="modal-header">
+        <h3 id="ws-doc-modal-title">Новий документ</h3>
+      </div>
+      <div class="modal-body-scroll">
+        <form id="ws-doc-form" autocomplete="off" novalidate>
+          <input type="hidden" id="ws-doc-id">
+
+          <div class="form-group">
+            <label for="ws-doc-title">Назва *</label>
+            <input type="text" id="ws-doc-title" required placeholder="напр., Аналітична довідка щодо пакета…">
+          </div>
+
+          <div class="form-group">
+            <label>Тип документа *</label>
+            <div class="ws-kind-switch" id="ws-kind-switch">
+              <button type="button" class="ws-kind-btn active" data-kind="gdoc">🔗 Google Doc / посилання</button>
+              <button type="button" class="ws-kind-btn" data-kind="file">📎 Завантажити файл</button>
+              <button type="button" class="ws-kind-btn" data-kind="external">🗄️ Зовнішнє (OneDrive/Диск К)</button>
+            </div>
+          </div>
+
+          <div class="form-group" id="ws-doc-url-group">
+            <label for="ws-doc-url">Посилання *</label>
+            <input type="url" id="ws-doc-url" placeholder="https://docs.google.com/…">
+          </div>
+
+          <div class="form-group" id="ws-doc-file-group" style="display:none;">
+            <label for="ws-doc-file">Файл (Word, Excel, PDF…) *</label>
+            <input type="file" id="ws-doc-file">
+            <div id="ws-doc-file-current" style="display:none; margin-top:8px; font-size:12.5px; color: var(--p-muted);"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="ws-doc-status">Стан</label>
+            <select id="ws-doc-status">
+              <option value="active">🟢 Активний</option>
+              <option value="parked">🅿️ Паркування (недороблене)</option>
+              <option value="done">✅ Завершений</option>
+            </select>
+          </div>
+
+          <!-- Службові поля (лише для простору «Службові») -->
+          <div id="ws-service-fields" style="display:none;">
+            <div class="form-group">
+              <label for="ws-doc-svc-type">Тип службового</label>
+              <select id="ws-doc-svc-type">
+                <option value="">— не вказано —</option>
+                <option value="роз'яснення">Роз'яснення</option>
+                <option value="службова записка">Службова записка</option>
+                <option value="доповідна записка">Доповідна записка</option>
+                <option value="наказ">Наказ</option>
+                <option value="лист">Лист</option>
+                <option value="інше">Інше</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="ws-doc-svc-marking">Маркування</label>
+              <input type="text" id="ws-doc-svc-marking" placeholder="напр., реєстр. № / гриф / позначка">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="ws-doc-visibility">Видимість</label>
+            <select id="ws-doc-visibility">
+              <option value="department">👥 Весь відділ</option>
+              <option value="restricted">🔒 Обмежено (власник і керівництво)</option>
+            </select>
+            <div class="ws-vis-hint" id="ws-vis-hint" style="display:none; margin-top:6px; font-size:12px; color: var(--p-muted);">
+              Змінювати видимість може керівник відділу, заступник або адмін.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="ws-doc-desc">Опис / примітка</label>
+            <textarea id="ws-doc-desc" rows="3" placeholder="Короткий контекст: що це, стан, що лишилось…"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger ws-doc-delete" id="ws-doc-delete" style="display:none; margin-right:auto;">🗑 Видалити</button>
+        <button type="button" class="btn btn-secondary" id="ws-doc-cancel">Скасувати</button>
+        <button type="button" class="btn btn-primary" id="ws-doc-save">💾 Зберегти</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ── Task Detail Modal ─────────────────────────── -->
   <div class="modal-overlay" id="cabinet-task-modal" style="display: none;">
