@@ -2174,12 +2174,12 @@ function renderStatusDashboard(logs, startDateVal, endDateVal, deptVal, empVal) 
 
     <!-- Табель обліку робочого часу (для бухгалтерії) -->
     <div class="skod-card" style="padding: 24px; border-radius: var(--pr-tile); background: var(--p-surface); border: 1px solid var(--p-line); box-shadow: var(--p-shadow-sm); margin-bottom: 20px;">
-      <div class="skod-card-title" style="margin-bottom: 6px; font-weight:700; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+      <div class="skod-card-title" style="margin-bottom: 6px; font-weight:700;">
         <span>🧾 Табель для бухгалтерії</span>
-        <button id="timesheet-export-btn" type="button" style="border:none; border-radius:9px; background:#3a8462; color:#fff; font:inherit; font-size:13px; font-weight:700; padding:9px 16px; cursor:pointer;">⬇️ Експорт в Excel (CSV)</button>
       </div>
+      ${buildTabelExcelControls()}
       <div style="font-size:12.5px; color: var(--p-muted); margin-bottom:14px; border-bottom: 1px solid var(--p-soft); padding-bottom: 12px;">
-        Умовні позначення: <strong>О</strong> — офіс, <strong>Д</strong> — дистанційно, <strong>Л</strong> — лікарняний, <strong>В</strong> — відпустка, <strong>ЗД</strong> — за домовленістю, <strong>Вх</strong> — вихідний (сб/нд), <strong>–</strong> — статус не вказано.
+        Переглядова таблиця за обраний період звіту. Умовні позначення: <strong>О</strong> — офіс, <strong>Д</strong> — дистанційно, <strong>Л</strong> — лікарняний, <strong>В</strong> — відпустка, <strong>ЗД</strong> — за домовленістю, <strong>Вх</strong> — вихідний (сб/нд), <strong>–</strong> — статус не вказано.
       </div>
       <div style="overflow-x: auto;">
         ${buildTimesheetTable(logs, startDateVal, endDateVal)}
@@ -2211,10 +2211,7 @@ function renderStatusDashboard(logs, startDateVal, endDateVal, deptVal, empVal) 
 
   resultsContainer.innerHTML = html;
 
-  const exportBtn = document.getElementById('timesheet-export-btn');
-  if (exportBtn) {
-    exportBtn.addEventListener('click', () => exportTimesheetCSV(logs, startDateVal, endDateVal));
-  }
+  wireTabelExcelControls();
 
   // Destroy previous chart instances
   Object.values(chartInstances).forEach(c => c && c.destroy());
@@ -2322,31 +2319,412 @@ function buildTimesheetTable(logs, startDateVal, endDateVal) {
     </table>`;
 }
 
-function exportTimesheetCSV(logs, startDateVal, endDateVal) {
-  const { dates, rows } = buildTimesheetData(logs, startDateVal, endDateVal);
-  const sep = ';';
-  const head = ['Співробітник', 'Відділ',
-    ...dates.map(di => `${String(di.day).padStart(2, '0')}.${String(di.month).padStart(2, '0')}`),
-    'Відпрацьовано (О+Д+ЗД)', 'Лікарняні', 'Відпустка', 'Вихідні', 'Без статусу'];
-  const lines = [head.join(sep)];
-  rows.forEach(r => {
-    lines.push([
-      `"${r.name.replace(/"/g, '""')}"`,
-      `"${(r.department || '').replace(/"/g, '""')}"`,
-      ...r.cells,
-      r.totals.work, r.totals.sick, r.totals.vacation, r.totals.weekend, r.totals.none
-    ].join(sep));
+// ── Табель для бухгалтерії: формування Excel за формою НСЗУ ────────
+// Два табелі: 'department' — Департамент стратегії (загальний),
+// 'fin' — управління фін.-аналітичного забезпечення (окрема декларація).
+// Штат — у таблиці Supabase timesheet_staff (редагується коорд./адміном).
+
+const TABEL_SHEETS = {
+  department: { label: 'Департамент стратегії (загальний)', fileLabel: 'Департамент' },
+  fin: { label: 'Управління фін.-аналітики (Якубівський)', fileLabel: 'Фінуправління' }
+};
+
+const TABEL_DEPT_TITLE = 'Департамент стратегії універсального охоплення населення медичними послугами';
+
+const TABEL_SIGNERS = [
+  ['Головний спеціаліст відділу розрахунку вартості медичних послуг', 'О. Задорожня'],
+  ['Директор Департаменту стратегії універсального охоплення \nнаселення медичними послугами', 'С. Дудник'],
+  ['Управління персоналу та організаційної культури', 'Н. Микитенко']
+];
+
+const TABEL_MONTHS_GEN = ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня',
+  'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'];
+
+function tabelIsCoordOrAdmin() {
+  const role = userProfile?.role || 'registered';
+  return ['admin', 'director', 'deputy_director', 'full'].includes(role);
+}
+
+// Період за замовчуванням: до 15 числа включно — друга половина минулого
+// місяця, з 16-го — перша половина поточного (бухгалтерія просить постфактум)
+function tabelDefaultPeriod() {
+  const now = new Date();
+  if (now.getDate() >= 16) {
+    return { ym: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`, half: 1 };
+  }
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  return { ym: `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`, half: 2 };
+}
+
+function buildTabelExcelControls() {
+  if (!tabelIsCoordOrAdmin()) return '';
+  const def = tabelDefaultPeriod();
+  return `
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:12px 14px; margin-bottom:14px; background: var(--p-soft); border-radius: 10px;">
+      <span style="font-size:13px; font-weight:700;">Excel для бухгалтерії:</span>
+      <input type="month" id="tabel-month" value="${def.ym}" style="padding:6px 8px; border:1px solid var(--p-line); border-radius:8px; font:inherit; font-size:13px;">
+      <select id="tabel-half" style="padding:6px 8px; border:1px solid var(--p-line); border-radius:8px; font:inherit; font-size:13px;">
+        <option value="1" ${def.half === 1 ? 'selected' : ''}>Перша половина (1–15)</option>
+        <option value="2" ${def.half === 2 ? 'selected' : ''}>Друга половина (16–кінець)</option>
+      </select>
+      <select id="tabel-sheet" style="padding:6px 8px; border:1px solid var(--p-line); border-radius:8px; font:inherit; font-size:13px;">
+        <option value="department">${TABEL_SHEETS.department.label}</option>
+        <option value="fin">${TABEL_SHEETS.fin.label}</option>
+      </select>
+      <button id="tabel-generate-btn" type="button" style="border:none; border-radius:9px; background:#3a8462; color:#fff; font:inherit; font-size:13px; font-weight:700; padding:9px 16px; cursor:pointer;">⬇️ Сформувати табель (.xlsx)</button>
+      <button id="tabel-staff-btn" type="button" style="border:1px solid var(--p-line); border-radius:9px; background:var(--p-surface); color:var(--p-ink); font:inherit; font-size:13px; font-weight:700; padding:8px 14px; cursor:pointer;">👥 Штат табеля</button>
+      <span style="font-size:12px; color:var(--p-muted); flex-basis:100%;">Коди зі статусів сайту: офіс/дистанційно/за домовленістю → «Р», відпустка → «В», лікарняний → «ТН», сб/нд → «ВВ». Дні без статусу лишаються порожніми, робота у вихідні (РВ/РВ*) та години — вручну після вивантаження.</span>
+    </div>`;
+}
+
+function wireTabelExcelControls() {
+  const genBtn = document.getElementById('tabel-generate-btn');
+  if (genBtn) {
+    genBtn.addEventListener('click', async () => {
+      const ym = document.getElementById('tabel-month')?.value;
+      const half = parseInt(document.getElementById('tabel-half')?.value || '1', 10);
+      const sheetKey = document.getElementById('tabel-sheet')?.value || 'department';
+      if (!ym) { alert('Оберіть місяць.'); return; }
+      genBtn.disabled = true;
+      const oldText = genBtn.textContent;
+      genBtn.textContent = '⏳ Формування...';
+      try {
+        await generateTabelExcel(sheetKey, ym, half);
+      } catch (e) {
+        console.error('Помилка формування табеля:', e);
+        alert('Помилка формування табеля: ' + (e.message || e));
+      } finally {
+        genBtn.disabled = false;
+        genBtn.textContent = oldText;
+      }
+    });
+  }
+  const staffBtn = document.getElementById('tabel-staff-btn');
+  if (staffBtn) staffBtn.addEventListener('click', openTabelStaffEditor);
+}
+
+// Прізвище ВЕЛИКИМИ + решта ПІБ: "Якубівський Володимир Леонідович"
+// → "ЯКУБІВСЬКИЙ Володимир Леонідович"
+function tabelDisplayName(fullName) {
+  const parts = String(fullName || '').trim().split(/\s+/);
+  if (!parts.length) return '';
+  return [parts[0].toLocaleUpperCase('uk'), ...parts.slice(1)].join(' ');
+}
+
+function tabelSurnameKey(name) {
+  return String(name || '').trim().split(/\s+/)[0]?.toLocaleLowerCase('uk') || '';
+}
+
+// Код табеля для одного дня
+function tabelDayCode(status, isWeekend) {
+  if (status === 'vacation') return 'В';
+  if (status === 'sick') return 'ТН';
+  if (isWeekend) return 'ВВ';
+  if (status === 'office' || status === 'home' || status === 'agreement') return 'Р';
+  return '';
+}
+
+async function generateTabelExcel(sheetKey, ym, half) {
+  if (typeof ExcelJS === 'undefined') {
+    throw new Error('Бібліотека ExcelJS не завантажилась. Оновіть сторінку.');
+  }
+  const [year, month] = ym.split('-').map(Number);
+  const lastDay = new Date(year, month, 0).getDate();
+  const d1 = half === 1 ? 1 : 16;
+  const d2 = half === 1 ? 15 : lastDay;
+  const startIso = `${year}-${String(month).padStart(2, '0')}-${String(d1).padStart(2, '0')}`;
+  const endIso = `${year}-${String(month).padStart(2, '0')}-${String(d2).padStart(2, '0')}`;
+
+  // 1. Штат
+  const { data: staff, error: staffErr } = await sb.from('timesheet_staff')
+    .select('*').eq('sheet', sheetKey).eq('active', true).order('sort_order');
+  if (staffErr) throw new Error('Штат табеля: ' + staffErr.message + '. Перевірте, чи застосована міграція timesheet_staff.');
+  if (!staff || !staff.length) throw new Error('Штат табеля порожній. Додайте працівників через «Штат табеля».');
+
+  // 2. Статуси присутності за період
+  const { data: statuses, error: stErr } = await sb.from('user_daily_statuses')
+    .select('user_id, user_name, status, status_date')
+    .gte('status_date', startIso).lte('status_date', endIso);
+  if (stErr) throw new Error('Статуси: ' + stErr.message);
+
+  const byUserId = {};   // user_id → { iso: status }
+  const surnameToId = {}; // прізвище → user_id (автозв'язка, якщо user_id не задано)
+  (statuses || []).forEach(s => {
+    if (!byUserId[s.user_id]) byUserId[s.user_id] = {};
+    byUserId[s.user_id][s.status_date] = s.status;
+    const key = tabelSurnameKey(s.user_name);
+    if (key) surnameToId[key] = s.user_id;
   });
-  // BOM — щоб Excel коректно відкрив кирилицю
-  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+
+  // 3. Шаблон
+  const resp = await fetch('templates/tabel_template.xlsx?v=20260722a');
+  if (!resp.ok) throw new Error('Не вдалося завантажити шаблон табеля (' + resp.status + ').');
+  const buf = await resp.arrayBuffer();
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load(buf);
+  const ws = wb.getWorksheet('НСЗУ');
+  if (!ws) throw new Error('У шаблоні немає аркуша «НСЗУ».');
+
+  const MAX_COL = 74; // BV
+  const BU = 73, DAY_START = 7; // G
+  // Референсні стилі: рядок 17 — підрозділ, рядок 18 — працівник
+  const unitStyle = [], dataStyle = [];
+  for (let c = 1; c <= MAX_COL; c++) {
+    unitStyle[c] = ws.getRow(17).getCell(c).style;
+    dataStyle[c] = ws.getRow(18).getCell(c).style;
+  }
+  // Заливка вихідних у шаблоні прив'язана до конкретних колонок (J,K,Q,R) —
+  // переносимо її на фактичні сб/нд обраного періоду
+  const workDayFill = dataStyle[DAY_START].fill;      // G: звичайний день
+  const weekendFill = dataStyle[DAY_START + 3].fill;  // J: вихідний
+
+  // 4. Шапка: звітний період і назва
+  ws.getCell('X3').value = new Date(Date.UTC(year, month - 1, d1));
+  ws.getCell('AA3').value = new Date(Date.UTC(year, month - 1, d2));
+  ws.getCell('A11').value = `обліку робочого часу за ${half === 1 ? 'першу' : 'другу'} половину ${TABEL_MONTHS_GEN[month - 1]} ${year} року`;
+
+  // 5. Рядки даних
+  let r = 17;
+  const writeUnitRow = (text) => {
+    const row = ws.getRow(r);
+    for (let c = 1; c <= MAX_COL; c++) row.getCell(c).style = unitStyle[c];
+    row.getCell(1).value = text;
+    row.height = 13.5;
+    ws.mergeCells(r, 1, r, BU);
+    r++;
+  };
+
+  writeUnitRow(TABEL_DEPT_TITLE);
+  let lastUnit = null;
+  let seq = 0;
+  const periodDays = d2 - d1 + 1;
+
+  staff.forEach(emp => {
+    if (emp.unit && emp.unit !== lastUnit) writeUnitRow(emp.unit);
+    if (emp.unit) lastUnit = emp.unit;
+
+    // Дні працівника: явний зв'язок user_id або автопошук за прізвищем
+    const uid = emp.user_id || surnameToId[tabelSurnameKey(emp.full_name)];
+    const days = (uid && byUserId[uid]) || {};
+
+    const row = ws.getRow(r);
+    for (let c = 1; c <= MAX_COL; c++) row.getCell(c).style = dataStyle[c];
+    const dText = `${tabelDisplayName(emp.full_name)}, ${emp.position}`;
+    row.height = dText.length > 58 ? 52 : 39;
+
+    seq++;
+    const dispName = tabelDisplayName(emp.full_name);
+    row.getCell(1).value = seq;                                  // № п/п
+    row.getCell(2).value = emp.tabel_no ?? '';                   // табельний номер
+    row.getCell(3).value = emp.gender || '';                     // стать
+    row.getCell(4).value = dText;                                // ПІБ, посада
+    row.getCell(5).value = dispName;                             // прізвище та ініціали
+    row.getCell(6).value = emp.position;                         // посада
+
+    // Всі 31 колонка днів: чистимо шаблонну заливку, ставимо за фактичними сб/нд
+    let cntR = 0, cntVV = 0, cntV = 0, cntTN = 0;
+    for (let dcol = 0; dcol < 31; dcol++) {
+      const day = dcol + 1;
+      const cell = row.getCell(DAY_START + dcol);
+      const inPeriod = day >= d1 && day <= d2 && day <= lastDay;
+      const dow = inPeriod ? new Date(year, month - 1, day).getDay() : -1;
+      const isWknd = dow === 0 || dow === 6;
+      cell.style = { ...dataStyle[DAY_START + dcol], fill: (inPeriod && isWknd) ? weekendFill : workDayFill };
+      if (!inPeriod) continue;
+      const iso = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const code = tabelDayCode(days[iso], isWknd);
+      cell.value = code;
+      if (code === 'Р') cntR++;
+      else if (code === 'ВВ') cntVV++;
+      else if (code === 'В') cntV++;
+      else if (code === 'ТН') cntTN++;
+    }
+
+    row.getCell(40).value = cntR;                                // AN: відпрацьовано днів
+    row.getCell(42).value = cntVV;                               // AP: вихідних та святкових
+    if (cntV + cntTN > 0) row.getCell(45).value = cntV + cntTN;  // AS: всього неявок
+    if (cntV > 0) row.getCell(46).value = cntV;                  // AT: щорічні відпустки
+    if (cntTN > 0) row.getCell(53).value = cntTN;                // BA: оплачувана тимч. непрацездатність
+    row.getCell(72).value = periodDays;                          // BT: баланс календарного часу
+    if (emp.note) row.getCell(BU).value = emp.note;              // BU: примітка (№ наказу)
+    r++;
+  });
+
+  // 6. Підписи
+  r++; // порожній рядок після таблиці
+  const sigFont = { name: 'Times New Roman', size: 10 };
+  TABEL_SIGNERS.forEach(([title, name]) => {
+    const row = ws.getRow(r);
+    const tCell = row.getCell(1);
+    tCell.value = title;
+    tCell.font = sigFont;
+    tCell.alignment = { horizontal: 'left', vertical: 'center', wrapText: true };
+    const nCell = row.getCell(41); // AO
+    nCell.value = name;
+    nCell.font = sigFont;
+    nCell.alignment = { horizontal: 'left', vertical: 'bottom' };
+    nCell.border = { bottom: { style: 'thin' } };
+    ws.mergeCells(r, 1, r + 1, 20);   // A..T (2 рядки)
+    ws.mergeCells(r, 41, r + 1, 47);  // AO..AU (2 рядки)
+    row.height = 20;
+    ws.getRow(r + 1).height = 20;
+    r += 3; // рядок відступу між підписами
+  });
+
+  // 7. Завантаження файла
+  const out = await wb.xlsx.writeBuffer();
+  const blob = new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `Табель_${startDateVal}_${endDateVal}.csv`;
+  const mm = String(month).padStart(2, '0');
+  a.download = `Табель_${TABEL_SHEETS[sheetKey].fileLabel}_${String(d1).padStart(2, '0')}-${String(d2).padStart(2, '0')}.${mm}.${year}.xlsx`;
   document.body.appendChild(a);
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+// ── Редактор штату табеля (координатор/адмін) ──────────────────────
+async function openTabelStaffEditor() {
+  if (!tabelIsCoordOrAdmin()) return;
+
+  let overlay = document.getElementById('tabel-staff-overlay');
+  if (overlay) overlay.remove();
+
+  const [{ data: staff, error: staffErr }, { data: profiles }] = await Promise.all([
+    sb.from('timesheet_staff').select('*').order('sheet').order('sort_order'),
+    sb.from('profiles').select('id, full_name').order('full_name')
+  ]);
+  if (staffErr) {
+    alert('Не вдалося завантажити штат: ' + staffErr.message + '. Перевірте міграцію timesheet_staff.');
+    return;
+  }
+
+  const profileOpts = (uid) => ['<option value="">— автопошук за прізвищем —</option>',
+    ...(profiles || []).map(p => `<option value="${p.id}" ${p.id === uid ? 'selected' : ''}>${p.full_name}</option>`)
+  ].join('');
+
+  const rowHtml = (emp) => `
+    <tr data-id="${emp.id || ''}" style="border-bottom:1px solid var(--p-soft);">
+      <td><select class="ts-sheet" style="width:100%; font-size:12px;">
+        <option value="department" ${emp.sheet === 'department' ? 'selected' : ''}>Департамент</option>
+        <option value="fin" ${emp.sheet === 'fin' ? 'selected' : ''}>Фінуправління</option>
+      </select></td>
+      <td><input class="ts-order" type="number" value="${emp.sort_order ?? 100}" style="width:60px; font-size:12px;"></td>
+      <td><input class="ts-unit" type="text" value="${(emp.unit || '').replace(/"/g, '&quot;')}" placeholder="(без підрозділу)" style="width:100%; min-width:220px; font-size:12px;"></td>
+      <td><input class="ts-tabno" type="number" value="${emp.tabel_no ?? ''}" style="width:64px; font-size:12px;"></td>
+      <td><select class="ts-gender" style="font-size:12px;">
+        <option value="Ч" ${emp.gender === 'Ч' ? 'selected' : ''}>Ч</option>
+        <option value="Ж" ${emp.gender === 'Ж' ? 'selected' : ''}>Ж</option>
+      </select></td>
+      <td><input class="ts-name" type="text" value="${(emp.full_name || '').replace(/"/g, '&quot;')}" style="width:100%; min-width:200px; font-size:12px;"></td>
+      <td><input class="ts-pos" type="text" value="${(emp.position || '').replace(/"/g, '&quot;')}" style="width:100%; min-width:150px; font-size:12px;"></td>
+      <td><select class="ts-user" style="width:100%; min-width:160px; font-size:12px;">${profileOpts(emp.user_id)}</select></td>
+      <td><input class="ts-note" type="text" value="${(emp.note || '').replace(/"/g, '&quot;')}" placeholder="№ наказу" style="width:110px; font-size:12px;"></td>
+      <td style="text-align:center;"><input class="ts-active" type="checkbox" ${emp.active !== false ? 'checked' : ''}></td>
+      <td><button type="button" class="ts-del" style="border:none; background:none; color:#c5221f; cursor:pointer; font-size:15px;" title="Видалити">🗑</button></td>
+    </tr>`;
+
+  overlay = document.createElement('div');
+  overlay.id = 'tabel-staff-overlay';
+  overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px;';
+  overlay.innerHTML = `
+    <div style="background:var(--p-surface); border-radius:14px; max-width:1250px; width:100%; max-height:90vh; display:flex; flex-direction:column; box-shadow:0 18px 50px rgba(0,0,0,.35);">
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid var(--p-line);">
+        <strong style="font-size:15px;">👥 Штат табеля для бухгалтерії</strong>
+        <button type="button" id="ts-close" style="border:none; background:none; font-size:20px; cursor:pointer; color:var(--p-muted);">✕</button>
+      </div>
+      <div style="padding:12px 20px; overflow:auto; flex:1;">
+        <div style="font-size:12px; color:var(--p-muted); margin-bottom:10px;">
+          Порядок рядків у табелі — за полем «Пор.». Працівники групуються за «Структурним підрозділом» (однаковий текст = одна група, порожнє — одразу під рядком департаменту). Зв'язок із користувачем сайту потрібен для автозаповнення статусів; якщо не задано — пошук за прізвищем.
+        </div>
+        <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+          <thead><tr style="text-align:left; border-bottom:2px solid var(--p-line);">
+            <th style="padding:6px 4px;">Табель</th><th style="padding:6px 4px;">Пор.</th><th style="padding:6px 4px;">Структурний підрозділ</th>
+            <th style="padding:6px 4px;">Таб. №</th><th style="padding:6px 4px;">Стать</th><th style="padding:6px 4px;">ПІБ (повністю)</th>
+            <th style="padding:6px 4px;">Посада</th><th style="padding:6px 4px;">Користувач сайту</th><th style="padding:6px 4px;">Примітка</th>
+            <th style="padding:6px 4px;">Актив.</th><th></th>
+          </tr></thead>
+          <tbody id="ts-tbody">${(staff || []).map(rowHtml).join('')}</tbody>
+        </table>
+      </div>
+      <div style="display:flex; justify-content:space-between; gap:10px; padding:14px 20px; border-top:1px solid var(--p-line);">
+        <button type="button" id="ts-add" style="border:1px solid var(--p-line); border-radius:9px; background:var(--p-surface); font:inherit; font-size:13px; font-weight:700; padding:8px 14px; cursor:pointer;">➕ Додати працівника</button>
+        <div style="display:flex; gap:10px;">
+          <button type="button" id="ts-cancel" style="border:1px solid var(--p-line); border-radius:9px; background:var(--p-surface); font:inherit; font-size:13px; padding:8px 14px; cursor:pointer;">Скасувати</button>
+          <button type="button" id="ts-save" style="border:none; border-radius:9px; background:#3a8462; color:#fff; font:inherit; font-size:13px; font-weight:700; padding:8px 18px; cursor:pointer;">💾 Зберегти</button>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const deletedIds = [];
+  const tbody = overlay.querySelector('#ts-tbody');
+  const close = () => overlay.remove();
+  overlay.querySelector('#ts-close').addEventListener('click', close);
+  overlay.querySelector('#ts-cancel').addEventListener('click', close);
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+  tbody.addEventListener('click', (e) => {
+    const btn = e.target.closest('.ts-del');
+    if (!btn) return;
+    const tr = btn.closest('tr');
+    if (!confirm('Видалити цей рядок зі штату?')) return;
+    if (tr.dataset.id) deletedIds.push(tr.dataset.id);
+    tr.remove();
+  });
+
+  overlay.querySelector('#ts-add').addEventListener('click', () => {
+    tbody.insertAdjacentHTML('beforeend', rowHtml({ sheet: 'department', sort_order: 100, gender: 'Ж', active: true }));
+  });
+
+  overlay.querySelector('#ts-save').addEventListener('click', async () => {
+    const saveBtn = overlay.querySelector('#ts-save');
+    saveBtn.disabled = true;
+    saveBtn.textContent = '⏳ Збереження...';
+    try {
+      const updates = [], inserts = [];
+      tbody.querySelectorAll('tr').forEach(tr => {
+        const rec = {
+          sheet: tr.querySelector('.ts-sheet').value,
+          sort_order: parseInt(tr.querySelector('.ts-order').value || '100', 10),
+          unit: tr.querySelector('.ts-unit').value.trim() || null,
+          tabel_no: tr.querySelector('.ts-tabno').value ? parseInt(tr.querySelector('.ts-tabno').value, 10) : null,
+          gender: tr.querySelector('.ts-gender').value,
+          full_name: tr.querySelector('.ts-name').value.trim(),
+          position: tr.querySelector('.ts-pos').value.trim(),
+          user_id: tr.querySelector('.ts-user').value || null,
+          note: tr.querySelector('.ts-note').value.trim() || null,
+          active: tr.querySelector('.ts-active').checked
+        };
+        if (!rec.full_name) return; // порожні рядки пропускаємо
+        if (tr.dataset.id) updates.push({ id: tr.dataset.id, ...rec });
+        else inserts.push(rec);
+      });
+
+      for (const rec of updates) {
+        const { id, ...fields } = rec;
+        const { error } = await sb.from('timesheet_staff').update(fields).eq('id', id);
+        if (error) throw error;
+      }
+      if (inserts.length) {
+        const { error } = await sb.from('timesheet_staff').insert(inserts);
+        if (error) throw error;
+      }
+      if (deletedIds.length) {
+        const { error } = await sb.from('timesheet_staff').delete().in('id', deletedIds);
+        if (error) throw error;
+      }
+      close();
+      alert('Штат табеля збережено.');
+    } catch (err) {
+      console.error('Помилка збереження штату:', err);
+      alert('Помилка збереження: ' + (err.message || err));
+      saveBtn.disabled = false;
+      saveBtn.textContent = '💾 Зберегти';
+    }
+  });
 }
 
 function buildStatusMatrixRows(logs) {
