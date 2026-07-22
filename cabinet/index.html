@@ -12,10 +12,10 @@
   <link rel="stylesheet" href="../portal.css?v=20260719h">
   <link rel="stylesheet" href="../auth-v2.css?v=20260721a">
   <link rel="stylesheet" href="cabinet.css?v=20260721a">
-  <link rel="stylesheet" href="workspace.css?v=20260722a">
+  <link rel="stylesheet" href="workspace.css?v=20260722b">
   <script type="module" src="../auth-v2.js?v=20260719l"></script>
   <script type="module" src="cabinet.js?v=20260721a"></script>
-  <script type="module" src="workspace.js?v=20260722a"></script>
+  <script type="module" src="workspace.js?v=20260722b"></script>
 </head>
 <body data-required-role="expert">
 <div class="portal">
@@ -367,6 +367,10 @@
       <!-- Панель дій -->
       <div class="ws-toolbar">
         <div class="ws-toolbar-left">
+          <div class="ws-scope-switch" role="tablist" aria-label="Область">
+            <button type="button" class="ws-scope-btn active" data-scope="department" role="tab">🏢 Мій відділ</button>
+            <button type="button" class="ws-scope-btn" data-scope="org" role="tab">🌐 Наскрізні (усі відділи)</button>
+          </div>
           <input type="search" id="ws-search" class="ws-search" placeholder="Пошук за назвою чи описом…" autocomplete="off">
         </div>
         <button type="button" class="btn btn-primary ws-add-btn" id="ws-add-btn">➕ Додати документ</button>
@@ -422,6 +426,15 @@
               <option value="active">🟢 Активний</option>
               <option value="parked">🅿️ Паркування (недороблене)</option>
               <option value="done">✅ Завершений</option>
+            </select>
+          </div>
+
+          <!-- Область: наскрізний бачить кожен відділ (лише керівництво) -->
+          <div class="form-group" id="ws-scope-group" style="display:none;">
+            <label for="ws-doc-scope">Область дії</label>
+            <select id="ws-doc-scope">
+              <option value="department">🏢 Мій відділ</option>
+              <option value="org">🌐 Наскрізний (бачить кожен відділ)</option>
             </select>
           </div>
 

@@ -21,8 +21,9 @@ let me = null;            // auth user
 let profile = null;       // profiles row
 let myDept = '';          // department (Section)
 let canManage = false;    // керівник відділу / заступник / адмін
-let works = [];           // усі документи відділу
+let works = [];           // документи відділу + наскрізні
 let currentSpace = 'working';
+let currentScope = 'department'; // 'department' — мій відділ, 'org' — наскрізні
 let searchTerm = '';
 let loaded = false;
 let editKind = 'gdoc';    // тип у відкритій модалці
@@ -42,6 +43,7 @@ async function initWorkspace() {
 
   wireModeSwitch();
   wireSpaceTabs();
+  wireScopeSwitch();
   wireToolbar();
   wireDocModal();
 }
@@ -89,6 +91,27 @@ function wireSpaceTabs() {
   });
 }
 
+// ── Перемикач області (мій відділ / наскрізні) ──
+function wireScopeSwitch() {
+  document.querySelectorAll('.ws-scope-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.ws-scope-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentScope = btn.dataset.scope;
+      updateAddBtnVisibility();
+      renderBoard();
+    });
+  });
+}
+
+// Наскрізні документи створює лише керівництво
+function updateAddBtnVisibility() {
+  const addBtn = document.getElementById('ws-add-btn');
+  if (!addBtn) return;
+  const canAdd = currentScope === 'department' ? (profile.role !== 'guest') : canManage;
+  addBtn.style.display = canAdd ? '' : 'none';
+}
+
 function wireToolbar() {
   const search = document.getElementById('ws-search');
   if (search) {
@@ -99,6 +122,7 @@ function wireToolbar() {
   }
   const addBtn = document.getElementById('ws-add-btn');
   if (addBtn) addBtn.addEventListener('click', () => openDocModal(null));
+  updateAddBtnVisibility();
 }
 
 // ── Завантаження документів відділу ──
@@ -112,19 +136,28 @@ async function loadWorks() {
     return;
   }
 
-  const { data, error } = await sb.from('dept_works')
-    .select('*')
-    .eq('department', myDept)
-    .order('priority', { ascending: true })
-    .order('created_at', { ascending: false });
+  // Два запити: документи свого відділу + усі наскрізні (scope='org').
+  // RLS фільтрує, що саме дозволено бачити.
+  const [deptRes, orgRes] = await Promise.all([
+    sb.from('dept_works').select('*')
+      .eq('department', myDept).eq('scope', 'department')
+      .order('priority', { ascending: true }).order('created_at', { ascending: false }),
+    sb.from('dept_works').select('*')
+      .eq('scope', 'org')
+      .order('priority', { ascending: true }).order('created_at', { ascending: false })
+  ]);
 
+  const error = deptRes.error || orgRes.error;
   if (error) {
     if (board) board.innerHTML = `<div class="ws-empty" style="color:#b91c1c">Помилка завантаження: ${escapeHtml(error.message)}.<br>Перевірте, чи застосована міграція dept_works.</div>`;
     loaded = true;
     return;
   }
 
-  works = data || [];
+  // Злиття без дублів (наскрізний документ свого відділу міг потрапити в обидва)
+  const byId = new Map();
+  [...(deptRes.data || []), ...(orgRes.data || [])].forEach(w => byId.set(w.id, w));
+  works = [...byId.values()];
   loaded = true;
   renderBoard();
 }
@@ -134,15 +167,23 @@ function renderBoard() {
   const board = document.getElementById('ws-board');
   if (!board) return;
 
-  const inSpace = works.filter(w => (w.space || 'working') === currentSpace);
+  const inScope = works.filter(w => (w.scope || 'department') === currentScope
+    && (w.space || 'working') === currentSpace);
   const filtered = searchTerm
-    ? inSpace.filter(w =>
+    ? inScope.filter(w =>
         (w.title || '').toLocaleLowerCase('uk').includes(searchTerm) ||
         (w.description || '').toLocaleLowerCase('uk').includes(searchTerm))
-    : inSpace;
+    : inScope;
 
-  if (!inSpace.length) {
-    board.innerHTML = `<div class="ws-empty">У просторі «${currentSpace === 'service' ? 'Службові' : 'Робочі документи'}» ще немає документів.<br>Натисніть «➕ Додати документ», щоб почати.</div>`;
+  if (!inScope.length) {
+    const spaceLabel = currentSpace === 'service' ? 'Службові' : 'Робочі документи';
+    const scopeNote = currentScope === 'org'
+      ? 'Наскрізних документів у цьому просторі ще немає.'
+      : `У просторі «${spaceLabel}» ще немає документів.`;
+    const addNote = (currentScope === 'org' && !canManage)
+      ? 'Наскрізні документи додає керівництво.'
+      : 'Натисніть «➕ Додати документ», щоб почати.';
+    board.innerHTML = `<div class="ws-empty">${scopeNote}<br>${addNote}</div>`;
     return;
   }
 
@@ -169,6 +210,9 @@ function cardHtml(w) {
   const canEdit = canEditWork(w);
   const svc = w.service_meta || {};
   const badges = [];
+  if (w.scope === 'org') badges.push('<span class="ws-badge ws-badge-org">🌐 наскрізний</span>');
+  // Для наскрізних показуємо відділ-джерело
+  if (w.scope === 'org' && w.department) badges.push(`<span class="ws-badge ws-badge-dept">${escapeHtml(w.department)}</span>`);
   if (currentSpace === 'service' && svc.type) badges.push(`<span class="ws-badge ws-badge-svc">${escapeHtml(svc.type)}</span>`);
   if (currentSpace === 'service' && svc.marking) badges.push(`<span class="ws-badge">${escapeHtml(svc.marking)}</span>`);
   if (w.visibility === 'restricted') badges.push('<span class="ws-badge ws-badge-restricted">🔒 обмежено</span>');
@@ -271,9 +315,10 @@ async function handleDrop(id, newStatus, beforeId) {
   const w = works.find(x => x.id === id);
   if (!w || !canEditWork(w)) return;
 
-  // Побудувати новий порядок колонки-призначення в межах поточного простору
+  // Побудувати новий порядок колонки-призначення в межах поточних простору й області
   const col = works
-    .filter(x => (x.space || 'working') === currentSpace && (x.status || 'active') === newStatus && x.id !== id)
+    .filter(x => (x.scope || 'department') === currentScope && (x.space || 'working') === currentSpace
+      && (x.status || 'active') === newStatus && x.id !== id)
     .sort((a, b) => (a.priority - b.priority) || (new Date(b.created_at) - new Date(a.created_at)));
 
   const insertIdx = beforeId ? col.findIndex(x => x.id === beforeId) : col.length;
@@ -358,6 +403,12 @@ function openDocModal(w) {
   document.getElementById('ws-doc-svc-type').value = svc.type || '';
   document.getElementById('ws-doc-svc-marking').value = svc.marking || '';
 
+  // Область (мій відділ / наскрізний) — селектор лише для керівництва
+  const scopeGroup = document.getElementById('ws-scope-group');
+  const scopeSel = document.getElementById('ws-doc-scope');
+  if (scopeSel) scopeSel.value = w?.scope || currentScope;
+  if (scopeGroup) scopeGroup.style.display = canManage ? '' : 'none';
+
   // Видимість — редагує лише керівництво
   const visSel = document.getElementById('ws-doc-visibility');
   const visHint = document.getElementById('ws-vis-hint');
@@ -392,8 +443,14 @@ async function saveDoc() {
   saveBtn.textContent = '⏳ Збереження…';
 
   try {
+    // Область: керівництво обирає в модалці; решта — поточна область.
+    // Наскрізний документ дозволено створювати лише керівництву.
+    let scope = canManage ? (document.getElementById('ws-doc-scope').value || currentScope) : currentScope;
+    if (scope === 'org' && !canManage) scope = 'department';
+
     const rec = {
       department: myDept,
+      scope,
       space: currentSpace,
       title,
       description: description || null,
@@ -441,6 +498,12 @@ async function saveDoc() {
     }
 
     document.getElementById('ws-doc-modal').style.display = 'none';
+    // Синхронізувати вигляд з областю збереженого документа, щоб він був видимий
+    if (scope !== currentScope) {
+      currentScope = scope;
+      document.querySelectorAll('.ws-scope-btn').forEach(b => b.classList.toggle('active', b.dataset.scope === scope));
+      updateAddBtnVisibility();
+    }
     await loadWorks();
   } catch (err) {
     console.error('Помилка збереження документа:', err);
@@ -452,7 +515,8 @@ async function saveDoc() {
 }
 
 function nextPriority(status) {
-  const col = works.filter(w => (w.space || 'working') === currentSpace && (w.status || 'active') === status);
+  const col = works.filter(w => (w.scope || 'department') === currentScope
+    && (w.space || 'working') === currentSpace && (w.status || 'active') === status);
   return col.length ? Math.max(...col.map(w => w.priority || 0)) + 10 : 0;
 }
 

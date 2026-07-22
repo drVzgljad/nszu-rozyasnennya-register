@@ -13,6 +13,10 @@ CREATE TABLE IF NOT EXISTS public.dept_works (
   -- Відділ, якому належить документ (значення profiles."Section")
   department TEXT NOT NULL,
 
+  -- Область дії: 'department' — лише свій відділ,
+  -- 'org' — наскрізний документ, який бачить кожен відділ
+  scope TEXT NOT NULL DEFAULT 'department' CHECK (scope IN ('department', 'org')),
+
   -- Простір: 'working' — робочі документи, 'service' — службові
   space TEXT NOT NULL DEFAULT 'working' CHECK (space IN ('working', 'service')),
 
@@ -49,8 +53,20 @@ CREATE TABLE IF NOT EXISTS public.dept_works (
 COMMENT ON TABLE public.dept_works IS
   'Робочий простір Відділу: документи та роботи (робочі й службові). Керують видимістю керівник відділу, заступник, адмін.';
 
+-- Для наявних таблиць (якщо міграцію вже застосовували раніше без scope)
+ALTER TABLE public.dept_works ADD COLUMN IF NOT EXISTS scope TEXT NOT NULL DEFAULT 'department';
+DO $$
+BEGIN
+  ALTER TABLE public.dept_works
+    ADD CONSTRAINT dept_works_scope_check CHECK (scope IN ('department', 'org'));
+EXCEPTION WHEN duplicate_object THEN
+  NULL;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_dept_works_dept_space
   ON public.dept_works(department, space, status, priority);
+CREATE INDEX IF NOT EXISTS idx_dept_works_scope
+  ON public.dept_works(scope, space, status, priority);
 
 -- Автооновлення updated_at
 CREATE OR REPLACE FUNCTION public.dept_works_touch()
@@ -72,7 +88,7 @@ ALTER TABLE public.dept_works ENABLE ROW LEVEL SECURITY;
 -- «Керівництво» = admin / director / deputy_director, або керівник саме
 -- цього відділу (manager / is_head з тим самим Section/department).
 
--- ── SELECT: члени відділу бачать документи видимості 'department';
+-- ── SELECT: наскрізні (scope='org') бачать усі; відділкові — свій відділ;
 --    власник і керівництво бачать усе (в т.ч. 'restricted').
 DROP POLICY IF EXISTS "dept_works_select" ON public.dept_works;
 CREATE POLICY "dept_works_select" ON public.dept_works
@@ -85,9 +101,12 @@ CREATE POLICY "dept_works_select" ON public.dept_works
       WHERE p.id = auth.uid()
         AND p.role IN ('admin', 'director', 'deputy_director')
     )
+    -- наскрізний документ видимості 'department' — бачить кожен відділ
+    OR (scope = 'org' AND visibility = 'department')
     OR (
-      -- член того самого відділу
-      EXISTS (
+      -- відділковий документ — член того самого відділу
+      scope = 'department'
+      AND EXISTS (
         SELECT 1 FROM public.profiles p
         WHERE p.id = auth.uid()
           AND (p."Section" = dept_works.department OR p.department = dept_works.department)
@@ -105,20 +124,35 @@ CREATE POLICY "dept_works_select" ON public.dept_works
     )
   );
 
--- ── INSERT: член відділу (не гість) додає документ у свій відділ ──
+-- ── INSERT: відділковий — член відділу (не гість); наскрізний (scope='org')
+--    може створювати лише керівництво (керівник/заступник/директор/адмін).
 DROP POLICY IF EXISTS "dept_works_insert" ON public.dept_works;
 CREATE POLICY "dept_works_insert" ON public.dept_works
   FOR INSERT TO authenticated
   WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.profiles p
-      WHERE p.id = auth.uid()
-        AND p.role <> 'guest'
-        AND (
-          p."Section" = dept_works.department
-          OR p.department = dept_works.department
-          OR p.role IN ('admin', 'director', 'deputy_director')
-        )
+    (
+      scope = 'department'
+      AND EXISTS (
+        SELECT 1 FROM public.profiles p
+        WHERE p.id = auth.uid()
+          AND p.role <> 'guest'
+          AND (
+            p."Section" = dept_works.department
+            OR p.department = dept_works.department
+            OR p.role IN ('admin', 'director', 'deputy_director')
+          )
+      )
+    )
+    OR (
+      scope = 'org'
+      AND EXISTS (
+        SELECT 1 FROM public.profiles p
+        WHERE p.id = auth.uid()
+          AND (
+            p.role IN ('admin', 'director', 'deputy_director', 'manager')
+            OR p.is_head = true
+          )
+      )
     )
   );
 

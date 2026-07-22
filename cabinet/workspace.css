@@ -92,6 +92,40 @@
   margin-bottom: 18px;
   flex-wrap: wrap;
 }
+.ws-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ws-scope-switch {
+  display: inline-flex;
+  background: var(--p-soft, #f1f5f9);
+  border: 1px solid var(--p-line, #e2e8f0);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+.ws-scope-btn {
+  border: none;
+  background: transparent;
+  color: var(--p-muted, #64748b);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 7px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ws-scope-btn:hover { color: var(--p-ink, #1e293b); }
+.ws-scope-btn.active {
+  background: var(--p-surface, #fff);
+  color: var(--accent-deep, #2f6b9e);
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+.ws-badge-org { background: #e6f4ea; color: #137333; }
+.ws-badge-dept { background: var(--p-soft, #f1f5f9); color: var(--p-muted, #64748b); }
 .ws-search {
   padding: 9px 14px;
   border: 1px solid var(--p-line, #e2e8f0);
