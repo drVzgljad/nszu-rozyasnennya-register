@@ -12,10 +12,10 @@
   <link rel="stylesheet" href="../portal.css?v=20260719h">
   <link rel="stylesheet" href="../auth-v2.css?v=20260721a">
   <link rel="stylesheet" href="cabinet.css?v=20260722d">
-  <link rel="stylesheet" href="workspace.css?v=20260722b">
+  <link rel="stylesheet" href="workspace.css?v=20260722c">
   <script type="module" src="../auth-v2.js?v=20260722c"></script>
   <script type="module" src="cabinet.js?v=20260721a"></script>
-  <script type="module" src="workspace.js?v=20260722d"></script>
+  <script type="module" src="workspace.js?v=20260722e"></script>
 </head>
 <body data-required-role="expert">
 <div class="portal">
@@ -60,11 +60,19 @@
     <section class="cabinet-profile-card">
       <div class="profile-avatar" id="user-avatar">?</div>
       <div class="profile-info">
-        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-          <h1 id="user-display-name">Завантаження...</h1>
-          <span class="auth-role-badge role-expert" id="user-display-role">Експерт</span>
+        <!-- Особистий режим: ім'я + посада + відділ -->
+        <div id="ws-personal-head">
+          <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <h1 id="user-display-name">Завантаження...</h1>
+            <span class="auth-role-badge role-expert" id="user-display-role">Експерт</span>
+          </div>
+          <p id="user-display-dept">Відділ стратегічного розвитку програми медичних гарантій</p>
         </div>
-        <p id="user-display-dept">Відділ стратегічного розвитку програми медичних гарантій</p>
+        <!-- Режим відділу: назва відділу замість імені -->
+        <div id="ws-dept-head" style="display:none;">
+          <h1 id="ws-dept-head-name">Відділ</h1>
+          <p>Робочий простір відділу</p>
+        </div>
       </div>
       <div class="profile-actions">
         <div class="ws-mode-switch" role="tablist" aria-label="Режим кабінету">
@@ -371,6 +379,8 @@
             <button type="button" class="ws-scope-btn active" data-scope="department" role="tab">🏢 Мій відділ</button>
             <button type="button" class="ws-scope-btn" data-scope="org" role="tab">🌐 Наскрізні (усі відділи)</button>
           </div>
+          <!-- Фільтр відділу — лише для директора/заступника/адміна -->
+          <select id="ws-dept-filter" class="ws-dept-filter" style="display:none;" aria-label="Відділ"></select>
           <input type="search" id="ws-search" class="ws-search" placeholder="Пошук за назвою чи описом…" autocomplete="off">
         </div>
         <button type="button" class="btn btn-primary ws-add-btn" id="ws-add-btn">➕ Додати документ</button>

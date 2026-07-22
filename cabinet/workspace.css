@@ -126,6 +126,18 @@
 }
 .ws-badge-org { background: #e6f4ea; color: #137333; }
 .ws-badge-dept { background: var(--p-soft, #f1f5f9); color: var(--p-muted, #64748b); }
+
+/* Фільтр відділу (директор/заступник/адмін) */
+.ws-dept-filter {
+  padding: 8px 10px;
+  border: 1px solid var(--p-line, #e2e8f0);
+  border-radius: 9px;
+  font: inherit;
+  font-size: 13px;
+  background: var(--p-surface, #fff);
+  color: var(--p-ink, #1e293b);
+  max-width: 280px;
+}
 .ws-search {
   padding: 9px 14px;
   border: 1px solid var(--p-line, #e2e8f0);

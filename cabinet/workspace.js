@@ -17,10 +17,26 @@ const STATUSES = [
 ];
 const KIND_ICON = { gdoc: '🔗', file: '📎', external: '🗄️' };
 
+// Ролі, що бачать усі відділи (з фільтром)
+const LEADERSHIP = ['admin', 'director', 'deputy_director'];
+// Довідник відділів для фільтра (значення profiles."Section")
+const DEPARTMENTS = [
+  'стратегічного розвитку програми медичних гарантій',
+  'наукова та клінічна експертиза',
+  'розвиток програми реімбурсації',
+  'взаємодія з надавачами медичних послуг',
+  'розрахунок вартості медичних послуг',
+  'робота з електронними медичними даними',
+  'Поза відділами'
+];
+
 let me = null;            // auth user
 let profile = null;       // profiles row
 let myDept = '';          // department (Section)
 let canManage = false;    // керівник відділу / заступник / адмін
+let isLeadership = false; // директор / заступник / адмін — бачать усі відділи
+let deptFilter = 'all';   // обраний відділ для керівництва ('all' — усі)
+let currentMode = 'personal';
 let works = [];           // документи відділу + наскрізні
 let currentSpace = 'working';
 let currentScope = 'department'; // 'department' — мій відділ, 'org' — наскрізні
@@ -38,14 +54,55 @@ async function initWorkspace() {
   const { data: p } = await sb.from('profiles').select('*').eq('id', me.id).single();
   profile = p || {};
   myDept = profile.Section || profile.department || '';
-  canManage = ['admin', 'director', 'deputy_director'].includes(profile.role)
-    || profile.role === 'manager' || profile.is_head === true;
+  isLeadership = LEADERSHIP.includes(profile.role);
+  canManage = isLeadership || profile.role === 'manager' || profile.is_head === true;
+  deptFilter = isLeadership ? 'all' : (myDept || '');
 
   wireModeSwitch();
   wireSpaceTabs();
   wireScopeSwitch();
+  wireDeptFilter();
   wireToolbar();
   wireDocModal();
+}
+
+// Назва відділу для банера в режимі «Простір відділу»
+function deptBannerLabel() {
+  if (isLeadership && deptFilter === 'all') return 'Усі відділи';
+  return (isLeadership ? deptFilter : myDept) || 'Відділ';
+}
+
+// Відділ, у який додаються нові документи
+function effectiveDept() {
+  return (isLeadership && deptFilter !== 'all') ? deptFilter : myDept;
+}
+
+// Перемкнути «шапку» банера: ім'я (особистий) ↔ назва відділу (відділ)
+function updateBannerHeads() {
+  const personalHead = document.getElementById('ws-personal-head');
+  const deptHead = document.getElementById('ws-dept-head');
+  const deptName = document.getElementById('ws-dept-head-name');
+  const inDept = currentMode === 'department';
+  if (personalHead) personalHead.style.display = inDept ? 'none' : '';
+  if (deptHead) deptHead.style.display = inDept ? '' : 'none';
+  if (deptName) deptName.textContent = deptBannerLabel();
+}
+
+// Фільтр відділу (лише для керівництва)
+function wireDeptFilter() {
+  const sel = document.getElementById('ws-dept-filter');
+  if (!sel) return;
+  if (!isLeadership) { sel.style.display = 'none'; return; }
+
+  sel.innerHTML = '<option value="all">🏢 Усі відділи</option>'
+    + DEPARTMENTS.map(d => `<option value="${d}">${d}</option>`).join('');
+  sel.value = deptFilter;
+  sel.style.display = '';
+  sel.addEventListener('change', () => {
+    deptFilter = sel.value;
+    updateBannerHeads();
+    loadWorks();
+  });
 }
 
 // ── Перемикач режиму «Мій кабінет / Простір відділу» ──
@@ -59,14 +116,17 @@ function wireModeSwitch() {
   const profileCard = document.querySelector('.cabinet-profile-card');
   const setMode = (mode) => {
     const dept = mode === 'department';
+    currentMode = mode;
     personalView.style.display = dept ? 'none' : '';
     deptView.style.display = dept ? '' : 'none';
     personalBtn.classList.toggle('active', !dept);
     deptBtn.classList.toggle('active', dept);
     personalBtn.setAttribute('aria-selected', String(!dept));
     deptBtn.setAttribute('aria-selected', String(dept));
-    // Банер профілю: синій (особистий) ↔ зелений (відділ) з плавним переходом
+    // Банер профілю: синій (особистий) ↔ зелений (відділ) з плавним переходом,
+    // ім'я ↔ назва відділу
     profileCard?.classList.toggle('ws-mode-dept', dept);
+    updateBannerHeads();
     if (dept && !loaded) loadWorks();
     try { localStorage.setItem('cabinet-mode', mode); } catch (_) {}
   };
@@ -133,18 +193,23 @@ async function loadWorks() {
   const board = document.getElementById('ws-board');
   if (board) board.innerHTML = '<div class="ws-loading">Завантаження робочого простору…</div>';
 
-  if (!myDept) {
+  if (!myDept && !isLeadership) {
     if (board) board.innerHTML = '<div class="ws-empty">Ваш профіль не прив\'язаний до відділу. Зверніться до адміністратора.</div>';
     loaded = true;
     return;
   }
 
-  // Два запити: документи свого відділу + усі наскрізні (scope='org').
-  // RLS фільтрує, що саме дозволено бачити.
+  // Відділкові документи: свій відділ; для керівництва — обраний або всі.
+  // Наскрізні (scope='org') — завжди всі. RLS фільтрує дозволене.
+  const viewingAll = isLeadership && deptFilter === 'all';
+  let deptQuery = sb.from('dept_works').select('*').eq('scope', 'department')
+    .order('priority', { ascending: true }).order('created_at', { ascending: false });
+  if (!viewingAll) {
+    deptQuery = deptQuery.eq('department', isLeadership ? deptFilter : myDept);
+  }
+
   const [deptRes, orgRes] = await Promise.all([
-    sb.from('dept_works').select('*')
-      .eq('department', myDept).eq('scope', 'department')
-      .order('priority', { ascending: true }).order('created_at', { ascending: false }),
+    deptQuery,
     sb.from('dept_works').select('*')
       .eq('scope', 'org')
       .order('priority', { ascending: true }).order('created_at', { ascending: false })
@@ -214,8 +279,9 @@ function cardHtml(w) {
   const svc = w.service_meta || {};
   const badges = [];
   if (w.scope === 'org') badges.push('<span class="ws-badge ws-badge-org">🌐 наскрізний</span>');
-  // Для наскрізних показуємо відділ-джерело
-  if (w.scope === 'org' && w.department) badges.push(`<span class="ws-badge ws-badge-dept">${escapeHtml(w.department)}</span>`);
+  // Показуємо відділ: для наскрізних (джерело) та коли керівництво дивиться «Усі відділи»
+  const showDept = (w.scope === 'org') || (isLeadership && deptFilter === 'all' && currentScope === 'department');
+  if (showDept && w.department) badges.push(`<span class="ws-badge ws-badge-dept">${escapeHtml(w.department)}</span>`);
   if (currentSpace === 'service' && svc.type) badges.push(`<span class="ws-badge ws-badge-svc">${escapeHtml(svc.type)}</span>`);
   if (currentSpace === 'service' && svc.marking) badges.push(`<span class="ws-badge">${escapeHtml(svc.marking)}</span>`);
   if (w.visibility === 'restricted') badges.push('<span class="ws-badge ws-badge-restricted">🔒 обмежено</span>');
@@ -440,6 +506,7 @@ async function saveDoc() {
   if (!title) { alert('Вкажіть назву документа.'); return; }
   if (editKind !== 'file' && !url) { alert('Вкажіть посилання на документ.'); return; }
   if (editKind === 'file' && !file && !id) { alert('Оберіть файл для завантаження.'); return; }
+  if (!id && !effectiveDept()) { alert('Оберіть конкретний відділ у фільтрі, щоб додати документ.'); return; }
 
   saveBtn.disabled = true;
   const oldText = saveBtn.textContent;
@@ -452,7 +519,6 @@ async function saveDoc() {
     if (scope === 'org' && !canManage) scope = 'department';
 
     const rec = {
-      department: myDept,
       scope,
       space: currentSpace,
       title,
@@ -462,6 +528,8 @@ async function saveDoc() {
       visibility: canManage ? visibility : (id ? undefined : 'department')
     };
     if (rec.visibility === undefined) delete rec.visibility;
+    // Відділ ставимо лише для нового документа (при редагуванні не переносимо)
+    if (!id) rec.department = effectiveDept();
 
     if (editKind === 'file') {
       if (file) {
