@@ -56,6 +56,7 @@ function wireModeSwitch() {
   const deptView = document.getElementById('workspace-view');
   if (!personalBtn || !deptBtn || !personalView || !deptView) return;
 
+  const profileCard = document.querySelector('.cabinet-profile-card');
   const setMode = (mode) => {
     const dept = mode === 'department';
     personalView.style.display = dept ? 'none' : '';
@@ -64,6 +65,8 @@ function wireModeSwitch() {
     deptBtn.classList.toggle('active', dept);
     personalBtn.setAttribute('aria-selected', String(!dept));
     deptBtn.setAttribute('aria-selected', String(dept));
+    // Банер профілю: синій (особистий) ↔ зелений (відділ) з плавним переходом
+    profileCard?.classList.toggle('ws-mode-dept', dept);
     if (dept && !loaded) loadWorks();
     try { localStorage.setItem('cabinet-mode', mode); } catch (_) {}
   };

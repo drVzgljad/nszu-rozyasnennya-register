@@ -54,6 +54,41 @@
   font-weight: 600;
 }
 
+/* ── Банер профілю як кольорова смуга ─────────────────
+   Особистий кабінет — темно-синій, Простір відділу — темно-зелений,
+   з плавним переходом при перемиканні режиму (клас .ws-mode-dept). */
+.cabinet-profile-card,
+.dark-theme .cabinet-profile-card {
+  background-color: #1b3a57;                 /* темно-синій */
+  background-image: linear-gradient(135deg, rgba(255,255,255,.07), rgba(0,0,0,.16));
+  border-color: transparent;
+  color: #fff;
+  transition: background-color .6s ease;
+}
+.cabinet-profile-card.ws-mode-dept,
+.dark-theme .cabinet-profile-card.ws-mode-dept {
+  background-color: #12432e;                 /* темно-зелений */
+}
+.cabinet-profile-card .profile-info h1,
+.dark-theme .cabinet-profile-card .profile-info h1 { color: #fff; }
+.cabinet-profile-card .profile-info p,
+.dark-theme .cabinet-profile-card .profile-info p { color: rgba(255,255,255,.82); }
+
+/* Контроли на банері — світлі/скляні, читабельні на синьому й зеленому */
+.cabinet-profile-card .ws-mode-switch {
+  background: rgba(255,255,255,.14);
+  border-color: rgba(255,255,255,.24);
+}
+.cabinet-profile-card .ws-mode-btn { color: rgba(255,255,255,.82); }
+.cabinet-profile-card .ws-mode-btn:hover { color: #fff; }
+.cabinet-profile-card .ws-mode-btn.active { background: #fff; color: #16344e; box-shadow: 0 1px 4px rgba(0,0,0,.18); }
+.cabinet-profile-card .planner-link-btn {
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.32);
+  box-shadow: none;
+}
+.cabinet-profile-card .planner-link-btn:hover { background: rgba(255,255,255,.24); }
+
 /* ── Metrics Dashboard ──────────────────────────────── */
 .cabinet-metrics-grid {
   display: grid;
