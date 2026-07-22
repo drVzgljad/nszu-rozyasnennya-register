@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS public.timesheet_staff (
   tabel_no INT,                                   -- табельний номер
   gender TEXT CHECK (gender IN ('Ч', 'Ж')),       -- стать
   full_name TEXT NOT NULL,                        -- Прізвище Ім'я По батькові
-  position TEXT NOT NULL,                         -- посада
+  "position" TEXT NOT NULL,                       -- посада (лапки: reserved word у Postgres)
 
   -- Прив'язка до зареєстрованого користувача сайту (для автозаповнення
   -- кодів зі статусів присутності). NULL — автопошук за прізвищем.
@@ -85,7 +85,7 @@ CREATE POLICY "timesheet_staff_delete" ON public.timesheet_staff
 -- Бохіна (управління моніторингу) не включено — за рішенням від 22.07.2026.
 -- ============================================================
 
-INSERT INTO public.timesheet_staff (sheet, sort_order, unit, tabel_no, gender, full_name, position, note) VALUES
+INSERT INTO public.timesheet_staff (sheet, sort_order, unit, tabel_no, gender, full_name, "position", note) VALUES
 -- Табель департаменту
 ('department', 10,  NULL, 317, 'Ж', 'Дудник Світлана Валеріївна', 'директор департаменту', NULL),
 
