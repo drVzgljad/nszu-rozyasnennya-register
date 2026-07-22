@@ -126,6 +126,9 @@ function wireModeSwitch() {
     // Банер профілю: синій (особистий) ↔ зелений (відділ) з плавним переходом,
     // ім'я ↔ назва відділу
     profileCard?.classList.toggle('ws-mode-dept', dept);
+    // Планувальник — лише в особистому кабінеті
+    const plannerBtn = profileCard?.querySelector('.planner-link-btn');
+    if (plannerBtn) plannerBtn.style.display = dept ? 'none' : '';
     updateBannerHeads();
     if (dept && !loaded) loadWorks();
     try { localStorage.setItem('cabinet-mode', mode); } catch (_) {}
