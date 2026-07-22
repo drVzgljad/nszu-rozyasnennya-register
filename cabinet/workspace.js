@@ -51,6 +51,9 @@ let currentScope = 'department'; // 'department' — мій відділ, 'org' 
 let searchTerm = '';
 let loaded = false;
 let editKind = 'gdoc';    // тип у відкритій модалці
+// Фільтри простору «Службові»
+let svcPackage = 'all';   // 'all' | 'none' | номер пакета
+let svcRelevance = 'active'; // 'active' — актуальні, 'irrelevant' — неактуальні, 'all'
 
 document.addEventListener('DOMContentLoaded', initWorkspace);
 
@@ -280,6 +283,10 @@ function renderBoard() {
   const board = document.getElementById('ws-board');
   if (!board) return;
 
+  // Службові — окремий вигляд (список із фільтром по пакетах, без канбану)
+  if (currentSpace === 'service') { board.classList.add('ws-board-list'); return renderServiceList(); }
+  board.classList.remove('ws-board-list');
+
   const inScope = works.filter(w => (w.scope || 'department') === currentScope
     && (w.space || 'working') === currentSpace);
   const filtered = searchTerm
@@ -316,6 +323,120 @@ function renderBoard() {
 
   wireCards();
   wireDnd();
+}
+
+// Пакет документа: із service_meta.package або розбір із опису «Пакет № N — Назва»
+function docPackage(w) {
+  const sm = w.service_meta || {};
+  if (sm.package) return { num: String(sm.package), name: sm.packageName || '' };
+  const m = (w.description || '').match(/Пакет\s*№\s*(\d+)\s*[—–-]\s*(.+)/);
+  if (m) return { num: m[1], name: m[2].trim() };
+  return null;
+}
+
+// ── Простір «Службові»: список із фільтром по пакетах та актуальності ──
+function renderServiceList() {
+  const board = document.getElementById('ws-board');
+  if (!board) return;
+
+  const all = works.filter(w => (w.scope || 'department') === currentScope && (w.space || 'working') === 'service');
+
+  // Довідник пакетів серед наявних документів
+  const pkgMap = new Map();
+  let hasNoPkg = false;
+  all.forEach(w => { const p = docPackage(w); if (p) { if (!pkgMap.has(p.num)) pkgMap.set(p.num, p.name); } else hasNoPkg = true; });
+  const pkgSorted = [...pkgMap.entries()].sort((a, b) => Number(a[0]) - Number(b[0]));
+
+  const activeCount = all.filter(w => w.status !== 'done').length;
+  const irrelevantCount = all.length - activeCount;
+
+  // Застосувати фільтри
+  let list = all.slice();
+  if (svcPackage === 'none') list = list.filter(w => !docPackage(w));
+  else if (svcPackage !== 'all') list = list.filter(w => docPackage(w)?.num === svcPackage);
+  if (svcRelevance === 'active') list = list.filter(w => w.status !== 'done');
+  else if (svcRelevance === 'irrelevant') list = list.filter(w => w.status === 'done');
+  if (searchTerm) list = list.filter(w =>
+    (w.title || '').toLocaleLowerCase('uk').includes(searchTerm) ||
+    (w.description || '').toLocaleLowerCase('uk').includes(searchTerm) ||
+    ((w.service_meta || {}).marking || '').toLocaleLowerCase('uk').includes(searchTerm));
+
+  if (!all.length) {
+    board.innerHTML = `<div class="ws-empty">Службових документів у цій області ще немає.<br>${(currentScope === 'org' && !canManage) ? 'Наскрізні службові додає керівництво.' : 'Натисніть «➕ Додати документ», щоб почати.'}</div>`;
+    return;
+  }
+
+  const pkgOptions = ['<option value="all">📦 Усі пакети</option>']
+    .concat(pkgSorted.map(([num, name]) =>
+      `<option value="${num}" ${svcPackage === num ? 'selected' : ''}>№ ${num} — ${escapeHtml(name.length > 42 ? name.slice(0, 42) + '…' : name)}</option>`));
+  if (hasNoPkg) pkgOptions.push(`<option value="none" ${svcPackage === 'none' ? 'selected' : ''}>Без пакета</option>`);
+
+  const bar = `
+    <div class="ws-svc-bar">
+      <select id="ws-svc-package" class="ws-dept-filter" aria-label="Пакет">${pkgOptions.join('')}</select>
+      <div class="ws-scope-switch ws-svc-relevance" role="tablist" aria-label="Актуальність">
+        <button type="button" class="ws-scope-btn ${svcRelevance === 'active' ? 'active' : ''}" data-rel="active">Актуальні (${activeCount})</button>
+        <button type="button" class="ws-scope-btn ${svcRelevance === 'irrelevant' ? 'active' : ''}" data-rel="irrelevant">Неактуальні (${irrelevantCount})</button>
+        <button type="button" class="ws-scope-btn ${svcRelevance === 'all' ? 'active' : ''}" data-rel="all">Усі (${all.length})</button>
+      </div>
+    </div>`;
+
+  const listHtml = list.length
+    ? `<div class="ws-svc-list">${list.map(serviceCardHtml).join('')}</div>`
+    : '<div class="ws-empty">Немає службових документів за обраним фільтром.</div>';
+
+  board.innerHTML = bar + listHtml;
+
+  document.getElementById('ws-svc-package')?.addEventListener('change', (e) => { svcPackage = e.target.value; renderServiceList(); });
+  board.querySelectorAll('[data-rel]').forEach(b => b.addEventListener('click', () => { svcRelevance = b.dataset.rel; renderServiceList(); }));
+  board.querySelectorAll('[data-relevance]').forEach(b => b.addEventListener('click', () => toggleRelevance(b.dataset.relevance)));
+  wireCards();
+}
+
+function serviceCardHtml(w) {
+  const canEdit = canEditWork(w);
+  const svc = w.service_meta || {};
+  const pkg = docPackage(w);
+  const irrelevant = w.status === 'done';
+
+  const badges = [];
+  badges.push(irrelevant
+    ? '<span class="ws-badge ws-badge-irrelevant">🗄️ Неактуальна</span>'
+    : '<span class="ws-badge ws-badge-actual">🟢 Актуальна</span>');
+  if (pkg) badges.push(`<span class="ws-badge ws-badge-pkg" title="${escapeAttr(pkg.name)}">Пакет № ${escapeHtml(pkg.num)}</span>`);
+  if (svc.type) badges.push(`<span class="ws-badge ws-badge-svc">${escapeHtml(svc.type)}</span>`);
+  if (w.marking && MARKING[w.marking]) badges.push(`<span class="ws-badge ${MARKING[w.marking].cls}">${MARKING[w.marking].label}</span>`);
+  if (w.scope === 'org' && isLeadership && deptFilter === 'all' && w.department) badges.push(`<span class="ws-badge ws-badge-dept">${escapeHtml(w.department)}</span>`);
+  if (w.visibility === 'restricted') badges.push('<span class="ws-badge ws-badge-restricted">🔒 обмежено</span>');
+  if (svc.marking) badges.push(`<button type="button" class="ws-copy-num" data-copy="${escapeAttr(svc.marking)}" title="Скопіювати номер службової">📋 ${escapeHtml(svc.marking)}</button>`);
+
+  const openBtn = (w.kind === 'file')
+    ? `<button type="button" class="ws-card-view" data-open-file="${w.id}">📎 Файл</button>`
+    : (w.url ? `<a class="ws-card-view" href="${escapeAttr(w.url)}" target="_blank" rel="noopener">🔗 Відкрити</a>` : '');
+
+  return `
+    <div class="ws-svc-card ${irrelevant ? 'ws-card-irrelevant' : ''}" data-id="${w.id}">
+      <div class="ws-svc-main">
+        <div class="ws-svc-title">${escapeHtml(w.title || 'Без назви')}</div>
+        <div class="ws-svc-badges">${badges.join(' ')}</div>
+      </div>
+      <div class="ws-svc-actions">
+        <button type="button" class="ws-card-view" data-view="${w.id}">👁️ Опис</button>
+        ${openBtn}
+        ${canEdit ? `<button type="button" class="ws-card-view" data-relevance="${w.id}">${irrelevant ? '♻️ Актуальна' : '🗄️ Неактуальна'}</button>` : ''}
+        ${canEdit ? `<button type="button" class="ws-card-edit" data-edit="${w.id}">✏️ Змінити</button>` : ''}
+      </div>
+    </div>`;
+}
+
+async function toggleRelevance(id) {
+  const w = works.find(x => x.id === id);
+  if (!w || !canEditWork(w)) return;
+  const newStatus = w.status === 'done' ? 'active' : 'done';
+  w.status = newStatus;
+  renderServiceList();
+  const { error } = await sb.from('dept_works').update({ status: newStatus }).eq('id', id);
+  if (error) { alert('Помилка збереження: ' + error.message); loadWorks(); }
 }
 
 function cardHtml(w) {
@@ -598,11 +719,16 @@ function openDocModal(w) {
     }
   }
 
-  // Службові поля
+  // Службові поля. Для службових канбан-стан ховаємо (замість нього — актуальність)
+  const isService = currentSpace === 'service';
+  const statusGroup = document.getElementById('ws-status-group');
+  if (statusGroup) statusGroup.style.display = isService ? 'none' : '';
   const svcFields = document.getElementById('ws-service-fields');
-  if (svcFields) svcFields.style.display = (currentSpace === 'service') ? '' : 'none';
+  if (svcFields) svcFields.style.display = isService ? '' : 'none';
   const svc = w?.service_meta || {};
+  document.getElementById('ws-doc-relevance').value = (w?.status === 'done') ? 'done' : 'active';
   document.getElementById('ws-doc-svc-type').value = svc.type || '';
+  document.getElementById('ws-doc-svc-package').value = (svc.package != null ? svc.package : (w ? (docPackage(w)?.num || '') : '')) || '';
   document.getElementById('ws-doc-svc-marking').value = svc.marking || '';
 
   // Область (мій відділ / наскрізний) — селектор лише для керівництва
@@ -683,8 +809,12 @@ async function saveDoc() {
     }
 
     if (currentSpace === 'service') {
+      // Стан службового = актуальність (актуальна → active, неактуальна → done)
+      rec.status = document.getElementById('ws-doc-relevance').value === 'done' ? 'done' : 'active';
+      const pkgNum = document.getElementById('ws-doc-svc-package').value.trim();
       rec.service_meta = {
         type: document.getElementById('ws-doc-svc-type').value || null,
+        package: pkgNum || null,
         marking: document.getElementById('ws-doc-svc-marking').value.trim() || null
       };
     }

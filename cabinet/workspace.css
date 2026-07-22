@@ -131,6 +131,49 @@
 .ws-badge-base { background: #e8f0fe; color: #1a73e8; }
 .ws-badge-aux  { background: #eef2f4; color: #5b6472; }
 
+/* ── Простір «Службові»: список замість канбану ── */
+.ws-board.ws-board-list { display: block; }
+.ws-svc-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.ws-svc-relevance .ws-scope-btn { font-size: 12px; padding: 7px 11px; }
+.ws-svc-list { display: flex; flex-direction: column; gap: 10px; }
+.ws-svc-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  background: var(--p-surface, #fff);
+  border: 1px solid var(--p-line, #e2e8f0);
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.05);
+}
+.ws-svc-card.ws-card-irrelevant { opacity: .62; }
+.ws-svc-main { flex: 1; min-width: 0; }
+.ws-svc-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--p-ink, #1e293b);
+  line-height: 1.4;
+  margin-bottom: 8px;
+  word-break: break-word;
+}
+.ws-card-irrelevant .ws-svc-title { text-decoration: line-through; text-decoration-color: var(--p-muted, #94a3b8); }
+.ws-svc-badges { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ws-svc-actions { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+.ws-badge-actual { background: #e6f4ea; color: #137333; }
+.ws-badge-irrelevant { background: #eceff1; color: #78838f; }
+.ws-badge-pkg { background: #eef2ff; color: #4338ca; }
+@media (max-width: 640px) {
+  .ws-svc-card { flex-direction: column; }
+  .ws-svc-actions { flex-direction: row; flex-wrap: wrap; }
+}
+
 /* Кнопка швидкого копіювання номера службової */
 .ws-copy-num {
   border: 1px dashed var(--p-line, #cbd5e1);
