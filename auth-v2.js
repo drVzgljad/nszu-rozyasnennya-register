@@ -2028,6 +2028,10 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
           <span class="mms-icon">🔔</span>
           <span class="mms-lbl">Сповіщення</span>
         </button>
+        <button type="button" class="mms-item" id="mms-install-tile"${isStandaloneApp() ? ' style="display:none;"' : ''}>
+          <span class="mms-icon">📲</span>
+          <span class="mms-lbl">Встановити додаток</span>
+        </button>
       </div>
     </div>
   `;
@@ -2055,6 +2059,15 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     document.getElementById('news-notify-btn')?.click();
     setTimeout(updateSettingsTiles, 50);
   });
+
+  // Плитка встановлення веб-додатка (без спливаючих запрошень)
+  const installTile = sheet.querySelector('#mms-install-tile');
+  if (installTile) {
+    installTile.addEventListener('click', () => {
+      if (document.getElementById('mobile-more-sheet')?.classList.contains('open')) toggleMobileMoreSheet();
+      handleInstallClick();
+    });
+  }
 }
 
 /* ── Мобільний макет шапки ──────────────────────────────────────────
@@ -2123,26 +2136,23 @@ if ('serviceWorker' in navigator &&
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
 
-// ── PWA: власна кнопка «Встановити застосунок» ─────────────────────
-// Chrome/Samsung Internet кидають beforeinstallprompt, коли сайт готовий
-// до установки — показуємо банер, щоб не шукати пункт у меню браузера.
+// ── PWA: встановлення БЕЗ спливаючих запрошень ─────────────────────
+// Жодних авто-банерів. Кнопка «Встановити веб-додаток» — у футері та в
+// мобільній панелі «Ще». Натискання: Android/Chrome — рідне вікно
+// встановлення; iOS — інструкція «Поділитися → На початковий екран».
 let deferredInstallPrompt = null;
 
 window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  if (localStorage.getItem('pwa_install_dismissed') === 'true') return;
-  showInstallBanner();
+  e.preventDefault();            // не показуємо автоматичне запрошення
+  deferredInstallPrompt = e;     // зберігаємо для кнопки
+  refreshInstallControls();
 });
 
 window.addEventListener('appinstalled', () => {
   deferredInstallPrompt = null;
-  document.getElementById('pwa-install-banner')?.remove();
-  localStorage.setItem('pwa_install_dismissed', 'true');
+  refreshInstallControls();
 });
 
-// ── iOS: Safari не надсилає beforeinstallprompt — показуємо власну
-// інструкцію «Поділитися → Додати на початковий екран». ────────────
 function isIosDevice() {
   const ua = navigator.userAgent || '';
   // iPadOS 13+ маскується під Macintosh — визначаємо за сенсорним екраном
@@ -2155,81 +2165,69 @@ function isStandaloneApp() {
     || window.matchMedia('(display-mode: standalone)').matches;
 }
 
-function maybeShowIosInstallHint() {
-  if (!isIosDevice() || isStandaloneApp()) return;
-  if (localStorage.getItem('pwa_ios_hint_dismissed') === 'true') return;
-  if (document.getElementById('pwa-ios-hint')) return;
-
-  const hint = document.createElement('div');
-  hint.id = 'pwa-ios-hint';
-  hint.style.cssText = [
-    'position:fixed', 'left:50%', 'transform:translateX(-50%)', 'bottom:16px',
-    'z-index:999998', 'display:flex', 'flex-direction:column', 'gap:8px',
-    'width:calc(100vw - 24px)', 'max-width:420px', 'padding:14px 16px',
-    'border-radius:16px', 'background:#2f6b9e', 'color:#fff',
-    'box-shadow:0 12px 32px rgba(15,30,45,.35)', 'font-size:13.5px',
-    'font-weight:600', 'line-height:1.5'
-  ].join(';');
-
-  // Іконка «Поділитися» iOS (квадрат зі стрілкою вгору)
-  const shareIcon = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg>';
-
-  hint.innerHTML = `
-    <div style="display:flex; align-items:center; gap:10px;">
-      <span style="font-size:22px;">📲</span>
-      <span style="flex:1;">Встановіть портал як застосунок на iPhone/iPad</span>
-      <button id="pwa-ios-close" aria-label="Закрити" style="flex-shrink:0;border:none;background:transparent;color:rgba(255,255,255,.85);font-size:18px;cursor:pointer;padding:2px 4px;">✕</button>
-    </div>
-    <div style="font-weight:500; opacity:.95;">
-      Натисніть ${shareIcon} <b>Поділитися</b> у Safari, потім оберіть <b>«На початковий екран»</b> (Add to Home Screen).
-    </div>
-  `;
-  document.body.appendChild(hint);
-
-  hint.querySelector('#pwa-ios-close').addEventListener('click', () => {
-    hint.remove();
-    localStorage.setItem('pwa_ios_hint_dismissed', 'true');
-  });
+// Клік по будь-якій кнопці встановлення
+async function handleInstallClick() {
+  if (isStandaloneApp()) return;
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    try { await deferredInstallPrompt.userChoice; } catch (_) {}
+    deferredInstallPrompt = null;
+    refreshInstallControls();
+    return;
+  }
+  if (isIosDevice()) { showIosInstallInstructions(); return; }
+  // Десктоп/інші браузери без готового запрошення
+  alert('Щоб встановити застосунок, відкрийте меню браузера (⋮) і оберіть «Встановити застосунок» / «Install app».');
 }
 
-// Показуємо трохи згодом після завантаження, щоб не заважати першому екрану
-window.addEventListener('load', () => {
-  setTimeout(maybeShowIosInstallHint, 1800);
-});
+// Інструкція для iOS — лише за кліком користувача (не спливає сама)
+function showIosInstallInstructions() {
+  document.getElementById('pwa-ios-modal')?.remove();
+  const shareIcon = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg>';
+  const overlay = document.createElement('div');
+  overlay.id = 'pwa-ios-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML = `
+    <div style="background:#fff;color:#1e293b;border-radius:16px;max-width:380px;width:100%;padding:22px;box-shadow:0 18px 50px rgba(0,0,0,.35);font-size:14px;line-height:1.55;">
+      <div style="font-size:16px;font-weight:800;margin-bottom:10px;">📲 Встановлення на iPhone/iPad</div>
+      <p style="margin:0 0 8px;">У Safari натисніть кнопку ${shareIcon} <b>Поділитися</b> (унизу екрана).</p>
+      <p style="margin:0 0 8px;">Прокрутіть і оберіть <b>«На початковий екран»</b> (Add to Home Screen).</p>
+      <p style="margin:0 0 16px;">Підтвердіть — <b>«Додати»</b>. Іконка порталу з'явиться на екрані «Домівка».</p>
+      <button id="pwa-ios-modal-ok" style="width:100%;border:none;border-radius:10px;background:#2f6b9e;color:#fff;font:inherit;font-weight:700;padding:11px;cursor:pointer;">Зрозуміло</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  overlay.querySelector('#pwa-ios-modal-ok').addEventListener('click', close);
+}
 
-function showInstallBanner() {
-  if (document.getElementById('pwa-install-banner')) return;
-  const banner = document.createElement('div');
-  banner.id = 'pwa-install-banner';
-  banner.style.cssText = [
-    'position:fixed', 'left:50%', 'transform:translateX(-50%)', 'bottom:18px',
-    'z-index:999998', 'display:flex', 'align-items:center', 'gap:12px',
-    'max-width:calc(100vw - 24px)', 'padding:12px 14px', 'border-radius:14px',
-    'background:#2f6b9e', 'color:#fff', 'box-shadow:0 12px 32px rgba(15,30,45,.35)',
-    'font-size:13.5px', 'font-weight:600'
-  ].join(';');
-  banner.innerHTML = `
-    <span style="font-size:22px;">📲</span>
-    <span>Встановіть портал як застосунок — швидкий доступ з головного екрана</span>
-    <button id="pwa-install-yes" style="flex-shrink:0;border:none;border-radius:9px;background:#fff;color:#2f6b9e;font:inherit;font-weight:800;padding:9px 14px;cursor:pointer;">Встановити</button>
-    <button id="pwa-install-no" aria-label="Закрити" style="flex-shrink:0;border:none;background:transparent;color:rgba(255,255,255,.8);font-size:18px;cursor:pointer;padding:4px;">✕</button>
-  `;
-  document.body.appendChild(banner);
+// Вставити кнопку «Встановити веб-додаток» у нижній банер (футер)
+function injectFooterInstallButton() {
+  if (isStandaloneApp()) return;                       // уже встановлено
+  const base = document.querySelector('.p-foot-base');
+  if (!base || document.getElementById('pwa-install-foot')) return;
+  const btn = document.createElement('button');
+  btn.id = 'pwa-install-foot';
+  btn.type = 'button';
+  btn.textContent = '📲 Встановити веб-додаток';
+  btn.style.cssText = 'border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.10);color:#e6f0f8;font:inherit;font-size:12.5px;font-weight:700;padding:7px 14px;border-radius:9px;cursor:pointer;white-space:nowrap;';
+  btn.addEventListener('click', handleInstallClick);
+  base.appendChild(btn);
+}
 
-  banner.querySelector('#pwa-install-yes').addEventListener('click', async () => {
-    if (!deferredInstallPrompt) { banner.remove(); return; }
-    deferredInstallPrompt.prompt();
-    const { outcome } = await deferredInstallPrompt.userChoice;
-    deferredInstallPrompt = null;
-    banner.remove();
-    if (outcome !== 'accepted') {
-      localStorage.setItem('pwa_install_dismissed', 'true');
-    }
-  });
-  banner.querySelector('#pwa-install-no').addEventListener('click', () => {
-    banner.remove();
-    localStorage.setItem('pwa_install_dismissed', 'true');
-  });
+// Показати/сховати всі кнопки встановлення відповідно до стану
+function refreshInstallControls() {
+  const installed = isStandaloneApp();
+  document.getElementById('pwa-install-foot')?.style.setProperty('display', installed ? 'none' : '');
+  const tile = document.getElementById('mms-install-tile');
+  if (tile) tile.style.display = installed ? 'none' : '';
+}
+
+// Вставляємо кнопку одразу, щойно DOM готовий (футер — статична розмітка)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', injectFooterInstallButton);
+} else {
+  injectFooterInstallButton();
 }
 
 document.addEventListener('DOMContentLoaded', init);
