@@ -2457,7 +2457,7 @@ async function generateTabelExcel(sheetKey, ym, half) {
   });
 
   // 3. Шаблон
-  const resp = await fetch('templates/tabel_template.xlsx?v=20260722a');
+  const resp = await fetch('templates/tabel_template.xlsx?v=20260722b');
   if (!resp.ok) throw new Error('Не вдалося завантажити шаблон табеля (' + resp.status + ').');
   const buf = await resp.arrayBuffer();
   const wb = new ExcelJS.Workbook();
