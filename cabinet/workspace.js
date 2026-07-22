@@ -72,6 +72,40 @@ async function initWorkspace() {
   wireDeptFilter();
   wireToolbar();
   wireDocModal();
+
+  // Швидке копіювання номера службової (делеговано — і картки, і модалка)
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-copy]');
+    if (!btn) return;
+    e.stopPropagation();
+    e.preventDefault();
+    copyText(btn.dataset.copy, btn);
+  });
+}
+
+function copyText(text, btn) {
+  const flash = () => {
+    if (!btn) return;
+    const old = btn.innerHTML;
+    btn.innerHTML = '✅ Скопійовано';
+    setTimeout(() => { btn.innerHTML = old; }, 1100);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(flash).catch(() => fallbackCopy(text, flash));
+  } else {
+    fallbackCopy(text, flash);
+  }
+}
+
+function fallbackCopy(text, done) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;top:-1000px;opacity:0;';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); } catch (_) {}
+  ta.remove();
+  if (done) done();
 }
 
 // Назва відділу для банера в режимі «Простір відділу»
@@ -295,7 +329,7 @@ function cardHtml(w) {
   const showDept = (w.scope === 'org') || (isLeadership && deptFilter === 'all' && currentScope === 'department');
   if (showDept && w.department) badges.push(`<span class="ws-badge ws-badge-dept">${escapeHtml(w.department)}</span>`);
   if (currentSpace === 'service' && svc.type) badges.push(`<span class="ws-badge ws-badge-svc">${escapeHtml(svc.type)}</span>`);
-  if (currentSpace === 'service' && svc.marking) badges.push(`<span class="ws-badge">${escapeHtml(svc.marking)}</span>`);
+  if (currentSpace === 'service' && svc.marking) badges.push(`<button type="button" class="ws-copy-num" data-copy="${escapeAttr(svc.marking)}" title="Скопіювати номер службової">📋 ${escapeHtml(svc.marking)}</button>`);
   if (w.visibility === 'restricted') badges.push('<span class="ws-badge ws-badge-restricted">🔒 обмежено</span>');
 
   const openLabel = w.kind === 'file' ? '📎 Відкрити файл' : '🔗 Відкрити';
@@ -367,15 +401,20 @@ function openQuickView(w) {
 
   // Метадані
   const rows = [];
-  rows.push(['Тип', KIND_LABEL[w.kind] || '—']);
-  rows.push(['Стан', STATUS_LABEL[w.status] || w.status || '—']);
-  if (w.department) rows.push(['Відділ', w.department]);
-  if (svc.marking) rows.push(['Реєстр. № / позначка', svc.marking]);
-  rows.push(['Власник', w.owner_name || w.created_by_name || '—']);
-  if (w.updated_at) rows.push(['Оновлено', fmtDate(w.updated_at)]);
-  else if (w.created_at) rows.push(['Створено', fmtDate(w.created_at)]);
-  document.getElementById('ws-qv-meta').innerHTML = rows
-    .map(([k, v]) => `<dt>${k}</dt><dd>${escapeHtml(String(v))}</dd>`).join('');
+  rows.push({ k: 'Тип', v: KIND_LABEL[w.kind] || '—' });
+  rows.push({ k: 'Стан', v: STATUS_LABEL[w.status] || w.status || '—' });
+  if (w.department) rows.push({ k: 'Відділ', v: w.department });
+  if (svc.marking) rows.push({ k: 'Реєстр. № / позначка', v: svc.marking, copy: true });
+  rows.push({ k: 'Власник', v: w.owner_name || w.created_by_name || '—' });
+  if (w.updated_at) rows.push({ k: 'Оновлено', v: fmtDate(w.updated_at) });
+  else if (w.created_at) rows.push({ k: 'Створено', v: fmtDate(w.created_at) });
+  document.getElementById('ws-qv-meta').innerHTML = rows.map(r => {
+    const val = escapeHtml(String(r.v));
+    const copyBtn = r.copy
+      ? ` <button type="button" class="ws-copy-num" data-copy="${escapeAttr(String(r.v))}" title="Скопіювати номер">📋 копіювати</button>`
+      : '';
+    return `<dt>${r.k}</dt><dd>${val}${copyBtn}</dd>`;
+  }).join('');
 
   // Кнопки відкриття
   const openLink = document.getElementById('ws-qv-open');
