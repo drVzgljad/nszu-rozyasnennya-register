@@ -1151,7 +1151,8 @@ async function init() {
   trackGlobalPresence();
   setupNewsRealtime();
   setupTasksRealtime();
-  
+  startMeetingReminders();
+
   // Daily Status Initialization
   loadUserDailyStatus();
   loadTeamPresence();
@@ -1169,7 +1170,8 @@ async function init() {
     trackGlobalPresence();
     setupNewsRealtime();
     setupTasksRealtime();
-    
+    startMeetingReminders();
+
     // Daily Status update on Auth change
     loadUserDailyStatus();
     loadTeamPresence();
@@ -1420,6 +1422,70 @@ function playNewsAlertSound() {
     }, 120);
   } catch (e) {
     console.error("Audio beep error:", e);
+  }
+}
+
+/* ── Нагадування про зустрічі (планувальник, поки портал відкрито) ── */
+let meetingReminderTimer = null;
+
+function startMeetingReminders() {
+  if (!user || role === 'guest') return;
+  if (meetingReminderTimer) { clearInterval(meetingReminderTimer); meetingReminderTimer = null; }
+  checkMeetingReminders();
+  meetingReminderTimer = setInterval(checkMeetingReminders, 45000); // кожні 45 с
+}
+
+async function checkMeetingReminders() {
+  if (!user || role === 'guest') return;
+  if (localStorage.getItem('news_notifications_enabled') === 'false') return;
+
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+  const { data, error } = await sb
+    .from('planner_events')
+    .select('id, title, start_time, meeting_link, status')
+    .eq('user_id', user.id)
+    .eq('event_date', todayStr)
+    .eq('status', 'planned')
+    .not('start_time', 'is', null);
+  if (error || !data) return;
+
+  data.forEach(ev => {
+    const parts = String(ev.start_time).split(':');
+    const start = new Date(now);
+    start.setHours(Number(parts[0]) || 0, Number(parts[1]) || 0, 0, 0);
+    const minsLeft = (start - now) / 60000;
+    if (minsLeft > 0 && minsLeft <= 15) fireMeetingReminder(ev, 'soon', Math.max(1, Math.round(minsLeft)));
+    if (minsLeft <= 0.5 && minsLeft > -2) fireMeetingReminder(ev, 'now', 0);
+  });
+}
+
+function fireMeetingReminder(ev, lead, mins) {
+  const key = 'meetRmd:' + ev.id + ':' + lead;
+  if (localStorage.getItem(key)) return;
+  localStorage.setItem(key, '1');
+
+  playNewsAlertSound();
+  const prefix = getPathPrefix();
+  const safeLink = /^https?:\/\//i.test(ev.meeting_link || '') ? ev.meeting_link : null;
+  const url = safeLink || (prefix + 'cabinet/planner.html');
+  const title = lead === 'now' ? '🔔 Зустріч починається!' : `🔔 Зустріч через ${mins} хв`;
+  const body = ev.title + (safeLink ? ' · натисніть, щоб приєднатися' : '');
+
+  const isTabHidden = document.hidden || !document.hasFocus();
+  if (isTabHidden && 'Notification' in window && Notification.permission === 'granted') {
+    const n = new Notification(title, {
+      body,
+      icon: prefix + 'assets/nszu-shield.svg',
+      tag: 'meeting-' + ev.id + '-' + lead,
+      renotify: true,
+      requireInteraction: true
+    });
+    n.onclick = () => { window.focus(); window.open(url, '_blank'); n.close(); };
+  } else {
+    showOnScreenToast(title, body, url);
   }
 }
 
