@@ -11,9 +11,9 @@
   <title>Планувальник — Особистий кабінет — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260719h">
   <link rel="stylesheet" href="../auth-v2.css?v=20260721a">
-  <link rel="stylesheet" href="planner.css?v=20260719b">
+  <link rel="stylesheet" href="planner.css?v=20260723a">
   <script type="module" src="../auth-v2.js?v=20260722c"></script>
-  <script type="module" src="planner.js?v=20260719b"></script>
+  <script type="module" src="planner.js?v=20260723a"></script>
 </head>
 <body data-required-role="expert">
 <div class="portal">
@@ -131,7 +131,11 @@
         </label>
         <label>
           <span>Опис</span>
-          <textarea id="pf-desc" rows="3" placeholder="Деталі, посилання, очікуваний результат…"></textarea>
+          <textarea id="pf-desc" rows="3" placeholder="Деталі, порядок денний, очікуваний результат…"></textarea>
+        </label>
+        <label>
+          <span>🔗 Посилання на зустріч</span>
+          <input type="url" id="pf-meeting" maxlength="1000" placeholder="Zoom / Google Meet / Teams — https://…">
         </label>
         <div class="pf-row">
           <label>
@@ -147,7 +151,42 @@
             <input type="time" id="pf-end">
           </label>
         </div>
+        <label>
+          <span>Статус виконання</span>
+          <select id="pf-status">
+            <option value="planned">🕓 Заплановано</option>
+            <option value="done">✔ Виконано</option>
+            <option value="cancelled">✖ Скасовано</option>
+          </select>
+        </label>
         <div class="pf-assignee-note" id="pf-assignee-note" style="display:none;"></div>
+
+        <!-- Включення події до звіту Форми 37-Д -->
+        <div class="pf-37d" id="pf-37d-wrap">
+          <label class="pf-check">
+            <input type="checkbox" id="pf-37d">
+            <span>📊 Додати цю подію до звіту Форми 37-Д</span>
+          </label>
+          <div class="pf-37d-fields" id="pf-37d-fields" style="display:none;">
+            <label>
+              <span>Тип інформації для 37-Д</span>
+              <select id="pf-37d-type">
+                <option value="презентація для публічного заходу" selected>презентація для публічного заходу</option>
+                <option value="заплановані зміни для ЗОЗ, аптек, пацієнтів">заплановані зміни для ЗОЗ, аптек, пацієнтів</option>
+                <option value="аналітична довідка для МОЗ або іншого ЦОВВ">аналітична довідка для МОЗ або іншого ЦОВВ</option>
+                <option value="масовий лист-роз’яснення">масовий лист-роз’яснення</option>
+                <option value="інша інформація, що може потребувати комунікаційної підтримки">інша інформація, що може потребувати комунікаційної підтримки</option>
+              </select>
+            </label>
+            <p class="pf-37d-hint">
+              У звіт потрапить: <b>назва</b> → «Процес», <b>опис</b> → «Поточний стан»,
+              <b>посилання на зустріч</b> → «Документ». Стан 37-Д визначається статусом виконання.
+            </p>
+          </div>
+          <p class="pf-37d-linked" id="pf-37d-linked" style="display:none;">
+            ✅ Подію включено до звіту 37-Д. Зніміть галочку та збережіть, щоб прибрати зі звіту.
+          </p>
+        </div>
         <div class="pf-actions">
           <button type="submit" class="pf-save" id="pf-save">Зберегти</button>
           <button type="button" class="pf-cancel" id="pf-cancel">Скасувати</button>

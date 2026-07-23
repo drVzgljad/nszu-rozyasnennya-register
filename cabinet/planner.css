@@ -316,6 +316,22 @@
   color: var(--p-muted, #647688);
   margin-top: 3px;
 }
+.cal-meeting-link {
+  color: var(--accent-deep, #2f6b9e);
+  font-weight: 700;
+  text-decoration: none;
+}
+.cal-meeting-link:hover { text-decoration: underline; }
+.cal-37d-badge {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #7c3f00;
+  background: #fff7e6;
+  border: 1px solid rgba(194, 125, 14, .3);
+  border-radius: 6px;
+  padding: 1px 6px;
+}
 .cal-event-actions {
   display: flex;
   gap: 4px;
@@ -420,7 +436,7 @@
   font-weight: 700;
   color: var(--p-muted, #647688);
 }
-.planner-modal input, .planner-modal textarea {
+.planner-modal input, .planner-modal textarea, .planner-modal select {
   padding: 10px 12px;
   border: 1px solid var(--p-line, #cddbe7);
   border-radius: 9px;
@@ -429,6 +445,43 @@
   font: inherit;
   font-size: 14px;
 }
+
+/* Чекбокс-рядок (37-Д) */
+.planner-modal label.pf-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 0;
+  cursor: pointer;
+  font-size: 13.5px;
+  color: var(--p-ink, #1f3347);
+}
+.planner-modal label.pf-check input {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  accent-color: var(--accent-deep, #2f6b9e);
+}
+
+/* Блок включення до звіту 37-Д */
+.pf-37d {
+  border: 1px solid var(--p-line, #dde6ee);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: var(--p-soft, #f8fafc);
+}
+.pf-37d-fields { margin-top: 10px; }
+.pf-37d-fields label { margin-bottom: 0; }
+.pf-37d-hint, .pf-37d-linked {
+  font-size: 11.5px;
+  color: var(--p-muted, #647688);
+  margin: 8px 0 0;
+  line-height: 1.45;
+  font-weight: 500;
+}
+.pf-37d-linked { color: #137333; font-weight: 700; }
+
 .pf-row {
   display: grid;
   grid-template-columns: 1.4fr 1fr 1fr;
@@ -507,11 +560,15 @@
 :root.dark-theme .pv-btn.active { background: #1e293b; color: #60a5fa; }
 :root.dark-theme .planner-modal input,
 :root.dark-theme .planner-modal textarea,
+:root.dark-theme .planner-modal select,
 :root.dark-theme .planner-emp-select-wrap select {
   background: #0f172a;
   border-color: #334155;
   color: #e2e8f0;
 }
+:root.dark-theme .planner-modal label.pf-check { color: #e2e8f0; }
+:root.dark-theme .pf-37d { background: #0f172a; border-color: #334155; }
+:root.dark-theme .cal-37d-badge { background: rgba(194,125,14,.15); color: #f6c76b; border-color: rgba(194,125,14,.35); }
 :root.dark-theme .cal-event.ev-overdue { background: rgba(197,34,31,.12); }
 :root.dark-theme .cal-event.ev-task { background: rgba(194,125,14,.10); }
 :root.dark-theme .cal-chip { background: rgba(74,143,199,.15); }

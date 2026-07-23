@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="../auth-v2.css?v=20260721a">
   <link rel="stylesheet" href="skod.css?v=20260609">
   <script type="module" src="../auth-v2.js?v=20260722c"></script>
-  <script type="module" src="tasks.js?v=20260721a"></script>
+  <script type="module" src="tasks.js?v=20260723a"></script>
   <style>
     /* Slider styling matching NaVIPMG26 aesthetics */
     .progress-slider-container {
@@ -174,6 +174,61 @@
     .importance-segmented-control .importance-option.option-critical:has(input[type="radio"]:checked) {
       border-color: #ef4444;
       background: rgba(239, 68, 68, 0.1);
+    }
+
+    /* Список відповідальних виконавців (мульти-вибір) */
+    .responsible-list {
+      border: 1.5px solid var(--p-line);
+      border-radius: 8px;
+      background: var(--p-surface);
+      max-height: 210px;
+      overflow-y: auto;
+      padding: 4px;
+    }
+    .responsible-list .resp-empty {
+      padding: 14px;
+      text-align: center;
+      color: var(--p-muted);
+      font-size: 13px;
+    }
+    .responsible-list .resp-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13.5px;
+      color: var(--p-ink);
+      margin: 0;
+    }
+    .responsible-list .resp-item:hover { background: var(--p-soft); }
+    .responsible-list .resp-item input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+      flex: none;
+      cursor: pointer;
+      accent-color: var(--accent, #2f6b9e);
+    }
+    .responsible-list .resp-all {
+      border-bottom: 1px solid var(--p-line);
+      border-radius: 6px 6px 0 0;
+      position: sticky;
+      top: -4px;
+      background: var(--p-surface);
+      z-index: 1;
+    }
+    .responsible-list .resp-pos {
+      color: var(--p-muted);
+      font-size: 11.5px;
+    }
+    .responsible-list .resp-group-title {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--p-muted);
+      padding: 9px 10px 4px;
     }
   </style>
 </head>
@@ -390,6 +445,7 @@
         <div class="skod-form-group" style="margin-bottom: 16px;">
           <label for="task_dept">Підрозділ департаменту *</label>
           <select id="task_dept" style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; border: 1.5px solid var(--p-line); background: var(--p-surface); font-family: inherit; font-size: 14px;" required>
+            <option value="__all__">🏢 Всі відділи департаменту</option>
             <option value="робота з електронними медичними даними">робота з електронними медичними даними</option>
             <option value="розрахунок вартості медичних послуг">розрахунок вартості медичних послуг</option>
             <option value="стратегічного розвитку програми медичних гарантій">стратегічного розвитку програми медичних гарантій</option>
@@ -401,10 +457,11 @@
         </div>
 
         <div class="skod-form-group" style="margin-bottom: 16px;">
-          <label for="task_responsible">Відповідальний виконавець *</label>
-          <select id="task_responsible" style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; border: 1.5px solid var(--p-line); background: var(--p-surface); font-family: inherit; font-size: 14px;" required>
-            <option value="" disabled selected>Оберіть відділ спочатку...</option>
-          </select>
+          <label>Відповідальні виконавці *</label>
+          <div id="task_responsible_list" class="responsible-list">
+            <div class="resp-empty">Оберіть підрозділ…</div>
+          </div>
+          <div id="responsible-count-hint" style="font-size: 12px; color: var(--p-muted); margin-top: 6px;">Оберіть хоча б одного виконавця.</div>
         </div>
 
         <div class="skod-form-group" style="margin-bottom: 16px;">
@@ -415,6 +472,13 @@
         <div class="skod-form-group-checkbox" style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
           <input type="checkbox" id="task_is_ongoing" style="width: 18px; height: 18px; cursor: pointer;">
           <label for="task_is_ongoing" style="margin: 0; font-weight: 600; cursor: pointer; color: var(--p-ink);">🔄 Постійне посадове доручення (посадовий обов'язок)</label>
+        </div>
+
+        <div class="skod-form-group-checkbox" style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 16px;">
+          <input type="checkbox" id="task_to_planner" checked style="width: 18px; height: 18px; cursor: pointer; margin-top: 2px;">
+          <label for="task_to_planner" style="margin: 0; font-weight: 600; cursor: pointer; color: var(--p-ink); line-height: 1.4;">📅 Додати доручення в планувальник виконавців
+            <span style="display:block; font-weight:400; font-size:12px; color:var(--p-muted);">З'явиться подією на дату дедлайну в кожного обраного виконавця.</span>
+          </label>
         </div>
 
         <div class="skod-form-group" style="margin-bottom: 20px;">

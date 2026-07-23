@@ -189,8 +189,8 @@ function setupManagerPanel() {
 
     // Handle department change to filter responsible users
     if (deptSelect) {
-      deptSelect.addEventListener('change', populateResponsibleSelect);
-      populateResponsibleSelect();
+      deptSelect.addEventListener('change', populateResponsibleList);
+      populateResponsibleList();
     }
 
     // Submit handler
@@ -316,32 +316,104 @@ function escapeHtml(str) {
   }[c]));
 }
 
-// Populate responsible users select dropdown based on chosen department
-function populateResponsibleSelect() {
+// Список співробітників, доступних для призначення (за обраним підрозділом + RBAC)
+function getAssignableUsers() {
   const deptSelect = document.getElementById('task_dept');
-  const respSelect = document.getElementById('task_responsible');
-  if (!deptSelect || !respSelect) return;
+  const selectedDept = deptSelect?.value;
 
-  const selectedDept = deptSelect.value;
-  
-  let filteredUsers = allUsers.filter(u => (u.Section || u.department) === selectedDept);
+  // Тільки реальні співробітники (без гостей)
+  let users = allUsers.filter(u => u.role && u.role !== 'guest');
 
-  // Apply RBAC filters on assignees
-  if (userProfile.role === 'manager') {
-    // Managers can only assign to Experts in their department
-    filteredUsers = filteredUsers.filter(u => u.role === 'expert');
-  } else if (userProfile.role === 'deputy_director') {
-    // Deputy Directors can assign to everyone except Director
-    filteredUsers = filteredUsers.filter(u => u.role !== 'director');
+  if (selectedDept && selectedDept !== '__all__') {
+    users = users.filter(u => (u.Section || u.department) === selectedDept);
   }
 
-  respSelect.innerHTML = '<option value="" disabled selected>Оберіть співробітника...</option>';
-  filteredUsers.forEach(u => {
-    const opt = document.createElement('option');
-    opt.value = u.id;
-    opt.textContent = `${u.full_name} (${u.position})`;
-    respSelect.appendChild(opt);
+  // RBAC — дублює логіку тригера validate_task_assignment, щоб insert не падав
+  if (userProfile.role === 'manager') {
+    const myDept = userProfile.Section || userProfile.department;
+    users = users.filter(u => u.role === 'expert' && (u.Section || u.department) === myDept);
+  } else if (userProfile.role === 'deputy_director') {
+    users = users.filter(u => u.role !== 'director');
+  }
+
+  return users.sort((a, b) => (a.full_name || '').localeCompare(b.full_name || '', 'uk'));
+}
+
+function respItemHtml(u) {
+  return `<label class="resp-item">
+    <input type="checkbox" class="resp-cb" value="${u.id}" data-name="${escapeHtml(u.full_name || 'Співробітник')}" data-dept="${escapeHtml(u.Section || u.department || 'Поза відділами')}">
+    <span>${escapeHtml(u.full_name || 'Співробітник')} <span class="resp-pos">${escapeHtml(u.position || '')}</span></span>
+  </label>`;
+}
+
+// Побудова списку відповідальних (чекбокси + майстер «Всім»)
+function populateResponsibleList() {
+  const list = document.getElementById('task_responsible_list');
+  const deptSelect = document.getElementById('task_dept');
+  if (!list || !deptSelect) return;
+
+  const selectedDept = deptSelect.value;
+  const users = getAssignableUsers();
+
+  if (users.length === 0) {
+    list.innerHTML = '<div class="resp-empty">У цьому підрозділі немає доступних виконавців.</div>';
+    updateResponsibleHint();
+    return;
+  }
+
+  const allLabel = selectedDept === '__all__' ? '👥 Всім (усі відділи)' : '👥 Всім у підрозділі';
+  let html = `<label class="resp-item resp-all">
+      <input type="checkbox" id="resp_all">
+      <span><b>${allLabel}</b></span>
+    </label>`;
+
+  if (selectedDept === '__all__') {
+    // Групування за відділами
+    const groups = {};
+    users.forEach(u => {
+      const d = u.Section || u.department || 'Поза відділами';
+      (groups[d] = groups[d] || []).push(u);
+    });
+    Object.keys(groups).sort((a, b) => a.localeCompare(b, 'uk')).forEach(dept => {
+      html += `<div class="resp-group-title">${escapeHtml(dept)}</div>`;
+      groups[dept].forEach(u => { html += respItemHtml(u); });
+    });
+  } else {
+    users.forEach(u => { html += respItemHtml(u); });
+  }
+  list.innerHTML = html;
+
+  // Обробники: майстер ↔ окремі чекбокси
+  const allCb = document.getElementById('resp_all');
+  const itemCbs = [...list.querySelectorAll('.resp-cb')];
+  if (allCb) {
+    allCb.addEventListener('change', () => {
+      itemCbs.forEach(cb => { cb.checked = allCb.checked; });
+      updateResponsibleHint();
+    });
+  }
+  itemCbs.forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (allCb) allCb.checked = itemCbs.length > 0 && itemCbs.every(c => c.checked);
+      updateResponsibleHint();
+    });
   });
+  updateResponsibleHint();
+}
+
+// Обрані виконавці
+function getSelectedResponsibles() {
+  return [...document.querySelectorAll('#task_responsible_list .resp-cb:checked')].map(cb => ({
+    id: cb.value,
+    name: cb.dataset.name,
+    dept: cb.dataset.dept
+  }));
+}
+
+function updateResponsibleHint() {
+  const n = getSelectedResponsibles().length;
+  const hint = document.getElementById('responsible-count-hint');
+  if (hint) hint.textContent = n ? `Обрано виконавців: ${n}` : 'Оберіть хоча б одного виконавця.';
 }
 
 // Create new task in Supabase
@@ -372,22 +444,24 @@ async function createTask(e) {
     }
   }
 
-  const department = document.getElementById('task_dept')?.value;
-  const responsibleSelect = document.getElementById('task_responsible');
-  const responsible_id = responsibleSelect?.value;
+  const selectedDept = document.getElementById('task_dept')?.value;
   const deadline = document.getElementById('task_deadline')?.value;
   const description = document.getElementById('task_description')?.value.trim();
   const is_ongoing = document.getElementById('task_is_ongoing')?.checked || false;
+  const toPlanner = document.getElementById('task_to_planner')?.checked || false;
 
   const submitBtn = document.getElementById('btn-submit-task');
 
-  if (!department || !responsible_id || !deadline) {
+  const responsibles = getSelectedResponsibles();
+
+  if (!selectedDept || !deadline) {
     alert("Будь ласка, заповніть усі обов'язкові поля.");
     return;
   }
-
-  // Get employee name
-  const responsible_name = responsibleSelect.options[responsibleSelect.selectedIndex].text.split(' (')[0];
+  if (responsibles.length === 0) {
+    alert("Оберіть хоча б одного відповідального виконавця.");
+    return;
+  }
 
   if (submitBtn) {
     submitBtn.disabled = true;
@@ -396,37 +470,18 @@ async function createTask(e) {
 
   const creatorName = userProfile.full_name || currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
 
-  const taskData = {
-    created_by: currentUser.id,
-    created_by_name: creatorName,
-    title,
-    department,
-    responsible_id,
-    responsible_name,
-    deadline,
-    progress: 0,
-    status: 'assigned',
-    description,
-    is_ongoing: is_ongoing,
-    task_type,
-    askod_number,
-    askod_sender,
-    importance
-  };
-
   // Лист уже опрацьовано в СКО-Д → створюємо доручення одразу як виконане
   const createCompleted = task_type === 'askod'
     && askodMatchedLogs.length > 0
     && document.getElementById('askod_create_completed')?.checked;
 
+  let completedComments = null;
   if (createCompleted) {
     const logsSummary = askodMatchedLogs.map(l => {
       const d = l.log_date ? new Date(l.log_date).toLocaleDateString('uk-UA') : '';
       return `${l.user_name} (${d}, ${l.duration_minutes || 0} хв)`;
     }).join('; ');
-    taskData.status = 'completed';
-    taskData.progress = 100;
-    taskData.comments = [{
+    completedComments = [{
       id: crypto.randomUUID(),
       author: 'Система',
       role: 'system',
@@ -436,7 +491,58 @@ async function createTask(e) {
     }];
   }
 
-  const { error } = await sb.from('assigned_tasks').insert([taskData]);
+  // Фан-аут: окремий рядок доручення на кожного виконавця
+  const rows = responsibles.map(r => {
+    const row = {
+      created_by: currentUser.id,
+      created_by_name: creatorName,
+      title,
+      department: selectedDept === '__all__' ? (r.dept || 'Поза відділами') : selectedDept,
+      responsible_id: r.id,
+      responsible_name: r.name,
+      deadline,
+      progress: 0,
+      status: 'assigned',
+      description,
+      is_ongoing,
+      task_type,
+      askod_number,
+      askod_sender,
+      importance
+    };
+    if (createCompleted) {
+      row.status = 'completed';
+      row.progress = 100;
+      row.comments = completedComments;
+    }
+    return row;
+  });
+
+  const { data: inserted, error } = await sb
+    .from('assigned_tasks')
+    .insert(rows)
+    .select('id, responsible_id, responsible_name, title, description, deadline');
+
+  // Відправка в планувальник виконавців (окремі події, зв'язані з дорученням)
+  let plannerWarn = '';
+  if (!error && toPlanner && !is_ongoing && !createCompleted && inserted?.length) {
+    const events = inserted.map(t => ({
+      user_id: t.responsible_id,
+      user_name: t.responsible_name,
+      creator_id: currentUser.id,
+      creator_name: creatorName,
+      title: t.title,
+      description: t.description || null,
+      event_date: t.deadline,
+      status: 'planned',
+      task_id: t.id
+    }));
+    const { error: pErr } = await sb.from('planner_events').insert(events);
+    if (pErr) {
+      console.warn('Не вдалося додати в планувальник:', pErr.message);
+      plannerWarn = '\n\n⚠️ Доручення створено, але не вдалося додати в планувальник: ' + pErr.message;
+    }
+  }
 
   if (submitBtn) {
     submitBtn.disabled = false;
@@ -446,6 +552,7 @@ async function createTask(e) {
   if (error) {
     alert("Помилка створення доручення: " + error.message);
   } else {
+    if (plannerWarn) alert(plannerWarn.trim());
     // Reset Form
     const tInput = document.getElementById('task_title');
     if (tInput) tInput.value = '';
@@ -466,8 +573,9 @@ async function createTask(e) {
     if (normalRadio) normalRadio.checked = true;
 
     document.getElementById('task_description').value = '';
-    if (responsibleSelect) responsibleSelect.selectedIndex = 0;
-    
+    // Скинути обраних виконавців (перебудова списку знімає всі галочки)
+    populateResponsibleList();
+
     const isOngoingInput = document.getElementById('task_is_ongoing');
     if (isOngoingInput) {
       isOngoingInput.checked = false;

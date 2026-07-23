@@ -43,6 +43,12 @@ function fmtTime(t) { return t ? t.slice(0, 5) : ''; }
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
+function safeUrl(u) { return /^https?:\/\//i.test(u || '') ? u : null; }
+function diffMinutes(a, b) {
+  const p = t => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
+  const d = p(b) - p(a);
+  return d > 0 ? d : null;
+}
 
 // Межі видимого періоду (для запитів)
 function periodRange() {
@@ -187,7 +193,10 @@ async function refresh(silent) {
     .gte('deadline', start)
     .lte('deadline', end)
     .not('status', 'in', '("completed","rejected")');
-  taskDeadlines = taskData || [];
+  // Якщо доручення вже додане в планувальник окремою подією (task_id) —
+  // не дублюємо його автоматичним чипом дедлайну
+  const linkedTaskIds = new Set(events.filter(e => e.task_id).map(e => e.task_id));
+  taskDeadlines = (taskData || []).filter(t => !linkedTaskIds.has(t.id));
 
   renderMonitor();
   renderBody();
@@ -301,9 +310,20 @@ function eventRow(e) {
   const creatorNote = (e.creator_id && e.creator_id !== e.user_id)
     ? `<div class="cal-event-meta">👤 Від керівника: ${esc(e.creator_name || '')}</div>` : '';
 
+  let meetingLine = '';
+  if (e.meeting_link) {
+    const safe = safeUrl(e.meeting_link);
+    meetingLine = safe
+      ? `<div class="cal-event-meta"><a class="cal-meeting-link" href="${esc(safe)}" target="_blank" rel="noopener noreferrer">🔗 Посилання на зустріч</a></div>`
+      : `<div class="cal-event-meta">🔗 ${esc(e.meeting_link)}</div>`;
+  }
+  const badge37d = e.report_log_id
+    ? `<div class="cal-event-meta"><span class="cal-37d-badge">📊 У звіті 37-Д</span></div>` : '';
+
   const canManage = currentUser && (e.user_id === currentUser.id || e.creator_id === currentUser.id || isManager);
   const actions = canManage ? `
     <div class="cal-event-actions">
+      ${e.task_id ? `<button data-act="open-task" data-id="${e.task_id}" title="Відкрити доручення">↗</button>` : ''}
       ${e.status === 'planned' ? `<button data-act="done" data-id="${e.id}" title="Позначити виконаним">✔</button>` : ''}
       ${e.status !== 'planned' ? `<button data-act="reopen" data-id="${e.id}" title="Повернути в план">↩</button>` : ''}
       <button data-act="edit" data-id="${e.id}" title="Редагувати">✏️</button>
@@ -314,6 +334,8 @@ function eventRow(e) {
     <div class="cal-event-main">
       <div class="cal-event-title">${esc(e.title)}</div>
       ${e.description ? `<div class="cal-event-desc">${esc(e.description)}</div>` : ''}
+      ${meetingLine}
+      ${badge37d}
       ${creatorNote}
     </div>
     ${actions}
@@ -445,6 +467,11 @@ function setupModal() {
   document.getElementById('pf-cancel')?.addEventListener('click', closeModal);
   backdrop?.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
 
+  document.getElementById('pf-37d')?.addEventListener('change', (e) => {
+    const f = document.getElementById('pf-37d-fields');
+    if (f) f.style.display = e.target.checked ? 'block' : 'none';
+  });
+
   document.getElementById('planner-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (plannerTableMissing) {
@@ -452,32 +479,58 @@ function setupModal() {
       return;
     }
     const id = document.getElementById('pf-id').value;
+    const editing = id ? events.find(x => x.id === id) : null;
+    const status = document.getElementById('pf-status').value || 'planned';
     const payload = {
       title: document.getElementById('pf-title').value.trim(),
       description: document.getElementById('pf-desc').value.trim() || null,
       event_date: document.getElementById('pf-date').value,
       start_time: document.getElementById('pf-start').value || null,
-      end_time: document.getElementById('pf-end').value || null
+      end_time: document.getElementById('pf-end').value || null,
+      meeting_link: document.getElementById('pf-meeting').value.trim() || null,
+      status,
+      done_at: status === 'done' ? new Date().toISOString() : null
     };
     if (!payload.title || !payload.event_date) return;
+    // Не переписувати час першого виконання, якщо подія вже була виконана
+    if (status === 'done' && editing?.status === 'done' && editing?.done_at) {
+      payload.done_at = editing.done_at;
+    }
 
-    let error;
+    let error, savedId = id;
     if (id) {
       ({ error } = await sb.from('planner_events').update(payload).eq('id', id));
     } else {
-      ({ error } = await sb.from('planner_events').insert({
+      const res = await sb.from('planner_events').insert({
         ...payload,
         user_id: selectedUserId,
         user_name: selectedUserName,
         creator_id: currentUser.id,
-        creator_name: userProfile.full_name || '',
-        status: 'planned'
-      }));
+        creator_name: userProfile.full_name || ''
+      }).select('id').single();
+      error = res.error;
+      savedId = res.data?.id;
     }
     if (error) {
       alert('Не вдалося зберегти запис: ' + error.message);
       return;
     }
+
+    // Синхронізація зі звітом 37-Д — лише для власного календаря
+    if (selectedUserId === currentUser.id && savedId) {
+      try {
+        await sync37d({
+          want37d: document.getElementById('pf-37d').checked,
+          existingLogId: editing?.report_log_id || null,
+          eventId: savedId,
+          payload,
+          infoType: document.getElementById('pf-37d-type').value
+        });
+      } catch (err37) {
+        alert('Запис збережено, але не вдалося оновити звіт 37-Д: ' + err37.message);
+      }
+    }
+
     closeModal();
     refresh(true);
   });
@@ -500,10 +553,20 @@ function openModal({ date, event } = {}) {
   document.getElementById('pf-id').value = event?.id || '';
   document.getElementById('pf-title').value = event?.title || '';
   document.getElementById('pf-desc').value = event?.description || '';
+  document.getElementById('pf-meeting').value = event?.meeting_link || '';
   document.getElementById('pf-date').value = event?.event_date || date || todayIso();
   document.getElementById('pf-start').value = event?.start_time ? fmtTime(event.start_time) : '';
   document.getElementById('pf-end').value = event?.end_time ? fmtTime(event.end_time) : '';
+  document.getElementById('pf-status').value = event?.status || 'planned';
   document.getElementById('pf-delete').style.display = event ? 'inline-block' : 'none';
+
+  // Блок 37-Д: доступний лише для власного календаря
+  const ownCalendar = selectedUserId === currentUser.id;
+  const linked = !!event?.report_log_id;
+  document.getElementById('pf-37d-wrap').style.display = ownCalendar ? 'block' : 'none';
+  document.getElementById('pf-37d').checked = linked;
+  document.getElementById('pf-37d-fields').style.display = linked ? 'block' : 'none';
+  document.getElementById('pf-37d-linked').style.display = linked ? 'block' : 'none';
 
   const note = document.getElementById('pf-assignee-note');
   if (selectedUserId !== currentUser.id) {
@@ -520,4 +583,65 @@ function openModal({ date, event } = {}) {
 function closeModal() {
   const backdrop = document.getElementById('planner-modal-backdrop');
   if (backdrop) backdrop.style.display = 'none';
+}
+
+// ── Синхронізація події зі звітом Форми 37-Д ────────────────────────
+function map37dStatus(status) {
+  if (status === 'done') return 'виконано';
+  if (status === 'cancelled') return 'скасовано / неактуально';
+  return 'заплановано';
+}
+
+async function sync37d({ want37d, existingLogId, eventId, payload, infoType }) {
+  // Галочку знято — прибрати подію зі звіту (позначаємо як скасовану)
+  if (!want37d) {
+    if (existingLogId) {
+      await sb.from('skod_logs').update({ status_37d: 'скасовано / неактуально' }).eq('id', existingLogId);
+      await sb.from('planner_events').update({ report_log_id: null }).eq('id', eventId);
+    }
+    return;
+  }
+
+  const state = payload.description
+    || (payload.status === 'done' ? `Проведено: ${payload.title}` : `Заплановано: ${payload.title}`);
+  const dur = (payload.start_time && payload.end_time)
+    ? diffMinutes(payload.start_time, payload.end_time) : null;
+
+  const fields37d = {
+    process_name: payload.title,
+    current_state_text: state,
+    status_37d: map37dStatus(payload.status),
+    info_type_37d: infoType || null,
+    event_date: payload.event_date,
+    document_link: payload.meeting_link || null,
+    include_37d: true,
+    status: payload.status === 'done' ? 'completed' : 'in_progress'
+  };
+
+  if (existingLogId) {
+    // Оновити вже пов'язаний запис СКО-Д
+    const { error } = await sb.from('skod_logs').update(fields37d).eq('id', existingLogId);
+    if (error) throw error;
+    return;
+  }
+
+  // Створити новий запис СКО-Д і прив'язати до події
+  const dept = userProfile.Section || userProfile.department || 'Департамент стратегії НСЗУ';
+  const { data, error } = await sb.from('skod_logs').insert({
+    user_id: currentUser.id,
+    user_name: userProfile.full_name || selectedUserName,
+    department: dept,
+    log_date: todayIso(),
+    start_time: payload.start_time || '09:00:00',
+    duration_minutes: dur,
+    branch: 'department',
+    task_type: 'Комунікаційний захід / зустріч',
+    severity_level: 'medium',
+    complexity_coefficient: 1.3,
+    score: dur ? +((dur / 60) * 1.3).toFixed(2) : 0,
+    description: state,
+    ...fields37d
+  }).select('id').single();
+  if (error) throw error;
+  await sb.from('planner_events').update({ report_log_id: data.id }).eq('id', eventId);
 }
