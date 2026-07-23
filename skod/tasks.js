@@ -449,6 +449,10 @@ async function createTask(e) {
   const description = document.getElementById('task_description')?.value.trim();
   const is_ongoing = document.getElementById('task_is_ongoing')?.checked || false;
   const toPlanner = document.getElementById('task_to_planner')?.checked || false;
+  // Посилання на зустріч — лише для поточного завдання
+  const meeting_link = task_type === 'current'
+    ? (document.getElementById('task_meeting_link')?.value.trim() || null)
+    : null;
 
   const submitBtn = document.getElementById('btn-submit-task');
 
@@ -508,7 +512,8 @@ async function createTask(e) {
       task_type,
       askod_number,
       askod_sender,
-      importance
+      importance,
+      meeting_link
     };
     if (createCompleted) {
       row.status = 'completed';
@@ -535,7 +540,8 @@ async function createTask(e) {
       description: t.description || null,
       event_date: t.deadline,
       status: 'planned',
-      task_id: t.id
+      task_id: t.id,
+      meeting_link: meeting_link || null
     }));
     const { error: pErr } = await sb.from('planner_events').insert(events);
     if (pErr) {
@@ -556,6 +562,8 @@ async function createTask(e) {
     // Reset Form
     const tInput = document.getElementById('task_title');
     if (tInput) tInput.value = '';
+    const mlInput = document.getElementById('task_meeting_link');
+    if (mlInput) mlInput.value = '';
     const askodNum = document.getElementById('task_askod_number');
     if (askodNum) askodNum.value = '';
     const askodSnd = document.getElementById('task_askod_sender');

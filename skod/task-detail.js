@@ -204,6 +204,26 @@ function renderTaskHeader() {
   if (descEl) {
     descEl.textContent = currentTask.description || 'Опис доручення відсутній.';
   }
+
+  // Посилання на зустріч (для поточних завдань)
+  const mlRow = document.getElementById('task-meeting-link-row');
+  const mlLink = document.getElementById('task-meeting-link');
+  if (mlRow && mlLink) {
+    const url = currentTask.meeting_link;
+    const safe = /^https?:\/\//i.test(url || '') ? url : null;
+    if (safe) {
+      mlLink.href = safe;
+      mlLink.textContent = '🔗 Приєднатися до зустрічі';
+      mlRow.style.display = 'block';
+    } else if (url) {
+      // Небезпечна/нестандартна схема — показуємо як текст, без клікабельного href
+      mlLink.removeAttribute('href');
+      mlLink.textContent = '🔗 ' + url;
+      mlRow.style.display = 'block';
+    } else {
+      mlRow.style.display = 'none';
+    }
+  }
 }
 
 function renderStatusBanner() {

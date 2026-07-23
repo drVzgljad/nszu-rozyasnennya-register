@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="../auth-v2.css?v=20260721a">
   <link rel="stylesheet" href="skod.css?v=20260609">
   <script type="module" src="../auth-v2.js?v=20260722c"></script>
-  <script type="module" src="tasks.js?v=20260723a"></script>
+  <script type="module" src="tasks.js?v=20260723b"></script>
   <style>
     /* Slider styling matching NaVIPMG26 aesthetics */
     .progress-slider-container {
@@ -419,6 +419,11 @@
           <div class="skod-form-group" style="margin-bottom: 16px;">
             <label for="task_title">Назва завдання *</label>
             <input type="text" id="task_title" placeholder="наприклад, Підготувати аналітичну довідку..." style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; border: 1.5px solid var(--p-line); background: var(--p-surface); font-family: inherit; font-size: 14px;" required>
+          </div>
+          <div class="skod-form-group" style="margin-bottom: 16px;">
+            <label for="task_meeting_link">🔗 Посилання на зустріч (необов'язково)</label>
+            <input type="url" id="task_meeting_link" maxlength="1000" placeholder="Zoom / Google Meet / Teams — https://…" style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; border: 1.5px solid var(--p-line); background: var(--p-surface); font-family: inherit; font-size: 14px;">
+            <span style="display:block; font-size:12px; color:var(--p-muted); margin-top:6px;">Якщо ввімкнено «Додати в планувальник» — посилання з'явиться в події виконавця.</span>
           </div>
         </div>
 
