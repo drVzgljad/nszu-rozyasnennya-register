@@ -452,6 +452,25 @@
         line-height: 1.25;
       }
     }
+    /* ═══ Головна: охайний вигляд «в один екран» ═══ */
+    .portal { display: flex; flex-direction: column; min-height: 100dvh; }
+    .home-dashboard-shell { flex: 1 0 auto; display: flex; flex-direction: column; }
+    .home-dashboard-shell > .hero { flex: 1 0 auto; display: flex; align-items: center; }
+    .p-footer { flex: none; }
+    /* Менший слоган і компактний hero */
+    .hero-inner { padding: 34px 0 !important; max-width: 1100px !important; }
+    .hero h1 { font-size: clamp(26px, 3.1vw, 42px) !important; margin-bottom: 14px !important; }
+    .hero-lead { font-size: 15.5px !important; max-width: 580px !important; margin-bottom: 0 !important; }
+    .hero-main-logo img { max-width: 180px !important; }
+    /* Компактний охайний футер */
+    .p-footer .wrap { padding-block: 18px !important; }
+    .p-foot-grid { gap: 24px !important; }
+    .p-footer p { font-size: 12.5px !important; max-width: 320px !important; }
+    .p-footer .f-lockup { margin-bottom: 10px !important; }
+    .p-footer .f-lockup .shield { width: 34px !important; height: auto !important; }
+    .p-footer .f-col h4 { font-size: 10.5px !important; margin: 0 0 8px !important; }
+    .p-footer .f-col a { font-size: 12.5px !important; padding: 3px 0 !important; }
+    .p-foot-base { margin-top: 14px !important; padding-top: 12px !important; font-size: 11.5px !important; }
   </style>
 </head>
 <body>
@@ -564,227 +583,6 @@
 
   </div><!-- /.home-dashboard-shell -->
 
-  <!-- ── Informational Digest ────────────────────────── -->
-  <section class="news-digest-section" id="news-digest" style="display: none;">
-    <div class="wrap">
-      <div class="section-head" style="margin-bottom: 20px;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; width: 100%; flex-wrap: wrap; gap: 12px;">
-          <div>
-            <h2 style="margin: 0; font-size: 22px; font-family: var(--p-display); font-weight: 800; color: var(--p-ink);">
-              📰 Інформаційний дайджест
-            </h2>
-            <p style="margin: 4px 0 0 0; font-size: 14px; color: var(--p-muted);">
-              Останні важливі події, зміни законодавства та оголошення Департаменту
-            </p>
-          </div>
-          <a href="news/index.html" class="all-news-link" style="font-size: 14px; font-weight: 600; color: var(--accent); text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
-            Читати всі новини <span>→</span>
-          </a>
-        </div>
-      </div>
-      <div class="news-digest-grid" id="news-digest-grid">
-        <!-- Dynamic cards injected here -->
-      </div>
-    </div>
-  </section>
-
-  <!-- ── Hub grid ─────────────────────────────────────── -->
-  <section class="hub" id="hub">
-    <div class="wrap">
-      <div class="section-head">
-        <div>
-          <h2>Розділи порталу</h2>
-          <p>П'ять інструментів, що працюють разом над одним документним архівом.</p>
-        </div>
-      </div>
-      <div class="hub-grid">
-
-        <!-- Роз'яснення — feature card -->
-        <a class="hub-card span-3 feature" href="rozjasnennya.html">
-          <span class="badge-tile">
-            <img class="shield" src="assets/nszu-shield.svg" alt="" aria-hidden="true">
-          </span>
-          <h3>Роз'яснення</h3>
-          <p>Офіційні роз'яснення НСЗУ за темою, пакетом, номером, датою або словом
-             з тексту — зі змістом, джерелом і пов'язаними матеріалами.</p>
-          <div class="meta">Відкрити <span class="count" data-stat="documents" data-plural="документ|документи|документів">171 документ</span></div>
-        </a>
-
-        <!-- AI Семантичний пошук — feature card -->
-        <a class="hub-card span-3 feature" href="rozjasnennya_semantic.html" style="background: linear-gradient(135deg, #1e3a8a 0%, #0d9488 100%); color: white; border: none; box-shadow: 0 10px 20px rgba(13, 148, 136, 0.15);">
-          <span class="badge-tile" style="background: rgba(255, 255, 255, 0.2);">
-            <span style="font-size: 24px; filter: drop-shadow(0 0 4px #fff);">💡</span>
-          </span>
-          <h3 style="color: white; margin-top: 12px;">AI Семантичний пошук</h3>
-          <p style="color: rgba(255, 255, 255, 0.9);">Пошук відповідей за допомогою штучного інтелекту. Шукає смислові відповіді навіть за відсутності точних збігів слів у запиті.</p>
-          <div class="meta" style="color: rgba(255, 255, 255, 0.85);">Спробувати AI пошук <span class="count" style="background: rgba(255, 255, 255, 0.25); color: white;">Новий сервіс</span></div>
-        </a>
-
-        <!-- Пакети 2026 -->
-        <a class="hub-card span-3" href="pakety/index.html">
-          <span class="num-badge g" data-stat="packages">46</span>
-          <h3>Пакети 2026</h3>
-          <p>Навігатор по 46 пакетах Програми медичних гарантій: специфікації, умови
-             закупівлі, вимоги до спеціалістів та обладнання.</p>
-          <div class="meta">Відкрити <span class="count" data-stat="packages" data-plural="пакет|пакети|пакетів">46 пакетів</span></div>
-        </a>
-
-        <!-- Постанова 1808 -->
-        <a class="hub-card span-2" href="postanova/index.html">
-          <span class="num-badge">1808</span>
-          <h3>Постанова КМУ № 1808</h3>
-          <p>постанова Кабінету Міністрів України від 31.12.2025 № 1808, якою затверджено Порядок реалізації ПМГ у 2026 році.</p>
-          <div class="meta">Відкрити <span class="count">Тарифи й коефіцієнти</span></div>
-        </a>
-
-        <!-- Алгоритми та правила -->
-        <a class="hub-card span-2" href="algorithms/index.html">
-          <span class="num-badge g">377</span>
-          <h3>Алгоритми та правила</h3>
-          <p>Пошук за наказом № 377: коди НК 025, діагнози,
-             амбулаторно-асоційовані стани.</p>
-          <div class="meta">Відкрити <span class="count">Наказ № 377</span></div>
-        </a>
-
-        <!-- Укладені договори -->
-        <a class="hub-card span-2" href="zoz-dogovr/index.html">
-          <span class="num-badge" data-stat="contracts">7739</span>
-          <h3>Укладені договори</h3>
-          <p>Пошук та аналітика договорів ЗОЗ з НСЗУ: суми фінансування, перелік наданих пакетів послуг та місця надання послуг.</p>
-          <div class="meta">Відкрити <span class="count" data-stat="contracts" data-plural="договір|договори|договорів">7739 договорів</span></div>
-        </a>
-
-        <!-- ДЕЦ МОЗ -->
-        <a class="hub-card span-2" href="dec/index.html">
-          <span class="num-badge g" data-stat="dec_documents">742</span>
-          <h3>ДЕЦ МОЗ</h3>
-          <p>Стандарти медичної допомоги, клінічні настанови, уніфіковані протоколи та накази ДЕЦ МОЗ України.</p>
-          <div class="meta">Відкрити <span class="count" data-stat="dec_documents" data-plural="документ|документи|документів">742 документи</span></div>
-        </a>
-
-        <!-- Нормативна база -->
-        <a class="hub-card span-2" href="regulatory/index.html">
-          <span class="num-badge">⚖️</span>
-          <h3>Нормативна база</h3>
-          <p>Закони, постанови КМУ, накази МОЗ та НСЗУ для регламентації роботи Департаменту стратегії.</p>
-          <div class="meta">Відкрити <span class="count" id="regulatory-count">4 документи</span></div>
-        </a>
-
-        <!-- Паспорт пакета -->
-        <a class="hub-card span-2" href="passport/index.html">
-          <span class="num-badge">📋</span>
-          <h3>Паспорт пакета</h3>
-          <p>Уся інформація за пакетом: умови закупівлі, фінансування Постанови 1808, договори ЗОЗ, протоколи ДЕЦ та роз'яснення.</p>
-          <div class="meta">Відкрити <span class="count">46 паспортів</span></div>
-        </a>
-
-        <!-- Машина пошуку — тільки для зареєстрованих -->
-        <a class="hub-card span-2" href="pakety/report.html" data-role="registered" id="hub-search-card">
-          <span class="badge-tile">
-            <img class="shield" src="assets/nszu-shield.svg" alt="" aria-hidden="true">
-          </span>
-          <h3>Машина пошуку</h3>
-          <p>Зберіть знайдені вимоги пакетів в один готовий до копіювання текст.</p>
-          <div class="meta">Відкрити <span class="count">Збірка відповіді</span></div>
-        </a>
-
-        <!-- Питання ЗОЗ — тільки для зареєстрованих -->
-        <a class="hub-card span-3" href="zoz-questions/index.html" data-role="registered">
-          <span class="num-badge">?</span>
-          <h3>Питання ЗОЗ</h3>
-          <p>Задайте запитання фахівцям НСЗУ щодо укладення договорів за ПМГ та роз'яснень.</p>
-          <div class="meta">Відкрити <span class="count">База запитань</span></div>
-        </a>
-
-        <!-- Пропозиції ПМГ — тільки для зареєстрованих -->
-        <a class="hub-card span-3" href="pmg-proposals/index.html" data-role="registered">
-          <span class="num-badge g">💡</span>
-          <h3>Пропозиції ПМГ</h3>
-          <p>Ініціюйте та підтримуйте пропозиції щодо змін у специфікаціях та тарифах.</p>
-          <div class="meta">Відкрити <span class="count">Стіна пропозицій</span></div>
-        </a>
-
-        <!-- Пропозиції робочих груп — тільки для зареєстрованих -->
-        <a class="hub-card span-3" href="expert-proposals/index.html" data-role="registered">
-          <span class="num-badge">🧬</span>
-          <h3>Пропозиції робочих груп</h3>
-          <p>Опрацьовуйте пропозиції експертів робочих груп, беріть участь у голосуванні відділів та фіксуйте рішення.</p>
-          <div class="meta">Відкрити <span class="count">Робочі групи</span></div>
-        </a>
-
-        <!-- СКО-Д — тільки для зареєстрованих -->
-        <a class="hub-card span-3" href="cabinet/index.html" data-role="registered">
-          <span class="num-badge">📊</span>
-          <h3>Система СКО-Д</h3>
-          <p>Вносьте щоденну діяльність та переглядайте індивідуальні й відділові звіти.</p>
-          <div class="meta">Відкрити <span class="count">Кабінет оцінки</span></div>
-        </a>
-
-        <!-- Аналітичні Новини — тільки для повного доступу -->
-        <a class="hub-card span-3" href="news/index.html" data-role="full">
-          <span class="badge-tile">
-            <img class="shield" src="assets/nszu-shield.svg" alt="" aria-hidden="true">
-          </span>
-          <h3>Аналітичні Новини</h3>
-          <p>Ексклюзивні аналітичні матеріали, огляди змін законодавства та роз'яснень.</p>
-          <div class="meta">Відкрити <span class="count">Стрічка новин</span></div>
-        </a>
-
-        <!-- Інфоцентр — тільки для повного доступу -->
-        <a class="hub-card span-3" href="infocenter/index.html" data-role="full">
-          <span class="num-badge">📡</span>
-          <h3>Інфоцентр</h3>
-          <p>Автоматичний моніторинг політичних, медичних, юридичних і фінансових новин та детальний аналіз YouTube-каналів МІС.</p>
-          <div class="meta">Відкрити <span class="count">Новини + YouTube</span></div>
-        </a>
-
-        <!-- Робочий чат — тільки для повного доступу -->
-        <a class="hub-card span-3" href="chat/index.html" data-role="full">
-          <span class="num-badge">💬</span>
-          <h3>Робочий чат</h3>
-          <p>Прямий оперативний зв'язок з експертами Департаменту в реальному часі.</p>
-          <div class="meta">Відкрити <span class="count">Онлайн чат</span></div>
-        </a>
-
-        <!-- Хвилинка відпочинку — тільки для зареєстрованих експертів -->
-        <a class="hub-card span-3" href="relax/index.html" data-role="registered">
-          <span class="num-badge">🧘</span>
-          <h3>Хвилинка відпочинку</h3>
-          <p>Скиньте робочу напругу: дізнайтеся ваш кумедний астропрогноз на сьогодні, зробіть дихальну вправу або увімкніть звуки природи.</p>
-          <div class="meta">Відкрити <span class="count">Релакс-кабінет</span></div>
-        </a>
-
-      </div>
-    </div>
-  </section>
-
-  <!-- ── Department ───────────────────────────────────── -->
-  <section class="dept" id="dept">
-    <div class="wrap dept-inner">
-      <div>
-        <h2>Зроблено в Департаменті — для комфортної щоденної роботи колег</h2>
-        <p>Робочий простір розроблено силами нашого Департаменту для комфортної щоденної роботи колег та експертів НСЗУ, щоб знаходити потрібну норму, вимогу пакетів чи тариф за лічені секунди.</p>
-        <p>Уся інформація походить з офіційного архіву документів НСЗУ та
-           оновлюється разом із програмою.</p>
-        <div class="pills">
-          <span>Без зовнішнього сприяння</span>
-          <span>Офіційні джерела</span>
-          <span>Готові до цитування</span>
-        </div>
-      </div>
-      <div class="dept-card">
-        <div class="lab">Належність порталу</div>
-        <h3>Департамент стратегії універсального охоплення населення медичними послугами</h3>
-        <div class="org">
-          <img src="assets/nszu-shield.svg" alt="Знак НСЗУ">
-          <div>
-            <strong>НСЗУ</strong>
-            <span>Національна служба здоров'я України</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
 
   <!-- ── Footer ───────────────────────────────────────── -->
   <footer class="p-footer">
@@ -810,8 +608,8 @@
         </div>
         <div class="f-col">
           <h4>Належність</h4>
-          <a href="#dept">Департамент стратегії</a>
-          <a href="#dept">НСЗУ</a>
+          <a href="dept-tree.html">Департамент стратегії</a>
+          <a href="dept-tree.html">НСЗУ</a>
           <a href="#top">Про портал</a>
         </div>
       </div>
@@ -879,6 +677,7 @@
   }
 
   async function loadDigest() {
+    if (!document.getElementById('news-digest')) return; // секцію дайджесту прибрано з головної
     try {
       // 1. Get current session
       const { data: { session } } = await sb.auth.getSession();
