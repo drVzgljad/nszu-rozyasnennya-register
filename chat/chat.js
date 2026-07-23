@@ -6,6 +6,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = null;
 let currentUserRole = 'guest';
+let userProfile = null; // { role, Section, department } поточного користувача
 let chatMessages = [];
 let messageReactions = {}; // messageId -> Array of reaction objects
 let realtimeChannel = null;
@@ -35,12 +36,13 @@ async function init() {
   // Load user profile role
   const { data: profile, error: profileErr } = await sb
     .from('profiles')
-    .select('role')
+    .select('role, Section, department')
     .eq('id', currentUser.id)
     .single();
 
   if (!profileErr && profile) {
     currentUserRole = profile.role;
+    userProfile = profile;
   }
 
   // Load historical messages
