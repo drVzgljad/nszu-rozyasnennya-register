@@ -96,6 +96,23 @@
   box-shadow: none;
 }
 .cabinet-profile-card .planner-link-btn:hover { background: rgba(255,255,255,.24); }
+.cabinet-profile-card .assign-task-btn {
+  align-self: center;
+  padding: 11px 18px;
+  border-radius: 10px;
+  background: #fff;
+  color: #16344e;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0,0,0,.18);
+  transition: transform .15s;
+}
+.cabinet-profile-card .assign-task-btn:hover { transform: translateY(-1px); }
+@media (max-width: 640px) {
+  .cabinet-profile-card .assign-task-btn { width: 100%; text-align: center; }
+}
 
 /* ── Metrics Dashboard ──────────────────────────────── */
 .cabinet-metrics-grid {

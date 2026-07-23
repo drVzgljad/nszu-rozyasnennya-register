@@ -199,6 +199,13 @@ function renderProfileHeader() {
   if (avatarEl && userProfile.full_name) {
     avatarEl.textContent = userProfile.full_name.charAt(0).toUpperCase();
   }
+
+  // Кнопка «Надати доручення» — лише керівним ролям
+  const assignBtn = document.getElementById('assign-task-btn');
+  if (assignBtn) {
+    const MANAGER_ROLES = ['manager', 'deputy_director', 'director', 'admin'];
+    assignBtn.style.display = MANAGER_ROLES.includes(userProfile.role) ? '' : 'none';
+  }
 }
 
 async function loadDatabaseData() {

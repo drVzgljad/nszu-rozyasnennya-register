@@ -318,8 +318,66 @@
       .home-metric-lbl { display: none; }
     }
 
-    /* Кнопка «Внести виконану роботу» — показується лише в мобільному режимі залогіненого */
-    .home-work-action.log-work { display: none; }
+    /* Кнопка «Виконане завдання» — веде у форму внесення роботи (СКО-Д) */
+    .home-work-action.log-work { display: inline-flex; }
+
+    /* Рядок поточних подій планувальника */
+    .home-planner-strip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: nowrap;
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--p-line, #e2e8f0);
+    }
+    .home-planner-strip-label {
+      font-size: 12.5px;
+      font-weight: 800;
+      color: var(--p-muted, #647688);
+      flex: none;
+    }
+    .home-planner-strip-items {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      flex: 1;
+      min-width: 0;
+      padding-bottom: 2px;
+      scrollbar-width: thin;
+    }
+    .home-planner-chip {
+      flex: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 11px;
+      border-radius: 999px;
+      border: 1px solid var(--p-line, #e2e8f0);
+      background: var(--p-surface, #fff);
+      color: var(--p-ink, #0f172a);
+      font-size: 12.5px;
+      font-weight: 700;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .home-planner-chip .hp-date { color: var(--accent-deep, #2f6b9e); font-weight: 800; }
+    .home-planner-chip.is-today { border-color: var(--accent, #4a8fc7); background: var(--accent-soft, #eef6fc); }
+    .home-planner-chip.is-done { opacity: .6; text-decoration: line-through; }
+    .home-planner-chip:hover { border-color: var(--accent, #4a8fc7); transform: translateY(-1px); }
+    .home-planner-strip-all {
+      font-size: 12.5px;
+      font-weight: 800;
+      color: var(--accent-deep, #2f6b9e);
+      text-decoration: none;
+      white-space: nowrap;
+      flex: none;
+    }
+    :root.dark-theme .home-planner-chip { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+    @media (max-width: 640px) {
+      .home-planner-strip { flex-wrap: wrap; gap: 8px; }
+      .home-planner-strip-all { order: 3; }
+    }
 
     /* ── Мобільна головна залогіненого: лише шапка + панель кабінету + нижня навігація ── */
     @media (max-width: 980px) {
@@ -433,10 +491,9 @@
           <p class="home-work-subtitle" id="home-work-subtitle">Експрес-огляд доручень і списаного робочого часу</p>
         </div>
         <div class="home-work-actions">
-          <span class="home-work-role" id="home-work-role">Експерт</span>
           <a class="home-work-action primary" id="home-work-primary" href="cabinet/index.html">Відкрити кабінет</a>
           <a class="home-work-action secondary" id="home-work-secondary" href="skod/reports.html" hidden>Огляд команди</a>
-          <a class="home-work-action log-work" id="home-work-log" href="cabinet/index.html#cabinet-log-form">✍️ Внести виконану роботу</a>
+          <a class="home-work-action log-work" id="home-work-log" href="cabinet/index.html#cabinet-log-form">＋ Виконане завдання</a>
         </div>
       </div>
       <div class="home-panel-search" id="home-panel-search" hidden aria-label="Пошук у порталі"></div>
@@ -469,6 +526,11 @@
             <span class="home-metric-lbl">Списано сьогодні (СКО-Д)</span>
           </div>
         </a>
+      </div>
+      <div class="home-planner-strip" id="home-planner-strip" hidden>
+        <span class="home-planner-strip-label">🗓️ Планувальник:</span>
+        <div class="home-planner-strip-items" id="home-planner-strip-items"></div>
+        <a class="home-planner-strip-all" href="cabinet/planner.html">Відкрити →</a>
       </div>
     </div>
   </section>
@@ -994,6 +1056,28 @@
   }, true);
 
   // ── Експрес-інфоблок кабінету: активні / гарячі / прострочені / списано сьогодні
+  function renderPlannerStrip(events) {
+    const strip = document.getElementById('home-planner-strip');
+    const items = document.getElementById('home-planner-strip-items');
+    if (!strip || !items) return;
+    const list = events || [];
+    if (list.length === 0) { strip.hidden = true; items.innerHTML = ''; return; }
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const todayStr = new Date().toISOString().split('T')[0];
+    const M = ['січ', 'лют', 'бер', 'кві', 'тра', 'чер', 'лип', 'сер', 'вер', 'жов', 'лис', 'гру'];
+    items.innerHTML = list.map(e => {
+      const d = new Date(e.event_date + 'T12:00:00');
+      const isToday = e.event_date === todayStr;
+      const dateLbl = isToday ? 'Сьогодні' : `${d.getDate()} ${M[d.getMonth()]}`;
+      const time = e.start_time ? String(e.start_time).slice(0, 5) + ' ' : '';
+      const done = e.status === 'done';
+      const icon = e.meeting_link ? '🔗 ' : (e.task_id ? '📌 ' : '');
+      const cls = 'home-planner-chip' + (isToday ? ' is-today' : '') + (done ? ' is-done' : '');
+      return `<a class="${cls}" href="cabinet/planner.html"><span class="hp-date">${dateLbl}</span> ${icon}${time}${esc(e.title)}</a>`;
+    }).join('');
+    strip.hidden = false;
+  }
+
   async function loadHomeMetrics() {
     const section = document.getElementById('home-metrics');
     if (!section) return;
@@ -1039,15 +1123,14 @@
         },
         admin: {
           kicker: 'Повний доступ', title: 'Особистий кабінет', role: 'Адміністратор',
-          subtitle: 'Доручення, структура департаменту та контроль робочих сервісів',
-          primary: ['＋ Створити доручення', 'skod/tasks.html'], secondary: ['Структура департаменту', 'dept-tree.html']
+          subtitle: 'Доручення та контроль робочих сервісів',
+          primary: ['＋ Створити доручення', 'skod/tasks.html'], secondary: null
         }
       };
       const panel = rolePanels[profile.role] || rolePanels.expert;
       placeGlobalSearchForRole(profile.role);
       document.getElementById('home-work-kicker').textContent = panel.kicker;
       document.getElementById('home-work-title').textContent = panel.title;
-      document.getElementById('home-work-role').textContent = panel.role;
       document.getElementById('home-work-subtitle').textContent = panel.subtitle;
       const primaryAction = document.getElementById('home-work-primary');
       primaryAction.textContent = panel.primary[0];
@@ -1064,14 +1147,22 @@
 
       const todayStr = new Date().toISOString().split('T')[0];
 
-      const [{ data: tasks }, { data: logs }] = await Promise.all([
+      const [{ data: tasks }, { data: logs }, { data: plannerEvents }] = await Promise.all([
         sb.from('assigned_tasks')
           .select('status, deadline')
           .eq('responsible_id', session.user.id),
         sb.from('skod_logs')
           .select('duration_minutes')
           .eq('user_id', session.user.id)
-          .eq('log_date', todayStr)
+          .eq('log_date', todayStr),
+        sb.from('planner_events')
+          .select('title, event_date, start_time, status, meeting_link, task_id')
+          .eq('user_id', session.user.id)
+          .gte('event_date', todayStr)
+          .neq('status', 'cancelled')
+          .order('event_date', { ascending: true })
+          .order('start_time', { ascending: true, nullsFirst: true })
+          .limit(8)
       ]);
 
       // Та сама логіка підрахунку, що і в cabinet.js
@@ -1100,6 +1191,8 @@
 
       const overdueCard = document.querySelector('.home-metric-card.danger');
       if (overdueCard) overdueCard.classList.toggle('has-overdue', overdueCount > 0);
+
+      renderPlannerStrip(plannerEvents);
 
       section.style.display = 'block';
       // Маркер для мобільного режиму: залогіненим ховаємо все, крім панелі кабінету
