@@ -11,33 +11,24 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="stylesheet" href="../styles.css?v=20260719c">
-  <link rel="stylesheet" href="chat.css">
+  <link rel="stylesheet" href="chat.css?v=20260723a">
   <link rel="stylesheet" href="../auth-v2.css?v=20260721a">
   <script type="module" src="../auth-v2.js?v=20260722c"></script>
 </head>
 <body id="top" data-required-role="full">
-  <header class="hero chat-hero">
-    <div class="hero-copy">
-      <div class="overline">Оперативний зв'язок НСЗУ</div>
-      <div class="header-nav-row">
-        <div class="nav-row-1">
-          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
-            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
-            <div class="brand-text">
-              <div class="brand-name">НавігаторПМГ26</div>
-              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
-            </div>
-          </a>
-          <div class="auth-container"></div>
-        </div>
-        <div class="nav-row-2">
-          <nav class="section-switch" aria-label="Розділи сайту"></nav>
-        </div>
-      </div>
-      <h1>Робочий чат Департаменту</h1>
-      <p>Спілкування з експертами Департаменту стратегії та колегами в реальному часі. Ставте запитання та отримуйте оперативні відповіді.</p>
+  <header class="chat-topbar">
+    <div class="nav-row-1">
+      <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал" title="На портал">
+        <span class="chat-topbar-back" aria-hidden="true">‹</span>
+        <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+        <span class="brand-text">
+          <span class="brand-name">Робочий чат</span>
+          <span class="brand-subtitle">Департамент стратегії · НСЗУ</span>
+        </span>
+      </a>
+      <div class="auth-container"></div>
     </div>
-    <div class="stats" id="chatStats" aria-label="Статистика чату"></div>
+    <nav class="section-switch" aria-label="Розділи сайту"></nav>
   </header>
 
   <main class="chat-layout">
