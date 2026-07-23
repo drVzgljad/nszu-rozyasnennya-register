@@ -969,6 +969,50 @@ body.is-popup-window #pipToggleBtn {
   100% { transform: scale(1.1); opacity: 1; }
 }
 
+/* ── Категорії каналів (Discord-стиль) ── */
+.channels-list { max-height: none; }
+.cat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.cat-chip {
+  border: 1px solid var(--line);
+  background: var(--soft);
+  color: var(--muted);
+  border-radius: 999px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  padding: 5px 9px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.cat-chip:hover { border-color: var(--accent); color: var(--ink); }
+.cat-chip.active {
+  background: var(--accent, #4a8fc7);
+  color: #fff;
+  border-color: transparent;
+}
+.cat-header {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  padding: 10px 6px 3px;
+}
+.channel-mine {
+  color: var(--accent, #4a8fc7);
+  font-size: 9px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.channel-item.active .channel-mine { color: #fff; }
+
 /* Make online user items interactive for DM */
 .online-users-list .online-user-item {
   cursor: pointer;

@@ -1654,7 +1654,10 @@ function selectChannel(channel) {
     if (channel.type === 'group') {
       headerTitle.textContent = "Робочий чат Департаменту";
     } else if (channel.type === 'room') {
-      headerTitle.textContent = "Груповий чат: " + channel.roomName;
+      const rm = (chatRooms || []).find(r => r.id === channel.roomId);
+      headerTitle.textContent = rm && rm.is_public
+        ? `${rm.icon || '#'} ${channel.roomName}`
+        : "Група: " + channel.roomName;
     } else {
       headerTitle.textContent = "Приватний чат з " + channel.userName;
     }
@@ -1666,7 +1669,7 @@ function selectChannel(channel) {
     if (channel.type === 'group') {
       input.placeholder = "Введіть повідомлення експертам департаменту...";
     } else if (channel.type === 'room') {
-      input.placeholder = `Надіслати у групу ${channel.roomName}...`;
+      input.placeholder = `Повідомлення в ${channel.roomName}…`;
     } else {
       input.placeholder = `Надіслати приватне повідомлення для ${channel.userName}...`;
     }
@@ -1681,108 +1684,144 @@ function selectChannel(channel) {
   scrollToBottom();
 }
 
+// null = усі категорії; назва категорії; або 'private'
+let activeCatFilter = null;
+const CHANNEL_CATEGORIES = ['📢 Загальне', '📁 Відділи', '📋 Робота', '❓ Взаємодія', '☕ Позаробоче'];
+
+function makeChannelEl(room) {
+  const isLegacy = !!room.__legacy;
+  const item = document.createElement('div');
+  const isActive = isLegacy
+    ? activeChat.type === 'group'
+    : (activeChat.type === 'room' && activeChat.roomId === room.id);
+  item.className = `channel-item ${isActive ? 'active' : ''}`;
+  const unread = isLegacy ? 0 : (unreadCounts[room.id] || 0);
+  const myDept = userProfile && (userProfile.Section || userProfile.department);
+  const isMine = room.dept && myDept && room.dept === myDept;
+  const canDelete = !isLegacy && currentUser && room.created_by === currentUser.id;
+  item.innerHTML = `
+    <span class="channel-icon">${escapeHtml(room.icon || '#')}</span>
+    <span class="channel-name">${escapeHtml(room.name)}</span>
+    ${isMine ? '<span class="channel-mine" title="Ваш відділ">●</span>' : ''}
+    ${unread > 0 ? `<span class="unread-badge">🔴 ${unread}</span>` : ''}
+    ${canDelete ? `<button type="button" class="channel-delete-btn" title="Видалити канал">🗑️</button>` : ''}
+  `;
+  const del = item.querySelector('.channel-delete-btn');
+  if (del) del.addEventListener('click', (e) => { e.stopPropagation(); deleteRoom(room.id, room.name); });
+  item.addEventListener('click', () => {
+    if (isLegacy) selectChannel({ type: 'group' });
+    else selectChannel({ type: 'room', roomId: room.id, roomName: room.name });
+  });
+  return item;
+}
+
 function renderDialoguesList() {
   const list = byId("channelsList");
   if (!list) return;
-
-  // Clear everything except General main channel item
-  const mainGroup = byId("channelGroupMain");
   list.innerHTML = "";
-  if (mainGroup) {
-    // Restore main channel and toggle active class
-    mainGroup.className = `channel-item ${activeChat.type === 'group' ? 'active' : ''}`;
-    list.appendChild(mainGroup);
-  }
 
-  // Render group rooms
-  chatRooms.forEach(room => {
-    const item = document.createElement("div");
-    const isActive = activeChat.type === 'room' && activeChat.roomId === room.id;
-    item.className = `channel-item ${isActive ? 'active' : ''}`;
-    item.dataset.type = "room";
-    item.dataset.roomId = room.id;
+  // Публічні канали (chat_rooms.is_public) та приватні групи
+  const publicRooms = (chatRooms || []).filter(r => r.is_public && r.name !== 'Загальний');
+  const privateGroups = (chatRooms || []).filter(r => !r.is_public);
 
-    const unreadCount = unreadCounts[room.id] || 0;
-    const isCreator = currentUser && room.created_by === currentUser.id;
-
-    item.innerHTML = `
-      <span class="channel-icon">👥</span>
-      <span class="channel-name">${escapeHtml(room.name)}</span>
-      ${unreadCount > 0 ? `<span class="unread-badge">🔴 ${unreadCount}</span>` : ''}
-      ${isCreator ? `<button type="button" class="channel-delete-btn" title="Видалити групу">🗑️</button>` : ''}
-    `;
-
-    const deleteBtn = item.querySelector('.channel-delete-btn');
-    if (deleteBtn) {
-      deleteBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        deleteRoom(room.id, room.name);
-      });
-    }
-
-    item.addEventListener("click", () => {
-      selectChannel({
-        type: 'room',
-        roomId: room.id,
-        roomName: room.name
-      });
-    });
-
-    list.appendChild(item);
+  // Групування публічних каналів за категоріями
+  const byCat = {};
+  publicRooms.forEach(r => {
+    const c = CHANNEL_CATEGORIES.includes(r.category) ? r.category : '📋 Робота';
+    (byCat[c] = byCat[c] || []).push(r);
   });
+  // Легасі-загальний чат (уся історія) — перший канал у «📢 Загальне»
+  byCat['📢 Загальне'] = byCat['📢 Загальне'] || [];
+  byCat['📢 Загальне'].unshift({ __legacy: true, name: 'Загальний', icon: '💬', sort_order: -1 });
+  Object.values(byCat).forEach(arr => arr.sort((a, b) =>
+    (a.sort_order ?? 100) - (b.sort_order ?? 100) || (a.name || '').localeCompare(b.name || '', 'uk')));
 
-  // Find all private dialogue userIds from chatMessages
+  // Приватні діалоги (DM)
   const dialogueUserIds = new Set();
   chatMessages.forEach(m => {
     if (m.recipient_id && !m.room_id) {
-      if (m.user_id === currentUser.id) {
-        dialogueUserIds.add(m.recipient_id);
-      } else if (m.recipient_id === currentUser.id) {
-        dialogueUserIds.add(m.user_id);
-      }
+      if (m.user_id === currentUser.id) dialogueUserIds.add(m.recipient_id);
+      else if (m.recipient_id === currentUser.id) dialogueUserIds.add(m.user_id);
     }
   });
+  dialogueUserIds.delete(currentUser.id);
+  const hasPrivate = privateGroups.length > 0 || dialogueUserIds.size > 0;
 
-  // Render each private dialogue channel item
-  dialogueUserIds.forEach(userId => {
-    // Skip rendering if userId matches current user
-    if (currentUser && userId === currentUser.id) return;
+  const presentCats = CHANNEL_CATEGORIES.filter(c => (byCat[c] || []).length > 0);
 
-    const userName = knownUsers[userId] || "Користувач";
-    const item = document.createElement("div");
-    
-    const isActive = activeChat.type === 'private' && activeChat.userId === userId;
-    item.className = `channel-item ${isActive ? 'active' : ''}`;
-    item.dataset.type = "private";
-    item.dataset.userId = userId;
+  // ── Чіпи-фільтри категорій ──
+  const chips = document.createElement('div');
+  chips.className = 'cat-chips';
+  const addChip = (label, val, title) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'cat-chip' + (activeCatFilter === val ? ' active' : '');
+    b.textContent = label;
+    if (title) b.title = title;
+    b.addEventListener('click', () => {
+      activeCatFilter = (activeCatFilter === val) ? null : val;
+      renderDialoguesList();
+    });
+    chips.appendChild(b);
+  };
+  addChip('Всі', null, 'Усі канали');
+  presentCats.forEach(c => addChip(c.split(' ')[0], c, c));
+  if (hasPrivate) addChip('👤', 'private', 'Приватні');
+  list.appendChild(chips);
 
-    const unreadCount = unreadCounts[userId] || 0;
-    
-    item.innerHTML = `
-      <span class="channel-icon">👤</span>
-      <span class="channel-name">${escapeHtml(userName)}</span>
-      ${unreadCount > 0 ? `<span class="unread-badge">🔴 ${unreadCount}</span>` : ''}
-      <button type="button" class="channel-delete-btn" title="Видалити діалог">🗑️</button>
-    `;
+  // ── Публічні канали за категоріями ──
+  presentCats.forEach(cat => {
+    if (activeCatFilter !== null && activeCatFilter !== cat) return;
+    const h = document.createElement('div');
+    h.className = 'cat-header';
+    h.textContent = cat;
+    list.appendChild(h);
+    byCat[cat].forEach(room => list.appendChild(makeChannelEl(room)));
+  });
 
-    const deleteBtn = item.querySelector('.channel-delete-btn');
-    if (deleteBtn) {
-      deleteBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        deletePrivateDialogue(userId, userName);
-      });
-    }
+  // ── Приватні (групи + DM) ──
+  if (hasPrivate && (activeCatFilter === null || activeCatFilter === 'private')) {
+    const h = document.createElement('div');
+    h.className = 'cat-header';
+    h.textContent = '👤 Приватні';
+    list.appendChild(h);
 
-    item.addEventListener("click", () => {
-      selectChannel({
-        type: 'private',
-        userId: userId,
-        userName: userName
-      });
+    privateGroups.forEach(room => {
+      const item = document.createElement('div');
+      const isActive = activeChat.type === 'room' && activeChat.roomId === room.id;
+      item.className = `channel-item ${isActive ? 'active' : ''}`;
+      const unread = unreadCounts[room.id] || 0;
+      const isCreator = currentUser && room.created_by === currentUser.id;
+      item.innerHTML = `
+        <span class="channel-icon">👥</span>
+        <span class="channel-name">${escapeHtml(room.name)}</span>
+        ${unread > 0 ? `<span class="unread-badge">🔴 ${unread}</span>` : ''}
+        ${isCreator ? `<button type="button" class="channel-delete-btn" title="Видалити групу">🗑️</button>` : ''}
+      `;
+      const del = item.querySelector('.channel-delete-btn');
+      if (del) del.addEventListener('click', (e) => { e.stopPropagation(); deleteRoom(room.id, room.name); });
+      item.addEventListener('click', () => selectChannel({ type: 'room', roomId: room.id, roomName: room.name }));
+      list.appendChild(item);
     });
 
-    list.appendChild(item);
-  });
+    dialogueUserIds.forEach(userId => {
+      const userName = knownUsers[userId] || "Користувач";
+      const item = document.createElement('div');
+      const isActive = activeChat.type === 'private' && activeChat.userId === userId;
+      item.className = `channel-item ${isActive ? 'active' : ''}`;
+      const unread = unreadCounts[userId] || 0;
+      item.innerHTML = `
+        <span class="channel-icon">👤</span>
+        <span class="channel-name">${escapeHtml(userName)}</span>
+        ${unread > 0 ? `<span class="unread-badge">🔴 ${unread}</span>` : ''}
+        <button type="button" class="channel-delete-btn" title="Видалити діалог">🗑️</button>
+      `;
+      const del = item.querySelector('.channel-delete-btn');
+      if (del) del.addEventListener('click', (e) => { e.stopPropagation(); deletePrivateDialogue(userId, userName); });
+      item.addEventListener('click', () => selectChannel({ type: 'private', userId, userName }));
+      list.appendChild(item);
+    });
+  }
 }
 
 async function loadRooms() {
