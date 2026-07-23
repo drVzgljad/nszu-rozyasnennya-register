@@ -488,7 +488,18 @@
       body.home-logged-in .home-dashboard-shell > .hero .hero-inner {
         padding: 18px 0 !important; max-width: none !important;
       }
-      body.home-logged-in .hero-main-logo { display: none !important; }
+      body.home-logged-in .home-dashboard-shell > .hero .hero-main-row {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 18px !important;
+      }
+      body.home-logged-in .hero-main-logo {
+        order: -1;
+        flex: none !important;
+        min-width: 0 !important;
+        padding-top: 0 !important;
+      }
+      body.home-logged-in .hero-main-logo img { max-width: 118px !important; }
       body.home-logged-in .home-metrics-section {
         grid-column: 2; grid-row: 1;
         background: rgba(255, 255, 255, 0.72);
