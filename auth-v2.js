@@ -395,13 +395,14 @@ function applyAccess() {
   const isHomePage = !isInSubdir && document.getElementById('home-metrics') !== null;
   const isCabinetPage = currentPath.includes('cabinet');
   const isTasksPage = currentPath.includes('skod/tasks') || currentPath.includes('skod/reports');
+  const isMapPage = currentPath.includes('/map/') || currentPath.endsWith('/map');
 
   let alertBanner = document.getElementById('user-news-alert-banner');
   if (header) {
     if (!user || role === 'guest' || currentPath.includes('passport')) {
       if (alertBanner) alertBanner.remove();
     } else {
-      if (!isHomePage && !isCabinetPage && !isTasksPage) {
+      if (!isHomePage && !isCabinetPage && !isTasksPage && !isMapPage) {
         dashboard = document.createElement('div');
         dashboard.id = 'user-task-dashboard';
         dashboard.className = 'user-task-dashboard';
