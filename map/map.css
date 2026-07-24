@@ -365,5 +365,32 @@
 @media (max-width: 720px) {
   .tree-toolbar { flex-direction: column; align-items: stretch; }
   .tree-hint { text-align: center; }
-  .tree-actions { justify-content: center; }
+  .tree-actions { justify-content: center; flex-wrap: wrap; }
+}
+
+/* ── Повноекранний режим дерева ────────────────────────── */
+.tree-fs-btn { font-weight: 800; }
+body.tree-fs-lock { overflow: hidden; }
+#view-tree-panel.is-fs {
+  position: fixed; inset: 0; z-index: 9999; margin: 0;
+  padding: 60px clamp(16px, 3vw, 40px) 28px;
+  background: var(--p-page); overflow: auto;
+  animation: fsIn .25s ease both;
+}
+@keyframes fsIn { from { opacity: 0; transform: scale(.99); } to { opacity: 1; transform: none; } }
+#view-tree-panel.is-fs .tree-scroll { overflow: auto; padding-bottom: 40px; }
+#view-tree-panel.is-fs .tree-stage { margin: 0 auto; }
+
+.tree-exit-fs {
+  position: fixed; top: 14px; right: 18px; z-index: 10000;
+  border: 1px solid var(--p-line); background: var(--p-surface); color: var(--p-ink);
+  font-family: var(--p-display); font-weight: 700; font-size: 13.5px;
+  padding: 8px 16px; border-radius: var(--pr-pill); cursor: pointer;
+  box-shadow: var(--p-shadow); display: inline-flex; align-items: center;
+}
+.tree-exit-fs:hover { border-color: var(--accent); color: var(--accent-deep); }
+.tree-exit-fs kbd {
+  font-family: var(--p-display); font-size: 11px; background: var(--p-soft);
+  border: 1px solid var(--p-line); border-bottom-width: 2px; border-radius: 5px;
+  padding: 1px 6px;
 }

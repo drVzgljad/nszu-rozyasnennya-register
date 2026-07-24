@@ -12,7 +12,7 @@
   <meta name="description" content="Інтерактивний путівник по всіх розділах порталу НавігаторПМГ26: що це, для кого і як користуватися.">
   <link rel="stylesheet" href="../portal.css?v=20260719h">
   <link rel="stylesheet" href="../auth-v2.css?v=20260721a">
-  <link rel="stylesheet" href="map.css?v=20260724b">
+  <link rel="stylesheet" href="map.css?v=20260724c">
   <script type="module" src="../auth-v2.js?v=20260724c"></script>
 </head>
 <body>
@@ -123,8 +123,10 @@
         <div class="tree-actions">
           <button type="button" id="tree-expand" class="map-chip">Розгорнути все</button>
           <button type="button" id="tree-collapse" class="map-chip">Згорнути все</button>
+          <button type="button" id="tree-fullscreen" class="map-chip tree-fs-btn">⛶ На весь екран</button>
         </div>
       </div>
+      <button type="button" id="tree-exit-fs" class="tree-exit-fs" hidden aria-label="Вийти з повноекранного режиму">✕&nbsp; Згорнути&nbsp; <kbd>Esc</kbd></button>
       <div class="tree-scroll">
         <div id="map-tree-stage" class="tree-stage"></div>
       </div>
@@ -139,6 +141,6 @@
 </div>
 
 <script src="map.js?v=20260724b"></script>
-<script src="tree.js?v=20260724b"></script>
+<script src="tree.js?v=20260724c"></script>
 </body>
 </html>
