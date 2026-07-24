@@ -20,7 +20,7 @@ let isHead = false;
 // відносні посилання на кореневі ресурси потребують префікса '../'.
 const PORTAL_SUBDIRS = [
   'algorithms', 'cabinet', 'chat', 'dec', 'expert-proposals', 'infocenter',
-  'news', 'pakety', 'passport', 'pmg-proposals', 'postanova', 'regulatory',
+  'map', 'news', 'pakety', 'passport', 'pmg-proposals', 'postanova', 'regulatory',
   'relax', 'reminders', 'skod', 'zoz-dogovr', 'zoz-questions'
 ];
 
@@ -259,6 +259,7 @@ function applyAccess() {
 
     const coreItems = [
       { text: 'Головна', path: 'index.html' },
+      { text: '🗺️ Карта', path: 'map/index.html' },
       { text: 'Роз\'яснення', path: 'rozjasnennya.html' },
       { text: 'Пакети 2026', path: 'pakety/index.html' },
       { text: 'Паспорт пакета', path: 'passport/index.html' }
@@ -2026,6 +2027,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
 
   // Повний список розділів для шторки «Ще»
   const moreSections = [
+    { icon: '🗺️', label: 'Карта порталу', path: 'map/index.html' },
     { icon: '📄', label: 'Роз\'яснення', path: 'rozjasnennya.html' },
     { icon: '💡', label: 'AI-пошук', path: 'rozjasnennya_semantic.html' },
     { icon: '📦', label: 'Пакети 2026', path: 'pakety/index.html' },

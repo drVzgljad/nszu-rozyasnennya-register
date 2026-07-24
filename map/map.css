@@ -1,0 +1,260 @@
+/* ============================================================
+   Карта порталу — стилі путівника.
+   Побудовано на змінних portal.css → темна тема автоматична.
+   ============================================================ */
+
+/* ── Hero ─────────────────────────────────────────────── */
+.map-hero {
+  background: var(--brand-grad);
+  border-bottom: 1px solid var(--p-line);
+  padding: clamp(28px, 5vw, 56px) 0 clamp(24px, 4vw, 40px);
+  position: relative;
+  overflow: hidden;
+}
+.map-hero-inner { position: relative; z-index: 1; max-width: 940px; }
+.map-kicker {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--p-display); font-weight: 700; font-size: 13px;
+  letter-spacing: .04em; text-transform: uppercase;
+  color: var(--accent-deep);
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  padding: 6px 14px; border-radius: var(--pr-pill);
+  box-shadow: var(--p-shadow-sm);
+}
+.map-h1 {
+  font-family: var(--p-display); font-weight: 800;
+  font-size: clamp(30px, 5vw, 46px); line-height: 1.05;
+  margin: 16px 0 10px; color: var(--p-ink);
+  letter-spacing: -.02em;
+}
+.map-sub {
+  font-size: clamp(15px, 1.6vw, 18px); line-height: 1.55;
+  color: var(--p-muted); margin: 0 0 20px; max-width: 720px;
+}
+.map-sub strong { color: var(--p-ink); font-weight: 700; }
+
+.map-metrics {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  font-size: 14px; color: var(--p-muted); margin-bottom: 22px;
+}
+.map-metric b { color: var(--accent-deep); font-family: var(--p-display); font-size: 17px; }
+.map-metric-sep { color: var(--p-faint); }
+
+/* ── Панель керування ─────────────────────────────────── */
+.map-controls {
+  display: flex; flex-direction: column; gap: 14px;
+  background: var(--p-surface);
+  border: 1px solid var(--p-line);
+  border-radius: var(--pr-card);
+  padding: 18px;
+  box-shadow: var(--p-shadow-sm);
+}
+.map-search-wrap { position: relative; display: flex; align-items: center; }
+.map-search-ico {
+  position: absolute; left: 16px; font-size: 17px; opacity: .7; pointer-events: none;
+}
+#map-search {
+  width: 100%; border: 1.5px solid var(--p-line); border-radius: var(--pr-pill);
+  padding: 13px 18px 13px 46px; font: inherit; font-size: 15px;
+  color: var(--p-ink); background: var(--p-soft);
+  transition: border-color .15s, box-shadow .15s;
+}
+#map-search::placeholder { color: var(--p-faint); }
+#map-search:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+  background: var(--p-surface);
+}
+
+.map-filter-group {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.map-filter-label {
+  font-size: 13px; font-weight: 700; color: var(--p-muted);
+  font-family: var(--p-display); margin-right: 2px;
+}
+.map-chip {
+  border: 1.5px solid var(--p-line); background: var(--p-surface);
+  color: var(--p-ink); font: inherit; font-size: 13.5px; font-weight: 600;
+  padding: 7px 14px; border-radius: var(--pr-pill); cursor: pointer;
+  transition: all .15s; white-space: nowrap;
+}
+.map-chip:hover { border-color: var(--accent); color: var(--accent-deep); }
+.map-chip.is-active {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+  box-shadow: 0 4px 12px var(--accent-soft);
+}
+.map-chip.mis.is-active { background: var(--accent-2); border-color: var(--accent-2); }
+
+.map-lock-note {
+  margin: 14px 0 0; font-size: 13.5px; color: var(--p-muted);
+  background: var(--accent-soft); border: 1px dashed var(--p-line);
+  padding: 9px 14px; border-radius: var(--pr-chip); display: inline-block;
+}
+
+/* ── Основна область ──────────────────────────────────── */
+.map-main { padding: clamp(28px, 4vw, 44px) 32px clamp(40px, 6vw, 70px); }
+.map-clusters { display: flex; flex-direction: column; gap: clamp(28px, 4vw, 44px); }
+
+/* ── Кластер ──────────────────────────────────────────── */
+.map-cluster { scroll-margin-top: 90px; }
+.mcl-head {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center;
+  gap: 14px; padding-bottom: 14px; margin-bottom: 18px;
+  border-bottom: 2px solid var(--p-line);
+}
+.mcl-ico {
+  font-size: 26px; width: 50px; height: 50px; display: grid; place-items: center;
+  background: var(--accent-soft); border-radius: 14px;
+}
+.mcl-title {
+  font-family: var(--p-display); font-weight: 800; font-size: clamp(19px, 2.4vw, 24px);
+  margin: 0; color: var(--p-ink); letter-spacing: -.01em;
+}
+.mcl-count {
+  font-size: 13px; font-weight: 700; color: var(--accent-deep);
+  background: var(--accent-soft); padding: 2px 9px; border-radius: var(--pr-pill);
+  vertical-align: middle; margin-left: 4px;
+}
+.mcl-lead { margin: 3px 0 0; font-size: 14px; color: var(--p-muted); line-height: 1.45; }
+.mcl-mission {
+  font-size: 12.5px; font-weight: 700; padding: 5px 12px; border-radius: var(--pr-pill);
+  white-space: nowrap; align-self: center;
+}
+
+/* ── Сітка карток ─────────────────────────────────────── */
+.map-grid {
+  display: grid; gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+}
+
+/* ── Картка розділу ───────────────────────────────────── */
+.map-card {
+  display: flex; flex-direction: column;
+  background: var(--p-surface); border: 1px solid var(--p-line);
+  border-radius: var(--pr-card); padding: 18px;
+  box-shadow: var(--p-shadow-sm);
+  transition: transform .16s, box-shadow .16s, border-color .16s;
+}
+.map-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--p-shadow); border-color: var(--accent);
+}
+.map-card.is-locked { opacity: .5; filter: saturate(.6); }
+.map-card.is-open { border-color: var(--accent); }
+
+.mc-top { display: flex; gap: 12px; align-items: flex-start; }
+.mc-ico {
+  font-size: 24px; width: 46px; height: 46px; flex: 0 0 auto;
+  display: grid; place-items: center; border-radius: 12px;
+  background: var(--accent-soft);
+}
+.mc-headings { min-width: 0; }
+.mc-title {
+  font-family: var(--p-display); font-weight: 800; font-size: 16.5px;
+  margin: 2px 0 8px; color: var(--p-ink); line-height: 1.2;
+}
+.mc-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.mc-badge {
+  font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: var(--pr-pill);
+  letter-spacing: .01em; white-space: nowrap;
+}
+.role-guest   { background: var(--g-50); color: var(--g-700); border: 1px solid var(--g-200); }
+.role-expert  { background: var(--b-50); color: var(--b-700); border: 1px solid var(--b-200); }
+.role-manager { background: #fdf3e7; color: #b4671a; border: 1px solid #f6d9b3; }
+.mis-science  { background: #eef2ff; color: #4f46b5; border: 1px solid #d5d9fb; }
+.mis-org      { background: #ecfdf5; color: #0f766e; border: 1px solid #c3ecde; }
+.mis-both     { background: var(--p-soft); color: var(--p-muted); border: 1px solid var(--p-line); }
+
+.mc-desc {
+  font-size: 14px; line-height: 1.5; color: var(--p-muted);
+  margin: 14px 0 0; flex: 1 1 auto;
+}
+
+.mc-guide {
+  margin-top: 14px; padding: 14px 16px; border-radius: var(--pr-chip);
+  background: var(--p-soft); border: 1px solid var(--p-line);
+}
+.mc-guide-title {
+  font-family: var(--p-display); font-weight: 700; font-size: 12px;
+  text-transform: uppercase; letter-spacing: .05em; color: var(--accent-deep);
+  margin-bottom: 8px;
+}
+.mc-guide ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.mc-guide li { font-size: 13.5px; line-height: 1.45; color: var(--p-ink); }
+
+.mc-actions {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-top: 16px; padding-top: 14px;
+  border-top: 1px dashed var(--p-line);
+}
+.mc-howto {
+  border: none; background: none; cursor: pointer; padding: 0;
+  font: inherit; font-size: 13.5px; font-weight: 700; color: var(--p-muted);
+  display: inline-flex; align-items: center; gap: 5px;
+  transition: color .15s;
+}
+.mc-howto::before { content: "❔"; font-size: 13px; }
+.mc-howto:hover { color: var(--accent-deep); }
+.mc-open {
+  font-family: var(--p-display); font-weight: 700; font-size: 13.5px;
+  color: #fff; background: var(--accent); text-decoration: none;
+  padding: 8px 16px; border-radius: var(--pr-pill);
+  transition: background .15s, transform .1s;
+}
+.mc-open:hover { background: var(--accent-deep); transform: translateX(2px); }
+.mc-open-static {
+  background: var(--p-soft); color: var(--p-muted); border: 1px solid var(--p-line);
+}
+
+/* ── Порожньо ─────────────────────────────────────────── */
+.map-empty {
+  text-align: center; padding: 60px 20px; font-size: 16px; color: var(--p-muted);
+  background: var(--p-surface); border: 1px dashed var(--p-line); border-radius: var(--pr-card);
+}
+
+/* ── Легенда ──────────────────────────────────────────── */
+.map-legend {
+  margin-top: clamp(30px, 5vw, 48px); padding: 18px 22px;
+  background: var(--p-soft); border: 1px solid var(--p-line);
+  border-radius: var(--pr-card);
+}
+.map-legend-title {
+  font-family: var(--p-display); font-weight: 800; font-size: 13px;
+  text-transform: uppercase; letter-spacing: .05em; color: var(--p-ink); margin-bottom: 12px;
+}
+.map-legend-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.map-legend-note { margin: 6px 0 0; font-size: 13px; color: var(--p-muted); line-height: 1.5; }
+.map-legend-note kbd {
+  font-family: var(--p-display); font-size: 11px; background: var(--p-surface);
+  border: 1px solid var(--p-line); border-bottom-width: 2px; border-radius: 6px;
+  padding: 1px 6px; color: var(--p-ink);
+}
+
+/* ── Футер ────────────────────────────────────────────── */
+.map-foot {
+  border-top: 1px solid var(--p-line); padding: 22px 0;
+  font-size: 13px; color: var(--p-faint); text-align: center;
+}
+
+/* ── Адаптив ──────────────────────────────────────────── */
+@media (max-width: 720px) {
+  .mcl-head { grid-template-columns: auto 1fr; }
+  .mcl-mission { grid-column: 2; justify-self: start; margin-top: 4px; }
+  .map-main { padding-inline: 18px; }
+  .map-metrics { font-size: 13px; }
+  .map-filter-group { gap: 6px; }
+  .map-filter-label { width: 100%; margin-bottom: 2px; }
+}
+@media (max-width: 480px) {
+  .map-chip { font-size: 12.5px; padding: 6px 11px; }
+  .mc-actions { flex-direction: column; align-items: stretch; }
+  .mc-open { text-align: center; }
+}
+
+/* ── Точкові правки темної теми (те, що не покривають змінні) ── */
+:root.dark-theme .role-manager { background: #3a2a12; color: #f0b878; border-color: #6b4a1e; }
+:root.dark-theme .mis-science  { background: #23204a; color: #b9b6f0; border-color: #3d3a7a; }
+:root.dark-theme .mis-org      { background: #10352c; color: #7fe3c2; border-color: #1e5a48; }
+:root.dark-theme .map-chip.is-active { color: #06232f; }

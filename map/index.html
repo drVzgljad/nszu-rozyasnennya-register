@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Карта порталу — путівник по НавігаторПМГ26</title>
+  <meta name="description" content="Інтерактивний путівник по всіх розділах порталу НавігаторПМГ26: що це, для кого і як користуватися.">
+  <link rel="stylesheet" href="../portal.css?v=20260719h">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260721a">
+  <link rel="stylesheet" href="map.css?v=20260724a">
+  <script type="module" src="../auth-v2.js?v=20260724a"></script>
+</head>
+<body>
+<div class="portal">
+
+  <!-- ── Портальна шапка ─────────────────────────────── -->
+  <header class="top">
+    <div class="wrap top-inner">
+      <div class="top-row-1">
+        <a class="lockup" href="../index.html" aria-label="На головну">
+          <img class="shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true" style="width:44px;height:auto">
+          <span class="wm">
+            <span class="wm-1">Робочий простір експертів</span>
+            <span class="wm-2">Програма медичних гарантій 2026</span>
+          </span>
+        </a>
+        <div class="top-row-1-right">
+          <nav class="section-switch top-auth" aria-label="Авторизація"></nav>
+          <span class="agency-chip">
+            <img src="../assets/nszu-shield.svg" alt="">НСЗУ
+          </span>
+        </div>
+      </div>
+      <div class="top-row-2">
+        <nav class="top-nav" aria-label="Головне меню"></nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Hero + панель керування ─────────────────────── -->
+  <section class="map-hero">
+    <div class="wrap">
+      <div class="map-hero-inner">
+        <span class="map-kicker">🗺️ Путівник по системі</span>
+        <h1 class="map-h1">Карта порталу</h1>
+        <p class="map-sub">
+          Повний огляд усіх розділів <strong>НавігаторПМГ26</strong> — що це,
+          для кого і як користуватися. Оберіть розділ, щоб перейти,
+          або розгорніть коротку інструкцію.
+        </p>
+
+        <div class="map-metrics">
+          <span class="map-metric"><b id="map-stat-total">—</b> розділів</span>
+          <span class="map-metric-sep">·</span>
+          <span class="map-metric"><b id="map-stat-shown">—</b> показано</span>
+          <span class="map-metric-sep">·</span>
+          <span class="map-metric"><b>5</b> напрямів</span>
+        </div>
+
+        <!-- Панель керування -->
+        <div class="map-controls">
+          <div class="map-search-wrap">
+            <span class="map-search-ico" aria-hidden="true">🔍</span>
+            <input id="map-search" type="search" placeholder="Пошук розділу: «доручення», «тарифи», «пакети»…" autocomplete="off" aria-label="Пошук розділу">
+          </div>
+
+          <div class="map-filter-group" role="group" aria-label="Фільтр за доступом">
+            <span class="map-filter-label">Показати для:</span>
+            <button type="button" class="map-chip" data-role-filter="guest">👋 Гість</button>
+            <button type="button" class="map-chip" data-role-filter="expert">🧑‍💼 Співробітник</button>
+            <button type="button" class="map-chip" data-role-filter="manager">👔 Керівництво</button>
+          </div>
+
+          <div class="map-filter-group" role="group" aria-label="Фільтр за напрямом">
+            <span class="map-filter-label">Місія:</span>
+            <button type="button" class="map-chip mis" data-mission-filter="science">🔬 Наукова</button>
+            <button type="button" class="map-chip mis" data-mission-filter="org">🗂️ Організаційна</button>
+          </div>
+        </div>
+        <p id="map-lock-note" class="map-lock-note" hidden></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Кластери розділів ───────────────────────────── -->
+  <main class="wrap map-main">
+    <div id="map-clusters" class="map-clusters"></div>
+
+    <aside class="map-legend">
+      <div class="map-legend-title">Умовні позначення</div>
+      <div class="map-legend-row">
+        <span class="mc-badge role-guest">Відкрито всім</span>
+        <span class="mc-badge role-expert">Співробітникам</span>
+        <span class="mc-badge role-manager">Керівництву</span>
+      </div>
+      <div class="map-legend-row">
+        <span class="mc-badge mis-science">🔬 Наукова</span>
+        <span class="mc-badge mis-org">🗂️ Організаційна</span>
+        <span class="mc-badge mis-both">🔗 Наскрізна</span>
+      </div>
+      <p class="map-legend-note">
+        Розділи з позначкою «Співробітникам» / «Керівництву» відкриваються після входу
+        з відповідними правами. Натисніть <kbd>Ctrl</kbd>+<kbd>K</kbd> будь-де для швидкого пошуку.
+      </p>
+    </aside>
+  </main>
+
+  <footer class="map-foot">
+    <div class="wrap">
+      НавігаторПМГ26 · Департамент стратегії універсального охоплення населення медичними послугами · НСЗУ
+    </div>
+  </footer>
+</div>
+
+<script src="map.js?v=20260724a"></script>
+</body>
+</html>
