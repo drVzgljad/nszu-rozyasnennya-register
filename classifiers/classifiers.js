@@ -31,11 +31,13 @@
     batchCopy: $("#nkBatchCopy"), batchClear: $("#nkBatchClear"),
   };
   let lastBatchFound = [];   // [{term, code, name}] для «Копіювати знайдене»
+  let readerEmptyHTML = "";  // початковий вміст паспорта (для «Очистити форму»)
 
   // ══════════════════════════════════════════════════════════
   // Завантаження
   // ══════════════════════════════════════════════════════════
   async function boot() {
+    readerEmptyHTML = el.reader.innerHTML;
     try {
       META = await fetch("data/nk025_meta.json").then((r) => r.json());
     } catch (e) {
@@ -199,10 +201,7 @@
     });
     el.onlyPmg.addEventListener("change", runSearch);
     el.level.addEventListener("change", runSearch);
-    el.clear.addEventListener("click", () => {
-      el.search.value = ""; el.onlyPmg.checked = false; el.level.value = "";
-      runSearch(); el.search.focus();
-    });
+    el.clear.addEventListener("click", resetForm);
     // Пакетний пошук
     el.batchRun.addEventListener("click", () => {
       if (!indexReady) { el.count.textContent = "Індекс ще вантажиться…"; return; }
@@ -234,7 +233,6 @@
     const onlyPmg = el.onlyPmg.checked;
     const lvl = el.level.value ? +el.level.value : 0;
     const active = raw.length >= 1 || onlyPmg || lvl;
-    el.clear.hidden = !active;
 
     if (!active) {
       el.results.hidden = true; el.batchCopy.hidden = true; lastBatchFound = [];
@@ -345,7 +343,6 @@
     el.count.textContent = `Пакетно: ${terms.length} запит(ів) · збіги у ${foundTerms}/${terms.length} · усього ${nf(totalMatches)}`;
     el.results.innerHTML = blocks.join("");
     el.results.hidden = false;
-    el.clear.hidden = false;
     el.batchCopy.hidden = lastBatchFound.length === 0;
   }
 
@@ -457,6 +454,25 @@
   // ══════════════════════════════════════════════════════════
   // Допоміжне
   // ══════════════════════════════════════════════════════════
+  // Повне скидання форми: пошук, фільтри, каскад, пакетне поле, результати, паспорт
+  function resetForm() {
+    el.search.value = ""; el.onlyPmg.checked = false; el.level.value = "";
+    el.batch.value = ""; lastBatchFound = []; el.batchCopy.hidden = true;
+    el.selClass.value = "";
+    resetSel(el.selBlock, "оберіть клас");
+    resetSel(el.selL3, "оберіть діапазон");
+    resetSel(el.selL4, "оберіть код 1-го порядку");
+    resetSel(el.selL5, "оберіть код 2-го порядку");
+    el.results.hidden = true; el.results.innerHTML = "";
+    el.reader.classList.add("reader-empty");
+    el.reader.innerHTML = readerEmptyHTML;
+    el.count.textContent = indexReady
+      ? nf(INDEX.length) + " кодів · оберіть клас або введіть запит"
+      : "Завантаження…";
+    setTab("browser");
+    el.search.focus();
+  }
+
   function markActive(row) {
     $$(".rrow.active").forEach((r) => r.classList.remove("active"));
     row.classList.add("active");

@@ -262,14 +262,14 @@ function applyAccess() {
       { text: '🗺️ Карта', path: 'map/index.html' },
       { text: 'Роз\'яснення', path: 'rozjasnennya.html' },
       { text: 'Пакети 2026', path: 'pakety/index.html' },
-      { text: 'Паспорт пакета', path: 'passport/index.html' }
+      { text: 'Паспорт пакета', path: 'passport/index.html' },
+      { text: '🩺 Класифікатори', path: 'classifiers/index.html' }
     ];
 
     // Довідково-нормативні розділи — згруповані в дропдаун «Документи»
     const documentsItems = [
       { text: 'Постанова 1808', path: 'postanova/index.html' },
       { text: 'Алгоритми та правила (наказ 377)', path: 'algorithms/index.html' },
-      { text: 'Класифікатор хвороб (НК 025)', path: 'classifiers/index.html' },
       { text: 'Нормативна база', path: 'regulatory/index.html' },
       { text: 'ДЕЦ МОЗ', path: 'dec/index.html' },
       { text: 'Укладені договори', path: 'zoz-dogovr/index.html' }

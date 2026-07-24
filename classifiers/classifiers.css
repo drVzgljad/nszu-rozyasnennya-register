@@ -6,7 +6,7 @@
 .classifiers-hero .overline { letter-spacing: .04em; }
 .classifiers-hero .stats { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
 .classifiers-hero .stat {
-  background: rgba(255, 255, 255, .72); border: 1px solid var(--line);
+  background: var(--surface); border: 1px solid var(--line);
   border-radius: 12px; padding: 8px 14px; min-width: 92px;
   display: flex; flex-direction: column; box-shadow: var(--shadow);
 }
@@ -35,11 +35,11 @@
   width: 100%; padding: 11px 14px; border: 1px solid var(--line); border-radius: 11px;
   font-size: 1rem; background: var(--soft); color: var(--ink);
 }
-.nk-search .search input:focus { outline: 2px solid var(--accent); background: #fff; }
+.nk-search .search input:focus { outline: 2px solid var(--accent); background: var(--surface); }
 .nk-filters { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-top: 10px; }
 .nk-check { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--ink); cursor: pointer; }
 .nk-level { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted); }
-.nk-level select { padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
+.nk-level select { padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
 .results-summary { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 10px; }
 #nkCount { font-size: .82rem; color: var(--muted); }
 #nkClear {
@@ -55,7 +55,7 @@
 .casc-field select {
   width: 100%; max-width: 100%; box-sizing: border-box;
   padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px;
-  background: #fff; color: var(--ink); font-size: .9rem; cursor: pointer;
+  background: var(--surface); color: var(--ink); font-size: .9rem; cursor: pointer;
   text-overflow: ellipsis;
 }
 .casc-field select:disabled { background: var(--soft); color: var(--muted); cursor: not-allowed; }
@@ -72,7 +72,7 @@
   border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px;
   font: inherit; font-size: .86rem; line-height: 1.4; background: var(--soft); color: var(--ink);
 }
-.nk-batch textarea:focus { outline: 2px solid var(--accent); background: #fff; }
+.nk-batch textarea:focus { outline: 2px solid var(--accent); background: var(--surface); }
 .batch-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 4px; }
 .batch-actions button {
   border: 1px solid var(--line); background: var(--soft); color: var(--accent-dark);
@@ -151,7 +151,7 @@
 .rrow .rmain { display: flex; flex-direction: column; gap: 1px; flex: 1 1 auto; }
 .rrow .rmeta { font-size: .72rem; color: var(--muted); }
 .rrow.lvl-5 .tcode.code { color: var(--teal-dark); background: var(--warm); }
-.rrow.lvl-4 .tcode.code { color: var(--accent); background: #eef6fc; }
+.rrow.lvl-4 .tcode.code { color: var(--accent); background: var(--accent-soft); }
 
 /* ── Паспорт коду ──────────────────────────────────────────── */
 .nk-reader {
@@ -200,8 +200,8 @@
 .pk-pkg:hover { background: var(--teal-dark); }
 .badge-row { display: flex; gap: 6px; margin-top: 8px; }
 .pk-badge { font-size: .72rem; border-radius: 20px; padding: 2px 9px; border: 1px solid var(--line); color: var(--muted); }
-.pk-badge.ad { background: #eef6fc; color: var(--accent-dark); border-color: #cfe4f4; }
-.pk-badge.ch { background: var(--warm); color: var(--teal-dark); border-color: #cfeadd; }
+.pk-badge.ad { background: var(--accent-soft); color: var(--accent-dark); border-color: var(--line); }
+.pk-badge.ch { background: var(--warm); color: var(--teal-dark); border-color: var(--line); }
 .pmg-none .muted, .muted { color: var(--muted); font-size: .86rem; line-height: 1.5; }
 
 .link-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
@@ -214,7 +214,7 @@
 .xico { font-size: 1.05rem; }
 
 .subchip {
-  border: 1px solid var(--line); background: #fff; border-radius: 9px; padding: 5px 10px;
+  border: 1px solid var(--line); background: var(--soft); border-radius: 9px; padding: 5px 10px;
   font-size: .82rem; color: var(--ink); cursor: pointer; text-align: left; max-width: 100%;
 }
 .subchip:hover { background: var(--accent-soft); border-color: var(--accent); }
@@ -240,3 +240,8 @@
   .nk-layout[data-active="reader"] .nk-browser { display: none; }
   .nk-tree, .nk-results { max-height: none; }
 }
+
+/* ── Темна тема: елементи з власними тонами ─────────────────── */
+:root.dark-theme .batch-head.nomatch { background: rgba(220, 60, 60, .18); color: #fca5a5; }
+:root.dark-theme .batch-head.nomatch .batch-badge { color: #fca5a5; }
+:root.dark-theme .reader-code { color: #0b1220; }
