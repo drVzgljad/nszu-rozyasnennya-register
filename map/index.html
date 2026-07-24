@@ -12,7 +12,7 @@
   <meta name="description" content="Інтерактивний путівник по всіх розділах порталу НавігаторПМГ26: що це, для кого і як користуватися.">
   <link rel="stylesheet" href="../portal.css?v=20260719h">
   <link rel="stylesheet" href="../auth-v2.css?v=20260721a">
-  <link rel="stylesheet" href="map.css?v=20260724a">
+  <link rel="stylesheet" href="map.css?v=20260724b">
   <script type="module" src="../auth-v2.js?v=20260724b"></script>
 </head>
 <body>
@@ -62,8 +62,14 @@
           <span class="map-metric"><b>5</b> напрямів</span>
         </div>
 
+        <!-- Перемикач вигляду -->
+        <div class="view-switch" role="tablist" aria-label="Вигляд">
+          <button type="button" id="view-cards" class="view-btn is-active" role="tab" aria-selected="true">🗂️ Картки</button>
+          <button type="button" id="view-tree" class="view-btn" role="tab" aria-selected="false">🌳 Дерево</button>
+        </div>
+
         <!-- Панель керування -->
-        <div class="map-controls">
+        <div class="map-controls" id="map-controls-panel">
           <div class="map-search-wrap">
             <span class="map-search-ico" aria-hidden="true">🔍</span>
             <input id="map-search" type="search" placeholder="Пошук розділу: «доручення», «тарифи», «пакети»…" autocomplete="off" aria-label="Пошук розділу">
@@ -89,6 +95,7 @@
 
   <!-- ── Кластери розділів ───────────────────────────── -->
   <main class="wrap map-main">
+    <div id="view-cards-panel">
     <div id="map-clusters" class="map-clusters"></div>
 
     <aside class="map-legend">
@@ -108,6 +115,20 @@
         з відповідними правами. Натисніть <kbd>Ctrl</kbd>+<kbd>K</kbd> будь-де для швидкого пошуку.
       </p>
     </aside>
+    </div><!-- /view-cards-panel -->
+
+    <section id="view-tree-panel" class="view-tree-panel" hidden>
+      <div class="tree-toolbar">
+        <span class="tree-hint">🌳 Клацніть кластер, щоб згорнути / розгорнути гілку; клацніть розділ, щоб перейти в нього.</span>
+        <div class="tree-actions">
+          <button type="button" id="tree-expand" class="map-chip">Розгорнути все</button>
+          <button type="button" id="tree-collapse" class="map-chip">Згорнути все</button>
+        </div>
+      </div>
+      <div class="tree-scroll">
+        <div id="map-tree-stage" class="tree-stage"></div>
+      </div>
+    </section>
   </main>
 
   <footer class="map-foot">
@@ -117,6 +138,7 @@
   </footer>
 </div>
 
-<script src="map.js?v=20260724a"></script>
+<script src="map.js?v=20260724b"></script>
+<script src="tree.js?v=20260724b"></script>
 </body>
 </html>
