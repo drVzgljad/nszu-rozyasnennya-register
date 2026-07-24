@@ -1,7 +1,7 @@
 /* ============================================================
    Класифікатор хвороб НК 025:2021 (ICD-10-AM) — фронтенд.
-   Дерево (Клас → Блок → Рубрика → Підрубрика) + миттєвий пошук
-   + паспорт коду з прив'язками до пакетів ПМГ і суміжних розділів.
+   Каскадна навігація (Клас → Діапазон → Код 1/2/3 порядку)
+   + миттєвий текстовий пошук + паспорт коду з прив'язками.
    Vanilla JS. Дані: data/nk025_meta.json + data/nk025_index.json.
    ============================================================ */
 (function () {
@@ -11,8 +11,8 @@
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const ROMAN = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X",
     "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX", "XXI", "XXII"];
-  const LEVEL_LABEL = { 3: "Рубрика", 4: "Підрубрика", 5: "Деталізований код" };
-  const nf = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  const LEVEL_LABEL = { 3: "Код 1-го порядку (рубрика)", 4: "Код 2-го порядку (підрубрика)", 5: "Код 3-го порядку" };
+  const nf = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 
   let META = null, INDEX = null, indexReady = false;
   const byCode = new Map();          // code → entry
@@ -24,9 +24,13 @@
   const el = {
     stats: $("#nkStats"), search: $("#nkSearch"), onlyPmg: $("#onlyPmg"),
     level: $("#levelFilter"), count: $("#nkCount"), clear: $("#nkClear"),
-    tree: $("#nkTree"), results: $("#nkResults"), reader: $("#nkReader"),
-    layout: $(".nk-layout"),
+    results: $("#nkResults"), reader: $("#nkReader"), layout: $(".nk-layout"),
+    selClass: $("#selClass"), selBlock: $("#selBlock"),
+    selL3: $("#selL3"), selL4: $("#selL4"), selL5: $("#selL5"),
+    batch: $("#nkBatch"), batchRun: $("#nkBatchRun"),
+    batchCopy: $("#nkBatchCopy"), batchClear: $("#nkBatchClear"),
   };
+  let lastBatchFound = [];   // [{term, code, name}] для «Копіювати знайдене»
 
   // ══════════════════════════════════════════════════════════
   // Завантаження
@@ -40,7 +44,7 @@
     }
     META.classes.forEach((c) => classByNo.set(c.no, c));
     renderStats();
-    renderClassTree();
+    populateClasses();
     wireUI();
 
     fetch("data/nk025_index.json")
@@ -62,11 +66,13 @@
   }
 
   function onIndexReady() {
-    el.count.textContent = "Готово · " + nf(INDEX.length) + " кодів. Почніть вводити або розкрийте клас.";
-    // відкладений глибокий лінк ?code=
+    el.count.textContent = "Готово · " + nf(INDEX.length) + " кодів. Оберіть клас або введіть запит.";
+    // якщо діапазон уже обрано до завантаження індексу — доповнити код 1-го порядку
+    if (el.selBlock.value !== "" && el.selClass.value !== "") fillL3(+el.selClass.value, el.selBlock.value);
+    // глибокий лінк ?code= / ?q=
     const q = new URLSearchParams(location.search);
     const code = (q.get("code") || q.get("q") || "").trim().toUpperCase();
-    if (code && byCode.has(code)) { openCode(code); revealInTree(code); }
+    if (code && byCode.has(code)) { openCode(code); syncCascade(code); }
     else if (code) { el.search.value = code; runSearch(); }
   }
 
@@ -77,8 +83,8 @@
     const L = META.levels || {};
     const cards = [
       ["Класів", 22],
-      ["Рубрик", L[3] || 0],
-      ["Підрубрик", (L[4] || 0)],
+      ["1-го порядку", L[3] || 0],
+      ["2-го порядку", L[4] || 0],
       ["Усього кодів", META.total || 0],
     ];
     el.stats.innerHTML = cards.map(([k, v]) =>
@@ -87,112 +93,106 @@
   }
 
   // ══════════════════════════════════════════════════════════
-  // Дерево класів
+  // Каскадна навігація
   // ══════════════════════════════════════════════════════════
-  function pkChip(e) {
-    if (!e.pk) return "";
-    const n = e.pk.pkgs ? e.pk.pkgs.length : 0;
-    return `<span class="pk-dot" title="Код зустрічається у пакетах ПМГ (${n})">ПМГ</span>`;
-  }
+  const ph = (t) => `<option value="">— ${t} —</option>`;
+  function resetSel(sel, placeholder) { sel.innerHTML = ph(placeholder); sel.disabled = true; sel.value = ""; }
 
-  function renderClassTree() {
-    el.tree.innerHTML = META.classes.map((c) => {
-      const rng = c.range ? `<span class="trange">${c.range.replace("-", "–")}</span>` : "";
-      return `<div class="tnode" data-kind="class" data-no="${c.no}">
-        <button class="trow lvl-class" aria-expanded="false" type="button">
-          <span class="tw"></span>
-          <span class="tcode">Клас ${ROMAN[c.no] || c.no}</span>
-          ${rng}
-          <span class="tname">${esc(cap(c.title))}</span>
-          <span class="tcount">${nf(c.count || 0)}</span>
-        </button>
-        <div class="tchildren" hidden></div>
-      </div>`;
-    }).join("");
-  }
-
-  function expandClass(node) {
-    const no = +node.dataset.no, box = $(".tchildren", node), cls = classByNo.get(no);
-    if (box.dataset.built) return;
-    box.dataset.built = "1";
-    const blocks = cls.blocks || [];
-    box.innerHTML = blocks.map((b, i) =>
-      `<div class="tnode" data-kind="block" data-class="${no}" data-bidx="${i}">
-        <button class="trow lvl-block" aria-expanded="false" type="button">
-          <span class="tw"></span>
-          <span class="tname">${esc(cap(b.name))}</span>
-          <span class="trange">${(b.range || "").replace("-", "–")}</span>
-        </button>
-        <div class="tchildren" hidden></div>
-      </div>`).join("") || `<div class="tempty">Немає блоків</div>`;
-  }
-
-  function expandBlock(node) {
-    if (!indexReady) return toast("Індекс ще вантажиться…");
-    const box = $(".tchildren", node);
-    if (box.dataset.built) return;
-    box.dataset.built = "1";
-    const key = node.dataset.class + "|" + node.dataset.bidx;
-    const rubs = (l3ByCB.get(key) || []).slice().sort(byCodeAsc);
-    box.innerHTML = rubs.map(rubRow).join("") || `<div class="tempty">Немає рубрик</div>`;
-  }
-
-  function expandCode(node) {
-    if (!indexReady) return;
-    const box = $(".tchildren", node);
-    if (box.dataset.built) return;
-    box.dataset.built = "1";
-    const kids = (childrenOf.get(node.dataset.code) || []).slice().sort(byCodeAsc);
-    box.innerHTML = kids.map(rubRow).join("");
-  }
-
-  function rubRow(e) {
-    const hasKids = (childrenOf.get(e.c) || []).length > 0;
-    return `<div class="tnode" data-kind="code" data-code="${e.c}" data-haskids="${hasKids ? 1 : 0}">
-      <button class="trow lvl-${e.l}" type="button" aria-expanded="false">
-        <span class="tw ${hasKids ? "" : "leaf"}"></span>
-        <span class="tcode code">${e.c}</span>
-        <span class="tname">${esc(e.n)}</span>
-        ${pkChip(e)}
-      </button>
-      <div class="tchildren" hidden></div>
-    </div>`;
-  }
-
-  // делегування кліків у дереві
-  el.tree.addEventListener("click", (ev) => {
-    const caret = ev.target.closest(".tw");
-    const row = ev.target.closest(".trow");
-    if (!row) return;
-    const node = row.closest(".tnode");
-    const kind = node.dataset.kind;
-
-    if (kind === "code") {
-      // каретка — розгорнути; решта рядка — відкрити паспорт
-      if (caret && node.dataset.haskids === "1") { toggle(node, expandCode); return; }
-      openCode(node.dataset.code);
-      markActive(row);
-      if (node.dataset.haskids === "1" && row.getAttribute("aria-expanded") === "false")
-        toggle(node, expandCode);
-      return;
+  function populateClasses() {
+    const opts = [ph("оберіть клас")];
+    for (const c of META.classes) {
+      opts.push(`<option value="${c.no}">Клас ${ROMAN[c.no] || c.no} · ${(c.range || "").replace("-", "–")} · ${esc(cap(c.title))}</option>`);
     }
-    toggle(node, kind === "class" ? expandClass : expandBlock);
-  });
+    el.selClass.innerHTML = opts.join("");
+    el.selClass.disabled = false;
+  }
 
-  function toggle(node, builder) {
-    const row = $(".trow", node), box = $(".tchildren", node);
-    const open = row.getAttribute("aria-expanded") === "true";
-    if (!open) builder(node);
-    row.setAttribute("aria-expanded", open ? "false" : "true");
-    box.hidden = open;
-    node.classList.toggle("open", !open);
+  function fillBlocks(no) {
+    const cls = classByNo.get(no);
+    if (!cls) { resetSel(el.selBlock, "оберіть клас"); return; }
+    const opts = [ph("оберіть діапазон")];
+    (cls.blocks || []).forEach((b, i) =>
+      opts.push(`<option value="${i}">${(b.range || "").replace("-", "–")} · ${esc(cap(b.name))}</option>`));
+    el.selBlock.innerHTML = opts.join("");
+    el.selBlock.disabled = false;
+  }
+
+  function fillCodes(sel, entries, placeholder) {
+    const opts = [ph(placeholder)];
+    for (const e of entries)
+      opts.push(`<option value="${e.c}">${e.c} · ${esc(e.n)}${e.pk ? " ●ПМГ" : ""}</option>`);
+    sel.innerHTML = opts.join("");
+    sel.disabled = entries.length === 0;
+  }
+
+  function fillL3(no, bi) {
+    if (!indexReady) { el.selL3.innerHTML = ph("індекс вантажиться…"); el.selL3.disabled = true; return; }
+    const rubs = (l3ByCB.get(no + "|" + bi) || []).slice().sort(byCodeAsc);
+    fillCodes(el.selL3, rubs, rubs.length ? "оберіть код 1-го порядку" : "немає рубрик");
+  }
+  function fillL4(code) {
+    const kids = (childrenOf.get(code) || []).slice().sort(byCodeAsc);
+    fillCodes(el.selL4, kids, kids.length ? "оберіть код 2-го порядку" : "підкодів немає");
+  }
+  function fillL5(code) {
+    const kids = (childrenOf.get(code) || []).slice().sort(byCodeAsc);
+    fillCodes(el.selL5, kids, kids.length ? "оберіть код 3-го порядку" : "підкодів немає");
+  }
+
+  function wireCascade() {
+    el.selClass.addEventListener("change", () => {
+      resetSel(el.selL3, "оберіть діапазон");
+      resetSel(el.selL4, "оберіть код 1-го порядку");
+      resetSel(el.selL5, "оберіть код 2-го порядку");
+      const no = +el.selClass.value;
+      if (!no) { resetSel(el.selBlock, "оберіть клас"); return; }
+      fillBlocks(no);
+    });
+    el.selBlock.addEventListener("change", () => {
+      resetSel(el.selL4, "оберіть код 1-го порядку");
+      resetSel(el.selL5, "оберіть код 2-го порядку");
+      const no = +el.selClass.value, bi = el.selBlock.value;
+      if (bi === "") { resetSel(el.selL3, "оберіть діапазон"); return; }
+      fillL3(no, bi);
+    });
+    el.selL3.addEventListener("change", () => {
+      resetSel(el.selL5, "оберіть код 2-го порядку");
+      const code = el.selL3.value;
+      if (!code) { resetSel(el.selL4, "оберіть код 1-го порядку"); return; }
+      openCode(code); fillL4(code);
+    });
+    el.selL4.addEventListener("change", () => {
+      const code = el.selL4.value;
+      if (!code) { resetSel(el.selL5, "оберіть код 2-го порядку"); return; }
+      openCode(code); fillL5(code);
+    });
+    el.selL5.addEventListener("change", () => {
+      const code = el.selL5.value;
+      if (code) openCode(code);
+    });
+  }
+
+  // Відобразити повний шлях коду в каскаді (з пошуку / глибокого лінку)
+  function syncCascade(code) {
+    if (!indexReady) return;
+    const e = byCode.get(code); if (!e) return;
+    const { cls, p3, p4 } = ancestryOf(e); if (!cls) return;
+    const bidx = p3 && p3.b != null ? p3.b : (e.l === 3 && e.b != null ? e.b : null);
+    el.selClass.value = String(cls.no); fillBlocks(cls.no);
+    if (bidx == null) { resetSel(el.selL3, "оберіть діапазон"); return; }
+    el.selBlock.value = String(bidx); fillL3(cls.no, bidx);
+    if (p3) { el.selL3.value = p3.c; fillL4(p3.c); } else resetSel(el.selL4, "оберіть код 1-го порядку");
+    const l4 = e.l === 4 ? e.c : (e.l === 5 && p4 ? p4.c : null);
+    if (l4) { el.selL4.value = l4; fillL5(l4); } else resetSel(el.selL5, "оберіть код 2-го порядку");
+    if (e.l === 5) el.selL5.value = e.c;
   }
 
   // ══════════════════════════════════════════════════════════
-  // Пошук
+  // Текстовий пошук
   // ══════════════════════════════════════════════════════════
   let searchTimer = null;
   function wireUI() {
+    wireCascade();
     el.search.addEventListener("input", () => {
       clearTimeout(searchTimer);
       searchTimer = setTimeout(runSearch, 130);
@@ -203,7 +203,28 @@
       el.search.value = ""; el.onlyPmg.checked = false; el.level.value = "";
       runSearch(); el.search.focus();
     });
-    // мобільні вкладки
+    // Пакетний пошук
+    el.batchRun.addEventListener("click", () => {
+      if (!indexReady) { el.count.textContent = "Індекс ще вантажиться…"; return; }
+      const terms = splitTerms(el.batch.value);
+      if (!terms.length) { el.count.textContent = "Введіть коди або назви у поле пакетного пошуку."; return; }
+      el.search.value = "";
+      runBatch(terms);
+    });
+    el.batch.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); el.batchRun.click(); }
+    });
+    el.batchClear.addEventListener("click", () => {
+      el.batch.value = ""; el.batchCopy.hidden = true; lastBatchFound = [];
+      el.results.hidden = true; el.results.innerHTML = "";
+      el.count.textContent = indexReady ? nf(INDEX.length) + " кодів · оберіть клас або введіть запит" : "Завантаження…";
+    });
+    el.batchCopy.addEventListener("click", () => {
+      const text = lastBatchFound.map((r) => `${r.code}\t${r.name}`).join("\n");
+      navigator.clipboard && navigator.clipboard.writeText(text);
+      el.batchCopy.textContent = "✓ Скопійовано (" + lastBatchFound.length + ")";
+      setTimeout(() => (el.batchCopy.textContent = "⧉ Копіювати знайдене"), 1500);
+    });
     $$("#mobileTabs .mobile-tab").forEach((b) =>
       b.addEventListener("click", () => setTab(b.dataset.tab)));
   }
@@ -216,11 +237,16 @@
     el.clear.hidden = !active;
 
     if (!active) {
-      el.results.hidden = true; el.tree.hidden = false;
-      if (indexReady) el.count.textContent = nf(INDEX.length) + " кодів у класифікаторі";
+      el.results.hidden = true; el.batchCopy.hidden = true; lastBatchFound = [];
+      if (indexReady) el.count.textContent = nf(INDEX.length) + " кодів · оберіть клас або введіть запит";
       return;
     }
     if (!indexReady) { el.count.textContent = "Індекс ще вантажиться…"; return; }
+
+    // кілька термінів у рядку (через кому/крапку з комою або кілька кодів) → пакетний режим
+    const inlineTerms = splitTerms(raw);
+    if (inlineTerms.length > 1) { runBatch(inlineTerms); return; }
+    el.batchCopy.hidden = true; lastBatchFound = [];
 
     const q = raw.toLowerCase();
     const qCode = raw.toUpperCase().replace(/\s+/g, "");
@@ -241,7 +267,7 @@
         else if (nl.includes(q)) score = 30;
         else if (e.c.toLowerCase().includes(q)) score = 15;
       } else {
-        score = 10; // лише фільтри
+        score = 10;
       }
       if (score > 0) out.push([score, e]);
     }
@@ -252,12 +278,11 @@
       ? `Знайдено ${nf(out.length)}${out.length > CAP ? " · показано " + CAP : ""}`
       : "Нічого не знайдено";
     el.results.innerHTML = shown.map(([, e]) => resultRow(e)).join("");
-    el.results.hidden = false; el.tree.hidden = true;
+    el.results.hidden = false;
   }
 
   function resultRow(e) {
-    const cls = classByNo.get(e.k);
-    const path = cls ? `Клас ${ROMAN[e.k] || e.k}` : "";
+    const path = classByNo.has(e.k) ? `Клас ${ROMAN[e.k] || e.k}` : "";
     return `<button class="rrow lvl-${e.l}" type="button" data-code="${e.c}">
       <span class="tcode code">${e.c}</span>
       <span class="rmain"><span class="tname">${esc(e.n)}</span>
@@ -266,17 +291,74 @@
     </button>`;
   }
 
+  function pkChip(e) {
+    if (!e.pk) return "";
+    const n = e.pk.pkgs ? e.pk.pkgs.length : 0;
+    return `<span class="pk-dot" title="Код зустрічається у пакетах ПМГ (${n})">ПМГ</span>`;
+  }
+
+  // ── Пакетний пошук: кілька кодів / назв разом ─────────────
+  function splitTerms(raw) {
+    const parts = String(raw || "").split(/[,;\n\t]+/).map((s) => s.trim()).filter(Boolean);
+    const out = [];
+    for (const p of parts) {
+      const toks = p.split(/\s+/);
+      // рядок з кількох код-подібних токенів через пробіл — розбити на окремі коди
+      const allCode = toks.length > 1 && toks.every((t) => /^[A-ZА-Я][0-9][0-9A-ZА-Я.]*$/i.test(t));
+      if (allCode) out.push(...toks); else out.push(p);
+    }
+    return out;
+  }
+
+  function matchTerm(term) {
+    const onlyPmg = el.onlyPmg.checked, lvl = el.level.value ? +el.level.value : 0;
+    const qCode = term.toUpperCase().replace(/\s+/g, "");
+    const looksCode = /^[A-ZА-Я][0-9]/.test(qCode);
+    let matches;
+    if (looksCode) {
+      const exact = byCode.get(qCode);
+      matches = exact ? [exact] : INDEX.filter((e) => e.c.startsWith(qCode));
+    } else {
+      const q = term.toLowerCase();
+      matches = INDEX.filter((e) => e.n.toLowerCase().includes(q));
+    }
+    if (onlyPmg) matches = matches.filter((e) => e.pk);
+    if (lvl) matches = matches.filter((e) => e.l === lvl);
+    return matches.slice().sort(byCodeAsc);
+  }
+
+  function runBatch(terms) {
+    if (!indexReady) { el.count.textContent = "Індекс ще вантажиться…"; return; }
+    lastBatchFound = [];
+    let foundTerms = 0, totalMatches = 0;
+    const PER = 25;
+    const blocks = terms.map((term) => {
+      const m = matchTerm(term);
+      if (m.length) { foundTerms++; totalMatches += m.length; }
+      m.forEach((e) => lastBatchFound.push({ code: e.c, name: e.n }));
+      const head = `<div class="batch-head ${m.length ? "" : "nomatch"}">
+          <span>${m.length ? "🔹" : "❌"} ${esc(term)}</span>
+          <span class="batch-badge">${m.length ? nf(m.length) + (m.length > PER ? " · показано " + PER : "") : "не знайдено"}</span>
+        </div>`;
+      return `<div class="batch-group">${head}${m.slice(0, PER).map(resultRow).join("")}</div>`;
+    });
+    el.count.textContent = `Пакетно: ${terms.length} запит(ів) · збіги у ${foundTerms}/${terms.length} · усього ${nf(totalMatches)}`;
+    el.results.innerHTML = blocks.join("");
+    el.results.hidden = false;
+    el.clear.hidden = false;
+    el.batchCopy.hidden = lastBatchFound.length === 0;
+  }
+
   el.results.addEventListener("click", (ev) => {
     const b = ev.target.closest(".rrow");
     if (!b) return;
-    openCode(b.dataset.code); markActive(b);
+    openCode(b.dataset.code); syncCascade(b.dataset.code); markActive(b);
   });
 
   // ══════════════════════════════════════════════════════════
   // Паспорт коду
   // ══════════════════════════════════════════════════════════
   function ancestryOf(e) {
-    // повертає {cls, block, p3, p4}
     const cls = classByNo.get(e.k);
     let p3 = null, p4 = null;
     if (e.l === 3) p3 = e;
@@ -306,8 +388,6 @@
         `<button class="subchip" data-goto="${k.c}"><b>${k.c}</b> ${esc(k.n)}</button>`).join("")}</div></div>`
       : "";
 
-    const pmgHtml = renderPmg(e);
-    const linksHtml = renderLinks(e);
     const copyText = `${e.c} — ${e.n}` + (cls ? ` (Клас ${ROMAN[cls.no]}${block ? ", " + block.name : ""})` : "");
 
     el.reader.classList.remove("reader-empty");
@@ -319,10 +399,10 @@
       </div>
       <h2 class="reader-name">${esc(e.n)}</h2>
       <div class="reader-crumbs">${crumbs.join('<span class="sep">›</span>')}</div>
-      ${pmgHtml}
-      ${linksHtml}
+      ${renderPmg(e)}
+      ${renderLinks(e)}
       ${kidsHtml}
-      <div class="reader-foot">НК 025:2021 · ICD-10-AM · рівень ${e.l}</div>`;
+      <div class="reader-foot">НК 025:2021 · ICD-10-AM · ${LEVEL_LABEL[e.l].toLowerCase()}</div>`;
     setTab("reader");
   }
 
@@ -364,10 +444,9 @@
     </div>`;
   }
 
-  // делеговані дії в паспорті
   el.reader.addEventListener("click", (ev) => {
     const goto = ev.target.closest("[data-goto]");
-    if (goto) { const c = goto.dataset.goto; openCode(c); revealInTree(c); return; }
+    if (goto) { const c = goto.dataset.goto; openCode(c); syncCascade(c); return; }
     const cp = ev.target.closest("[data-copy]");
     if (cp) {
       navigator.clipboard && navigator.clipboard.writeText(cp.dataset.copy);
@@ -378,67 +457,24 @@
   // ══════════════════════════════════════════════════════════
   // Допоміжне
   // ══════════════════════════════════════════════════════════
-  function revealInTree(code) {
-    // Розкрити гілку дерева до коду (клас → блок → рубрика → …) і підсвітити
-    const e = byCode.get(code); if (!e) return;
-    el.search.value = ""; el.results.hidden = true; el.tree.hidden = false; el.clear.hidden = true;
-    const { cls, p3 } = ancestryOf(e);
-    if (!cls) return;
-    const chain = [];
-    const classNode = $(`.tnode[data-kind="class"][data-no="${cls.no}"]`);
-    if (!classNode) return;
-    ensureOpen(classNode, expandClass);
-    const bidx = p3 && p3.b != null ? p3.b : (e.l === 3 ? e.b : null);
-    if (bidx == null) return;
-    const blockNode = $(`.tnode[data-kind="block"][data-class="${cls.no}"][data-bidx="${bidx}"]`, classNode);
-    if (!blockNode) return;
-    ensureOpen(blockNode, expandBlock);
-    const chainCodes = [];
-    if (p3) chainCodes.push(p3.c);
-    if (e.l >= 4 && p3) chainCodes.push(e.l === 5 ? byCode.get(e.p).c : e.c);
-    if (e.l === 5) chainCodes.push(e.c);
-    let scope = blockNode;
-    for (const cc of chainCodes) {
-      const n = $(`.tnode[data-code="${cc}"]`, scope);
-      if (!n) break;
-      if (cc !== code) ensureOpen(n, expandCode);
-      scope = n;
-    }
-    const target = $(`.tnode[data-code="${code}"] > .trow`, blockNode) || $(`.tnode[data-code="${code}"] .trow`, blockNode);
-    if (target) { markActive(target); target.scrollIntoView({ block: "center", behavior: "smooth" }); }
-  }
-
-  function ensureOpen(node, builder) {
-    const row = $(".trow", node), box = $(".tchildren", node);
-    if (row.getAttribute("aria-expanded") !== "true") {
-      builder(node);
-      row.setAttribute("aria-expanded", "true"); box.hidden = false; node.classList.add("open");
-    }
-  }
-
   function markActive(row) {
-    $$(".trow.active, .rrow.active").forEach((r) => r.classList.remove("active"));
+    $$(".rrow.active").forEach((r) => r.classList.remove("active"));
     row.classList.add("active");
   }
-
   function setTab(tab) {
     if (!el.layout) return;
     el.layout.dataset.active = tab;
     $$("#mobileTabs .mobile-tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
   }
-
   function byCodeAsc(a, b) { return a.c.localeCompare(b.c, "en"); }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
   function escAttr(s) { return esc(s).replace(/"/g, "&quot;"); }
   function cap(s) {
     s = String(s || "");
     if (!s) return s;
-    // якщо в рядку вже є малі літери — не чіпаємо (щоб не зіпсувати абревіатури: ВІЛ, ДНК)
     if (/[а-яґєії]/.test(s)) return s;
     return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
   }
-  let toastT = null;
-  function toast(msg) { el.count.textContent = msg; clearTimeout(toastT); }
 
   boot();
 })();

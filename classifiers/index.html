@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Класифікатор хвороб НК 025</title>
   <link rel="stylesheet" href="../styles.css?v=20260719c">
-  <link rel="stylesheet" href="classifiers.css?v=20260724a">
+  <link rel="stylesheet" href="classifiers.css?v=20260724b">
   <link rel="stylesheet" href="../auth-v2.css?v=20260721a">
   <script type="module" src="../auth-v2.js?v=20260724c"></script>
 </head>
@@ -56,26 +56,61 @@
           <input id="nkSearch" type="search"
                  placeholder="Напр.: A15, туберкульоз, E11.9, інфаркт…" autocomplete="off">
         </label>
+
+        <!-- Пакетний пошук: кілька кодів / назв разом -->
+        <details class="nk-batch">
+          <summary>📋 Пакетний пошук — кілька кодів / назв разом</summary>
+          <textarea id="nkBatch" rows="4"
+            placeholder="Вставте коди або назви — по одному в рядку, через кому чи пробіл:&#10;A15&#10;E11.9  J06&#10;туберкульоз, цукровий діабет"></textarea>
+          <div class="batch-actions">
+            <button id="nkBatchRun" type="button" class="batch-primary">Знайти всі</button>
+            <button id="nkBatchCopy" type="button" hidden>⧉ Копіювати знайдене</button>
+            <button id="nkBatchClear" type="button">Очистити</button>
+          </div>
+        </details>
+
+        <!-- Каскадна навігація: Клас → Діапазон → Коди 1/2/3 порядку -->
+        <div class="nk-cascade" aria-label="Навігація по класифікатору">
+          <div class="casc-field">
+            <label for="selClass">Клас</label>
+            <select id="selClass"><option value="">Завантаження…</option></select>
+          </div>
+          <div class="casc-field">
+            <label for="selBlock">Діапазон (блок)</label>
+            <select id="selBlock" disabled><option value="">— оберіть клас —</option></select>
+          </div>
+          <div class="casc-field">
+            <label for="selL3">Код 1-го порядку · рубрика</label>
+            <select id="selL3" disabled><option value="">— оберіть діапазон —</option></select>
+          </div>
+          <div class="casc-field">
+            <label for="selL4">Код 2-го порядку · підрубрика</label>
+            <select id="selL4" disabled><option value="">— оберіть код 1-го порядку —</option></select>
+          </div>
+          <div class="casc-field">
+            <label for="selL5">Код 3-го порядку · деталізований</label>
+            <select id="selL5" disabled><option value="">— оберіть код 2-го порядку —</option></select>
+          </div>
+        </div>
+
         <div class="nk-filters">
           <label class="nk-check"><input type="checkbox" id="onlyPmg"> лише коди в пакетах ПМГ</label>
-          <label class="nk-level">Рівень
+          <label class="nk-level">Рівень пошуку
             <select id="levelFilter">
               <option value="">усі</option>
-              <option value="3">рубрики (A00)</option>
-              <option value="4">підрубрики (A00.0)</option>
-              <option value="5">деталізовані (A00.00)</option>
+              <option value="3">1-го порядку (A00)</option>
+              <option value="4">2-го порядку (A00.0)</option>
+              <option value="5">3-го порядку (A00.00)</option>
             </select>
           </label>
         </div>
         <div class="results-summary">
           <span id="nkCount">Завантаження…</span>
-          <button id="nkClear" type="button" hidden>Скинути пошук</button>
+          <button id="nkClear" type="button" hidden>Скинути</button>
         </div>
       </div>
 
-      <!-- Режим огляду класів (дерево) -->
-      <div class="nk-tree" id="nkTree" aria-label="Класи НК 025"></div>
-      <!-- Режим результатів пошуку -->
+      <!-- Результати текстового пошуку -->
       <div class="nk-results" id="nkResults" hidden></div>
     </section>
 
@@ -102,6 +137,6 @@
   </footer>
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
-  <script src="classifiers.js?v=20260724a" defer></script>
+  <script src="classifiers.js?v=20260724b" defer></script>
 </body>
 </html>
