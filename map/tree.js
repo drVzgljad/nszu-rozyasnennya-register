@@ -192,39 +192,26 @@
       render(stage);
     });
 
-    // Повноекранний режим (CSS-overlay + Fullscreen API як бонус)
-    const panel = document.getElementById("view-tree-panel");
-    const fsBtn = document.getElementById("tree-fullscreen");
-    const exitBtn = document.getElementById("tree-exit-fs");
-    const setFS = (on) => {
-      if (!panel) return;
-      panel.classList.toggle("is-fs", on);
-      document.body.classList.toggle("tree-fs-lock", on);
-      if (exitBtn) exitBtn.hidden = !on;
-      if (fsBtn) fsBtn.textContent = on ? "🗕 Згорнути вигляд" : "⛶ На весь екран";
-      try {
-        if (on && !document.fullscreenElement && panel.requestFullscreen) panel.requestFullscreen();
-        else if (!on && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
-      } catch (e) { /* native fullscreen недоступний — лишається CSS-overlay */ }
-    };
-    if (fsBtn) fsBtn.addEventListener("click", () => setFS(!panel.classList.contains("is-fs")));
-    if (exitBtn) exitBtn.addEventListener("click", () => setFS(false));
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && panel && panel.classList.contains("is-fs")) setFS(false);
-    });
-    // Синхронізація, якщо вийшли з native fullscreen через Esc браузера
-    document.addEventListener("fullscreenchange", () => {
-      if (!document.fullscreenElement && panel && panel.classList.contains("is-fs")) setFS(false);
-    });
   }
 
-  // Перемикач вигляду «Картки / Дерево»
+  // Перемикач вигляду + повноекранне дерево
   document.addEventListener("DOMContentLoaded", () => {
     const btnCards = document.getElementById("view-cards");
     const btnTree = document.getElementById("view-tree");
     const cardsView = document.getElementById("view-cards-panel");
     const treeView = document.getElementById("view-tree-panel");
+    const exitBtn = document.getElementById("tree-exit-fs");
     if (!btnTree || !treeView) return;
+
+    const setFS = (on) => {
+      treeView.classList.toggle("is-fs", on);
+      document.body.classList.toggle("tree-fs-lock", on);
+      if (exitBtn) exitBtn.hidden = !on;
+      try {
+        if (on && !document.fullscreenElement && treeView.requestFullscreen) treeView.requestFullscreen();
+        else if (!on && document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
+      } catch (e) { /* native fullscreen недоступний — лишається CSS-overlay */ }
+    };
 
     const show = (mode) => {
       const tree = mode === "tree";
@@ -233,10 +220,19 @@
       btnTree.classList.toggle("is-active", tree);
       if (btnCards) btnCards.classList.toggle("is-active", !tree);
       document.getElementById("map-controls-panel")?.toggleAttribute("hidden", tree);
-      if (tree) init();
+      if (tree) { init(); setFS(true); }   // дерево одразу на весь екран
+      else setFS(false);
     };
 
     btnTree.addEventListener("click", () => show("tree"));
     if (btnCards) btnCards.addEventListener("click", () => show("cards"));
+    // Вихід із повноекранного дерева (кнопка ✕ або Esc) → повертаємось до карток
+    if (exitBtn) exitBtn.addEventListener("click", () => show("cards"));
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && treeView.classList.contains("is-fs")) show("cards");
+    });
+    document.addEventListener("fullscreenchange", () => {
+      if (!document.fullscreenElement && treeView.classList.contains("is-fs")) show("cards");
+    });
   });
 })();
