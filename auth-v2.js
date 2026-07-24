@@ -272,6 +272,7 @@ function applyAccess() {
       { text: 'Алгоритми та правила (наказ 377)', path: 'algorithms/index.html' },
       { text: 'Нормативна база', path: 'regulatory/index.html' },
       { text: 'ДЕЦ МОЗ', path: 'dec/index.html' },
+      { text: '🧪 LOINC (лаб. коди)', path: 'classifiers/loinc.html' },
       { text: 'Укладені договори', path: 'zoz-dogovr/index.html' }
     ];
 
@@ -2033,6 +2034,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '🧮', label: 'Наказ 377', path: 'algorithms/index.html' },
     { icon: '⚖️', label: 'Нормативна база', path: 'regulatory/index.html' },
     { icon: '🏥', label: 'ДЕЦ МОЗ', path: 'dec/index.html' },
+    { icon: '🧪', label: 'LOINC (лаб. коди)', path: 'classifiers/loinc.html' },
     { icon: '📑', label: 'Договори ЗОЗ', path: 'zoz-dogovr/index.html' },
     { icon: '👤', label: 'Кабінет', path: 'cabinet/index.html', role: 'expert' },
     { icon: '🗓️', label: 'Планувальник', path: 'cabinet/planner.html', role: 'expert' },

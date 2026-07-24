@@ -1,0 +1,2685 @@
+{
+ "generated": "2026-07-24",
+ "source": "LOINC® 2.82 (Regenstrief Institute, Inc.)",
+ "version": "2.82",
+ "schema": [
+  "num",
+  "comp",
+  "prop",
+  "time",
+  "sys",
+  "scale",
+  "method",
+  "ua",
+  "cls",
+  "us",
+  "rank",
+  "st",
+  "units",
+  "cons",
+  "def",
+  "cpr"
+ ],
+ "axes": [
+  "COMPONENT",
+  "PROPERTY",
+  "TIME_ASPCT",
+  "SYSTEM",
+  "SCALE_TYP",
+  "METHOD_TYP"
+ ],
+ "total": 109325,
+ "ua_official": 3159,
+ "ua_full": 12768,
+ "ua_partial": 96547,
+ "en_only": 10,
+ "classtypes": [
+  {
+   "id": "1",
+   "ua": "Лабораторні",
+   "en": "Laboratory",
+   "count": 66861,
+   "file": "loinc_data_1.json",
+   "classes": [
+    {
+     "code": "MICRO",
+     "ua": "Мікробіологія",
+     "count": 14888,
+     "ua_full": 3303
+    },
+    {
+     "code": "CHEM",
+     "ua": "Хімія / біохімія",
+     "count": 10855,
+     "ua_full": 3949
+    },
+    {
+     "code": "DRUG/TOX",
+     "ua": "Ліки / токсикологія",
+     "count": 8921,
+     "ua_full": 2809
+    },
+    {
+     "code": "ALLERGY",
+     "ua": "Алергологія",
+     "count": 6024,
+     "ua_full": 40
+    },
+    {
+     "code": "CHAL",
+     "ua": "Провокаційні / функціональні проби",
+     "count": 3964,
+     "ua_full": 55
+    },
+    {
+     "code": "SERO",
+     "ua": "Серологія",
+     "count": 3167,
+     "ua_full": 536
+    },
+    {
+     "code": "LABORDERS.ONTOLOGY",
+     "ua": "Онтологія лаб-замовлень",
+     "count": 2546,
+     "ua_full": 0
+    },
+    {
+     "code": "HEM/BC",
+     "ua": "Гематологія / підрахунок клітин",
+     "count": 2449,
+     "ua_full": 892
+    },
+    {
+     "code": "ABXBACT",
+     "ua": "Чутливість до антибіотиків",
+     "count": 2115,
+     "ua_full": 42
+    },
+    {
+     "code": "CELLMARK",
+     "ua": "Клітинні маркери",
+     "count": 1746,
+     "ua_full": 141
+    },
+    {
+     "code": "MOLPATH.MUT",
+     "ua": null,
+     "count": 1293,
+     "ua_full": 31
+    },
+    {
+     "code": "BLDBK",
+     "ua": "Служба крові",
+     "count": 1113,
+     "ua_full": 22
+    },
+    {
+     "code": "COAG",
+     "ua": "Коагуляція / гемостаз",
+     "count": 1002,
+     "ua_full": 139
+    },
+    {
+     "code": "PATH",
+     "ua": "Патоморфологія",
+     "count": 707,
+     "ua_full": 18
+    },
+    {
+     "code": "MOLPATH",
+     "ua": "Молекулярна патологія",
+     "count": 704,
+     "ua_full": 28
+    },
+    {
+     "code": "UA",
+     "ua": "Аналіз сечі",
+     "count": 597,
+     "ua_full": 401
+    },
+    {
+     "code": "HLA",
+     "ua": null,
+     "count": 526,
+     "ua_full": 21
+    },
+    {
+     "code": "PANEL.MICRO",
+     "ua": "Панель: мікробіологія",
+     "count": 487,
+     "ua_full": 3
+    },
+    {
+     "code": "PANEL.CHEM",
+     "ua": "Панель: біохімія",
+     "count": 446,
+     "ua_full": 4
+    },
+    {
+     "code": "DRUGDOSE",
+     "ua": null,
+     "count": 415,
+     "ua_full": 92
+    },
+    {
+     "code": "SPEC",
+     "ua": "Зразок / біоматеріал",
+     "count": 311,
+     "ua_full": 102
+    },
+    {
+     "code": "FERT",
+     "ua": "Репродукція / фертильність",
+     "count": 294,
+     "ua_full": 30
+    },
+    {
+     "code": "PANEL.HEDIS",
+     "ua": null,
+     "count": 184,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.DRUG/TOX",
+     "ua": null,
+     "count": 168,
+     "ua_full": 12
+    },
+    {
+     "code": "MISC",
+     "ua": null,
+     "count": 151,
+     "ua_full": 0
+    },
+    {
+     "code": "MOLPATH.TRNLOC",
+     "ua": null,
+     "count": 140,
+     "ua_full": 0
+    },
+    {
+     "code": "MOLPATH.PHARMG",
+     "ua": null,
+     "count": 123,
+     "ua_full": 0
+    },
+    {
+     "code": "MOLPATH.REARRANGE",
+     "ua": null,
+     "count": 101,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.HEM/BC",
+     "ua": "Панель: гематологія",
+     "count": 91,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SERO",
+     "ua": null,
+     "count": 85,
+     "ua_full": 0
+    },
+    {
+     "code": "CYTO",
+     "ua": "Цитологія",
+     "count": 81,
+     "ua_full": 29
+    },
+    {
+     "code": "BLDBK.GENOTYPING",
+     "ua": null,
+     "count": 72,
+     "ua_full": 0
+    },
+    {
+     "code": "MOLPATH.DEL",
+     "ua": null,
+     "count": 67,
+     "ua_full": 0
+    },
+    {
+     "code": "MOLPATH.DELDUP",
+     "ua": null,
+     "count": 67,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.CHAL",
+     "ua": null,
+     "count": 64,
+     "ua_full": 0
+    },
+    {
+     "code": "MOLPATH.NUCREPEAT",
+     "ua": null,
+     "count": 61,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.ALLERGY",
+     "ua": null,
+     "count": 59,
+     "ua_full": 0
+    },
+    {
+     "code": "MOLPATH.TRISOMY",
+     "ua": null,
+     "count": 58,
+     "ua_full": 8
+    },
+    {
+     "code": "PATH.HISTO",
+     "ua": null,
+     "count": 57,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.COAG",
+     "ua": null,
+     "count": 53,
+     "ua_full": 0
+    },
+    {
+     "code": "CHALSKIN",
+     "ua": null,
+     "count": 47,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.MOLPATH",
+     "ua": null,
+     "count": 46,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.CELLMARK",
+     "ua": null,
+     "count": 41,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.ABXBACT",
+     "ua": null,
+     "count": 40,
+     "ua_full": 4
+    },
+    {
+     "code": "HL7.GENETICS",
+     "ua": null,
+     "count": 39,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.UA",
+     "ua": null,
+     "count": 34,
+     "ua_full": 0
+    },
+    {
+     "code": "LABORDERS",
+     "ua": null,
+     "count": 31,
+     "ua_full": 16
+    },
+    {
+     "code": "PATH.PROTOCOLS.GENER",
+     "ua": null,
+     "count": 29,
+     "ua_full": 0
+    },
+    {
+     "code": "CHAL.ROUTINE",
+     "ua": null,
+     "count": 27,
+     "ua_full": 14
+    },
+    {
+     "code": "PANEL.HLA",
+     "ua": null,
+     "count": 27,
+     "ua_full": 0
+    },
+    {
+     "code": "HL7.CYTOGEN",
+     "ua": null,
+     "count": 24,
+     "ua_full": 1
+    },
+    {
+     "code": "PANEL.BLDBK",
+     "ua": null,
+     "count": 24,
+     "ua_full": 0
+    },
+    {
+     "code": "MOLPATH.MISC",
+     "ua": null,
+     "count": 22,
+     "ua_full": 0
+    },
+    {
+     "code": "PATH.PROTOCOLS.PROST",
+     "ua": null,
+     "count": 19,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.HL7.CYTOGEN",
+     "ua": null,
+     "count": 18,
+     "ua_full": 4
+    },
+    {
+     "code": "PATH.PROTOCOLS.BRST",
+     "ua": null,
+     "count": 18,
+     "ua_full": 0
+    },
+    {
+     "code": "PATH.PROTOCOLS.SKIN",
+     "ua": null,
+     "count": 18,
+     "ua_full": 0
+    },
+    {
+     "code": "HPA",
+     "ua": null,
+     "count": 16,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.HL7.GENETICS",
+     "ua": null,
+     "count": 14,
+     "ua_full": 0
+    },
+    {
+     "code": "HNA",
+     "ua": null,
+     "count": 13,
+     "ua_full": 0
+    },
+    {
+     "code": "MOLPATH.INV",
+     "ua": null,
+     "count": 12,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.PATH",
+     "ua": null,
+     "count": 10,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.FERT",
+     "ua": null,
+     "count": 8,
+     "ua_full": 0
+    },
+    {
+     "code": "H&P.HX.LAB",
+     "ua": null,
+     "count": 7,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.MISC",
+     "ua": null,
+     "count": 5,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.MOLPATH.PHARMG",
+     "ua": null,
+     "count": 5,
+     "ua_full": 0
+    },
+    {
+     "code": "NR STATS",
+     "ua": null,
+     "count": 4,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.HNA",
+     "ua": null,
+     "count": 3,
+     "ua_full": 0
+    },
+    {
+     "code": "MOLPATH.TRINUC",
+     "ua": null,
+     "count": 2,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.BLDBK.GENOTYPE",
+     "ua": null,
+     "count": 2,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SPEC",
+     "ua": null,
+     "count": 2,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.HPA",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.OBS",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    }
+   ]
+  },
+  {
+   "id": "2",
+   "ua": "Клінічні",
+   "en": "Clinical",
+   "count": 28635,
+   "file": "loinc_data_2.json",
+   "classes": [
+    {
+     "code": "RAD",
+     "ua": "Променева діагностика",
+     "count": 7440,
+     "ua_full": 0
+    },
+    {
+     "code": "DOC.ONTOLOGY",
+     "ua": "Онтологія документів",
+     "count": 3759,
+     "ua_full": 1
+    },
+    {
+     "code": "PHENX",
+     "ua": "PhenX (дослідницькі протоколи)",
+     "count": 3686,
+     "ua_full": 1
+    },
+    {
+     "code": "H&P.HX",
+     "ua": "Анамнез",
+     "count": 901,
+     "ua_full": 3
+    },
+    {
+     "code": "PULM",
+     "ua": "Пульмонологія / функція дихання",
+     "count": 878,
+     "ua_full": 0
+    },
+    {
+     "code": "CARD.US",
+     "ua": null,
+     "count": 817,
+     "ua_full": 0
+    },
+    {
+     "code": "OB.US",
+     "ua": "Акушерське УЗД",
+     "count": 793,
+     "ua_full": 10
+    },
+    {
+     "code": "PANEL.PHENX",
+     "ua": null,
+     "count": 704,
+     "ua_full": 0
+    },
+    {
+     "code": "H&P.PX",
+     "ua": null,
+     "count": 507,
+     "ua_full": 2
+    },
+    {
+     "code": "CLIN",
+     "ua": null,
+     "count": 502,
+     "ua_full": 2
+    },
+    {
+     "code": "TUMRRGT",
+     "ua": "Онкореєстр",
+     "count": 481,
+     "ua_full": 2
+    },
+    {
+     "code": "EKG.MEAS",
+     "ua": null,
+     "count": 414,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.REFRACTION",
+     "ua": null,
+     "count": 357,
+     "ua_full": 0
+    },
+    {
+     "code": "ADMIN",
+     "ua": null,
+     "count": 349,
+     "ua_full": 0
+    },
+    {
+     "code": "NIH.COGNITIVE",
+     "ua": null,
+     "count": 333,
+     "ua_full": 0
+    },
+    {
+     "code": "ENDO.GI",
+     "ua": null,
+     "count": 315,
+     "ua_full": 0
+    },
+    {
+     "code": "DENTAL",
+     "ua": null,
+     "count": 304,
+     "ua_full": 0
+    },
+    {
+     "code": "DOC.MISC",
+     "ua": null,
+     "count": 288,
+     "ua_full": 0
+    },
+    {
+     "code": "NUTRITION&DIETETICS",
+     "ua": null,
+     "count": 213,
+     "ua_full": 0
+    },
+    {
+     "code": "PUBLICHEALTH",
+     "ua": null,
+     "count": 198,
+     "ua_full": 0
+    },
+    {
+     "code": "DEVICES",
+     "ua": null,
+     "count": 196,
+     "ua_full": 0
+    },
+    {
+     "code": "CARD.US.DICOM",
+     "ua": null,
+     "count": 184,
+     "ua_full": 0
+    },
+    {
+     "code": "HEMODYN.MOLEC",
+     "ua": null,
+     "count": 176,
+     "ua_full": 0
+    },
+    {
+     "code": "CARD.PROC",
+     "ua": null,
+     "count": 175,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE",
+     "ua": null,
+     "count": 150,
+     "ua_full": 0
+    },
+    {
+     "code": "NEURO",
+     "ua": null,
+     "count": 146,
+     "ua_full": 0
+    },
+    {
+     "code": "NEMSIS",
+     "ua": null,
+     "count": 142,
+     "ua_full": 0
+    },
+    {
+     "code": "BP.MOLEC",
+     "ua": null,
+     "count": 130,
+     "ua_full": 0
+    },
+    {
+     "code": "DOC.REF",
+     "ua": null,
+     "count": 127,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.CONTACT_LENS",
+     "ua": null,
+     "count": 123,
+     "ua_full": 0
+    },
+    {
+     "code": "IO_OUT.TIMED.MOLE",
+     "ua": null,
+     "count": 113,
+     "ua_full": 0
+    },
+    {
+     "code": "VACCIN",
+     "ua": null,
+     "count": 107,
+     "ua_full": 0
+    },
+    {
+     "code": "CLIN.RISK",
+     "ua": null,
+     "count": 102,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.GLASSES",
+     "ua": null,
+     "count": 102,
+     "ua_full": 0
+    },
+    {
+     "code": "IO.TUBE",
+     "ua": null,
+     "count": 98,
+     "ua_full": 0
+    },
+    {
+     "code": "BP.CENT.MOLEC",
+     "ua": null,
+     "count": 95,
+     "ua_full": 0
+    },
+    {
+     "code": "SURG",
+     "ua": null,
+     "count": 94,
+     "ua_full": 0
+    },
+    {
+     "code": "ED",
+     "ua": null,
+     "count": 86,
+     "ua_full": 0
+    },
+    {
+     "code": "DOCUMENT.REGULATORY",
+     "ua": null,
+     "count": 84,
+     "ua_full": 0
+    },
+    {
+     "code": "TRAUMA",
+     "ua": null,
+     "count": 84,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.PX",
+     "ua": null,
+     "count": 82,
+     "ua_full": 0
+    },
+    {
+     "code": "IO_IN_SALTS+CALS",
+     "ua": null,
+     "count": 73,
+     "ua_full": 0
+    },
+    {
+     "code": "DOC.ADMIN",
+     "ua": null,
+     "count": 68,
+     "ua_full": 0
+    },
+    {
+     "code": "IO_IN.TIMED.MOLEC",
+     "ua": null,
+     "count": 68,
+     "ua_full": 0
+    },
+    {
+     "code": "MEDS",
+     "ua": null,
+     "count": 67,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.H&P",
+     "ua": null,
+     "count": 65,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.DOC",
+     "ua": null,
+     "count": 62,
+     "ua_full": 0
+    },
+    {
+     "code": "HRTRATE.MOLEC",
+     "ua": null,
+     "count": 60,
+     "ua_full": 0
+    },
+    {
+     "code": "APTA",
+     "ua": null,
+     "count": 59,
+     "ua_full": 0
+    },
+    {
+     "code": "ADMIN.ID",
+     "ua": null,
+     "count": 57,
+     "ua_full": 0
+    },
+    {
+     "code": "UPDRS",
+     "ua": null,
+     "count": 56,
+     "ua_full": 0
+    },
+    {
+     "code": "IO_OUT.MOLEC",
+     "ua": null,
+     "count": 55,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.OCT",
+     "ua": null,
+     "count": 54,
+     "ua_full": 0
+    },
+    {
+     "code": "NEONAT",
+     "ua": null,
+     "count": 54,
+     "ua_full": 0
+    },
+    {
+     "code": "PATIENT SAFETY",
+     "ua": null,
+     "count": 54,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.PX.NEI",
+     "ua": null,
+     "count": 53,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.ERG",
+     "ua": null,
+     "count": 52,
+     "ua_full": 0
+    },
+    {
+     "code": "US.URO",
+     "ua": null,
+     "count": 50,
+     "ua_full": 0
+    },
+    {
+     "code": "NIH.MOTOR",
+     "ua": null,
+     "count": 48,
+     "ua_full": 0
+    },
+    {
+     "code": "ADMIN.PATIENT",
+     "ua": null,
+     "count": 47,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.CLIN",
+     "ua": null,
+     "count": 47,
+     "ua_full": 0
+    },
+    {
+     "code": "ART",
+     "ua": null,
+     "count": 44,
+     "ua_full": 0
+    },
+    {
+     "code": "ADMIN.PATIENT.DEMOG",
+     "ua": null,
+     "count": 42,
+     "ua_full": 0
+    },
+    {
+     "code": "HL7.CCDA",
+     "ua": null,
+     "count": 42,
+     "ua_full": 0
+    },
+    {
+     "code": "ADMIN.FACILITY",
+     "ua": null,
+     "count": 38,
+     "ua_full": 0
+    },
+    {
+     "code": "AUDIO",
+     "ua": null,
+     "count": 38,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.LENSOMETRY",
+     "ua": null,
+     "count": 38,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.REFRACTION.NEI",
+     "ua": null,
+     "count": 38,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.RETINAL_RX",
+     "ua": null,
+     "count": 38,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.ADMIN",
+     "ua": null,
+     "count": 38,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.HX",
+     "ua": null,
+     "count": 37,
+     "ua_full": 0
+    },
+    {
+     "code": "OBGYN",
+     "ua": "Акушерство-гінекологія",
+     "count": 37,
+     "ua_full": 0
+    },
+    {
+     "code": "BDYWGT.MOLEC",
+     "ua": null,
+     "count": 35,
+     "ua_full": 0
+    },
+    {
+     "code": "CARDIO-PULM",
+     "ua": null,
+     "count": 31,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.VISUAL_FIELD",
+     "ua": null,
+     "count": 31,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.NUTRITION&DIET",
+     "ua": null,
+     "count": 31,
+     "ua_full": 0
+    },
+    {
+     "code": "BP.TIMED.MOLEC",
+     "ua": null,
+     "count": 30,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.ERG.NEI",
+     "ua": null,
+     "count": 30,
+     "ua_full": 0
+    },
+    {
+     "code": "IO_IN.MOLEC",
+     "ua": null,
+     "count": 30,
+     "ua_full": 0
+    },
+    {
+     "code": "H&P.SURG PROC",
+     "ua": null,
+     "count": 29,
+     "ua_full": 0
+    },
+    {
+     "code": "BDYTMP.MOLEC",
+     "ua": null,
+     "count": 27,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.NEURO",
+     "ua": null,
+     "count": 26,
+     "ua_full": 0
+    },
+    {
+     "code": "TRNSPLNT.ORGAN",
+     "ua": null,
+     "count": 26,
+     "ua_full": 0
+    },
+    {
+     "code": "EKG.IMP",
+     "ua": null,
+     "count": 25,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.HX.NEI",
+     "ua": null,
+     "count": 25,
+     "ua_full": 0
+    },
+    {
+     "code": "CARD.RISK",
+     "ua": null,
+     "count": 24,
+     "ua_full": 0
+    },
+    {
+     "code": "BDYCRC.MOLEC",
+     "ua": null,
+     "count": 23,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.SLITLAMP.NEI",
+     "ua": null,
+     "count": 23,
+     "ua_full": 0
+    },
+    {
+     "code": "HRTRATE.TIMED.MOL",
+     "ua": null,
+     "count": 23,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.CARDIAC",
+     "ua": null,
+     "count": 23,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.CLIN.RISK",
+     "ua": null,
+     "count": 23,
+     "ua_full": 0
+    },
+    {
+     "code": "ONCOLOGY",
+     "ua": null,
+     "count": 22,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.SPECULAR MICROSCOPY",
+     "ua": null,
+     "count": 21,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.NEMSIS",
+     "ua": null,
+     "count": 21,
+     "ua_full": 0
+    },
+    {
+     "code": "ADMIN.DEMOG",
+     "ua": null,
+     "count": 20,
+     "ua_full": 0
+    },
+    {
+     "code": "BP.ATOM",
+     "ua": null,
+     "count": 20,
+     "ua_full": 0
+    },
+    {
+     "code": "DOC.REF.CTP",
+     "ua": null,
+     "count": 20,
+     "ua_full": 0
+    },
+    {
+     "code": "HRTRATE.ATOM",
+     "ua": null,
+     "count": 20,
+     "ua_full": 0
+    },
+    {
+     "code": "IO_IN.INFUS",
+     "ua": null,
+     "count": 20,
+     "ua_full": 0
+    },
+    {
+     "code": "RESP.ATOM",
+     "ua": null,
+     "count": 20,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.TUMRRGT",
+     "ua": null,
+     "count": 19,
+     "ua_full": 0
+    },
+    {
+     "code": "BDYWGT.ATOM",
+     "ua": null,
+     "count": 18,
+     "ua_full": 1
+    },
+    {
+     "code": "PANEL.APTA",
+     "ua": null,
+     "count": 18,
+     "ua_full": 0
+    },
+    {
+     "code": "BP.VENOUS.MOLEC",
+     "ua": null,
+     "count": 17,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.TONOMETRY",
+     "ua": null,
+     "count": 17,
+     "ua_full": 0
+    },
+    {
+     "code": "FUNCTION",
+     "ua": null,
+     "count": 17,
+     "ua_full": 0
+    },
+    {
+     "code": "ADMIN.PATIENT.ID",
+     "ua": null,
+     "count": 16,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.DEVICES",
+     "ua": null,
+     "count": 16,
+     "ua_full": 0
+    },
+    {
+     "code": "RESP.MOLEC",
+     "ua": null,
+     "count": 16,
+     "ua_full": 0
+    },
+    {
+     "code": "RESP.TIMED.MOLEC",
+     "ua": null,
+     "count": 16,
+     "ua_full": 0
+    },
+    {
+     "code": "BDYTMP.TIMED.MOLEC",
+     "ua": null,
+     "count": 15,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.EYE",
+     "ua": null,
+     "count": 15,
+     "ua_full": 0
+    },
+    {
+     "code": "CLIN.VET",
+     "ua": null,
+     "count": 13,
+     "ua_full": 0
+    },
+    {
+     "code": "DOC.PUBLICHEALTH",
+     "ua": null,
+     "count": 13,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.IEEE ROSETTA",
+     "ua": null,
+     "count": 12,
+     "ua_full": 0
+    },
+    {
+     "code": "CLINTRIAL",
+     "ua": null,
+     "count": 11,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.ED",
+     "ua": null,
+     "count": 11,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURG",
+     "ua": null,
+     "count": 11,
+     "ua_full": 0
+    },
+    {
+     "code": "BP.PSTN.MOLEC",
+     "ua": null,
+     "count": 10,
+     "ua_full": 0
+    },
+    {
+     "code": "HEMODYN.ATOM",
+     "ua": null,
+     "count": 10,
+     "ua_full": 0
+    },
+    {
+     "code": "BDYHGT.MOLEC",
+     "ua": null,
+     "count": 9,
+     "ua_full": 0
+    },
+    {
+     "code": "EKG.ATOM",
+     "ua": null,
+     "count": 9,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.HETEROPHORIA",
+     "ua": null,
+     "count": 9,
+     "ua_full": 0
+    },
+    {
+     "code": "HL7.SMP",
+     "ua": null,
+     "count": 9,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.PHR",
+     "ua": null,
+     "count": 9,
+     "ua_full": 0
+    },
+    {
+     "code": "BDYHGT.ATOM",
+     "ua": null,
+     "count": 8,
+     "ua_full": 0
+    },
+    {
+     "code": "BDYTMP.ATOM",
+     "ua": null,
+     "count": 8,
+     "ua_full": 0
+    },
+    {
+     "code": "DOC.QUALITY",
+     "ua": null,
+     "count": 8,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.NEONAT",
+     "ua": null,
+     "count": 8,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.UPDRS",
+     "ua": null,
+     "count": 8,
+     "ua_full": 0
+    },
+    {
+     "code": "IO_IN.SUMMARY",
+     "ua": null,
+     "count": 7,
+     "ua_full": 0
+    },
+    {
+     "code": "IO_OUT.ATOM",
+     "ua": null,
+     "count": 7,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.NIH.COGNITIVE",
+     "ua": null,
+     "count": 7,
+     "ua_full": 0
+    },
+    {
+     "code": "GI",
+     "ua": null,
+     "count": 6,
+     "ua_full": 0
+    },
+    {
+     "code": "HRTRATE.PSTN.MOLEC",
+     "ua": null,
+     "count": 6,
+     "ua_full": 0
+    },
+    {
+     "code": "IO_IN.ATOM",
+     "ua": null,
+     "count": 6,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.VITALS",
+     "ua": null,
+     "count": 6,
+     "ua_full": 0
+    },
+    {
+     "code": "BDYCRC.ATOM",
+     "ua": null,
+     "count": 5,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.VISUAL_FIELD.NEI",
+     "ua": null,
+     "count": 5,
+     "ua_full": 0
+    },
+    {
+     "code": "GEN.US",
+     "ua": null,
+     "count": 5,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.BP",
+     "ua": null,
+     "count": 5,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.NIH.MOTOR",
+     "ua": null,
+     "count": 5,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.PULM",
+     "ua": null,
+     "count": 5,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.RAD",
+     "ua": null,
+     "count": 5,
+     "ua_full": 0
+    },
+    {
+     "code": "BDYSURF.ATOM",
+     "ua": null,
+     "count": 4,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.ANGIO.NEI",
+     "ua": null,
+     "count": 4,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.EOG.NEI",
+     "ua": null,
+     "count": 4,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.OCT.NEI",
+     "ua": null,
+     "count": 4,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.MEDS",
+     "ua": null,
+     "count": 4,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.PATIENT SAFETY",
+     "ua": null,
+     "count": 4,
+     "ua_full": 0
+    },
+    {
+     "code": "VOLUME.MOLEC",
+     "ua": null,
+     "count": 4,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.TONOMETRY.NEI",
+     "ua": null,
+     "count": 3,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.US",
+     "ua": null,
+     "count": 3,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.CV",
+     "ua": null,
+     "count": 3,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.IO",
+     "ua": null,
+     "count": 3,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.ONCO",
+     "ua": null,
+     "count": 3,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.VACCIN",
+     "ua": null,
+     "count": 3,
+     "ua_full": 0
+    },
+    {
+     "code": "SKNFLD.MOLEC",
+     "ua": null,
+     "count": 3,
+     "ua_full": 0
+    },
+    {
+     "code": "IEEE Rosetta",
+     "ua": null,
+     "count": 2,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.OB.US",
+     "ua": null,
+     "count": 2,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.TRAUMA",
+     "ua": null,
+     "count": 2,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.US.URO",
+     "ua": null,
+     "count": 2,
+     "ua_full": 0
+    },
+    {
+     "code": "ENDO.PULM",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "EYE.ANGIO",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "ICU",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "NIH.SENSORY",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.ART",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.BDYTMP",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.CLIN.VET",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.FUNCTION",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.HL7.CCDA",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    }
+   ]
+  },
+  {
+   "id": "3",
+   "ua": "Атрибути вкладень (Claims)",
+   "en": "Claims attachment",
+   "count": 1161,
+   "file": "loinc_data_3.json",
+   "classes": [
+    {
+     "code": "ATTACH.CPHS",
+     "ua": null,
+     "count": 139,
+     "ua_full": 0
+    },
+    {
+     "code": "ATTACH.REHAB.ABUSE",
+     "ua": null,
+     "count": 93,
+     "ua_full": 0
+    },
+    {
+     "code": "ATTACH.REHAB.OT",
+     "ua": null,
+     "count": 76,
+     "ua_full": 0
+    },
+    {
+     "code": "ATTACH.REHAB.PT",
+     "ua": null,
+     "count": 76,
+     "ua_full": 0
+    },
+    {
+     "code": "ATTACH.REHAB.SPEECH",
+     "ua": null,
+     "count": 76,
+     "ua_full": 0
+    },
+    {
+     "code": "ATTACH.REHAB.PSYCH",
+     "ua": null,
+     "count": 75,
+     "ua_full": 0
+    },
+    {
+     "code": "ATTACH.REHAB.CARDIAC",
+     "ua": null,
+     "count": 73,
+     "ua_full": 0
+    },
+    {
+     "code": "ATTACH.REHAB.NURS",
+     "ua": null,
+     "count": 73,
+     "ua_full": 0
+    },
+    {
+     "code": "ATTACH.REHAB.SOCIAL",
+     "ua": null,
+     "count": 73,
+     "ua_full": 0
+    },
+    {
+     "code": "ATTACH.REHAB.RT",
+     "ua": null,
+     "count": 70,
+     "ua_full": 0
+    },
+    {
+     "code": "ATTACH.CLINRPT",
+     "ua": null,
+     "count": 66,
+     "ua_full": 0
+    },
+    {
+     "code": "ATTACH.AMB",
+     "ua": null,
+     "count": 55,
+     "ua_full": 0
+    },
+    {
+     "code": "ATTACH.MEDS",
+     "ua": null,
+     "count": 54,
+     "ua_full": 0
+    },
+    {
+     "code": "ATTACH.REHAB.PULM",
+     "ua": null,
+     "count": 54,
+     "ua_full": 0
+    },
+    {
+     "code": "ATTACH.MODIFIER",
+     "ua": null,
+     "count": 32,
+     "ua_full": 0
+    },
+    {
+     "code": "ATTACH.ED",
+     "ua": null,
+     "count": 29,
+     "ua_full": 0
+    },
+    {
+     "code": "ATTACH.LAB",
+     "ua": null,
+     "count": 22,
+     "ua_full": 0
+    },
+    {
+     "code": "ATTACH",
+     "ua": null,
+     "count": 11,
+     "ua_full": 0
+    },
+    {
+     "code": "ATTACH.REHAB",
+     "ua": null,
+     "count": 5,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.ATTACH.MOD",
+     "ua": null,
+     "count": 3,
+     "ua_full": 0
+    },
+    {
+     "code": "ATTACH.PERIODONTAL",
+     "ua": null,
+     "count": 2,
+     "ua_full": 0
+    },
+    {
+     "code": "ATTACH.CARD",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "ATTACH.GI",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "ATTACH.OBS",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "ATTACH.RESP",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    }
+   ]
+  },
+  {
+   "id": "4",
+   "ua": "Опитувальники",
+   "en": "Survey",
+   "count": 12668,
+   "file": "loinc_data_4.json",
+   "classes": [
+    {
+     "code": "SURVEY.PROMIS",
+     "ua": "Опитувальник PROMIS",
+     "count": 2463,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.GNHLTH",
+     "ua": null,
+     "count": 1629,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.CMS",
+     "ua": null,
+     "count": 968,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.CMS",
+     "ua": null,
+     "count": 866,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.MDS",
+     "ua": null,
+     "count": 864,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.MTLHLTH",
+     "ua": null,
+     "count": 403,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.NURSE.OMAHA",
+     "ua": null,
+     "count": 402,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.NEUROQ",
+     "ua": null,
+     "count": 383,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.GNHLTH",
+     "ua": null,
+     "count": 330,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.ESRD",
+     "ua": null,
+     "count": 308,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.CARE",
+     "ua": null,
+     "count": 289,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.PROMIS",
+     "ua": null,
+     "count": 231,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.MDS",
+     "ua": null,
+     "count": 224,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.CDC",
+     "ua": null,
+     "count": 214,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.COVID",
+     "ua": null,
+     "count": 186,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.NURSE.HHCC",
+     "ua": null,
+     "count": 185,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.SDOH",
+     "ua": null,
+     "count": 168,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.NMMDS",
+     "ua": null,
+     "count": 161,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.OASIS",
+     "ua": null,
+     "count": 152,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.OPTIMAL",
+     "ua": null,
+     "count": 96,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.RFC",
+     "ua": null,
+     "count": 85,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.PHQ",
+     "ua": null,
+     "count": 82,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.CDC",
+     "ua": null,
+     "count": 81,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.R-OUTCOMES",
+     "ua": null,
+     "count": 79,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.AHRQ",
+     "ua": null,
+     "count": 76,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.NIDA",
+     "ua": null,
+     "count": 75,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.NICHQ",
+     "ua": null,
+     "count": 65,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.PAIN",
+     "ua": null,
+     "count": 63,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.NIH.EMO",
+     "ua": null,
+     "count": 62,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.CSSRS",
+     "ua": null,
+     "count": 56,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.IPAQ",
+     "ua": null,
+     "count": 53,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.ORTHOPEDICS",
+     "ua": null,
+     "count": 53,
+     "ua_full": 0
+    },
+    {
+     "code": "TIMP",
+     "ua": null,
+     "count": 53,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.CARE",
+     "ua": null,
+     "count": 50,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.AMNART",
+     "ua": null,
+     "count": 48,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.MTLHLTH",
+     "ua": null,
+     "count": 47,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.NEURO",
+     "ua": null,
+     "count": 44,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.NEUROQ",
+     "ua": null,
+     "count": 43,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.PROWL",
+     "ua": null,
+     "count": 43,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.SDOH",
+     "ua": null,
+     "count": 42,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.PNDS",
+     "ua": null,
+     "count": 42,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.NURSE.LIV-HIV",
+     "ua": null,
+     "count": 38,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.HAQ",
+     "ua": null,
+     "count": 37,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.NIH.EMO",
+     "ua": null,
+     "count": 36,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.SAMHSA",
+     "ua": null,
+     "count": 35,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.OASIS",
+     "ua": null,
+     "count": 34,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.SLP",
+     "ua": null,
+     "count": 34,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.GDS",
+     "ua": null,
+     "count": 31,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.NMMDS",
+     "ua": null,
+     "count": 30,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.HWS",
+     "ua": null,
+     "count": 29,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.NURSE.HIV-SSC",
+     "ua": null,
+     "count": 27,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.ESRD",
+     "ua": null,
+     "count": 26,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.MLHFQ",
+     "ua": null,
+     "count": 24,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.R-OUTCOMES",
+     "ua": null,
+     "count": 23,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.NHCS",
+     "ua": null,
+     "count": 22,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.USSGFHT",
+     "ua": null,
+     "count": 22,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.COVID",
+     "ua": null,
+     "count": 20,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.COOP",
+     "ua": null,
+     "count": 20,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.NHANES",
+     "ua": null,
+     "count": 18,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.GPCOG",
+     "ua": null,
+     "count": 17,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.CNPI",
+     "ua": null,
+     "count": 16,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.HHS",
+     "ua": null,
+     "count": 15,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.WELLRX",
+     "ua": null,
+     "count": 15,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.ALSFRSR",
+     "ua": null,
+     "count": 14,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.HHS",
+     "ua": null,
+     "count": 13,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.PCORNET",
+     "ua": null,
+     "count": 13,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.EPDS",
+     "ua": null,
+     "count": 11,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.SEEK",
+     "ua": null,
+     "count": 11,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.NURSE.QAM",
+     "ua": null,
+     "count": 10,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.AHRQ",
+     "ua": null,
+     "count": 9,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.CSSRS",
+     "ua": null,
+     "count": 9,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.IPAQ",
+     "ua": null,
+     "count": 9,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.PHQ",
+     "ua": null,
+     "count": 9,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.QRDA",
+     "ua": null,
+     "count": 9,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.NEURO",
+     "ua": null,
+     "count": 8,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.NIDA",
+     "ua": null,
+     "count": 8,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.BPI",
+     "ua": null,
+     "count": 8,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.MFS",
+     "ua": null,
+     "count": 8,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.NSRAS",
+     "ua": null,
+     "count": 8,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.OPTIMAL",
+     "ua": null,
+     "count": 7,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.MISC",
+     "ua": null,
+     "count": 7,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.ACT",
+     "ua": null,
+     "count": 6,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.NORTON",
+     "ua": null,
+     "count": 6,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.UNMETHELNEED",
+     "ua": null,
+     "count": 6,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.GPCOG",
+     "ua": null,
+     "count": 5,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.SLP",
+     "ua": null,
+     "count": 5,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.USSGFHT",
+     "ua": null,
+     "count": 5,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.TIMP",
+     "ua": null,
+     "count": 5,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.ADHD",
+     "ua": null,
+     "count": 5,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.HARK",
+     "ua": null,
+     "count": 5,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.ORTHOPEDICS",
+     "ua": null,
+     "count": 4,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.PCORI",
+     "ua": null,
+     "count": 4,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.CBS-8",
+     "ua": null,
+     "count": 4,
+     "ua_full": 0
+    },
+    {
+     "code": "MEPS",
+     "ua": null,
+     "count": 3,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.BIMS",
+     "ua": null,
+     "count": 3,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.CNPI",
+     "ua": null,
+     "count": 3,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.PAIN",
+     "ua": null,
+     "count": 3,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.CERNER",
+     "ua": null,
+     "count": 3,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.CHILD-PUGH",
+     "ua": null,
+     "count": 3,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.PEG",
+     "ua": null,
+     "count": 3,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.WHYMPI",
+     "ua": null,
+     "count": 3,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.BDI",
+     "ua": null,
+     "count": 2,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.COOP",
+     "ua": null,
+     "count": 2,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.DAST",
+     "ua": null,
+     "count": 2,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.GDS",
+     "ua": null,
+     "count": 2,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.PCORNET",
+     "ua": null,
+     "count": 2,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.PROWL",
+     "ua": null,
+     "count": 2,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.RFC",
+     "ua": null,
+     "count": 2,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.WHYMPI",
+     "ua": null,
+     "count": 2,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.ADVAULT",
+     "ua": null,
+     "count": 2,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.BDI",
+     "ua": null,
+     "count": 2,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.DAST",
+     "ua": null,
+     "count": 2,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.NIH_TOOLBOX",
+     "ua": null,
+     "count": 2,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.PRAPARE",
+     "ua": null,
+     "count": 2,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.RMDQ",
+     "ua": null,
+     "count": 2,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.RSS",
+     "ua": null,
+     "count": 2,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.ACT",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.ADVAULT",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.ALSFRSR",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.AMNART",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.BPI",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.BRIEF",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.CAM",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.CBS-8",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.CESD",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.CHILD-PUGH",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.DUKE-AD",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.EPDS",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.HAQ",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.HARK",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.HENDRICH",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.HHCC",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.HITS",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.HIV-SSC",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.LIV-HIV",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.LKSS",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.MEPS",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.MFS",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.MLHFQ",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.NHANES",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.NICHQ",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.NORTON",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.NSRAS",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.OMAHA",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.PAS",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.PASII",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.PNDS",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.QAM",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.QRDA",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.RMDQ",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.RSS",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.RUDAS",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.SAMHSA",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.SEEK",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.UNMETHELNEED",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "PANEL.SURVEY.WELLRX",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.AAOS",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.BCAT",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.BRIEF",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.CESD",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.DUKE-AD",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.HITS",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.LKSS",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.PAS",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.PASII",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    },
+    {
+     "code": "SURVEY.RUDAS",
+     "ua": null,
+     "count": 1,
+     "ua_full": 0
+    }
+   ]
+  }
+ ],
+ "license": "Цей довідник містить контент LOINC® (http://loinc.org), © 1995–2026 Regenstrief Institute, Inc. Використовується на умовах ліцензії LOINC. LOINC — не національний класифікатор України; наведено як довідковий інструмент."
+}

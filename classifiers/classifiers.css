@@ -4,6 +4,11 @@
    ============================================================ */
 
 .classifiers-hero .overline { letter-spacing: .04em; }
+.classifiers-hero .overline .xnav {
+  color: var(--accent-dark); text-decoration: none; font-weight: 700;
+  white-space: nowrap; border-bottom: 1px dashed currentColor;
+}
+.classifiers-hero .overline .xnav:hover { color: var(--accent); border-bottom-style: solid; }
 .classifiers-hero .stats { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
 .classifiers-hero .stat {
   background: var(--surface); border: 1px solid var(--line);

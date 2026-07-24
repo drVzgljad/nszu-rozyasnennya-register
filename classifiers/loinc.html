@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>НавігаторПМГ26 | LOINC — довідник лабораторних кодів</title>
+  <link rel="stylesheet" href="../styles.css?v=20260719c">
+  <link rel="stylesheet" href="classifiers.css?v=20260724e">
+  <link rel="stylesheet" href="loinc.css?v=20260724a">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260721a">
+  <script type="module" src="../auth-v2.js?v=20260724d"></script>
+</head>
+<body id="top">
+  <header class="hero classifiers-hero">
+    <div class="hero-copy">
+      <div class="overline">Довідник · LOINC <span id="loVer">2.82</span> · лабораторні та клінічні спостереження ·
+        <a class="xnav" href="index.html">↔ Класифікатор хвороб НК 025</a></div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів, постанови та правил</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>LOINC — довідник лабораторних кодів</h1>
+      <p>Міжнародний стандарт LOINC® для позначення лабораторних та клінічних спостережень.
+         Кожен код описано шістьма осями: <em>Компонент · Властивість · Час · Система · Шкала · Метод</em>.
+         Українські назви — офіційні там, де їх надано у мовному варіанті LOINC; для решти складено
+         автоматично з офіційного глосарію (позначено бейджем). LOINC <strong>не є</strong> національним
+         класифікатором України — наведено як довідковий інструмент, без прив'язки до пакетів ПМГ.</p>
+    </div>
+    <div class="stats" id="loStats" aria-label="Статистика довідника"></div>
+  </header>
+
+  <nav class="mobile-tabs" id="mobileTabs" aria-label="Навігація між панелями">
+    <button class="mobile-tab active" data-tab="browser" type="button">Огляд і пошук</button>
+    <button class="mobile-tab" data-tab="reader" type="button">Паспорт коду</button>
+  </nav>
+
+  <main class="nk-layout" data-active="browser">
+    <!-- ЛІВА ПАНЕЛЬ: мова + пошук + каскад -->
+    <section class="nk-browser" aria-label="Пошук і навігація довідника">
+      <div class="search-panel nk-search">
+
+        <!-- Перемикач мови -->
+        <div class="lo-langbar">
+          <span class="lo-langlbl">Мова назв</span>
+          <div class="lo-langtoggle" role="group" aria-label="Мова відображення назв">
+            <button type="button" class="lo-lang active" data-lang="ua">Українська</button>
+            <button type="button" class="lo-lang" data-lang="en">English (LOINC)</button>
+          </div>
+        </div>
+
+        <label class="search">
+          <span>Пошук за кодом LOINC або назвою (укр./англ.)</span>
+          <input id="loSearch" type="search"
+                 placeholder="Напр.: глюкоза, 2345-7, гепатит, HbA1c, калій…" autocomplete="off">
+        </label>
+
+        <!-- Каскад: Тип класу → Клас -->
+        <div class="nk-cascade" aria-label="Навігація по довіднику">
+          <div class="casc-field">
+            <label for="loClassType">Тип спостережень</label>
+            <select id="loClassType"><option value="">Завантаження…</option></select>
+          </div>
+          <div class="casc-field">
+            <label for="loClass">Клас (розділ)</label>
+            <select id="loClass" disabled><option value="">— оберіть тип —</option></select>
+          </div>
+        </div>
+
+        <div class="nk-filters">
+          <label class="nk-check"><input type="checkbox" id="loOnlyUA"> лише з українською назвою</label>
+          <label class="nk-check"><input type="checkbox" id="loActive" checked> лише чинні (ACTIVE)</label>
+        </div>
+        <div class="results-summary">
+          <span id="loCount">Завантаження…</span>
+          <button id="loClear" type="button">✕ Очистити</button>
+        </div>
+      </div>
+
+      <div class="nk-results" id="loResults" hidden></div>
+    </section>
+
+    <!-- ПРАВА ПАНЕЛЬ: паспорт коду -->
+    <article class="nk-reader reader-empty" id="loReader" aria-live="polite">
+      <div class="reader-hint">
+        <div class="reader-hint-ico">🧪</div>
+        <p>Оберіть тип і клас у каскаді або скористайтеся пошуком, щоб побачити паспорт коду LOINC:
+           шість осей (компонент, властивість, час, система, шкала, метод), українську та англійську
+           назви, одиниці, статус і посилання на loinc.org.</p>
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p id="loLicense">Цей довідник містить контент LOINC® (loinc.org), © 1995–2026 Regenstrief Institute, Inc.,
+           використовується на умовах ліцензії LOINC. LOINC — не національний класифікатор України; наведено
+           як довідковий інструмент. Українські назви поза офіційним мовним варіантом складено автоматично
+           і не є офіційним перекладом.</p>
+      </div>
+    </div>
+  </footer>
+
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <script src="loinc.js?v=20260724a" defer></script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+/* ============================================================
+   LOINC — довідник: додаткові стилі поверх classifiers.css.
+   Перемикач мов, бейджі якості перекладу, таблиця осей, паспорт.
+   Токени — зі styles.css (--ink, --accent, --surface, --line…).
+   ============================================================ */
+
+/* ── Перемикач мови ────────────────────────────────────────── */
+.lo-langbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-bottom: 12px;
+}
+.lo-langlbl { font-size: .78rem; color: var(--muted); font-weight: 600; }
+.lo-langtoggle {
+  display: inline-flex; background: var(--soft); border: 1px solid var(--line);
+  border-radius: 10px; padding: 2px;
+}
+.lo-lang {
+  border: 0; background: none; color: var(--muted); cursor: pointer;
+  font: inherit; font-size: .84rem; font-weight: 600; padding: 6px 14px; border-radius: 8px;
+}
+.lo-lang:hover { color: var(--accent-dark); }
+.lo-lang.active { background: var(--accent-dark); color: #fff; }
+
+/* ── Заголовок списку (клас / поширені) ────────────────────── */
+.lo-listhead {
+  position: sticky; top: 0; z-index: 1;
+  background: var(--accent-soft); color: var(--accent-dark);
+  font-size: .82rem; font-weight: 700; padding: 7px 10px; margin: 2px 0 4px; border-radius: 8px;
+}
+.lo-listhead span { font-family: ui-monospace, monospace; font-weight: 600; color: var(--muted); }
+
+/* ── Бейдж якості української назви ─────────────────────────── */
+.lo-ub {
+  flex: 0 0 auto; font-size: .66rem; font-weight: 700; letter-spacing: .01em;
+  border-radius: 20px; padding: 2px 8px; white-space: nowrap; align-self: center;
+}
+.lo-ub-off { background: var(--teal); color: #fff; }
+.lo-ub-auto { background: #f6e5c3; color: #8a5a17; }
+.lo-ub-en { background: var(--soft); color: var(--muted); border: 1px solid var(--line); }
+
+/* ── Статус коду ───────────────────────────────────────────── */
+.lo-status {
+  font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
+  border-radius: 20px; padding: 4px 10px;
+}
+.lo-st-ok { background: var(--accent-soft); color: var(--accent-dark); }
+.lo-st-trial { background: var(--warm); color: var(--teal-dark); }
+.lo-st-dep { background: #fbeaea; color: #a23b3b; }
+
+/* ── Друга (альтернативна) назва під основною ───────────────── */
+.lo-secname {
+  font-size: .92rem; color: var(--muted); line-height: 1.4; margin: -4px 0 4px;
+  padding-left: 10px; border-left: 3px solid var(--line);
+}
+
+/* ── Таблиця осей ──────────────────────────────────────────── */
+.lo-axes { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.lo-axes thead th {
+  text-align: left; font-size: .72rem; text-transform: uppercase; letter-spacing: .03em;
+  color: var(--muted); font-weight: 700; padding: 4px 8px; border-bottom: 1px solid var(--line);
+}
+.lo-axes tbody th {
+  text-align: left; font-weight: 600; color: var(--muted); font-size: .8rem;
+  padding: 7px 8px; vertical-align: top; width: 34%;
+}
+.lo-axes tbody td { padding: 7px 8px; vertical-align: top; border-top: 1px solid var(--line); }
+.lo-axes tbody th { border-top: 1px solid var(--line); }
+.lo-axes .lo-ua { color: var(--ink); font-weight: 600; }
+.lo-axes .lo-ua.muted { font-weight: 400; }
+.lo-axes .lo-en { color: var(--muted); font-family: ui-monospace, "Cascadia Code", monospace; font-size: .82rem; }
+
+/* ── Характеристики ────────────────────────────────────────── */
+.lo-meta { display: flex; flex-direction: column; gap: 6px; }
+.lo-metarow { display: flex; gap: 10px; align-items: baseline; }
+.lo-mk { flex: 0 0 40%; font-size: .8rem; color: var(--muted); font-weight: 600; }
+.lo-mv { flex: 1 1 auto; color: var(--ink); font-size: .9rem; }
+
+/* ── Темна тема ─────────────────────────────────────────────── */
+:root.dark-theme .lo-ub-auto { background: rgba(214, 158, 46, .22); color: #f0c674; }
+:root.dark-theme .lo-st-dep { background: rgba(220, 60, 60, .18); color: #fca5a5; }
+:root.dark-theme .reader-code { color: #0b1220; }
+
+/* ── Дрібне для мобільного ─────────────────────────────────── */
+@media (max-width: 560px) {
+  .lo-axes tbody th { width: 40%; }
+  .lo-langtoggle { width: 100%; }
+  .lo-lang { flex: 1; text-align: center; }
+  .lo-langbar { flex-direction: column; align-items: stretch; gap: 6px; }
+}

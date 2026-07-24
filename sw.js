@@ -2,7 +2,7 @@
    Стратегія: HTML — network-first (щоб оновлення доїжджали одразу),
    статика — cache-first із фоновим оновленням (версії ?v= у HTML).
    Запити до Supabase та інших доменів не перехоплюються. */
-const CACHE = 'pmg-portal-v3';
+const CACHE = 'pmg-portal-v4';
 const CORE = [
   '/',
   '/index.html',
@@ -38,6 +38,11 @@ self.addEventListener('fetch', (e) => {
 
   const url = new URL(req.url);
   if (url.origin !== location.origin) return; // Supabase/CDN — напряму
+
+  // Великі дані-шари LOINC (до ~17 МБ) — напряму в мережу, без клонування й
+  // кешування в Cache Storage: інакше SW роздуває сховище і на слабких пристроях
+  // може обірвати велике завантаження. HTTP-кеш браузера тут достатній.
+  if (url.pathname.startsWith('/classifiers/data/loinc/loinc_data_')) return;
 
   if (req.mode === 'navigate') {
     // no-cache: GitHub Pages ставить max-age=600, без цього браузер до 10 хв
