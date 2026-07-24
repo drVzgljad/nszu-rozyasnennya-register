@@ -1079,11 +1079,6 @@ async function renderDashboard(dashboardEl, prefix) {
         `}
       </div>
 
-      <div class="dashboard-actions" style="display: flex; gap: 8px; flex-wrap: wrap;">
-        <a href="${prefix}cabinet/index.html" class="dashboard-action-btn">✍️ Внести роботу</a>
-        <a href="${prefix}skod/reports.html" class="dashboard-action-btn" style="background: var(--p-soft); border: 1px solid var(--p-line); color: var(--p-ink); display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none;">📊 Звіти та аналітика</a>
-        ${showManagerAction ? `<a href="${prefix}skod/tasks.html" class="dashboard-action-btn primary">📋 Надати доручення</a>` : ''}
-      </div>
     </div>
   `;
 
