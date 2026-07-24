@@ -2,7 +2,7 @@
    Стратегія: HTML — network-first (щоб оновлення доїжджали одразу),
    статика — cache-first із фоновим оновленням (версії ?v= у HTML).
    Запити до Supabase та інших доменів не перехоплюються. */
-const CACHE = 'pmg-portal-v4';
+const CACHE = 'pmg-portal-v5';
 const CORE = [
   '/',
   '/index.html',

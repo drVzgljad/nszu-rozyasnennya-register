@@ -262,8 +262,13 @@ function applyAccess() {
       { text: '🗺️ Карта', path: 'map/index.html' },
       { text: 'Роз\'яснення', path: 'rozjasnennya.html' },
       { text: 'Пакети 2026', path: 'pakety/index.html' },
-      { text: 'Паспорт пакета', path: 'passport/index.html' },
-      { text: '🩺 Класифікатори', path: 'classifiers/index.html' }
+      { text: 'Паспорт пакета', path: 'passport/index.html' }
+    ];
+
+    // Класифікатори та коди — окрема вкладка «Коди»
+    const codesItems = [
+      { text: '🩺 Хвороби · НК 025', path: 'classifiers/index.html' },
+      { text: '🧪 Лабораторні · LOINC', path: 'classifiers/loinc.html' }
     ];
 
     // Довідково-нормативні розділи — згруповані в дропдаун «Документи»
@@ -272,7 +277,6 @@ function applyAccess() {
       { text: 'Алгоритми та правила (наказ 377)', path: 'algorithms/index.html' },
       { text: 'Нормативна база', path: 'regulatory/index.html' },
       { text: 'ДЕЦ МОЗ', path: 'dec/index.html' },
-      { text: '🧪 LOINC (лаб. коди)', path: 'classifiers/loinc.html' },
       { text: 'Укладені договори', path: 'zoz-dogovr/index.html' }
     ];
 
@@ -356,6 +360,7 @@ function applyAccess() {
 
     // Головна · Реєстр · Пакети · Паспорт · Документи ▼ · Сервіси ▼ · Структура · Чат
     appendNavLinks(coreItems);
+    appendDropdown('🩺 Коди', codesItems);
     appendDropdown('Документи', documentsItems);
     appendDropdown('Сервіси', dropdownItems);
     appendNavLinks(tailItems);
@@ -2034,6 +2039,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '🧮', label: 'Наказ 377', path: 'algorithms/index.html' },
     { icon: '⚖️', label: 'Нормативна база', path: 'regulatory/index.html' },
     { icon: '🏥', label: 'ДЕЦ МОЗ', path: 'dec/index.html' },
+    { icon: '🩺', label: 'Хвороби · НК 025', path: 'classifiers/index.html' },
     { icon: '🧪', label: 'LOINC (лаб. коди)', path: 'classifiers/loinc.html' },
     { icon: '📑', label: 'Договори ЗОЗ', path: 'zoz-dogovr/index.html' },
     { icon: '👤', label: 'Кабінет', path: 'cabinet/index.html', role: 'expert' },
