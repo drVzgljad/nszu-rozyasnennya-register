@@ -19,7 +19,7 @@ let isHead = false;
 // Єдиний перелік підтек порталу: якщо сторінка лежить в одній з них,
 // відносні посилання на кореневі ресурси потребують префікса '../'.
 const PORTAL_SUBDIRS = [
-  'algorithms', 'cabinet', 'chat', 'dec', 'expert-proposals', 'infocenter',
+  'algorithms', 'cabinet', 'chat', 'classifiers', 'dec', 'expert-proposals', 'infocenter',
   'map', 'news', 'pakety', 'passport', 'pmg-proposals', 'postanova', 'regulatory',
   'relax', 'reminders', 'skod', 'zoz-dogovr', 'zoz-questions'
 ];
@@ -269,6 +269,7 @@ function applyAccess() {
     const documentsItems = [
       { text: 'Постанова 1808', path: 'postanova/index.html' },
       { text: 'Алгоритми та правила (наказ 377)', path: 'algorithms/index.html' },
+      { text: 'Класифікатор хвороб (НК 025)', path: 'classifiers/index.html' },
       { text: 'Нормативна база', path: 'regulatory/index.html' },
       { text: 'ДЕЦ МОЗ', path: 'dec/index.html' },
       { text: 'Укладені договори', path: 'zoz-dogovr/index.html' }

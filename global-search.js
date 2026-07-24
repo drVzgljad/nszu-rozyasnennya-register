@@ -9,10 +9,11 @@ let state = { entries: [], blobs: [], results: [], selected: 0, prefix: './' };
 const GROUPS = [
   { type: 1, label: 'Пакети ПМГ-2026', icon: '📦' },
   { type: 2, label: 'Постанова 1808', icon: '📜' },
+  { type: 4, label: 'Класифікатор НК 025', icon: '🩺' },
   { type: 0, label: "Роз'яснення НСЗУ", icon: '📄' },
   { type: 3, label: 'Договори ЗОЗ', icon: '🏥' },
 ];
-const GROUP_ORDER = { 1: 0, 2: 1, 0: 2, 3: 3 };
+const GROUP_ORDER = { 1: 0, 2: 1, 4: 2, 0: 3, 3: 4 };
 const PER_GROUP = 7;
 
 function buildUrl(entry, prefix) {
@@ -22,6 +23,7 @@ function buildUrl(entry, prefix) {
     case 1: return `${prefix}passport/index.html?package=${encodeURIComponent(link)}`;
     case 2: return `${prefix}postanova/index.html?node=${encodeURIComponent(link)}`;
     case 3: return `${prefix}zoz-dogovr/index.html?q=${encodeURIComponent(link)}`;
+    case 4: return `${prefix}classifiers/index.html?code=${encodeURIComponent(link)}`;
   }
 }
 

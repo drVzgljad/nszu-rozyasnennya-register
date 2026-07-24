@@ -1,0 +1,201 @@
+/* ============================================================
+   Класифікатор хвороб НК 025 — стилі розділу.
+   Токени успадковано зі styles.css (--ink, --accent, --teal…).
+   ============================================================ */
+
+.classifiers-hero .overline { letter-spacing: .04em; }
+.classifiers-hero .stats { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.classifiers-hero .stat {
+  background: rgba(255, 255, 255, .72); border: 1px solid var(--line);
+  border-radius: 12px; padding: 8px 14px; min-width: 92px;
+  display: flex; flex-direction: column; box-shadow: var(--shadow);
+}
+.classifiers-hero .stat-num { font-size: 1.25rem; font-weight: 800; color: var(--accent-dark); line-height: 1.1; }
+.classifiers-hero .stat-key { font-size: .74rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+
+/* ── Розкладка ─────────────────────────────────────────────── */
+.nk-layout {
+  display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 18px; max-width: 1320px; margin: 18px auto 40px; padding: 0 18px;
+  align-items: start;
+}
+.nk-browser {
+  position: sticky; top: 12px;
+  display: flex; flex-direction: column; gap: 12px;
+  max-height: calc(100vh - 24px);
+}
+.nk-reader { min-height: 320px; }
+
+/* ── Панель пошуку ─────────────────────────────────────────── */
+.search-panel.nk-search {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 16px; padding: 14px 16px; box-shadow: var(--shadow);
+}
+.nk-search .search { display: flex; flex-direction: column; gap: 4px; }
+.nk-search .search span { font-size: .8rem; color: var(--muted); font-weight: 600; }
+.nk-search .search input {
+  width: 100%; padding: 11px 14px; border: 1px solid var(--line); border-radius: 11px;
+  font-size: 1rem; background: var(--soft); color: var(--ink);
+}
+.nk-search .search input:focus { outline: 2px solid var(--accent); background: #fff; }
+.nk-filters { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-top: 10px; }
+.nk-check { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--ink); cursor: pointer; }
+.nk-level { display: inline-flex; align-items: center; gap: 6px; font-size: .85rem; color: var(--muted); }
+.nk-level select { padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--ink); }
+.results-summary { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 10px; }
+#nkCount { font-size: .82rem; color: var(--muted); }
+#nkClear {
+  border: 1px solid var(--line); background: var(--soft); color: var(--accent-dark);
+  border-radius: 9px; padding: 5px 12px; font-size: .8rem; cursor: pointer;
+}
+#nkClear:hover { background: var(--accent-soft); }
+
+/* ── Дерево / Результати (спільний скрол-контейнер) ─────────── */
+.nk-tree, .nk-results {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+  padding: 6px; box-shadow: var(--shadow); overflow: auto; flex: 1 1 auto; min-height: 240px;
+}
+
+.tnode { }
+.tchildren { margin-left: 14px; border-left: 1px dashed var(--line); }
+
+.trow {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  background: none; border: 0; text-align: left; cursor: pointer;
+  padding: 7px 8px; border-radius: 9px; color: var(--ink); font: inherit; line-height: 1.3;
+}
+.trow:hover { background: var(--accent-soft); }
+.trow.active { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px var(--accent); }
+
+.tw {
+  flex: 0 0 16px; width: 16px; height: 16px; position: relative; color: var(--muted);
+}
+.tw::before {
+  content: "▸"; position: absolute; inset: 0; display: grid; place-items: center;
+  font-size: .8rem; transition: transform .15s ease;
+}
+.tnode.open > .trow > .tw::before { transform: rotate(90deg); }
+.tw.leaf::before { content: "·"; opacity: .5; }
+
+.tcode {
+  font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+  font-weight: 700; color: var(--accent-dark); white-space: nowrap;
+}
+.tcode.code { background: var(--accent-soft); border-radius: 6px; padding: 1px 6px; font-size: .86rem; }
+.trange { font-size: .74rem; color: var(--muted); font-family: ui-monospace, monospace; white-space: nowrap; }
+.tname { flex: 1 1 auto; color: var(--ink); }
+.tcount { font-size: .74rem; color: var(--muted); background: var(--soft); border-radius: 20px; padding: 1px 9px; }
+.tempty { padding: 8px 12px; color: var(--muted); font-size: .82rem; }
+
+/* рівневі акценти */
+.trow.lvl-class .tcode { color: #23507a; }
+.trow.lvl-class { font-weight: 700; }
+.trow.lvl-block .tname { font-weight: 600; color: var(--accent-dark); }
+.trow.lvl-4 .tcode.code { color: var(--accent); background: #eef6fc; }
+.trow.lvl-5 .tcode.code { color: var(--teal-dark); background: var(--warm); }
+
+.pk-dot {
+  font-size: .64rem; font-weight: 800; letter-spacing: .03em; color: #fff;
+  background: var(--teal); border-radius: 20px; padding: 1px 7px; white-space: nowrap;
+}
+
+/* результати пошуку */
+.rrow {
+  width: 100%; display: flex; align-items: center; gap: 10px; text-align: left;
+  background: none; border: 0; border-bottom: 1px solid var(--line); cursor: pointer;
+  padding: 9px 8px; color: var(--ink); font: inherit;
+}
+.rrow:hover { background: var(--accent-soft); }
+.rrow.active { background: var(--accent-soft); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.rrow .rmain { display: flex; flex-direction: column; gap: 1px; flex: 1 1 auto; }
+.rrow .rmeta { font-size: .72rem; color: var(--muted); }
+.rrow.lvl-5 .tcode.code { color: var(--teal-dark); background: var(--warm); }
+.rrow.lvl-4 .tcode.code { color: var(--accent); background: #eef6fc; }
+
+/* ── Паспорт коду ──────────────────────────────────────────── */
+.nk-reader {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+  padding: 20px 22px; box-shadow: var(--shadow);
+}
+.nk-reader.reader-empty { display: grid; place-items: center; color: var(--muted); }
+.reader-hint { text-align: center; max-width: 340px; }
+.reader-hint-ico { font-size: 2.4rem; margin-bottom: 8px; }
+.reader-hint p { color: var(--muted); line-height: 1.5; }
+
+.reader-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.reader-code {
+  font-family: ui-monospace, monospace; font-size: 1.7rem; font-weight: 800;
+  color: #fff; background: var(--accent-dark); border-radius: 10px; padding: 4px 14px;
+}
+.reader-level {
+  font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em;
+  color: var(--accent-dark); background: var(--accent-soft); border-radius: 20px; padding: 4px 10px;
+}
+.reader-level.lvl-5 { color: var(--teal-dark); background: var(--warm); }
+.copy-btn {
+  margin-left: auto; border: 1px solid var(--line); background: var(--soft); color: var(--accent-dark);
+  border-radius: 9px; padding: 6px 12px; font-size: .82rem; cursor: pointer;
+}
+.copy-btn:hover { background: var(--accent-soft); }
+.reader-name { font-size: 1.28rem; line-height: 1.35; margin: 14px 0 10px; color: var(--ink); }
+
+.reader-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 4px; margin-bottom: 4px; }
+.reader-crumbs .crumb { font-size: .82rem; color: var(--muted); background: var(--soft); border-radius: 8px; padding: 3px 9px; }
+.reader-crumbs .crumb b { color: var(--accent-dark); }
+.reader-crumbs .crumb em { font-family: ui-monospace, monospace; font-style: normal; color: var(--muted); }
+.reader-crumbs .crumb a { color: var(--accent); cursor: pointer; text-decoration: none; }
+.reader-crumbs .crumb a:hover { text-decoration: underline; }
+.reader-crumbs .sep { color: var(--line); }
+
+.reader-block { margin-top: 18px; }
+.reader-block h3 { font-size: .82rem; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); margin: 0 0 8px; }
+.reader-block h3 .src, .reader-block h3 .muted { font-weight: 500; text-transform: none; letter-spacing: 0; }
+
+.chip-list { display: flex; flex-wrap: wrap; gap: 7px; }
+.pk-pkg {
+  display: inline-block; background: var(--teal); color: #fff; font-weight: 700; font-size: .82rem;
+  border-radius: 9px; padding: 5px 11px; text-decoration: none;
+}
+.pk-pkg:hover { background: var(--teal-dark); }
+.badge-row { display: flex; gap: 6px; margin-top: 8px; }
+.pk-badge { font-size: .72rem; border-radius: 20px; padding: 2px 9px; border: 1px solid var(--line); color: var(--muted); }
+.pk-badge.ad { background: #eef6fc; color: var(--accent-dark); border-color: #cfe4f4; }
+.pk-badge.ch { background: var(--warm); color: var(--teal-dark); border-color: #cfeadd; }
+.pmg-none .muted, .muted { color: var(--muted); font-size: .86rem; line-height: 1.5; }
+
+.link-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+.xlink {
+  display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--ink);
+  background: var(--soft); border: 1px solid var(--line); border-radius: 11px; padding: 10px 12px;
+  font-size: .88rem; font-weight: 600; transition: background .12s, border-color .12s;
+}
+.xlink:hover { background: var(--accent-soft); border-color: var(--accent); }
+.xico { font-size: 1.05rem; }
+
+.subchip {
+  border: 1px solid var(--line); background: #fff; border-radius: 9px; padding: 5px 10px;
+  font-size: .82rem; color: var(--ink); cursor: pointer; text-align: left; max-width: 100%;
+}
+.subchip:hover { background: var(--accent-soft); border-color: var(--accent); }
+.subchip b { font-family: ui-monospace, monospace; color: var(--accent-dark); }
+
+.reader-foot { margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--line); font-size: .74rem; color: var(--muted); }
+
+/* ── Мобільні вкладки ──────────────────────────────────────── */
+.mobile-tabs { display: none; }
+@media (max-width: 900px) {
+  .nk-layout { grid-template-columns: 1fr; }
+  .nk-browser { position: static; max-height: none; }
+  .mobile-tabs {
+    display: flex; gap: 6px; position: sticky; top: 0; z-index: 5;
+    background: var(--surface); border-bottom: 1px solid var(--line); padding: 8px 14px;
+  }
+  .mobile-tab {
+    flex: 1; border: 1px solid var(--line); background: var(--soft); color: var(--muted);
+    border-radius: 10px; padding: 9px; font-size: .86rem; font-weight: 600; cursor: pointer;
+  }
+  .mobile-tab.active { background: var(--accent-dark); color: #fff; border-color: var(--accent-dark); }
+  .nk-layout[data-active="browser"] .nk-reader { display: none; }
+  .nk-layout[data-active="reader"] .nk-browser { display: none; }
+  .nk-tree, .nk-results { max-height: none; }
+}
