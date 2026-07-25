@@ -1,5 +1,5 @@
 {
- "generated": "2026-07-24",
+ "generated": "2026-07-25",
  "source": "LOINC® 2.82 (Regenstrief Institute, Inc.)",
  "version": "2.82",
  "schema": [
@@ -30,9 +30,9 @@
  ],
  "total": 109325,
  "ua_official": 3159,
- "ua_full": 12768,
- "ua_partial": 96547,
- "en_only": 10,
+ "ua_full": 56710,
+ "ua_partial": 52615,
+ "en_only": 0,
  "classtypes": [
   {
    "id": "1",
@@ -45,37 +45,37 @@
      "code": "MICRO",
      "ua": "Мікробіологія",
      "count": 14888,
-     "ua_full": 3303
+     "ua_full": 12258
     },
     {
      "code": "CHEM",
      "ua": "Хімія / біохімія",
      "count": 10855,
-     "ua_full": 3949
+     "ua_full": 9223
     },
     {
      "code": "DRUG/TOX",
      "ua": "Ліки / токсикологія",
      "count": 8921,
-     "ua_full": 2809
+     "ua_full": 8192
     },
     {
      "code": "ALLERGY",
      "ua": "Алергологія",
      "count": 6024,
-     "ua_full": 40
+     "ua_full": 5013
     },
     {
      "code": "CHAL",
      "ua": "Провокаційні / функціональні проби",
      "count": 3964,
-     "ua_full": 55
+     "ua_full": 3733
     },
     {
      "code": "SERO",
      "ua": "Серологія",
      "count": 3167,
-     "ua_full": 536
+     "ua_full": 2776
     },
     {
      "code": "LABORDERS.ONTOLOGY",
@@ -87,199 +87,199 @@
      "code": "HEM/BC",
      "ua": "Гематологія / підрахунок клітин",
      "count": 2449,
-     "ua_full": 892
+     "ua_full": 1900
     },
     {
      "code": "ABXBACT",
      "ua": "Чутливість до антибіотиків",
      "count": 2115,
-     "ua_full": 42
+     "ua_full": 1034
     },
     {
      "code": "CELLMARK",
      "ua": "Клітинні маркери",
      "count": 1746,
-     "ua_full": 141
+     "ua_full": 1464
     },
     {
      "code": "MOLPATH.MUT",
      "ua": null,
      "count": 1293,
-     "ua_full": 31
+     "ua_full": 1234
     },
     {
      "code": "BLDBK",
      "ua": "Служба крові",
      "count": 1113,
-     "ua_full": 22
+     "ua_full": 535
     },
     {
      "code": "COAG",
      "ua": "Коагуляція / гемостаз",
      "count": 1002,
-     "ua_full": 139
+     "ua_full": 541
     },
     {
      "code": "PATH",
      "ua": "Патоморфологія",
      "count": 707,
-     "ua_full": 18
+     "ua_full": 100
     },
     {
      "code": "MOLPATH",
      "ua": "Молекулярна патологія",
      "count": 704,
-     "ua_full": 28
+     "ua_full": 563
     },
     {
      "code": "UA",
      "ua": "Аналіз сечі",
      "count": 597,
-     "ua_full": 401
+     "ua_full": 553
     },
     {
      "code": "HLA",
      "ua": null,
      "count": 526,
-     "ua_full": 21
+     "ua_full": 112
     },
     {
      "code": "PANEL.MICRO",
      "ua": "Панель: мікробіологія",
      "count": 487,
-     "ua_full": 3
+     "ua_full": 436
     },
     {
      "code": "PANEL.CHEM",
      "ua": "Панель: біохімія",
      "count": 446,
-     "ua_full": 4
+     "ua_full": 400
     },
     {
      "code": "DRUGDOSE",
      "ua": null,
      "count": 415,
-     "ua_full": 92
+     "ua_full": 411
     },
     {
      "code": "SPEC",
      "ua": "Зразок / біоматеріал",
      "count": 311,
-     "ua_full": 102
+     "ua_full": 221
     },
     {
      "code": "FERT",
      "ua": "Репродукція / фертильність",
      "count": 294,
-     "ua_full": 30
+     "ua_full": 209
     },
     {
      "code": "PANEL.HEDIS",
      "ua": null,
      "count": 184,
-     "ua_full": 0
+     "ua_full": 184
     },
     {
      "code": "PANEL.DRUG/TOX",
      "ua": null,
      "count": 168,
-     "ua_full": 12
+     "ua_full": 159
     },
     {
      "code": "MISC",
      "ua": null,
      "count": 151,
-     "ua_full": 0
+     "ua_full": 121
     },
     {
      "code": "MOLPATH.TRNLOC",
      "ua": null,
      "count": 140,
-     "ua_full": 0
+     "ua_full": 133
     },
     {
      "code": "MOLPATH.PHARMG",
      "ua": null,
      "count": 123,
-     "ua_full": 0
+     "ua_full": 90
     },
     {
      "code": "MOLPATH.REARRANGE",
      "ua": null,
      "count": 101,
-     "ua_full": 0
+     "ua_full": 101
     },
     {
      "code": "PANEL.HEM/BC",
      "ua": "Панель: гематологія",
      "count": 91,
-     "ua_full": 0
+     "ua_full": 71
     },
     {
      "code": "PANEL.SERO",
      "ua": null,
      "count": 85,
-     "ua_full": 0
+     "ua_full": 82
     },
     {
      "code": "CYTO",
      "ua": "Цитологія",
      "count": 81,
-     "ua_full": 29
+     "ua_full": 39
     },
     {
      "code": "BLDBK.GENOTYPING",
      "ua": null,
      "count": 72,
-     "ua_full": 0
+     "ua_full": 36
     },
     {
      "code": "MOLPATH.DEL",
      "ua": null,
      "count": 67,
-     "ua_full": 0
+     "ua_full": 34
     },
     {
      "code": "MOLPATH.DELDUP",
      "ua": null,
      "count": 67,
-     "ua_full": 0
+     "ua_full": 55
     },
     {
      "code": "PANEL.CHAL",
      "ua": null,
      "count": 64,
-     "ua_full": 0
+     "ua_full": 52
     },
     {
      "code": "MOLPATH.NUCREPEAT",
      "ua": null,
      "count": 61,
-     "ua_full": 0
+     "ua_full": 36
     },
     {
      "code": "PANEL.ALLERGY",
      "ua": null,
      "count": 59,
-     "ua_full": 0
+     "ua_full": 57
     },
     {
      "code": "MOLPATH.TRISOMY",
      "ua": null,
      "count": 58,
-     "ua_full": 8
+     "ua_full": 30
     },
     {
      "code": "PATH.HISTO",
      "ua": null,
      "count": 57,
-     "ua_full": 0
+     "ua_full": 7
     },
     {
      "code": "PANEL.COAG",
      "ua": null,
      "count": 53,
-     "ua_full": 0
+     "ua_full": 45
     },
     {
      "code": "CHALSKIN",
@@ -291,85 +291,85 @@
      "code": "PANEL.MOLPATH",
      "ua": null,
      "count": 46,
-     "ua_full": 0
+     "ua_full": 36
     },
     {
      "code": "PANEL.CELLMARK",
      "ua": null,
      "count": 41,
-     "ua_full": 0
+     "ua_full": 38
     },
     {
      "code": "PANEL.ABXBACT",
      "ua": null,
      "count": 40,
-     "ua_full": 4
+     "ua_full": 35
     },
     {
      "code": "HL7.GENETICS",
      "ua": null,
      "count": 39,
-     "ua_full": 0
+     "ua_full": 21
     },
     {
      "code": "PANEL.UA",
      "ua": null,
      "count": 34,
-     "ua_full": 0
+     "ua_full": 28
     },
     {
      "code": "LABORDERS",
      "ua": null,
      "count": 31,
-     "ua_full": 16
+     "ua_full": 31
     },
     {
      "code": "PATH.PROTOCOLS.GENER",
      "ua": null,
      "count": 29,
-     "ua_full": 0
+     "ua_full": 10
     },
     {
      "code": "CHAL.ROUTINE",
      "ua": null,
      "count": 27,
-     "ua_full": 14
+     "ua_full": 26
     },
     {
      "code": "PANEL.HLA",
      "ua": null,
      "count": 27,
-     "ua_full": 0
+     "ua_full": 20
     },
     {
      "code": "HL7.CYTOGEN",
      "ua": null,
      "count": 24,
-     "ua_full": 1
+     "ua_full": 20
     },
     {
      "code": "PANEL.BLDBK",
      "ua": null,
      "count": 24,
-     "ua_full": 0
+     "ua_full": 16
     },
     {
      "code": "MOLPATH.MISC",
      "ua": null,
      "count": 22,
-     "ua_full": 0
+     "ua_full": 11
     },
     {
      "code": "PATH.PROTOCOLS.PROST",
      "ua": null,
      "count": 19,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.HL7.CYTOGEN",
      "ua": null,
      "count": 18,
-     "ua_full": 4
+     "ua_full": 12
     },
     {
      "code": "PATH.PROTOCOLS.BRST",
@@ -387,55 +387,55 @@
      "code": "HPA",
      "ua": null,
      "count": 16,
-     "ua_full": 0
+     "ua_full": 7
     },
     {
      "code": "PANEL.HL7.GENETICS",
      "ua": null,
      "count": 14,
-     "ua_full": 0
+     "ua_full": 14
     },
     {
      "code": "HNA",
      "ua": null,
      "count": 13,
-     "ua_full": 0
+     "ua_full": 13
     },
     {
      "code": "MOLPATH.INV",
      "ua": null,
      "count": 12,
-     "ua_full": 0
+     "ua_full": 12
     },
     {
      "code": "PANEL.PATH",
      "ua": null,
      "count": 10,
-     "ua_full": 0
+     "ua_full": 3
     },
     {
      "code": "PANEL.FERT",
      "ua": null,
      "count": 8,
-     "ua_full": 0
+     "ua_full": 8
     },
     {
      "code": "H&P.HX.LAB",
      "ua": null,
      "count": 7,
-     "ua_full": 0
+     "ua_full": 5
     },
     {
      "code": "PANEL.MISC",
      "ua": null,
      "count": 5,
-     "ua_full": 0
+     "ua_full": 2
     },
     {
      "code": "PANEL.MOLPATH.PHARMG",
      "ua": null,
      "count": 5,
-     "ua_full": 0
+     "ua_full": 5
     },
     {
      "code": "NR STATS",
@@ -447,31 +447,31 @@
      "code": "PANEL.HNA",
      "ua": null,
      "count": 3,
-     "ua_full": 0
+     "ua_full": 3
     },
     {
      "code": "MOLPATH.TRINUC",
      "ua": null,
      "count": 2,
-     "ua_full": 0
+     "ua_full": 2
     },
     {
      "code": "PANEL.BLDBK.GENOTYPE",
      "ua": null,
      "count": 2,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.SPEC",
      "ua": null,
      "count": 2,
-     "ua_full": 0
+     "ua_full": 2
     },
     {
      "code": "PANEL.HPA",
      "ua": null,
      "count": 1,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.OBS",
@@ -492,85 +492,85 @@
      "code": "RAD",
      "ua": "Променева діагностика",
      "count": 7440,
-     "ua_full": 0
+     "ua_full": 33
     },
     {
      "code": "DOC.ONTOLOGY",
      "ua": "Онтологія документів",
      "count": 3759,
-     "ua_full": 1
+     "ua_full": 241
     },
     {
      "code": "PHENX",
      "ua": "PhenX (дослідницькі протоколи)",
      "count": 3686,
-     "ua_full": 1
+     "ua_full": 222
     },
     {
      "code": "H&P.HX",
      "ua": "Анамнез",
      "count": 901,
-     "ua_full": 3
+     "ua_full": 535
     },
     {
      "code": "PULM",
      "ua": "Пульмонологія / функція дихання",
      "count": 878,
-     "ua_full": 0
+     "ua_full": 29
     },
     {
      "code": "CARD.US",
      "ua": null,
      "count": 817,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "OB.US",
      "ua": "Акушерське УЗД",
      "count": 793,
-     "ua_full": 10
+     "ua_full": 41
     },
     {
      "code": "PANEL.PHENX",
      "ua": null,
      "count": 704,
-     "ua_full": 0
+     "ua_full": 7
     },
     {
      "code": "H&P.PX",
      "ua": null,
      "count": 507,
-     "ua_full": 2
+     "ua_full": 100
     },
     {
      "code": "CLIN",
      "ua": null,
      "count": 502,
-     "ua_full": 2
+     "ua_full": 212
     },
     {
      "code": "TUMRRGT",
      "ua": "Онкореєстр",
      "count": 481,
-     "ua_full": 2
+     "ua_full": 47
     },
     {
      "code": "EKG.MEAS",
      "ua": null,
      "count": 414,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "EYE.REFRACTION",
      "ua": null,
      "count": 357,
-     "ua_full": 0
+     "ua_full": 11
     },
     {
      "code": "ADMIN",
      "ua": null,
      "count": 349,
-     "ua_full": 0
+     "ua_full": 120
     },
     {
      "code": "NIH.COGNITIVE",
@@ -582,31 +582,31 @@
      "code": "ENDO.GI",
      "ua": null,
      "count": 315,
-     "ua_full": 0
+     "ua_full": 18
     },
     {
      "code": "DENTAL",
      "ua": null,
      "count": 304,
-     "ua_full": 0
+     "ua_full": 16
     },
     {
      "code": "DOC.MISC",
      "ua": null,
      "count": 288,
-     "ua_full": 0
+     "ua_full": 179
     },
     {
      "code": "NUTRITION&DIETETICS",
      "ua": null,
      "count": 213,
-     "ua_full": 0
+     "ua_full": 26
     },
     {
      "code": "PUBLICHEALTH",
      "ua": null,
      "count": 198,
-     "ua_full": 0
+     "ua_full": 30
     },
     {
      "code": "DEVICES",
@@ -624,37 +624,37 @@
      "code": "HEMODYN.MOLEC",
      "ua": null,
      "count": 176,
-     "ua_full": 0
+     "ua_full": 7
     },
     {
      "code": "CARD.PROC",
      "ua": null,
      "count": 175,
-     "ua_full": 0
+     "ua_full": 28
     },
     {
      "code": "EYE",
      "ua": null,
      "count": 150,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "NEURO",
      "ua": null,
      "count": 146,
-     "ua_full": 0
+     "ua_full": 5
     },
     {
      "code": "NEMSIS",
      "ua": null,
      "count": 142,
-     "ua_full": 0
+     "ua_full": 13
     },
     {
      "code": "BP.MOLEC",
      "ua": null,
      "count": 130,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "DOC.REF",
@@ -672,19 +672,19 @@
      "code": "IO_OUT.TIMED.MOLE",
      "ua": null,
      "count": 113,
-     "ua_full": 0
+     "ua_full": 4
     },
     {
      "code": "VACCIN",
      "ua": null,
      "count": 107,
-     "ua_full": 0
+     "ua_full": 61
     },
     {
      "code": "CLIN.RISK",
      "ua": null,
      "count": 102,
-     "ua_full": 0
+     "ua_full": 29
     },
     {
      "code": "EYE.GLASSES",
@@ -696,7 +696,7 @@
      "code": "IO.TUBE",
      "ua": null,
      "count": 98,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "BP.CENT.MOLEC",
@@ -708,13 +708,13 @@
      "code": "SURG",
      "ua": null,
      "count": 94,
-     "ua_full": 0
+     "ua_full": 76
     },
     {
      "code": "ED",
      "ua": null,
      "count": 86,
-     "ua_full": 0
+     "ua_full": 48
     },
     {
      "code": "DOCUMENT.REGULATORY",
@@ -726,49 +726,49 @@
      "code": "TRAUMA",
      "ua": null,
      "count": 84,
-     "ua_full": 0
+     "ua_full": 38
     },
     {
      "code": "EYE.PX",
      "ua": null,
      "count": 82,
-     "ua_full": 0
+     "ua_full": 5
     },
     {
      "code": "IO_IN_SALTS+CALS",
      "ua": null,
      "count": 73,
-     "ua_full": 0
+     "ua_full": 14
     },
     {
      "code": "DOC.ADMIN",
      "ua": null,
      "count": 68,
-     "ua_full": 0
+     "ua_full": 58
     },
     {
      "code": "IO_IN.TIMED.MOLEC",
      "ua": null,
      "count": 68,
-     "ua_full": 0
+     "ua_full": 6
     },
     {
      "code": "MEDS",
      "ua": null,
      "count": 67,
-     "ua_full": 0
+     "ua_full": 25
     },
     {
      "code": "PANEL.H&P",
      "ua": null,
      "count": 65,
-     "ua_full": 0
+     "ua_full": 42
     },
     {
      "code": "PANEL.DOC",
      "ua": null,
      "count": 62,
-     "ua_full": 0
+     "ua_full": 61
     },
     {
      "code": "HRTRATE.MOLEC",
@@ -780,7 +780,7 @@
      "code": "APTA",
      "ua": null,
      "count": 59,
-     "ua_full": 0
+     "ua_full": 38
     },
     {
      "code": "ADMIN.ID",
@@ -798,7 +798,7 @@
      "code": "IO_OUT.MOLEC",
      "ua": null,
      "count": 55,
-     "ua_full": 0
+     "ua_full": 3
     },
     {
      "code": "EYE.OCT",
@@ -810,19 +810,19 @@
      "code": "NEONAT",
      "ua": null,
      "count": 54,
-     "ua_full": 0
+     "ua_full": 15
     },
     {
      "code": "PATIENT SAFETY",
      "ua": null,
      "count": 54,
-     "ua_full": 0
+     "ua_full": 26
     },
     {
      "code": "EYE.PX.NEI",
      "ua": null,
      "count": 53,
-     "ua_full": 0
+     "ua_full": 8
     },
     {
      "code": "EYE.ERG",
@@ -834,7 +834,7 @@
      "code": "US.URO",
      "ua": null,
      "count": 50,
-     "ua_full": 0
+     "ua_full": 4
     },
     {
      "code": "NIH.MOTOR",
@@ -846,13 +846,13 @@
      "code": "ADMIN.PATIENT",
      "ua": null,
      "count": 47,
-     "ua_full": 0
+     "ua_full": 20
     },
     {
      "code": "PANEL.CLIN",
      "ua": null,
      "count": 47,
-     "ua_full": 0
+     "ua_full": 22
     },
     {
      "code": "ART",
@@ -864,13 +864,13 @@
      "code": "ADMIN.PATIENT.DEMOG",
      "ua": null,
      "count": 42,
-     "ua_full": 0
+     "ua_full": 26
     },
     {
      "code": "HL7.CCDA",
      "ua": null,
      "count": 42,
-     "ua_full": 0
+     "ua_full": 19
     },
     {
      "code": "ADMIN.FACILITY",
@@ -882,7 +882,7 @@
      "code": "AUDIO",
      "ua": null,
      "count": 38,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "EYE.LENSOMETRY",
@@ -906,31 +906,31 @@
      "code": "PANEL.ADMIN",
      "ua": null,
      "count": 38,
-     "ua_full": 0
+     "ua_full": 17
     },
     {
      "code": "EYE.HX",
      "ua": null,
      "count": 37,
-     "ua_full": 0
+     "ua_full": 12
     },
     {
      "code": "OBGYN",
      "ua": "Акушерство-гінекологія",
      "count": 37,
-     "ua_full": 0
+     "ua_full": 22
     },
     {
      "code": "BDYWGT.MOLEC",
      "ua": null,
      "count": 35,
-     "ua_full": 0
+     "ua_full": 4
     },
     {
      "code": "CARDIO-PULM",
      "ua": null,
      "count": 31,
-     "ua_full": 0
+     "ua_full": 4
     },
     {
      "code": "EYE.VISUAL_FIELD",
@@ -942,7 +942,7 @@
      "code": "PANEL.NUTRITION&DIET",
      "ua": null,
      "count": 31,
-     "ua_full": 0
+     "ua_full": 7
     },
     {
      "code": "BP.TIMED.MOLEC",
@@ -966,7 +966,7 @@
      "code": "H&P.SURG PROC",
      "ua": null,
      "count": 29,
-     "ua_full": 0
+     "ua_full": 23
     },
     {
      "code": "BDYTMP.MOLEC",
@@ -984,7 +984,7 @@
      "code": "TRNSPLNT.ORGAN",
      "ua": null,
      "count": 26,
-     "ua_full": 0
+     "ua_full": 8
     },
     {
      "code": "EKG.IMP",
@@ -996,13 +996,13 @@
      "code": "EYE.HX.NEI",
      "ua": null,
      "count": 25,
-     "ua_full": 0
+     "ua_full": 11
     },
     {
      "code": "CARD.RISK",
      "ua": null,
      "count": 24,
-     "ua_full": 0
+     "ua_full": 2
     },
     {
      "code": "BDYCRC.MOLEC",
@@ -1026,43 +1026,43 @@
      "code": "PANEL.CARDIAC",
      "ua": null,
      "count": 23,
-     "ua_full": 0
+     "ua_full": 6
     },
     {
      "code": "PANEL.CLIN.RISK",
      "ua": null,
      "count": 23,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "ONCOLOGY",
      "ua": null,
      "count": 22,
-     "ua_full": 0
+     "ua_full": 10
     },
     {
      "code": "EYE.SPECULAR MICROSCOPY",
      "ua": null,
      "count": 21,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.NEMSIS",
      "ua": null,
      "count": 21,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "ADMIN.DEMOG",
      "ua": null,
      "count": 20,
-     "ua_full": 0
+     "ua_full": 6
     },
     {
      "code": "BP.ATOM",
      "ua": null,
      "count": 20,
-     "ua_full": 0
+     "ua_full": 5
     },
     {
      "code": "DOC.REF.CTP",
@@ -1074,37 +1074,37 @@
      "code": "HRTRATE.ATOM",
      "ua": null,
      "count": 20,
-     "ua_full": 0
+     "ua_full": 3
     },
     {
      "code": "IO_IN.INFUS",
      "ua": null,
      "count": 20,
-     "ua_full": 0
+     "ua_full": 3
     },
     {
      "code": "RESP.ATOM",
      "ua": null,
      "count": 20,
-     "ua_full": 0
+     "ua_full": 10
     },
     {
      "code": "PANEL.TUMRRGT",
      "ua": null,
      "count": 19,
-     "ua_full": 0
+     "ua_full": 3
     },
     {
      "code": "BDYWGT.ATOM",
      "ua": null,
      "count": 18,
-     "ua_full": 1
+     "ua_full": 8
     },
     {
      "code": "PANEL.APTA",
      "ua": null,
      "count": 18,
-     "ua_full": 0
+     "ua_full": 9
     },
     {
      "code": "BP.VENOUS.MOLEC",
@@ -1116,13 +1116,13 @@
      "code": "EYE.TONOMETRY",
      "ua": null,
      "count": 17,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "FUNCTION",
      "ua": null,
      "count": 17,
-     "ua_full": 0
+     "ua_full": 2
     },
     {
      "code": "ADMIN.PATIENT.ID",
@@ -1134,7 +1134,7 @@
      "code": "PANEL.DEVICES",
      "ua": null,
      "count": 16,
-     "ua_full": 0
+     "ua_full": 15
     },
     {
      "code": "RESP.MOLEC",
@@ -1158,7 +1158,7 @@
      "code": "PANEL.EYE",
      "ua": null,
      "count": 15,
-     "ua_full": 0
+     "ua_full": 4
     },
     {
      "code": "CLIN.VET",
@@ -1170,31 +1170,31 @@
      "code": "DOC.PUBLICHEALTH",
      "ua": null,
      "count": 13,
-     "ua_full": 0
+     "ua_full": 5
     },
     {
      "code": "PANEL.IEEE ROSETTA",
      "ua": null,
      "count": 12,
-     "ua_full": 0
+     "ua_full": 3
     },
     {
      "code": "CLINTRIAL",
      "ua": null,
      "count": 11,
-     "ua_full": 0
+     "ua_full": 6
     },
     {
      "code": "PANEL.ED",
      "ua": null,
      "count": 11,
-     "ua_full": 0
+     "ua_full": 3
     },
     {
      "code": "PANEL.SURG",
      "ua": null,
      "count": 11,
-     "ua_full": 0
+     "ua_full": 2
     },
     {
      "code": "BP.PSTN.MOLEC",
@@ -1206,13 +1206,13 @@
      "code": "HEMODYN.ATOM",
      "ua": null,
      "count": 10,
-     "ua_full": 0
+     "ua_full": 2
     },
     {
      "code": "BDYHGT.MOLEC",
      "ua": null,
      "count": 9,
-     "ua_full": 0
+     "ua_full": 7
     },
     {
      "code": "EKG.ATOM",
@@ -1236,25 +1236,25 @@
      "code": "PANEL.PHR",
      "ua": null,
      "count": 9,
-     "ua_full": 0
+     "ua_full": 9
     },
     {
      "code": "BDYHGT.ATOM",
      "ua": null,
      "count": 8,
-     "ua_full": 0
+     "ua_full": 4
     },
     {
      "code": "BDYTMP.ATOM",
      "ua": null,
      "count": 8,
-     "ua_full": 0
+     "ua_full": 2
     },
     {
      "code": "DOC.QUALITY",
      "ua": null,
      "count": 8,
-     "ua_full": 0
+     "ua_full": 6
     },
     {
      "code": "PANEL.NEONAT",
@@ -1266,19 +1266,19 @@
      "code": "PANEL.UPDRS",
      "ua": null,
      "count": 8,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "IO_IN.SUMMARY",
      "ua": null,
      "count": 7,
-     "ua_full": 0
+     "ua_full": 4
     },
     {
      "code": "IO_OUT.ATOM",
      "ua": null,
      "count": 7,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.NIH.COGNITIVE",
@@ -1302,19 +1302,19 @@
      "code": "IO_IN.ATOM",
      "ua": null,
      "count": 6,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.VITALS",
      "ua": null,
      "count": 6,
-     "ua_full": 0
+     "ua_full": 4
     },
     {
      "code": "BDYCRC.ATOM",
      "ua": null,
      "count": 5,
-     "ua_full": 0
+     "ua_full": 2
     },
     {
      "code": "EYE.VISUAL_FIELD.NEI",
@@ -1332,7 +1332,7 @@
      "code": "PANEL.BP",
      "ua": null,
      "count": 5,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.NIH.MOTOR",
@@ -1344,13 +1344,13 @@
      "code": "PANEL.PULM",
      "ua": null,
      "count": 5,
-     "ua_full": 0
+     "ua_full": 2
     },
     {
      "code": "PANEL.RAD",
      "ua": null,
      "count": 5,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "BDYSURF.ATOM",
@@ -1380,13 +1380,13 @@
      "code": "PANEL.MEDS",
      "ua": null,
      "count": 4,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.PATIENT SAFETY",
      "ua": null,
      "count": 4,
-     "ua_full": 0
+     "ua_full": 3
     },
     {
      "code": "VOLUME.MOLEC",
@@ -1410,13 +1410,13 @@
      "code": "PANEL.CV",
      "ua": null,
      "count": 3,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.IO",
      "ua": null,
      "count": 3,
-     "ua_full": 0
+     "ua_full": 2
     },
     {
      "code": "PANEL.ONCO",
@@ -1428,7 +1428,7 @@
      "code": "PANEL.VACCIN",
      "ua": null,
      "count": 3,
-     "ua_full": 0
+     "ua_full": 3
     },
     {
      "code": "SKNFLD.MOLEC",
@@ -1446,25 +1446,25 @@
      "code": "PANEL.OB.US",
      "ua": null,
      "count": 2,
-     "ua_full": 0
+     "ua_full": 2
     },
     {
      "code": "PANEL.TRAUMA",
      "ua": null,
      "count": 2,
-     "ua_full": 0
+     "ua_full": 2
     },
     {
      "code": "PANEL.US.URO",
      "ua": null,
      "count": 2,
-     "ua_full": 0
+     "ua_full": 2
     },
     {
      "code": "ENDO.PULM",
      "ua": null,
      "count": 1,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "EYE.ANGIO",
@@ -1476,13 +1476,13 @@
      "code": "ICU",
      "ua": null,
      "count": 1,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "NIH.SENSORY",
      "ua": null,
      "count": 1,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.ART",
@@ -1494,7 +1494,7 @@
      "code": "PANEL.BDYTMP",
      "ua": null,
      "count": 1,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.CLIN.VET",
@@ -1506,13 +1506,13 @@
      "code": "PANEL.FUNCTION",
      "ua": null,
      "count": 1,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.HL7.CCDA",
      "ua": null,
      "count": 1,
-     "ua_full": 0
+     "ua_full": 1
     }
    ]
   },
@@ -1533,7 +1533,7 @@
      "code": "ATTACH.REHAB.ABUSE",
      "ua": null,
      "count": 93,
-     "ua_full": 0
+     "ua_full": 5
     },
     {
      "code": "ATTACH.REHAB.OT",
@@ -1587,19 +1587,19 @@
      "code": "ATTACH.CLINRPT",
      "ua": null,
      "count": 66,
-     "ua_full": 0
+     "ua_full": 11
     },
     {
      "code": "ATTACH.AMB",
      "ua": null,
      "count": 55,
-     "ua_full": 0
+     "ua_full": 3
     },
     {
      "code": "ATTACH.MEDS",
      "ua": null,
      "count": 54,
-     "ua_full": 0
+     "ua_full": 6
     },
     {
      "code": "ATTACH.REHAB.PULM",
@@ -1617,7 +1617,7 @@
      "code": "ATTACH.ED",
      "ua": null,
      "count": 29,
-     "ua_full": 0
+     "ua_full": 3
     },
     {
      "code": "ATTACH.LAB",
@@ -1629,13 +1629,13 @@
      "code": "ATTACH",
      "ua": null,
      "count": 11,
-     "ua_full": 0
+     "ua_full": 3
     },
     {
      "code": "ATTACH.REHAB",
      "ua": null,
      "count": 5,
-     "ua_full": 0
+     "ua_full": 2
     },
     {
      "code": "PANEL.ATTACH.MOD",
@@ -1686,37 +1686,37 @@
      "code": "SURVEY.PROMIS",
      "ua": "Опитувальник PROMIS",
      "count": 2463,
-     "ua_full": 0
+     "ua_full": 70
     },
     {
      "code": "SURVEY.GNHLTH",
      "ua": null,
      "count": 1629,
-     "ua_full": 0
+     "ua_full": 122
     },
     {
      "code": "SURVEY.CMS",
      "ua": null,
      "count": 968,
-     "ua_full": 0
+     "ua_full": 14
     },
     {
      "code": "PANEL.SURVEY.CMS",
      "ua": null,
      "count": 866,
-     "ua_full": 0
+     "ua_full": 51
     },
     {
      "code": "SURVEY.MDS",
      "ua": null,
      "count": 864,
-     "ua_full": 0
+     "ua_full": 7
     },
     {
      "code": "SURVEY.MTLHLTH",
      "ua": null,
      "count": 403,
-     "ua_full": 0
+     "ua_full": 76
     },
     {
      "code": "SURVEY.NURSE.OMAHA",
@@ -1734,19 +1734,19 @@
      "code": "PANEL.SURVEY.GNHLTH",
      "ua": null,
      "count": 330,
-     "ua_full": 0
+     "ua_full": 9
     },
     {
      "code": "SURVEY.ESRD",
      "ua": null,
      "count": 308,
-     "ua_full": 0
+     "ua_full": 37
     },
     {
      "code": "SURVEY.CARE",
      "ua": null,
      "count": 289,
-     "ua_full": 0
+     "ua_full": 68
     },
     {
      "code": "PANEL.SURVEY.PROMIS",
@@ -1758,19 +1758,19 @@
      "code": "PANEL.SURVEY.MDS",
      "ua": null,
      "count": 224,
-     "ua_full": 0
+     "ua_full": 88
     },
     {
      "code": "SURVEY.CDC",
      "ua": null,
      "count": 214,
-     "ua_full": 0
+     "ua_full": 55
     },
     {
      "code": "SURVEY.COVID",
      "ua": null,
      "count": 186,
-     "ua_full": 0
+     "ua_full": 137
     },
     {
      "code": "SURVEY.NURSE.HHCC",
@@ -1782,7 +1782,7 @@
      "code": "SURVEY.SDOH",
      "ua": null,
      "count": 168,
-     "ua_full": 0
+     "ua_full": 30
     },
     {
      "code": "SURVEY.NMMDS",
@@ -1794,13 +1794,13 @@
      "code": "SURVEY.OASIS",
      "ua": null,
      "count": 152,
-     "ua_full": 0
+     "ua_full": 20
     },
     {
      "code": "SURVEY.OPTIMAL",
      "ua": null,
      "count": 96,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "SURVEY.RFC",
@@ -1818,13 +1818,13 @@
      "code": "PANEL.SURVEY.CDC",
      "ua": null,
      "count": 81,
-     "ua_full": 0
+     "ua_full": 3
     },
     {
      "code": "SURVEY.R-OUTCOMES",
      "ua": null,
      "count": 79,
-     "ua_full": 0
+     "ua_full": 57
     },
     {
      "code": "SURVEY.AHRQ",
@@ -1848,7 +1848,7 @@
      "code": "SURVEY.PAIN",
      "ua": null,
      "count": 63,
-     "ua_full": 0
+     "ua_full": 59
     },
     {
      "code": "SURVEY.NIH.EMO",
@@ -1860,7 +1860,7 @@
      "code": "SURVEY.CSSRS",
      "ua": null,
      "count": 56,
-     "ua_full": 0
+     "ua_full": 4
     },
     {
      "code": "SURVEY.IPAQ",
@@ -1872,19 +1872,19 @@
      "code": "SURVEY.ORTHOPEDICS",
      "ua": null,
      "count": 53,
-     "ua_full": 0
+     "ua_full": 29
     },
     {
      "code": "TIMP",
      "ua": null,
      "count": 53,
-     "ua_full": 0
+     "ua_full": 2
     },
     {
      "code": "PANEL.SURVEY.CARE",
      "ua": null,
      "count": 50,
-     "ua_full": 0
+     "ua_full": 10
     },
     {
      "code": "SURVEY.AMNART",
@@ -1896,13 +1896,13 @@
      "code": "PANEL.SURVEY.MTLHLTH",
      "ua": null,
      "count": 47,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "SURVEY.NEURO",
      "ua": null,
      "count": 44,
-     "ua_full": 0
+     "ua_full": 14
     },
     {
      "code": "PANEL.SURVEY.NEUROQ",
@@ -1914,19 +1914,19 @@
      "code": "SURVEY.PROWL",
      "ua": null,
      "count": 43,
-     "ua_full": 0
+     "ua_full": 29
     },
     {
      "code": "PANEL.SURVEY.SDOH",
      "ua": null,
      "count": 42,
-     "ua_full": 0
+     "ua_full": 3
     },
     {
      "code": "SURVEY.PNDS",
      "ua": null,
      "count": 42,
-     "ua_full": 0
+     "ua_full": 42
     },
     {
      "code": "SURVEY.NURSE.LIV-HIV",
@@ -1956,13 +1956,13 @@
      "code": "PANEL.SURVEY.OASIS",
      "ua": null,
      "count": 34,
-     "ua_full": 0
+     "ua_full": 17
     },
     {
      "code": "SURVEY.SLP",
      "ua": null,
      "count": 34,
-     "ua_full": 0
+     "ua_full": 29
     },
     {
      "code": "SURVEY.GDS",
@@ -1980,7 +1980,7 @@
      "code": "SURVEY.HWS",
      "ua": null,
      "count": 29,
-     "ua_full": 0
+     "ua_full": 5
     },
     {
      "code": "SURVEY.NURSE.HIV-SSC",
@@ -1992,7 +1992,7 @@
      "code": "PANEL.SURVEY.ESRD",
      "ua": null,
      "count": 26,
-     "ua_full": 0
+     "ua_full": 8
     },
     {
      "code": "SURVEY.MLHFQ",
@@ -2010,19 +2010,19 @@
      "code": "SURVEY.NHCS",
      "ua": null,
      "count": 22,
-     "ua_full": 0
+     "ua_full": 6
     },
     {
      "code": "SURVEY.USSGFHT",
      "ua": null,
      "count": 22,
-     "ua_full": 0
+     "ua_full": 2
     },
     {
      "code": "PANEL.SURVEY.COVID",
      "ua": null,
      "count": 20,
-     "ua_full": 0
+     "ua_full": 12
     },
     {
      "code": "SURVEY.COOP",
@@ -2046,19 +2046,19 @@
      "code": "SURVEY.CNPI",
      "ua": null,
      "count": 16,
-     "ua_full": 0
+     "ua_full": 12
     },
     {
      "code": "PANEL.SURVEY.HHS",
      "ua": null,
      "count": 15,
-     "ua_full": 0
+     "ua_full": 9
     },
     {
      "code": "SURVEY.WELLRX",
      "ua": null,
      "count": 15,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "SURVEY.ALSFRSR",
@@ -2070,13 +2070,13 @@
      "code": "SURVEY.HHS",
      "ua": null,
      "count": 13,
-     "ua_full": 0
+     "ua_full": 6
     },
     {
      "code": "SURVEY.PCORNET",
      "ua": null,
      "count": 13,
-     "ua_full": 0
+     "ua_full": 3
     },
     {
      "code": "SURVEY.EPDS",
@@ -2118,19 +2118,19 @@
      "code": "PANEL.SURVEY.PHQ",
      "ua": null,
      "count": 9,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "SURVEY.QRDA",
      "ua": null,
      "count": 9,
-     "ua_full": 0
+     "ua_full": 5
     },
     {
      "code": "PANEL.SURVEY.NEURO",
      "ua": null,
      "count": 8,
-     "ua_full": 0
+     "ua_full": 5
     },
     {
      "code": "PANEL.SURVEY.NIDA",
@@ -2148,7 +2148,7 @@
      "code": "SURVEY.MFS",
      "ua": null,
      "count": 8,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "SURVEY.NSRAS",
@@ -2166,7 +2166,7 @@
      "code": "SURVEY.MISC",
      "ua": null,
      "count": 7,
-     "ua_full": 0
+     "ua_full": 3
     },
     {
      "code": "SURVEY.ACT",
@@ -2208,7 +2208,7 @@
      "code": "PANEL.TIMP",
      "ua": null,
      "count": 5,
-     "ua_full": 0
+     "ua_full": 2
     },
     {
      "code": "SURVEY.ADHD",
@@ -2244,13 +2244,13 @@
      "code": "MEPS",
      "ua": null,
      "count": 3,
-     "ua_full": 0
+     "ua_full": 2
     },
     {
      "code": "PANEL.SURVEY.BIMS",
      "ua": null,
      "count": 3,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.SURVEY.CNPI",
@@ -2268,13 +2268,13 @@
      "code": "SURVEY.CERNER",
      "ua": null,
      "count": 3,
-     "ua_full": 0
+     "ua_full": 3
     },
     {
      "code": "SURVEY.CHILD-PUGH",
      "ua": null,
      "count": 3,
-     "ua_full": 0
+     "ua_full": 2
     },
     {
      "code": "SURVEY.PEG",
@@ -2298,7 +2298,7 @@
      "code": "PANEL.SURVEY.COOP",
      "ua": null,
      "count": 2,
-     "ua_full": 0
+     "ua_full": 2
     },
     {
      "code": "PANEL.SURVEY.DAST",
@@ -2310,7 +2310,7 @@
      "code": "PANEL.SURVEY.GDS",
      "ua": null,
      "count": 2,
-     "ua_full": 0
+     "ua_full": 2
     },
     {
      "code": "PANEL.SURVEY.PCORNET",
@@ -2328,7 +2328,7 @@
      "code": "PANEL.SURVEY.RFC",
      "ua": null,
      "count": 2,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.SURVEY.WHYMPI",
@@ -2364,13 +2364,13 @@
      "code": "SURVEY.PRAPARE",
      "ua": null,
      "count": 2,
-     "ua_full": 0
+     "ua_full": 2
     },
     {
      "code": "SURVEY.RMDQ",
      "ua": null,
      "count": 2,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "SURVEY.RSS",
@@ -2400,13 +2400,13 @@
      "code": "PANEL.SURVEY.AMNART",
      "ua": null,
      "count": 1,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.SURVEY.BPI",
      "ua": null,
      "count": 1,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.SURVEY.BRIEF",
@@ -2436,7 +2436,7 @@
      "code": "PANEL.SURVEY.CHILD-PUGH",
      "ua": null,
      "count": 1,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.SURVEY.DUKE-AD",
@@ -2472,7 +2472,7 @@
      "code": "PANEL.SURVEY.HHCC",
      "ua": null,
      "count": 1,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.SURVEY.HITS",
@@ -2484,13 +2484,13 @@
      "code": "PANEL.SURVEY.HIV-SSC",
      "ua": null,
      "count": 1,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.SURVEY.LIV-HIV",
      "ua": null,
      "count": 1,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.SURVEY.LKSS",
@@ -2508,7 +2508,7 @@
      "code": "PANEL.SURVEY.MFS",
      "ua": null,
      "count": 1,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.SURVEY.MLHFQ",
@@ -2520,7 +2520,7 @@
      "code": "PANEL.SURVEY.NHANES",
      "ua": null,
      "count": 1,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.SURVEY.NICHQ",
@@ -2532,7 +2532,7 @@
      "code": "PANEL.SURVEY.NORTON",
      "ua": null,
      "count": 1,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.SURVEY.NSRAS",
@@ -2544,7 +2544,7 @@
      "code": "PANEL.SURVEY.OMAHA",
      "ua": null,
      "count": 1,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.SURVEY.PAS",
@@ -2568,13 +2568,13 @@
      "code": "PANEL.SURVEY.QAM",
      "ua": null,
      "count": 1,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.SURVEY.QRDA",
      "ua": null,
      "count": 1,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.SURVEY.RMDQ",
@@ -2610,7 +2610,7 @@
      "code": "PANEL.SURVEY.UNMETHELNEED",
      "ua": null,
      "count": 1,
-     "ua_full": 0
+     "ua_full": 1
     },
     {
      "code": "PANEL.SURVEY.WELLRX",
