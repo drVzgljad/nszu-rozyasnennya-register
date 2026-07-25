@@ -150,6 +150,18 @@ function summaryText(record) {
   ].filter(Boolean).join("\n");
 }
 
+/** Куди веде код правила: 12345-67 — інтервенція НК 026 (паспорт коду),
+ *  голі 4–5 цифр — родина кодів НК 026 (пошуком), решта — хвороба НК 025. */
+function classifierTarget(code) {
+  if (/^\d{5}-\d{2}$/.test(code)) {
+    return { href: `../classifiers/nk026.html?code=${encodeURIComponent(code)}`, label: "НК 026" };
+  }
+  if (/^\d{4,5}$/.test(code)) {
+    return { href: `../classifiers/nk026.html?q=${encodeURIComponent(code)}`, label: "НК 026 (родина кодів)" };
+  }
+  return { href: `../classifiers/index.html?code=${encodeURIComponent(code)}`, label: "НК 025" };
+}
+
 function renderReader() {
   const record = algorithmState.selected;
   const container = byId("algorithmReader");
@@ -170,7 +182,15 @@ function renderReader() {
     ? `<div class="algorithm-codes-section">
          <span class="algorithm-codes-label">Пов'язані коди:</span>
          <div class="algorithm-codes-list">
-           ${record.codes.map((code) => `<button class="code-badge" type="button" data-code="${escapeHtml(code)}">${escapeHtml(code)}</button>`).join("")}
+           ${record.codes.map((code) => {
+      const t = classifierTarget(code);
+      return `<span class="code-badge-pair">
+             <button class="code-badge" type="button" data-code="${escapeHtml(code)}"
+                     title="Знайти інші правила з цим кодом">${escapeHtml(code)}</button>
+             <a class="code-badge-open" href="${t.href}"
+                title="Відкрити у класифікаторі ${t.label}">↗</a>
+           </span>`;
+    }).join("")}
          </div>
        </div>`
     : "";

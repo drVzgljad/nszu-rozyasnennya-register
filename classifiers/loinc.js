@@ -82,6 +82,47 @@
     populateClassTypes();
     wireUI();
     el.count.textContent = nf(META.total) + " кодів · оберіть тип і клас або введіть запит";
+    await openFromUrl();
+  }
+
+  /** Глибокі посилання з інших розділів: ?code=94309-2 або ?q=глюкоза. */
+  async function openFromUrl() {
+    const params = new URLSearchParams(location.search);
+    const code = (params.get("code") || "").trim();
+    const q = (params.get("q") || "").trim();
+    if (!code && !q) return;
+    el.search.value = code || q;
+    el.count.textContent = "Завантажую дані…";
+    try {
+      await ensureLoaded(el.classType.value);
+      // Код може бути в іншому типі класу (типово завантажено лабораторні).
+      // Довантажуємо типи від найменшого й зупиняємось на потрібному —
+      // тягнути весь довідник (≈37 МБ) заради одного коду не варто.
+      if (code && !byNum.has(code)) {
+        const rest = META.classtypes.filter((ct) => !DATA.has(ct.id))
+          .sort((a, b) => (a.count || 0) - (b.count || 0));
+        for (const ct of rest) {
+          await loadType(ct.id);
+          if (byNum.has(code)) {
+            el.classType.value = ct.id;
+            populateClasses();
+            await ensureLoaded(ct.id);
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      el.count.textContent = "Не вдалося завантажити дані довідника — спробуйте оновити сторінку.";
+      return;
+    }
+    runSearch();
+    if (code && byNum.has(code)) {
+      openNum(code);
+      const row = el.results.querySelector(`.rrow[data-num="${CSS.escape(code)}"]`);
+      if (row) { markActive(row); row.scrollIntoView({ block: "center" }); }
+    } else if (code) {
+      el.count.textContent = `Код ${code} у LOINC ${META.version || ""} не знайдено`;
+    }
   }
 
   function renderStats() {
@@ -142,16 +183,19 @@
     return ct ? ct.file : `loinc_data_${ctId}.json`;
   }
 
+  async function loadType(id) {
+    if (DATA.has(id)) return;
+    const recs = await fetch("data/loinc/" + fileFor(id)).then((r) => r.json());
+    DATA.set(id, recs);
+    for (const r of recs) byNum.set(r[C.NUM], r);
+  }
+
   async function ensureLoaded(ctId) {
     const ids = ctId === "all" ? META.classtypes.map((c) => c.id) : [ctId];
     const missing = ids.filter((id) => !DATA.has(id));
     if (missing.length) {
       el.count.textContent = "Завантажую дані…";
-      await Promise.all(missing.map(async (id) => {
-        const recs = await fetch("data/loinc/" + fileFor(id)).then((r) => r.json());
-        DATA.set(id, recs);
-        for (const r of recs) byNum.set(r[C.NUM], r);
-      }));
+      await Promise.all(missing.map(loadType));
     }
     // зібрати робочий набір
     WORK = [];

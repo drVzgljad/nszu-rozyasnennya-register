@@ -247,12 +247,14 @@
   // ══════════════════════════════════════════════════════════
   // Картка послуги
   // ══════════════════════════════════════════════════════════
-  /** Оригінальний текст клітинки з кодами-посиланнями. */
-  function decorate(raw) {
+  /** Оригінальний текст клітинки з кодами-посиланнями.
+   *  loincSet — коди LOINC саме цієї клітинки (за розміткою build_mapping.py);
+   *  без нього шаблон «12345-6» ловив би й звичайні числа в тексті. */
+  function decorate(raw, loincSet) {
     if (!raw) return '<span class="muted">—</span>';
     const parts = [];
     let last = 0;
-    const rx = /(\d{5}-\d{2})|(ОДК\s*:?\s*\d+[-–—]?[A-ZА-Яa-zа-я]?)|([A-Z]\d{5})\b|([A-ZА-Я]\d{2}(?:\.\d+)?)\b/g;
+    const rx = /(\d{5}-\d{2})|(ОДК\s*:?\s*\d+[-–—]?[A-ZА-Яa-zа-я]?)|([A-Z]\d{5})\b|(\d{1,5}-\d)\b|([A-ZА-Я]\d{2}(?:\.\d+)?)\b/g;
     let m;
     while ((m = rx.exec(raw))) {
       parts.push(esc(raw.slice(last, m.index)));
@@ -260,6 +262,11 @@
       if (m[1]) parts.push(link(`../classifiers/nk026.html?code=${encodeURIComponent(t)}${backTail()}`, t, "code-achi", "Код НК 026"));
       else if (m[2]) parts.push(`<button class="code-chip code-odk" data-odk-open="${escAttr(t)}" title="Показати склад ОДК">${esc(t)}</button>`);
       else if (m[3]) parts.push(`<span class="code-chip code-esoz" title="Код медичної послуги ЕСОЗ">${esc(t)}</span>`);
+      else if (m[4]) {
+        parts.push(loincSet && loincSet.has(t)
+          ? link(`../classifiers/loinc.html?code=${encodeURIComponent(t)}`, t, "code-loinc", "Код LOINC — відкрити в довіднику")
+          : esc(t));
+      }
       else parts.push(link(`../classifiers/index.html?code=${encodeURIComponent(t)}${backTail()}`, t, "code-icd", "Код НК 025"));
       last = m.index + t.length;
     }
@@ -306,7 +313,7 @@
     return `<div class="reader-block">
       <h3>${title}${stats.length ? ` <span class="src">${esc(stats.join(" · "))}</span>` : ""}</h3>
       ${condBadges(cell)}
-      <div class="mp-raw">${decorate(cell.raw)}</div>
+      <div class="mp-raw">${decorate(cell.raw, new Set(cell.loinc || []))}</div>
       ${ranges}
       ${odkBlocks}
     </div>`;
