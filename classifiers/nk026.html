@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>НавігаторПМГ26 | Класифікатор медичних інтервенцій НК 026</title>
+  <link rel="stylesheet" href="../styles.css?v=20260719c">
+  <link rel="stylesheet" href="classifiers.css?v=20260725a">
+  <link rel="stylesheet" href="nk026.css?v=20260725a">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260721a">
+  <script type="module" src="../auth-v2.js?v=20260725a"></script>
+</head>
+<body id="top">
+  <header class="hero classifiers-hero">
+    <div class="hero-copy">
+      <div class="overline">Національний класифікатор · НК 026:2021 · ACHI ·
+        <a class="xnav" href="index.html">↔ Хвороби НК 025</a>
+        <a class="xnav" href="loinc.html">↔ LOINC (лаб. коди)</a></div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів, постанови та правил</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Класифікатор медичних інтервенцій НК 026</h1>
+      <p>Повний табличний перелік медичних втручань (НК&nbsp;026:2021, гармонізований з
+         австралійським ACHI) — усі 6&nbsp;226 семизначних кодів. Навігація за розділами
+         та родинами кодів, миттєвий і пакетний пошук, прив'язка кодів до пакетів
+         ПМГ&nbsp;за Таблицею співставлення&nbsp;2026 та до правил наказу&nbsp;№&nbsp;377.</p>
+    </div>
+    <div class="stats" id="ivStats" aria-label="Статистика класифікатора"></div>
+  </header>
+
+  <nav class="mobile-tabs" id="mobileTabs" aria-label="Навігація між панелями">
+    <button class="mobile-tab active" data-tab="browser" type="button">Огляд і пошук</button>
+    <button class="mobile-tab" data-tab="reader" type="button">Паспорт коду</button>
+  </nav>
+
+  <main class="nk-layout" data-active="browser">
+    <!-- ЛІВА ПАНЕЛЬ: пошук + каскад -->
+    <section class="nk-browser" aria-label="Пошук і навігація класифікатора">
+      <div class="search-panel nk-search">
+        <label class="search">
+          <span>Пошук за кодом або назвою втручання</span>
+          <input id="ivSearch" type="search"
+                 placeholder="Напр.: 39721-00, холецистектомія, колоноскопія, 30375…" autocomplete="off">
+        </label>
+
+        <!-- Пакетний пошук: кілька кодів / назв разом -->
+        <details class="nk-batch">
+          <summary>📋 Пакетний пошук — кілька кодів / назв разом</summary>
+          <textarea id="ivBatch" rows="4"
+            placeholder="Вставте коди або назви — по одному в рядку, через кому чи пробіл:&#10;39721-00&#10;30375-06  32090-00&#10;колоноскопія, гемодіаліз"></textarea>
+          <div class="batch-actions">
+            <button id="ivBatchRun" type="button" class="batch-primary">Знайти всі</button>
+            <button id="ivBatchCopy" type="button" hidden>⧉ Копіювати знайдене</button>
+            <button id="ivBatchClear" type="button">Очистити</button>
+          </div>
+        </details>
+
+        <!-- Каскадна навігація: Розділ → Родина кодів → Код -->
+        <div class="nk-cascade" aria-label="Навігація по класифікатору">
+          <div class="casc-field">
+            <label for="selChapter">Розділ (система органів)</label>
+            <select id="selChapter"><option value="">Завантаження…</option></select>
+          </div>
+          <div class="casc-field">
+            <label for="selFamily">Родина кодів (спільний корінь)</label>
+            <select id="selFamily" disabled><option value="">— оберіть розділ —</option></select>
+          </div>
+          <div class="casc-field">
+            <label for="selCode">Код інтервенції</label>
+            <select id="selCode" disabled><option value="">— оберіть родину —</option></select>
+          </div>
+        </div>
+        <p class="casc-note">Офіційне видання НК&nbsp;026:2021 подає суцільний табличний перелік.
+           Розділи тут — навігаційне групування за структурою ACHI, у порядку самого переліку.</p>
+
+        <div class="nk-filters">
+          <label class="nk-check"><input type="checkbox" id="onlyPmg"> лише коди в пакетах ПМГ</label>
+          <label class="nk-check"><input type="checkbox" id="only377"> лише коди з наказу № 377</label>
+        </div>
+        <div class="results-summary">
+          <span id="ivCount">Завантаження…</span>
+          <button id="ivClear" type="button">✕ Очистити форму</button>
+        </div>
+      </div>
+
+      <!-- Результати пошуку / переліку розділу -->
+      <div class="nk-results" id="ivResults" hidden></div>
+    </section>
+
+    <!-- ПРАВА ПАНЕЛЬ: паспорт коду -->
+    <article class="nk-reader reader-empty" id="ivReader" aria-live="polite">
+      <div class="reader-hint">
+        <div class="reader-hint-ico">🔬</div>
+        <p>Оберіть код у каскаді (Розділ → Родина → Код) або через пошук, щоб побачити його
+           паспорт: розділ, споріднені коди тієї самої родини, пакети ПМГ, згадки в наказі
+           № 377 та переходи до пов'язаних розділів порталу.</p>
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Джерело: НК&nbsp;026:2021 «Класифікатор медичних інтервенцій» (наказ Мінекономіки
+           від 04.08.2021 № 360-21, чинний з 01.09.2021; гармонізовано з ACHI, 10-та редакція).
+           Прив'язка до пакетів — за Таблицею співставлення 2026. Довідковий інструмент;
+           у разі розбіжностей переважну силу має офіційне видання класифікатора.</p>
+      </div>
+    </div>
+  </footer>
+
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <script src="nk026.js?v=20260725a" defer></script>
+</body>
+</html>

@@ -38,7 +38,7 @@ async function openGlobalSearch() {
   try {
     if (!globalSearchModule) {
       // Шлях відносно МОДУЛЯ auth-v2.js (обидва лежать у корені), а не сторінки
-      globalSearchModule = await import('./global-search.js?v=20260719c');
+      globalSearchModule = await import('./global-search.js?v=20260725a');
     }
     globalSearchModule.open(getPathPrefix());
   } catch (err) {
@@ -268,6 +268,7 @@ function applyAccess() {
     // Класифікатори та коди — окрема вкладка «Коди»
     const codesItems = [
       { text: '🩺 Хвороби · НК 025', path: 'classifiers/index.html' },
+      { text: '🔬 Інтервенції · НК 026', path: 'classifiers/nk026.html' },
       { text: '🧪 Лабораторні · LOINC', path: 'classifiers/loinc.html' }
     ];
 
@@ -2040,6 +2041,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '⚖️', label: 'Нормативна база', path: 'regulatory/index.html' },
     { icon: '🏥', label: 'ДЕЦ МОЗ', path: 'dec/index.html' },
     { icon: '🩺', label: 'Хвороби · НК 025', path: 'classifiers/index.html' },
+    { icon: '🔬', label: 'Інтервенції · НК 026', path: 'classifiers/nk026.html' },
     { icon: '🧪', label: 'LOINC (лаб. коди)', path: 'classifiers/loinc.html' },
     { icon: '📑', label: 'Договори ЗОЗ', path: 'zoz-dogovr/index.html' },
     { icon: '👤', label: 'Кабінет', path: 'cabinet/index.html', role: 'expert' },
