@@ -1,6 +1,13 @@
 /**
  * Конструктор зв'язків ДЕЦ та ПМГ — Controller Logic
  * Handles interactive linking of clinical categories to packages, code overlap, and saving data.
+ *
+ * Коди пакетів — з mapping/data/by_package.json (збирає mapping/build_mapping.py
+ * з «Таблиці співставлення»). З 25.07.2026 замінило dec/data/package_codes.json:
+ * там діапазони НК 025 не розкривалися, а в переліки потрапляли уламки прози
+ * та коди послуг ЕСОЗ. Поля: icd (НК 025, ОДК уже розкриті), achi (НК 026),
+ * esoz / loinc (в автозбігу не беруть участі — це інші системи кодування),
+ * odk (перелік ОДК пакета), services (рядки таблиці).
  */
 
 // Global State
@@ -104,7 +111,7 @@ async function loadData() {
     ] = await Promise.all([
       fetch("../data/dec_documents.json").then(r => r.json()).catch(() => ({ categories: [] })),
       fetch("data/dec_document_codes.json").then(r => r.json()).catch(() => ({})),
-      fetch("data/package_codes.json").then(r => r.json()).catch(() => ({})),
+      fetch("../mapping/data/by_package.json").then(r => r.json()).catch(() => ({})),
       fetch("../pakety/data/packages_2026.json").then(r => r.json()).catch(() => ({ packages: [] })),
       fetch("data/package_dec_links.json").then(r => r.json()).catch(() => ({}))
     ]);
@@ -233,13 +240,19 @@ function renderPackagesGrid() {
 
   state.packages.forEach(pkg => {
     const pkgNum = pkg.number;
-    const pkgTargets = state.packageCodes[pkgNum] || { icd10_targets: [], achi_targets: [] };
+    const pkgTargets = state.packageCodes[pkgNum] || { icd: [], achi: [] };
 
     // 1. Calculate automated overlaps
-    const overlappingIcd = findOverlappingCodes(pkgTargets.icd10_targets || [], catCodes.icd10 || []);
-    const overlappingAchi = findOverlappingCodes(pkgTargets.achi_targets || [], catCodes.achi_targets || catCodes.achi || []);
-    const hasOverlap = overlappingIcd.length > 0 || overlappingAchi.length > 0;
-    const overlapText = [...overlappingIcd, ...overlappingAchi].join(", ");
+    const overlappingIcd = findOverlappingCodes(pkgTargets.icd || [], catCodes.icd10 || []);
+    const overlappingAchi = findOverlappingCodes(pkgTargets.achi || [], catCodes.achi || []);
+    const overlaps = [...overlappingIcd, ...overlappingAchi];
+    const hasOverlap = overlaps.length > 0;
+    // Переліки кодів пакета тепер повні (розкриті ОДК і діапазони), тож збігів
+    // буває багато — у рядку показуємо перші, решта лишається у підказці.
+    const overlapText = overlaps.join(", ");
+    const overlapShort = overlaps.length > 6
+      ? `${overlaps.slice(0, 6).join(", ")} … +${overlaps.length - 6}`
+      : overlapText;
 
     // 2. Check if already linked manually/expertly
     const pkgLinks = state.packageDecLinks[pkgNum] || {};
@@ -277,8 +290,8 @@ function renderPackagesGrid() {
     colBadge.className = "pkg-badge-container";
     if (hasOverlap) {
       colBadge.innerHTML = `
-        <span class="badge-auto-match" title="Коди збігу: ${overlapText}">
-          🤖 Авто-збіг (${overlapText})
+        <span class="badge-auto-match" title="Коди збігу (${overlaps.length}): ${overlapText}">
+          🤖 Авто-збіг (${overlapShort})
         </span>
       `;
     }
