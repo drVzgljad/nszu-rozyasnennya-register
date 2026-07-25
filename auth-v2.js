@@ -38,7 +38,7 @@ async function openGlobalSearch() {
   try {
     if (!globalSearchModule) {
       // Шлях відносно МОДУЛЯ auth-v2.js (обидва лежать у корені), а не сторінки
-      globalSearchModule = await import('./global-search.js?v=20260725b');
+      globalSearchModule = await import('./global-search.js?v=20260725d');
     }
     globalSearchModule.open(getPathPrefix());
   } catch (err) {
@@ -253,6 +253,61 @@ function applyAccess() {
     return currentPath.includes(segments[0]);
   }
 
+  /**
+   * Кнопка «Назад» у навігації — спільна для всіх розділів.
+   *
+   * Портал побудований на перехресних переходах (код НК 026 → пакет → постанова),
+   * і без явного повернення користувач «застрягає»: кнопка браузера непомітна,
+   * а на мобільному її часто немає взагалі. Пріоритет джерел:
+   *   1) ?back=<відносний шлях>&backLabel=<підпис> — коли розділ знає, куди вести;
+   *   2) document.referrer того ж походження — тоді просто history.back().
+   */
+  const appendBackLink = (container) => {
+    const params = new URLSearchParams(location.search);
+    const back = params.get('back');
+    const label = params.get('backLabel');
+    let href = null;
+    if (back && !/^(https?:)?\/\//i.test(back) && !back.startsWith('//')) {
+      href = back;  // лише відносні шляхи — щоб параметр не став відкритим редиректом
+    } else if (document.referrer) {
+      try {
+        const ref = new URL(document.referrer);
+        if (ref.origin === location.origin && ref.href !== location.href) href = '';
+      } catch (e) { /* некоректний referrer — просто без кнопки */ }
+    }
+    if (href === null) return;
+
+    const text = '← ' + (label ? label : 'Назад');
+    const make = (cls) => {
+      const btn = document.createElement(href ? 'a' : 'button');
+      btn.className = cls;
+      btn.textContent = text;
+      if (href) btn.href = href;
+      else { btn.type = 'button'; btn.addEventListener('click', () => history.back()); }
+      return btn;
+    };
+    const inNav = make('nav-back');
+    container.appendChild(inNav);
+
+    // На вужчих екранах уся ця навігація прихована на користь таббара,
+    // тож там кнопка живе окремо — плаваючою над таббаром.
+    document.getElementById('mobile-back-btn')?.remove();
+    const float = make('nav-back-float');
+    float.id = 'mobile-back-btn';
+    document.body.appendChild(float);
+
+    // Деякі розділи (напр. «Паспорт пакета») ховають цю шапку і на десктопі —
+    // там кнопка в навігації не відрендериться взагалі. Перевіряємо після
+    // розкладки і повторюємо на зміну ширини: стилі та авторизація доїжджають
+    // асинхронно, тож одного заміру мало.
+    const syncFloat = () => {
+      float.classList.toggle('nav-back-float--always', !inNav.offsetWidth);
+    };
+    requestAnimationFrame(syncFloat);
+    setTimeout(syncFloat, 400);
+    window.addEventListener('resize', syncFloat);
+  };
+
   const navContainer = document.querySelector('nav.section-switch:not(.top-auth)') || document.querySelector('.top-nav');
   if (navContainer) {
     navContainer.innerHTML = ''; // Rebuild dynamically
@@ -361,6 +416,7 @@ function applyAccess() {
     };
 
     // Головна · Реєстр · Пакети · Паспорт · Документи ▼ · Сервіси ▼ · Структура · Чат
+    appendBackLink(navContainer);
     appendNavLinks(coreItems);
     appendDropdown('🩺 Коди', codesItems);
     appendDropdown('Документи', documentsItems);

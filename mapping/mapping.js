@@ -19,6 +19,15 @@
   }
   const codes = (n) => plural(n, "код", "коди", "кодів");
 
+  /** Хвіст для перехресних посилань: щоб на чужій сторінці була кнопка «Назад». */
+  function backTail() {
+    if (currentService == null) return "";
+    const s = SERVICES[currentService];
+    const label = "до послуги " + (s.code || trim(s.name, 28));
+    return "&back=" + encodeURIComponent("/mapping/index.html?service=" + currentService) +
+      "&backLabel=" + encodeURIComponent(label);
+  }
+
   const COND_LABEL = {
     together: "разом з", except: "за винятком", absent: "за відсутності", or: "або",
   };
@@ -36,6 +45,8 @@
     filters: $("#mpFilters"), checks: $("#mpChecks"),
   };
   let readerEmptyHTML = "";
+  let pendingQuery = false;   // користувач почав шукати ще до завантаження даних
+  let currentService = null;  // відкрита картка — для кнопок «назад» у переходах
 
   // ══════════════════════════════════════════════════════════
   // Завантаження
@@ -52,20 +63,28 @@
     populatePackages();
     wireUI();
 
-    Promise.all([
-      fetch("data/services.json").then((r) => r.json()),
-      fetch("data/odk.json").then((r) => r.json()),
-    ]).then(([services, odk]) => {
-      SERVICES = services; ODK = odk;
-      ODK.forEach((o) => odkById.set(o.id, o));
-      populateOdk();
-      ready = true;
-      onReady();
-    }).catch(() => { el.count.textContent = "Дані таблиці недоступні."; });
+    // Послідовно, а не Promise.all: services.json важить ~1,5 МБ, і два
+    // паралельні великі завантаження ставлять з'єднання в чергу — на слабкій
+    // мережі це перетворюється на «Failed to fetch».
+    fetch("data/services.json")
+      .then((r) => r.json())
+      .then((services) => {
+        SERVICES = services;
+        return fetch("data/odk.json").then((r) => r.json());
+      })
+      .then((odk) => {
+        ODK = odk;
+        ODK.forEach((o) => odkById.set(o.id, o));
+        populateOdk();
+        ready = true;
+        onReady();
+      })
+      .catch(() => { el.count.textContent = "Дані таблиці недоступні. Оновіть сторінку."; });
   }
 
   function onReady() {
     el.count.textContent = plural(SERVICES.length, "послуга", "послуги", "послуг") + " · введіть запит або оберіть пакет";
+    if (pendingQuery || el.search.value.trim()) { runSearch(); return; }
     const q = new URLSearchParams(location.search);
     const raw = (q.get("q") || q.get("code") || "").trim();
     const svc = q.get("service");
@@ -139,7 +158,13 @@
   }
 
   function runSearch() {
-    if (!ready) { el.count.textContent = "Дані ще вантажаться…"; return; }
+    if (!ready) {
+      // Запит, введений поки вантажаться дані, не губимо — виконаємо в onReady()
+      pendingQuery = true;
+      el.count.textContent = "Дані вантажаться, зачекайте секунду — пошук виконається сам…";
+      return;
+    }
+    pendingQuery = false;
     if (mode === "odk") { runOdkSearch(); return; }
 
     const raw = el.search.value.trim();
@@ -232,10 +257,10 @@
     while ((m = rx.exec(raw))) {
       parts.push(esc(raw.slice(last, m.index)));
       const t = m[0];
-      if (m[1]) parts.push(link(`../classifiers/nk026.html?code=${encodeURIComponent(t)}`, t, "code-achi", "Код НК 026"));
+      if (m[1]) parts.push(link(`../classifiers/nk026.html?code=${encodeURIComponent(t)}${backTail()}`, t, "code-achi", "Код НК 026"));
       else if (m[2]) parts.push(`<button class="code-chip code-odk" data-odk-open="${escAttr(t)}" title="Показати склад ОДК">${esc(t)}</button>`);
       else if (m[3]) parts.push(`<span class="code-chip code-esoz" title="Код медичної послуги ЕСОЗ">${esc(t)}</span>`);
-      else parts.push(link(`../classifiers/index.html?code=${encodeURIComponent(t)}`, t, "code-icd", "Код НК 025"));
+      else parts.push(link(`../classifiers/index.html?code=${encodeURIComponent(t)}${backTail()}`, t, "code-icd", "Код НК 025"));
       last = m.index + t.length;
     }
     parts.push(esc(raw.slice(last)));
@@ -274,7 +299,7 @@
       return `<details class="mp-odk"><summary>${esc(o.id)} · ${esc(o.name)}
           <span class="odk-count">${codes(o.codes.length)}</span></summary>
         <div class="chip-list odk-codes">${o.codes.map((c) =>
-        `<a class="code-chip code-icd" href="../classifiers/index.html?code=${encodeURIComponent(c)}">${esc(c)}</a>`).join("")}</div>
+        `<a class="code-chip code-icd" href="../classifiers/index.html?code=${encodeURIComponent(c)}${backTail()}">${esc(c)}</a>`).join("")}</div>
       </details>`;
     }).join("");
 
@@ -287,13 +312,50 @@
     </div>`;
   }
 
+  /** Вагові коефіцієнти ДСГ із додатків 1–2 постанови 1808. */
+  function renderCoeffs(s) {
+    const drg = s.drg || [];
+    if (!drg.length) return "";
+    const rows = drg.map((d) => {
+      const app = d.ka === "appendix-2" ? "Додаток 2" : "Додаток 1";
+      const href = `../postanova/index.html?node=${encodeURIComponent(d.ka || "appendix-1")}` +
+        `&q=${encodeURIComponent(d.c)}${backTail()}`;
+      if (!d.k || !d.k.length) {
+        return `<div class="coef-row"><b>${esc(d.c)}</b>
+          <span class="coef-title">${esc(d.t || "")}</span>
+          <span class="coef-none">коефіцієнта в додатках немає</span></div>`;
+      }
+      // Підписуємо колонки лише коли кількість значень збігається з кількістю
+      // колонок додатка: у витягу з PDF порожні клітинки не збереглися, тож
+      // здогадуватися, якого саме коефіцієнта бракує, — означало б вигадувати.
+      const values = d.kl
+        ? d.k.map((v, n) => `<span class="coef-val"><em>${esc(v)}</em>${esc(COEF_COLS[d.ka][n])}</span>`).join("")
+        : `<span class="coef-raw">${d.k.map(esc).join(" · ")}</span>
+           <span class="coef-warn" title="У джерелі порожні клітинки не збереглися — звірте з додатком">колонки не розмічені</span>`;
+      return `<div class="coef-row"><b>${esc(d.c)}</b>
+        <span class="coef-title">${esc(d.t || "")}</span>
+        <span class="coef-values">${values}</span>
+        <a class="coef-link" href="${href}" title="Відкрити ${app} постанови 1808">${app} ↗</a></div>`;
+    }).join("");
+    return `<div class="reader-block coef-block">
+      <h3>Вагові коефіцієнти ДСГ <span class="src">постанова 1808, додатки 1–2</span></h3>
+      <div class="coef-list">${rows}</div>
+    </div>`;
+  }
+
+  const COEF_COLS = {
+    "appendix-1": ["ваговий", "діти", "травми"],
+    "appendix-2": ["ваговий за ДСГ", "діти"],
+  };
+
   function openService(i) {
     const s = SERVICES[i];
     if (!s) return;
+    currentService = i;
     const pkgChips = s.pkgs.map((p) => {
       const title = (META.packages || {})[p] || "";
-      return `<a class="pk-pkg" href="../pakety/index.html?q=${encodeURIComponent(p)}"
-                 title="${escAttr(title || "Пакет № " + p)}">Пакет № ${p}</a>`;
+      return `<a class="pk-pkg" href="../passport/index.html?package=${encodeURIComponent(p)}${backTail()}"
+                 title="${escAttr(title || "Пакет № " + p)}">Пакет № ${p}${title ? " · " + esc(trim(title, 46)) : ""}</a>`;
     }).join("");
 
     el.reader.classList.remove("reader-empty");
@@ -308,6 +370,7 @@
         <h3>Пакети ПМГ</h3>
         <div class="chip-list">${pkgChips}</div>
       </div>
+      ${renderCoeffs(s)}
       ${codeCell("Коди хвороб · НК 025", s.icd, "icd")}
       ${codeCell("Коди інтервенцій · НК 026", s.achi, "achi")}
       ${s.note ? `<div class="reader-block"><h3>Додаткова інформація</h3>

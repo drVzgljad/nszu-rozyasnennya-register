@@ -77,3 +77,43 @@ a.code-chip:hover { border-color: currentColor; }
 }
 
 :root.dark-theme .cond-badge { background: rgba(180, 118, 42, .25); color: #f0c894; }
+
+/* ── Вагові коефіцієнти ДСГ ────────────────────────────────── */
+.coef-list { display: grid; gap: 8px; }
+.coef-row {
+  display: grid; grid-template-columns: auto 1fr auto auto; align-items: baseline; gap: 10px;
+  font-size: .87rem; line-height: 1.4;
+  background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px;
+}
+.coef-row b {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--accent-dark);
+}
+.coef-title { min-width: 0; color: var(--ink); }
+.coef-values { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.coef-val {
+  display: inline-flex; align-items: baseline; gap: 4px;
+  font-size: .72rem; color: var(--muted); white-space: nowrap;
+}
+.coef-val em {
+  font-style: normal; font-size: .95rem; font-weight: 800; color: var(--teal-dark);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.coef-raw {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .95rem; font-weight: 800; color: var(--teal-dark);
+}
+.coef-warn {
+  font-size: .68rem; font-weight: 700; color: #8a5a17; background: #f6e5c3;
+  border-radius: 20px; padding: 1px 8px; white-space: nowrap;
+}
+.coef-none { font-size: .76rem; color: var(--muted); white-space: nowrap; }
+.coef-link { font-size: .74rem; font-weight: 700; color: var(--accent); text-decoration: none; white-space: nowrap; }
+.coef-link:hover { text-decoration: underline; }
+
+@media (max-width: 760px) {
+  .coef-row { grid-template-columns: 1fr; gap: 5px; }
+  .coef-values { justify-content: flex-start; }
+}
+
+:root.dark-theme .coef-row { background: var(--soft); }
+:root.dark-theme .coef-warn { background: rgba(180, 118, 42, .25); color: #f0c894; }

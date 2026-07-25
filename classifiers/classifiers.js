@@ -13,6 +13,13 @@
     "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX", "XXI", "XXII"];
   const LEVEL_LABEL = { 3: "Код 1-го порядку (рубрика)", 4: "Код 2-го порядку (підрубрика)", 5: "Код 3-го порядку" };
   const nf = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  const BACK_PAGE = "/classifiers/index.html";
+  /** Хвіст для перехресних посилань: щоб на чужій сторінці була кнопка «Назад». */
+  function backTail(code) {
+    return "&back=" + encodeURIComponent(BACK_PAGE + "?code=" + code) +
+      "&backLabel=" + encodeURIComponent("до коду " + code);
+  }
+
 
   let META = null, INDEX = null, indexReady = false;
   // Таблиця співставлення: медичні послуги, у яких згадано код (напряму або через ОДК)
@@ -443,7 +450,7 @@
     }
     const pk = e.pk;
     const chips = (pk.pkgs || []).map((n) =>
-      `<a class="pk-pkg" href="../pakety/index.html?q=${encodeURIComponent(n)}" title="Відкрити пакет № ${n}">Пакет № ${n}</a>`).join("");
+      `<a class="pk-pkg" href="../passport/index.html?package=${encodeURIComponent(n)}${backTail(e.c)}" title="Відкрити пакет № ${n}">Пакет № ${n}</a>`).join("");
     const badges = [];
     if (pk.ad) badges.push(`<span class="pk-badge ad">дорослі</span>`);
     if (pk.ch) badges.push(`<span class="pk-badge ch">діти</span>`);
@@ -474,9 +481,9 @@
     const row = (si, badge) => {
       const s = SERVICES[si];
       if (!s) return "";
-      return `<a class="svc-row" href="../mapping/index.html?service=${si}"
+      return `<a class="svc-row" href="../mapping/index.html?service=${si}${backTail(e.c)}"
                  title="Відкрити в Таблиці співставлення">
-        <b>${esc(s.c || "—")}</b><span class="svc-name">${esc(s.n)}${badge || ""}</span>
+        <b>${esc(s.c || "—")}</b><span class="svc-name">${esc(s.n)}${coefTag(s)}${badge || ""}</span>
         <span class="svc-pkgs">${s.p.map((p) => "пакет " + p).join(", ")}</span></a>`;
     };
     const parts = [...direct].map((si) => row(si));
@@ -488,6 +495,12 @@
       <h3>Медичні послуги <span class="src">за Таблицею співставлення · ${total}</span></h3>
       <div class="svc-list">${parts.join("")}</div>
     </div>`;
+  }
+
+  /** Ваговий коефіцієнт ДСГ поруч із назвою послуги (перше значення додатка). */
+  function coefTag(s) {
+    const first = (s.k || []).find((d) => d.k && d.k.length);
+    return first ? ` <span class="svc-coef" title="Ваговий коефіцієнт ДСГ ${escAttr(first.c)} (постанова 1808)">${esc(first.k[0])}</span>` : "";
   }
 
   function renderLinks(e) {

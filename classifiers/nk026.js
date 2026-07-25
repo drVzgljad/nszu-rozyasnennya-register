@@ -11,6 +11,13 @@
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const nf = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   const CODE_RE = /^\d{1,5}(-\d{0,2})?$/;   // повний або частковий код (39721, 39721-0, 39721-00)
+  const BACK_PAGE = "/classifiers/nk026.html";
+  /** Хвіст для перехресних посилань: щоб на чужій сторінці була кнопка «Назад». */
+  function backTail(code) {
+    return "&back=" + encodeURIComponent(BACK_PAGE + "?code=" + code) +
+      "&backLabel=" + encodeURIComponent("до коду " + code);
+  }
+
 
   let META = null, INDEX = null, ready = false;
   let SERVICES = null;             // Таблиця співставлення: id → {c, n, p}
@@ -409,8 +416,8 @@
     }
     const chips = e.pk.map((n) => {
       const title = (META.packages || {})[n] || "";
-      return `<a class="pk-pkg" href="../pakety/index.html?q=${encodeURIComponent(n)}"
-                 title="${escAttr(title || "Відкрити пакет № " + n)}">Пакет № ${n}</a>`;
+      return `<a class="pk-pkg" href="../passport/index.html?package=${encodeURIComponent(n)}${backTail(e.c)}"
+                 title="${escAttr(title || "Відкрити пакет № " + n)}">Пакет № ${n}${title ? " · " + esc(trim(title, 44)) : ""}</a>`;
     }).join("");
     return `<div class="reader-block pmg-yes">
       <h3>Пакети ПМГ <span class="src">за Таблицею співставлення 2026</span></h3>
@@ -424,15 +431,21 @@
     const rows = e.sv.map((id) => {
       const s = SERVICES[id];
       if (!s) return "";
-      return `<a class="svc-row" href="../mapping/index.html?service=${id}"
+      return `<a class="svc-row" href="../mapping/index.html?service=${id}${backTail(e.c)}"
                  title="Відкрити в Таблиці співставлення">
-        <b>${esc(s.c || "—")}</b><span class="svc-name">${esc(s.n)}</span>
+        <b>${esc(s.c || "—")}</b><span class="svc-name">${esc(s.n)}${coefTag(s)}</span>
         <span class="svc-pkgs">${s.p.map((p) => "пакет " + p).join(", ")}</span></a>`;
     }).join("");
     return `<div class="reader-block svc-block">
       <h3>Медичні послуги <span class="src">за Таблицею співставлення</span></h3>
       <div class="svc-list">${rows}</div>
     </div>`;
+  }
+
+  /** Ваговий коефіцієнт ДСГ поруч із назвою послуги (перше значення додатка). */
+  function coefTag(s) {
+    const first = (s.k || []).find((d) => d.k && d.k.length);
+    return first ? ` <span class="svc-coef" title="Ваговий коефіцієнт ДСГ ${escAttr(first.c)} (постанова 1808)">${esc(first.k[0])}</span>` : "";
   }
 
   function render377(e) {

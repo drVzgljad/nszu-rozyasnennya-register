@@ -4,7 +4,9 @@
  "title": "Таблиця співставлення медичних послуг з кодами НК 025:2021 та/або НК 026:2021",
  "counters": {
   "services": 639,
-  "services_with_code": 389,
+  "services_with_code": 408,
+  "drg": 500,
+  "drg_with_coeff": 464,
   "packages": 36,
   "odk": 27,
   "odk_codes": 16011,

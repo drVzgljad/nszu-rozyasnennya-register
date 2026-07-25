@@ -271,3 +271,10 @@
 }
 
 :root.dark-theme .svc-row { background: var(--soft); }
+
+/* Ваговий коефіцієнт ДСГ поруч із назвою послуги */
+.svc-coef {
+  display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 20px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .74rem; font-weight: 800; color: var(--teal-dark); background: var(--warm);
+}
