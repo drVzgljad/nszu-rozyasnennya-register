@@ -1,0 +1,391 @@
+/* ============================================================
+   Таблиця співставлення медичних послуг — фронтенд.
+   Послуга ↔ пакет ПМГ ↔ коди НК 025 / НК 026 / ЕСОЗ ↔ ОДК.
+   Клітинки з кодами показуємо ДОСЛІВНО, підсвічуючи коди як
+   посилання; умови («разом з», «за винятком») лише позначаємо.
+   Дані: data/mapping_meta.json, data/services.json, data/odk.json.
+   ============================================================ */
+(function () {
+  "use strict";
+
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const nf = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  /** Українська множина: 1 код · 2 коди · 5 кодів. */
+  function plural(n, one, few, many) {
+    const a = Math.abs(n) % 100, b = a % 10;
+    const word = a > 10 && a < 20 ? many : b === 1 ? one : b >= 2 && b <= 4 ? few : many;
+    return nf(n) + " " + word;
+  }
+  const codes = (n) => plural(n, "код", "коди", "кодів");
+
+  const COND_LABEL = {
+    together: "разом з", except: "за винятком", absent: "за відсутності", or: "або",
+  };
+
+  let META = null, SERVICES = null, ODK = null, ready = false;
+  let mode = "services";
+  const odkById = new Map();
+
+  const el = {
+    stats: $("#mpStats"), search: $("#mpSearch"), searchLabel: $("#mpSearchLabel"),
+    count: $("#mpCount"), clear: $("#mpClear"), results: $("#mpResults"),
+    reader: $("#mpReader"), layout: $(".nk-layout"),
+    selPkg: $("#selPkg"), selOdk: $("#selOdk"),
+    onlyCond: $("#onlyCond"), onlyNote: $("#onlyNote"),
+    filters: $("#mpFilters"), checks: $("#mpChecks"),
+  };
+  let readerEmptyHTML = "";
+
+  // ══════════════════════════════════════════════════════════
+  // Завантаження
+  // ══════════════════════════════════════════════════════════
+  async function boot() {
+    readerEmptyHTML = el.reader.innerHTML;
+    try {
+      META = await fetch("data/mapping_meta.json").then((r) => r.json());
+    } catch (e) {
+      el.count.textContent = "Не вдалося завантажити таблицю.";
+      return;
+    }
+    renderStats();
+    populatePackages();
+    wireUI();
+
+    Promise.all([
+      fetch("data/services.json").then((r) => r.json()),
+      fetch("data/odk.json").then((r) => r.json()),
+    ]).then(([services, odk]) => {
+      SERVICES = services; ODK = odk;
+      ODK.forEach((o) => odkById.set(o.id, o));
+      populateOdk();
+      ready = true;
+      onReady();
+    }).catch(() => { el.count.textContent = "Дані таблиці недоступні."; });
+  }
+
+  function onReady() {
+    el.count.textContent = plural(SERVICES.length, "послуга", "послуги", "послуг") + " · введіть запит або оберіть пакет";
+    const q = new URLSearchParams(location.search);
+    const raw = (q.get("q") || q.get("code") || "").trim();
+    const svc = q.get("service");
+    if (svc !== null && SERVICES[+svc]) { openService(+svc); return; }
+    if (raw) { el.search.value = raw; runSearch(); }
+  }
+
+  function renderStats() {
+    const c = META.counters || {};
+    const cards = [
+      ["Медичних послуг", c.services || 0],
+      ["Пакетів ПМГ", c.packages || 0],
+      ["Кодів НК 026", c.achi_codes || 0],
+      ["ОДК", c.odk || 0],
+    ];
+    el.stats.innerHTML = cards.map(([k, v]) =>
+      `<div class="stat"><span class="stat-num">${nf(v)}</span><span class="stat-key">${k}</span></div>`
+    ).join("");
+  }
+
+  function populatePackages() {
+    const opts = ['<option value="">— усі пакети —</option>'];
+    for (const [num, title] of Object.entries(META.packages || {})) {
+      opts.push(`<option value="${num}">Пакет ${num}${title ? " · " + esc(trim(title, 60)) : ""}</option>`);
+    }
+    el.selPkg.innerHTML = opts.join("");
+  }
+
+  function populateOdk() {
+    const opts = ['<option value="">— будь-яка —</option>'];
+    for (const o of ODK) opts.push(`<option value="${esc(o.id)}">${esc(o.id)} · ${esc(trim(o.name, 54))}</option>`);
+    el.selOdk.innerHTML = opts.join("");
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // Пошук і список
+  // ══════════════════════════════════════════════════════════
+  let timer = null;
+  function wireUI() {
+    el.search.addEventListener("input", () => {
+      clearTimeout(timer); timer = setTimeout(runSearch, 130);
+    });
+    [el.selPkg, el.selOdk, el.onlyCond, el.onlyNote].forEach((c) =>
+      c.addEventListener("change", runSearch));
+    el.clear.addEventListener("click", resetForm);
+    $$(".mp-mode").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+    $$("#mobileTabs .mobile-tab").forEach((b) =>
+      b.addEventListener("click", () => setTab(b.dataset.tab)));
+  }
+
+  function setMode(m) {
+    mode = m;
+    $$(".mp-mode").forEach((b) => b.classList.toggle("active", b.dataset.mode === m));
+    const services = m === "services";
+    el.filters.hidden = !services;
+    el.checks.hidden = !services;
+    el.searchLabel.textContent = services
+      ? "Пошук за назвою, кодом послуги або кодом класифікатора"
+      : "Пошук за назвою ОДК або кодом НК 025";
+    el.search.placeholder = services
+      ? "Напр.: A15, EКMO, інсульт, 30294-00, I21.0, ОДК 8…"
+      : "Напр.: нервової системи, опіки, I21.0…";
+    el.search.value = "";
+    runSearch();
+  }
+
+  /** Чи згадано код у послузі (у будь-якій із колонок). */
+  function serviceHasCode(s, code) {
+    return s.icd.icd.includes(code) || s.achi.achi.includes(code) ||
+      s.achi.esoz.includes(code) || s.achi.loinc.includes(code);
+  }
+
+  function runSearch() {
+    if (!ready) { el.count.textContent = "Дані ще вантажаться…"; return; }
+    if (mode === "odk") { runOdkSearch(); return; }
+
+    const raw = el.search.value.trim();
+    const q = raw.toLowerCase();
+    const codeQ = raw.toUpperCase().replace(/\s+/g, "");
+    const pkg = el.selPkg.value, odkRef = el.selOdk.value;
+    const out = [];
+
+    for (const s of SERVICES) {
+      if (pkg && !s.pkgs.includes(pkg)) continue;
+      if (odkRef && !s.icd.odk.includes(odkRef) && !s.achi.odk.includes(odkRef)) continue;
+      if (el.onlyCond.checked && !s.icd.cond.length && !s.achi.cond.length) continue;
+      if (el.onlyNote.checked && !s.note) continue;
+
+      let score = 10;
+      if (q) {
+        const name = s.name.toLowerCase();
+        if (s.code && s.code.toUpperCase() === codeQ) score = 100;
+        else if (serviceHasCode(s, codeQ)) score = 90;
+        else if (s.code && s.code.toUpperCase().startsWith(codeQ)) score = 70;
+        else if (name.startsWith(q)) score = 60;
+        else if (name.includes(q)) score = 40;
+        else if (s.icd.raw.toLowerCase().includes(q) || s.achi.raw.toLowerCase().includes(q)) score = 20;
+        else if ((s.note || "").toLowerCase().includes(q)) score = 15;
+        else score = 0;
+      }
+      if (score > 0) out.push([score, s]);
+    }
+    out.sort((a, b) => b[0] - a[0] || a[1].i - b[1].i);
+    show(out.map((x) => x[1]).map(serviceRow), out.length, plural(out.length, "послуга", "послуги", "послуг").replace(/^[\d\s]+/, ""));
+  }
+
+  function runOdkSearch() {
+    const q = el.search.value.trim().toLowerCase();
+    const codeQ = el.search.value.trim().toUpperCase().replace(/\s+/g, "");
+    const hits = ODK.filter((o) => !q || o.name.toLowerCase().includes(q) ||
+      o.id.toLowerCase().includes(q) || o.codes.includes(codeQ));
+    show(hits.map(odkRow), hits.length, "ОДК");
+  }
+
+  const CAP = 400;
+  function show(rows, total, what) {
+    el.count.textContent = total
+      ? `Знайдено ${nf(total)} ${what}${total > CAP ? " · показано " + CAP : ""}`
+      : "Нічого не знайдено";
+    el.results.innerHTML = rows.slice(0, CAP).join("");
+    el.results.hidden = false;
+  }
+
+  function serviceRow(s) {
+    const cond = [...new Set([...s.icd.cond, ...s.achi.cond])];
+    return `<button class="rrow" type="button" data-svc="${s.i}">
+      <span class="tcode code">${s.code ? esc(s.code) : "—"}</span>
+      <span class="rmain"><span class="tname">${esc(s.name)}</span>
+        <span class="rmeta">${s.pkgs.map((p) => "Пакет " + p).join(" · ")}
+          ${s.icd.odk.length ? " · " + s.icd.odk.join(", ") : ""}</span></span>
+      ${s.achi.achi.length ? `<span class="pk-dot" title="НК 026: ${codes(s.achi.achi.length)}">026</span>` : ""}
+      ${cond.length ? `<span class="pk-dot cond" title="Умови: ${cond.map((c) => COND_LABEL[c]).join(", ")}">умова</span>` : ""}
+      ${s.note ? `<span class="pk-dot note" title="${escAttr(s.note)}">і</span>` : ""}
+    </button>`;
+  }
+
+  function odkRow(o) {
+    return `<button class="rrow" type="button" data-odk="${escAttr(o.id)}">
+      <span class="tcode code">${esc(o.id)}</span>
+      <span class="rmain"><span class="tname">${esc(o.name)}</span>
+        <span class="rmeta">${codes(o.codes.length)} НК 025</span></span>
+    </button>`;
+  }
+
+  el.results.addEventListener("click", (ev) => {
+    const b = ev.target.closest(".rrow");
+    if (!b) return;
+    $$(".rrow.active").forEach((r) => r.classList.remove("active"));
+    b.classList.add("active");
+    if (b.dataset.svc !== undefined) openService(+b.dataset.svc);
+    else if (b.dataset.odk) openOdk(b.dataset.odk);
+  });
+
+  // ══════════════════════════════════════════════════════════
+  // Картка послуги
+  // ══════════════════════════════════════════════════════════
+  /** Оригінальний текст клітинки з кодами-посиланнями. */
+  function decorate(raw) {
+    if (!raw) return '<span class="muted">—</span>';
+    const parts = [];
+    let last = 0;
+    const rx = /(\d{5}-\d{2})|(ОДК\s*:?\s*\d+[-–—]?[A-ZА-Яa-zа-я]?)|([A-Z]\d{5})\b|([A-ZА-Я]\d{2}(?:\.\d+)?)\b/g;
+    let m;
+    while ((m = rx.exec(raw))) {
+      parts.push(esc(raw.slice(last, m.index)));
+      const t = m[0];
+      if (m[1]) parts.push(link(`../classifiers/nk026.html?code=${encodeURIComponent(t)}`, t, "code-achi", "Код НК 026"));
+      else if (m[2]) parts.push(`<button class="code-chip code-odk" data-odk-open="${escAttr(t)}" title="Показати склад ОДК">${esc(t)}</button>`);
+      else if (m[3]) parts.push(`<span class="code-chip code-esoz" title="Код медичної послуги ЕСОЗ">${esc(t)}</span>`);
+      else parts.push(link(`../classifiers/index.html?code=${encodeURIComponent(t)}`, t, "code-icd", "Код НК 025"));
+      last = m.index + t.length;
+    }
+    parts.push(esc(raw.slice(last)));
+    return parts.join("");
+  }
+
+  function link(href, text, cls, title) {
+    return `<a class="code-chip ${cls}" href="${href}" title="${escAttr(title)}">${esc(text)}</a>`;
+  }
+
+  function condBadges(cell) {
+    if (!cell.cond.length) return "";
+    return `<div class="badge-row">${cell.cond.map((c) =>
+      `<span class="cond-badge" title="${escAttr((META.conditions || {})[c] || "")}">${COND_LABEL[c] || c}</span>`).join("")}</div>`;
+  }
+
+  function codeCell(title, cell, kind) {
+    if (!cell.raw || cell.raw === "-") {
+      return `<div class="reader-block"><h3>${title}</h3><p class="muted">У таблиці не зазначено.</p></div>`;
+    }
+    const stats = [];
+    if (kind === "icd" && cell.icd.length) stats.push(codes(cell.icd.length) + " НК 025");
+    if (kind === "achi" && cell.achi.length) stats.push(codes(cell.achi.length) + " НК 026");
+    if (cell.esoz.length) stats.push(codes(cell.esoz.length) + " послуг ЕСОЗ");
+    if (cell.loinc.length) stats.push(`${cell.loinc.length} LOINC`);
+    if (cell.odk.length) stats.push(`ОДК: ${cell.odk.join(", ")}`);
+
+    const ranges = cell.ranges.length
+      ? `<div class="mp-ranges">Розкрито діапазони: ${cell.ranges.map((r) =>
+        `<span class="range-chip">${esc(r.from)}–${esc(r.to)} <em>${nf(r.codes)}</em></span>`).join(" ")}</div>`
+      : "";
+
+    const odkBlocks = cell.odk.map((id) => {
+      const o = odkById.get(id);
+      if (!o) return "";
+      return `<details class="mp-odk"><summary>${esc(o.id)} · ${esc(o.name)}
+          <span class="odk-count">${codes(o.codes.length)}</span></summary>
+        <div class="chip-list odk-codes">${o.codes.map((c) =>
+        `<a class="code-chip code-icd" href="../classifiers/index.html?code=${encodeURIComponent(c)}">${esc(c)}</a>`).join("")}</div>
+      </details>`;
+    }).join("");
+
+    return `<div class="reader-block">
+      <h3>${title}${stats.length ? ` <span class="src">${esc(stats.join(" · "))}</span>` : ""}</h3>
+      ${condBadges(cell)}
+      <div class="mp-raw">${decorate(cell.raw)}</div>
+      ${ranges}
+      ${odkBlocks}
+    </div>`;
+  }
+
+  function openService(i) {
+    const s = SERVICES[i];
+    if (!s) return;
+    const pkgChips = s.pkgs.map((p) => {
+      const title = (META.packages || {})[p] || "";
+      return `<a class="pk-pkg" href="../pakety/index.html?q=${encodeURIComponent(p)}"
+                 title="${escAttr(title || "Пакет № " + p)}">Пакет № ${p}</a>`;
+    }).join("");
+
+    el.reader.classList.remove("reader-empty");
+    el.reader.innerHTML = `
+      <div class="reader-head">
+        <div class="reader-code">${s.code ? esc(s.code) : "—"}</div>
+        <div class="reader-level">Медична послуга</div>
+        <button class="copy-btn" type="button" data-copy="${escAttr((s.code ? s.code + " — " : "") + s.name)}">⧉ Копіювати</button>
+      </div>
+      <h2 class="reader-name">${esc(s.name)}</h2>
+      <div class="reader-block">
+        <h3>Пакети ПМГ</h3>
+        <div class="chip-list">${pkgChips}</div>
+      </div>
+      ${codeCell("Коди хвороб · НК 025", s.icd, "icd")}
+      ${codeCell("Коди інтервенцій · НК 026", s.achi, "achi")}
+      ${s.note ? `<div class="reader-block"><h3>Додаткова інформація</h3>
+          <p class="mp-note">${esc(s.note)}</p></div>` : ""}
+      <div class="reader-foot">Таблиця співставлення · рядок ${s.i + 1} з ${SERVICES.length}</div>`;
+    setTab("reader");
+  }
+
+  function openOdk(id) {
+    const o = odkById.get(id);
+    if (!o) return;
+    const users = SERVICES.filter((s) => s.icd.odk.includes(id) || s.achi.odk.includes(id));
+    el.reader.classList.remove("reader-empty");
+    el.reader.innerHTML = `
+      <div class="reader-head">
+        <div class="reader-code">${esc(o.id)}</div>
+        <div class="reader-level">Об'єднана діагностична категорія</div>
+      </div>
+      <h2 class="reader-name">${esc(o.name)}</h2>
+      <div class="reader-block">
+        <h3>Послуги, що посилаються на цю ОДК <span class="src">${users.length}</span></h3>
+        <div class="chip-list">${users.length
+        ? users.map((s) => `<button class="subchip" data-goto-svc="${s.i}"><b>${esc(s.code || "—")}</b> ${esc(trim(s.name, 70))}</button>`).join("")
+        : '<span class="muted">жодна</span>'}</div>
+      </div>
+      <div class="reader-block">
+        <h3>Коди НК 025 <span class="src">${codes(o.codes.length)}</span></h3>
+        <div class="chip-list odk-codes">${o.codes.map((c) =>
+      `<a class="code-chip code-icd" href="../classifiers/index.html?code=${encodeURIComponent(c)}">${esc(c)}</a>`).join("")}</div>
+      </div>`;
+    setTab("reader");
+  }
+
+  el.reader.addEventListener("click", (ev) => {
+    const openOdkBtn = ev.target.closest("[data-odk-open]");
+    if (openOdkBtn) {
+      const key = normOdk(openOdkBtn.dataset.odkOpen);
+      const found = ODK.find((o) => normOdk(o.id) === key);
+      if (found) { setMode("odk"); openOdk(found.id); }
+      return;
+    }
+    const goto = ev.target.closest("[data-goto-svc]");
+    if (goto) { setMode("services"); openService(+goto.dataset.gotoSvc); return; }
+    const cp = ev.target.closest("[data-copy]");
+    if (cp) {
+      navigator.clipboard && navigator.clipboard.writeText(cp.dataset.copy);
+      cp.textContent = "✓ Скопійовано"; setTimeout(() => (cp.textContent = "⧉ Копіювати"), 1400);
+    }
+  });
+
+  /** «ОДК 23-А», «ОДК 23А» → «23A» (у таблиці сусідять кирилична й латинська літери). */
+  function normOdk(s) {
+    return String(s).toUpperCase().replace("ОДК", "").replace(/[\s:\-–—]+/g, "")
+      .replace(/[АВСЕКМНОРТХІ]/g, (c) => "ABCEKMHOPTXI"["АВСЕКМНОРТХІ".indexOf(c)]);
+  }
+
+  // ══════════════════════════════════════════════════════════
+  function resetForm() {
+    el.search.value = ""; el.selPkg.value = ""; el.selOdk.value = "";
+    el.onlyCond.checked = false; el.onlyNote.checked = false;
+    el.results.hidden = true; el.results.innerHTML = "";
+    el.reader.classList.add("reader-empty");
+    el.reader.innerHTML = readerEmptyHTML;
+    el.count.textContent = ready
+      ? plural(SERVICES.length, "послуга", "послуги", "послуг") + " · введіть запит або оберіть пакет"
+      : "Завантаження…";
+    setTab("browser");
+    el.search.focus();
+  }
+
+  function setTab(tab) {
+    if (!el.layout) return;
+    el.layout.dataset.active = tab;
+    $$("#mobileTabs .mobile-tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+  }
+  function trim(s, n) { s = String(s || ""); return s.length > n ? s.slice(0, n - 1) + "…" : s; }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
+  function escAttr(s) { return esc(s).replace(/"/g, "&quot;"); }
+
+  boot();
+})();

@@ -15,6 +15,10 @@
   const nf = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 
   let META = null, INDEX = null, indexReady = false;
+  // Таблиця співставлення: медичні послуги, у яких згадано код (напряму або через ОДК)
+  let SERVICES = null, BY_ICD = null, ODK = null, openedCode = null;
+  const odkMembers = new Map();     // id ОДК → Set кодів
+  const odkServices = new Map();    // id ОДК → [id послуг]
   const byCode = new Map();          // code → entry
   const childrenOf = new Map();      // parentCode → [entries]
   const l3ByCB = new Map();          // `${classNo}|${blockIdx}` → [l3 entries]
@@ -52,7 +56,31 @@
     fetch("data/nk025_index.json")
       .then((r) => r.json())
       .then((idx) => { INDEX = idx; buildMaps(); indexReady = true; onIndexReady(); })
-      .catch(() => { el.count.textContent = "Індекс пошуку недоступний."; });
+      .catch(() => { el.count.textContent = "Індекс пошуку недоступний."; })
+      // Таблиця співставлення — ПІСЛЯ основного індексу: паралельно з ним три
+      // додаткові файли створюють зайву конкуренцію за з'єднання, а паспорт без
+      // них цілком робочий.
+      .then(loadMapping);
+  }
+
+  /** Таблиця співставлення — вантажимо окремо, паспорт без неї теж працює. */
+  function loadMapping() {
+    const get = (n) => fetch("../mapping/data/" + n).then((r) => r.json());
+    Promise.all([get("services_lite.json"), get("by_icd.json"), get("odk.json")])
+      .then(([services, byIcd, odk]) => {
+        SERVICES = services; BY_ICD = byIcd; ODK = odk;
+        for (const o of ODK) odkMembers.set(o.id, new Set(o.codes));
+        // які послуги посилаються на кожну ОДК — рахуємо один раз
+        for (const s of SERVICES) {
+          const refs = s.odk || [];
+          for (const id of refs) {
+            const bucket = odkServices.get(id);
+            if (bucket) bucket.push(s.i); else odkServices.set(id, [s.i]);
+          }
+        }
+        if (openedCode) openCode(openedCode);
+      })
+      .catch(() => { SERVICES = null; });
   }
 
   function buildMaps() {
@@ -370,6 +398,7 @@
   function openCode(code) {
     const e = byCode.get(code);
     if (!e) return;
+    openedCode = code;
     const { cls, block, p3, p4 } = ancestryOf(e);
 
     const crumbs = [];
@@ -397,6 +426,7 @@
       <h2 class="reader-name">${esc(e.n)}</h2>
       <div class="reader-crumbs">${crumbs.join('<span class="sep">›</span>')}</div>
       ${renderPmg(e)}
+      ${renderServices(e)}
       ${renderLinks(e)}
       ${kidsHtml}
       <div class="reader-foot">НК 025:2021 · ICD-10-AM · ${LEVEL_LABEL[e.l].toLowerCase()}</div>`;
@@ -406,9 +436,10 @@
   function renderPmg(e) {
     if (!e.pk) {
       return `<div class="reader-block pmg-none">
-        <h3>Пакети ПМГ</h3>
+        <h3>Пакети ПМГ <span class="src">за наказом № 377</span></h3>
         <p class="muted">Прямої згадки цього коду в переліках наказу № 377 не знайдено.
-           Це не виключає застосування коду в межах пакета — перевірте у розділах нижче.</p></div>`;
+           Це не виключає застосування коду в межах пакета — дивіться медичні послуги
+           Таблиці співставлення нижче.</p></div>`;
     }
     const pk = e.pk;
     const chips = (pk.pkgs || []).map((n) =>
@@ -421,6 +452,41 @@
       <h3>Пакети ПМГ <span class="src">за наказом № 377</span></h3>
       <div class="chip-list">${chips || '<span class="muted">—</span>'}</div>
       ${badges.length ? `<div class="badge-row">${badges.join("")}</div>` : ""}
+    </div>`;
+  }
+
+  /** Медичні послуги з Таблиці співставлення: код названо прямо або він у складі ОДК. */
+  function renderServices(e) {
+    if (!SERVICES || !BY_ICD) return "";
+    const direct = new Set(BY_ICD[e.c] || []);
+    // код може підпадати під послугу через ОДК, у складі якої він перелічений
+    const viaOdk = new Map();
+    for (const [id, codes] of odkMembers) {
+      if (!codes.has(e.c)) continue;
+      for (const si of odkServices.get(id) || []) {
+        if (direct.has(si)) continue;
+        const bucket = viaOdk.get(si);
+        if (bucket) bucket.push(id); else viaOdk.set(si, [id]);
+      }
+    }
+    if (!direct.size && !viaOdk.size) return "";
+
+    const row = (si, badge) => {
+      const s = SERVICES[si];
+      if (!s) return "";
+      return `<a class="svc-row" href="../mapping/index.html?service=${si}"
+                 title="Відкрити в Таблиці співставлення">
+        <b>${esc(s.c || "—")}</b><span class="svc-name">${esc(s.n)}${badge || ""}</span>
+        <span class="svc-pkgs">${s.p.map((p) => "пакет " + p).join(", ")}</span></a>`;
+    };
+    const parts = [...direct].map((si) => row(si));
+    for (const [si, ids] of viaOdk) {
+      parts.push(row(si, ` <span class="svc-via">через ${esc(ids.join(", "))}</span>`));
+    }
+    const total = direct.size + viaOdk.size;
+    return `<div class="reader-block svc-block">
+      <h3>Медичні послуги <span class="src">за Таблицею співставлення · ${total}</span></h3>
+      <div class="svc-list">${parts.join("")}</div>
     </div>`;
   }
 
@@ -466,6 +532,7 @@
     el.results.hidden = true; el.results.innerHTML = "";
     el.reader.classList.add("reader-empty");
     el.reader.innerHTML = readerEmptyHTML;
+    openedCode = null;
     el.count.textContent = indexReady
       ? nf(INDEX.length) + " кодів · оберіть клас або введіть запит"
       : "Завантаження…";

@@ -11,10 +11,11 @@ const GROUPS = [
   { type: 2, label: 'Постанова 1808', icon: '📜' },
   { type: 4, label: 'Класифікатор НК 025', icon: '🩺' },
   { type: 5, label: 'Класифікатор НК 026', icon: '🔬' },
+  { type: 6, label: 'Таблиця співставлення', icon: '🔗' },
   { type: 0, label: "Роз'яснення НСЗУ", icon: '📄' },
   { type: 3, label: 'Договори ЗОЗ', icon: '🏥' },
 ];
-const GROUP_ORDER = { 1: 0, 2: 1, 4: 2, 5: 3, 0: 4, 3: 5 };
+const GROUP_ORDER = { 1: 0, 2: 1, 6: 2, 4: 3, 5: 4, 0: 5, 3: 6 };
 const PER_GROUP = 7;
 
 function buildUrl(entry, prefix) {
@@ -26,6 +27,7 @@ function buildUrl(entry, prefix) {
     case 3: return `${prefix}zoz-dogovr/index.html?q=${encodeURIComponent(link)}`;
     case 4: return `${prefix}classifiers/index.html?code=${encodeURIComponent(link)}`;
     case 5: return `${prefix}classifiers/nk026.html?code=${encodeURIComponent(link)}`;
+    case 6: return `${prefix}mapping/index.html?service=${encodeURIComponent(link)}`;
   }
 }
 

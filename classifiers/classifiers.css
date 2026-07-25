@@ -250,3 +250,24 @@
 :root.dark-theme .batch-head.nomatch { background: rgba(220, 60, 60, .18); color: #fca5a5; }
 :root.dark-theme .batch-head.nomatch .batch-badge { color: #fca5a5; }
 :root.dark-theme .reader-code { color: #0b1220; }
+
+/* ── Медичні послуги з Таблиці співставлення ───────────────── */
+.svc-list { display: grid; gap: 7px; }
+.svc-row {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; gap: 9px;
+  font-size: .87rem; line-height: 1.4; color: var(--ink); text-decoration: none;
+  background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 8px 11px;
+}
+.svc-row:hover { border-color: var(--accent); }
+.svc-row b {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--accent-dark);
+}
+.svc-name { min-width: 0; }
+.svc-pkgs { font-size: .74rem; font-weight: 600; color: var(--muted); white-space: nowrap; }
+
+.svc-via {
+  display: inline-block; margin-left: 6px; font-size: .72rem; font-weight: 700;
+  color: var(--teal-dark); background: var(--warm); border-radius: 20px; padding: 1px 8px;
+}
+
+:root.dark-theme .svc-row { background: var(--soft); }

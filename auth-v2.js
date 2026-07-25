@@ -20,7 +20,7 @@ let isHead = false;
 // відносні посилання на кореневі ресурси потребують префікса '../'.
 const PORTAL_SUBDIRS = [
   'algorithms', 'cabinet', 'chat', 'classifiers', 'dec', 'expert-proposals', 'infocenter',
-  'map', 'news', 'pakety', 'passport', 'pmg-proposals', 'postanova', 'regulatory',
+  'map', 'mapping', 'news', 'pakety', 'passport', 'pmg-proposals', 'postanova', 'regulatory',
   'relax', 'reminders', 'skod', 'zoz-dogovr', 'zoz-questions'
 ];
 
@@ -38,7 +38,7 @@ async function openGlobalSearch() {
   try {
     if (!globalSearchModule) {
       // Шлях відносно МОДУЛЯ auth-v2.js (обидва лежать у корені), а не сторінки
-      globalSearchModule = await import('./global-search.js?v=20260725a');
+      globalSearchModule = await import('./global-search.js?v=20260725b');
     }
     globalSearchModule.open(getPathPrefix());
   } catch (err) {
@@ -269,7 +269,8 @@ function applyAccess() {
     const codesItems = [
       { text: '🩺 Хвороби · НК 025', path: 'classifiers/index.html' },
       { text: '🔬 Інтервенції · НК 026', path: 'classifiers/nk026.html' },
-      { text: '🧪 Лабораторні · LOINC', path: 'classifiers/loinc.html' }
+      { text: '🧪 Лабораторні · LOINC', path: 'classifiers/loinc.html' },
+      { text: '🔗 Таблиця співставлення', path: 'mapping/index.html' }
     ];
 
     // Довідково-нормативні розділи — згруповані в дропдаун «Документи»
@@ -2043,6 +2044,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '🩺', label: 'Хвороби · НК 025', path: 'classifiers/index.html' },
     { icon: '🔬', label: 'Інтервенції · НК 026', path: 'classifiers/nk026.html' },
     { icon: '🧪', label: 'LOINC (лаб. коди)', path: 'classifiers/loinc.html' },
+    { icon: '🔗', label: 'Таблиця співставлення', path: 'mapping/index.html' },
     { icon: '📑', label: 'Договори ЗОЗ', path: 'zoz-dogovr/index.html' },
     { icon: '👤', label: 'Кабінет', path: 'cabinet/index.html', role: 'expert' },
     { icon: '🗓️', label: 'Планувальник', path: 'cabinet/planner.html', role: 'expert' },

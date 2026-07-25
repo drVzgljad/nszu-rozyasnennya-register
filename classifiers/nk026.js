@@ -13,6 +13,8 @@
   const CODE_RE = /^\d{1,5}(-\d{0,2})?$/;   // повний або частковий код (39721, 39721-0, 39721-00)
 
   let META = null, INDEX = null, ready = false;
+  let SERVICES = null;             // Таблиця співставлення: id → {c, n, p}
+  let openedCode = null;           // код, відкритий у паспорті (для перемальовки)
   const byCode = new Map();        // код → запис
   const byChapter = new Map();     // № розділу → [записи] (у порядку переліку)
   const familyOf = new Map();      // корінь → [записи]
@@ -49,7 +51,20 @@
     fetch("data/nk026_index.json")
       .then((r) => r.json())
       .then((idx) => { INDEX = idx; buildMaps(); ready = true; onReady(); })
-      .catch(() => { el.count.textContent = "Індекс пошуку недоступний."; });
+      .catch(() => { el.count.textContent = "Індекс пошуку недоступний."; })
+      .then(loadServices);
+  }
+
+  /** Назви медичних послуг для паспорта — вантажимо після основного індексу. */
+  function loadServices() {
+    fetch("../mapping/data/services_lite.json")
+      .then((r) => r.json())
+      .then((list) => {
+        SERVICES = list;
+        // паспорт міг відкритися з глибокого лінку раніше, ніж доїхав цей файл
+        if (openedCode) openCode(openedCode);
+      })
+      .catch(() => { SERVICES = null; });
   }
 
   function buildMaps() {
@@ -352,6 +367,7 @@
   function openCode(code) {
     const e = byCode.get(code);
     if (!e) return;
+    openedCode = code;
     const ch = chapterByNo.get(e.ch);
     const root = e.c.split("-")[0];
     const sibs = familyCodes(root, e.ch).filter((s) => s.c !== e.c);
@@ -376,6 +392,7 @@
       <h2 class="reader-name">${esc(e.n)}</h2>
       <div class="reader-crumbs">${crumbs.join('<span class="sep">›</span>')}</div>
       ${renderPmg(e)}
+      ${renderServices(e)}
       ${render377(e)}
       ${sibsHtml}
       ${renderLinks(e)}
@@ -398,6 +415,23 @@
     return `<div class="reader-block pmg-yes">
       <h3>Пакети ПМГ <span class="src">за Таблицею співставлення 2026</span></h3>
       <div class="chip-list">${chips}</div>
+    </div>`;
+  }
+
+  /** Медичні послуги з Таблиці співставлення, у яких згадано цей код. */
+  function renderServices(e) {
+    if (!e.sv || !e.sv.length || !SERVICES) return "";
+    const rows = e.sv.map((id) => {
+      const s = SERVICES[id];
+      if (!s) return "";
+      return `<a class="svc-row" href="../mapping/index.html?service=${id}"
+                 title="Відкрити в Таблиці співставлення">
+        <b>${esc(s.c || "—")}</b><span class="svc-name">${esc(s.n)}</span>
+        <span class="svc-pkgs">${s.p.map((p) => "пакет " + p).join(", ")}</span></a>`;
+    }).join("");
+    return `<div class="reader-block svc-block">
+      <h3>Медичні послуги <span class="src">за Таблицею співставлення</span></h3>
+      <div class="svc-list">${rows}</div>
     </div>`;
   }
 
@@ -453,6 +487,7 @@
     el.results.hidden = true; el.results.innerHTML = "";
     el.reader.classList.add("reader-empty");
     el.reader.innerHTML = readerEmptyHTML;
+    openedCode = null;
     el.count.textContent = ready
       ? nf(INDEX.length) + " кодів · оберіть розділ або введіть запит"
       : "Завантаження…";
