@@ -30,8 +30,8 @@
  ],
  "total": 109325,
  "ua_official": 3159,
- "ua_full": 56710,
- "ua_partial": 52615,
+ "ua_full": 57764,
+ "ua_partial": 51561,
  "en_only": 0,
  "classtypes": [
   {
@@ -45,37 +45,37 @@
      "code": "MICRO",
      "ua": "Мікробіологія",
      "count": 14888,
-     "ua_full": 12258
+     "ua_full": 12305
     },
     {
      "code": "CHEM",
      "ua": "Хімія / біохімія",
      "count": 10855,
-     "ua_full": 9223
+     "ua_full": 9398
     },
     {
      "code": "DRUG/TOX",
      "ua": "Ліки / токсикологія",
      "count": 8921,
-     "ua_full": 8192
+     "ua_full": 8299
     },
     {
      "code": "ALLERGY",
      "ua": "Алергологія",
      "count": 6024,
-     "ua_full": 5013
+     "ua_full": 5268
     },
     {
      "code": "CHAL",
      "ua": "Провокаційні / функціональні проби",
      "count": 3964,
-     "ua_full": 3733
+     "ua_full": 3907
     },
     {
      "code": "SERO",
      "ua": "Серологія",
      "count": 3167,
-     "ua_full": 2776
+     "ua_full": 2788
     },
     {
      "code": "LABORDERS.ONTOLOGY",
@@ -87,55 +87,55 @@
      "code": "HEM/BC",
      "ua": "Гематологія / підрахунок клітин",
      "count": 2449,
-     "ua_full": 1900
+     "ua_full": 1914
     },
     {
      "code": "ABXBACT",
      "ua": "Чутливість до антибіотиків",
      "count": 2115,
-     "ua_full": 1034
+     "ua_full": 1040
     },
     {
      "code": "CELLMARK",
      "ua": "Клітинні маркери",
      "count": 1746,
-     "ua_full": 1464
+     "ua_full": 1492
     },
     {
      "code": "MOLPATH.MUT",
      "ua": null,
      "count": 1293,
-     "ua_full": 1234
+     "ua_full": 1237
     },
     {
      "code": "BLDBK",
      "ua": "Служба крові",
      "count": 1113,
-     "ua_full": 535
+     "ua_full": 537
     },
     {
      "code": "COAG",
      "ua": "Коагуляція / гемостаз",
      "count": 1002,
-     "ua_full": 541
+     "ua_full": 546
     },
     {
      "code": "PATH",
      "ua": "Патоморфологія",
      "count": 707,
-     "ua_full": 100
+     "ua_full": 101
     },
     {
      "code": "MOLPATH",
      "ua": "Молекулярна патологія",
      "count": 704,
-     "ua_full": 563
+     "ua_full": 572
     },
     {
      "code": "UA",
      "ua": "Аналіз сечі",
      "count": 597,
-     "ua_full": 553
+     "ua_full": 554
     },
     {
      "code": "HLA",
@@ -147,25 +147,25 @@
      "code": "PANEL.MICRO",
      "ua": "Панель: мікробіологія",
      "count": 487,
-     "ua_full": 436
+     "ua_full": 438
     },
     {
      "code": "PANEL.CHEM",
      "ua": "Панель: біохімія",
      "count": 446,
-     "ua_full": 400
+     "ua_full": 406
     },
     {
      "code": "DRUGDOSE",
      "ua": null,
      "count": 415,
-     "ua_full": 411
+     "ua_full": 414
     },
     {
      "code": "SPEC",
      "ua": "Зразок / біоматеріал",
      "count": 311,
-     "ua_full": 221
+     "ua_full": 222
     },
     {
      "code": "FERT",
@@ -183,13 +183,13 @@
      "code": "PANEL.DRUG/TOX",
      "ua": null,
      "count": 168,
-     "ua_full": 159
+     "ua_full": 163
     },
     {
      "code": "MISC",
      "ua": null,
      "count": 151,
-     "ua_full": 121
+     "ua_full": 122
     },
     {
      "code": "MOLPATH.TRNLOC",
@@ -213,13 +213,13 @@
      "code": "PANEL.HEM/BC",
      "ua": "Панель: гематологія",
      "count": 91,
-     "ua_full": 71
+     "ua_full": 74
     },
     {
      "code": "PANEL.SERO",
      "ua": null,
      "count": 85,
-     "ua_full": 82
+     "ua_full": 84
     },
     {
      "code": "CYTO",
@@ -237,19 +237,19 @@
      "code": "MOLPATH.DEL",
      "ua": null,
      "count": 67,
-     "ua_full": 34
+     "ua_full": 37
     },
     {
      "code": "MOLPATH.DELDUP",
      "ua": null,
      "count": 67,
-     "ua_full": 55
+     "ua_full": 58
     },
     {
      "code": "PANEL.CHAL",
      "ua": null,
      "count": 64,
-     "ua_full": 52
+     "ua_full": 54
     },
     {
      "code": "MOLPATH.NUCREPEAT",
@@ -261,7 +261,7 @@
      "code": "PANEL.ALLERGY",
      "ua": null,
      "count": 59,
-     "ua_full": 57
+     "ua_full": 59
     },
     {
      "code": "MOLPATH.TRISOMY",
@@ -291,7 +291,7 @@
      "code": "PANEL.MOLPATH",
      "ua": null,
      "count": 46,
-     "ua_full": 36
+     "ua_full": 39
     },
     {
      "code": "PANEL.CELLMARK",
@@ -309,13 +309,13 @@
      "code": "HL7.GENETICS",
      "ua": null,
      "count": 39,
-     "ua_full": 21
+     "ua_full": 22
     },
     {
      "code": "PANEL.UA",
      "ua": null,
      "count": 34,
-     "ua_full": 28
+     "ua_full": 31
     },
     {
      "code": "LABORDERS",
@@ -327,7 +327,7 @@
      "code": "PATH.PROTOCOLS.GENER",
      "ua": null,
      "count": 29,
-     "ua_full": 10
+     "ua_full": 11
     },
     {
      "code": "CHAL.ROUTINE",
@@ -423,7 +423,7 @@
      "code": "H&P.HX.LAB",
      "ua": null,
      "count": 7,
-     "ua_full": 5
+     "ua_full": 6
     },
     {
      "code": "PANEL.MISC",
@@ -498,25 +498,25 @@
      "code": "DOC.ONTOLOGY",
      "ua": "Онтологія документів",
      "count": 3759,
-     "ua_full": 241
+     "ua_full": 249
     },
     {
      "code": "PHENX",
      "ua": "PhenX (дослідницькі протоколи)",
      "count": 3686,
-     "ua_full": 222
+     "ua_full": 250
     },
     {
      "code": "H&P.HX",
      "ua": "Анамнез",
      "count": 901,
-     "ua_full": 535
+     "ua_full": 554
     },
     {
      "code": "PULM",
      "ua": "Пульмонологія / функція дихання",
      "count": 878,
-     "ua_full": 29
+     "ua_full": 38
     },
     {
      "code": "CARD.US",
@@ -534,25 +534,25 @@
      "code": "PANEL.PHENX",
      "ua": null,
      "count": 704,
-     "ua_full": 7
+     "ua_full": 9
     },
     {
      "code": "H&P.PX",
      "ua": null,
      "count": 507,
-     "ua_full": 100
+     "ua_full": 102
     },
     {
      "code": "CLIN",
      "ua": null,
      "count": 502,
-     "ua_full": 212
+     "ua_full": 225
     },
     {
      "code": "TUMRRGT",
      "ua": "Онкореєстр",
      "count": 481,
-     "ua_full": 47
+     "ua_full": 49
     },
     {
      "code": "EKG.MEAS",
@@ -570,7 +570,7 @@
      "code": "ADMIN",
      "ua": null,
      "count": 349,
-     "ua_full": 120
+     "ua_full": 124
     },
     {
      "code": "NIH.COGNITIVE",
@@ -582,7 +582,7 @@
      "code": "ENDO.GI",
      "ua": null,
      "count": 315,
-     "ua_full": 18
+     "ua_full": 20
     },
     {
      "code": "DENTAL",
@@ -630,7 +630,7 @@
      "code": "CARD.PROC",
      "ua": null,
      "count": 175,
-     "ua_full": 28
+     "ua_full": 29
     },
     {
      "code": "EYE",
@@ -678,7 +678,7 @@
      "code": "VACCIN",
      "ua": null,
      "count": 107,
-     "ua_full": 61
+     "ua_full": 64
     },
     {
      "code": "CLIN.RISK",
@@ -714,7 +714,7 @@
      "code": "ED",
      "ua": null,
      "count": 86,
-     "ua_full": 48
+     "ua_full": 51
     },
     {
      "code": "DOCUMENT.REGULATORY",
@@ -726,7 +726,7 @@
      "code": "TRAUMA",
      "ua": null,
      "count": 84,
-     "ua_full": 38
+     "ua_full": 39
     },
     {
      "code": "EYE.PX",
@@ -744,7 +744,7 @@
      "code": "DOC.ADMIN",
      "ua": null,
      "count": 68,
-     "ua_full": 58
+     "ua_full": 59
     },
     {
      "code": "IO_IN.TIMED.MOLEC",
@@ -756,13 +756,13 @@
      "code": "MEDS",
      "ua": null,
      "count": 67,
-     "ua_full": 25
+     "ua_full": 29
     },
     {
      "code": "PANEL.H&P",
      "ua": null,
      "count": 65,
-     "ua_full": 42
+     "ua_full": 43
     },
     {
      "code": "PANEL.DOC",
@@ -846,13 +846,13 @@
      "code": "ADMIN.PATIENT",
      "ua": null,
      "count": 47,
-     "ua_full": 20
+     "ua_full": 22
     },
     {
      "code": "PANEL.CLIN",
      "ua": null,
      "count": 47,
-     "ua_full": 22
+     "ua_full": 25
     },
     {
      "code": "ART",
@@ -870,7 +870,7 @@
      "code": "HL7.CCDA",
      "ua": null,
      "count": 42,
-     "ua_full": 19
+     "ua_full": 21
     },
     {
      "code": "ADMIN.FACILITY",
@@ -882,7 +882,7 @@
      "code": "AUDIO",
      "ua": null,
      "count": 38,
-     "ua_full": 1
+     "ua_full": 3
     },
     {
      "code": "EYE.LENSOMETRY",
@@ -924,7 +924,7 @@
      "code": "BDYWGT.MOLEC",
      "ua": null,
      "count": 35,
-     "ua_full": 4
+     "ua_full": 5
     },
     {
      "code": "CARDIO-PULM",
@@ -966,7 +966,7 @@
      "code": "H&P.SURG PROC",
      "ua": null,
      "count": 29,
-     "ua_full": 23
+     "ua_full": 25
     },
     {
      "code": "BDYTMP.MOLEC",
@@ -996,7 +996,7 @@
      "code": "EYE.HX.NEI",
      "ua": null,
      "count": 25,
-     "ua_full": 11
+     "ua_full": 13
     },
     {
      "code": "CARD.RISK",
@@ -1056,7 +1056,7 @@
      "code": "ADMIN.DEMOG",
      "ua": null,
      "count": 20,
-     "ua_full": 6
+     "ua_full": 7
     },
     {
      "code": "BP.ATOM",
@@ -1587,7 +1587,7 @@
      "code": "ATTACH.CLINRPT",
      "ua": null,
      "count": 66,
-     "ua_full": 11
+     "ua_full": 12
     },
     {
      "code": "ATTACH.AMB",
@@ -1629,7 +1629,7 @@
      "code": "ATTACH",
      "ua": null,
      "count": 11,
-     "ua_full": 3
+     "ua_full": 4
     },
     {
      "code": "ATTACH.REHAB",
@@ -1692,13 +1692,13 @@
      "code": "SURVEY.GNHLTH",
      "ua": null,
      "count": 1629,
-     "ua_full": 122
+     "ua_full": 124
     },
     {
      "code": "SURVEY.CMS",
      "ua": null,
      "count": 968,
-     "ua_full": 14
+     "ua_full": 16
     },
     {
      "code": "PANEL.SURVEY.CMS",
@@ -1710,7 +1710,7 @@
      "code": "SURVEY.MDS",
      "ua": null,
      "count": 864,
-     "ua_full": 7
+     "ua_full": 8
     },
     {
      "code": "SURVEY.MTLHLTH",
@@ -1740,13 +1740,13 @@
      "code": "SURVEY.ESRD",
      "ua": null,
      "count": 308,
-     "ua_full": 37
+     "ua_full": 65
     },
     {
      "code": "SURVEY.CARE",
      "ua": null,
      "count": 289,
-     "ua_full": 68
+     "ua_full": 83
     },
     {
      "code": "PANEL.SURVEY.PROMIS",
@@ -1758,13 +1758,13 @@
      "code": "PANEL.SURVEY.MDS",
      "ua": null,
      "count": 224,
-     "ua_full": 88
+     "ua_full": 89
     },
     {
      "code": "SURVEY.CDC",
      "ua": null,
      "count": 214,
-     "ua_full": 55
+     "ua_full": 56
     },
     {
      "code": "SURVEY.COVID",
@@ -1782,7 +1782,7 @@
      "code": "SURVEY.SDOH",
      "ua": null,
      "count": 168,
-     "ua_full": 30
+     "ua_full": 31
     },
     {
      "code": "SURVEY.NMMDS",
@@ -1872,7 +1872,7 @@
      "code": "SURVEY.ORTHOPEDICS",
      "ua": null,
      "count": 53,
-     "ua_full": 29
+     "ua_full": 31
     },
     {
      "code": "TIMP",
@@ -1980,7 +1980,7 @@
      "code": "SURVEY.HWS",
      "ua": null,
      "count": 29,
-     "ua_full": 5
+     "ua_full": 6
     },
     {
      "code": "SURVEY.NURSE.HIV-SSC",
