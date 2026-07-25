@@ -273,6 +273,10 @@ async function initAlgorithms() {
       algorithmState.selected = match;
       renderCards();
       renderReader();
+      updateUrl();
+      const card = byId("algorithmCards").querySelector(`[data-id="${CSS.escape(match.id)}"]`);
+      if (card) card.scrollIntoView({ block: "center" });
+      if (window.innerWidth <= 1180) setMobileTab("reader");
     }
   }
 }

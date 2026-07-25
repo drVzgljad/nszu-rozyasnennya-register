@@ -450,8 +450,14 @@
 
   function render377(e) {
     if (!e.o3) return "";
-    const rows = e.o3.map((r) => `<li><b>${esc(r.code || "—")}</b> ${esc(trim(r.name, 150))}
-      ${(r.pkgs || []).length ? `<span class="o377-pkgs">пакети: ${r.pkgs.map(esc).join(", ")}</span>` : ""}</li>`).join("");
+    const rows = e.o3.map((r) => {
+      const rule = String(r.code || "");
+      const href = `../algorithms/index.html?code=${encodeURIComponent(rule)}`;
+      return `<li><a class="o377-row" href="${href}"
+                 title="${escAttr("Відкрити правило " + (rule || "наказу № 377") + " у розділі «Наказ № 377»")}">
+        <b>${esc(rule || "—")}</b> ${esc(trim(r.name, 150))}
+        ${(r.pkgs || []).length ? `<span class="o377-pkgs">пакети: ${r.pkgs.map(esc).join(", ")}</span>` : ""}</a></li>`;
+    }).join("");
     return `<div class="reader-block o377-block">
       <h3>Наказ № 377 <span class="src">правила та алгоритми, де згадано код</span></h3>
       <ul class="o377-list">${rows}</ul>
