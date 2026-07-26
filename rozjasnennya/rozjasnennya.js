@@ -1,6 +1,21 @@
 /* Роз'яснення НСЗУ: реєстр → паспорт → текст до речення → таблиці → зв'язки.
    Дані: data/index.json (картки), docs/<id>.json (текст), tables/<id>.json,
-   graph.json (зв'язки). Важкі файли тягнуться лениво, по документу. */
+   graph.json (зв'язки). Важкі файли тягнуться лениво, по документу.
+
+   Вердикти експертів щодо гіпотез «скасовує / доповнює» живуть у Supabase
+   (clarification_links) і накладаються поверх статичного graph.json. Публічний
+   вигляд бере статуси з graph.json — його щодоби перезбирає пайплайн, тягнучи
+   підтверджені рішення з тієї ж таблиці. */
+
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* Вердикт про чинність нормативного роз'яснення — не для випадкового
+   користувача; та сама межа, що й у RLS-політиці таблиці. */
+const DECIDER_ROLES = ['manager', 'deputy_director', 'director', 'admin'];
 
 const state = {
   index: null,
@@ -13,6 +28,8 @@ const state = {
   readerQuery: "",
   matches: [],
   matchIndex: -1,
+  decisions: new Map(),   // edge_key → 'confirmed' | 'rejected'
+  me: null,               // { id, name, role } або null для гостя
 };
 
 const el = (id) => document.getElementById(id);
@@ -42,11 +59,84 @@ function formatDate(value) {
   return `${d}.${m}.${y}`;
 }
 
+/* ── вердикти експертів ────────────────────────────────────── */
+const edgeKey = (edge) => `${edge.from}→${edge.to}:${edge.relation}`;
+
+/* Статус ребра = статичний із graph.json, поверх нього — свіжий вердикт */
+function edgeStatus(edge) {
+  const decision = state.decisions.get(edgeKey(edge));
+  if (decision === "confirmed") return "confirmed";
+  if (decision === "rejected") return "rejected";
+  return edge.status;
+}
+
+const canDecide = () => Boolean(state.me && DECIDER_ROLES.includes(state.me.role));
+
+async function loadMe() {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return null;
+    const { data } = await sb.from("profiles")
+      .select("id, role, full_name").eq("id", session.user.id).single();
+    if (!data) return null;
+    return { id: data.id, role: data.role, name: data.full_name || session.user.email };
+  } catch (error) {
+    return null;             // гість або збій — просто без кнопок вердикту
+  }
+}
+
+async function loadDecisions() {
+  if (!state.me) return;     // RLS: читати таблицю можуть лише авторизовані
+  try {
+    const { data } = await sb.from("clarification_links").select("edge_key, decision");
+    (data || []).forEach((row) => state.decisions.set(row.edge_key, row.decision));
+  } catch (error) {
+    console.warn("Вердикти не завантажилися:", error);
+  }
+}
+
+async function decide(edge, decision) {
+  const key = edgeKey(edge);
+  const row = {
+    edge_key: key,
+    from_id: edge.from,
+    to_id: edge.to,
+    relation: edge.relation,
+    decision,
+    evidence: (edge.evidence || "").slice(0, 1000),
+    decided_by: state.me.id,
+    decided_by_name: state.me.name,
+  };
+  const { error } = await sb.from("clarification_links")
+    .upsert(row, { onConflict: "edge_key" });
+  if (error) {
+    alert(`Не вдалося зберегти вердикт: ${error.message}`);
+    return;
+  }
+  state.decisions.set(key, decision);
+  renderDetail({ tab: "links" });
+  renderCards();
+}
+
+async function undecide(edge) {
+  const key = edgeKey(edge);
+  const { error } = await sb.from("clarification_links").delete().eq("edge_key", key);
+  if (error) {
+    alert(`Не вдалося скасувати вердикт: ${error.message}`);
+    return;
+  }
+  state.decisions.delete(key);
+  renderDetail({ tab: "links" });
+  renderCards();
+}
+
 /* ── стан чинності з графа ─────────────────────────────────── */
 function docState(id) {
   if (!state.graph) return "чинне";
-  const incoming = state.graph.edges.filter(
-    (e) => e.to === id && (e.relation === "скасовує" || e.relation === "доповнює"));
+  const incoming = state.graph.edges
+    .filter((e) => e.to === id && (e.relation === "скасовує" || e.relation === "доповнює"))
+    .map((e) => ({ ...e, status: edgeStatus(e) }))
+    .filter((e) => e.status !== "rejected");
   if (incoming.some((e) => e.status === "confirmed")) return "замінено";
   if (incoming.length) return "потребує перевірки";
   return "чинне";
@@ -530,23 +620,64 @@ function renderLinks(edges) {
       direction: outgoing ? `цей документ ${edge.relation}` : `${edge.relation} цей документ`,
     };
   };
-  return `<div class="rz-edges">${edges.map((edge) => {
+  const STATUS_LABEL = {
+    confirmed: "підтверджено",
+    proposed: "гіпотеза, чекає підтвердження",
+    rejected: "відхилено експертом",
+  };
+
+  return `<div class="rz-edges">${edges.map((edge, position) => {
     const { other, node, direction } = label(edge);
-    return `<div class="rz-edge" data-relation="${esc(edge.relation)}">
+    const status = edgeStatus(edge);
+    const decided = state.decisions.has(edgeKey(edge));
+    // Кнопки вердикту — лише для гіпотез моделі: додатки й прямі посилання
+    // на номер листа це факти, їх підтверджувати нема чого.
+    const askable = edge.source === "claim";
+    const buttons = askable && canDecide()
+      ? `<div class="rz-verdict">
+           ${decided
+             ? `<button class="rz-mini" type="button" data-undecide="${position}">↺ Скасувати вердикт</button>`
+             : `<button class="rz-mini ok" type="button" data-confirm="${position}">✓ Підтвердити</button>
+                <button class="rz-mini no" type="button" data-reject="${position}">✕ Відхилити</button>`}
+         </div>`
+      : askable && !state.me
+        ? `<div class="rz-verdict-note">Підтвердити або відхилити гіпотезу може керівник відділу і вище — увійдіть у портал.</div>`
+        : "";
+
+    return `<div class="rz-edge" data-relation="${esc(edge.relation)}" data-status="${status}">
       <div class="rz-edge-head">
         <span class="rz-tag">${esc(direction)}</span>
-        <span class="rz-status ${edge.status}">${edge.status === "confirmed" ? "підтверджено" : "гіпотеза, чекає підтвердження"}</span>
+        <span class="rz-status ${status}">${STATUS_LABEL[status] || status}</span>
         ${node?.date ? `<span class="rz-tag date">${formatDate(node.date)}</span>` : ""}
+        ${edge.source === "attachment" ? '<span class="rz-tag dim">за структурою архіву</span>' : ""}
+        ${edge.source === "reference" ? '<span class="rz-tag dim">номер листа в тексті</span>' : ""}
+        ${edge.source === "claim" ? '<span class="rz-tag warn">прочитано в тексті</span>' : ""}
       </div>
       <button class="link" type="button" data-open="${other}">${esc(node?.subject || `Документ ${other}`)}</button>
       ${edge.evidence ? `<div class="quote">${esc(edge.evidence)}</div>` : ""}
+      ${buttons}
     </div>`;
   }).join("")}</div>`;
 }
 
 function bindLinks() {
-  el("rzDetail")?.querySelectorAll("[data-open]").forEach((button) =>
+  const detail = el("rzDetail");
+  if (!detail) return;
+  detail.querySelectorAll("[data-open]").forEach((button) =>
     button.addEventListener("click", () => select(Number(button.dataset.open), { tab: "passport" })));
+
+  const edges = relatedEdges(state.selected);
+  const bind = (attribute, handler) =>
+    detail.querySelectorAll(`[data-${attribute}]`).forEach((button) =>
+      button.addEventListener("click", async () => {
+        const edge = edges[Number(button.dataset[attribute])];
+        if (!edge) return;
+        button.disabled = true;
+        await handler(edge);
+      }));
+  bind("confirm", (edge) => decide(edge, "confirmed"));
+  bind("reject", (edge) => decide(edge, "rejected"));
+  bind("undecide", (edge) => undecide(edge));
 }
 
 /* ── службове ──────────────────────────────────────────────── */
@@ -575,6 +706,8 @@ async function init() {
   ]);
   state.index = index;
   state.graph = graph;
+  state.me = await loadMe();
+  await loadDecisions();
   index.documents.forEach((doc) => {
     doc._searchRaw = [doc.subject, doc.title, doc.summary, doc.number,
       (doc.topics || []).join(" ")].filter(Boolean).join(" · ");
