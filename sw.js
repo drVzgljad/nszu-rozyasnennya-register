@@ -2,7 +2,7 @@
    Стратегія: HTML — network-first (щоб оновлення доїжджали одразу),
    статика — cache-first із фоновим оновленням (версії ?v= у HTML).
    Запити до Supabase та інших доменів не перехоплюються. */
-const CACHE = 'pmg-portal-v5';
+const CACHE = 'pmg-portal-v6';
 const CORE = [
   '/',
   '/index.html',
@@ -55,6 +55,24 @@ self.addEventListener('fetch', (e) => {
           return res;
         })
         .catch(() => caches.match(req).then((r) => r || caches.match('/index.html')))
+    );
+    return;
+  }
+
+  // Дані роз'яснень оновлюються щодоби (звірка з архівом НСЗУ), тому тут
+  // cache-first неприпустимий: користувач бачив би вчорашній стан аж до
+  // другого заходу на сторінку. Мережа перша, кеш — запасний варіант.
+  if (url.pathname.startsWith('/rozjasnennya/data/')) {
+    e.respondWith(
+      fetch(req, { cache: 'no-cache' })
+        .then((res) => {
+          if (res && res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(req, copy));
+          }
+          return res;
+        })
+        .catch(() => caches.match(req))
     );
     return;
   }

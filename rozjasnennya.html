@@ -3,110 +3,42 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#2f6b9e">
-  <link rel="apple-touch-icon" href="/assets/icon-180.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>НавігаторПМГ26 | швидкий помічник</title>
-  <link rel="stylesheet" href="styles.css?v=20260719c">
-  <link rel="stylesheet" href="auth-v2.css?v=20260725d">
-  <script type="module" src="auth-v2.js?v=20260725d"></script>
+  <title>Роз'яснення НСЗУ — розділ переїхав</title>
+  <link rel="canonical" href="rozjasnennya/index.html">
+  <!-- Стара сторінка-список замінена розділом rozjasnennya/ (26.07.2026):
+       паспорти документів, текст до окремого речення, таблиці додатків,
+       коди зі зв'язком у класифікатори, граф «скасовує / доповнює».
+       Редирект лишається, щоб працювали закладки й старі посилання,
+       зокрема ?q= і ?package= з інших розділів порталу. -->
+  <script>
+    (function () {
+      var params = new URLSearchParams(location.search);
+      var target = new URLSearchParams();
+      // старий ?q= — це пошуковий запит, у новому розділі параметр той самий
+      if (params.get('q')) target.set('q', params.get('q'));
+      if (params.get('package')) target.set('package', params.get('package'));
+      var query = target.toString();
+      location.replace('rozjasnennya/index.html' + (query ? '?' + query : ''));
+    })();
+  </script>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+           margin: 0; min-height: 100vh; display: grid; place-items: center;
+           background: #f5f8fb; color: #1e2f42; padding: 24px; }
+    .card { background: #fff; border: 1px solid #e3e8ef; border-radius: 14px;
+            padding: 28px 32px; max-width: 520px; text-align: center; }
+    h1 { font-size: 20px; margin: 0 0 10px; }
+    p { line-height: 1.6; color: #4a5d73; margin: 0 0 18px; }
+    a { display: inline-block; background: #2f6b9e; color: #fff; text-decoration: none;
+        padding: 10px 18px; border-radius: 10px; font-weight: 600; }
+  </style>
 </head>
 <body>
-  <header class="hero">
-    <div class="hero-copy">
-      <div class="overline">Локальна бібліотека документів</div>
-      <div class="header-nav-row">
-        <div class="nav-row-1">
-          <a class="brand-lockup" href="index.html" aria-label="На головну — Портал">
-            <img class="brand-shield" src="assets/nszu-shield.svg" alt="" aria-hidden="true">
-            <div class="brand-text">
-              <div class="brand-name">НавігаторПМГ26</div>
-              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
-            </div>
-          </a>
-          <div class="auth-container"></div>
-        </div>
-        <div class="nav-row-2">
-          <nav class="section-switch" aria-label="Розділи сайту"></nav>
-        </div>
-      </div>
-      <h1>Роз'яснення НСЗУ</h1>
-      <p>Знайдіть документ за темою, пакетом, номером, датою або словом з тексту. Перегляньте зміст, джерело і пов'язані матеріали в одному місці.</p>
-    </div>
-    <div class="stats" id="stats" aria-label="Статистика реєстру"></div>
-  </header>
-
-  <main class="layout">
-    <section class="browser" aria-label="Пошук документів">
-      <div class="search-panel">
-        <label class="search">
-          <span>Пошук</span>
-          <input id="search" type="search" placeholder="Наприклад: паліативна допомога, ЕМЗ, інсульт..." autocomplete="off">
-        </label>
-        <div class="filters">
-          <label>Напрям
-            <select id="direction"><option value="">Усі напрями</option></select>
-          </label>
-          <label>Пакет / група
-            <select id="package"><option value="">Усі пакети</option></select>
-          </label>
-          <label>Рік
-            <select id="year"><option value="">Усі роки</option></select>
-          </label>
-          <label>Дата документа
-            <select id="documentDate"><option value="">Усі дати</option></select>
-          </label>
-          <label>Номер документа
-            <select id="documentNumber"><option value="">Усі номери</option></select>
-          </label>
-          <label>Формат
-            <select id="format"><option value="">Усі формати</option></select>
-          </label>
-          <label>Текст
-            <select id="quality">
-              <option value="">Усі документи</option>
-              <option value="ocr">Розпізнані скани</option>
-              <option value="text">З машинним текстом</option>
-            </select>
-          </label>
-        </div>
-        <div class="results-summary">
-          <span id="resultCount">Оберіть фільтр або введіть запит</span>
-          <button id="reset" type="button">Очистити фільтри</button>
-        </div>
-      </div>
-      <div class="cards" id="cards"></div>
-    </section>
-
-    <aside class="detail empty" id="detail" aria-live="polite">
-      <div class="empty-state">
-        <div class="empty-icon">i</div>
-        <h2>Оберіть документ</h2>
-        <p>Тут з'явиться коротка інформація, кнопки відкриття та пов'язані матеріали.</p>
-      </div>
-    </aside>
-  </main>
-
-  <template id="cardTemplate">
-    <button class="document-card" type="button">
-      <span class="card-tags"></span>
-      <strong></strong>
-      <span class="card-subtitle"></span>
-    </button>
-  </template>
-
-  <footer class="site-footer">
-    <div class="footer-inner">
-      <div class="footer-copy">
-        <div class="footer-agency">НСЗУ</div>
-        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
-        <p>Реєстр розроблено силами Департаменту без зовнішнього сприяння та проєктів.</p>
-      </div>
-    </div>
-  </footer>
-
-  <script src="app.js?v=20260716g" defer></script>
+  <div class="card">
+    <h1>Розділ «Роз'яснення» переїхав</h1>
+    <p>Тепер кожен лист має паспорт, повний текст із посиланням на окреме
+       речення, таблиці додатків і зв'язки з іншими роз'ясненнями.</p>
+    <a href="rozjasnennya/index.html">Перейти до роз'яснень</a>
+  </div>
 </body>
 </html>

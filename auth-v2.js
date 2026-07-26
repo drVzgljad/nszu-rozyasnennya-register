@@ -21,7 +21,7 @@ let isHead = false;
 const PORTAL_SUBDIRS = [
   'algorithms', 'cabinet', 'chat', 'classifiers', 'dec', 'expert-proposals', 'infocenter',
   'map', 'mapping', 'news', 'pakety', 'passport', 'pmg-proposals', 'postanova', 'regulatory',
-  'relax', 'reminders', 'skod', 'zoz-dogovr', 'zoz-questions'
+  'relax', 'reminders', 'rozjasnennya', 'skod', 'zoz-dogovr', 'zoz-questions'
 ];
 
 function isInPortalSubdir() {
@@ -234,8 +234,10 @@ function applyAccess() {
       return !isSub && (currentPath.endsWith('/') || currentPath.endsWith('index.html'));
     }
     
-    if (normalized === 'rozjasnennya.html') {
-      return currentPath.includes('rozjasnennya.html');
+    // Розділ роз'яснень: нова тека rozjasnennya/ і стара сторінка-редирект
+    // rozjasnennya.html — це один і той самий пункт меню.
+    if (normalized.startsWith('rozjasnennya')) {
+      return currentPath.includes('rozjasnennya') && !currentPath.includes('_semantic');
     }
     
     if (normalized === 'pakety/report.html') {
@@ -315,7 +317,7 @@ function applyAccess() {
     const coreItems = [
       { text: 'Головна', path: 'index.html' },
       { text: '🗺️ Карта', path: 'map/index.html' },
-      { text: 'Роз\'яснення', path: 'rozjasnennya.html' },
+      { text: 'Роз\'яснення', path: 'rozjasnennya/index.html' },
       { text: 'Пакети 2026', path: 'pakety/index.html' },
       { text: 'Паспорт пакета', path: 'passport/index.html' }
     ];
@@ -2081,7 +2083,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
   ] : [
     { icon: '🏠', label: 'Головна', path: 'index.html' },
     { icon: '🔍', label: 'Пошук', action: 'search' },
-    { icon: '📄', label: 'Реєстр', path: 'rozjasnennya.html' },
+    { icon: '📄', label: 'Реєстр', path: 'rozjasnennya/index.html' },
     { icon: '📦', label: 'Пакети', path: 'pakety/index.html' },
     { icon: '☰', label: 'Ще', action: 'more' }
   ];
@@ -2089,7 +2091,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
   // Повний список розділів для шторки «Ще»
   const moreSections = [
     { icon: '🗺️', label: 'Карта порталу', path: 'map/index.html' },
-    { icon: '📄', label: 'Роз\'яснення', path: 'rozjasnennya.html' },
+    { icon: '📄', label: 'Роз\'яснення', path: 'rozjasnennya/index.html' },
     { icon: '💡', label: 'AI-пошук', path: 'rozjasnennya_semantic.html' },
     { icon: '📦', label: 'Пакети 2026', path: 'pakety/index.html' },
     { icon: '🪪', label: 'Паспорт пакета', path: 'passport/index.html' },

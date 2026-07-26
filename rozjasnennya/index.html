@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>НавігаторПМГ26 | Роз'яснення НСЗУ</title>
+  <link rel="stylesheet" href="../styles.css?v=20260719c">
+  <link rel="stylesheet" href="rozjasnennya.css?v=20260726a">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260725d">
+  <script type="module" src="../auth-v2.js?v=20260726a"></script>
+</head>
+<body id="top">
+  <header class="hero rz-hero">
+    <div class="hero-copy">
+      <div class="overline">Офіційні роз'яснення НСЗУ · архів документів ·
+        <a class="xnav" href="../postanova/index.html">↔ Постанова 1808</a>
+        <a class="xnav" href="../pakety/index.html">↔ Пакети ПМГ</a>
+        <a class="xnav" href="../classifiers/nk026.html">↔ НК 026</a>
+        <a class="xnav" href="../mapping/index.html">↔ Таблиця співставлення</a></div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів, постанови та правил</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Роз'яснення НСЗУ</h1>
+      <p>Кожен лист — з паспортом, повним текстом до окремого речення, таблицями
+         додатків, кодами, зшитими з класифікаторами, і зв'язками «скасовує /
+         доповнює / уточнює». Бібліотека звіряється з архівом НСЗУ щодоби.</p>
+    </div>
+    <div class="stats" id="rzStats" aria-label="Статистика реєстру"></div>
+  </header>
+
+  <nav class="mobile-tabs" id="mobileTabs" aria-label="Навігація між панелями">
+    <button class="mobile-tab active" data-tab="browser" type="button">Реєстр</button>
+    <button class="mobile-tab" data-tab="detail" type="button">Документ</button>
+  </nav>
+
+  <main class="rz-layout" data-active="browser">
+    <section class="rz-browser" aria-label="Пошук роз'яснень">
+      <div class="search-panel rz-search">
+        <label class="search">
+          <span>Пошук за темою, номером листа, кодом або словом з тексту</span>
+          <input id="rzSearch" type="search" autocomplete="off"
+                 placeholder="Наприклад: I63.9, гемодіаліз, 15643/11-15-23, ЕМЗ">
+        </label>
+        <div class="filters rz-filters">
+          <label>Пакет ПМГ<select id="fPackage"><option value="">Усі пакети</option></select></label>
+          <label>Тема<select id="fTopic"><option value="">Усі теми</option></select></label>
+          <label>Тип документа<select id="fKind"><option value="">Усі типи</option></select></label>
+          <label>Рік листа<select id="fYear"><option value="">Усі роки</option></select></label>
+          <label>Стан<select id="fState">
+            <option value="">Будь-який стан</option>
+            <option value="чинне">Чинне</option>
+            <option value="потребує перевірки">Є заявка на зміну</option>
+            <option value="замінено">Замінено</option>
+          </select></label>
+          <label>Особливе<select id="fFlag">
+            <option value="">Без обмежень</option>
+            <option value="coding">Зачіпає кодування</option>
+            <option value="tables">Має таблиці</option>
+            <option value="attachment">Додатки</option>
+            <option value="letters">Самостійні листи</option>
+            <option value="ocr">Розпізнані скани</option>
+          </select></label>
+        </div>
+        <div class="results-summary">
+          <span id="rzCount">Завантаження реєстру…</span>
+          <button id="rzReset" type="button">Очистити</button>
+        </div>
+      </div>
+      <div class="rz-cards" id="rzCards"></div>
+    </section>
+
+    <aside class="rz-detail empty" id="rzDetail" aria-live="polite">
+      <div class="empty-state">
+        <div class="empty-icon">і</div>
+        <h2>Оберіть роз'яснення</h2>
+        <p>Тут з'явиться паспорт документа, повний текст, таблиці додатків,
+           знайдені коди й зв'язки з іншими листами.</p>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Реєстр розроблено силами Департаменту без зовнішнього сприяння та проєктів.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="rozjasnennya.js?v=20260726a"></script>
+</body>
+</html>
