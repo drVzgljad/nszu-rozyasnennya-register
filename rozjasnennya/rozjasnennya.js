@@ -36,6 +36,28 @@ const el = (id) => document.getElementById(id);
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
+/* Читання JSON з однією повторною спробою.
+   Важливо відрізняти «файлу немає» (404 — у документа просто нема таблиць)
+   від «не змогли дістати» (обрив з'єднання). Раніше і те, і те виглядало як
+   «таблиць немає», і збій мережі мовчки прикидався порожнім документом. */
+async function fetchJson(url, { retries = 1 } = {}) {
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      const response = await fetch(url, { cache: "no-cache" });
+      if (response.status === 404) return { value: null, failed: false };
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return { value: await response.json(), failed: false };
+    } catch (error) {
+      if (attempt === retries) {
+        console.warn(`Не вдалося прочитати ${url}:`, error);
+        return { value: null, failed: true };
+      }
+      await new Promise((resolve) => setTimeout(resolve, 350));
+    }
+  }
+  return { value: null, failed: true };
+}
+
 const KIND_LABEL = {
   icd: "МКХ-10", achi: "НК 026", esoz: "ЕСОЗ", drg: "сервіс",
   position: "посада", loinc: "LOINC", odk: "ОДК", package: "пакет",
@@ -249,10 +271,13 @@ function renderCards() {
       st === "потребує перевірки" ? '<span class="rz-tag warn">є заявка на зміну</span>' : "",
       ...(doc.packages || []).slice(0, 3).map((p) => `<span class="rz-tag pkg">пакет ${p}</span>`),
     ].filter(Boolean).join("");
+    /* Заголовок — ДОСЛІВНО як опубліковано в архіві НСЗУ. Коротка назва від
+       моделі тут недопустима: за назвою людина шукає документ на сайті, і
+       розбіжність робить реєстр недостовірним. */
     return `<button class="rz-card${state.selected === doc.id ? " active" : ""}"
       data-id="${doc.id}" data-state="${esc(st)}" type="button">
       <span class="rz-tags">${tags}</span>
-      <strong>${esc(doc.subject || doc.title)}</strong>
+      <strong>${highlight(doc.title, query)}</strong>
       <span class="rz-sub">${esc((doc.summary || "").slice(0, 150))}</span>
       ${snippet(doc, query)}
     </button>`;
@@ -273,17 +298,42 @@ async function select(id, options = {}) {
   syncMobileTabs();
 
   const [doc, tables] = await Promise.all([
-    fetch(`data/docs/${id}.json`, { cache: "no-cache" }).then((r) => r.ok ? r.json() : null).catch(() => null),
-    fetch(`data/tables/${id}.json`, { cache: "no-cache" }).then((r) => r.ok ? r.json() : null).catch(() => null),
+    fetchJson(`data/docs/${id}.json`),
+    fetchJson(`data/tables/${id}.json`),
   ]);
   if (state.selected !== id) return;      // користувач уже клікнув інший
-  state.doc = doc;
-  state.tables = tables;
+  state.doc = doc.value;
+  state.tables = tables.value;
+  state.tablesFailed = tables.failed;
   renderDetail(options);
 }
 
 function card(id) {
   return state.index.documents.find((d) => d.id === id);
+}
+
+/* «Очистити» мусить прибирати і праву панель: інакше на екрані лишається
+   відкритий документ, якого вже може не бути у відфільтрованому списку. */
+function clearSelection() {
+  state.selected = null;
+  state.doc = null;
+  state.tables = null;
+  state.tablesFailed = false;
+  state.readerQuery = "";
+  const detail = el("rzDetail");
+  detail.classList.add("empty");
+  detail.innerHTML = `
+    <div class="empty-state">
+      <div class="empty-icon">і</div>
+      <h2>Оберіть роз'яснення</h2>
+      <p>Тут з'явиться паспорт документа, повний текст, таблиці додатків,
+         знайдені коди й зв'язки з іншими листами.</p>
+    </div>`;
+  const url = new URL(location.href);
+  ["doc", "b", "s"].forEach((key) => url.searchParams.delete(key));
+  history.replaceState(null, "", url);
+  document.querySelector(".rz-layout").dataset.active = "browser";
+  syncMobileTabs();
 }
 
 function renderDetail(options = {}) {
@@ -308,7 +358,7 @@ function renderDetail(options = {}) {
         <span class="rz-tag ${st === "чинне" ? "pkg" : st === "замінено" ? "dim" : "warn"}">${esc(st)}</span>
         ${doc.ocr ? '<span class="rz-tag ocr">розпізнано зі скану</span>' : ""}
       </span>
-      <h2>${esc(passport.subject || doc.title)}</h2>
+      <h2>${esc(doc.title)}</h2>
       ${passport.summary ? `<p class="rz-summary">${esc(passport.summary)}</p>` : ""}
     </div>
     <div class="rz-panel-tabs">
@@ -371,9 +421,37 @@ function renderPassport(doc, meta) {
     `<a class="rz-code" data-kind="package" href="${codeHref("package", code)}" target="_blank">
        <span class="kind">пакет</span><b>${esc(code)}</b></a>`).join("");
 
+  /* Той самий файл трапляється на сайті НСЗУ під двома записами. Причина
+     буває різна: або це непослідовне найменування одного документа, або під
+     одним із записів справді лежить не той файл — і тоді другий документ на
+     сайті недоступний. Вердикт не автоматизуємо: показуємо обидві назви
+     і кажемо, що саме перевірити. */
+  /* Коротке формулювання від моделі показуємо ОКРЕМО і підписуємо як
+     автоматичне — щоб його не сприймали за офіційну назву документа. */
+  const shortLabel = (p.subject || "").trim();
+  const officialTitle = (doc.title || "").trim();
+  const shortBlock = shortLabel && shortLabel.slice(0, 60) !== officialTitle.slice(0, 60)
+    ? `<div class="rz-section-title">Коротко, сформульовано автоматично</div>
+       <div class="rz-auto-label">${esc(shortLabel)}</div>` : "";
+
+  const aliases = meta.archive_aliases || [];
+  const aliasBlock = aliases.length ? `
+    <div class="rz-section-title">Цей файл в архіві НСЗУ опубліковано двічі</div>
+    <div class="rz-alias">
+      <div>Запис 1: «${esc(meta.archive_title || "")}»</div>
+      ${aliases.map((a, i) => `<div>Запис ${i + 2}: «${esc(a)}»</div>`).join("")}
+      <p>Обидва записи ведуть на один і той самий файл. Якщо назви описують
+         різні документи — звіртеся з текстом нижче: під одним із записів
+         лежить не той файл, і другий документ на сайті недоступний.</p>
+    </div>` : "";
+
   return `
+    <div class="rz-section-title">Назва в архіві НСЗУ</div>
+    <div class="rz-official-title">${esc(officialTitle)}</div>
     <div class="rz-meta">${cells.map(([label, value]) =>
       `<div><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join("")}</div>
+    ${shortBlock}
+    ${aliasBlock}
     ${addressees ? `<div class="rz-section-title">Кому адресовано</div>
       <div class="rz-tags">${addressees}</div>` : ""}
     ${topics ? `<div class="rz-section-title">Теми</div><div class="rz-tags">${topics}</div>` : ""}
@@ -544,36 +622,106 @@ function copyAnchor(blockIndex, sentenceIndex) {
 
 /* ── таблиці ───────────────────────────────────────────────── */
 function renderTables() {
+  if (state.tablesFailed) {
+    return `<p class="rz-empty-note">Не вдалося завантажити таблиці цього документа.
+      <button class="rz-mini" type="button" data-retry-tables="1">Спробувати ще раз</button></p>`;
+  }
   const tables = state.tables?.tables || [];
   if (!tables.length) return '<p class="rz-empty-note">У цьому документі таблиць немає.</p>';
-  return tables.map((table, index) => {
-    const rows = table.rows.slice(0, 400);
+  return tables.map((table, index) => renderOneTable(table, index)).join("");
+}
+
+const CODE_CELL_RE = /^[A-ZА-Я]?\d{2,5}(?:[.-]\d{1,2})?$/;
+
+/* Аркуші XLSX майже завжди тягнуть за собою порожні колонки, а довгі шапки
+   («Тип (інструментальні / процедури / консультації/ Ургентні )») в один
+   рядок розпихають таблицю на кілометр. Тому: порожні колонки прибираємо,
+   шапки переносимо, ширину клітинок обмежуємо, а колонки з кодами лишаємо
+   вузькими й без переносу. */
+function renderOneTable(table, index) {
+  const width = Math.max(table.columns.length,
+                         ...table.rows.map((row) => row.length), 0);
+  const filled = Array.from({ length: width }, (_, column) =>
+    table.rows.reduce((sum, row) =>
+      sum + ((row[column] || "").trim() ? 1 : 0), 0));
+  const keep = Array.from({ length: width }, (_, column) =>
+    filled[column] > 0 || (table.columns[column] || "").trim() !== "");
+  const dropped = keep.filter((k) => !k).length;
+
+  const isCodeColumn = Array.from({ length: width }, (_, column) => {
+    const values = table.rows.map((row) => (row[column] || "").trim()).filter(Boolean).slice(0, 60);
+    return values.length > 3 && values.every((v) => CODE_CELL_RE.test(v));
+  });
+
+  /* Аркуш на один стовпець — це перелік, а не таблиця. Показувати його
+     сіткою з однією колонкою і шапкою безглуздо. */
+  if (keep.filter(Boolean).length === 1) {
+    const column = keep.findIndex(Boolean);
+    const values = [table.columns[column], ...table.rows.map((r) => r[column] || "")]
+      .filter((v) => (v || "").trim());
+    const listed = values.slice(0, 400);
     return `
       <div class="rz-section-title" data-table="${index}">${esc(table.title)}
-        — ${table.rows.length} рядків${table.rows.length > 400 ? " (показано перші 400)" : ""}</div>
+        — перелік, ${values.length} позицій${values.length > listed.length
+          ? `, показано перші ${listed.length}` : ""}</div>
       <div class="rz-toolbar">
-        <input type="search" data-filter-table="${index}" placeholder="Фільтр рядків цієї таблиці">
+        <input type="search" data-filter-table="${index}" placeholder="Фільтр позицій">
+        <span class="rz-empty-note" data-filter-count="${index}"></span>
       </div>
       <div class="rz-table-wrap">
-        <table class="rz-table" data-body="${index}">
-          <thead><tr>${table.columns.map((c) => `<th>${esc(c)}</th>`).join("")}</tr></thead>
-          <tbody>${rows.map((row) =>
-            `<tr>${row.map((cell) => `<td>${esc(cell)}</td>`).join("")}</tr>`).join("")}</tbody>
-        </table>
+        <table class="rz-table" data-body="${index}"><tbody>${listed.map((v) =>
+          `<tr><td>${esc(v)}</td></tr>`).join("")}</tbody></table>
       </div>`;
+  }
+
+  const shown = table.rows.slice(0, 300);
+  const header = table.columns.map((cell, column) => keep[column]
+    ? `<th${isCodeColumn[column] ? ' class="code"' : ""}>${esc(cell)}</th>` : "").join("");
+  const body = shown.map((row) => {
+    const cells = Array.from({ length: width }, (_, column) => keep[column]
+      ? `<td${isCodeColumn[column] ? ' class="code"' : ""}>${esc(row[column] || "")}</td>` : "").join("");
+    return `<tr>${cells}</tr>`;
   }).join("");
+
+  const notes = [
+    `${table.rows.length} рядків`,
+    table.rows.length > shown.length ? `показано перші ${shown.length}` : "",
+    dropped ? `${dropped} порожніх колонок приховано` : "",
+  ].filter(Boolean).join(" · ");
+
+  return `
+    <div class="rz-section-title" data-table="${index}">${esc(table.title)} — ${notes}</div>
+    <div class="rz-toolbar">
+      <input type="search" data-filter-table="${index}" placeholder="Фільтр рядків цієї таблиці">
+      <span class="rz-empty-note" data-filter-count="${index}"></span>
+    </div>
+    <div class="rz-table-wrap">
+      <table class="rz-table" data-body="${index}">
+        <thead><tr>${header}</tr></thead>
+        <tbody>${body}</tbody>
+      </table>
+    </div>`;
 }
 
 function bindTables() {
-  el("rzDetail")?.querySelectorAll("[data-filter-table]").forEach((input) => {
+  const detail = el("rzDetail");
+  if (!detail) return;
+  detail.querySelectorAll("[data-filter-table]").forEach((input) => {
     input.addEventListener("input", () => {
       const index = input.dataset.filterTable;
       const needle = input.value.trim().toLowerCase();
-      el("rzDetail").querySelectorAll(`[data-body="${index}"] tbody tr`).forEach((row) => {
-        row.style.display = !needle || row.textContent.toLowerCase().includes(needle) ? "" : "none";
+      let visible = 0;
+      detail.querySelectorAll(`[data-body="${index}"] tbody tr`).forEach((row) => {
+        const match = !needle || row.textContent.toLowerCase().includes(needle);
+        row.style.display = match ? "" : "none";
+        if (match) visible += 1;
       });
+      const counter = detail.querySelector(`[data-filter-count="${index}"]`);
+      if (counter) counter.textContent = needle ? `знайдено рядків: ${visible}` : "";
     });
   });
+  detail.querySelectorAll("[data-retry-tables]").forEach((button) =>
+    button.addEventListener("click", () => select(state.selected, { tab: "tables" })));
 }
 
 /* ── коди ──────────────────────────────────────────────────── */
@@ -691,12 +839,24 @@ function renderStats() {
   const documents = state.index.documents;
   const sentences = documents.reduce((sum, d) => sum + (d.stats?.sentences || 0), 0);
   const rows = documents.reduce((sum, d) => sum + (d.stats?.table_rows || 0), 0);
-  el("rzStats").innerHTML = [
-    [documents.length, "роз'яснень"],
-    [state.index.with_real_date ?? 0, "з датою листа"],
-    [sentences.toLocaleString("uk"), "речень"],
-    [rows.toLocaleString("uk"), "рядків у таблицях"],
-  ].map(([n, label]) => `<div class="stat"><strong>${n}</strong><span>${label}</span></div>`).join("");
+  const archive = state.index.archive_records;
+  const duplicates = state.index.duplicate_files || 0;
+  /* Записів на сайті НСЗУ більше, ніж файлів: один файл там трапляється під
+     двома записами. Показуємо обидва числа, щоб не здавалося, що бібліотека
+     чогось не добрала. */
+  const cards = [
+    [documents.length, "роз'яснень",
+     archive && duplicates
+       ? `На сайті НСЗУ ${archive} записів, але ${duplicates} з них — повтори того самого файлу`
+       : ""],
+    [state.index.with_real_date ?? 0, "з датою листа",
+     "Дату взято зі штампа ЕЦП усередині документа"],
+    [sentences.toLocaleString("uk"), "речень", "Кожне має постійне посилання"],
+    [rows.toLocaleString("uk"), "рядків у таблицях", "З додатків XLSX, DOCX і PDF"],
+  ];
+  el("rzStats").innerHTML = cards.map(([n, label, hint]) =>
+    `<div class="stat"${hint ? ` title="${esc(hint)}"` : ""}>
+       <strong>${n}</strong><span>${esc(label)}</span></div>`).join("");
 }
 
 async function init() {
@@ -720,6 +880,7 @@ async function init() {
   el("rzReset").addEventListener("click", () => {
     ["rzSearch", "fPackage", "fTopic", "fKind", "fYear", "fState", "fFlag"]
       .forEach((id) => { el(id).value = ""; });
+    clearSelection();
     apply();
   });
   document.querySelectorAll(".mobile-tab").forEach((tab) =>

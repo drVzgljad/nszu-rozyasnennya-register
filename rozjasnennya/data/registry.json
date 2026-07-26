@@ -1,8 +1,10 @@
 {
-  "generated": "2026-07-26T11:23:06.073567+00:00",
+  "generated": "2026-07-26T11:40:23.821549+00:00",
   "archive_fetched_at": "2026-07-26T10:01:25.733361+00:00",
   "archive_source": "https://nszu.gov.ua/arxiv-dokumentiv?groups[2][attributes][]=36",
+  "archive_records": 183,
   "total": 179,
+  "duplicate_files": 4,
   "records": [
     {
       "id": 1,
@@ -83,12 +85,12 @@
       "size": 300107,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 40,
-        "body_blocks": 21,
-        "sentences": 24,
-        "chars": 3186,
-        "tables": 2,
-        "table_rows": 19,
+        "blocks": 44,
+        "body_blocks": 24,
+        "sentences": 29,
+        "chars": 5333,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -105,12 +107,12 @@
       "size": 212450,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 126,
+        "blocks": 134,
         "body_blocks": 121,
         "sentences": 136,
-        "chars": 12363,
-        "tables": 2,
-        "table_rows": 9,
+        "chars": 12400,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -171,12 +173,12 @@
       "size": 209503,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 47,
-        "body_blocks": 35,
-        "sentences": 54,
-        "chars": 6727,
-        "tables": 8,
-        "table_rows": 26,
+        "blocks": 48,
+        "body_blocks": 36,
+        "sentences": 58,
+        "chars": 8330,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -193,12 +195,12 @@
       "size": 133732,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 35,
+        "blocks": 36,
         "body_blocks": 24,
         "sentences": 32,
-        "chars": 4976,
-        "tables": 1,
-        "table_rows": 1,
+        "chars": 4960,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -215,12 +217,12 @@
       "size": 252457,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 181,
-        "body_blocks": 169,
-        "sentences": 182,
-        "chars": 17464,
-        "tables": 9,
-        "table_rows": 16,
+        "blocks": 123,
+        "body_blocks": 110,
+        "sentences": 123,
+        "chars": 15597,
+        "tables": 8,
+        "table_rows": 185,
         "unreadable": 0
       }
     },
@@ -266,7 +268,10 @@
         "tables": 8,
         "table_rows": 1038,
         "unreadable": 0
-      }
+      },
+      "archive_aliases": [
+        "Додаток 1 до роз’яснення щодо правил обліку та кодування надання медичних послуг за сервісом «Лабораторна діагностика» пакету «Профілактика, діагностика, спостереження та лікування в амбулаторних умовах»."
+      ]
     },
     {
       "id": 13,
@@ -281,12 +286,12 @@
       "size": 214380,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 41,
-        "body_blocks": 29,
-        "sentences": 52,
-        "chars": 6439,
-        "tables": 4,
-        "table_rows": 9,
+        "blocks": 40,
+        "body_blocks": 28,
+        "sentences": 58,
+        "chars": 7150,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -349,10 +354,10 @@
       "stats": {
         "blocks": 26,
         "body_blocks": 13,
-        "sentences": 22,
-        "chars": 3387,
-        "tables": 1,
-        "table_rows": 2,
+        "sentences": 23,
+        "chars": 3984,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -369,12 +374,12 @@
       "size": 131344,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 15,
-        "body_blocks": 8,
-        "sentences": 10,
-        "chars": 944,
-        "tables": 3,
-        "table_rows": 28,
+        "blocks": 23,
+        "body_blocks": 11,
+        "sentences": 14,
+        "chars": 3452,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -391,12 +396,12 @@
       "size": 668532,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 144,
-        "body_blocks": 132,
-        "sentences": 175,
-        "chars": 22273,
-        "tables": 19,
-        "table_rows": 127,
+        "blocks": 154,
+        "body_blocks": 142,
+        "sentences": 192,
+        "chars": 27377,
+        "tables": 3,
+        "table_rows": 135,
         "unreadable": 0
       }
     },
@@ -413,12 +418,12 @@
       "size": 124075,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 27,
-        "body_blocks": 14,
-        "sentences": 17,
-        "chars": 2585,
-        "tables": 2,
-        "table_rows": 3,
+        "blocks": 26,
+        "body_blocks": 13,
+        "sentences": 16,
+        "chars": 3191,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -435,12 +440,12 @@
       "size": 177198,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 25,
-        "body_blocks": 18,
-        "sentences": 23,
-        "chars": 3937,
-        "tables": 7,
-        "table_rows": 23,
+        "blocks": 33,
+        "body_blocks": 21,
+        "sentences": 24,
+        "chars": 6134,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -457,12 +462,12 @@
       "size": 124455,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 20,
-        "body_blocks": 10,
-        "sentences": 10,
-        "chars": 2468,
-        "tables": 2,
-        "table_rows": 27,
+        "blocks": 29,
+        "body_blocks": 16,
+        "sentences": 16,
+        "chars": 4147,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -545,12 +550,12 @@
       "size": 131596,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 25,
+        "blocks": 26,
         "body_blocks": 13,
         "sentences": 14,
-        "chars": 3276,
-        "tables": 3,
-        "table_rows": 6,
+        "chars": 3604,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -589,12 +594,12 @@
       "size": 154481,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 28,
-        "body_blocks": 15,
-        "sentences": 16,
-        "chars": 1308,
-        "tables": 2,
-        "table_rows": 3,
+        "blocks": 27,
+        "body_blocks": 14,
+        "sentences": 17,
+        "chars": 1663,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -611,12 +616,12 @@
       "size": 104965,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 24,
-        "body_blocks": 13,
-        "sentences": 15,
-        "chars": 1154,
-        "tables": 3,
-        "table_rows": 5,
+        "blocks": 28,
+        "body_blocks": 15,
+        "sentences": 16,
+        "chars": 1476,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -677,12 +682,12 @@
       "size": 125321,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 25,
-        "body_blocks": 14,
-        "sentences": 19,
-        "chars": 2905,
-        "tables": 1,
-        "table_rows": 1,
+        "blocks": 26,
+        "body_blocks": 13,
+        "sentences": 18,
+        "chars": 2890,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -723,10 +728,10 @@
       "stats": {
         "blocks": 67,
         "body_blocks": 54,
-        "sentences": 82,
-        "chars": 9425,
-        "tables": 1,
-        "table_rows": 5,
+        "sentences": 83,
+        "chars": 9946,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -809,12 +814,12 @@
       "size": 124706,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 28,
-        "body_blocks": 15,
-        "sentences": 15,
-        "chars": 2160,
-        "tables": 2,
-        "table_rows": 4,
+        "blocks": 27,
+        "body_blocks": 14,
+        "sentences": 14,
+        "chars": 2515,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -831,12 +836,12 @@
       "size": 121633,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 23,
-        "body_blocks": 10,
-        "sentences": 10,
-        "chars": 1299,
-        "tables": 2,
-        "table_rows": 4,
+        "blocks": 22,
+        "body_blocks": 9,
+        "sentences": 9,
+        "chars": 1642,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -853,12 +858,12 @@
       "size": 123316,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 15,
-        "body_blocks": 10,
-        "sentences": 12,
-        "chars": 1014,
-        "tables": 1,
-        "table_rows": 10,
+        "blocks": 27,
+        "body_blocks": 14,
+        "sentences": 17,
+        "chars": 2378,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -875,12 +880,12 @@
       "size": 163068,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 15,
-        "body_blocks": 10,
-        "sentences": 16,
-        "chars": 1003,
-        "tables": 2,
-        "table_rows": 22,
+        "blocks": 21,
+        "body_blocks": 16,
+        "sentences": 43,
+        "chars": 2513,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -897,12 +902,12 @@
       "size": 197516,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 28,
-        "body_blocks": 23,
-        "sentences": 54,
-        "chars": 6729,
-        "tables": 2,
-        "table_rows": 15,
+        "blocks": 37,
+        "body_blocks": 24,
+        "sentences": 55,
+        "chars": 7734,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -921,10 +926,10 @@
       "stats": {
         "blocks": 41,
         "body_blocks": 28,
-        "sentences": 142,
-        "chars": 13524,
-        "tables": 2,
-        "table_rows": 3,
+        "sentences": 135,
+        "chars": 13231,
+        "tables": 1,
+        "table_rows": 8,
         "unreadable": 0
       }
     },
@@ -944,9 +949,9 @@
         "blocks": 36,
         "body_blocks": 23,
         "sentences": 136,
-        "chars": 12477,
-        "tables": 1,
-        "table_rows": 1,
+        "chars": 12569,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -963,12 +968,12 @@
       "size": 209722,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 52,
-        "body_blocks": 39,
-        "sentences": 54,
-        "chars": 7804,
-        "tables": 4,
-        "table_rows": 23,
+        "blocks": 65,
+        "body_blocks": 52,
+        "sentences": 77,
+        "chars": 12490,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -985,12 +990,12 @@
       "size": 269944,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 48,
-        "body_blocks": 40,
-        "sentences": 45,
-        "chars": 9146,
-        "tables": 2,
-        "table_rows": 2,
+        "blocks": 46,
+        "body_blocks": 38,
+        "sentences": 43,
+        "chars": 9260,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -1010,9 +1015,9 @@
         "blocks": 44,
         "body_blocks": 36,
         "sentences": 42,
-        "chars": 3705,
-        "tables": 1,
-        "table_rows": 1,
+        "chars": 3758,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -1029,12 +1034,12 @@
       "size": 370012,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 136,
-        "body_blocks": 128,
-        "sentences": 182,
-        "chars": 23107,
-        "tables": 8,
-        "table_rows": 34,
+        "blocks": 156,
+        "body_blocks": 148,
+        "sentences": 221,
+        "chars": 28330,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -1073,12 +1078,12 @@
       "size": 303100,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 12,
-        "body_blocks": 12,
-        "sentences": 13,
-        "chars": 1045,
-        "tables": 1,
-        "table_rows": 5,
+        "blocks": 14,
+        "body_blocks": 14,
+        "sentences": 15,
+        "chars": 1365,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -1095,12 +1100,12 @@
       "size": 502941,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 2,
-        "body_blocks": 2,
-        "sentences": 2,
-        "chars": 30,
-        "tables": 2,
-        "table_rows": 18,
+        "blocks": 15,
+        "body_blocks": 15,
+        "sentences": 17,
+        "chars": 1181,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -1183,12 +1188,12 @@
       "size": 175334,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 19,
-        "body_blocks": 12,
-        "sentences": 16,
-        "chars": 2683,
-        "tables": 3,
-        "table_rows": 9,
+        "blocks": 18,
+        "body_blocks": 10,
+        "sentences": 15,
+        "chars": 3168,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -1359,12 +1364,12 @@
       "size": 208975,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 13,
-        "body_blocks": 6,
-        "sentences": 6,
-        "chars": 443,
-        "tables": 2,
-        "table_rows": 42,
+        "blocks": 29,
+        "body_blocks": 21,
+        "sentences": 25,
+        "chars": 2692,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -1454,7 +1459,10 @@
         "tables": 0,
         "table_rows": 0,
         "unreadable": 0
-      }
+      },
+      "archive_aliases": [
+        "Додаткове роз'яснення щодо створення електронних медичних записів (далі - ЕМЗ) \"План лікування\" при наданні медичних послуг за пакетом \"Профілактика, діагностика, спостереження та лікування в амбулаторних умовах\""
+      ]
     },
     {
       "id": 68,
@@ -1579,12 +1587,12 @@
       "size": 220507,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 28,
-        "body_blocks": 20,
-        "sentences": 21,
-        "chars": 4429,
-        "tables": 2,
-        "table_rows": 9,
+        "blocks": 29,
+        "body_blocks": 21,
+        "sentences": 23,
+        "chars": 5694,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -1625,10 +1633,10 @@
       "stats": {
         "blocks": 28,
         "body_blocks": 20,
-        "sentences": 21,
-        "chars": 2007,
-        "tables": 1,
-        "table_rows": 1,
+        "sentences": 22,
+        "chars": 2076,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -1865,12 +1873,12 @@
       "size": 294503,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 101,
-        "body_blocks": 93,
-        "sentences": 140,
-        "chars": 16025,
-        "tables": 8,
-        "table_rows": 23,
+        "blocks": 126,
+        "body_blocks": 118,
+        "sentences": 164,
+        "chars": 18684,
+        "tables": 1,
+        "table_rows": 40,
         "unreadable": 0
       }
     },
@@ -1887,12 +1895,12 @@
       "size": 275629,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 40,
-        "body_blocks": 33,
-        "sentences": 39,
-        "chars": 4409,
-        "tables": 8,
-        "table_rows": 24,
+        "blocks": 49,
+        "body_blocks": 42,
+        "sentences": 53,
+        "chars": 7686,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -2283,12 +2291,12 @@
       "size": 203157,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 68,
-        "body_blocks": 55,
-        "sentences": 72,
-        "chars": 7940,
-        "tables": 8,
-        "table_rows": 47,
+        "blocks": 75,
+        "body_blocks": 62,
+        "sentences": 92,
+        "chars": 11308,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -2481,12 +2489,12 @@
       "size": 1524250,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 2,
-        "body_blocks": 2,
-        "sentences": 2,
-        "chars": 22,
+        "blocks": 8,
+        "body_blocks": 8,
+        "sentences": 8,
+        "chars": 133,
         "tables": 1,
-        "table_rows": 5,
+        "table_rows": 31,
         "unreadable": 0
       }
     },
@@ -2657,12 +2665,12 @@
       "size": 207720,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 19,
-        "body_blocks": 11,
+        "blocks": 18,
+        "body_blocks": 10,
         "sentences": 13,
-        "chars": 1947,
-        "tables": 4,
-        "table_rows": 17,
+        "chars": 3401,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -2767,12 +2775,12 @@
       "size": 60642,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 2,
-        "body_blocks": 2,
-        "sentences": 2,
-        "chars": 91,
+        "blocks": 3,
+        "body_blocks": 3,
+        "sentences": 3,
+        "chars": 2218,
         "tables": 1,
-        "table_rows": 48,
+        "table_rows": 49,
         "unreadable": 0
       }
     },
@@ -2789,12 +2797,12 @@
       "size": 100837,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 2,
-        "body_blocks": 2,
-        "sentences": 2,
-        "chars": 75,
+        "blocks": 10,
+        "body_blocks": 10,
+        "sentences": 16,
+        "chars": 13564,
         "tables": 1,
-        "table_rows": 317,
+        "table_rows": 163,
         "unreadable": 0
       }
     },
@@ -2814,9 +2822,9 @@
         "blocks": 2,
         "body_blocks": 2,
         "sentences": 2,
-        "chars": 206,
+        "chars": 204,
         "tables": 1,
-        "table_rows": 14,
+        "table_rows": 15,
         "unreadable": 0
       }
     },
@@ -2833,12 +2841,12 @@
       "size": 884151,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 9,
-        "body_blocks": 9,
-        "sentences": 9,
-        "chars": 211,
-        "tables": 9,
-        "table_rows": 3238,
+        "blocks": 48,
+        "body_blocks": 48,
+        "sentences": 321,
+        "chars": 145901,
+        "tables": 1,
+        "table_rows": 3477,
         "unreadable": 0
       }
     },
@@ -3031,12 +3039,12 @@
       "size": 370548,
       "engine": "zip",
       "stats": {
-        "blocks": 49,
-        "body_blocks": 41,
-        "sentences": 51,
-        "chars": 6912,
-        "tables": 6,
-        "table_rows": 3895,
+        "blocks": 67,
+        "body_blocks": 59,
+        "sentences": 77,
+        "chars": 12364,
+        "tables": 4,
+        "table_rows": 3856,
         "unreadable": 0
       }
     },
@@ -3429,10 +3437,10 @@
       "stats": {
         "blocks": 51,
         "body_blocks": 43,
-        "sentences": 47,
-        "chars": 7228,
-        "tables": 4,
-        "table_rows": 35,
+        "sentences": 48,
+        "chars": 9937,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -3471,12 +3479,12 @@
       "size": 110545,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 12,
-        "body_blocks": 11,
-        "sentences": 11,
-        "chars": 1270,
-        "tables": 4,
-        "table_rows": 14,
+        "blocks": 8,
+        "body_blocks": 7,
+        "sentences": 7,
+        "chars": 1216,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -3735,12 +3743,12 @@
       "size": 291419,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 61,
-        "body_blocks": 54,
-        "sentences": 66,
-        "chars": 6999,
-        "tables": 4,
-        "table_rows": 15,
+        "blocks": 64,
+        "body_blocks": 56,
+        "sentences": 68,
+        "chars": 7747,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -3823,12 +3831,12 @@
       "size": 300808,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 68,
-        "body_blocks": 51,
-        "sentences": 66,
-        "chars": 9428,
-        "tables": 3,
-        "table_rows": 50,
+        "blocks": 69,
+        "body_blocks": 52,
+        "sentences": 68,
+        "chars": 10767,
+        "tables": 2,
+        "table_rows": 54,
         "unreadable": 0
       }
     },
@@ -3845,12 +3853,12 @@
       "size": 196767,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 59,
-        "body_blocks": 47,
-        "sentences": 58,
-        "chars": 8681,
-        "tables": 7,
-        "table_rows": 28,
+        "blocks": 56,
+        "body_blocks": 44,
+        "sentences": 59,
+        "chars": 9614,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -3867,12 +3875,12 @@
       "size": 300808,
       "engine": "pdf-text",
       "stats": {
-        "blocks": 68,
-        "body_blocks": 51,
-        "sentences": 66,
-        "chars": 11428,
+        "blocks": 69,
+        "body_blocks": 52,
+        "sentences": 68,
+        "chars": 10767,
         "tables": 2,
-        "table_rows": 20,
+        "table_rows": 54,
         "unreadable": 0
       }
     },
@@ -3890,11 +3898,11 @@
       "engine": "pdf-text",
       "stats": {
         "blocks": 43,
-        "body_blocks": 40,
-        "sentences": 47,
-        "chars": 6789,
-        "tables": 4,
-        "table_rows": 6,
+        "body_blocks": 36,
+        "sentences": 45,
+        "chars": 7127,
+        "tables": 0,
+        "table_rows": 0,
         "unreadable": 0
       }
     },
@@ -3942,5 +3950,6 @@
         "unreadable": 0
       }
     }
-  ]
+  ],
+  "docs_built_at": "2026-07-26T12:58:51.066572+00:00"
 }

@@ -280,13 +280,38 @@
 .rz-chip-inline:hover { background: var(--rz-chip-hover); }
 
 /* ── таблиці ─────────────────────────────────────────────── */
-.rz-table-wrap { overflow-x: auto; border: 1px solid var(--rz-line);
-                 border-radius: 10px; margin-bottom: 6px; }
-.rz-table { border-collapse: collapse; width: 100%; font-size: 12.5px; color: var(--rz-ink); }
-.rz-table th, .rz-table td { border-bottom: 1px solid var(--rz-line-soft);
-                             padding: 6px 9px; text-align: left; vertical-align: top; }
-.rz-table th { background: var(--rz-thead); position: sticky; top: 0;
-               font-weight: 600; color: var(--rz-strong); white-space: nowrap; }
+/* Обгортка скролиться і по горизонталі, і по вертикалі — інакше липка шапка
+   не має до чого липнути (sticky рахується від найближчого прокрутного
+   предка, а не від панелі). */
+.rz-table-wrap {
+  overflow: auto; max-height: 60vh;
+  border: 1px solid var(--rz-line); border-radius: 10px; margin-bottom: 6px;
+}
+.rz-table {
+  border-collapse: collapse; font-size: 12.5px; color: var(--rz-ink);
+  table-layout: auto; min-width: 100%;
+}
+.rz-table th, .rz-table td {
+  border-bottom: 1px solid var(--rz-line-soft);
+  padding: 6px 9px; text-align: left; vertical-align: top;
+  /* довгу назву переносимо, а не розпихаємо таблицю на кілометр;
+     min-width щоб колонка не сплющилась у нечитабельну смужку */
+  min-width: 110px; max-width: 320px;
+  overflow-wrap: anywhere; word-break: normal; hyphens: auto;
+}
+.rz-table th {
+  background: var(--rz-thead); position: sticky; top: 0; z-index: 1;
+  font-weight: 600; color: var(--rz-strong);
+  white-space: normal; line-height: 1.25;
+}
+/* Колонки з кодами: один код ніколи не довший за десяток символів, тож
+   тримаємо їх вузькими й без переносу — саме вони й розпихали таблицю. */
+.rz-table th.code, .rz-table td.code {
+  white-space: nowrap; min-width: 88px; max-width: 132px;
+  font-variant-numeric: tabular-nums;
+}
+.rz-table td.code { color: var(--rz-accent-ink); }
+.rz-table tbody tr:nth-child(even) { background: var(--rz-soft); }
 .rz-table tbody tr:hover { background: var(--rz-row-hover); }
 .rz-table code { font-variant-numeric: tabular-nums; color: var(--rz-accent-ink); }
 
@@ -329,6 +354,27 @@
 .rz-verdict-note { font-size: 11.5px; color: var(--rz-faint); margin-top: 2px; }
 
 .rz-empty-note { color: var(--rz-muted); font-size: 13px; }
+
+/* Офіційна назва — дослівно як на сайті НСЗУ. Коротке формулювання від
+   моделі поруч, але явно підписане, щоб їх не плутали. */
+.rz-official-title {
+  font-size: 14px; line-height: 1.5; color: var(--rz-strong);
+  background: var(--rz-soft); border-left: 3px solid var(--rz-accent);
+  border-radius: 0 8px 8px 0; padding: 8px 12px;
+}
+.rz-auto-label {
+  font-size: 13px; line-height: 1.5; color: var(--rz-muted);
+  border-left: 3px dashed var(--rz-line); padding: 6px 12px;
+}
+
+/* один файл під двома записами архіву НСЗУ */
+.rz-alias {
+  background: var(--rz-warn); border: 1px solid var(--rz-warn-ink);
+  border-radius: 9px; padding: 10px 12px; font-size: 13px; line-height: 1.5;
+  color: var(--rz-warn-ink);
+}
+.rz-alias div { margin-bottom: 4px; }
+.rz-alias p { margin: 8px 0 0; font-size: 12.5px; opacity: .9; }
 
 /* ── мобільна ────────────────────────────────────────────── */
 .mobile-tabs { display: none; }
