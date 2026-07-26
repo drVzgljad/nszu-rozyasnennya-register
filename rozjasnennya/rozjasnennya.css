@@ -367,6 +367,20 @@
   border-left: 3px dashed var(--rz-line); padding: 6px 12px;
 }
 
+/* додатки листа просто в паспорті */
+.rz-attach { display: grid; gap: 6px; }
+.rz-attach-item {
+  border: 1px solid var(--rz-line); border-left: 3px solid var(--rz-attach);
+  border-radius: 0 8px 8px 0; padding: 7px 10px; background: var(--rz-card);
+  display: grid; gap: 2px;
+}
+.rz-attach-item button.link {
+  background: none; border: none; color: var(--rz-accent-ink); cursor: pointer;
+  font-size: 13px; font-weight: 600; text-align: left; padding: 0; text-decoration: underline;
+}
+.rz-attach-note { font-size: 11.5px; color: var(--rz-muted); }
+.rz-alias .rz-attach { margin-top: 8px; }
+
 /* один файл під двома записами архіву НСЗУ */
 .rz-alias {
   background: var(--rz-warn); border: 1px solid var(--rz-warn-ink);

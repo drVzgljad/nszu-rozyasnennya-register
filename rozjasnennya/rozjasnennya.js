@@ -448,6 +448,7 @@ function renderPassport(doc, meta) {
   return `
     <div class="rz-section-title">Назва в архіві НСЗУ</div>
     <div class="rz-official-title">${esc(officialTitle)}</div>
+    ${renderAttachmentBlock(doc.id)}
     <div class="rz-meta">${cells.map(([label, value]) =>
       `<div><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join("")}</div>
     ${shortBlock}
@@ -460,6 +461,57 @@ function renderPassport(doc, meta) {
     <div class="rz-actions">
       ${meta.url ? `<a class="action" href="${esc(meta.url)}" target="_blank" rel="noopener">Відкрити оригінал на сайті НСЗУ</a>` : ""}
       <button class="rz-mini" type="button" data-goto-tab="text">Читати повний текст →</button>
+    </div>`;
+}
+
+/* Додатки в паспорті, а не лише у вкладці «Зв'язки»: людина, яка відкрила
+   лист із рядком «Додаток 1: на 3 арк.», шукає самі додатки тут і зараз.
+   Архів НСЗУ публікує їх окремими записами, часто під назвою «Додатки 1-8»,
+   і без цього блоку вони губляться серед 179 документів. */
+function renderAttachmentBlock(id) {
+  if (!state.graph) return "";
+  const line = (docId, note) => {
+    const meta = card(docId) || {};
+    const detail = [
+      meta.stats?.table_rows ? `таблиць ${meta.stats.tables}, рядків ${meta.stats.table_rows}` : "",
+      (meta.extension || "").toUpperCase(),
+    ].filter(Boolean).join(" · ");
+    /* Доказ прив'язки тут — коротким рядком: повне формулювання лишається
+       у вкладці «Зв'язки», щоб паспорт не перетворювався на простирадло. */
+    const short = (note || "").length > 90 ? `${note.slice(0, 90)}…` : (note || "");
+    return `<div class="rz-attach-item">
+      <button class="link" type="button" data-open="${docId}">${esc(meta.title || `Документ ${docId}`)}</button>
+      <span class="rz-attach-note">${esc([short, detail].filter(Boolean).join(" · "))}</span>
+    </div>`;
+  };
+
+  const children = state.graph.edges
+    .filter((e) => e.relation === "додаток до" && e.to === id)
+    .map((e) => line(e.from, e.evidence));
+  if (children.length) {
+    return `<div class="rz-section-title">Додатки до цього листа (${children.length})</div>
+      <div class="rz-attach">${children.join("")}</div>`;
+  }
+
+  const parents = state.graph.edges.filter((e) => e.relation === "додаток до" && e.from === id);
+  if (parents.length) {
+    return `<div class="rz-section-title">Це додаток до листа</div>
+      <div class="rz-attach">${parents.map((e) => line(e.to, e.evidence)).join("")}</div>`;
+  }
+
+  const orphan = (state.graph.orphan_attachments || []).find((o) => o.id === id);
+  if (!orphan) return "";
+  const siblings = (state.graph.orphan_attachments || [])
+    .filter((o) => o.id !== id && o.parent_title && o.parent_title === orphan.parent_title)
+    .map((o) => line(o.id, ""));
+  return `<div class="rz-section-title">Батьківського листа немає в архіві НСЗУ</div>
+    <div class="rz-alias">
+      ${orphan.parent_title ? `<div>Лист: «${esc(orphan.parent_title)}»</div>` : ""}
+      <p>${esc(orphan.why)}. Сам файл додатка опубліковано, лист — ні: шукати його
+         треба поза архівом роз'яснень (лист надавачам, СЕД АСКОД).</p>
+      ${siblings.length ? `<div class="rz-attach">
+        <div class="rz-attach-note">Інші додатки до того самого листа:</div>
+        ${siblings.join("")}</div>` : ""}
     </div>`;
 }
 
@@ -797,7 +849,7 @@ function renderLinks(edges) {
         <span class="rz-tag">${esc(direction)}</span>
         <span class="rz-status ${status}">${STATUS_LABEL[status] || status}</span>
         ${node?.date ? `<span class="rz-tag date">${formatDate(node.date)}</span>` : ""}
-        ${edge.source === "attachment" ? '<span class="rz-tag dim">за структурою архіву</span>' : ""}
+        ${edge.source === "attachment" ? '<span class="rz-tag dim">прив\'язка додатка</span>' : ""}
         ${edge.source === "reference" ? '<span class="rz-tag dim">номер листа в тексті</span>' : ""}
         ${edge.source === "claim" ? '<span class="rz-tag warn">прочитано в тексті</span>' : ""}
       </div>
