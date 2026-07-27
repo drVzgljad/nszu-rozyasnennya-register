@@ -1,6 +1,6 @@
 {
-  "generated": "2026-07-26T11:40:23.821549+00:00",
-  "archive_fetched_at": "2026-07-26T10:01:25.733361+00:00",
+  "generated": "2026-07-27T13:24:39.562661+00:00",
+  "archive_fetched_at": "2026-07-27T13:24:38.040446+00:00",
   "archive_source": "https://nszu.gov.ua/arxiv-dokumentiv?groups[2][attributes][]=36",
   "archive_records": 183,
   "total": 179,
@@ -3950,6 +3950,5 @@
         "unreadable": 0
       }
     }
-  ],
-  "docs_built_at": "2026-07-26T12:58:51.066572+00:00"
+  ]
 }
