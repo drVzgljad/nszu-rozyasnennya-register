@@ -78,7 +78,7 @@ const SEED_PILOTS = [
   { num: '66', title: 'Зубопротезування окремих категорій осіб, які захищають/захищали незалежність, суверенітет та територіальну цілісність України (група послуг № 1)', resp: 'vesel', dup: 'vesel', pilot: true },
   { num: '67', title: 'Стоматологічна допомога окремій категорії осіб, які захищають/захищали незалежність, суверенітет та територіальну цілісність України (група послуг № 2)', resp: 'vesel', dup: 'vesel', pilot: true },
   { num: '71', title: 'Медичні послуги із здійснення забору, кріоконсервації та зберігання репродуктивних клітин військовослужбовців та інших осіб на випадок втрати репродуктивної функції', resp: 'koval', dup: 'tkach', pilot: true },
-  { num: '73', title: 'Розширені послуги з первинної медичної допомоги окремим категоріям осіб, які захищали незалежність, суверенітет та територіальну цілісність України', resp: 'savka', dup: 'savka', pilot: true },
+  { num: '73', title: 'Розширені послуги з первинної медичної допомоги окремим категоріям осіб, які захищали незалежність, суверенітет та територіальну цілісність України', resp: 'savka', dup: 'savka', pilot: true, status: 'ended', status_note: 'ПКМУ № 140 діяла у 2025 році, договори — до 01.12.2025. На 2026 рік проєкт не продовжено.' },
   { num: '84', title: 'Послуги довготривалого медсестринського догляду внутрішньо переміщених осіб', resp: 'tkach', dup: 'tkach', pilot: true },
   { num: '86', title: 'Довготривалий медичний догляд окремим категоріям осіб, які захищали незалежність, суверенітет та територіальну цілісність України', resp: 'koval', dup: 'volosh', pilot: true },
 ];
@@ -242,9 +242,11 @@ function renderPersonal() {
   $('rz-id-avatar').textContent = initials(viewerKey);
   $('rz-id-avatar').style.background = e.color;
   $('rz-id-name').textContent = e.full + (viewerKey === myKey ? ' — це ви' : '');
-  $('rz-id-summary').textContent = resp.length
+  const endedCount = resp.filter(p => p.status === 'ended').length;
+  $('rz-id-summary').textContent = (resp.length
     ? `Відповідає за аналіз ${resp.length} пакет${plural(resp.length)}${pilots ? `, з них ${pilots} — пілотні проєкти` : ''}${dup.length ? `; дублює відповіді на листи ще у ${dup.length}` : ''}.`
-    : `Не є основним відповідальним, але дублює відповіді на листи у ${dup.length} пакет${plural(dup.length)}.`;
+    : `Не є основним відповідальним, але дублює відповіді на листи у ${dup.length} пакет${plural(dup.length)}.`)
+    + (endedCount ? ` ${endedCount} напрям${plural(endedCount)} ${endedCount % 10 === 1 && endedCount % 100 !== 11 ? 'не закуповується' : 'не закуповуються'} у 2026 році.` : '');
 
   $('rz-m-resp').textContent = resp.length;
   $('rz-m-dup').textContent = dup.length;
@@ -272,10 +274,12 @@ function packageCard(p, role) {
   const other = role === 'resp' ? p.dup : p.resp;
   const otherLbl = role === 'resp' ? 'Дублер (листи)' : 'Відповідальний';
   const showOther = other !== viewerKey;
-  return `<article class="rz-card${p.pilot ? ' rz-card-pilot' : ''}">
+  const ended = p.status === 'ended';
+  return `<article class="rz-card${p.pilot ? ' rz-card-pilot' : ''}${ended ? ' rz-card-ended' : ''}">
     <div class="rz-card-top">
       <span class="rz-num${p.pilot ? ' pilot' : ''}" title="${p.pilot ? 'Пілотний / експериментальний проєкт' : 'Пакет ПМГ-2026'}">№ ${esc(p.num)}</span>
       ${p.pilot ? '<span class="rz-pilot-badge">🧪 пілот</span>' : ''}
+      ${ended ? `<span class="rz-ended-badge" title="${esc(p.status_note || 'Напрям не закуповується у 2026 році')}">⏹ не діє у 2026</span>` : ''}
     </div>
     <h4 class="rz-card-title">${esc(p.title)}</h4>
     <div class="rz-card-foot">
@@ -364,7 +368,7 @@ function renderTable() {
   const main = MAIN.filter(match);
   const pilots = PILOTS.filter(match);
 
-  const row = p => `<tr${p.pilot ? ' class="rz-row-pilot"' : ''}>
+  const row = p => `<tr class="${p.pilot ? 'rz-row-pilot' : ''}${p.status === 'ended' ? ' rz-row-ended' : ''}">
     <td class="rz-td-num">${
       p.pilot
         ? `<a class="rz-num pilot" href="../pilots/index.html?p=${encodeURIComponent(p.num)}" title="Паспорт пілотного проєкту № ${esc(p.num)}">№ ${esc(p.num)}</a>`
@@ -373,7 +377,9 @@ function renderTable() {
             : `<span class="rz-num">№ ${esc(p.num)}</span>`)
     }</td>
     <td class="rz-td-title">${esc(p.title)}${p.pilot ? ' <span class="rz-pilot-badge">🧪 пілот</span>' : ''}${
-      editMode ? ` <button type="button" class="rz-del-btn" data-id="${p.id}" title="Видалити пакет з розподілу">🗑</button>` : ''
+      p.status === 'ended' ? ` <span class="rz-ended-badge" title="${esc(p.status_note || 'Напрям не закуповується у 2026 році')}">⏹ не діє у 2026</span>` : ''
+    }${
+      editMode ? ` ${statusSelect(p)} <button type="button" class="rz-del-btn" data-id="${p.id}" title="Видалити пакет з розподілу">🗑</button>` : ''
     }</td>
     <td>${editMode ? expertSelect(p, 'resp') : expertChip(p.resp, 'filter')}</td>
     <td>${editMode ? expertSelect(p, 'dup') : (p.dup === p.resp ? '<span class="rz-same">— той самий</span>' : expertChip(p.dup, 'filter'))}</td>
@@ -418,6 +424,14 @@ function renderTable() {
 
 // ═══ РЕДАГУВАННЯ (лише керівництво; дані в package_assignments) ═══
 
+function statusSelect(p) {
+  const st = p.status === 'ended' ? 'ended' : 'active';
+  return `<select class="rz-edit-select rz-status-select" data-id="${p.id}" data-field="status" aria-label="Чинність напряму">
+    <option value="active"${st === 'active' ? ' selected' : ''}>🟢 діє</option>
+    <option value="ended"${st === 'ended' ? ' selected' : ''}>⏹ не діє у 2026</option>
+  </select>`;
+}
+
 function expertSelect(p, field) {
   return `<select class="rz-edit-select" data-id="${p.id}" data-field="${field}" aria-label="${field === 'resp' ? 'Відповідальний' : 'Дублер'}">${
     Object.keys(EXPERTS).map(k =>
@@ -460,6 +474,8 @@ async function saveField(id, field, value) {
   renderLoadBars();
   renderChips();
   renderPersonal();
+  // Статус міняє вигляд рядка (бейдж, приглушення) — перемальовуємо таблицю
+  if (field === 'status') renderTable();
 }
 
 async function addRow() {
