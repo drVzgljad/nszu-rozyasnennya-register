@@ -1,0 +1,72 @@
+/* ============================================================
+   НК 024 (медичні вироби) — додаткові стилі поверх classifiers.css:
+   перемикач мови, бейджі ознак виробу, друга назва й тексти описів.
+   Токени — зі styles.css (--ink, --accent, --surface, --line…).
+   ============================================================ */
+
+/* ── Перемикач мови ────────────────────────────────────────── */
+.md-langbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; margin-bottom: 12px;
+}
+.md-langlbl { font-size: .78rem; color: var(--muted); font-weight: 600; }
+.md-langtoggle {
+  display: inline-flex; background: var(--soft); border: 1px solid var(--line);
+  border-radius: 10px; padding: 2px;
+}
+.md-lang {
+  border: 0; background: none; color: var(--muted); cursor: pointer;
+  font: inherit; font-size: .84rem; font-weight: 600; padding: 6px 14px; border-radius: 8px;
+}
+.md-lang:hover { color: var(--accent-dark); }
+.md-lang.active { background: var(--accent-dark); color: #fff; }
+
+/* ── Бейджі ознак виробу (рядок результату) ────────────────── */
+.md-dot {
+  flex: 0 0 auto; align-self: center; white-space: nowrap;
+  font-size: .64rem; font-weight: 800; letter-spacing: .02em;
+  border-radius: 20px; padding: 2px 8px;
+}
+.md-single { background: var(--accent-soft); color: var(--accent-dark); }
+.md-reuse { background: var(--warm); color: var(--teal-dark); }
+.md-steril { background: var(--teal); color: #fff; }
+.md-ivd { background: var(--accent-dark); color: #fff; }
+
+/* ── Ознаки виробу в паспорті ──────────────────────────────── */
+.md-chip {
+  display: inline-block; font-size: .8rem; font-weight: 700;
+  border-radius: 9px; padding: 5px 11px;
+}
+.md-chip.md-single { background: var(--accent-soft); color: var(--accent-dark); }
+.md-chip.md-reuse { background: var(--warm); color: var(--teal-dark); }
+.md-chip.md-steril { background: var(--teal); color: #fff; }
+.md-chip.md-ivd { background: var(--accent-dark); color: #fff; }
+
+/* ── Друга назва під основною ──────────────────────────────── */
+.md-secname {
+  font-size: .92rem; color: var(--muted); line-height: 1.4; margin: -4px 0 10px;
+  padding-left: 10px; border-left: 3px solid var(--line);
+}
+
+/* ── Опис виробу ───────────────────────────────────────────── */
+.md-desc {
+  margin: 0; font-size: .92rem; line-height: 1.6; color: var(--ink);
+  background: var(--soft); border: 1px solid var(--line);
+  border-radius: 11px; padding: 11px 13px;
+}
+
+/* Примітка під переходами — трохи повітря зверху */
+.reader-block .casc-note { margin-top: 10px; }
+
+/* ── Темна тема ────────────────────────────────────────────── */
+:root.dark-theme .md-desc { background: var(--soft); }
+:root.dark-theme .reader-code { color: #0b1220; }
+
+/* ── Мобільне ──────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  .md-langbar { flex-direction: column; align-items: stretch; gap: 6px; }
+  .md-langtoggle { width: 100%; }
+  .md-lang { flex: 1; text-align: center; }
+  .rrow .md-dot { display: none; }
+  .rrow .md-dot.md-ivd { display: inline-block; }
+}

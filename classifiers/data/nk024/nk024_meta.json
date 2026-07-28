@@ -1,0 +1,202 @@
+{
+ "generated": "2026-07-28",
+ "source": "НК 024:2023 «Класифікатор медичних виробів» (гармонізований з номенклатурою GMDN)",
+ "approved": "наказ Мінекономіки від 24.05.2023 № 4139, чинний з 15.06.2023",
+ "note_nk031": "З 01.09.2025 паралельно чинний НК 031:2024 «Національна номенклатура медичних виробів» (наказ Мінекономіки від 24.09.2024 № 23992); НК 024:2023 не скасовано.",
+ "total": 23876,
+ "flags": {
+  "single_use": 3183,
+  "reusable": 2385,
+  "sterile": 3250,
+  "ivd": 2597
+ },
+ "letters": [
+  {
+   "id": 0,
+   "letter": "А",
+   "file": "00.json",
+   "count": 1618
+  },
+  {
+   "id": 1,
+   "letter": "Б",
+   "file": "01.json",
+   "count": 1170
+  },
+  {
+   "id": 2,
+   "letter": "В",
+   "file": "02.json",
+   "count": 2623
+  },
+  {
+   "id": 3,
+   "letter": "Г",
+   "file": "03.json",
+   "count": 831
+  },
+  {
+   "id": 4,
+   "letter": "Д",
+   "file": "04.json",
+   "count": 654
+  },
+  {
+   "id": 5,
+   "letter": "Е",
+   "file": "05.json",
+   "count": 534
+  },
+  {
+   "id": 6,
+   "letter": "Ж",
+   "file": "06.json",
+   "count": 53
+  },
+  {
+   "id": 7,
+   "letter": "З",
+   "file": "07.json",
+   "count": 606
+  },
+  {
+   "id": 8,
+   "letter": "І",
+   "file": "08.json",
+   "count": 609
+  },
+  {
+   "id": 9,
+   "letter": "Й",
+   "file": "09.json",
+   "count": 8
+  },
+  {
+   "id": 10,
+   "letter": "К",
+   "file": "10.json",
+   "count": 1757
+  },
+  {
+   "id": 11,
+   "letter": "Л",
+   "file": "11.json",
+   "count": 505
+  },
+  {
+   "id": 12,
+   "letter": "М",
+   "file": "12.json",
+   "count": 1495
+  },
+  {
+   "id": 13,
+   "letter": "Н",
+   "file": "13.json",
+   "count": 1239
+  },
+  {
+   "id": 14,
+   "letter": "О",
+   "file": "14.json",
+   "count": 431
+  },
+  {
+   "id": 15,
+   "letter": "П",
+   "file": "15.json",
+   "count": 2248
+  },
+  {
+   "id": 16,
+   "letter": "Р",
+   "file": "16.json",
+   "count": 949
+  },
+  {
+   "id": 17,
+   "letter": "С",
+   "file": "17.json",
+   "count": 2072
+  },
+  {
+   "id": 18,
+   "letter": "Т",
+   "file": "18.json",
+   "count": 888
+  },
+  {
+   "id": 19,
+   "letter": "У",
+   "file": "19.json",
+   "count": 148
+  },
+  {
+   "id": 20,
+   "letter": "Ф",
+   "file": "20.json",
+   "count": 397
+  },
+  {
+   "id": 21,
+   "letter": "Х",
+   "file": "21.json",
+   "count": 304
+  },
+  {
+   "id": 22,
+   "letter": "Ц",
+   "file": "22.json",
+   "count": 288
+  },
+  {
+   "id": 23,
+   "letter": "Ч",
+   "file": "23.json",
+   "count": 498
+  },
+  {
+   "id": 24,
+   "letter": "Ш",
+   "file": "24.json",
+   "count": 253
+  },
+  {
+   "id": 25,
+   "letter": "Щ",
+   "file": "25.json",
+   "count": 95
+  },
+  {
+   "id": 26,
+   "letter": "Ю",
+   "file": "26.json",
+   "count": 4
+  },
+  {
+   "id": 27,
+   "letter": "Я",
+   "file": "27.json",
+   "count": 13
+  },
+  {
+   "id": 28,
+   "letter": "Латиниця / цифри",
+   "file": "28.json",
+   "count": 1586
+  }
+ ],
+ "schema_index": [
+  "code",
+  "ua",
+  "en",
+  "letter_id",
+  "flags(1=одноразовий,2=багаторазовий,4=IVD,8=стерильний)"
+ ],
+ "schema_terms": [
+  "ua",
+  "ua_desc",
+  "en",
+  "en_desc"
+ ]
+}

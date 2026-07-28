@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>НавігаторПМГ26 | Класифікатор медичних виробів НК 024</title>
+  <link rel="stylesheet" href="../styles.css?v=20260719c">
+  <link rel="stylesheet" href="classifiers.css?v=20260725d">
+  <link rel="stylesheet" href="nk024.css?v=20260728a">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260725d">
+  <script type="module" src="../auth-v2.js?v=20260728a"></script>
+</head>
+<body id="top">
+  <header class="hero classifiers-hero">
+    <div class="hero-copy">
+      <div class="overline">Національний класифікатор · НК 024:2023 · GMDN ·
+        <a class="xnav" href="index.html">↔ Хвороби НК 025</a>
+        <a class="xnav" href="nk026.html">↔ Інтервенції НК 026</a>
+        <a class="xnav" href="loinc.html">↔ LOINC (лаб. коди)</a>
+        <a class="xnav" href="../mapping/index.html">↔ Таблиця співставлення</a></div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів, постанови та правил</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Класифікатор медичних виробів НК 024</h1>
+      <p>Повний перелік медичних виробів (НК&nbsp;024:2023, адаптований переклад міжнародної
+         номенклатури GMDN) — усі 23&nbsp;876 п'ятизначних кодів з описом виробу двома мовами.
+         Навігація за алфавітом і групами назв, миттєвий та пакетний пошук. Класифікатор прямо
+         названо в&nbsp;пункті&nbsp;9 постанови&nbsp;1808 серед тих, що застосовуються при оплаті
+         медичних послуг за&nbsp;ПМГ.</p>
+    </div>
+    <div class="stats" id="mdStats" aria-label="Статистика класифікатора"></div>
+  </header>
+
+  <nav class="mobile-tabs" id="mobileTabs" aria-label="Навігація між панелями">
+    <button class="mobile-tab active" data-tab="browser" type="button">Огляд і пошук</button>
+    <button class="mobile-tab" data-tab="reader" type="button">Паспорт виробу</button>
+  </nav>
+
+  <main class="nk-layout" data-active="browser">
+    <!-- ЛІВА ПАНЕЛЬ: пошук + каскад -->
+    <section class="nk-browser" aria-label="Пошук і навігація класифікатора">
+      <div class="search-panel nk-search">
+        <div class="md-langbar">
+          <span class="md-langlbl">Мова назв і описів</span>
+          <div class="md-langtoggle" role="group" aria-label="Мова відображення">
+            <button class="md-lang active" type="button" data-lang="ua">Українською</button>
+            <button class="md-lang" type="button" data-lang="en">English</button>
+          </div>
+        </div>
+
+        <label class="search">
+          <span>Пошук за кодом або назвою виробу (укр. і англ. одночасно)</span>
+          <input id="mdSearch" type="search"
+                 placeholder="Напр.: 47831, катетер, glucose, пульсоксиметр…" autocomplete="off">
+        </label>
+
+        <!-- Пакетний пошук: кілька кодів / назв разом -->
+        <details class="nk-batch">
+          <summary>📋 Пакетний пошук — кілька кодів / назв разом</summary>
+          <textarea id="mdBatch" rows="4"
+            placeholder="Вставте коди або назви — по одному в рядку, через кому чи пробіл:&#10;47831&#10;10003  35112&#10;пульсоксиметр, катетер"></textarea>
+          <div class="batch-actions">
+            <button id="mdBatchRun" type="button" class="batch-primary">Знайти всі</button>
+            <button id="mdBatchCopy" type="button" hidden>⧉ Копіювати знайдене</button>
+            <button id="mdBatchClear" type="button">Очистити</button>
+          </div>
+        </details>
+
+        <!-- Каскадна навігація: Літера → Група назв → Код -->
+        <div class="nk-cascade" aria-label="Навігація по класифікатору">
+          <div class="casc-field">
+            <label for="selLetter">Літера (розділ алфавітного переліку)</label>
+            <select id="selLetter"><option value="">Завантаження…</option></select>
+          </div>
+          <div class="casc-field">
+            <label for="selGroup">Група назв (спільний початок назви)</label>
+            <select id="selGroup" disabled><option value="">— оберіть літеру —</option></select>
+          </div>
+          <div class="casc-field">
+            <label for="selCode">Код виробу</label>
+            <select id="selCode" disabled><option value="">— оберіть групу —</option></select>
+          </div>
+        </div>
+        <p class="casc-note">Офіційне видання НК&nbsp;024:2023 подає суцільний перелік за абеткою
+           українських назв. Літери й групи назв тут — навігаційне групування за цим самим порядком;
+           коди не мають ієрархії, п'ятизначний код є самостійною позицією.</p>
+
+        <div class="nk-filters">
+          <label class="nk-level">Ознака виробу
+            <select id="flagFilter">
+              <option value="">усі</option>
+              <option value="1">одноразові</option>
+              <option value="2">багаторазові</option>
+              <option value="8">стерильні</option>
+              <option value="4">для діагностики in vitro (IVD)</option>
+            </select>
+          </label>
+        </div>
+        <div class="results-summary">
+          <span id="mdCount">Завантаження…</span>
+          <button id="mdClear" type="button">✕ Очистити форму</button>
+        </div>
+      </div>
+
+      <!-- Результати пошуку / переліку групи -->
+      <div class="nk-results" id="mdResults" hidden></div>
+    </section>
+
+    <!-- ПРАВА ПАНЕЛЬ: паспорт виробу -->
+    <article class="nk-reader reader-empty" id="mdReader" aria-live="polite">
+      <div class="reader-hint">
+        <div class="reader-hint-ico">🩹</div>
+        <p>Оберіть код у каскаді (Літера → Група назв → Код) або через пошук, щоб побачити паспорт
+           виробу: назву та повний опис українською й англійською, ознаки виробу, споріднені коди
+           групи та переходи до пов'язаних розділів порталу.</p>
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Джерело: НК&nbsp;024:2023 «Класифікатор медичних виробів» (наказ Мінекономіки
+           від 24.05.2023 № 4139, чинний з 15.06.2023; адаптований переклад номенклатури GMDN).
+           З&nbsp;01.09.2025 паралельно діє НК&nbsp;031:2024 «Національна номенклатура медичних
+           виробів» (наказ Мінекономіки від 24.09.2024 № 23992) — НК&nbsp;024:2023 при цьому
+           не&nbsp;скасовано. Довідковий інструмент; у разі розбіжностей переважну силу має
+           офіційне видання класифікатора.</p>
+      </div>
+    </div>
+  </footer>
+
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <script src="nk024.js?v=20260728b" defer></script>
+</body>
+</html>

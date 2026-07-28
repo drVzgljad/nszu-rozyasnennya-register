@@ -326,6 +326,7 @@ function applyAccess() {
     const codesItems = [
       { text: '🩺 Хвороби · НК 025', path: 'classifiers/index.html' },
       { text: '🔬 Інтервенції · НК 026', path: 'classifiers/nk026.html' },
+      { text: '🩹 Медвироби · НК 024', path: 'classifiers/nk024.html' },
       { text: '🧪 Лабораторні · LOINC', path: 'classifiers/loinc.html' },
       { text: '🔗 Таблиця співставлення', path: 'mapping/index.html' }
     ];
@@ -2101,6 +2102,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '🏥', label: 'ДЕЦ МОЗ', path: 'dec/index.html' },
     { icon: '🩺', label: 'Хвороби · НК 025', path: 'classifiers/index.html' },
     { icon: '🔬', label: 'Інтервенції · НК 026', path: 'classifiers/nk026.html' },
+    { icon: '🩹', label: 'Медвироби · НК 024', path: 'classifiers/nk024.html' },
     { icon: '🧪', label: 'LOINC (лаб. коди)', path: 'classifiers/loinc.html' },
     { icon: '🔗', label: 'Таблиця співставлення', path: 'mapping/index.html' },
     { icon: '📑', label: 'Договори ЗОЗ', path: 'zoz-dogovr/index.html' },
