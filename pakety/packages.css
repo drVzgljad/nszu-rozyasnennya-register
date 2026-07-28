@@ -283,3 +283,16 @@ mark { padding: 0 2px; border-radius: 3px; color: inherit; background: #ffe69a; 
   .package-cards { max-height: 43vh; margin-bottom: 14px; }
   .package-outline, .package-reader { position: static; min-height: 0; margin-bottom: 14px; }
 }
+
+/* ── Пілотні проєкти в переліку пакетів ─────────────────────────
+   Поза постановою 1808: інший акцент і позначка на картці. */
+.package-card.pilot-card { border-left: 3px solid #a8770e; }
+.package-card .package-number.pilot-number { background: #a8770e; color: #fff; }
+.pilot-flag {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #8a6207;
+}
+:root.dark-theme .pilot-flag { color: #e3b34c; }

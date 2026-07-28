@@ -68,9 +68,11 @@ function firstMatch(pkg, query) {
   ) || allSections(pkg)[0];
 }
 
+const pkgKey = (pkg) => (pkg ? pkg.key || pkg.number : "");
+
 function updateUrl() {
   const params = new URLSearchParams();
-  if (packageState.selected) params.set("package", packageState.selected.number);
+  if (packageState.selected) params.set("package", pkgKey(packageState.selected));
   if (packageState.selectedSection) params.set("section", packageState.selectedSection.key);
   if (packageState.selectedUnit && packageState.selected.units.length > 1) params.set("unit", packageState.selectedUnit.id);
   const query = queryText();
@@ -95,7 +97,8 @@ function renderStats() {
   const sectionCount = packageState.data.packages.reduce((total, pkg) =>
     total + pkg.units.reduce((count, unit) => count + unit.sections.length, 0), 0);
   byId("packageStats").innerHTML = [
-    [packageState.data.package_count, "пакетів"],
+    [packageState.data.package_count, "пакетів ПМГ"],
+    ...(packageState.pilotCount ? [[packageState.pilotCount, "пілотних проєктів"]] : []),
     [sectionCount, "розділів"],
     ["2026", "рік ПМГ"],
   ].map(([value, label]) => `<div class="stat"><strong>${value}</strong><span>${label}</span></div>`).join("");
@@ -120,8 +123,8 @@ function applyPackageFilters() {
     (!query || pkg.search_text.includes(query)) &&
     (!packageState.tag || pkg.tags.includes(packageState.tag))
   );
-  byId("packageCount").textContent = `Знайдено: ${packageState.visible.length} з ${packageState.data.package_count}`;
-  if (!packageState.visible.some((pkg) => pkg.number === packageState.selected?.number)) {
+  byId("packageCount").textContent = `Знайдено: ${packageState.visible.length} з ${packageState.data.packages.length}`;
+  if (!packageState.visible.some((pkg) => pkgKey(pkg) === pkgKey(packageState.selected))) {
     selectPackage(packageState.visible[0] || null);
   } else if (query) {
     const match = firstMatch(packageState.selected, query);
@@ -140,14 +143,14 @@ function renderCards() {
   byId("packageCards").innerHTML = packageState.visible.map((pkg) => {
     const match = firstMatch(pkg, query);
     const matchLabel = query && match ? `<span class="match-label">Збіг: ${escapeHtml(match.section.label)}</span>` : "";
-    return `<button class="package-card ${pkg.number === packageState.selected?.number ? "active" : ""}" data-package="${pkg.number}">
-      <span class="package-number">${pkg.number}</span>
-      <span><strong>${escapeHtml(pkg.title)}</strong>${matchLabel}</span>
+    return `<button class="package-card ${pkgKey(pkg) === pkgKey(packageState.selected) ? "active" : ""}${pkg.pilot ? " pilot-card" : ""}" data-package="${pkgKey(pkg)}"${pkg.pilot ? ' data-pilot="1"' : ""}>
+      <span class="package-number${pkg.pilot ? " pilot-number" : ""}">${pkg.number}</span>
+      <span><strong>${escapeHtml(pkg.title)}</strong>${pkg.pilot ? '<span class="pilot-flag">🧪 пілотний проєкт · поза постановою 1808</span>' : ""}${matchLabel}</span>
     </button>`;
   }).join("") || '<div class="no-results">За цим запитом пакетів не знайдено.</div>';
   byId("packageCards").querySelectorAll("[data-package]").forEach((card) => {
     card.addEventListener("click", () => {
-      selectPackage(packageState.data.packages.find((pkg) => pkg.number === card.dataset.package));
+      selectPackage(packageState.data.packages.find((pkg) => pkgKey(pkg) === card.dataset.package));
       if (window.innerWidth <= 820) {
         byId("packageOutline").scrollIntoView({ behavior: "smooth", block: "start" });
       }
@@ -292,6 +295,31 @@ function renderReader() {
   const items = section.items.length
     ? `<div class="requirement-list">${section.items.map((item) => renderRequirementItem(item, query)).join("")}</div>`
     : "<p>Окремі пункти у цьому розділі не виділено.</p>";
+  // Пілотні проєкти живуть поза постановою 1808: у них немає ні DOCX,
+  // ні норм оплати 1808, ні прив'язки до ДЕЦ — показуємо їхню нормативку
+  if (pkg.pilot) {
+    const meta = pkg.pilot_meta || {};
+    const acts = (meta.normative || []).map((n) =>
+      `<a class="law-related-link" href="${escapeHtml(n.url)}" target="_blank" rel="noopener">
+        <strong>${escapeHtml(n.act)} № ${escapeHtml(n.num)} від ${escapeHtml(n.date)}</strong>
+        <span>${escapeHtml(n.role)} · ${escapeHtml(n.title)}</span>
+      </a>`).join("") || "<p>Нормативні акти не визначено.</p>";
+    container.innerHTML = `
+      <h2>${escapeHtml(section.label)}</h2>
+      <p class="reader-context">Пілотний проєкт ${escapeHtml(pkg.number)} · ${escapeHtml(meta.status_label || "")}</p>
+      ${section.source_heading ? `<div class="source-heading">${highlight(section.source_heading, query)}</div>` : ""}
+      ${items}
+      <div class="package-actions">
+        <a class="action primary" href="../pilots/index.html?p=${encodeURIComponent(pkg.number)}">Повний паспорт проєкту</a>
+        <a class="action" href="../cabinet/rozpodil.html#all">Хто відповідає за напрям</a>
+      </div>
+      <section class="related-explanations resolution-connections">
+        <h3>Нормативна база проєкту</h3>
+        ${acts}
+      </section>`;
+    return;
+  }
+
   container.innerHTML = `
     <h2>${escapeHtml(section.label)}</h2>
     <p class="reader-context">${escapeHtml(context)}</p>
@@ -316,6 +344,72 @@ function renderReader() {
     </section>`;
 }
 
+// ── Пілотні проєкти як пакети навігатора ───────────────────────
+// Пілоти не мають docx-специфікацій (вони поза постановою 1808), тож
+// збираємо для них ті самі розділи з pilots/data/pilots_2026.json.
+function pilotToPackage(p) {
+  const sec = (key, label, heading, items) => ({
+    key, label, source_heading: heading,
+    items: (items || []).filter(Boolean).map((text) => ({ text, marker: "•", level: 0 })),
+  });
+
+  const pay = p.payment || {};
+  const pr = p.provider || {};
+  const payItems = [
+    pay.model,
+    pay.base_rate ? `Базова ставка: ${pay.base_rate}` : "",
+    pay.cap,
+    ...(pay.rates || []).map((r) => `${r.code && r.code !== "—" ? r.code + " — " : ""}${r.label}: ${r.value}`),
+    pay.planning,
+    ...(pay.rules || []),
+  ];
+
+  const sections = [
+    sec("specification", "Що входить у пакет (специфікація)", "Зміст послуги за Порядком, затвердженим постановою КМУ", p.content),
+    sec("conditions", "Умови надання", p.status_label || "", [p.status_note, p.budget_program, p.history]),
+    sec("grounds", "Підстави надання", "Документи та порядок звернення", p.grounds),
+    sec("organization", "Вимоги до організації надання послуг", "Хто може бути надавачем", [pr.who, ...(pr.requirements || [])]),
+    sec("specialists", "Вимоги до спеціалістів", "", pr.staff),
+    sec("equipment", "Обладнання", "", [...(pr.premises || []), ...(pr.equipment || [])]),
+    sec("other", "Оплата і тарифи", pay.model || "", payItems.filter((x) => x && x !== pay.model)),
+  ].filter((s) => s.items.length || s.source_heading);
+
+  const blob = [p.number, p.title, p.short_title, p.official_name, p.status_label,
+    ...(p.categories || []), ...(p.content || []), ...(p.grounds || []),
+    ...(p.normative || []).map((n) => `${n.act} ${n.num} ${n.date} ${n.title}`),
+    ...payItems].join(" ").toLowerCase();
+
+  return {
+    number: p.number,
+    // Пілот № 86 і пакет ПМГ № 86 — різні сутності з однаковим номером,
+    // тому в навігаторі кожен запис адресується власним ключем
+    key: `p${p.number}`,
+    title: p.title,
+    pilot: true,
+    pilot_meta: p,
+    tags: ["🧪 Пілотний проєкт", p.status === "active" ? "Діє у 2026" : "Не діє у 2026"],
+    units: [{ id: "unit-1", label: "", sections: [
+      sec("categories", "Кому надається", "Категорії осіб, які мають право на послугу", p.categories),
+      ...sections,
+    ] }],
+    related_document_ids: [],
+    source_href: "",
+    search_text: blob,
+  };
+}
+
+async function loadPilots() {
+  try {
+    const res = await fetch("../pilots/data/pilots_2026.json");
+    if (!res.ok) return [];
+    const json = await res.json();
+    return (json.pilots || []).map(pilotToPackage);
+  } catch (e) {
+    console.warn("Пілотні проєкти не підвантажилися", e);
+    return [];
+  }
+}
+
 async function initPackages() {
   const [packagesResponse, docsResponse, decLinksResponse] = await Promise.all([
     fetch("data/packages_2026.json"),
@@ -323,6 +417,11 @@ async function initPackages() {
     fetch("../dec/data/package_dec_links.json").catch(() => null),
   ]);
   packageState.data = await packagesResponse.json();
+
+  // Пілоти йдуть після пакетів ПМГ — окремою групою в переліку
+  const pilots = await loadPilots();
+  packageState.pilotCount = pilots.length;
+  packageState.data.packages = packageState.data.packages.concat(pilots);
   packageState.explanations = (await docsResponse.json()).documents;
   if (decLinksResponse) {
     try {
@@ -366,7 +465,10 @@ async function initPackages() {
   renderStats();
   renderTags();
   packageState.visible = packageState.data.packages;
-  const initial = packageState.data.packages.find((pkg) => pkg.number === params.get("package")) || packageState.data.packages[0];
+  const wantedPkg = params.get("package");
+  const initial = packageState.data.packages.find((pkg) => pkgKey(pkg) === wantedPkg)
+    || packageState.data.packages.find((pkg) => pkg.number === wantedPkg)
+    || packageState.data.packages[0];
   selectPackage(initial, params.get("section") || "", params.get("unit") || "");
   byId("packageSearch").addEventListener("input", applyPackageFilters);
   byId("clearPackages").addEventListener("click", () => {
