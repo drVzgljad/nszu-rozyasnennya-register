@@ -22,7 +22,12 @@
     "&back=" + encodeURIComponent(`${BACK_PAGE}?doc=${doc}&item=${id}`) +
     "&backLabel=" + encodeURIComponent("до табеля оснащення");
 
-  const C = { ID: 0, NAME: 1, QTY: 2, TBL: 3, SEC: 4, SUB: 5, ST: 6 };
+  const C = { ID: 0, NAME: 1, QTY: 2, TBL: 3, SEC: 4, SUB: 5, ST: 6, NOTE: 7 };
+
+  // Версія даних = версія самого скрипта: інакше після перезбирання табелів
+  // браузер віддає старий registry.json із кешу.
+  const V = (document.currentScript && (document.currentScript.src.split("?v=")[1] || "")) || "";
+  const dataUrl = (name, ver) => "data/tabel/" + name + (ver ? "?v=" + encodeURIComponent(ver) : "");
 
   let REG = null;
   const DOCS = new Map();          // id → запис реєстру
@@ -43,7 +48,7 @@
   // ══════════════════════════════════════════════════════════
   async function boot() {
     try {
-      REG = await fetch("data/tabel/registry.json").then((r) => r.json());
+      REG = await fetch(dataUrl("registry.json", V)).then((r) => r.json());
     } catch (e) {
       el.count.textContent = "Не вдалося завантажити реєстр табелів.";
       return;
@@ -172,7 +177,7 @@
     if (LOADED.has(docId)) return LOADED.get(docId);
     const d = DOCS.get(docId);
     el.count.textContent = "Завантажую табель…";
-    const items = await fetch("data/tabel/" + d.file).then((r) => r.json());
+    const items = await fetch(dataUrl(d.file, REG.generated)).then((r) => r.json());
     const byId = new Map(), bySec = new Map();
     const txt = items.map((e) => e[C.NAME].toLowerCase());
     items.forEach((e) => {
@@ -436,6 +441,7 @@
         <span class="sep">›</span><span class="crumb">${esc(d.edition || "")}</span>
         <span class="sep">›</span><span class="crumb">${esc(d.status || "")}</span>
       </div>
+      ${d.edition_note ? `<div class="tb-group-note">${esc(d.edition_note)}</div>` : ""}
       <div class="reader-block"><h3>Профілі підрозділів <span class="src">оберіть, щоб побачити табель цілком</span></h3>${tables}</div>
       ${amend}
       <div class="reader-block"><h3>Джерело</h3>
@@ -460,8 +466,10 @@
     showResults(list, sec.title);
 
     const labels = sec.qty_labels || ["Кількість"];
+    const hasNote = list.some((e) => e[C.NOTE]);
     const head = `<tr><th class="tb-th-name">Найменування</th>${
-      labels.map((l) => `<th>${esc(l)}</th>`).join("")}</tr>`;
+      labels.map((l) => `<th>${esc(l)}</th>`).join("")}${
+      hasNote ? '<th class="tb-th-note">Опис вимоги</th>' : ""}</tr>`;
     let lastSub = null;
     const rows = list.map((e) => {
       const q = e[C.QTY] || [];
@@ -475,6 +483,7 @@
       return sub + `<tr class="${e[C.ST] ? "tb-r-out" : ""}" data-item="${escAttr(e[C.ID])}">
         <td class="tb-td-name">${esc(e[C.NAME])}</td>
         ${e[C.ST] ? `<td colspan="${labels.length}" class="tb-out-cell">${esc(e[C.ST])}</td>` : cells}
+        ${hasNote ? `<td class="tb-td-note">${esc(e[C.NOTE] || "")}</td>` : ""}
       </tr>`;
     }).join("");
 
@@ -555,6 +564,8 @@
         ${e[C.SUB] ? `<span class="sep">›</span><span class="crumb">${esc(e[C.SUB])}</span>` : ""}
       </div>
       ${qtyHtml}
+      ${e[C.NOTE] ? `<div class="reader-block"><h3>Опис вимоги <span class="src">як у табелі</span></h3>
+        <p class="tb-note">${esc(e[C.NOTE])}</p></div>` : ""}
       <div class="reader-block">
         <h3>Що це за виріб <span class="src">пошук у класифікаторі медичних виробів</span></h3>
         <div class="link-grid">

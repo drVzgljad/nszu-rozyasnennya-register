@@ -12,6 +12,7 @@
   951  → tabel-951_2010.html   (псевдографічні таблиці)
   158  → tabel-158_2005.html   (HTML-таблиці)
   1103 → tabel-1103_2020.html  (HTML-таблиці; чинна редакція табеля первинки № 148)
+  995  → tabel-995_2023.html   (HTML-таблиці; реабілітація, з колонкою «Опис»)
 
 Накази, тексту яких немає у відкритих правових базах (лише moz.gov.ua за Cloudflare),
 подано картками реєстру з реквізитами й посиланням на офіційне джерело — без вигаданого
@@ -24,7 +25,7 @@
 
 Вихід у ./data/tabel:
   registry.json   — реєстр документів, їхні табелі, розділи, лічильники, зв'язок з ПМГ.
-  doc_<id>.json   — позиції одного документа: [id, назва, кількості[], табель, розділ, підрозділ, статус].
+  doc_<id>.json   — позиції: [id, назва, кількості[], табель, розділ, підрозділ, статус, опис].
 """
 import json, re, sys, time
 from pathlib import Path
@@ -96,6 +97,31 @@ DOCS = [
         "status": "чинний", "kind": "примірний табель",
         "parser": "html", "src": "tabel-1103_2020.html", "hyphen": "drop",
     },
+    {
+        "id": "995", "number": "995", "date": "31.05.2023", "authority": "МОЗ України",
+        "short": "Примірний табель — стаціонарна реабілітація дорослих",
+        "title": "Про затвердження Примірного табелю матеріально-технічного оснащення стаціонарних "
+                 "реабілітаційних відділень, підрозділів закладів охорони здоров'я, які надають "
+                 "реабілітаційну допомогу дорослим у післягострому реабілітаційному періоді",
+        "profile": "Стаціонарні реабілітаційні відділення для дорослих: стаціонар, зали фізичної "
+                   "терапії та ерготерапії, кабінети терапії мови й мовлення",
+        "edition": "текст у редакції прийняття від 31.05.2023",
+        "url": "https://zakon.rada.gov.ua/rada/show/v0995282-23",
+        "status": "чинний", "kind": "примірний табель",
+        "amendments": [
+            {"number": "1309", "date": "26.07.2024",
+             "effect": "додано примірні табелі для амбулаторних і стаціонарних реабілітаційних "
+                       "відділень для дітей до трьох років і дітей від трьох років"},
+            {"number": "1451", "date": "18.09.2025",
+             "effect": "оновлено примірний табель кабінетів для реабілітаційної допомоги "
+                       "в амбулаторних умовах"},
+        ],
+        "edition_note": "У базі «Законодавство України» цей акт наведено в редакції прийняття, "
+                        "тож нижче — базовий табель 2023 року. Зміни наказами № 1309 і № 1451 "
+                        "додають ОКРЕМІ табелі (для дітей та для амбулаторних кабінетів), їхні "
+                        "тексти є лише на сайті МОЗ.",
+        "parser": "html", "src": "tabel-995_2023.html",
+    },
     # ── Накази, текст яких доступний лише на moz.gov.ua ────────────────
     {
         "id": "2650", "number": "2650", "date": "23.12.2019", "authority": "МОЗ України",
@@ -109,17 +135,6 @@ DOCS = [
                "primirnih-tabeliv-materialno-tehnichnogo-osnaschennja-zakladiv-ohoroni-zdorov%E2%80%99ja-"
                "ih-vidokremlenih-pidrozdiliv-jaki-nadajut-medichnu-dopomogu-iz-zastosuvannjam-transplantacii",
         "parser": None,
-    },
-    {
-        "id": "995", "number": "995", "date": "31.05.2023", "authority": "МОЗ України",
-        "short": "Примірний табель — стаціонарна реабілітація дорослих",
-        "title": "Про затвердження Примірного табеля матеріально-технічного оснащення стаціонарних "
-                 "реабілітаційних відділень (підрозділів) закладів охорони здоров'я, які надають "
-                 "реабілітаційну допомогу дорослим у післягострому реабілітаційному періоді",
-        "profile": "Стаціонарні реабілітаційні відділення для дорослих",
-        "edition": "у редакції наказу МОЗ від 26.07.2024 № 1309",
-        "status": "чинний", "kind": "примірний табель",
-        "url": "https://moz.gov.ua/uk/nakazi-moz", "parser": None,
     },
     {
         "id": "751", "number": "751", "date": "01.05.2024", "authority": "МОЗ України",
@@ -184,6 +199,8 @@ def one_line(s, drop_hyphen=False):
     return t
 
 NUM = re.compile(r"^(\d+)[.)]?$")
+# заголовок розділу всередині таблиці: «I. Стаціонар», «2. Кабінет…»
+SECT_HEAD = re.compile(r"^([IVXL]+|\d+)\.\s+\S")
 CELL = re.compile(r"<t[dh]([^>]*)>(.*?)</t[dh]>", re.S | re.I)   # у дзеркалі трапляється <TD>
 ROW = re.compile(r"<tr.*?</tr>", re.S | re.I)
 
@@ -244,7 +261,7 @@ def short_section(title, fallback=""):
             new = re.sub(r"^(та\s+|,\s*)?" + chunk + r"[,\s]*", "", t, flags=re.I)
             if new != t:
                 t, changed = new, True
-    t = t.strip(" ,;")
+    t = t.strip(" ,;—-")
     return (t[:1].upper() + t[1:]) if t else (fallback or title)
 
 # ══════════════════════════════════════════════════════════════
@@ -363,21 +380,41 @@ def parse_html(html, doc):
         rows = ROW.findall(raw)
         if len(rows) < 3:
             continue
-        parsed, header_rows = [], []
+        parsed, header_rows, roz = [], [], cur_roz
+        cols = None
+
+        def flush(rows_acc, roz_title):
+            if rows_acc:
+                tables.append({"tit": cur_tit, "roz": roz_title,
+                               "cols": cols if cols is not None else header_grid(header_rows),
+                               "rows": rows_acc})
+
         for r in rows:
             cells = cells_of(r)
             if not cells or not any(cells) or is_numbering(cells):
                 continue
             head = cells[0]
+            filled = [c for c in cells if c]
             if NUM.match(head):
                 parsed.append({"no": NUM.match(head).group(1),
                                "name": cells[1] if len(cells) > 1 else "",
                                "qty": cells[2:]})
+            elif len(filled) == 1 and len(filled[0]) < 160 and SECT_HEAD.match(filled[0]):
+                # однокомірковий рядок усередині таблиці — заголовок розділу
+                # («I. Стаціонар», «II. Приміщення для проведення фізичної терапії»).
+                # Якщо він стоїть ПЕРЕД шапкою (наказ 148), лише запам'ятовуємо назву:
+                # шапку ще не прочитано, тож підписи колонок фіксувати рано.
+                if parsed:
+                    if cols is None:
+                        cols = header_grid(header_rows)
+                    flush(parsed, roz)
+                    parsed = []
+                roz = filled[0]
             elif not parsed:                       # шапка (може бути кількарівнева)
                 header_rows.append(r)
-        if parsed:
-            tables.append({"tit": cur_tit, "roz": cur_roz,
-                           "cols": header_grid(header_rows), "rows": parsed})
+        if cols is None:
+            cols = header_grid(header_rows)
+        flush(parsed, roz)
     log(f"  {doc['id']}: HTML-таблиць {len(tables)}")
     return assemble(tables, doc)
 
@@ -421,15 +458,24 @@ def assemble(tables, doc):
         n = seen_titles[(g["id"], title)]
         if n > 1:
             title = f"{title} · частина {n}"
+        labels = qty_labels(t, ncols)
+        # остання колонка на кшталт «Опис» / «Примітка» — це не кількість, а вимога до виробу
+        note_col = None
+        if labels and re.match(r"(опис|приміт|характерист)", labels[-1], re.I):
+            note_col = ncols - 1
+            labels = labels[:-1] or ["Кількість"]
         sec = {"id": f'{g["id"]}-{len(g["sections"]) + 1}',
                "title": title, "count": len(t["rows"]),
-               "qty_labels": qty_labels(t, ncols), "notes": [], "excluded": 0}
+               "qty_labels": labels, "notes": [], "excluded": 0}
         g["sections"].append(sec)
         for r in t["rows"]:
+            qty, note = list(r["qty"]), ""
+            if note_col is not None and len(qty) > note_col:
+                note = qty.pop(note_col)
             # наскрізний номер: у підтаблицях нумерація починається заново, тож
             # «документ-розділ-номер» не був би унікальним
-            items.append([f'{doc["id"]}-{len(items) + 1}', r["name"], r["qty"],
-                          g["id"], sec["id"], "", ""])
+            items.append([f'{doc["id"]}-{len(items) + 1}', r["name"], qty,
+                          g["id"], sec["id"], "", "", note])
     return out_tables, items
 
 # ══════════════════════════════════════════════════════════════
@@ -456,7 +502,7 @@ def convert_153(doc):
         tables.append(g)
     for r in idx:
         items.append([f'153-{len(items) + 1}', r[1], r[2],
-                      str(r[3]), f'{r[3]}-{r[4]}', r[5], r[6]])
+                      str(r[3]), f'{r[3]}-{r[4]}', r[5], r[6], ""])
     log(f"  153: перенесено {len(items)} позицій із tabel153")
     return tables, items
 
@@ -489,7 +535,7 @@ def main():
                       "Специфікації ПМГ посилаються на табелі загалом, не називаючи конкретного наказу.",
         },
         "docs": [],
-        "schema_items": ["id", "name", "qtys[]", "table", "section", "sub", "status"],
+        "schema_items": ["id", "name", "qtys[]", "table", "section", "sub", "status", "note"],
     }
 
     for doc in DOCS:

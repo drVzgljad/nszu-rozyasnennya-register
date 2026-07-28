@@ -127,3 +127,15 @@
 .tb-allbox { margin-top: 8px; }
 
 :root.dark-theme .tb-card { background: var(--soft); }
+
+/* ── Колонка «Опис вимоги» (наказ 995) ─────────────────────── */
+.tb-th-note { text-align: left !important; min-width: 220px; }
+.tb-td-note {
+  text-align: left; font-size: .82rem; line-height: 1.45; color: var(--muted);
+}
+.tb-note {
+  margin: 0; font-size: .9rem; line-height: 1.55; color: var(--ink);
+  background: var(--soft); border: 1px solid var(--line);
+  border-radius: 11px; padding: 10px 13px;
+}
+:root.dark-theme .tb-note { background: var(--soft); }
