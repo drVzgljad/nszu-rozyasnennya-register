@@ -21,8 +21,10 @@ const EXPERTS = {
 };
 
 // ── Матриця розподілу: основні пакети ПМГ-2026 ─────────────────
+// Сід-копія робочої таблиці (лип. 2026). Живі дані — у Supabase
+// (таблиця package_assignments); цей масив — фолбек, якщо база недоступна.
 // num — № пакета за постановою 1808; resp — відповідальний (аналіз, пакети); dup — дублер (відповіді на листи)
-const MAIN = [
+const SEED_MAIN = [
   { num: '1',  title: 'Первинна медична допомога', resp: 'savka', dup: 'savka' },
   { num: '2',  title: 'Екстрена медична допомога', resp: 'isaiuk', dup: 'isaiuk' },
   { num: '3',  title: 'Хірургічні операції дорослим та дітям у стаціонарних умовах', resp: 'vesel', dup: 'vesel' },
@@ -72,7 +74,7 @@ const MAIN = [
 ];
 
 // ── Пілотні / експериментальні проєкти ─────────────────────────
-const PILOTS = [
+const SEED_PILOTS = [
   { num: '66', title: 'Зубопротезування окремих категорій осіб, які захищають/захищали незалежність, суверенітет та територіальну цілісність України (група послуг № 1)', resp: 'vesel', dup: 'vesel', pilot: true },
   { num: '67', title: 'Стоматологічна допомога окремій категорії осіб, які захищають/захищали незалежність, суверенітет та територіальну цілісність України (група послуг № 2)', resp: 'vesel', dup: 'vesel', pilot: true },
   { num: '71', title: 'Медичні послуги із здійснення забору, кріоконсервації та зберігання репродуктивних клітин військовослужбовців та інших осіб на випадок втрати репродуктивної функції', resp: 'koval', dup: 'tkach', pilot: true },
@@ -81,16 +83,24 @@ const PILOTS = [
   { num: '86', title: 'Довготривалий медичний догляд окремим категоріям осіб, які захищали незалежність, суверенітет та територіальну цілісність України', resp: 'koval', dup: 'volosh', pilot: true },
 ];
 
-const ALL_PACKAGES = [...MAIN, ...PILOTS];
-
 // Пакети, для яких існує паспорт на порталі (лише основні; пілотні специфікації окремо)
-const HAS_PASSPORT = new Set(MAIN.map(p => p.num));
+const HAS_PASSPORT = new Set(SEED_MAIN.map(p => p.num));
 
 // ── Стан ────────────────────────────────────────────────────────
+let MAIN = SEED_MAIN;
+let PILOTS = SEED_PILOTS;
+let ALL_PACKAGES = [...MAIN, ...PILOTS];
+
 let myKey = null;        // експерт, якого впізнали за акаунтом
 let viewerKey = null;    // чий особистий розподіл зараз показано
 let filterExpert = 'all';
 let searchQ = '';
+
+let currentUser = null;
+let myName = '';
+let dbReady = false;     // дані завантажені з package_assignments (можна редагувати)
+let canEdit = false;     // керівництво: admin/director/deputy_director/manager або is_head
+let editMode = false;
 
 // ── Утиліти ────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -124,16 +134,22 @@ async function init() {
   const { data: { session } } = await sb.auth.getSession();
   const user = session?.user ?? null;
   if (!user) return; // доступ закриє auth-v2 (data-required-role="expert")
+  currentUser = user;
 
-  // Впізнаємо експерта за повним ім'ям у профілі
+  // Впізнаємо експерта за повним ім'ям у профілі; заодно — права на редагування
   let fullName = user.user_metadata?.full_name || user.user_metadata?.name || '';
   try {
-    const { data: prof } = await sb.from('profiles').select('full_name').eq('id', user.id).single();
+    const { data: prof } = await sb.from('profiles').select('full_name, role, is_head').eq('id', user.id).single();
     if (prof?.full_name) fullName = prof.full_name;
+    canEdit = !!prof && (['admin', 'director', 'deputy_director', 'manager'].includes(prof.role) || prof.is_head === true);
   } catch (_) { /* профіль необов'язковий — залишаємо metadata */ }
+  myName = fullName;
 
   myKey = Object.keys(EXPERTS).find(k => fullName.toLowerCase().includes(EXPERTS[k].surname.toLowerCase())) || null;
   viewerKey = myKey || 'savka';
+
+  // Живі дані з Supabase (фолбек — вбудований сід, якщо таблиці ще немає)
+  await loadAssignments();
 
   // Дозволяємо відкривати одразу потрібний режим: rozpodil.html#all / #my / ?expert=key
   const params = new URLSearchParams(location.search);
@@ -150,6 +166,28 @@ async function init() {
     searchQ = e.target.value.trim().toLowerCase();
     renderTable();
   });
+
+  if (canEdit) {
+    const btn = $('rz-edit-btn');
+    btn.style.display = '';
+    btn.addEventListener('click', toggleEditMode);
+    $('rz-add-save').addEventListener('click', addRow);
+  }
+}
+
+// ── Завантаження розподілу з Supabase ──────────────────────────
+async function loadAssignments() {
+  try {
+    const { data, error } = await sb.from('package_assignments')
+      .select('*')
+      .order('sort_order', { ascending: true });
+    if (!error && Array.isArray(data) && data.length) {
+      MAIN = data.filter(r => !r.pilot);
+      PILOTS = data.filter(r => r.pilot);
+      ALL_PACKAGES = [...MAIN, ...PILOTS];
+      dbReady = true;
+    }
+  } catch (_) { /* таблиці ще немає — працюємо на вбудованому сіді */ }
 }
 
 // ── Вкладки Особисто / Загальний ───────────────────────────────
@@ -328,9 +366,11 @@ function renderTable() {
         ? `<a class="rz-num" href="../passport/index.html?package=${encodeURIComponent(p.num)}" title="Паспорт пакета № ${esc(p.num)}">№ ${esc(p.num)}</a>`
         : `<span class="rz-num pilot">№ ${esc(p.num)}</span>`
     }</td>
-    <td class="rz-td-title">${esc(p.title)}${p.pilot ? ' <span class="rz-pilot-badge">🧪 пілот</span>' : ''}</td>
-    <td>${expertChip(p.resp, 'filter')}</td>
-    <td>${p.dup === p.resp ? '<span class="rz-same">— той самий</span>' : expertChip(p.dup, 'filter')}</td>
+    <td class="rz-td-title">${esc(p.title)}${p.pilot ? ' <span class="rz-pilot-badge">🧪 пілот</span>' : ''}${
+      editMode ? ` <button type="button" class="rz-del-btn" data-id="${p.id}" title="Видалити пакет з розподілу">🗑</button>` : ''
+    }</td>
+    <td>${editMode ? expertSelect(p, 'resp') : expertChip(p.resp, 'filter')}</td>
+    <td>${editMode ? expertSelect(p, 'dup') : (p.dup === p.resp ? '<span class="rz-same">— той самий</span>' : expertChip(p.dup, 'filter'))}</td>
   </tr>`;
 
   const sectionRow = label => `<tr class="rz-section-row"><td colspan="4">${label}</td></tr>`;
@@ -360,4 +400,127 @@ function renderTable() {
       }
     });
   });
+
+  // Режим редагування: селекти відповідального/дублера + видалення
+  $('rz-table-body').querySelectorAll('.rz-edit-select').forEach(sel => {
+    sel.addEventListener('change', () => saveField(sel.dataset.id, sel.dataset.field, sel.value));
+  });
+  $('rz-table-body').querySelectorAll('.rz-del-btn').forEach(b => {
+    b.addEventListener('click', () => deleteRow(b.dataset.id));
+  });
+}
+
+// ═══ РЕДАГУВАННЯ (лише керівництво; дані в package_assignments) ═══
+
+function expertSelect(p, field) {
+  return `<select class="rz-edit-select" data-id="${p.id}" data-field="${field}" aria-label="${field === 'resp' ? 'Відповідальний' : 'Дублер'}">${
+    Object.keys(EXPERTS).map(k =>
+      `<option value="${k}"${p[field] === k ? ' selected' : ''}>${esc(EXPERTS[k].short)}</option>`).join('')
+  }</select>`;
+}
+
+function toggleEditMode() {
+  if (!dbReady) {
+    toast('⚠️ Таблиця package_assignments ще не створена в Supabase. Запустіть міграцію migration_2026-07-28_package_assignments.sql у SQL Editor.', 6000);
+    return;
+  }
+  editMode = !editMode;
+  const btn = $('rz-edit-btn');
+  btn.classList.toggle('active', editMode);
+  btn.textContent = editMode ? '✅ Завершити редагування' : '✏️ Редагувати розподіл';
+  $('rz-add-panel').style.display = editMode ? '' : 'none';
+  if (editMode) fillAddSelects();
+  renderTable();
+}
+
+function fillAddSelects() {
+  const opts = Object.keys(EXPERTS).map(k => `<option value="${k}">${esc(EXPERTS[k].short)}</option>`).join('');
+  $('rz-add-resp').innerHTML = opts;
+  $('rz-add-dup').innerHTML = opts;
+}
+
+async function saveField(id, field, value) {
+  const { error } = await sb.from('package_assignments')
+    .update({ [field]: value, updated_by: currentUser.id, updated_by_name: myName })
+    .eq('id', id);
+  if (error) {
+    toast('⚠️ Не збереглося: ' + error.message, 5000);
+    renderTable();
+    return;
+  }
+  const row = ALL_PACKAGES.find(p => p.id === id);
+  if (row) row[field] = value;
+  toast('✅ Збережено');
+  renderLoadBars();
+  renderChips();
+  renderPersonal();
+}
+
+async function addRow() {
+  const num = $('rz-add-num').value.trim();
+  const title = $('rz-add-title').value.trim();
+  if (!num || !title) {
+    toast('⚠️ Вкажіть № пакета і назву');
+    return;
+  }
+  const rec = {
+    num,
+    title,
+    resp: $('rz-add-resp').value,
+    dup: $('rz-add-dup').value,
+    pilot: $('rz-add-pilot').checked,
+    sort_order: Math.max(0, ...ALL_PACKAGES.map(p => p.sort_order || 0)) + 10,
+    updated_by: currentUser.id,
+    updated_by_name: myName,
+  };
+  const { data, error } = await sb.from('package_assignments').insert(rec).select().single();
+  if (error) {
+    toast('⚠️ Не додалося: ' + error.message, 5000);
+    return;
+  }
+  (data.pilot ? PILOTS : MAIN).push(data);
+  ALL_PACKAGES = [...MAIN, ...PILOTS];
+  $('rz-add-num').value = '';
+  $('rz-add-title').value = '';
+  $('rz-add-pilot').checked = false;
+  toast('✅ Пакет додано');
+  renderLoadBars();
+  renderChips();
+  renderTable();
+  renderPersonal();
+}
+
+async function deleteRow(id) {
+  const row = ALL_PACKAGES.find(p => p.id === id);
+  if (!row) return;
+  if (!confirm(`Видалити з розподілу пакет № ${row.num} «${row.title}»?`)) return;
+  const { error } = await sb.from('package_assignments').delete().eq('id', id);
+  if (error) {
+    toast('⚠️ Не видалилося: ' + error.message, 5000);
+    return;
+  }
+  MAIN = MAIN.filter(p => p.id !== id);
+  PILOTS = PILOTS.filter(p => p.id !== id);
+  ALL_PACKAGES = [...MAIN, ...PILOTS];
+  toast('🗑 Видалено');
+  renderLoadBars();
+  renderChips();
+  renderTable();
+  renderPersonal();
+}
+
+// ── Дрібне спливаюче повідомлення ──────────────────────────────
+let toastTimer = null;
+function toast(msg, ms = 2200) {
+  let el = $('rz-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'rz-toast';
+    el.className = 'rz-toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), ms);
 }

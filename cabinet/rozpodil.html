@@ -11,9 +11,9 @@
   <title>Розподіл пакетів — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260719h">
   <link rel="stylesheet" href="../auth-v2.css?v=20260725d">
-  <link rel="stylesheet" href="rozpodil.css?v=20260728a">
+  <link rel="stylesheet" href="rozpodil.css?v=20260728b">
   <script type="module" src="../auth-v2.js?v=20260728c"></script>
-  <script type="module" src="rozpodil.js?v=20260728a"></script>
+  <script type="module" src="rozpodil.js?v=20260728b"></script>
 </head>
 <body data-required-role="expert">
 <div class="portal">
@@ -111,7 +111,10 @@
 
       <!-- Інструменти -->
       <div class="rz-toolbar">
-        <input type="search" id="rz-search" class="rz-search" placeholder="Пошук пакета за назвою чи номером…" autocomplete="off">
+        <div class="rz-search-row">
+          <input type="search" id="rz-search" class="rz-search" placeholder="Пошук пакета за назвою чи номером…" autocomplete="off">
+          <button type="button" class="rz-edit-btn" id="rz-edit-btn" style="display:none;" title="Змінити відповідальних та дублерів (лише керівництво)">✏️ Редагувати розподіл</button>
+        </div>
         <div class="rz-chips" id="rz-chips"></div>
       </div>
 
@@ -129,6 +132,19 @@
           <tbody id="rz-table-body"></tbody>
         </table>
         <div class="rz-empty" id="rz-empty" style="display:none;">Нічого не знайдено за цим запитом.</div>
+      </section>
+
+      <!-- Додавання пакета (видно лише в режимі редагування) -->
+      <section class="rz-add-panel" id="rz-add-panel" style="display:none;">
+        <h3 class="rz-section-title">➕ Додати пакет до розподілу</h3>
+        <div class="rz-add-grid">
+          <input type="text" id="rz-add-num" class="rz-add-input rz-add-numfield" placeholder="№" inputmode="numeric">
+          <input type="text" id="rz-add-title" class="rz-add-input" placeholder="Назва пакета медичних послуг">
+          <select id="rz-add-resp" class="rz-add-input" aria-label="Відповідальний"></select>
+          <select id="rz-add-dup" class="rz-add-input" aria-label="Дублер"></select>
+          <label class="rz-add-pilot-lbl"><input type="checkbox" id="rz-add-pilot"> 🧪 пілот</label>
+          <button type="button" class="btn btn-primary rz-add-save" id="rz-add-save">Додати</button>
+        </div>
       </section>
 
     </div>

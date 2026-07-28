@@ -269,6 +269,81 @@ a.rz-num:hover { filter: brightness(1.12); }
 .rz-same { font-size: 12px; color: var(--p-muted); font-style: italic; }
 .rz-empty { padding: 26px; text-align: center; font-size: 13.5px; color: var(--p-muted); }
 
+/* ── Режим редагування (керівництво) ───────────────────────────── */
+.rz-search-row { display: flex; gap: 10px; align-items: center; }
+.rz-search-row .rz-search { flex: 1; }
+.rz-edit-btn {
+  flex: none;
+  padding: 11px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--p-line);
+  background: var(--p-surface);
+  font: inherit; font-size: 13px; font-weight: 700; color: var(--accent-deep);
+  cursor: pointer;
+  box-shadow: var(--p-shadow-sm);
+  white-space: nowrap;
+}
+.rz-edit-btn:hover { border-color: var(--accent-deep); }
+.rz-edit-btn.active { background: var(--accent-deep); border-color: var(--accent-deep); color: #fff; }
+
+.rz-edit-select {
+  max-width: 170px;
+  padding: 6px 8px;
+  border-radius: 9px;
+  border: 1px solid var(--p-line);
+  background: var(--p-surface);
+  font: inherit; font-size: 12.5px; font-weight: 600; color: var(--p-ink);
+}
+.rz-del-btn {
+  border: 0; background: transparent;
+  font-size: 13px; cursor: pointer;
+  opacity: .45; padding: 2px 4px;
+}
+.rz-del-btn:hover { opacity: 1; }
+
+.rz-add-panel {
+  padding: 16px 20px;
+  background: var(--p-surface);
+  border: 1px dashed var(--p-line);
+  border-radius: var(--pr-card);
+}
+.rz-add-grid {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  margin-top: 8px;
+}
+.rz-add-input {
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--p-line);
+  background: var(--p-surface);
+  font: inherit; font-size: 13px; color: var(--p-ink);
+}
+.rz-add-numfield { width: 74px; flex: none; }
+#rz-add-title { flex: 1 1 260px; min-width: 200px; }
+.rz-add-pilot-lbl {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12.5px; font-weight: 700; color: var(--p-muted);
+  white-space: nowrap; cursor: pointer;
+}
+.rz-add-save { flex: none; padding: 9px 18px; }
+
+.rz-toast {
+  position: fixed;
+  left: 50%; bottom: 26px;
+  transform: translate(-50%, 12px);
+  max-width: min(92vw, 480px);
+  padding: 11px 18px;
+  border-radius: 12px;
+  background: #16344e;
+  color: #fff;
+  font-size: 13.5px; font-weight: 600; line-height: 1.45;
+  box-shadow: 0 10px 30px rgba(0,0,0,.28);
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s, transform .2s;
+  z-index: 1200;
+}
+.rz-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
 /* ── Мобільна версія ───────────────────────────────────────────── */
 @media (max-width: 720px) {
   .rz-container { padding-top: 14px; gap: 16px; }
@@ -281,6 +356,8 @@ a.rz-num:hover { filter: brightness(1.12); }
   .rz-cards { grid-template-columns: 1fr; }
   .rz-load-row { grid-template-columns: 128px 1fr 52px; gap: 8px; }
   .rz-load-name { font-size: 12px; }
+  .rz-search-row { flex-direction: column; align-items: stretch; }
+  .rz-edit-select { max-width: none; width: 100%; }
 
   /* Таблиця → картки */
   .rz-table thead { display: none; }
