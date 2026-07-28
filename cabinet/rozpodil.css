@@ -344,6 +344,53 @@ a.rz-num:hover { filter: brightness(1.12); }
 }
 .rz-toast.show { opacity: 1; transform: translate(-50%, 0); }
 
+/* ── Темна тема ────────────────────────────────────────────────── */
+/* Змінні (--p-surface, --p-line, --p-ink…) переозначує auth-v2.css;
+   тут — лише жорстко зашиті світлі кольори. */
+
+/* Чип експерта: замішуємо колір у темне тло замість білого */
+:root.dark-theme .rz-exp-chip {
+  background: color-mix(in srgb, var(--exp-c) 24%, #0f172a);
+  border-color: color-mix(in srgb, var(--exp-c) 55%, transparent);
+}
+:root.dark-theme .rz-exp-chip:hover {
+  background: color-mix(in srgb, var(--exp-c) 38%, #0f172a);
+}
+
+/* Пілотні: янтарне на темному замість кремового */
+:root.dark-theme .rz-card-pilot {
+  background: linear-gradient(180deg, #2a2416, var(--p-surface));
+  border-color: #4d3f1e;
+}
+:root.dark-theme .rz-row-pilot { background: #241f12; }
+:root.dark-theme .rz-row-pilot:hover { background: #2a2416; }
+:root.dark-theme .rz-section-row td {
+  background: #2a2416;
+  border-color: #4d3f1e;
+  color: #e3b34c;
+}
+:root.dark-theme .rz-pilot-badge {
+  background: #3a2f14;
+  border-color: #4d3f1e;
+  color: #e3b34c;
+}
+
+/* Номер пакета: у темній темі --accent-deep світлішає (#38bdf8),
+   білий текст на ньому втрачає контраст — беремо глибший синій */
+:root.dark-theme .rz-num { background: #0284c7; }
+:root.dark-theme a.rz-num:hover { filter: brightness(1.25); }
+:root.dark-theme .rz-num.pilot { background: #8a6207; }
+
+/* Активний фільтр-чип: колір експерта + білий текст лишаються,
+   але дефолтний (без --exp-c) — глибший синій */
+:root.dark-theme .rz-filter-chip.active {
+  background: var(--exp-c, #0284c7);
+  border-color: var(--exp-c, #0284c7);
+}
+
+/* Перемикач вкладок на банері: активна кнопка — світла картка з темним
+   текстом читається і в темній темі (банер завжди темно-синій) */
+
 /* ── Мобільна версія ───────────────────────────────────────────── */
 @media (max-width: 720px) {
   .rz-container { padding-top: 14px; gap: 16px; }
