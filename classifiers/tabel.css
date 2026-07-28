@@ -1,6 +1,6 @@
 /* ============================================================
-   Табелі оснащення (наказ МОЗ № 153) — стилі поверх classifiers.css:
-   кількість у рядку результату, таблиця табеля профілю, картка позиції.
+   Табелі оснащення — стилі розділу поверх classifiers.css:
+   реєстр наказів картками, таблиця табеля профілю, картка позиції.
    Токени — зі styles.css (--ink, --accent, --surface, --line…).
    ============================================================ */
 
@@ -80,3 +80,50 @@
   .tb-table { font-size: .82rem; }
   .tb-qtycell { min-width: 78px; }
 }
+
+/* ── Реєстр наказів (картки) ───────────────────────────────── */
+.tb-cards { display: grid; gap: 10px; }
+.tb-card {
+  border: 1px solid var(--line); border-radius: 13px; padding: 12px 14px;
+  background: var(--soft); transition: border-color .15s ease;
+}
+.tb-card:hover { border-color: var(--accent); }
+.tb-card-nodata { opacity: .82; }
+.tb-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 5px; }
+.tb-card-no {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-weight: 800;
+  color: #fff; background: var(--accent-dark); border-radius: 7px; padding: 2px 9px; font-size: .84rem;
+}
+.tb-card-date { font-size: .78rem; color: var(--muted); }
+.tb-card-kind {
+  margin-left: auto; font-size: .68rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .03em; color: var(--teal-dark); background: var(--warm);
+  border-radius: 20px; padding: 2px 9px;
+}
+.tb-card-title { font-size: .98rem; font-weight: 700; color: var(--ink); line-height: 1.35; }
+.tb-card-profile { font-size: .84rem; color: var(--muted); line-height: 1.45; margin-top: 3px; }
+.tb-card-meta { font-size: .76rem; color: var(--muted); margin-top: 4px; }
+.tb-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-top: 9px; }
+.tb-open {
+  border: 1px solid var(--accent-dark); background: var(--accent-dark); color: #fff;
+  border-radius: 9px; padding: 6px 12px; font: inherit; font-size: .82rem; font-weight: 600; cursor: pointer;
+}
+.tb-open:hover { background: var(--accent); border-color: var(--accent); }
+.tb-nodata { font-size: .78rem; color: var(--muted); flex: 1 1 200px; }
+.tb-src { font-size: .8rem; font-weight: 600; color: var(--accent-dark); text-decoration: none; }
+.tb-src:hover { text-decoration: underline; }
+
+/* ── Картка наказу: профілі за табелями ────────────────────── */
+.tb-tblblock { margin-bottom: 12px; }
+.tb-tblblock h4 {
+  margin: 0 0 6px; font-size: .84rem; font-weight: 700; color: var(--accent-dark); line-height: 1.35;
+}
+.subchip-out { opacity: .6; }
+.subchip b { color: var(--muted); font-family: ui-monospace, monospace; }
+.tb-amend { margin: 0; padding-left: 18px; font-size: .87rem; line-height: 1.55; color: var(--ink); }
+.tb-amend b { color: var(--accent-dark); font-family: ui-monospace, monospace; }
+
+/* «шукати в усіх документах» під полем пошуку */
+.tb-allbox { margin-top: 8px; }
+
+:root.dark-theme .tb-card { background: var(--soft); }

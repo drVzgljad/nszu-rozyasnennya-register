@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>НавігаторПМГ26 | Табелі оснащення закладів охорони здоров'я</title>
+  <link rel="stylesheet" href="../styles.css?v=20260719c">
+  <link rel="stylesheet" href="classifiers.css?v=20260725d">
+  <link rel="stylesheet" href="tabel.css?v=20260728a">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260725d">
+  <script type="module" src="../auth-v2.js?v=20260728c"></script>
+</head>
+<body id="top">
+  <header class="hero classifiers-hero">
+    <div class="hero-copy">
+      <div class="overline">Накази МОЗ · табелі та примірні табелі оснащення ·
+        <a class="xnav" href="nk024.html">↔ Медвироби НК 024</a>
+        <a class="xnav" href="../pakety/index.html">↔ Пакети ПМГ</a>
+        <a class="xnav" href="index.html">↔ Хвороби НК 025</a>
+        <a class="xnav" href="nk026.html">↔ Інтервенції НК 026</a></div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів, постанови та правил</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Табелі оснащення закладів охорони здоров'я</h1>
+      <p>Що і в якій кількості має бути в підрозділі — за наказами МОЗ. Для ПМГ це не довідка,
+         а критична умова: специфікації вимагають підрозділів, <em>обладнаних відповідно до табелю
+         матеріально-технічного оснащення</em>, а договір з НСЗУ зобов'язує їх дотримуватися.
+         Тут зібрано реєстр табелів, а для тих, чий офіційний текст доступний, — усі позиції
+         з пошуком і можливістю скопіювати табель профілю для звірки.</p>
+    </div>
+    <div class="stats" id="tbStats" aria-label="Статистика розділу"></div>
+  </header>
+
+  <nav class="mobile-tabs" id="mobileTabs" aria-label="Навігація між панелями">
+    <button class="mobile-tab active" data-tab="browser" type="button">Огляд і пошук</button>
+    <button class="mobile-tab" data-tab="reader" type="button">Картка</button>
+  </nav>
+
+  <main class="nk-layout" data-active="browser">
+    <!-- ЛІВА ПАНЕЛЬ: пошук + каскад -->
+    <section class="nk-browser" aria-label="Пошук і навігація табелів">
+      <div class="search-panel nk-search">
+        <label class="search">
+          <span>Пошук за назвою обладнання або виробу</span>
+          <input id="tbSearch" type="search"
+                 placeholder="Напр.: дефібрилятор, кольпоскоп, ваги, стіл операційний…" autocomplete="off">
+        </label>
+        <label class="nk-check tb-allbox"><input type="checkbox" id="searchAll" checked>
+          шукати в усіх документах одразу</label>
+
+        <!-- Пакетний пошук: звірка переліку обладнання -->
+        <details class="nk-batch">
+          <summary>📋 Пакетний пошук — звірити свій перелік обладнання</summary>
+          <textarea id="tbBatch" rows="4"
+            placeholder="Вставте назви — по одній у рядку:&#10;дефібрилятор&#10;кольпоскоп&#10;лампа бактерицидна"></textarea>
+          <div class="batch-actions">
+            <button id="tbBatchRun" type="button" class="batch-primary">Знайти всі</button>
+            <button id="tbBatchCopy" type="button" hidden>⧉ Копіювати знайдене</button>
+            <button id="tbBatchClear" type="button">Очистити</button>
+          </div>
+        </details>
+
+        <!-- Каскадна навігація: Документ → Розділ → Позиція -->
+        <div class="nk-cascade" aria-label="Навігація по табелях">
+          <div class="casc-field">
+            <label for="selDoc">Наказ (табель)</label>
+            <select id="selDoc"><option value="">Завантаження…</option></select>
+          </div>
+          <div class="casc-field">
+            <label for="selSection">Профіль підрозділу</label>
+            <select id="selSection" disabled><option value="">— оберіть наказ —</option></select>
+          </div>
+          <div class="casc-field">
+            <label for="selItem">Позиція табеля</label>
+            <select id="selItem" disabled><option value="">— оберіть профіль —</option></select>
+          </div>
+        </div>
+        <p class="casc-note">Кількість подано так, як у документі: «на N місць», «з розрахунку
+           на 1 кабінет», окремими колонками за кількістю ліжок або видом прийому. Табелі різних
+           років користуються різною мовою — звіряйте профіль, а не лише назву виробу.</p>
+
+        <div class="nk-filters">
+          <label class="nk-check"><input type="checkbox" id="hideExcluded" checked> приховати виключені позиції</label>
+        </div>
+        <div class="results-summary">
+          <span id="tbCount">Завантаження…</span>
+          <button id="tbClear" type="button">✕ Очистити форму</button>
+        </div>
+      </div>
+
+      <!-- Результати пошуку / перелік профілю -->
+      <div class="nk-results" id="tbResults" hidden></div>
+    </section>
+
+    <!-- ПРАВА ПАНЕЛЬ: реєстр, картка профілю або позиції -->
+    <article class="nk-reader" id="tbReader" aria-live="polite"></article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Джерела: накази МОЗ України про затвердження табелів і примірних табелів оснащення
+           (реквізити кожного — у картці документа). Повні тексти наведено за офіційними
+           публікаціями; там, де текст доступний лише на сайті МОЗ, подано картку з реквізитами
+           та посиланням. Довідковий інструмент; у разі розбіжностей переважну силу має
+           офіційний текст акта.</p>
+      </div>
+    </div>
+  </footer>
+
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <script src="tabel.js?v=20260728a" defer></script>
+</body>
+</html>
