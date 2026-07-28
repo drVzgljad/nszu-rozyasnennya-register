@@ -567,10 +567,18 @@ select {
   .footer-department { font-size: 16px; }
   .back-to-top {
     left: 12px;
-    bottom: 12px;
     min-width: 82px;
     padding: 10px 12px;
     font-size: 13px;
+  }
+}
+
+/* На ≤980px знизу фіксується мобільний таббар (z-index 11000), і кнопка
+   «↑ Верх» (z-index 50) ховалася за ним — піднімаємо її над панеллю.
+   Стежка навігації рахує свою позицію від цієї кнопки динамічно. */
+@media (max-width: 980px) {
+  .back-to-top {
+    bottom: calc(70px + env(safe-area-inset-bottom));
   }
 }
 

@@ -62,7 +62,9 @@ function recordCurrentPage() {
 const CSS = `
 .nav-trail {
   position: fixed;
-  left: 16px; bottom: 16px;
+  left: 16px;
+  /* --nt-bottom рахується в JS: над кнопкою «↑ Верх», якщо вона є на сторінці */
+  bottom: var(--nt-bottom, 16px);
   z-index: 10500;
   display: flex;
   flex-direction: column;
@@ -72,7 +74,7 @@ const CSS = `
 }
 @media (max-width: 980px) {
   /* не перекривати мобільний таббар */
-  .nav-trail { bottom: calc(70px + env(safe-area-inset-bottom)); left: 10px; }
+  .nav-trail { bottom: var(--nt-bottom, calc(70px + env(safe-area-inset-bottom))); left: 10px; }
 }
 
 /* Рядок «кнопка + швидкий назад» */
@@ -247,6 +249,42 @@ function render(trail) {
   });
 
   document.body.appendChild(root);
+  keepClearOfCorner(root);
+}
+
+// ── Не наїжджати на те, що вже живе в лівому нижньому куті ─────
+// На багатьох розділах там кнопка «↑ Верх» (.back-to-top). Піднімаємо
+// стежку рівно настільки, щоб стати над нею.
+function keepClearOfCorner(root) {
+  const OCCUPANTS = '.back-to-top';
+  const GAP = 10;
+
+  const apply = () => {
+    const el = document.querySelector(OCCUPANTS);
+    if (!el) { root.style.removeProperty('--nt-bottom'); return; }
+
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || cs.position !== 'fixed') {
+      root.style.removeProperty('--nt-bottom');
+      return;
+    }
+
+    const r = el.getBoundingClientRect();
+    if (!r.height) { root.style.removeProperty('--nt-bottom'); return; }
+
+    // Сусід стоїть у лівій частині екрана? Якщо ні — не заважає.
+    if (r.left > window.innerWidth / 2) { root.style.removeProperty('--nt-bottom'); return; }
+
+    // Відстань від низу вікна до ВЕРХУ сусіда + проміжок
+    const needed = Math.round(window.innerHeight - r.top + GAP);
+    const base = window.innerWidth <= 980 ? 70 : 16;
+    root.style.setProperty('--nt-bottom', Math.max(base, needed) + 'px');
+  };
+
+  apply();
+  window.addEventListener('resize', apply);
+  // Кнопка «Верх» на деяких розділах з'являється після рендеру контенту
+  setTimeout(apply, 600);
 }
 
 // ── Старт ──────────────────────────────────────────────────────
