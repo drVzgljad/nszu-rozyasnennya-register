@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Розподіл пакетів — НавігаторПМГ26</title>
+  <link rel="stylesheet" href="../portal.css?v=20260719h">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260725d">
+  <link rel="stylesheet" href="rozpodil.css?v=20260728a">
+  <script type="module" src="../auth-v2.js?v=20260728c"></script>
+  <script type="module" src="rozpodil.js?v=20260728a"></script>
+</head>
+<body data-required-role="expert">
+<div class="portal">
+
+  <!-- ── Top bar ─────────────────────────────────────── -->
+  <header class="top">
+    <div class="wrap top-inner">
+      <div class="top-row-1">
+        <a class="lockup" href="../index.html" aria-label="На головну">
+          <img class="shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true" style="width:44px;height:auto">
+          <span class="wm">
+            <span class="wm-1">Робочий простір експертів</span>
+            <span class="wm-2">Програма медичних гарантій 2026</span>
+          </span>
+        </a>
+        <div class="top-row-1-right">
+          <nav class="section-switch top-auth" aria-label="Авторизація"></nav>
+          <span class="agency-chip">
+            <img src="../assets/nszu-shield.svg" alt="">НСЗУ
+          </span>
+        </div>
+      </div>
+      <div class="top-row-2">
+        <nav class="top-nav" aria-label="Головне меню"></nav>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap rz-container">
+
+    <!-- ── Банер розділу ──────────────────────────────── -->
+    <section class="rz-hero">
+      <div class="rz-hero-text">
+        <a class="rz-back" href="index.html">← Мій кабінет</a>
+        <h1>📦 Розподіл пакетів ПМГ‑2026</h1>
+        <p>Хто з експертів відділу відповідає за аналіз кожного пакета медичних послуг і хто дублює відповіді на листи</p>
+      </div>
+      <div class="rz-view-switch" role="tablist" aria-label="Режим перегляду">
+        <button type="button" class="rz-view-btn active" id="rz-tab-my" role="tab" aria-selected="true">👤 Особисто</button>
+        <button type="button" class="rz-view-btn" id="rz-tab-all" role="tab" aria-selected="false">📊 Загальний розподіл</button>
+      </div>
+    </section>
+
+    <!-- ═══ ОСОБИСТА СМАРТ-СТОРІНКА ═══ -->
+    <div id="rz-pane-my">
+
+      <!-- Перемикач «переглянути як колега» -->
+      <div class="rz-person-row" id="rz-person-row"></div>
+
+      <!-- Візитка обраного експерта -->
+      <section class="rz-id-card" id="rz-id-card">
+        <div class="rz-id-avatar" id="rz-id-avatar">?</div>
+        <div class="rz-id-info">
+          <h2 id="rz-id-name">Завантаження…</h2>
+          <p id="rz-id-summary">—</p>
+        </div>
+        <div class="rz-id-metrics">
+          <div class="rz-metric">
+            <span class="rz-metric-num" id="rz-m-resp">0</span>
+            <span class="rz-metric-lbl">відповідальний</span>
+          </div>
+          <div class="rz-metric">
+            <span class="rz-metric-num" id="rz-m-dup">0</span>
+            <span class="rz-metric-lbl">дублер (листи)</span>
+          </div>
+          <div class="rz-metric">
+            <span class="rz-metric-num" id="rz-m-pilot">0</span>
+            <span class="rz-metric-lbl">пілотні проєкти</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="rz-section">
+        <h3 class="rz-section-title">🧭 Пакети на аналізі та супроводі</h3>
+        <div class="rz-cards" id="rz-my-resp"></div>
+      </section>
+
+      <section class="rz-section" id="rz-dup-section">
+        <h3 class="rz-section-title">✉️ Дублюю відповіді на листи</h3>
+        <p class="rz-section-hint">Пакети, де основний аналіз веде колега, а відповіді на листи — у вашій зоні дублювання.</p>
+        <div class="rz-cards" id="rz-my-dup"></div>
+      </section>
+
+    </div>
+
+    <!-- ═══ ЗАГАЛЬНА ІНФОРМАЦІЙНА СМАРТ-СТОРІНКА ═══ -->
+    <div id="rz-pane-all" style="display:none;">
+
+      <!-- Навантаження по експертах -->
+      <section class="rz-load-panel">
+        <h3 class="rz-section-title">⚖️ Навантаження експертів</h3>
+        <p class="rz-section-hint">Темна частина — пакети на відповідальності, світла — дублювання листів за колег. Натисніть на рядок, щоб відфільтрувати таблицю.</p>
+        <div id="rz-load-bars"></div>
+      </section>
+
+      <!-- Інструменти -->
+      <div class="rz-toolbar">
+        <input type="search" id="rz-search" class="rz-search" placeholder="Пошук пакета за назвою чи номером…" autocomplete="off">
+        <div class="rz-chips" id="rz-chips"></div>
+      </div>
+
+      <!-- Таблиця розподілу -->
+      <section class="rz-table-panel">
+        <table class="rz-table">
+          <thead>
+            <tr>
+              <th class="rz-th-num">№ пакету</th>
+              <th>Назва пакета медичних послуг</th>
+              <th class="rz-th-exp">Відповідальний<br><span class="rz-th-sub">аналіз, пакети</span></th>
+              <th class="rz-th-exp">Дублер<br><span class="rz-th-sub">відповіді на листи</span></th>
+            </tr>
+          </thead>
+          <tbody id="rz-table-body"></tbody>
+        </table>
+        <div class="rz-empty" id="rz-empty" style="display:none;">Нічого не знайдено за цим запитом.</div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- ── Footer ───────────────────────────────────────── -->
+  <footer class="p-footer">
+    <div class="wrap">
+      <div class="p-foot-grid">
+        <div>
+          <div class="f-lockup">
+            <img class="shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true" style="width:44px;height:auto">
+            <span class="wm">
+              <span class="wm-1">Робочий простір експертів</span>
+              <span class="wm-2">Програма медичних гарантій 2026</span>
+            </span>
+          </div>
+          <p>Довідковий портал за Програмою медичних гарантій 2026 року.</p>
+        </div>
+        <div class="f-col">
+          <h4>Розділи</h4>
+          <a href="index.html">Особистий кабінет</a>
+          <a href="../passport/index.html">Паспорт пакета</a>
+          <a href="../pakety/index.html">Пакети 2026</a>
+          <a href="../rozjasnennya.html">Роз'яснення</a>
+        </div>
+        <div class="f-col">
+          <h4>Належність</h4>
+          <a href="#dept">Департамент стратегії</a>
+          <a href="#dept">НСЗУ</a>
+          <a href="../index.html#top">Про портал</a>
+        </div>
+      </div>
+      <div class="p-foot-base">
+        <span>© 2026 НСЗУ · Департамент стратегії універсального охоплення населення медичними послугами</span>
+        <span>Розроблено силами Департаменту</span>
+      </div>
+    </div>
+  </footer>
+
+</div><!-- /.portal -->
+</body>
+</html>
