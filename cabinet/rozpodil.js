@@ -112,7 +112,11 @@ function initials(key) {
 }
 
 function passportLink(p) {
-  if (p.pilot || !HAS_PASSPORT.has(p.num)) return '';
+  // Пілоти живуть у власному розділі — у них немає паспорта за постановою 1808
+  if (p.pilot) {
+    return `<a class="rz-card-link" href="../pilots/index.html?p=${encodeURIComponent(p.num)}" title="Відкрити паспорт пілотного проєкту № ${esc(p.num)}">🧪 Паспорт проєкту</a>`;
+  }
+  if (!HAS_PASSPORT.has(p.num)) return '';
   return `<a class="rz-card-link" href="../passport/index.html?package=${encodeURIComponent(p.num)}" title="Відкрити паспорт пакета № ${esc(p.num)}">🪪 Паспорт пакета</a>`;
 }
 
@@ -362,9 +366,11 @@ function renderTable() {
 
   const row = p => `<tr${p.pilot ? ' class="rz-row-pilot"' : ''}>
     <td class="rz-td-num">${
-      (!p.pilot && HAS_PASSPORT.has(p.num))
-        ? `<a class="rz-num" href="../passport/index.html?package=${encodeURIComponent(p.num)}" title="Паспорт пакета № ${esc(p.num)}">№ ${esc(p.num)}</a>`
-        : `<span class="rz-num pilot">№ ${esc(p.num)}</span>`
+      p.pilot
+        ? `<a class="rz-num pilot" href="../pilots/index.html?p=${encodeURIComponent(p.num)}" title="Паспорт пілотного проєкту № ${esc(p.num)}">№ ${esc(p.num)}</a>`
+        : (HAS_PASSPORT.has(p.num)
+            ? `<a class="rz-num" href="../passport/index.html?package=${encodeURIComponent(p.num)}" title="Паспорт пакета № ${esc(p.num)}">№ ${esc(p.num)}</a>`
+            : `<span class="rz-num">№ ${esc(p.num)}</span>`)
     }</td>
     <td class="rz-td-title">${esc(p.title)}${p.pilot ? ' <span class="rz-pilot-badge">🧪 пілот</span>' : ''}${
       editMode ? ` <button type="button" class="rz-del-btn" data-id="${p.id}" title="Видалити пакет з розподілу">🗑</button>` : ''

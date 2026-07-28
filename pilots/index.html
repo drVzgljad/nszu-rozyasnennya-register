@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Пілотні та експериментальні проєкти — НавігаторПМГ26</title>
+  <link rel="stylesheet" href="../portal.css?v=20260719h">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260725d">
+  <link rel="stylesheet" href="pilots.css?v=20260728a">
+  <script type="module" src="../auth-v2.js?v=20260728e"></script>
+  <script type="module" src="pilots.js?v=20260728a"></script>
+</head>
+<body>
+<div class="portal">
+
+  <!-- ── Top bar ─────────────────────────────────────── -->
+  <header class="top">
+    <div class="wrap top-inner">
+      <div class="top-row-1">
+        <a class="lockup" href="../index.html" aria-label="На головну">
+          <img class="shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true" style="width:44px;height:auto">
+          <span class="wm">
+            <span class="wm-1">Робочий простір експертів</span>
+            <span class="wm-2">Програма медичних гарантій 2026</span>
+          </span>
+        </a>
+        <div class="top-row-1-right">
+          <nav class="section-switch top-auth" aria-label="Авторизація"></nav>
+          <span class="agency-chip">
+            <img src="../assets/nszu-shield.svg" alt="">НСЗУ
+          </span>
+        </div>
+      </div>
+      <div class="top-row-2">
+        <nav class="top-nav" aria-label="Головне меню"></nav>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap pl-container">
+
+    <!-- ── Банер розділу ──────────────────────────────── -->
+    <section class="pl-hero">
+      <div class="pl-hero-text">
+        <span class="pl-hero-kicker">🧪 Поза постановою № 1808</span>
+        <h1>Пілотні та експериментальні проєкти</h1>
+        <p>Медичні послуги, які НСЗУ закуповує окремими договорами за власними постановами Кабінету Міністрів — не за Програмою медичних гарантій. Власні тарифи, власні категорії пацієнтів, власні строки.</p>
+      </div>
+      <div class="pl-hero-stats" id="pl-hero-stats"></div>
+    </section>
+
+    <!-- ── Пояснення відмінності від ПМГ ──────────────── -->
+    <section class="pl-explain">
+      <div class="pl-explain-col">
+        <h3>📗 Пакет ПМГ</h3>
+        <p>Постанова КМУ <strong>№ 1808</strong>, 44 глави, єдиний договір про медичне обслуговування населення, тарифи й коефіцієнти в одному акті. Має паспорт пакета на порталі.</p>
+      </div>
+      <div class="pl-explain-arrow">проти</div>
+      <div class="pl-explain-col pl-explain-pilot">
+        <h3>🧪 Пілотний проєкт</h3>
+        <p>Окрема постанова КМУ на кожен напрям, окрема бюджетна програма, окремий договір і власний строк дії. Розпорядником може бути не МОЗ, а <strong>Мінветеранів</strong> чи <strong>Мінсоцполітики</strong>.</p>
+      </div>
+    </section>
+
+    <!-- ── Робоча зона: список + паспорт ──────────────── -->
+    <div class="pl-layout">
+
+      <!-- Список пілотів -->
+      <aside class="pl-list-panel">
+        <h2 class="pl-list-title">Напрями</h2>
+        <div class="pl-list" id="pl-list"></div>
+        <p class="pl-list-note">
+          Номери пакетів (66, 67, 71, 73, 84, 86) — <strong>внутрішня нумерація НСЗУ/ЕСОЗ</strong>.
+          У самих постановах їх немає: 66/67/71 — це «групи послуг № 1/2/3», решта ідентифікується лише назвою.
+        </p>
+      </aside>
+
+      <!-- Паспорт обраного пілота -->
+      <section class="pl-detail" id="pl-detail">
+        <div class="pl-loading">Завантаження даних…</div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- ── Footer ───────────────────────────────────────── -->
+  <footer class="p-footer">
+    <div class="wrap">
+      <div class="p-foot-grid">
+        <div>
+          <div class="f-lockup">
+            <img class="shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true" style="width:44px;height:auto">
+            <span class="wm">
+              <span class="wm-1">Робочий простір експертів</span>
+              <span class="wm-2">Програма медичних гарантій 2026</span>
+            </span>
+          </div>
+          <p>Довідковий портал за Програмою медичних гарантій 2026 року.</p>
+        </div>
+        <div class="f-col">
+          <h4>Розділи</h4>
+          <a href="../passport/index.html">Паспорт пакета</a>
+          <a href="../pakety/index.html">Пакети 2026</a>
+          <a href="../postanova/index.html">Постанова 1808</a>
+          <a href="../cabinet/rozpodil.html">Розподіл пакетів</a>
+        </div>
+        <div class="f-col">
+          <h4>Належність</h4>
+          <a href="#dept">Департамент стратегії</a>
+          <a href="#dept">НСЗУ</a>
+          <a href="../index.html#top">Про портал</a>
+        </div>
+      </div>
+      <div class="p-foot-base">
+        <span>© 2026 НСЗУ · Департамент стратегії універсального охоплення населення медичними послугами</span>
+        <span>Розроблено силами Департаменту</span>
+      </div>
+    </div>
+  </footer>
+
+</div><!-- /.portal -->
+</body>
+</html>

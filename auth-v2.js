@@ -335,6 +335,7 @@ function applyAccess() {
     // Довідково-нормативні розділи — згруповані в дропдаун «Документи»
     const documentsItems = [
       { text: 'Постанова 1808', path: 'postanova/index.html' },
+      { text: '🧪 Пілотні проєкти', path: 'pilots/index.html' },
       { text: 'Алгоритми та правила (наказ 377)', path: 'algorithms/index.html' },
       { text: 'Нормативна база', path: 'regulatory/index.html' },
       { text: 'ДЕЦ МОЗ', path: 'dec/index.html' },
@@ -2097,6 +2098,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '💡', label: 'AI-пошук', path: 'rozjasnennya_semantic.html' },
     { icon: '📦', label: 'Пакети 2026', path: 'pakety/index.html' },
     { icon: '🪪', label: 'Паспорт пакета', path: 'passport/index.html' },
+    { icon: '🧪', label: 'Пілотні проєкти', path: 'pilots/index.html' },
     { icon: '📜', label: 'Постанова 1808', path: 'postanova/index.html' },
     { icon: '🧮', label: 'Наказ 377', path: 'algorithms/index.html' },
     { icon: '⚖️', label: 'Нормативна база', path: 'regulatory/index.html' },
