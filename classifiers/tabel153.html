@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>НавігаторПМГ26 | Табелі оснащення — наказ МОЗ № 153</title>
+  <link rel="stylesheet" href="../styles.css?v=20260719c">
+  <link rel="stylesheet" href="classifiers.css?v=20260725d">
+  <link rel="stylesheet" href="tabel153.css?v=20260728b">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260725d">
+  <script type="module" src="../auth-v2.js?v=20260728b"></script>
+</head>
+<body id="top">
+  <header class="hero classifiers-hero">
+    <div class="hero-copy">
+      <div class="overline">Наказ МОЗ · № 153 від 05.06.1998 · табелі оснащення ·
+        <a class="xnav" href="nk024.html">↔ Медвироби НК 024</a>
+        <a class="xnav" href="../pakety/index.html">↔ Пакети ПМГ</a>
+        <a class="xnav" href="index.html">↔ Хвороби НК 025</a>
+        <a class="xnav" href="nk026.html">↔ Інтервенції НК 026</a></div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів, постанови та правил</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Табелі оснащення — наказ МОЗ № 153</h1>
+      <p>Що і в якій кількості має бути в підрозділі: <strong>1&nbsp;398 позицій</strong> виробів
+         медичного призначення за 53 профілями — Додаток&nbsp;1 (кабінети амбулаторно-поліклінічних
+         закладів) і Додаток&nbsp;2 (стаціонарні відділення лікарень). Наказ чинний, поточна
+         редакція від 04.11.2010. Для ПМГ це не довідка, а критична умова: специфікації вимагають
+         підрозділів, <em>обладнаних відповідно до табелю оснащення</em>, а договір з НСЗУ
+         зобов'язує їх дотримуватися.</p>
+    </div>
+    <div class="stats" id="tbStats" aria-label="Статистика табелів"></div>
+  </header>
+
+  <nav class="mobile-tabs" id="mobileTabs" aria-label="Навігація між панелями">
+    <button class="mobile-tab active" data-tab="browser" type="button">Огляд і пошук</button>
+    <button class="mobile-tab" data-tab="reader" type="button">Картка</button>
+  </nav>
+
+  <main class="nk-layout" data-active="browser">
+    <!-- ЛІВА ПАНЕЛЬ: пошук + каскад -->
+    <section class="nk-browser" aria-label="Пошук і навігація табелів">
+      <div class="search-panel nk-search">
+        <label class="search">
+          <span>Пошук за назвою виробу або обладнання</span>
+          <input id="tbSearch" type="search"
+                 placeholder="Напр.: дефібрилятор, ларингоскоп, стіл операційний…" autocomplete="off">
+        </label>
+
+        <!-- Пакетний пошук: звірка переліку обладнання -->
+        <details class="nk-batch">
+          <summary>📋 Пакетний пошук — звірити свій перелік обладнання</summary>
+          <textarea id="tbBatch" rows="4"
+            placeholder="Вставте назви — по одній у рядку:&#10;дефібрилятор&#10;апарат штучного дихання&#10;лампа бактерицидна"></textarea>
+          <div class="batch-actions">
+            <button id="tbBatchRun" type="button" class="batch-primary">Знайти всі</button>
+            <button id="tbBatchCopy" type="button" hidden>⧉ Копіювати знайдене</button>
+            <button id="tbBatchClear" type="button">Очистити</button>
+          </div>
+        </details>
+
+        <!-- Каскадна навігація: Додаток → Розділ → Позиція -->
+        <div class="nk-cascade" aria-label="Навігація по табелях">
+          <div class="casc-field">
+            <label for="selApp">Додаток (тип закладу)</label>
+            <select id="selApp"><option value="">Завантаження…</option></select>
+          </div>
+          <div class="casc-field">
+            <label for="selSection">Розділ (профіль підрозділу)</label>
+            <select id="selSection" disabled><option value="">— оберіть додаток —</option></select>
+          </div>
+          <div class="casc-field">
+            <label for="selItem">Позиція табеля</label>
+            <select id="selItem" disabled><option value="">— оберіть розділ —</option></select>
+          </div>
+        </div>
+        <p class="casc-note">Кількість у Додатку&nbsp;2 подано <em>на кількість місць</em>, зазначену
+           для профілю (напр. «Інтенсивна терапія — 15 місць»), а в лабораторних розділах —
+           окремими колонками за кількістю ліжок чи пацієнтів.</p>
+
+        <div class="nk-filters">
+          <label class="nk-check"><input type="checkbox" id="hideExcluded" checked> приховати виключені позиції</label>
+        </div>
+        <div class="results-summary">
+          <span id="tbCount">Завантаження…</span>
+          <button id="tbClear" type="button">✕ Очистити форму</button>
+        </div>
+      </div>
+
+      <!-- Результати пошуку / перелік розділу -->
+      <div class="nk-results" id="tbResults" hidden></div>
+    </section>
+
+    <!-- ПРАВА ПАНЕЛЬ: картка позиції або розділу -->
+    <article class="nk-reader reader-empty" id="tbReader" aria-live="polite">
+      <div class="reader-hint">
+        <div class="reader-hint-ico">📋</div>
+        <p>Оберіть розділ, щоб побачити табель профілю цілком і скопіювати його для звірки
+           оснащення, або окрему позицію — щоб побачити нормативну кількість, зміни до неї
+           та перехід до класифікатора медичних виробів НК&nbsp;024.</p>
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Джерело: наказ МОЗ України від 05.06.1998 № 153 «Про затвердження табелів оснащення
+           виробами медичного призначення структурних підрозділів закладів охорони здоров'я»
+           (поточна редакція від 04.11.2010, зі змінами згідно з наказами МОЗ від 11.04.2005 № 158
+           та від 04.11.2010 № 951). Довідковий інструмент; у разі розбіжностей переважну силу має
+           офіційний текст акта на
+           <a href="https://zakon.rada.gov.ua/laws/show/v0153282-98" target="_blank" rel="noopener">zakon.rada.gov.ua</a>.</p>
+      </div>
+    </div>
+  </footer>
+
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <script src="tabel153.js?v=20260728b" defer></script>
+</body>
+</html>

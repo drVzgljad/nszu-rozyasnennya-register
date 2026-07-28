@@ -1,0 +1,82 @@
+/* ============================================================
+   Табелі оснащення (наказ МОЗ № 153) — стилі поверх classifiers.css:
+   кількість у рядку результату, таблиця табеля профілю, картка позиції.
+   Токени — зі styles.css (--ink, --accent, --surface, --line…).
+   ============================================================ */
+
+/* ── Кількість у рядку результату (замість коду) ───────────── */
+.tb-qty {
+  flex: 0 0 auto; min-width: 34px; text-align: center;
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-weight: 700; font-size: .86rem; color: var(--accent-dark);
+  background: var(--accent-soft); border-radius: 6px; padding: 2px 7px;
+}
+.tb-out {
+  flex: 0 0 auto; align-self: center; white-space: nowrap;
+  font-size: .66rem; font-weight: 800; letter-spacing: .02em;
+  border-radius: 20px; padding: 2px 8px; background: #fbeaea; color: #a23b3b;
+}
+
+/* ── Номер розділу в шапці картки ──────────────────────────── */
+.reader-code.tb-sec { font-size: 1.35rem; letter-spacing: .02em; }
+
+/* ── Примітки про статус ───────────────────────────────────── */
+.tb-status-note {
+  margin: 10px 0 0; padding: 9px 12px; border-radius: 10px;
+  background: #fbeaea; color: #a23b3b; font-size: .88rem; font-weight: 600;
+}
+.tb-group-note {
+  margin: 10px 0 0; padding: 8px 11px; border-radius: 10px;
+  background: var(--warm); color: var(--teal-dark); font-size: .84rem;
+}
+
+/* ── Таблиця табеля профілю ────────────────────────────────── */
+.tb-tablewrap { overflow-x: auto; }
+.tb-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.tb-table th {
+  text-align: left; font-size: .72rem; text-transform: uppercase; letter-spacing: .03em;
+  color: var(--muted); font-weight: 700; padding: 5px 8px;
+  border-bottom: 1px solid var(--line); white-space: nowrap;
+}
+.tb-table th:not(.tb-th-name) { text-align: center; }
+.tb-table td { padding: 7px 8px; vertical-align: top; border-top: 1px solid var(--line); text-align: center; }
+.tb-table td.tb-td-name { text-align: left; color: var(--ink); }
+.tb-table tr[data-item] { cursor: pointer; }
+.tb-table tr[data-item]:hover td { background: var(--accent-soft); }
+.tb-subrow td {
+  text-align: left; font-size: .76rem; font-weight: 700; color: var(--accent-dark);
+  background: var(--accent-soft); padding: 5px 8px; border-top: 1px solid var(--line);
+}
+.tb-r-out td { color: var(--muted); }
+.tb-out-cell { font-size: .8rem; color: #a23b3b; }
+
+/* ── Кількість у картці позиції ────────────────────────────── */
+.tb-qtygrid { display: flex; flex-wrap: wrap; gap: 8px; }
+.tb-qtycell {
+  display: flex; flex-direction: column; gap: 2px; min-width: 96px;
+  background: var(--soft); border: 1px solid var(--line); border-radius: 11px; padding: 8px 12px;
+}
+.tb-qk { font-size: .72rem; color: var(--muted); font-weight: 600; }
+.tb-qv {
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+  font-size: 1.2rem; font-weight: 800; color: var(--accent-dark);
+}
+
+/* ── Блок «Як це читає ПМГ» ────────────────────────────────── */
+.tb-pmg { border-top: 1px solid var(--line); padding-top: 14px; }
+.tb-pmg .muted { margin: 0 0 8px; }
+.tb-pmg .chip-list { margin-top: 4px; }
+
+.reader-crumbs .crumb a { cursor: pointer; }
+
+/* ── Темна тема ────────────────────────────────────────────── */
+:root.dark-theme .tb-status-note { background: rgba(220, 60, 60, .18); color: #fca5a5; }
+:root.dark-theme .tb-out { background: rgba(220, 60, 60, .18); color: #fca5a5; }
+:root.dark-theme .tb-out-cell { color: #fca5a5; }
+:root.dark-theme .reader-code { color: #0b1220; }
+
+/* ── Мобільне ──────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  .tb-table { font-size: .82rem; }
+  .tb-qtycell { min-width: 78px; }
+}
