@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Робочий простір експертів ПМГ 2026 — НавігаторПМГ26</title>
-  <link rel="stylesheet" href="portal.css?v=20260719h">
+  <link rel="stylesheet" href="portal.css?v=20260729a">
   <link rel="stylesheet" href="auth-v2.css?v=20260729b">
   <script type="module" src="auth-v2.js?v=20260729d"></script>
   <style>
@@ -634,6 +634,11 @@
   <!-- ── Hero ────────────────────────────────────────── -->
   <section class="hero" id="top">
     <div class="plus-field" aria-hidden="true"></div>
+    <!-- Живий фон: повільний перелив і хвиля дрібних кубиків.
+         Окремі шари поверх фону, а не сам фон, — інакше темна тема
+         перебила б їх своїм background !important -->
+    <div class="hero-sheen" aria-hidden="true"></div>
+    <div class="cube-wave" aria-hidden="true"></div>
     <div class="wrap hero-inner">
       <div class="hero-main-row" style="display: flex; align-items: flex-start; justify-content: space-between; gap: 40px; flex-wrap: wrap;">
         <div class="hero-main-content" style="flex: 2; min-width: 300px;">

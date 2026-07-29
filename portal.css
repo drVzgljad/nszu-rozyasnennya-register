@@ -203,6 +203,80 @@ body {
   background: var(--brand-grad); border-bottom: 1px solid var(--p-line);
 }
 .hero .plus-field { position: absolute; inset: 0; }
+
+/* ── Живий фон героя головної ──────────────────────────
+   Два шари поверх статичного фону: повільний кольоровий перелив
+   і хвиля дрібних кубиків, що пробігає по діагоналі. Обидва —
+   pointer-events: none, тож нічого не перехоплюють. */
+.hero .hero-sheen,
+.hero .cube-wave {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hero .hero-sheen {
+  background: linear-gradient(
+    118deg,
+    rgba(74, 143, 199, 0.16) 0%,
+    rgba(84, 173, 132, 0.10) 28%,
+    rgba(255, 255, 255, 0) 50%,
+    rgba(84, 173, 132, 0.12) 72%,
+    rgba(74, 143, 199, 0.16) 100%
+  );
+  background-size: 260% 260%;
+  /* 26 секунд — рух помітний лише краєм ока, а не «блимає» */
+  animation: hero-sheen-drift 26s ease-in-out infinite alternate;
+}
+
+@keyframes hero-sheen-drift {
+  from { background-position: 0% 50%; }
+  to   { background-position: 100% 50%; }
+}
+
+.hero .cube-wave {
+  /* Сітка кубиків: дві лінійні заливки в перетині дають клітинку 26px */
+  background-image:
+    linear-gradient(90deg, var(--accent) 1px, transparent 1px),
+    linear-gradient(180deg, var(--accent) 1px, transparent 1px);
+  background-size: 26px 26px;
+  /* Маска — світлова смуга; видно лише ті кубики, на які вона зараз падає */
+  -webkit-mask-image: linear-gradient(115deg, transparent 32%, #000 46%, #000 54%, transparent 68%);
+  mask-image: linear-gradient(115deg, transparent 32%, #000 46%, #000 54%, transparent 68%);
+  -webkit-mask-size: 280% 280%;
+  mask-size: 280% 280%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  opacity: 0.24;
+  animation: cube-wave-run 18s linear infinite;
+}
+
+@keyframes cube-wave-run {
+  from { -webkit-mask-position: 130% 130%; mask-position: 130% 130%; }
+  to   { -webkit-mask-position: -30% -30%; mask-position: -30% -30%; }
+}
+
+:root.dark-theme .hero .hero-sheen,
+.dark-theme .hero .hero-sheen {
+  background: linear-gradient(
+    118deg,
+    rgba(56, 189, 248, 0.12) 0%,
+    rgba(34, 197, 94, 0.08) 28%,
+    rgba(255, 255, 255, 0) 50%,
+    rgba(34, 197, 94, 0.10) 72%,
+    rgba(56, 189, 248, 0.12) 100%
+  );
+  background-size: 260% 260%;
+}
+
+:root.dark-theme .hero .cube-wave,
+.dark-theme .hero .cube-wave { opacity: 0.2; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero .hero-sheen,
+  .hero .cube-wave { animation: none; }
+  .hero .cube-wave { opacity: 0.12; }
+}
 .hero-inner {
   position: relative; padding: 78px 0 64px; max-width: 920px;
 }
