@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Робочий простір експертів ПМГ 2026 — НавігаторПМГ26</title>
-  <link rel="stylesheet" href="portal.css?v=20260729a">
+  <link rel="stylesheet" href="portal.css?v=20260729b">
   <link rel="stylesheet" href="auth-v2.css?v=20260729b">
   <script type="module" src="auth-v2.js?v=20260729d"></script>
   <style>
@@ -513,6 +513,53 @@
       body.home-logged-in .home-metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px !important; }
     }
 
+    /* ── Анімація логотипа в героєві ────────────────────── */
+    .hero-logo-stack { position: relative; }
+    .hero-logo-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+      object-fit: cover;
+      opacity: 0;
+      /* Зникає плавно, відкриваючи статичне лого під собою */
+      transition: opacity 0.6s ease;
+      pointer-events: none;
+    }
+    .hero-logo-video.is-playing { opacity: 1; }
+
+    .hero-logo-replay {
+      position: absolute;
+      right: 6px;
+      bottom: 6px;
+      width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(47, 107, 158, 0.22);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.86);
+      color: var(--accent-deep, #2f6b9e);
+      font-size: 15px;
+      line-height: 1;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    .hero-main-logo:hover .hero-logo-replay,
+    .hero-logo-replay:focus-visible { opacity: 1; }
+    .hero-logo-replay:hover { transform: scale(1.1); }
+    :root.dark-theme .hero-logo-replay {
+      background: rgba(30, 41, 59, 0.9);
+      border-color: rgba(148, 163, 184, 0.3);
+      color: #bae0ff;
+    }
+    /* Дотикові екрани: наведення там немає, тож кнопку показуємо завжди */
+    @media (hover: none) {
+      .hero-logo-replay { opacity: 0.75; }
+    }
+
     /* ── Смужка днів народження ─────────────────────────── */
     .bday-strip { margin: 0 auto 14px; max-width: 1180px; padding: 0 18px; }
     .bday-inner {
@@ -652,12 +699,19 @@
             для легкої та комфортної роботи, де все під контролем і жодна дрібниця не залишиться поза увагою.
           </p>
         </div>
-        <div class="hero-main-logo" style="flex: 1; min-width: 240px; display: flex; justify-content: center; align-items: flex-start; padding-top: 10px;">
+        <div class="hero-main-logo" style="flex: 1; min-width: 240px; display: flex; justify-content: center; align-items: flex-start; padding-top: 10px; position: relative;">
           <a href="dept-tree.html" title="Переглянути структуру департаменту" aria-label="Відкрити структуру Департаменту" style="text-decoration: none; display: block;">
             <div style="border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.45); background: rgba(255, 255, 255, 0.3); backdrop-filter: blur(10px); box-shadow: 0 20px 40px rgba(47, 107, 158, 0.15), 0 5px 15px rgba(0, 0, 0, 0.06); padding: 14px; transition: transform 0.3s, box-shadow 0.3s;" onmouseover="this.style.transform='scale(1.04) translateY(-3px)';" onmouseout="this.style.transform='none';">
-              <img src="assets/logo.png" alt="Логотип Департаменту" style="max-width: 230px; width: 100%; height: auto; border-radius: 12px; display: block;">
+              <div class="hero-logo-stack">
+                <img src="assets/logo.png" alt="Логотип Департаменту" style="max-width: 230px; width: 100%; height: auto; border-radius: 12px; display: block;">
+                <!-- Збірка логотипа. src призначається з JS лише перед показом,
+                     щоб при повторних заходах файл не вантажився взагалі -->
+                <video class="hero-logo-video" id="hero-logo-video" muted playsinline preload="none" tabindex="-1" aria-hidden="true"></video>
+              </div>
             </div>
           </a>
+          <!-- Кнопка поза посиланням: усередині <a> вона ламала б перехід на структуру -->
+          <button type="button" class="hero-logo-replay" id="hero-logo-replay" title="Програти анімацію логотипа" aria-label="Програти анімацію логотипа">↻</button>
         </div>
       </div>
     </div>
@@ -748,6 +802,61 @@
   // Смужка днів народження: показується лише авторизованим (RLS віддає дані тільки їм)
   renderBirthdayStrip(document.getElementById('birthday-strip'));
   sb.auth.onAuthStateChange(() => renderBirthdayStrip(document.getElementById('birthday-strip')));
+
+  // ── Анімація логотипа: один раз за сесію ──────────────────────────
+  // Десять секунд збірки — приємно на перший раз і дратує на п'ятий,
+  // тому за сесію показуємо один раз, далі лише кнопкою «↻».
+  (() => {
+    const video = document.getElementById('hero-logo-video');
+    const replayBtn = document.getElementById('hero-logo-replay');
+    if (!video) return;
+
+    const SESSION_KEY = 'logo-anim-shown';
+    const calmMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function play() {
+      if (video.dataset.busy === '1') return;
+      video.dataset.busy = '1';
+      // src призначаємо перед першим показом: інакше файл вантажився б
+      // і тоді, коли анімацію цієї сесії вже показано
+      if (!video.src) {
+        video.src = 'assets/logo-anim.mp4?v=20260729a';
+      } else if (video.readyState > 0) {
+        // Перемотка лише для повтору: одразу після призначення src вона
+        // перериває запуск, і play() тихо відпадає з AbortError
+        video.currentTime = 0;
+      }
+      video.classList.add('is-playing');
+      const started = video.play();
+      if (started && started.catch) {
+        started.catch(() => {
+          // автовідтворення заблоковано — тихо лишаємо статичне лого
+          video.classList.remove('is-playing');
+          video.dataset.busy = '0';
+        });
+      }
+    }
+
+    video.addEventListener('ended', () => {
+      video.classList.remove('is-playing');
+      video.dataset.busy = '0';
+    });
+    video.addEventListener('error', () => {
+      video.classList.remove('is-playing');
+      video.dataset.busy = '0';
+    });
+
+    if (replayBtn) replayBtn.addEventListener('click', play);
+
+    if (!calmMotion) {
+      try {
+        if (!sessionStorage.getItem(SESSION_KEY)) {
+          sessionStorage.setItem(SESSION_KEY, '1');
+          play();
+        }
+      } catch (_) { /* приватний режим — просто не програємо автоматично */ }
+    }
+  })();
 
   function escapeHtml(str) {
     if (!str) return "";
