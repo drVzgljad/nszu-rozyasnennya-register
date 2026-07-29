@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
   try {
-    const res = await fetch('data/pilots_2026.json?v=20260728a');
+    const res = await fetch('data/pilots_2026.json?v=20260729a');
     const data = await res.json();
     PILOTS = data.pilots || [];
   } catch (e) {
