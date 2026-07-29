@@ -390,6 +390,10 @@
 .rz-alias div { margin-bottom: 4px; }
 .rz-alias p { margin: 8px 0 0; font-size: 12.5px; opacity: .9; }
 
+/* чого немає і в архіві — список, за яким пишеться запит до НСЗУ */
+.rz-gaps { margin: 6px 0 0; padding-left: 18px; font-size: 12.5px; line-height: 1.5; }
+.rz-gaps li { margin-bottom: 4px; }
+
 /* ── мобільна ────────────────────────────────────────────── */
 .mobile-tabs { display: none; }
 

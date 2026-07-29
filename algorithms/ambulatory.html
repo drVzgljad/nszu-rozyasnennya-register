@@ -8,7 +8,7 @@
   <link rel="apple-touch-icon" href="/assets/icon-180.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>НавігаторПМГ26 | Алгоритми та правила</title>
+  <title>НавігаторПМГ26 | Кодування амбулаторки (пакет 9)</title>
   <link rel="stylesheet" href="../styles.css?v=20260728f">
   <link rel="stylesheet" href="algorithms.css?v=20260729b">
   <link rel="stylesheet" href="../auth-v2.css?v=20260725d">
@@ -17,7 +17,7 @@
 <body id="top">
   <header class="hero algorithms-hero">
     <div class="hero-copy">
-      <div class="overline">Наказ НСЗУ № 377</div>
+      <div class="overline">Пакет 9 · амбулаторні умови</div>
       <div class="header-nav-row">
         <div class="nav-row-1">
           <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
@@ -33,54 +33,71 @@
           <nav class="section-switch" aria-label="Розділи сайту"></nav>
         </div>
       </div>
-      <h1>Алгоритми та правила</h1>
-      <p>Пошук за кодами НК 025, назвами діагнозів, амбулаторно-асоційованими станами та правилами наказу № 377. Перший робочий шар: швидко знайти код, джерело, сторінку PDF і скопіювати висновок.</p>
+      <h1>Кодування амбулаторки</h1>
+      <p>Один шар замість п'яти файлів: сервіс → клас → код → чим підтверджується → які застереження діють.
+         Основа — чинний лист НСЗУ з Додатками 1 і 2; застереження попередніх листів нашаровані поверх коду.</p>
       <div class="algorithm-xnav">
-        <a class="xnav" href="ambulatory.html">↔ Кодування амбулаторки (пакет 9)</a>
+        <a class="xnav" href="index.html">↔ Наказ № 377: алгоритми та правила</a>
         <a class="xnav" href="../rozjasnennya/index.html">↔ Роз'яснення НСЗУ</a>
       </div>
     </div>
-    <div class="stats" id="algorithmStats" aria-label="Статистика алгоритмів"></div>
+    <div class="stats" id="ambStats" aria-label="Статистика розділу"></div>
   </header>
 
   <nav class="mobile-tabs" id="mobileTabs" aria-label="Навігація між панелями">
     <button class="mobile-tab active" data-tab="browser" type="button">Пошук</button>
-    <button class="mobile-tab" data-tab="results" type="button">Результати <span id="mobileCount"></span></button>
+    <button class="mobile-tab" data-tab="results" type="button">Коди <span id="mobileCount"></span></button>
     <button class="mobile-tab" data-tab="reader" type="button">Деталі</button>
   </nav>
 
   <main class="algorithms-layout" data-active="browser">
-    <section class="algorithm-browser" aria-label="Пошук алгоритмів та правил">
+    <section class="algorithm-browser" aria-label="Пошук за кодами амбулаторного пакета">
       <div class="search-panel algorithm-search">
         <label class="search">
-          <span>Пошук у кодах і правилах</span>
-          <input id="algorithmSearch" type="search" placeholder="Наприклад: A08.0, Z00.1, ротавірус, профілактика..." autocomplete="off">
+          <span>Пошук за кодом, назвою, діагнозом або посадою</span>
+          <input id="ambSearch" type="search"
+                 placeholder="Напр.: 11700-00, консультація кардіолога, E11.9, P56…" autocomplete="off">
         </label>
         <div class="algorithm-filters">
-          <label>Джерело
-            <select id="sourceFilter"><option value="">Усі джерела</option></select>
+          <label>Сервіс
+            <select id="ambService"><option value="">Усі сервіси</option></select>
           </label>
-          <label>Пакет / правило
-            <select id="packageFilter"><option value="">Усі пакети</option></select>
+          <label>Клас
+            <select id="ambClass"><option value="">Усі класи</option></select>
+          </label>
+          <label>Застереження
+            <select id="ambFlag"><option value="">Будь-які</option></select>
           </label>
         </div>
         <div class="results-summary">
-          <span id="algorithmCount"></span>
-          <button id="clearAlgorithms" type="button">Очистити</button>
+          <span id="ambCount"></span>
+          <button id="ambClear" type="button">Очистити</button>
         </div>
       </div>
+
       <div class="source-panel">
-        <h2>Джерела</h2>
-        <div id="sourceCards" class="source-cards"></div>
+        <h2>На чому це стоїть</h2>
+        <div id="ambBasis" class="source-cards"></div>
+      </div>
+
+      <div class="source-panel">
+        <h2>Застереження поверх коду</h2>
+        <div id="ambFlagLegend" class="amb-legend"></div>
+      </div>
+
+      <div class="source-panel">
+        <h2>Правила з листів</h2>
+        <div id="ambRules" class="amb-rules"></div>
       </div>
     </section>
 
     <section class="algorithm-results" aria-label="Знайдені коди">
-      <div class="algorithm-cards" id="algorithmCards"></div>
+      <div class="algorithm-cards" id="ambCards"></div>
     </section>
 
-    <article class="algorithm-reader reader-empty" id="algorithmReader" aria-live="polite">
-      <p>Оберіть код або правило, щоб побачити деталі й сформувати текст для копіювання.</p>
+    <article class="algorithm-reader reader-empty" id="ambReader" aria-live="polite">
+      <p>Оберіть код, щоб побачити повний паспорт: сервіс, клас, посади, діагнози, коди спостереження,
+         застереження попередніх листів і посилання на першоджерело.</p>
     </article>
   </main>
 
@@ -89,12 +106,12 @@
       <div class="footer-copy">
         <div class="footer-agency">НСЗУ</div>
         <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
-        <p>Розділ створено для швидкої навігації наказом № 377, додатками та порівняльними матеріалами.</p>
+        <p>Зведення побудовано з додатків до листів НСЗУ. Кожен рядок несе посилання на документ-джерело.</p>
       </div>
     </div>
   </footer>
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
-  <script src="algorithms.js?v=20260725f" defer></script>
+  <script src="ambulatory.js?v=20260729b" defer></script>
 </body>
 </html>

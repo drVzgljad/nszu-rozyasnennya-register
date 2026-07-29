@@ -1,6 +1,6 @@
 {
-  "generated": "2026-07-29T06:24:00.770752+00:00",
-  "archive_fetched_at": "2026-07-29T06:23:59.352214+00:00",
+  "generated": "2026-07-29T10:46:57.467195+00:00",
+  "archive_fetched_at": "2026-07-29T10:02:19.221397+00:00",
   "archive_source": "https://nszu.gov.ua/arxiv-dokumentiv?groups[2][attributes][]=36",
   "archive_records": 183,
   "total": 179,
@@ -156,7 +156,7 @@
         "sentences": 8,
         "chars": 245,
         "tables": 8,
-        "table_rows": 1077,
+        "table_rows": 1085,
         "unreadable": 0
       }
     },
@@ -266,7 +266,7 @@
         "sentences": 8,
         "chars": 245,
         "tables": 8,
-        "table_rows": 1038,
+        "table_rows": 1046,
         "unreadable": 0
       },
       "archive_aliases": [
@@ -709,7 +709,7 @@
         "sentences": 6,
         "chars": 231,
         "tables": 6,
-        "table_rows": 3529,
+        "table_rows": 3530,
         "unreadable": 0
       }
     },
@@ -3176,7 +3176,7 @@
         "sentences": 1,
         "chars": 27,
         "tables": 1,
-        "table_rows": 171,
+        "table_rows": 172,
         "unreadable": 0
       }
     },

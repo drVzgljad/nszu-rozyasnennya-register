@@ -499,6 +499,35 @@ function renderAttachmentBlock(id) {
       <div class="rz-attach">${parents.map((e) => line(e.to, e.evidence)).join("")}</div>`;
   }
 
+  /* Лист, якого НСЗУ не публікувала, але який відомий за реквізитами з інших
+     листів. Показуємо його як групу: реквізити, всі знайдені додатки і — що
+     важливіше — яких додатків цього листа в архіві теж немає. Саме цей список
+     і є текстом запиту до НСЗУ. */
+  const lost = (state.graph.missing_letters || [])
+    .find((m) => (m.attachments || []).some((a) => a.id === id));
+  if (lost) {
+    const mine = (lost.attachments || []).find((a) => a.id === id) || {};
+    const requisites = [lost.number ? `№ ${lost.number}` : "номер невідомий",
+      lost.date || lost.date_hint || "дата невідома"].join(" · ");
+    const siblings = (lost.attachments || []).filter((a) => a.id !== id)
+      .map((a) => line(a.id, ""));
+    const gaps = (lost.gaps || [])
+      .map((g) => `<li>Додаток ${esc(g.number)} — ${esc(g.note)}</li>`).join("");
+    return `<div class="rz-section-title">Лист, якого НСЗУ не публікувала</div>
+      <div class="rz-alias">
+        <div>«${esc(lost.title || lost.key)}»</div>
+        <div class="rz-attach-note">${esc(requisites)}</div>
+        <p>${esc(mine.why || "")}</p>
+        <p>${esc(lost.why || "")}</p>
+        ${lost.candidate ? `<p><b>Гіпотеза, не факт:</b> ${esc(lost.candidate)}</p>` : ""}
+        ${siblings.length ? `<div class="rz-attach">
+          <div class="rz-attach-note">Інші додатки цього ж листа (${siblings.length}):</div>
+          ${siblings.join("")}</div>` : ""}
+        ${gaps ? `<div class="rz-section-title">Чого немає і в архіві</div>
+          <ul class="rz-gaps">${gaps}</ul>` : ""}
+      </div>`;
+  }
+
   const orphan = (state.graph.orphan_attachments || []).find((o) => o.id === id);
   if (!orphan) return "";
   const siblings = (state.graph.orphan_attachments || [])

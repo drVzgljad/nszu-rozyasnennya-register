@@ -370,3 +370,76 @@ mark { padding: 0 2px; border-radius: 3px; color: inherit; background: #ffe69a; 
   transition: all 0.15s ease;
 }
 .code-badge-open:hover { border-color: var(--accent); color: var(--accent-dark); background: var(--surface); }
+
+/* ── Кодування амбулаторки (ambulatory.html) ──────────────────────────
+   Живе в тому самому розділі, що й наказ № 377: правила пакета 9 і правила
+   наказу — це один робочий шар, ділити його між сторінками не варто. */
+.algorithm-xnav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.algorithm-xnav .xnav {
+  padding: 7px 11px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--surface); color: var(--accent-dark);
+  font-size: 13px; font-weight: 700; text-decoration: none;
+}
+.algorithm-xnav .xnav:hover { border-color: var(--accent); background: var(--accent-soft); }
+
+.amb-pill-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.amb-flag { background: var(--warning-bg); color: var(--warning-text); }
+.amb-flag--not_paid { background: #fde8e8; color: #8c2f2f; }
+.amb-flag--plan { background: var(--warm); color: var(--teal-dark); }
+.amb-flag--direction,
+.amb-flag--specialist { background: var(--accent-soft); color: var(--accent-dark); }
+
+.amb-legend { display: grid; gap: 10px; }
+.amb-legend-item {
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface); font-size: 13px; line-height: 1.5;
+}
+.amb-legend-count { margin-left: 8px; color: var(--muted); font-size: 12px; }
+.amb-legend-item p { margin: 7px 0 4px; color: var(--ink); }
+.amb-legend-item a { color: var(--accent-dark); font-size: 12px; }
+
+.amb-rules { display: grid; gap: 8px; }
+.amb-rule {
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface); font-size: 13px;
+}
+.amb-rule summary {
+  padding: 10px 12px; cursor: pointer; font-weight: 700; line-height: 1.45;
+}
+.amb-rule summary em { display: block; margin-top: 3px; color: var(--muted); font-weight: 500; }
+.amb-rule-state {
+  display: inline-block; margin-right: 7px; padding: 2px 7px; border-radius: 999px;
+  font-size: 11px; font-weight: 800; text-transform: uppercase;
+}
+.amb-rule-state--live { background: var(--warm); color: var(--teal-dark); }
+.amb-rule-state--old { background: var(--soft); color: var(--muted); }
+.amb-rule-items { margin: 0; padding: 0 14px 12px 30px; line-height: 1.55; }
+.amb-rule-items li { margin-bottom: 9px; }
+.amb-rule-anchor { margin-left: 6px; color: var(--accent-dark); font-size: 12px; white-space: nowrap; }
+
+.amb-name { margin: -8px 0 14px; color: var(--ink); font-size: 16px; line-height: 1.45; }
+.amb-row { display: flex; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.amb-row-label { flex: 0 0 210px; color: var(--muted); font-size: 12.5px; font-weight: 700; }
+.amb-row-value { flex: 1; line-height: 1.6; }
+.amb-dim { color: var(--muted); font-size: 12.5px; }
+.amb-section-title {
+  margin: 18px 0 8px; color: var(--muted);
+  font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+}
+.amb-warn {
+  margin-bottom: 8px; padding: 10px 12px;
+  border: 1px solid var(--warning-border); border-radius: 12px;
+  background: var(--warning-bg); font-size: 13px; line-height: 1.5;
+}
+.amb-warn p { margin: 7px 0 4px; color: var(--warning-text); }
+.amb-warn a { color: var(--warning-text); font-size: 12px; }
+.amb-source { display: grid; gap: 6px; }
+.amb-more { margin: 10px 2px 0; color: var(--muted); font-size: 12.5px; }
+
+@media (max-width: 640px) {
+  .amb-row { flex-direction: column; gap: 3px; }
+  .amb-row-label { flex: none; }
+}
+.amb-more-codes { display: inline-block; margin-left: 6px; }
+.amb-more-codes summary { display: inline; color: var(--accent-dark); font-size: 12.5px; cursor: pointer; }
+.amb-more-codes[open] summary { display: block; margin-bottom: 6px; }
