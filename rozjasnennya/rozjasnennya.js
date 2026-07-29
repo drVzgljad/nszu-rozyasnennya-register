@@ -445,9 +445,24 @@ function renderPassport(doc, meta) {
          лежить не той файл, і другий документ на сайті недоступний.</p>
     </div>` : "";
 
+  /* Документ поза архівом НСЗУ. Тут важливі дві речі, і мовчати про них не
+     можна: звідки взято файл (бо перевірити його на сайті НСЗУ не вийде) і
+     як здобуто текст. Для flat-text структура таблиць НЕ відновлена — коди
+     шукаються, але стовпці склеєні, і будувати на цьому висновок не варто. */
+  const externalBlock = meta.external ? `
+    <div class="rz-section-title">Цього документа немає в архіві НСЗУ</div>
+    <div class="rz-alias">
+      <div>Звідки: ${esc(meta.origin || "джерело не вказано")}</div>
+      ${meta.quality === "flat-text" ? `<p><b>Структура таблиць не відновлена.</b>
+        Текст здобуто не з оригінального файлу, а з чужого текстового індексу:
+        таблиця склеєна в суцільний рядок. Коди в ній шукаються, стовпці й
+        зв'язки між ними — ні. Щоб зробити повноцінно, потрібен оригінальний PDF.</p>` : ""}
+    </div>` : "";
+
   return `
-    <div class="rz-section-title">Назва в архіві НСЗУ</div>
+    <div class="rz-section-title">${meta.external ? "Назва документа" : "Назва в архіві НСЗУ"}</div>
     <div class="rz-official-title">${esc(officialTitle)}</div>
+    ${externalBlock}
     ${renderAttachmentBlock(doc.id)}
     <div class="rz-meta">${cells.map(([label, value]) =>
       `<div><span>${esc(label)}</span><strong>${esc(value)}</strong></div>`).join("")}</div>
@@ -520,6 +535,7 @@ function renderAttachmentBlock(id) {
         <p>${esc(mine.why || "")}</p>
         <p>${esc(lost.why || "")}</p>
         ${lost.candidate ? `<p><b>Гіпотеза, не факт:</b> ${esc(lost.candidate)}</p>` : ""}
+        ${lost.warning ? `<p><b>Обережно:</b> ${esc(lost.warning)}</p>` : ""}
         ${siblings.length ? `<div class="rz-attach">
           <div class="rz-attach-note">Інші додатки цього ж листа (${siblings.length}):</div>
           ${siblings.join("")}</div>` : ""}

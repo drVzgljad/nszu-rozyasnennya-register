@@ -143,8 +143,11 @@ function fillClasses() {
   if ([...classes.keys()].includes(current)) byId("ambClass").value = current;
 }
 
+/* Збірка вже звела застереження і за кодом інтервенції, і за кодами
+   спостереження (поле on). Падаємо на пошук за кодом лише для сумісності
+   зі старим файлом даних. */
 function flagsOf(record) {
-  return state.data.flags[record.code] || [];
+  return record.flags || state.data.flags[record.code] || [];
 }
 
 function haystack(record) {
@@ -269,9 +272,18 @@ function select(index) {
          означає сам прапорець. Причина неоплати — навпаки, завжди по суті. */
       const detail = norm(f.detail) && norm(f.detail) !== norm(record.name)
         ? f.detail : meta.note;
+      /* Заборона без дати — половина відповіді. Якщо код при цьому є в
+         переліку 2025 року, це майже завжди означає, що заборона з додатка
+         2023-го вже не діяла. Кажемо це прямо, але як довід, а не як вирок. */
+      const dated = f.key === "not_paid" && record.seen_2025 && state.data.layer_2025
+        ? `<p class="amb-resolved">Цей код є і в переліку ${esc(state.data.layer_2025.letter)},
+             і в чинному переліку 2026 — застереження 2023 року, найпевніше, вже не діє.
+             Рішення за експертом: самого листа НСЗУ не публікувала.</p>` : "";
       return `<div class="amb-warn">
         <span class="algorithm-pill amb-flag amb-flag--${esc(f.key)}">${esc(meta.title || f.key)}</span>
+        ${f.on ? `<span class="amb-dim">на коді спостереження ${esc(f.on)}</span>` : ""}
         <p>${esc(detail || "")}</p>
+        ${dated}
         <a href="${docHref((meta.source || {}).doc)}">Джерело: ${esc((meta.source || {}).title || "")}</a>
       </div>`;
     }).join("")}` : "";

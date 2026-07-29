@@ -443,3 +443,7 @@ mark { padding: 0 2px; border-radius: 3px; color: inherit; background: #ffe69a; 
 .amb-more-codes { display: inline-block; margin-left: 6px; }
 .amb-more-codes summary { display: inline; color: var(--accent-dark); font-size: 12.5px; cursor: pointer; }
 .amb-more-codes[open] summary { display: block; margin-bottom: 6px; }
+.amb-resolved {
+  margin: 8px 0 0; padding: 8px 10px; border-radius: 9px;
+  background: var(--warm); color: var(--teal-dark); font-size: 12.5px; line-height: 1.5;
+}
