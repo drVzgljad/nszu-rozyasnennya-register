@@ -11,10 +11,10 @@
   <title>Особистий кабінет експерта — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260719h">
   <link rel="stylesheet" href="../auth-v2.css?v=20260729b">
-  <link rel="stylesheet" href="cabinet.css?v=20260723a">
+  <link rel="stylesheet" href="cabinet.css?v=20260729c">
   <link rel="stylesheet" href="workspace.css?v=20260722f">
   <script type="module" src="../auth-v2.js?v=20260729c"></script>
-  <script type="module" src="cabinet.js?v=20260723a"></script>
+  <script type="module" src="cabinet.js?v=20260729c"></script>
   <script type="module" src="workspace.js?v=20260729b"></script>
 </head>
 <body data-required-role="expert">
@@ -254,7 +254,13 @@
             </div>
 
             <div class="form-group" id="task-type-wrapper" style="display: none;">
-              <label>Тип завдання *</label>
+              <div class="label-row-sticky">
+                <label>Тип завдання *</label>
+                <label class="sticky-toggle" title="Тип і категорія залишатимуться відміченими після збереження">
+                  <input type="checkbox" id="sticky_types">
+                  <span>Запам'ятовувати вибір</span>
+                </label>
+              </div>
               <div id="task_type_container" class="checkbox-options-grid">
                 <!-- Checkboxes -->
               </div>

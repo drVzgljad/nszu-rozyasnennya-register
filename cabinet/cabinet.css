@@ -484,6 +484,44 @@
   gap: 12px;
 }
 
+/* Рядок «Тип завдання» + перемикач запам'ятовування вибору */
+.label-row-sticky {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.label-row-sticky > label:first-child { margin: 0; }
+
+.sticky-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 4px 9px;
+  border: 1px solid var(--p-line);
+  border-radius: 999px;
+  background: var(--p-surface);
+  color: var(--p-muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sticky-toggle input { width: 14px; height: 14px; margin: 0; cursor: pointer; }
+
+.sticky-toggle:has(input:checked) {
+  border-color: rgba(58, 132, 98, 0.45);
+  background: rgba(58, 132, 98, 0.1);
+  color: #2f6b4e;
+}
+
+.dark-theme .sticky-toggle { background: #1e293b; border-color: #334155; color: #94a3b8; }
+.dark-theme .sticky-toggle:has(input:checked) { background: rgba(58, 132, 98, 0.22); color: #a7f3d0; }
+
 /* Checkbox options grid layout */
 .checkbox-options-grid {
   display: grid;

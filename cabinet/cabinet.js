@@ -586,32 +586,85 @@ function handleBranchChange() {
   updateLiveScore();
 }
 
+// ── Запам'ятовування вибраних типів і категорій ──────────────
+// Вибір зберігається окремо для кожної гілки (АСКОД / департамент / доручення):
+// набори варіантів там різні, тож спільний список був би безглуздим.
+const STICKY_ON_KEY = 'skod-sticky-enabled';
+const stickyKey = branch => `skod-sticky-${branch}`;
+
+function stickyEnabled() {
+  try { return localStorage.getItem(STICKY_ON_KEY) !== '0'; } catch (_) { return false; }
+}
+
+function setStickyEnabled(on) {
+  try { localStorage.setItem(STICKY_ON_KEY, on ? '1' : '0'); } catch (_) { /* приватний режим */ }
+}
+
+function readSticky(branch) {
+  try {
+    const raw = localStorage.getItem(stickyKey(branch));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return (parsed && Array.isArray(parsed.types) && Array.isArray(parsed.categories)) ? parsed : null;
+  } catch (_) { return null; }
+}
+
+function saveSticky(branch) {
+  if (!stickyEnabled()) return;
+  const pick = sel => Array.from(document.querySelectorAll(sel)).filter(i => i.checked).map(i => i.value);
+  try {
+    localStorage.setItem(stickyKey(branch), JSON.stringify({
+      types: pick('.task-type-cb'),
+      categories: pick('.task-category-cb')
+    }));
+  } catch (_) { /* приватний режим */ }
+}
+
 function populateTypesAndCategories(branch) {
   const typeContainer = document.getElementById('task_type_container');
   const catContainer = document.getElementById('task_category_container');
   if (!typeContainer || !catContainer) return;
 
   const config = BRANCH_CONFIG[branch];
-  
-  typeContainer.innerHTML = '';
-  config.types.forEach((t, index) => {
-    const label = document.createElement('label');
-    label.className = 'checkbox-opt';
-    label.innerHTML = `<input type="checkbox" name="task_type" class="task-type-cb" value="${t}" ${index === 0 ? 'checked' : ''}> <span>${t}</span>`;
-    typeContainer.appendChild(label);
-  });
 
-  catContainer.innerHTML = '';
-  config.categories.forEach((c, index) => {
-    const label = document.createElement('label');
-    label.className = 'checkbox-opt';
-    label.innerHTML = `<input type="checkbox" name="task_category" class="task-category-cb" value="${c}" ${index === 0 ? 'checked' : ''}> <span>${c}</span>`;
-    catContainer.appendChild(label);
-  });
+  // Збережений вибір застосовуємо, лише якщо ці варіанти ще існують у довіднику:
+  // склад типів і категорій змінюється, а старе значення інакше «зависло» б
+  const saved = stickyEnabled() ? readSticky(branch) : null;
+  const savedTypes = saved ? saved.types.filter(v => config.types.includes(v)) : [];
+  const savedCats = saved ? saved.categories.filter(v => config.categories.includes(v)) : [];
+
+  const build = (container, items, chosen, name, cls) => {
+    container.innerHTML = '';
+    items.forEach((value, index) => {
+      const isChecked = chosen.length ? chosen.includes(value) : index === 0;
+      const label = document.createElement('label');
+      label.className = 'checkbox-opt';
+      label.innerHTML = `<input type="checkbox" name="${name}" class="${cls}" value="${value}" ${isChecked ? 'checked' : ''}> <span>${value}</span>`;
+      container.appendChild(label);
+    });
+  };
+
+  build(typeContainer, config.types, savedTypes, 'task_type', 'task-type-cb');
+  build(catContainer, config.categories, savedCats, 'task_category', 'task-category-cb');
 
   // Re-attach triggers for live score updates
-  typeContainer.querySelectorAll('input').forEach(i => i.addEventListener('change', updateLiveScore));
-  catContainer.querySelectorAll('input').forEach(i => i.addEventListener('change', updateLiveScore));
+  [typeContainer, catContainer].forEach(c => c.querySelectorAll('input').forEach(i => {
+    i.addEventListener('change', updateLiveScore);
+    i.addEventListener('change', () => saveSticky(branch));
+  }));
+}
+
+function initStickyToggle() {
+  const toggle = document.getElementById('sticky_types');
+  if (!toggle) return;
+  toggle.checked = stickyEnabled();
+  toggle.addEventListener('change', () => {
+    setStickyEnabled(toggle.checked);
+    const branch = document.getElementById('task_branch')?.value;
+    if (!branch) return;
+    if (toggle.checked) saveSticky(branch);
+    else populateTypesAndCategories(branch); // повертаємо типовий вибір
+  });
 }
 
 function handleTaskChange() {
@@ -1122,6 +1175,11 @@ async function handleLogFormSubmit(e) {
     document.getElementById('cabinet-log-form').reset();
     document.getElementById('include_37d').checked = false;
     document.getElementById('block-37d-fields').style.display = 'none';
+
+    // form.reset() зносить і галочку «запам'ятовувати», і самі чекбокси —
+    // відновлюємо стан і перезбираємо типи/категорії для поточної гілки
+    initStickyToggle();
+    handleBranchChange();
     
     // Set time/date defaults again
     const now = new Date();
@@ -1494,6 +1552,7 @@ function setupUIEvents() {
   });
 
   // Trigger default branch setup
+  initStickyToggle();
   handleBranchChange();
 }
 
