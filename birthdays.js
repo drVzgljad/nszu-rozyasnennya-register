@@ -41,6 +41,16 @@ async function load() {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) return [];
 
+  // Друга лінія оборони поверх RLS: гість (роль 'guest') не бачить дат
+  // навіть якщо політику в базі колись послаблять. Дні народження —
+  // персональні дані, показуємо їх лише співробітникам департаменту.
+  const { data: profile } = await sb
+    .from('profiles')
+    .select('role')
+    .eq('id', session.user.id)
+    .single();
+  if (!profile || !profile.role || profile.role === 'guest') return [];
+
   const { data, error } = await sb
     .from('staff_birthdays')
     .select('full_name, birth_day, birth_month')
