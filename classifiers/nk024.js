@@ -39,6 +39,8 @@
   const letterById = new Map();
   const TERMS = new Map();        // id літери → { код: [ua, uaDesc, en, enDesc] }
   const termLoads = new Map();    // id літери → Promise
+  const XW = new Map();           // id літери → { код: [[код НК 031, бал, назва], …] }
+  const xwLoads = new Map();      // id літери → Promise
   let TXT = null;                 // пошуковий рядок на кожен запис (укр. + англ.)
   let groupsCache = new Map();    // id літери → [{key, label, list}]
   let lastBatchFound = [];
@@ -431,6 +433,18 @@
     return p;
   }
 
+  /** Місток до НК 031 (EMDN) — теж ліниво, по тих самих літерних розділах. */
+  function loadXw(letterId) {
+    if (XW.has(letterId)) return Promise.resolve(XW.get(letterId));
+    if (xwLoads.has(letterId)) return xwLoads.get(letterId);
+    const p = fetch("data/nk024/xwalk/" + String(letterId).padStart(2, "0") + ".json")
+      .then((r) => r.json())
+      .then((d) => { XW.set(letterId, d); return d; })
+      .catch(() => { xwLoads.delete(letterId); return null; });
+    xwLoads.set(letterId, p);
+    return p;
+  }
+
   function openCode(code) {
     const e = byCode.get(code);
     if (!e) return;
@@ -439,6 +453,11 @@
     if (!TERMS.has(e[C.LET])) {
       loadTerms(e[C.LET]).then((d) => {
         if (d && openedCode === code) renderReader(e, d);
+      });
+    }
+    if (!XW.has(e[C.LET])) {
+      loadXw(e[C.LET]).then((d) => {
+        if (d && openedCode === code) renderReader(e, TERMS.get(e[C.LET]));
       });
     }
   }
@@ -495,15 +514,47 @@
       ${flagsHtml}
       ${rec ? descBlock(descPrimaryTitle, descPrimary) + descBlock(descSecondaryTitle, descSecondary) : descLoading}
       ${sibsHtml}
+      ${xwalkBlock(e)}
       ${renderLinks(e)}
       <div class="reader-foot">НК 024:2023 · GMDN · наказ Мінекономіки від 24.05.2023 № 4139${l ? " · літера " + esc(l.letter) : ""}</div>`;
     setTab("reader");
+  }
+
+  /** Ймовірні відповідники в НК 031 (EMDN) — обчислені за подібністю назв. */
+  function xwalkBlock(e) {
+    const map = XW.get(e[C.LET]);
+    const head = `<h3>Ймовірні відповідники в НК 031 (EMDN)
+        <span class="src">за подібністю назв — не офіційне зіставлення</span></h3>`;
+    if (!map) {
+      return `<div class="reader-block">${head}<p class="muted">Шукаю відповідники…</p></div>`;
+    }
+    const matches = map[e[C.CODE]];
+    const q = encodeURIComponent(e[C.UA].split(/[,(]/)[0].trim().toLowerCase().slice(0, 50));
+    if (!matches || !matches.length) {
+      return `<div class="reader-block">${head}
+        <p class="muted">Схожих назв у НК 031 не знайдено: номенклатури побудовані по-різному,
+           а офіційної таблиці переходу GMDN ↔ EMDN не існує.</p>
+        <a class="xlink" href="nk031.html?q=${q}${backTail(e[C.CODE])}">
+          <span class="xico">🧾</span>Пошукати в НК 031 вручну</a></div>`;
+    }
+    const rows = matches.map(([code, score, name]) => `
+      <a class="em-xw" href="nk031.html?code=${encodeURIComponent(code)}${backTail(e[C.CODE])}">
+        <span class="em-xw-score ${score >= 0.7 ? "hi" : score >= 0.5 ? "mid" : "low"}"
+              title="Оцінка подібності назв: ${Math.round(score * 100)} %">${Math.round(score * 100)}%</span>
+        <span class="em-xw-code code">${esc(code)}</span>
+        <span class="em-xw-name">${esc(name)}</span></a>`).join("");
+    return `<div class="reader-block">${head}<div class="em-xw-list">${rows}</div>
+      <p class="casc-note">НК 031:2024 (адаптований EMDN) чинний з 01.09.2025 паралельно з
+         НК 024:2023 — жоден із них не скасовано, обидва названо в пункті 9 постанови 1808.
+         Офіційного зіставлення між ними немає (MDCG 2021-12), тож відповідники обчислено за
+         подібністю українських назв і вони потребують перевірки експертом.</p></div>`;
   }
 
   function renderLinks(e) {
     const code = encodeURIComponent(e[C.CODE]);
     const name = encodeURIComponent(e[C.UA].split(/[,(]/)[0].trim().slice(0, 50));
     const items = [
+      ["🧾", "Номенклатура НК 031", `nk031.html?q=${name}${backTail(e[C.CODE])}`],
       ["📦", "Пакети ПМГ-2026", `../pakety/index.html?q=${name}`],
       ["📜", "Постанова 1808", `../postanova/index.html?q=${code}`],
       ["📄", "Роз'яснення НСЗУ", `../rozjasnennya/index.html?q=${name}`],

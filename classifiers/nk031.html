@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>НавігаторПМГ26 | Номенклатура медичних виробів НК 031</title>
+  <link rel="stylesheet" href="../styles.css?v=20260728f">
+  <link rel="stylesheet" href="classifiers.css?v=20260725d">
+  <link rel="stylesheet" href="nk031.css?v=20260729a">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260725d">
+  <script type="module" src="../auth-v2.js?v=20260729a"></script>
+</head>
+<body id="top">
+  <header class="hero classifiers-hero">
+    <div class="hero-copy">
+      <div class="overline">Національний класифікатор · НК 031:2024 · EMDN ·
+        <a class="xnav" href="nk024.html">↔ Медвироби НК 024</a>
+        <a class="xnav" href="index.html">↔ Хвороби НК 025</a>
+        <a class="xnav" href="nk026.html">↔ Інтервенції НК 026</a>
+        <a class="xnav" href="tabel.html">↔ Табелі оснащення</a>
+        <a class="xnav" href="../mapping/index.html">↔ Таблиця співставлення</a></div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів, постанови та правил</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Номенклатура медичних виробів НК 031</h1>
+      <p>НК&nbsp;031:2024 — адаптований переклад європейської номенклатури EMDN: 8&nbsp;342 позиції
+         у семирівневому дереві з&nbsp;22 категорій. Чинний з&nbsp;01.09.2025 паралельно з
+         НК&nbsp;024:2023 (GMDN), обидва названо в&nbsp;пункті&nbsp;9 постанови&nbsp;1808.
+         Для ідентифікації конкретного виробу придатні лише позиції <b>найнижчого рівня</b>.
+         У паспорті кожної позиції — місток до ймовірних відповідників у&nbsp;НК&nbsp;024.</p>
+    </div>
+    <div class="stats" id="emStats" aria-label="Статистика класифікатора"></div>
+  </header>
+
+  <nav class="mobile-tabs" id="mobileTabs" aria-label="Навігація між панелями">
+    <button class="mobile-tab active" data-tab="browser" type="button">Огляд і пошук</button>
+    <button class="mobile-tab" data-tab="reader" type="button">Паспорт позиції</button>
+  </nav>
+
+  <main class="nk-layout" data-active="browser">
+    <!-- ЛІВА ПАНЕЛЬ: пошук + каскад -->
+    <section class="nk-browser" aria-label="Пошук і навігація класифікатора">
+      <div class="search-panel nk-search">
+        <label class="search">
+          <span>Пошук за кодом EMDN або назвою виробу</span>
+          <input id="emSearch" type="search"
+                 placeholder="Напр.: Z1203020408, пульсоксиметр, рукавички, катетер…" autocomplete="off">
+        </label>
+
+        <!-- Пакетний пошук: кілька кодів / назв разом -->
+        <details class="nk-batch">
+          <summary>📋 Пакетний пошук — кілька кодів / назв разом</summary>
+          <textarea id="emBatch" rows="4"
+            placeholder="Вставте коди або назви — по одному в рядку, через кому чи пробіл:&#10;Z1203020408&#10;A0101010101  T01020204&#10;пульсоксиметр, рукавички"></textarea>
+          <div class="batch-actions">
+            <button id="emBatchRun" type="button" class="batch-primary">Знайти всі</button>
+            <button id="emBatchCopy" type="button" hidden>⧉ Копіювати знайдене</button>
+            <button id="emBatchClear" type="button">Очистити</button>
+          </div>
+        </details>
+
+        <!-- Каскадна навігація: Категорія → Група → Позиція -->
+        <div class="nk-cascade" aria-label="Навігація по класифікатору">
+          <div class="casc-field">
+            <label for="selCat">Категорія (1-й рівень, літера коду)</label>
+            <select id="selCat"><option value="">Завантаження…</option></select>
+          </div>
+          <div class="casc-field">
+            <label for="selGroup">Група (2-й рівень)</label>
+            <select id="selGroup" disabled><option value="">— оберіть категорію —</option></select>
+          </div>
+          <div class="casc-field">
+            <label for="selCode">Позиція (тип і рівні деталізації)</label>
+            <select id="selCode" disabled><option value="">— оберіть групу —</option></select>
+          </div>
+        </div>
+        <p class="casc-note">Код — це літера категорії плюс до 12&nbsp;цифр: пара цифр на кожен
+           наступний рівень. Позиції в третьому списку подано з відступом за рівнем, у порядку
+           офіційного переліку.</p>
+
+        <div class="nk-filters">
+          <label class="nk-check"><input type="checkbox" id="onlyLeaf"> лише найнижчий рівень (придатні для ідентифікації)</label>
+          <label class="nk-check"><input type="checkbox" id="onlyXw"> лише позиції з відповідником у НК 024</label>
+          <label class="nk-level">Рівень
+            <select id="levelFilter">
+              <option value="">усі</option>
+              <option value="1">1 — категорія</option>
+              <option value="2">2 — група</option>
+              <option value="3">3 — тип</option>
+              <option value="4">4 — деталізація 1</option>
+              <option value="5">5 — деталізація 2</option>
+              <option value="6">6 — деталізація 3</option>
+              <option value="7">7 — деталізація 4</option>
+            </select>
+          </label>
+        </div>
+        <div class="results-summary">
+          <span id="emCount">Завантаження…</span>
+          <button id="emClear" type="button">✕ Очистити форму</button>
+        </div>
+
+        <details class="em-issues" id="emIssues" hidden>
+          <summary>⚠️ Зауваги до офіційного видання</summary>
+          <div id="emIssuesBody"></div>
+        </details>
+      </div>
+
+      <!-- Результати пошуку / переліку -->
+      <div class="nk-results" id="emResults" hidden></div>
+    </section>
+
+    <!-- ПРАВА ПАНЕЛЬ: паспорт позиції -->
+    <article class="nk-reader reader-empty" id="emReader" aria-live="polite">
+      <div class="reader-hint">
+        <div class="reader-hint-ico">🧾</div>
+        <p>Оберіть позицію в каскаді (Категорія → Група → Позиція) або через пошук, щоб побачити
+           її паспорт: місце в дереві EMDN, підпозиції та сусіди, ознаку найнижчого рівня,
+           ймовірні відповідники в НК&nbsp;024 (GMDN) і переходи до пов'язаних розділів порталу.</p>
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Джерело: НК&nbsp;031:2024 «Національна номенклатура медичних виробів» (наказ Мінекономіки
+           від 24.09.2024 № 23992; чинний з 01.09.2025 — дату перенесено наказом від 24.01.2025
+           № 711). Адаптований переклад EMDN; ведення класифікатора здійснює МОЗ.
+           НК&nbsp;024:2023 при цьому не скасовано. Місток до НК&nbsp;024 обчислено за подібністю
+           назв — офіційного зіставлення EMDN&nbsp;↔&nbsp;GMDN не існує. Довідковий інструмент;
+           у разі розбіжностей переважну силу має офіційне видання класифікатора.</p>
+      </div>
+    </div>
+  </footer>
+
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <script src="nk031.js?v=20260729a" defer></script>
+</body>
+</html>

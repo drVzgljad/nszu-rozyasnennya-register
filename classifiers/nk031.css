@@ -1,0 +1,47 @@
+/* ============================================================
+   НК 031 (номенклатура медичних виробів, EMDN) — додаткові стилі
+   поверх classifiers.css: бейджі рівня, місток до НК 024, зауваги
+   до джерела. Токени — зі styles.css (--ink, --accent, --surface, --line…).
+   ============================================================ */
+
+/* ── Бейджі «найнижчий рівень / вузол» у рядку результату ──── */
+.em-dot {
+  flex: 0 0 auto; align-self: center; white-space: nowrap;
+  font-size: .64rem; font-weight: 800; letter-spacing: .02em;
+  border-radius: 20px; padding: 2px 8px;
+}
+.em-leaf { background: var(--teal); color: #fff; }
+.em-node { background: var(--soft); color: var(--muted); border: 1px solid var(--line); }
+
+/* ── Плашка над паспортом: придатність позиції ─────────────── */
+.em-note {
+  margin: 2px 0 12px; padding: 9px 12px; border-radius: 11px;
+  font-size: .87rem; line-height: 1.45; border: 1px solid var(--line);
+}
+.em-ok { background: var(--accent-soft); color: var(--accent-dark); border-color: transparent; }
+.em-warn { background: var(--warm); color: var(--teal-dark); border-color: transparent; }
+
+/* Стилі містка (.em-xw*) і .linkish лежать у classifiers.css — їх ділять
+   обидві сторінки НК 031 і НК 024. */
+
+/* ── Зауваги до офіційного видання ─────────────────────────── */
+.em-issues {
+  margin-top: 12px; border: 1px solid var(--line); border-radius: 11px;
+  background: var(--soft); padding: 8px 12px;
+}
+.em-issues > summary {
+  cursor: pointer; font-size: .85rem; font-weight: 700; color: var(--teal-dark);
+  list-style: none;
+}
+.em-issues > summary::-webkit-details-marker { display: none; }
+.em-issue-list { margin: 8px 0 0; padding-left: 18px; font-size: .84rem; line-height: 1.5; }
+.em-issue-list li { margin-bottom: 5px; }
+
+/* ── Темна тема ────────────────────────────────────────────── */
+:root.dark-theme .reader-code { color: #0b1220; }
+
+/* ── Мобільне ──────────────────────────────────────────────── */
+@media (max-width: 560px) {
+  .rrow .em-dot { display: none; }
+  .rrow .em-dot.em-leaf { display: inline-block; }
+}
