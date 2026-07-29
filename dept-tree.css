@@ -430,6 +430,11 @@
   background: linear-gradient(135deg, #9aa8b6, #c8d2dc);
 }
 
+/* Діловод департаменту — наскрізна посада, не вертикаль відділу */
+.badge-clerk .person-avatar {
+  background: linear-gradient(135deg, #5a4a9c, #8b7ac9);
+}
+
 .theme-partners {
   --dept-accent: #5c6bc0;
   --dept-soft: #eef2fa;

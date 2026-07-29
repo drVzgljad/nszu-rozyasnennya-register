@@ -10,9 +10,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Структура департаменту</title>
   <link rel="stylesheet" href="styles.css?v=20260728f">
-  <link rel="stylesheet" href="auth-v2.css?v=20260725d">
-  <link rel="stylesheet" href="dept-tree.css?v=20260719b">
-  <script type="module" src="auth-v2.js?v=20260729a"></script>
+  <link rel="stylesheet" href="auth-v2.css?v=20260729b">
+  <link rel="stylesheet" href="dept-tree.css?v=20260729b">
+  <script type="module" src="auth-v2.js?v=20260729b"></script>
 </head>
 <body data-required-role="expert">
   <header class="hero dept-hero">
@@ -205,7 +205,12 @@
           shortTitle: "Стратегія",
           color: "strategy",
           manager: "Альбіна Волошина",
-          specialists: ["Олена Ковалева", "Микола Веселовський"]
+          specialists: [
+            "Олена Ковалева",
+            "Микола Веселовський",
+            // Штатно у відділі стратегії, функціонально — на весь департамент
+            { name: "Інна Жолуденко", role: "Діловод департаменту", badge: "clerk" }
+          ]
         }
       ]
     };
@@ -220,6 +225,10 @@
     };
 
     const $ = (selector) => document.querySelector(selector);
+
+    // Співробітник у specialists — або рядок з ПІБ, або об'єкт {name, role, badge}
+    // (окремі посади на кшталт діловода департаменту)
+    const specName = (sp) => (typeof sp === "string" ? sp : sp.name);
 
     function peopleCount() {
       return getUniquePeopleNames().length;
@@ -269,6 +278,7 @@
         admin: "Адміністратор",
         manager: "Керівник",
         specialist: "Спеціаліст",
+        clerk: "Діловод",
         vacant: "Вакансія"
       }[badge] || "Співробітник";
     }
@@ -319,7 +329,7 @@
         const section = document.createElement("article");
         section.className = `department-card theme-${dept.color}`;
         section.dataset.dept = dept.id;
-        section.dataset.search = `${dept.title} ${dept.manager} ${dept.specialists.join(" ")}`.toLowerCase();
+        section.dataset.search = `${dept.title} ${dept.manager} ${dept.specialists.map(specName).join(" ")}`.toLowerCase();
 
         section.innerHTML = `
           <header class="department-head">
@@ -359,13 +369,14 @@
         ));
 
         const list = section.querySelector(".specialists-list");
-        dept.specialists.forEach((name) => {
+        dept.specialists.forEach((sp) => {
+          const person = typeof sp === "string" ? { name: sp } : sp;
           list.appendChild(createPersonCard({
-            name,
-            role: "Головний спеціаліст",
+            name: person.name,
+            role: person.role || "Головний спеціаліст",
             department: dept.title,
             level: "Відділ",
-            badge: "specialist"
+            badge: person.badge || "specialist"
           }, "specialist-card"));
         });
 
@@ -514,7 +525,7 @@
       names.add(ORG.administrator.name);
       ORG.departments.forEach(dept => {
         if (dept.manager) names.add(dept.manager);
-        dept.specialists.forEach(sp => names.add(sp));
+        dept.specialists.forEach(sp => names.add(specName(sp)));
       });
       return Array.from(names);
     }
@@ -633,7 +644,7 @@
       ORG.departments.forEach(dept => {
         const members = new Set();
         if (dept.manager) members.add(dept.manager);
-        dept.specialists.forEach(sp => members.add(sp));
+        dept.specialists.forEach(sp => members.add(specName(sp)));
 
         const stats = {
           office: 0,

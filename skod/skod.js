@@ -959,7 +959,7 @@ async function setupReports() {
 
   // RBAC checks for filters
   const userRole = userProfile.role || 'registered';
-  const isDirectorOrDeputyOrAdmin = ['admin', 'director', 'deputy_director', 'full'].includes(userRole);
+  const isDirectorOrDeputyOrAdmin = ['admin', 'director', 'deputy_director', 'full'].includes(userRole) || isClerkUser();
   const isManager = userRole === 'manager' || userProfile.is_head === true;
   const canSeeEmployees = isDirectorOrDeputyOrAdmin || isManager;
 
@@ -1276,7 +1276,7 @@ async function setupReports() {
 
   // RBAC checks for 37-D filters
   const userRole37d = userProfile.role || 'registered';
-  const isCoordOrAdmin = ['admin', 'director', 'deputy_director', 'full'].includes(userRole37d);
+  const isCoordOrAdmin = ['admin', 'director', 'deputy_director', 'full'].includes(userRole37d) || isClerkUser();
   const isManager37d = userRole37d === 'manager' || userProfile.is_head === true;
   const canSeeEmployees37d = isCoordOrAdmin || isManager37d;
 
@@ -1573,7 +1573,7 @@ function drillToLevel(level, department) {
 
   // Update employee filter visibility
   const userRole = userProfile.role || 'registered';
-  const canSee = ['admin', 'director', 'deputy_director', 'full'].includes(userRole) || userRole === 'manager' || userProfile.is_head === true;
+  const canSee = ['admin', 'director', 'deputy_director', 'full'].includes(userRole) || userRole === 'manager' || userProfile.is_head === true || isClerkUser();
   updateEmployeeFilter(level, filterDeptSel?.value, canSee);
 
   runReport();
@@ -1696,7 +1696,7 @@ function renderDepartmentDetails(logs, container, departmentName) {
   // Check if current user can drill down to individual
   const userRole = userProfile.role || 'registered';
   const canDrillDown = ['admin', 'director', 'deputy_director', 'full'].includes(userRole)
-    || userRole === 'manager' || userProfile.is_head === true;
+    || userRole === 'manager' || userProfile.is_head === true || isClerkUser();
 
   const empRows = Object.values(employees).map(emp => {
     const hrs = (emp.minutes / 60).toFixed(1);
@@ -2340,9 +2340,15 @@ const TABEL_SIGNERS = [
 const TABEL_MONTHS_GEN = ['січня', 'лютого', 'березня', 'квітня', 'травня', 'червня',
   'липня', 'серпня', 'вересня', 'жовтня', 'листопада', 'грудня'];
 
+// Діловод департаменту: наскрізний перегляд звітів усіх відділів і ведення
+// табеля. Оцінювання та закриття доручень йому НЕ належать.
+function isClerkUser() {
+  return userProfile?.is_clerk === true;
+}
+
 function tabelIsCoordOrAdmin() {
   const role = userProfile?.role || 'registered';
-  return ['admin', 'director', 'deputy_director', 'full'].includes(role);
+  return ['admin', 'director', 'deputy_director', 'full'].includes(role) || isClerkUser();
 }
 
 // Період за замовчуванням: до 15 числа включно — друга половина минулого

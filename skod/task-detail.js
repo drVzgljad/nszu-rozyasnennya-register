@@ -172,7 +172,7 @@ function renderTaskHeader() {
     }
 
     metaEl.innerHTML = `
-      <strong>Надав:</strong> ${currentTask.created_by_name} (${createdDate}) &bull; 
+      <strong>Надав:</strong> ${currentTask.created_by_name} (${createdDate})${currentTask.registered_by_name ? ` <span style="color: var(--p-muted);">— резолюцію вніс(ла) ${currentTask.registered_by_name}</span>` : ''} &bull;
       <strong>Виконавець:</strong> ${currentTask.responsible_name || 'Не призначено'} &bull; 
       <strong>Тип:</strong> ${taskTypeHtml}
       ${deadlineOrOngoingHtml}

@@ -65,8 +65,10 @@ async function initWorkspace() {
   const { data: p } = await sb.from('profiles').select('*').eq('id', me.id).single();
   profile = p || {};
   myDept = profile.Section || profile.department || '';
-  isLeadership = LEADERSHIP.includes(profile.role);
-  canManage = isLeadership || profile.role === 'manager' || profile.is_head === true;
+  const isLeadershipRole = LEADERSHIP.includes(profile.role);
+  // Діловод департаменту бачить дошки всіх відділів наскрізно, але не редагує чуже
+  isLeadership = isLeadershipRole || profile.is_clerk === true;
+  canManage = isLeadershipRole || profile.role === 'manager' || profile.is_head === true;
   deptFilter = isLeadership ? 'all' : (myDept || '');
 
   wireModeSwitch();

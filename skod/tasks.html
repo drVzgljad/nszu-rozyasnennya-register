@@ -10,10 +10,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Доручення та завдання СКО-Д — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260719h">
-  <link rel="stylesheet" href="../auth-v2.css?v=20260725d">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260729b">
   <link rel="stylesheet" href="skod.css?v=20260609">
-  <script type="module" src="../auth-v2.js?v=20260729a"></script>
-  <script type="module" src="tasks.js?v=20260723b"></script>
+  <script type="module" src="../auth-v2.js?v=20260729b"></script>
+  <script type="module" src="tasks.js?v=20260729b"></script>
   <style>
     /* Slider styling matching NaVIPMG26 aesthetics */
     .progress-slider-container {
@@ -247,7 +247,7 @@
           </span>
         </a>
         <div class="top-row-1-right">
-          <!-- auth-v2.js?v=20260729a inject point -->
+          <!-- auth-v2.js?v=20260729b inject point -->
           <nav class="section-switch top-auth" aria-label="Авторизація"></nav>
           <span class="agency-chip">
             <img src="../assets/nszu-shield.svg" alt="">НСЗУ
@@ -447,6 +447,15 @@
         </div>
 
         <!-- Shared fields -->
+        <!-- Видиме лише діловоду: він реєструє чужу резолюцію, а не власне доручення -->
+        <div class="skod-form-group" id="task_on_behalf_group" style="margin-bottom: 16px; display: none;">
+          <label for="task_on_behalf">Резолюція від *</label>
+          <select id="task_on_behalf" style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; border: 1.5px solid var(--p-line); background: var(--p-surface); font-family: inherit; font-size: 14px;">
+            <option value="">— оберіть керівника —</option>
+          </select>
+          <div style="font-size: 12px; color: var(--p-muted); margin-top: 6px;">Доручення буде показано виконавцю як резолюцію цієї особи; ваше прізвище зафіксується як «внесла».</div>
+        </div>
+
         <div class="skod-form-group" style="margin-bottom: 16px;">
           <label for="task_dept">Підрозділ департаменту *</label>
           <select id="task_dept" style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; border: 1.5px solid var(--p-line); background: var(--p-surface); font-family: inherit; font-size: 14px;" required>

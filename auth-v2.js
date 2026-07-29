@@ -15,6 +15,9 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 let user = null;
 let role = null; // null = guest | 'registered' | 'full'
 let isHead = false;
+// Діловод департаменту: ортогонально до role — ширші повноваження
+// (доручення по всіх відділах, оголошення, табель), але НЕ права керівника
+let isClerk = false;
 
 // Єдиний перелік підтек порталу: якщо сторінка лежить в одній з них,
 // відносні посилання на кореневі ресурси потребують префікса '../'.
@@ -71,6 +74,11 @@ function hasAccess(required) {
     req = 'admin';
   }
   
+  // Діловод департаменту працює з дорученнями всіх відділів, тож сторінки
+  // рівня 'manager' (СКО-Д «Доручення») йому відкриті. Вище — ні: рівні
+  // deputy_director / admin лишаються за керівництвом.
+  if (isClerk && req === 'manager') return true;
+
   const rolesOrder = ['guest', 'expert', 'manager', 'deputy_director', 'admin'];
   const userRoleIndex = rolesOrder.indexOf(currentRole);
   const requiredRoleIndex = rolesOrder.indexOf(req);
@@ -80,12 +88,15 @@ function hasAccess(required) {
 }
 
 async function fetchRole() {
-  if (!user) { role = null; isHead = false; return; }
-  const { data } = await sb.from('profiles').select('role, is_head').eq('id', user.id).single();
+  if (!user) { role = null; isHead = false; isClerk = false; return; }
+  // select('*') навмисно: поки міграція is_clerk не застосована, перелік колонок
+  // поіменно повернув би помилку — і всі користувачі стали б гостями
+  const { data } = await sb.from('profiles').select('*').eq('id', user.id).single();
   // Роль визначає ВИКЛЮЧНО запис у profiles (керується адміністратором);
   // жодних клієнтських авто-підвищень за ключовими словами в email.
   role = data?.role ?? 'guest';
   isHead = data?.is_head ?? false;
+  isClerk = data?.is_clerk ?? false;
 }
 
 function applyAccess() {
@@ -192,7 +203,10 @@ function applyAccess() {
         director: { text: 'Директор', bg: '#fdebee', color: '#c71585', border: '1px solid rgba(199, 21, 133, 0.2)' },
         admin: { text: 'Адмін', bg: '#f5f0ff', color: '#6a0dad', border: '1px solid rgba(106, 13, 173, 0.25)' }
       };
-      const labelInfo = roleLabels[role] || roleLabels.guest;
+      const clerkLabel = { text: 'Діловод', bg: '#f4f1fb', color: '#5a4a9c', border: '1px solid rgba(90, 74, 156, 0.25)' };
+      const labelInfo = (isClerk && !['deputy_director', 'director', 'admin'].includes(role))
+        ? clerkLabel
+        : (roleLabels[role] || roleLabels.guest);
       badge.textContent = labelInfo.text;
       badge.style.background = labelInfo.bg;
       badge.style.color = labelInfo.color;
@@ -860,6 +874,7 @@ function inject() {
         <label for="reg-position">Посада *</label>
         <select id="reg-position" required>
           <option value="Експерт">Експерт</option>
+          <option value="Діловод департаменту">Діловод департаменту</option>
           <option value="Начальник відділу">Начальник відділу</option>
           <option value="Заступник директора">Заступник директора</option>
           <option value="Директор">Директор</option>

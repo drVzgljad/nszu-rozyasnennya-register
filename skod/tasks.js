@@ -34,8 +34,10 @@ async function init() {
   const userRoleIndex = rolesOrder.indexOf(userProfile.role);
   const managerIndex = rolesOrder.indexOf('manager');
   const isManager = userRoleIndex >= managerIndex;
-  
-  if (!isManager) {
+
+  // Діловод департаменту реєструє резолюції керівництва — сторінка йому потрібна,
+  // хоча за роллю він лишається експертом
+  if (!isManager && userProfile.is_clerk !== true) {
     showAccessDenied("Ця сторінка доступна лише для керівництва (Директор, Заступники, Начальники відділів та Адміністратор).");
     return;
   }
@@ -91,8 +93,10 @@ async function loadUsers() {
 function setupManagerPanel() {
   const isDirectorOrDeputy = ['admin', 'director', 'deputy_director'].includes(userProfile.role);
   const isDeptHead = userProfile.role === 'manager';
+  // Діловод департаменту не дає доручень від себе — він реєструє резолюцію керівництва
+  const isClerk = userProfile.is_clerk === true && !isDirectorOrDeputy && !isDeptHead;
 
-  if (isDirectorOrDeputy || isDeptHead) {
+  if (isDirectorOrDeputy || isDeptHead || isClerk) {
     const triggerCard = document.getElementById('create-task-trigger-card');
     if (triggerCard) triggerCard.style.display = 'block';
 
@@ -176,8 +180,27 @@ function setupManagerPanel() {
       askodNumber.addEventListener('blur', checkAskodNumber);
     }
 
+    // Діловод: поле «Резолюція від» — обов'язкове, список керівництва
+    if (isClerk) {
+      const behalfGroup = document.getElementById('task_on_behalf_group');
+      const behalfSel = document.getElementById('task_on_behalf');
+      if (behalfGroup) behalfGroup.style.display = 'block';
+      if (behalfSel) {
+        behalfSel.required = true;
+        const leaders = allUsers
+          .filter(u => ['admin', 'director', 'deputy_director', 'manager'].includes(u.role))
+          .sort((a, b) => (a.full_name || '').localeCompare(b.full_name || '', 'uk'));
+        leaders.forEach(u => {
+          const opt = document.createElement('option');
+          opt.value = u.id;
+          opt.textContent = `${u.full_name || 'Керівник'}${u.position ? ' — ' + u.position : ''}`;
+          behalfSel.appendChild(opt);
+        });
+      }
+    }
+
     const deptSelect = document.getElementById('task_dept');
-    
+
     if (isDeptHead && !isDirectorOrDeputy) {
       // Department Heads can only assign to their own department
       const userDept = userProfile.Section || userProfile.department;
@@ -472,7 +495,26 @@ async function createTask(e) {
     submitBtn.textContent = 'Збереження...';
   }
 
-  const creatorName = userProfile.full_name || currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
+  const myName = userProfile.full_name || currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
+
+  // Діловод реєструє резолюцію керівництва: автором доручення для виконавця
+  // лишається керівник, діловод фіксується окремо як «внесла»
+  const isClerkEntry = userProfile.is_clerk === true
+    && !['admin', 'director', 'deputy_director', 'manager'].includes(userProfile.role);
+  let onBehalfOf = null;
+  let registeredByName = null;
+  let creatorName = myName;
+
+  if (isClerkEntry) {
+    onBehalfOf = document.getElementById('task_on_behalf')?.value || '';
+    if (!onBehalfOf) {
+      alert('Оберіть керівника, чию резолюцію ви реєструєте.');
+      return;
+    }
+    const leader = allUsers.find(u => u.id === onBehalfOf);
+    creatorName = leader?.full_name || 'Керівництво департаменту';
+    registeredByName = myName;
+  }
 
   // Лист уже опрацьовано в СКО-Д → створюємо доручення одразу як виконане
   const createCompleted = task_type === 'askod'
@@ -513,7 +555,9 @@ async function createTask(e) {
       askod_number,
       askod_sender,
       importance,
-      meeting_link
+      meeting_link,
+      on_behalf_of: onBehalfOf,
+      registered_by_name: registeredByName
     };
     if (createCompleted) {
       row.status = 'completed';
@@ -644,7 +688,8 @@ function renderMyTasks() {
       const deadlineDate = new Date(task.deadline);
       const formattedDeadline = deadlineDate.toLocaleDateString('uk-UA');
       
-      let metaText = `Надав: ${task.created_by_name} &bull; Термін: ${formattedDeadline}`;
+      const regNote = task.registered_by_name ? ` (внесла ${escapeHtml(task.registered_by_name)})` : '';
+      let metaText = `Надав: ${task.created_by_name}${regNote} &bull; Термін: ${formattedDeadline}`;
       let statusBadgeHtml = `<span class="badge-status ${task.status}">${getStatusLabel(task.status)}</span>`;
       let progressSliderHtml = `
         <div class="progress-slider-container">
@@ -654,7 +699,7 @@ function renderMyTasks() {
       `;
 
       if (task.is_ongoing) {
-        metaText = `Надав: ${task.created_by_name} &bull; 🔄 Постійне посадове доручення`;
+        metaText = `Надав: ${task.created_by_name}${regNote} &bull; 🔄 Постійне посадове доручення`;
         statusBadgeHtml = `<span class="badge-status ongoing" style="background: var(--accent-soft, rgba(74, 143, 199, 0.15)); color: var(--accent-deep, #2f6b9e);">🔄 Посадовий обов'язок</span>`;
         progressSliderHtml = '';
       }
@@ -849,7 +894,7 @@ function renderRegistry() {
           <div style="font-weight: 700;">
             <a href="task-detail.html?id=${task.id}" target="_blank" style="color: var(--accent, #3b82f6); text-decoration: none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${task.title}</a>
           </div>
-          <div style="font-size:11px; color: var(--p-muted); margin-top: 4px;">Надав: ${task.created_by_name}</div>
+          <div style="font-size:11px; color: var(--p-muted); margin-top: 4px;">Надав: ${task.created_by_name}${task.registered_by_name ? ` <span title="Резолюцію зареєстрував діловод">(внесла ${escapeHtml(task.registered_by_name)})</span>` : ''}</div>
         </td>
         <td><span style="font-size:13px; font-weight:600; color:var(--accent-deep);">${task.department}</span></td>
         <td>

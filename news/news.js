@@ -43,11 +43,13 @@ async function init() {
   sb.auth.onAuthStateChange(async (_event, session) => {
     if (session && session.user) {
       currentUser = session.user;
-      const { data } = await sb.from('profiles').select('role').eq('id', currentUser.id).single();
+      const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
       currentUserRole = data?.role ?? null;
+      currentUserIsClerk = data?.is_clerk === true;
     } else {
       currentUser = null;
       currentUserRole = null;
+      currentUserIsClerk = false;
     }
     togglePublishButtonVisibility();
     toggleEditAndDeleteButtons();
@@ -317,19 +319,23 @@ function formatDate(isoString) {
 
 let currentUser = null;
 let currentUserRole = null;
+// Діловод департаменту публікує та редагує оголошення нарівні з керівництвом
+let currentUserIsClerk = false;
 
 async function checkPublishAccess() {
   try {
     const { data: { session } } = await sb.auth.getSession();
     if (session && session.user) {
       currentUser = session.user;
-      const { data } = await sb.from('profiles').select('role').eq('id', currentUser.id).single();
+      const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
       currentUserRole = data?.role ?? null;
+      currentUserIsClerk = data?.is_clerk === true;
       togglePublishButtonVisibility();
       toggleEditAndDeleteButtons();
     } else {
       currentUser = null;
       currentUserRole = null;
+      currentUserIsClerk = false;
       togglePublishButtonVisibility();
       toggleEditAndDeleteButtons();
     }
@@ -342,7 +348,7 @@ function togglePublishButtonVisibility() {
   const allowedRoles = ['manager', 'deputy_director', 'director', 'admin'];
   const btn = byId("createNewsBtn");
   if (btn) {
-    if (currentUser && allowedRoles.includes(currentUserRole)) {
+    if (currentUser && (allowedRoles.includes(currentUserRole) || currentUserIsClerk)) {
       btn.style.display = "block";
     } else {
       btn.style.display = "none";
@@ -540,10 +546,14 @@ function toggleEditAndDeleteButtons() {
   
   if (deleteBtn || editBtn) {
     const allowedRoles = ['manager', 'deputy_director', 'director', 'admin'];
-    const hasAccess = selectedNews && currentUser && allowedRoles.includes(currentUserRole);
-    
+    const isLeadership = allowedRoles.includes(currentUserRole);
+    const hasAccess = selectedNews && currentUser && isLeadership;
+    // Діловод редагує оголошення, але не видаляє: у таблиці news немає автора,
+    // тож обмежити його власними записами неможливо — видалення лишається керівництву
+    const canEdit = selectedNews && currentUser && (isLeadership || currentUserIsClerk);
+
     if (deleteBtn) deleteBtn.style.display = hasAccess ? "block" : "none";
-    if (editBtn) editBtn.style.display = hasAccess ? "block" : "none";
+    if (editBtn) editBtn.style.display = canEdit ? "block" : "none";
   }
 }
 
