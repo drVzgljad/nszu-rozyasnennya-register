@@ -11,7 +11,7 @@
   <title>НавігаторПМГ26 | Структура департаменту</title>
   <link rel="stylesheet" href="styles.css?v=20260728f">
   <link rel="stylesheet" href="auth-v2.css?v=20260729b">
-  <link rel="stylesheet" href="dept-tree.css?v=20260729b">
+  <link rel="stylesheet" href="dept-tree.css?v=20260729e">
   <script type="module" src="auth-v2.js?v=20260729b"></script>
 </head>
 <body data-required-role="expert">
@@ -219,6 +219,7 @@
       search: "",
       department: "all",
       profileIdsByName: new Map(),
+      profileIdsByKey: new Map(),
       profileNamesById: new Map(),
       onlineIds: new Set(),
       presenceChannel: null
@@ -229,6 +230,23 @@
     // Співробітник у specialists — або рядок з ПІБ, або об'єкт {name, role, badge}
     // (окремі посади на кшталт діловода департаменту)
     const specName = (sp) => (typeof sp === "string" ? sp : sp.name);
+
+    // У структурі імена записані як «Ім'я Прізвище», у профілях — як завгодно
+    // («Прізвище Ім'я», іноді з по батькові). Ключ нечутливий до порядку слів.
+    function nameKey(name) {
+      return String(name || "")
+        .toLowerCase()
+        .replace(/[’ʼ`]/g, "'")
+        .split(/[\s]+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .sort()
+        .join(" ");
+    }
+
+    function resolveProfileId(name) {
+      return state.profileIdsByName.get(name) || state.profileIdsByKey.get(nameKey(name)) || null;
+    }
 
     function peopleCount() {
       return getUniquePeopleNames().length;
@@ -287,6 +305,8 @@
       renderFilters();
       renderDepartments();
       applyFilters();
+      // Перемальовка стирає класи — повертаємо підсвітку відділів
+      syncOnlineCards();
     }
 
     function renderLeadership() {
@@ -413,10 +433,36 @@
 
     function syncOnlineCards() {
       document.querySelectorAll(".person-card").forEach((card) => {
-        const profileId = state.profileIdsByName.get(card.dataset.personName);
+        const profileId = resolveProfileId(card.dataset.personName);
         const isOnline = Boolean(profileId && state.onlineIds.has(profileId));
         card.classList.toggle("is-online", isOnline);
         card.setAttribute("aria-label", `${card.dataset.personName}${isOnline ? " зараз у мережі" : ""}`);
+      });
+      syncDepartmentGlow();
+    }
+
+    // Керівник (якщо призначений) + усі головні спеціалісти відділу
+    function departmentMembers(dept) {
+      const names = dept.specialists.map(specName);
+      if (dept.manager) names.unshift(dept.manager);
+      return names;
+    }
+
+    // Весь відділ у мережі — картка загорається зеленим і по рамці біжать вогники
+    function syncDepartmentGlow() {
+      ORG.departments.forEach((dept) => {
+        const card = document.querySelector(`.department-card[data-dept="${dept.id}"]`);
+        if (!card) return;
+
+        const names = departmentMembers(dept);
+        const allOnline = names.length > 0 && names.every((name) => {
+          const profileId = resolveProfileId(name);
+          return Boolean(profileId && state.onlineIds.has(profileId));
+        });
+
+        card.classList.toggle("is-all-online", allOnline);
+        const badge = card.querySelector(".dept-status-badge");
+        if (badge) badge.title = allOnline ? "Весь відділ зараз на сайті" : "";
       });
     }
 
@@ -439,6 +485,7 @@
           if (profile.full_name) {
             const trimmedName = profile.full_name.trim();
             state.profileIdsByName.set(trimmedName, profile.id);
+            state.profileIdsByKey.set(nameKey(trimmedName), profile.id);
             state.profileNamesById.set(profile.id, trimmedName);
           }
         });

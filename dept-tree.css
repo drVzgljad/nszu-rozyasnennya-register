@@ -169,6 +169,7 @@
   --dept-accent: var(--accent);
   --dept-soft: var(--accent-soft);
   --dept-line: rgba(74, 143, 199, 0.22);
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -179,6 +180,78 @@
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.84);
   box-shadow: 0 12px 28px rgba(38, 78, 112, 0.08);
+}
+
+/* ── «Весь відділ на сайті»: темно-зелений бейдж + вогники по рамці ── */
+/* Кут крутиться анімацією, тому реєструємо його як типізовану властивість.
+   Там, де @property не підтримується, градієнт просто стоїть нерухомо —
+   рамка лишається зеленою, ефект деградує м'яко. */
+@property --dept-glow-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.department-card.is-all-online {
+  border-color: rgba(21, 128, 61, 0.45);
+  box-shadow: 0 12px 28px rgba(21, 128, 61, 0.18);
+}
+
+.department-card.is-all-online::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 18px;
+  padding: 2px;
+  /* Два вогники навпроти один одного біжать по колу */
+  background: conic-gradient(
+    from var(--dept-glow-angle),
+    rgba(21, 128, 61, 0) 0deg,
+    #22c55e 18deg,
+    #bbf7d0 30deg,
+    #22c55e 42deg,
+    rgba(21, 128, 61, 0) 62deg,
+    rgba(21, 128, 61, 0) 180deg,
+    #22c55e 198deg,
+    #bbf7d0 210deg,
+    #22c55e 222deg,
+    rgba(21, 128, 61, 0) 242deg,
+    rgba(21, 128, 61, 0) 360deg
+  );
+  /* Маска лишає видимою тільки смужку завтовшки padding — тобто рамку */
+  /* Спершу webkit-варіант, потім стандартний — щоб у сучасних рушіях
+     виграв mask-composite: exclude, а в старих лишився -webkit xor */
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: dept-glow-run 3s linear infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+
+@keyframes dept-glow-run {
+  to { --dept-glow-angle: 360deg; }
+}
+
+.department-card.is-all-online .dept-status-badge {
+  background: #14532d;
+  border-color: #166534;
+  color: #dcfce7;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+}
+
+:root.dark-theme .department-card.is-all-online .dept-status-badge,
+.dark-theme .department-card.is-all-online .dept-status-badge {
+  background: #14532d;
+  border-color: #22c55e;
+  color: #dcfce7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .department-card.is-all-online::after {
+    animation: none;
+  }
 }
 
 .department-card[hidden] {
