@@ -108,6 +108,8 @@
 
 .hz2026__main { padding: clamp(20px, 3vw, 30px); }
 .hz2026__main p { margin: 0; font-size: clamp(17px, 2.2vw, 22px); line-height: 1.58; }
+.hz2026__main .hz2026__caution { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.12); color: var(--hz-muted); font-size: clamp(13px, 1.5vw, 15px); line-height: 1.5; }
+.hz2026__main .hz2026__caution > span:first-child { font-weight: 800; letter-spacing: .04em; text-transform: uppercase; font-size: 11px; }
 .hz2026__accent { color: var(--hz-gold); }
 
 .hz2026__cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
