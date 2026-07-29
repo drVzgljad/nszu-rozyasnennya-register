@@ -2285,7 +2285,22 @@ function toggleMobileMoreSheet() {
 if ('serviceWorker' in navigator &&
     (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') &&
     !location.pathname.startsWith('/chat/')) { // чат має власний SW зі своїм scope
-  navigator.serviceWorker.register('/sw.js').catch(() => {});
+  // Версія в URL обов'язкова: GitHub Pages віддає sw.js із max-age=600, тож без
+  // неї браузер до десяти хвилин не помічає, що воркер змінився, і продовжує
+  // роздавати старі файли з кешу. Змінений URL змушує перевірити одразу.
+  // ПРИ ЗМІНІ sw.js ПІДНІМАТИ ЦЮ ВЕРСІЮ РАЗОМ З CACHE усередині воркера.
+  navigator.serviceWorker.register('/sw.js?v=7').catch(() => {});
+
+  // Коли новий воркер перебирає керування, сторінка вже намальована старим
+  // кешем — тому один раз перезавантажуємо. Перевірка hadController відсікає
+  // перший візит (там контролера не було, перезавантажувати нічого).
+  const hadController = !!navigator.serviceWorker.controller;
+  let swReloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController || swReloading) return;
+    swReloading = true;
+    location.reload();
+  });
 }
 
 // ── PWA: встановлення БЕЗ спливаючих запрошень ─────────────────────
