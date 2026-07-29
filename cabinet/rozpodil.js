@@ -111,13 +111,16 @@ function initials(key) {
   return e ? e.surname.charAt(0) : '?';
 }
 
-function passportLink(p) {
-  // Пілоти живуть у власному розділі — у них немає паспорта за постановою 1808
+// № пакета як посилання на паспорт (пілоти живуть у власному розділі)
+function numLink(p, cls) {
+  const label = `№ ${esc(p.num)}`;
   if (p.pilot) {
-    return `<a class="rz-card-link" href="../pilots/index.html?p=${encodeURIComponent(p.num)}" title="Відкрити паспорт пілотного проєкту № ${esc(p.num)}">🧪 Паспорт проєкту</a>`;
+    return `<a class="${cls} pilot" href="../pilots/index.html?p=${encodeURIComponent(p.num)}" title="Паспорт пілотного проєкту № ${esc(p.num)}">${label}</a>`;
   }
-  if (!HAS_PASSPORT.has(p.num)) return '';
-  return `<a class="rz-card-link" href="../passport/index.html?package=${encodeURIComponent(p.num)}" title="Відкрити паспорт пакета № ${esc(p.num)}">🪪 Паспорт пакета</a>`;
+  if (HAS_PASSPORT.has(p.num)) {
+    return `<a class="${cls}" href="../passport/index.html?package=${encodeURIComponent(p.num)}" title="Паспорт пакета № ${esc(p.num)}">${label}</a>`;
+  }
+  return `<span class="${cls}">${label}</span>`;
 }
 
 function expertChip(key, role, clickable = true) {
@@ -253,11 +256,11 @@ function renderPersonal() {
   $('rz-m-pilot').textContent = pilots;
 
   $('rz-my-resp').innerHTML = resp.length
-    ? resp.map(p => packageCard(p, 'resp')).join('')
-    : '<div class="rz-empty">Немає пакетів на основній відповідальності.</div>';
+    ? resp.map(p => packageRow(p, 'resp')).join('')
+    : '<li class="rz-empty">Немає пакетів на основній відповідальності.</li>';
 
   $('rz-dup-section').style.display = dup.length ? '' : 'none';
-  $('rz-my-dup').innerHTML = dup.map(p => packageCard(p, 'dup')).join('');
+  $('rz-my-dup').innerHTML = dup.map(p => packageRow(p, 'dup')).join('');
 
   // Клік по чипу колеги на картці — перейти до його особистої сторінки
   document.querySelectorAll('#rz-pane-my .rz-exp-chip').forEach(chip => {
@@ -270,23 +273,24 @@ function renderPersonal() {
   });
 }
 
-function packageCard(p, role) {
+// Один рядок компактного переліку: [№] назва … [прапорці] [колега]
+function packageRow(p, role) {
   const other = role === 'resp' ? p.dup : p.resp;
-  const otherLbl = role === 'resp' ? 'Дублер (листи)' : 'Відповідальний';
-  const showOther = other !== viewerKey;
+  const otherLbl = role === 'resp' ? 'Дублює відповіді на листи' : 'Основний відповідальний за аналіз';
   const ended = p.status === 'ended';
-  return `<article class="rz-card${p.pilot ? ' rz-card-pilot' : ''}${ended ? ' rz-card-ended' : ''}">
-    <div class="rz-card-top">
-      <span class="rz-num${p.pilot ? ' pilot' : ''}" title="${p.pilot ? 'Пілотний / експериментальний проєкт' : 'Пакет ПМГ-2026'}">№ ${esc(p.num)}</span>
-      ${p.pilot ? '<span class="rz-pilot-badge">🧪 пілот</span>' : ''}
-      ${ended ? `<span class="rz-ended-badge" title="${esc(p.status_note || 'Напрям не закуповується у 2026 році')}">⏹ не діє у 2026</span>` : ''}
-    </div>
-    <h4 class="rz-card-title">${esc(p.title)}</h4>
-    <div class="rz-card-foot">
-      ${showOther ? `<span class="rz-card-other">${otherLbl}: ${expertChip(other, 'switch')}</span>` : '<span class="rz-card-other rz-solo">Веде повністю самостійно</span>'}
-      ${passportLink(p)}
-    </div>
-  </article>`;
+
+  const flags = (p.pilot ? '<span class="rz-item-flag" title="Пілотний / експериментальний проєкт">🧪</span>' : '')
+    + (ended ? `<span class="rz-item-flag" title="${esc(p.status_note || 'Напрям не закуповується у 2026 році')}">⏹</span>` : '');
+
+  const who = (other !== viewerKey && EXPERTS[other])
+    ? `<span class="rz-item-who" title="${otherLbl}: ${esc(EXPERTS[other].full)}">${expertChip(other, 'switch')}</span>`
+    : '<span class="rz-item-solo" title="Пакет ведеться повністю самостійно">самостійно</span>';
+
+  return `<li class="rz-item${p.pilot ? ' rz-item-pilot' : ''}${ended ? ' rz-item-ended' : ''}">
+    ${numLink(p, 'rz-item-num')}
+    <span class="rz-item-title" title="${esc(p.title)}">${esc(p.title)}</span>
+    <span class="rz-item-meta">${flags}${who}</span>
+  </li>`;
 }
 
 function plural(n) {
@@ -369,13 +373,7 @@ function renderTable() {
   const pilots = PILOTS.filter(match);
 
   const row = p => `<tr class="${p.pilot ? 'rz-row-pilot' : ''}${p.status === 'ended' ? ' rz-row-ended' : ''}">
-    <td class="rz-td-num">${
-      p.pilot
-        ? `<a class="rz-num pilot" href="../pilots/index.html?p=${encodeURIComponent(p.num)}" title="Паспорт пілотного проєкту № ${esc(p.num)}">№ ${esc(p.num)}</a>`
-        : (HAS_PASSPORT.has(p.num)
-            ? `<a class="rz-num" href="../passport/index.html?package=${encodeURIComponent(p.num)}" title="Паспорт пакета № ${esc(p.num)}">№ ${esc(p.num)}</a>`
-            : `<span class="rz-num">№ ${esc(p.num)}</span>`)
-    }</td>
+    <td class="rz-td-num">${numLink(p, 'rz-num')}</td>
     <td class="rz-td-title">${esc(p.title)}${p.pilot ? ' <span class="rz-pilot-badge">🧪 пілот</span>' : ''}${
       p.status === 'ended' ? ` <span class="rz-ended-badge" title="${esc(p.status_note || 'Напрям не закуповується у 2026 році')}">⏹ не діє у 2026</span>` : ''
     }${

@@ -113,25 +113,56 @@
 .rz-section-hint { margin: 0 0 12px; font-size: 12.5px; color: var(--p-muted); }
 .rz-section { margin-top: 4px; }
 
-.rz-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-  gap: 14px;
-  margin-top: 10px;
-}
-.rz-card {
-  display: flex; flex-direction: column; gap: 8px;
-  padding: 14px 16px;
+/* Компактний перелік пакетів (вкладка «Особисто»):
+   один рядок = [№] назва … [прапорці] [колега]. Ширина обмежена,
+   щоб рядок не розтягувався на всі 1240 px і легше було сканувати. */
+.rz-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  max-width: 940px;
   background: var(--p-surface);
   border: 1px solid var(--p-line);
-  border-radius: 16px;
+  border-radius: 14px;
   box-shadow: var(--p-shadow-sm);
-  transition: transform .12s, box-shadow .12s;
+  overflow: hidden;
 }
-.rz-card:hover { transform: translateY(-2px); box-shadow: var(--p-shadow); }
-.rz-card-pilot { background: linear-gradient(180deg, #fdfaf3, #fff); border-color: #ecdfc2; }
+.rz-item {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--p-line);
+}
+.rz-item:first-child { border-top: 0; }
+.rz-item:hover { background: var(--p-soft); }
 
-.rz-card-top { display: flex; align-items: center; gap: 8px; }
+.rz-item-num {
+  justify-self: start;
+  padding: 2px 7px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--accent-deep) 12%, transparent);
+  color: var(--accent-deep);
+  font-size: 12px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none; white-space: nowrap;
+}
+a.rz-item-num:hover { background: color-mix(in srgb, var(--accent-deep) 26%, transparent); }
+.rz-item-num.pilot { background: #fbf3dc; color: #8a6207; }
+
+.rz-item-title {
+  font-size: 13px; line-height: 1.4; color: var(--p-ink);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.rz-item-meta { display: inline-flex; align-items: center; gap: 8px; justify-self: end; }
+.rz-item-flag { font-size: 12px; cursor: help; }
+.rz-item-solo { font-size: 11.5px; font-style: italic; color: var(--p-muted); white-space: nowrap; }
+.rz-item .rz-exp-chip { padding: 2px 9px; font-size: 11.5px; }
+.rz-item-ended .rz-item-title { color: var(--p-muted); text-decoration: line-through; text-decoration-color: #bdb8ae; }
+.rz-list .rz-empty { padding: 18px; }
+
 .rz-num {
   display: inline-flex; align-items: center;
   padding: 3px 10px;
@@ -148,21 +179,6 @@ a.rz-num:hover { filter: brightness(1.12); }
   padding: 2px 8px; border-radius: 999px;
   white-space: nowrap;
 }
-.rz-card-title { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--p-ink); flex: 1; }
-.rz-card-foot {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 8px; flex-wrap: wrap;
-  padding-top: 8px;
-  border-top: 1px dashed var(--p-line);
-}
-.rz-card-other { font-size: 12px; color: var(--p-muted); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
-.rz-card-other.rz-solo { color: var(--p-muted); font-style: italic; }
-.rz-card-link {
-  font-size: 12.5px; font-weight: 700; color: var(--accent-deep);
-  text-decoration: none; white-space: nowrap;
-}
-.rz-card-link:hover { text-decoration: underline; }
-
 /* ── Чип експерта ──────────────────────────────────────────────── */
 .rz-exp-chip {
   display: inline-flex; align-items: center; gap: 6px;
@@ -280,8 +296,6 @@ a.rz-num:hover { filter: brightness(1.12); }
   white-space: nowrap;
   cursor: help;
 }
-.rz-card-ended { opacity: .72; }
-.rz-card-ended .rz-card-title { text-decoration: line-through; text-decoration-color: #bdb8ae; }
 .rz-row-ended .rz-td-title { color: var(--p-muted); }
 .rz-row-ended .rz-num { opacity: .7; }
 .rz-status-select { max-width: 150px; }
@@ -289,7 +303,8 @@ a.rz-num:hover { filter: brightness(1.12); }
 :root.dark-theme .rz-ended-badge {
   background: #262421; border-color: #3d3a34; color: #a8a49b;
 }
-:root.dark-theme .rz-card-ended .rz-card-title { text-decoration-color: #5c574e; }
+:root.dark-theme .rz-item-ended .rz-item-title { text-decoration-color: #5c574e; }
+:root.dark-theme .rz-item-num.pilot { background: #3a2f14; color: #e3b34c; }
 
 /* ── Режим редагування (керівництво) ───────────────────────────── */
 .rz-search-row { display: flex; gap: 10px; align-items: center; }
@@ -380,10 +395,6 @@ a.rz-num:hover { filter: brightness(1.12); }
 }
 
 /* Пілотні: янтарне на темному замість кремового */
-:root.dark-theme .rz-card-pilot {
-  background: linear-gradient(180deg, #2a2416, var(--p-surface));
-  border-color: #4d3f1e;
-}
 :root.dark-theme .rz-row-pilot { background: #241f12; }
 :root.dark-theme .rz-row-pilot:hover { background: #2a2416; }
 :root.dark-theme .rz-section-row td {
@@ -422,7 +433,13 @@ a.rz-num:hover { filter: brightness(1.12); }
   .rz-view-btn { flex: 1; text-align: center; }
   .rz-id-metrics { width: 100%; justify-content: space-between; }
   .rz-metric { flex: 1; min-width: 0; }
-  .rz-cards { grid-template-columns: 1fr; }
+  .rz-item {
+    grid-template-columns: 42px minmax(0, 1fr);
+    row-gap: 5px; padding: 9px 12px;
+  }
+  /* На вузькому екрані назву не ріжемо — вона тут головна */
+  .rz-item-title { display: block; overflow: visible; }
+  .rz-item-meta { grid-column: 2; justify-self: start; }
   .rz-load-row { grid-template-columns: 128px 1fr 52px; gap: 8px; }
   .rz-load-name { font-size: 12px; }
   .rz-search-row { flex-direction: column; align-items: stretch; }
