@@ -1,20 +1,17 @@
 -- ============================================================
--- Доповнення: нова співробітниця — Наталія Артьомова,
--- начальник відділу клінічної та наукової експертизи
+-- Доповнення штату табеля новим співробітником
 -- Дата: 2026-07-22
--- Застосувати в Supabase SQL Editor (rpe-pmg проєкт).
--- Скрипт ідемпотентний — повторний запуск не створить дубля.
--- УВАГА: по батькові й табельний номер невідомі — доповнити
--- через «Штат табеля» на вкладці Статус присутності, коли будуть.
+-- Застосувати в Supabase SQL Editor (проєкт qdqtkvyvhtjgxpxnvblk).
+--
+-- ПІБ свідомо не зберігається в репозиторії: він публічний.
+-- Фактичний запис виконано локально; далі штат ведеться через
+-- «Штат табеля» на вкладці Статус присутності.
+-- Шаблон ідемпотентного додавання лишається як зразок.
 -- ============================================================
 
-INSERT INTO public.timesheet_staff
-  (sheet, sort_order, unit, tabel_no, gender, full_name, "position", note)
-SELECT
-  'department', 29,
-  'відділ клінічної та наукової експертизи',
-  NULL, 'Ж', 'Артьомова Наталія', 'начальник відділу', NULL
-WHERE NOT EXISTS (
-  SELECT 1 FROM public.timesheet_staff
-  WHERE full_name ILIKE 'Артьомова%'
-);
+-- INSERT INTO public.timesheet_staff
+--   (sheet, sort_order, unit, tabel_no, gender, full_name, "position", note)
+-- SELECT 'department', :sort_order, :unit, :tabel_no, :gender, :full_name, :position, NULL
+-- WHERE NOT EXISTS (
+--   SELECT 1 FROM public.timesheet_staff WHERE full_name ILIKE :surname_pattern
+-- );

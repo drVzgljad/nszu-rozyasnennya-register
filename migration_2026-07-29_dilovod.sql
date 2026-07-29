@@ -1,5 +1,5 @@
 -- ============================================================
--- Міграція: діловод департаменту (Жолуденко Інна)
+-- Міграція: діловод департаменту
 -- Дата: 2026-07-29
 -- Виконати вручну в Supabase SQL Editor (проєкт qdqtkvyvhtjgxpxnvblk).
 --
@@ -191,21 +191,18 @@ CREATE POLICY "timesheet_staff_delete" ON public.timesheet_staff
   ));
 
 
--- ── 7. Профіль Інни Жолуденко ───────────────────────────────
--- Реєстрація дає role='guest' (див. handle_new_user), тому піднімаємо
--- до 'expert' і вмикаємо прапорець діловода.
-UPDATE public.profiles
-SET role      = 'expert',
-    is_head   = FALSE,
-    "Section" = 'стратегічного розвитку програми медичних гарантій',
-    position  = COALESCE(NULLIF(position, ''), 'Діловод департаменту'),
-    is_clerk  = TRUE
-WHERE full_name ILIKE '%Жолуденко%';
-
--- Контроль: має повернути один рядок з is_clerk = true
-SELECT id, full_name, role, is_head, is_clerk, "Section", position
-FROM public.profiles
-WHERE full_name ILIKE '%Жолуденко%';
+-- ── 7. Профіль діловода ─────────────────────────────────────
+-- Реєстрація дає role='guest' (див. handle_new_user), тому діловода
+-- піднімають до 'expert' і вмикають прапорець. Прізвище не зберігається
+-- в репозиторії — підставляється при виконанні:
+--
+-- UPDATE public.profiles
+-- SET role      = 'expert',
+--     is_head   = FALSE,
+--     "Section" = 'стратегічного розвитку програми медичних гарантій',
+--     position  = COALESCE(NULLIF(position, ''), 'Діловод департаменту'),
+--     is_clerk  = TRUE
+-- WHERE full_name ILIKE '%<прізвище>%';
 
 
 -- ── 8. Штат табеля ──────────────────────────────────────────
@@ -214,4 +211,4 @@ WHERE full_name ILIKE '%Жолуденко%';
 --   (sheet, sort_order, unit, tabel_no, gender, full_name, "position", note)
 -- VALUES
 --   ('department', 23, 'відділ стратегічного розвитку програми медичних гарантій',
---    NULL, 'Ж', 'Жолуденко Інна ______івна', 'діловод', NULL);
+--    NULL, 'Ж', '<ПІБ>', 'діловод', NULL);

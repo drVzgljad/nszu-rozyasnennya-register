@@ -11,8 +11,8 @@
   <title>НавігаторПМГ26 | Структура департаменту</title>
   <link rel="stylesheet" href="styles.css?v=20260728f">
   <link rel="stylesheet" href="auth-v2.css?v=20260729b">
-  <link rel="stylesheet" href="dept-tree.css?v=20260729h">
-  <script type="module" src="auth-v2.js?v=20260729b"></script>
+  <link rel="stylesheet" href="dept-tree.css?v=20260729j">
+  <script type="module" src="auth-v2.js?v=20260729c"></script>
 </head>
 <body data-required-role="expert">
   <header class="hero dept-hero">
@@ -133,6 +133,7 @@
 
   <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+    import { markPeopleCards } from './birthdays.js?v=20260729b';
 
     const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
@@ -209,7 +210,10 @@
             "Олена Ковалева",
             "Микола Веселовський",
             // Штатно у відділі стратегії, функціонально — на весь департамент
-            { name: "Інна Жолуденко", role: "Діловод департаменту", badge: "clerk" }
+            { name: "Інна Жолуденко", role: "Діловод департаменту", badge: "clerk" },
+            // У декреті; на її посаді працює Жолуденко. onLeave виводить людину
+            // з-під умови «весь відділ на сайті» — інакше відділ не загорівся б ніколи
+            { name: "Олена Савченко", role: "Головний спеціаліст", badge: "leave", onLeave: true }
           ]
         }
       ]
@@ -231,10 +235,15 @@
     // (окремі посади на кшталт діловода департаменту)
     const specName = (sp) => (typeof sp === "string" ? sp : sp.name);
 
+    // Написання, щодо яких немає єдиної версії: у структурі, табелі та профілі
+    // прізвище записане по-різному. Поки правильний варіант не з'ясовано —
+    // зводимо їх до одного ключа, щоб зіставлення не залежало від написання.
+    const NAME_ALIASES = { "ковалева олена": "ковальова олена" };
+
     // У структурі імена записані як «Ім'я Прізвище», у профілях — як завгодно
     // («Прізвище Ім'я», іноді з по батькові). Ключ нечутливий до порядку слів.
     function nameKey(name) {
-      return String(name || "")
+      const key = String(name || "")
         .toLowerCase()
         .replace(/[’ʼ`]/g, "'")
         .split(/[\s]+/)
@@ -242,6 +251,7 @@
         .slice(0, 2)
         .sort()
         .join(" ");
+      return NAME_ALIASES[key] || key;
     }
 
     function resolveProfileId(name) {
@@ -297,6 +307,7 @@
         manager: "Керівник",
         specialist: "Спеціаліст",
         clerk: "Діловод",
+        leave: "Декрет",
         vacant: "Вакансія"
       }[badge] || "Співробітник";
     }
@@ -305,8 +316,9 @@
       renderFilters();
       renderDepartments();
       applyFilters();
-      // Перемальовка стирає класи — повертаємо підсвітку відділів
+      // Перемальовка стирає класи — повертаємо підсвітку відділів і тортики
       syncOnlineCards();
+      markPeopleCards(document);
     }
 
     function renderLeadership() {
@@ -441,9 +453,13 @@
       syncDepartmentGlow();
     }
 
-    // Керівник (якщо призначений) + усі головні спеціалісти відділу
+    // Керівник (якщо призначений) + головні спеціалісти відділу.
+    // Люди у тривалій відсутності (декрет) не враховуються: інакше умова
+    // «всі на сайті» стала б недосяжною і відділ не загорівся б ніколи.
     function departmentMembers(dept) {
-      const names = dept.specialists.map(specName);
+      const names = dept.specialists
+        .filter(sp => !(typeof sp === "object" && sp.onLeave))
+        .map(specName);
       if (dept.manager) names.unshift(dept.manager);
       return names;
     }

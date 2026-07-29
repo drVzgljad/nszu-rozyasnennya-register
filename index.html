@@ -11,7 +11,7 @@
   <title>Робочий простір експертів ПМГ 2026 — НавігаторПМГ26</title>
   <link rel="stylesheet" href="portal.css?v=20260719h">
   <link rel="stylesheet" href="auth-v2.css?v=20260729b">
-  <script type="module" src="auth-v2.js?v=20260729b"></script>
+  <script type="module" src="auth-v2.js?v=20260729c"></script>
   <style>
     /* ── Експрес-інфоблок кабінету на головній ── */
     .home-metrics-section {
@@ -512,6 +512,39 @@
       body.home-logged-in .home-metrics-section .wrap { max-width: none !important; padding: 0 !important; }
       body.home-logged-in .home-metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px !important; }
     }
+
+    /* ── Смужка днів народження ─────────────────────────── */
+    .bday-strip { margin: 0 auto 14px; max-width: 1180px; padding: 0 18px; }
+    .bday-inner {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px;
+      padding: 12px 16px; border-radius: 16px;
+      border: 1px solid rgba(74, 143, 199, 0.2);
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: 0 10px 26px rgba(38, 78, 112, 0.07);
+    }
+    .bday-strip.is-today .bday-inner {
+      border-color: rgba(233, 168, 40, 0.45);
+      background: linear-gradient(120deg, rgba(255, 246, 224, 0.95), rgba(255, 233, 240, 0.9));
+    }
+    .bday-cake { font-size: 22px; line-height: 1; }
+    .bday-main { font-size: 14px; color: var(--p-ink, #21324a); }
+    .bday-main strong { font-weight: 800; }
+    .bday-upcoming { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+    .bday-chip {
+      padding: 5px 10px; border-radius: 999px;
+      background: rgba(74, 143, 199, 0.1); color: #2f6b9e;
+      font-size: 12px; font-weight: 650; white-space: nowrap;
+    }
+    .bday-chip b { font-weight: 800; }
+    :root.dark-theme .bday-inner, .dark-theme .bday-inner {
+      border-color: rgba(148, 163, 184, 0.24); background: rgba(21, 31, 48, 0.9);
+    }
+    :root.dark-theme .bday-main, .dark-theme .bday-main { color: #e5edf7; }
+    :root.dark-theme .bday-chip, .dark-theme .bday-chip { background: rgba(125, 211, 252, 0.14); color: #bae0ff; }
+    @media (max-width: 720px) {
+      .bday-upcoming { margin-left: 0; }
+      .bday-chip { font-size: 11px; }
+    }
   </style>
 </head>
 <body>
@@ -530,7 +563,7 @@
           </span>
         </a>
         <div class="top-row-1-right">
-          <!-- auth-v2.js?v=20260729b inject point -->
+          <!-- auth-v2.js?v=20260729c inject point -->
           <nav class="section-switch top-auth" aria-label="Авторизація"></nav>
         </div>
       </div>
@@ -541,6 +574,9 @@
   </header>
 
   <div class="home-dashboard-shell">
+  <!-- Дні народження: наповнюється з Supabase, для гостей лишається прихованим -->
+  <div id="birthday-strip" hidden></div>
+
   <!-- ── Рольова робоча панель ──────────────────────────── -->
   <section class="home-metrics-section" id="home-metrics" style="display: none;">
     <div class="wrap">
@@ -698,10 +734,15 @@
 
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+  import { renderBirthdayStrip } from './birthdays.js?v=20260729b';
 
   const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
   const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // Смужка днів народження: показується лише авторизованим (RLS віддає дані тільки їм)
+  renderBirthdayStrip(document.getElementById('birthday-strip'));
+  sb.auth.onAuthStateChange(() => renderBirthdayStrip(document.getElementById('birthday-strip')));
 
   function escapeHtml(str) {
     if (!str) return "";

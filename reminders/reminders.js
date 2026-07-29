@@ -138,10 +138,9 @@ function parseExecutors(executorNameStr) {
 }
 
 function getProfileEmail(p) {
+  // Адреси не зберігаємо в коді: репозиторій публічний. Джерело — профіль
+  // у Supabase (поле email), доступний лише авторизованим; далі — транслітерація.
   if (p.email) return p.email;
-  if (p.full_name === 'Дудник Світлана') return 's.dudnik@nszu.gov.ua';
-  if (p.full_name === 'Волошина Альбіна') return 'a.voloshyna@nszu.gov.ua';
-  if (p.full_name === 'Веселовський Микола' || p.full_name === 'Микола Веселовський') return 'Mykola.Veselovskyi@nszu.gov.ua';
   // Generate transliterated email
   const translit = transliterate(p.full_name).toLowerCase().replace(/\s+/g, '.');
   return `${translit}@nszu.gov.ua`;
@@ -180,7 +179,7 @@ function generateDefaultEvents() {
       due_date_description: "щомісяця до 10-го числа",
       deadline_date: formatDateISO(addBusinessDays(today, 15)),
       executor_id: currentUser ? currentUser.id : null,
-      executor_name: currentProfile ? `${currentProfile.full_name} <${getProfileEmail(currentProfile)}>` : "Дудник Світлана <s.dudnik@nszu.gov.ua>",
+      executor_name: currentProfile ? `${currentProfile.full_name} <${getProfileEmail(currentProfile)}>` : "",
       regulatory_basis: "Постанова КМУ № 410, Постанова КМУ № 1808",
       status: "Чернетка",
       notified_tiers: []
@@ -190,7 +189,7 @@ function generateDefaultEvents() {
       due_date_description: "щокварталу до 15-го числа",
       deadline_date: formatDateISO(addBusinessDays(today, 5)),
       executor_id: null,
-      executor_name: "Волошина Альбіна <a.voloshyna@nszu.gov.ua>",
+      executor_name: "",
       regulatory_basis: "Наказ НСЗУ від 29.12.2023 № 431",
       status: "Чернетка",
       notified_tiers: []
@@ -200,7 +199,7 @@ function generateDefaultEvents() {
       due_date_description: "щомісяця до 20-го числа",
       deadline_date: formatDateISO(addBusinessDays(today, 2)),
       executor_id: currentUser ? currentUser.id : null,
-      executor_name: currentProfile ? `${currentProfile.full_name} <${getProfileEmail(currentProfile)}>` : "Дудник Світлана <s.dudnik@nszu.gov.ua>",
+      executor_name: currentProfile ? `${currentProfile.full_name} <${getProfileEmail(currentProfile)}>` : "",
       regulatory_basis: "Постанова КМУ від 25.12.2020 № 1377",
       status: "Чернетка",
       notified_tiers: []
@@ -210,7 +209,7 @@ function generateDefaultEvents() {
       due_date_description: "щомісяця до 5-го числа",
       deadline_date: formatDateISO(today),
       executor_id: null,
-      executor_name: "Волошина Альбіна <a.voloshyna@nszu.gov.ua>",
+      executor_name: "",
       regulatory_basis: "Розпорядження КМУ від 12.01.2026 № 14-р",
       status: "Чернетка",
       notified_tiers: []
@@ -220,7 +219,7 @@ function generateDefaultEvents() {
       due_date_description: "щорічно до 1 березня",
       deadline_date: "2027-03-01",
       executor_id: null,
-      executor_name: "Волошина Альбіна <a.voloshyna@nszu.gov.ua>",
+      executor_name: "",
       regulatory_basis: "Закон України 'Про державні фінансові гарантії'",
       status: "Чернетка",
       notified_tiers: []

@@ -911,15 +911,9 @@ function inject() {
   const regPos = document.getElementById('reg-position');
 
   if (regName && regDept && regPos) {
-    regName.addEventListener('input', () => {
-      const name = regName.value.trim().toLowerCase();
-      if (name === 'світлана дудник' || name === 'дудник світлана') {
-        regPos.value = 'Директор';
-      } else if (name === 'волошина альбіна' || name === 'альбіна волошина' || name === 'волошина альбіна сергіївна') {
-        regPos.value = 'Заступник директора';
-        regDept.value = 'стратегічного розвитку програми медичних гарантій';
-      }
-    });
+    // Автопідстановка посад за конкретними прізвищами прибрана:
+    // репозиторій публічний, тримати в ньому список керівництва не можна.
+    // Роль і посаду виставляє адміністратор у profiles після реєстрації.
 
     regPos.addEventListener('change', () => {
       if (regPos.value === 'Заступник директора') {

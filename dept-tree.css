@@ -552,6 +552,31 @@
   background: linear-gradient(135deg, #5a4a9c, #8b7ac9);
 }
 
+/* Тривала відсутність (декрет): у структурі є, але приглушено */
+.badge-leave .person-avatar {
+  background: linear-gradient(135deg, #9aa8b6, #b9c6d4);
+}
+
+.person-card.badge-leave {
+  opacity: 0.72;
+}
+
+/* Тортик у день народження */
+.person-card.is-birthday {
+  border-color: rgba(233, 168, 40, 0.55);
+  box-shadow: 0 0 0 3px rgba(233, 168, 40, 0.14);
+}
+
+.person-bday {
+  position: absolute;
+  top: -9px;
+  left: -6px;
+  font-size: 17px;
+  line-height: 1;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.18));
+}
+
 .theme-partners {
   --dept-accent: #5c6bc0;
   --dept-soft: #eef2fa;
