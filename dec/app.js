@@ -619,7 +619,11 @@ async function init() {
   try {
     const [linksRes, pkgsRes, dirRes] = await Promise.all([
       fetch("data/package_dec_links.json").catch(() => null),
-      fetch("../pakety/data/packages_2026.json").catch(() => null),
+      // Тут потрібні лише номер і назва пакета — короткий перелік на 7 КБ
+      // замість повного файла на 4,3 МБ (відкат на повний, якщо його ще нема)
+      fetch("../pakety/data/packages_lite.json")
+        .then((r) => (r.ok ? r : fetch("../pakety/data/packages_2026.json")))
+        .catch(() => null),
       fetch("data/clinical_directions.json").catch(() => null)
     ]);
     if (linksRes) packageLinks = await linksRes.json();

@@ -71,7 +71,10 @@ async function init() {
 
 async function loadPackages() {
   try {
-    const res = await fetch("../pakety/data/packages_2026.json");
+    // Для випадаючих списків потрібні тільки номер і назва — короткий перелік
+    // на 7 КБ замість повного файла пакетів на 4,3 МБ
+    let res = await fetch("../pakety/data/packages_lite.json");
+    if (!res.ok) res = await fetch("../pakety/data/packages_2026.json");
     if (!res.ok) throw new Error("Could not load packages JSON");
     const payload = await res.json();
     const packages = payload.packages || [];

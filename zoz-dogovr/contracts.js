@@ -423,6 +423,56 @@ function renderCards() {
 }
 
 // Select specific contract and show details
+// ── Ліниве довантаження важких полів картки ────────────────────────────────
+// «Перелік МНП» і юридична адреса разом важили 2,6 МБ у спільному
+// contracts.json, хоча потрібні лише для ОДНОГО відкритого договору. Тепер
+// вони лежать в contracts_details.json, який вантажиться раз — при першому
+// відкритті картки. Список, фільтри й мапа працюють без нього.
+let contractDetails = null;
+let contractDetailsPromise = null;
+
+function loadContractDetails() {
+  if (!contractDetailsPromise) {
+    contractDetailsPromise = fetch("../data/contracts_details.json")
+      .then((response) => {
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        return response.json();
+      })
+      .then((payload) => {
+        contractDetails = payload.details || {};
+        return contractDetails;
+      })
+      .catch((err) => {
+        console.warn("Не вдалося завантажити деталі договорів:", err);
+        // Обнуляємо обіцянку, щоб наступний клік спробував ще раз: інакше одна
+        // випадкова помилка мережі лишала б картки без адрес до перезавантаження.
+        contractDetailsPromise = null;
+        return null;
+      });
+  }
+  return contractDetailsPromise;
+}
+
+function renderLocations(locations) {
+  if (!locations) return "<p class='text-muted'>Місця надання послуг не вказані.</p>";
+  return locations
+    .split(/;\s*|\n+/)
+    .filter((x) => x.trim().length > 0)
+    .map((addr) => `<div class="mnp-location-item">${escapeHtml(addr)}</div>`)
+    .join("");
+}
+
+// Картка малюється у двох місцях (панель списку і шухляда мапи) — заповнюємо обидві
+function fillDetailSlots(contract) {
+  const data = (contractDetails || {})[contract.id] || {};
+  document.querySelectorAll('[data-detail-slot="address"]').forEach((node) => {
+    node.textContent = data.reg_address || "—";
+  });
+  document.querySelectorAll('[data-detail-slot="locations"]').forEach((node) => {
+    node.innerHTML = renderLocations(data.locations);
+  });
+}
+
 function selectContract(id) {
   const contract = state.data.contracts.find(c => c.id === id);
   if (!contract) return;
@@ -442,16 +492,14 @@ function selectContract(id) {
   const content = el("detailContent");
   content.style.display = "block";
 
-  // Parse locations if any
-  let locationsHtml = "";
-  if (contract.locations) {
-    const addressList = contract.locations.split(/;\s*|\n+/).filter(x => x.trim().length > 0);
-    locationsHtml = addressList.map(addr => `
-      <div class="mnp-location-item">${escapeHtml(addr)}</div>
-    `).join("");
-  } else {
-    locationsHtml = "<p class='text-muted'>Місця надання послуг не вказані.</p>";
-  }
+  // Важкі поля: якщо файл деталей уже в пам'яті — малюємо одразу,
+  // інакше ставимо заглушку і заповнюємо, щойно він доїде
+  const loaded = contractDetails !== null;
+  const details = loaded ? (contractDetails[contract.id] || {}) : null;
+  const locationsHtml = loaded
+    ? renderLocations(details.locations)
+    : "<p class='text-muted'>Завантаження переліку…</p>";
+  const regAddressText = loaded ? (details.reg_address || "—") : "…";
 
   let netBadgeClass = "";
   if (contract.network_type === "Надкластерний") netBadgeClass = "nadklaster";
@@ -534,7 +582,7 @@ function selectContract(id) {
       </div>
       <div class="details-grid-item span-2">
         <span>Юридична адреса реєстрації</span>
-        <strong>${escapeHtml(contract.reg_address)}</strong>
+        <strong data-detail-slot="address">${escapeHtml(regAddressText)}</strong>
       </div>
     </div>
 
@@ -559,7 +607,7 @@ function selectContract(id) {
     </div>
 
     <div class="section-title">Місця надання послуг (МНП) за договором</div>
-    <div class="mnp-locations-container">
+    <div class="mnp-locations-container" data-detail-slot="locations">
       ${locationsHtml}
     </div>
   `;
@@ -572,6 +620,14 @@ function selectContract(id) {
   if (mapDrawerContent && mapDrawer) {
     mapDrawerContent.innerHTML = detailHtml;
     mapDrawer.classList.remove("hidden-drawer");
+  }
+
+  // Перше відкриття картки — довантажуємо деталі й заповнюємо заглушки.
+  // Перевірка id рятує від випадку, коли за час завантаження людина клацнула інший договір.
+  if (!loaded) {
+    loadContractDetails().then(() => {
+      if (state.selected && state.selected.id === contract.id) fillDetailSlots(contract);
+    });
   }
 
   if (window.innerWidth <= 1040 && activeView === "list") {
