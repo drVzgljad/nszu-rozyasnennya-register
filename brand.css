@@ -1,0 +1,202 @@
+/* ============================================================
+   Фірмовий темний шар НСЗУ («корпоративний фон»)
+   ------------------------------------------------------------
+   Токени палітри + компонент .brand-canvas — самодостатній
+   CSS-шар, що відтворює корпоративний фон (глибока бірюза,
+   боке, золоті іскри) без жодної картинки: 0 КБ, миттєвий
+   показ, масштабується під будь-який блок.
+
+   Коли з'явиться оригінальний файл фону, підключати так:
+       .hero--brand { --brand-photo: url('assets/brand/bg-nszu.webp'); }
+   Картинка ляже поверх градієнтів, а градієнти залишаться
+   як фолбек до її завантаження й заповнять краї.
+
+   Компонент декоративний: pointer-events: none, aria-hidden.
+   ============================================================ */
+
+:root {
+  /* Глибина фону — піпеткою з оригіналу assets/bg-nszu.png */
+  --nszu-950: #011025;
+  --nszu-900: #02163b;
+  --nszu-800: #014783;
+  --nszu-700: #024e6e;
+  --nszu-600: #036485;
+  --nszu-500: #027c91;
+  /* Світло боке */
+  --nszu-glow:  #39b9c4;
+  --nszu-glow-2:#acf2ee;
+  /* Золоті іскри — теплий акцент, якого бракувало палітрі порталу */
+  --nszu-gold:      #ffe694;
+  --nszu-gold-soft: #fbfec4;
+  --nszu-gold-deep: #a8761f;  /* варіант для світлого тла: контраст на білому ≥ 4.5:1 */
+
+  /* Текст поверх фірмового фону */
+  --nszu-on-dark:       #f4fbff;
+  --nszu-on-dark-muted: rgba(233, 246, 252, .84);
+  --nszu-on-dark-faint: rgba(233, 246, 252, .62);
+  --nszu-hairline:      rgba(255, 255, 255, .14);
+}
+
+/* ── Сам шар ─────────────────────────────────────────── */
+.brand-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background-image:
+    var(--brand-photo, none),
+    radial-gradient(120% 85% at 74% 6%,  rgba(3, 120, 138, .85) 0%, rgba(3, 120, 138, 0) 62%),
+    radial-gradient(95% 75% at 8% 96%,   rgba(1, 16, 37, .85)   0%, rgba(1, 16, 37, 0)   68%),
+    linear-gradient(155deg, var(--nszu-900) 0%, var(--nszu-700) 46%, var(--nszu-800) 100%);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Коли підключено оригінальну картинку, CSS-боке вимикається:
+   градієнти під нею лишаються фолбеком до її завантаження */
+.brand-canvas--photo::before { display: none; }
+
+/* ── Боке: смуга розмитих кіл через середину ─────────── */
+.brand-canvas::before {
+  content: "";
+  position: absolute;
+  inset: -6%;
+  background-image:
+    /* холодні великі кола */
+    radial-gradient(circle 74px at  6% 54%, rgba(127, 220, 240, .30) 0%, rgba(127, 220, 240, .12) 62%, transparent 70%),
+    radial-gradient(circle 52px at 17% 64%, rgba(127, 220, 240, .34) 0%, rgba(127, 220, 240, .10) 60%, transparent 68%),
+    radial-gradient(circle 38px at 26% 44%, rgba(189, 240, 251, .26) 0%, rgba(189, 240, 251, .08) 60%, transparent 68%),
+    radial-gradient(circle 62px at 34% 62%, rgba(127, 220, 240, .24) 0%, rgba(127, 220, 240, .08) 62%, transparent 70%),
+    radial-gradient(circle 30px at 44% 40%, rgba(255, 255, 255, .22) 0%, rgba(255, 255, 255, .06) 60%, transparent 68%),
+    /* теплий центр */
+    radial-gradient(circle 46px at 52% 56%, rgba(255, 217, 138, .30) 0%, rgba(255, 217, 138, .10) 60%, transparent 68%),
+    radial-gradient(circle 26px at 58% 46%, rgba(255, 243, 196, .34) 0%, rgba(255, 243, 196, .10) 58%, transparent 66%),
+    radial-gradient(circle 58px at 63% 63%, rgba(255, 217, 138, .20) 0%, rgba(255, 217, 138, .06) 62%, transparent 70%),
+    /* холодні праворуч */
+    radial-gradient(circle 44px at 73% 50%, rgba(127, 220, 240, .30) 0%, rgba(127, 220, 240, .10) 60%, transparent 68%),
+    radial-gradient(circle 34px at 81% 62%, rgba(189, 240, 251, .26) 0%, rgba(189, 240, 251, .08) 60%, transparent 68%),
+    radial-gradient(circle 68px at 90% 48%, rgba(127, 220, 240, .24) 0%, rgba(127, 220, 240, .08) 62%, transparent 70%),
+    radial-gradient(circle 24px at 96% 60%, rgba(255, 255, 255, .20) 0%, rgba(255, 255, 255, .06) 58%, transparent 66%),
+    /* дрібні іскри */
+    radial-gradient(circle 8px at 12% 50%, rgba(255, 255, 255, .55) 0%, transparent 72%),
+    radial-gradient(circle 6px at 30% 58%, rgba(189, 240, 251, .60) 0%, transparent 72%),
+    radial-gradient(circle 9px at 40% 52%, rgba(255, 243, 196, .60) 0%, transparent 72%),
+    radial-gradient(circle 5px at 48% 62%, rgba(255, 255, 255, .55) 0%, transparent 72%),
+    radial-gradient(circle 10px at 56% 51%, rgba(255, 243, 196, .70) 0%, transparent 72%),
+    radial-gradient(circle 6px at 66% 57%, rgba(255, 217, 138, .60) 0%, transparent 72%),
+    radial-gradient(circle 7px at 78% 53%, rgba(189, 240, 251, .55) 0%, transparent 72%),
+    radial-gradient(circle 5px at 88% 58%, rgba(255, 255, 255, .50) 0%, transparent 72%);
+  /* Боке живе лише в середній смузі, як на оригіналі */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 4%, #000 30%, #000 72%, transparent 98%);
+  mask-image: linear-gradient(to bottom, transparent 4%, #000 30%, #000 72%, transparent 98%);
+  /* Дуже повільний дрейф: рух помітний краєм ока, не відволікає */
+  animation: brand-canvas-drift 46s ease-in-out infinite alternate;
+}
+
+@keyframes brand-canvas-drift {
+  from { transform: translate3d(-1.2%, 0.6%, 0) scale(1.02); }
+  to   { transform: translate3d( 1.2%, -0.6%, 0) scale(1.06); }
+}
+
+/* ── Скрим: гарантує контраст тексту незалежно від боке ─
+   Щільний у лівих 2/3, де стоїть текст, і майже прозорий
+   праворуч, де боке лишається видимим. Значення підібрані
+   заміром по реальних рядках: білий текст ≥ 7:1, золотий ≥ 4.5:1 */
+.brand-canvas::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    rgba(1, 16, 37, .92) 0%,
+    rgba(1, 16, 37, .86) 40%,
+    rgba(1, 16, 37, .60) 66%,
+    rgba(1, 16, 37, .22) 86%,
+    rgba(1, 16, 37, .34) 100%
+  );
+}
+
+/* Скрим праворуч — для блоків, де текст стоїть справа */
+.brand-canvas--right::after {
+  background: linear-gradient(
+    260deg,
+    rgba(1, 16, 37, .92) 0%,
+    rgba(1, 16, 37, .86) 40%,
+    rgba(1, 16, 37, .60) 66%,
+    rgba(1, 16, 37, .22) 86%,
+    rgba(1, 16, 37, .34) 100%
+  );
+}
+
+/* Рівномірне затемнення — для вертикальних форматів (splash, вхід) */
+.brand-canvas--even::after {
+  background: rgba(1, 16, 37, .55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-canvas::before { animation: none; }
+}
+
+/* ============================================================
+   Скін героя головної на фірмовому фоні (.hero.hero--brand)
+   Темна смуга-обкладинка: світлий текст, теплий золотий акцент.
+   Живе саме тут, а не в portal.css: brand.css підключається
+   пізніше і перекриває світлі правила .hero без !important.
+   ============================================================ */
+.hero.hero--brand {
+  border-bottom-color: var(--nszu-hairline);
+  /* Широкий кроп на смузі боке — 55 КБ WebP замість 5,3 МБ оригіналу */
+  --brand-photo: url('assets/bg-nszu-wide.webp');
+}
+/* На вузькому екрані широкий кроп обрізало б по краях — беремо портрет */
+@media (max-width: 720px) {
+  .hero.hero--brand { --brand-photo: url('assets/bg-nszu-portrait.webp'); }
+}
+
+.hero.hero--brand .hero-inner { position: relative; z-index: 2; }
+.hero.hero--brand h1 { color: var(--nszu-on-dark); }
+.hero.hero--brand h1 .accent   { color: var(--nszu-glow-2); }
+.hero.hero--brand h1 .accent-2 { color: var(--nszu-gold); }
+.hero.hero--brand .hero-lead   { color: var(--nszu-on-dark-muted); }
+
+/* Крапкова сітка й кубики на темному читаються інакше — перефарбовуємо */
+.hero.hero--brand .plus-field {
+  background-image:
+    linear-gradient(rgba(255,255,255,.9) 1.4px, transparent 1.4px),
+    linear-gradient(90deg, rgba(255,255,255,.9) 1.4px, transparent 1.4px);
+  opacity: .10;
+}
+.hero.hero--brand .cube-wave {
+  background-image:
+    linear-gradient(90deg, var(--nszu-gold) 1px, transparent 1px),
+    linear-gradient(180deg, var(--nszu-gold) 1px, transparent 1px);
+  opacity: .16;
+}
+.hero.hero--brand .hero-sheen {
+  background: linear-gradient(
+    118deg,
+    rgba(57, 185, 196, .16) 0%,
+    rgba(255, 230, 148, .10) 28%,
+    rgba(255, 255, 255, 0) 50%,
+    rgba(255, 230, 148, .12) 72%,
+    rgba(57, 185, 196, .16) 100%
+  );
+  background-size: 260% 260%;
+}
+
+/* Плашка логотипа стає світлою: сам логотип намальований на світлому тлі */
+.hero.hero--brand .hero-logo-card {
+  border-color: rgba(255, 255, 255, .55);
+  background: rgba(255, 255, 255, .88);
+  box-shadow: 0 26px 54px rgba(1, 16, 37, .40), 0 0 0 1px rgba(57, 185, 196, .18);
+}
+.hero.hero--brand .hero-logo-replay {
+  background: rgba(1, 16, 37, .6);
+  color: var(--nszu-gold);
+  border-color: rgba(255, 230, 148, .4);
+}
+
+/* Темна тема порталу перебиває фон .hero своїм !important —
+   але фон живе на окремому шарі .brand-canvas, тож нічого не ламається */

@@ -4,14 +4,17 @@
    Запити до Supabase та інших доменів не перехоплюються. */
 // v7 (29.07.2026): підняли версію, щоб activate вимів старі записи —
 // інакше оновлені файли зі зміненим ?v= доїжджають, а сусідні лишаються старими
-const CACHE = 'pmg-portal-v7';
+// v8 (30.07.2026): фірмовий фон НСЗУ — brand.css, кропи фону, круглі іконки
+const CACHE = 'pmg-portal-v8';
 const CORE = [
   '/',
   '/index.html',
   '/portal.css',
   '/styles.css',
   '/auth-v2.css',
-  '/assets/icon-192.png',
+  '/brand.css',
+  '/assets/icon-round-192.png',
+  '/assets/bg-nszu-wide.webp',
   '/assets/nszu-shield.svg'
 ];
 

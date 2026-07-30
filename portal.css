@@ -277,6 +277,17 @@ body {
   .hero .cube-wave { animation: none; }
   .hero .cube-wave { opacity: 0.12; }
 }
+/* ── Плашка логотипа в героєві (стилі винесені з inline) ── */
+.hero-logo-card {
+  padding: 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, .45);
+  background: rgba(255, 255, 255, .3);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 20px 40px rgba(47, 107, 158, .15), 0 5px 15px rgba(0, 0, 0, .06);
+  transition: transform .3s, box-shadow .3s;
+}
+
 .hero-inner {
   position: relative; padding: 78px 0 64px; max-width: 920px;
 }

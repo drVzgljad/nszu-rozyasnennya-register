@@ -9,7 +9,21 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>Робочий простір експертів ПМГ 2026 — НавігаторПМГ26</title>
-  <link rel="stylesheet" href="portal.css?v=20260729b">
+  <!-- Картка для пересилання посилання (Teams, Viber, пошта) -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="НавігаторПМГ26">
+  <meta property="og:locale" content="uk_UA">
+  <meta property="og:url" content="https://rpe-pmg.org.ua/">
+  <meta property="og:title" content="НавігаторПМГ26 — робочий простір експертів ПМГ-2026">
+  <meta property="og:description" content="Роз'яснення НСЗУ, пакети ПМГ-2026, класифікатори, алгоритми та доручення — в одному місці.">
+  <meta property="og:image" content="https://rpe-pmg.org.ua/assets/og-cover.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="НавігаторПМГ26 — робочий простір експертів Департаменту стратегії НСЗУ">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="description" content="Роз'яснення НСЗУ, пакети ПМГ-2026, класифікатори, алгоритми та доручення — в одному місці.">
+  <link rel="stylesheet" href="portal.css?v=20260730b">
+  <link rel="stylesheet" href="brand.css?v=20260730c">
   <link rel="stylesheet" href="auth-v2.css?v=20260729b">
   <script type="module" src="auth-v2.js?v=20260729d"></script>
   <style>
@@ -679,7 +693,10 @@
   </section>
 
   <!-- ── Hero ────────────────────────────────────────── -->
-  <section class="hero" id="top">
+  <section class="hero hero--brand" id="top">
+    <!-- Фірмовий фон НСЗУ: окремий шар (див. brand.css), не background
+         самого .hero — інакше темна тема перебила б його своїм !important -->
+    <div class="brand-canvas brand-canvas--photo" aria-hidden="true"></div>
     <div class="plus-field" aria-hidden="true"></div>
     <!-- Живий фон: повільний перелив і хвиля дрібних кубиків.
          Окремі шари поверх фону, а не сам фон, — інакше темна тема
@@ -701,7 +718,7 @@
         </div>
         <div class="hero-main-logo" style="flex: 1; min-width: 240px; display: flex; justify-content: center; align-items: flex-start; padding-top: 10px; position: relative;">
           <a href="dept-tree.html" title="Переглянути структуру департаменту" aria-label="Відкрити структуру Департаменту" style="text-decoration: none; display: block;">
-            <div style="border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.45); background: rgba(255, 255, 255, 0.3); backdrop-filter: blur(10px); box-shadow: 0 20px 40px rgba(47, 107, 158, 0.15), 0 5px 15px rgba(0, 0, 0, 0.06); padding: 14px; transition: transform 0.3s, box-shadow 0.3s;" onmouseover="this.style.transform='scale(1.04) translateY(-3px)';" onmouseout="this.style.transform='none';">
+            <div class="hero-logo-card" onmouseover="this.style.transform='scale(1.04) translateY(-3px)';" onmouseout="this.style.transform='none';">
               <div class="hero-logo-stack">
                 <img src="assets/logo.png" alt="Логотип Департаменту" style="max-width: 230px; width: 100%; height: auto; border-radius: 12px; display: block;">
                 <!-- Збірка логотипа. src призначається з JS лише перед показом,
