@@ -170,6 +170,18 @@ def main():
     log(f"Український варіант: {len(ua_off)} кодів; "
         f"глосарій — " + ", ".join(f"{a}={len(gloss[a])}" for a in AXES))
 
+    # LLM-переклад компонентів (неофіційний, нижчий пріоритет за офіційний глосарій).
+    # Файл — результат перекладу distinct-компонентів субагентами (див. loinc_untranslated_components.json).
+    LLM_COMP = BASE / "loinc_ua_components.json"
+    if LLM_COMP.exists():
+        added = 0
+        for en_val, ua_val in json.load(open(LLM_COMP, encoding="utf-8")).items():
+            en_val, ua_val = clean(en_val), clean(ua_val)
+            if en_val and ua_val and en_val != ua_val and en_val not in gloss["COMPONENT"]:
+                gloss["COMPONENT"][en_val] = ua_val
+                added += 1
+        log(f"LLM-переклад компонентів: додано {added} (усього COMPONENT={len(gloss['COMPONENT'])})")
+
     # 3) збірка компактних записів (один шар даних, без окремого дерева).
     #    Схема запису (array-encoded, фіксовані колонки):
     #      0 num

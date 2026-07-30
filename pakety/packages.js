@@ -413,7 +413,11 @@ async function loadPilots() {
 async function initPackages() {
   const [packagesResponse, docsResponse, decLinksResponse] = await Promise.all([
     fetch("data/packages_2026.json"),
-    fetch("../data/documents.json"),
+    // Індекс без search_text (0,7 МБ замість 2,7) — тут потрібні лише назви
+    // й прив'язки роз'яснень до пакетів
+    fetch("../data/documents_index.json")
+      .then((r) => { if (!r.ok) throw new Error("no index"); return r; })
+      .catch(() => fetch("../data/documents.json")),
     fetch("../dec/data/package_dec_links.json").catch(() => null),
   ]);
   packageState.data = await packagesResponse.json();

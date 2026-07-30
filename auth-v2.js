@@ -2289,18 +2289,12 @@ if ('serviceWorker' in navigator &&
   // неї браузер до десяти хвилин не помічає, що воркер змінився, і продовжує
   // роздавати старі файли з кешу. Змінений URL змушує перевірити одразу.
   // ПРИ ЗМІНІ sw.js ПІДНІМАТИ ЦЮ ВЕРСІЮ РАЗОМ З CACHE усередині воркера.
-  navigator.serviceWorker.register('/sw.js?v=7').catch(() => {});
+  navigator.serviceWorker.register('/sw.js?v=9').catch(() => {});
 
-  // Коли новий воркер перебирає керування, сторінка вже намальована старим
-  // кешем — тому один раз перезавантажуємо. Перевірка hadController відсікає
-  // перший візит (там контролера не було, перезавантажувати нічого).
-  const hadController = !!navigator.serviceWorker.controller;
-  let swReloading = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!hadController || swReloading) return;
-    swReloading = true;
-    location.reload();
-  });
+  // Перезавантаження на controllerchange прибрано 30.07.2026 разом зі
+  // skipWaiting() у воркері (див. коментар у sw.js). Новий воркер більше не
+  // втручається в сторінку, яку людина відкриває саме зараз, а перебирає
+  // керування на наступному переході — перезавантажувати нема чого.
 }
 
 // ── PWA: встановлення БЕЗ спливаючих запрошень ─────────────────────

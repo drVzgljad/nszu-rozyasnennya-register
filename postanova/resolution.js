@@ -668,7 +668,11 @@ async function initResolution() {
     applyFilters();
   });
   applyFilters();
-  fetch("../data/documents.json")
+  // Полегшений індекс (0,7 МБ замість 2,7): тут з документа потрібні лише
+  // id, title і package. Якщо індекс ще не зібрано — беремо повний файл.
+  fetch("../data/documents_index.json")
+    .then((response) => { if (!response.ok) throw new Error("no index"); return response; })
+    .catch(() => fetch("../data/documents.json"))
     .then((response) => response.json())
     .then((payload) => {
       resolutionState.explanations = payload.documents;

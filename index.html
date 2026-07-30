@@ -25,7 +25,7 @@
   <link rel="stylesheet" href="portal.css?v=20260730b">
   <link rel="stylesheet" href="brand.css?v=20260730c">
   <link rel="stylesheet" href="auth-v2.css?v=20260729b">
-  <script type="module" src="auth-v2.js?v=20260729d"></script>
+  <script type="module" src="auth-v2.js?v=20260730d"></script>
   <style>
     /* ── Експрес-інфоблок кабінету на головній ── */
     .home-metrics-section {
@@ -624,7 +624,7 @@
           </span>
         </a>
         <div class="top-row-1-right">
-          <!-- auth-v2.js?v=20260729d inject point -->
+          <!-- auth-v2.js?v=20260730d inject point -->
           <nav class="section-switch top-auth" aria-label="Авторизація"></nav>
         </div>
       </div>
@@ -720,7 +720,10 @@
           <a href="dept-tree.html" title="Переглянути структуру департаменту" aria-label="Відкрити структуру Департаменту" style="text-decoration: none; display: block;">
             <div class="hero-logo-card" onmouseover="this.style.transform='scale(1.04) translateY(-3px)';" onmouseout="this.style.transform='none';">
               <div class="hero-logo-stack">
-                <img src="assets/logo.png" alt="Логотип Департаменту" style="max-width: 230px; width: 100%; height: auto; border-radius: 12px; display: block;">
+                <!-- logo.webp 512px ≈ 38 КБ. Раніше тут висів logo.png 1254px на 1,3 МБ —
+                     він один важив більше, ніж уся решта головної разом узята.
+                     Оригінал лишається в assets/logo.png як майстер-файл. -->
+                <img src="assets/logo.webp" width="512" height="512" alt="Логотип Департаменту" style="max-width: 230px; width: 100%; height: auto; border-radius: 12px; display: block;">
                 <!-- Збірка логотипа. src призначається з JS лише перед показом,
                      щоб при повторних заходах файл не вантажився взагалі -->
                 <video class="hero-logo-video" id="hero-logo-video" muted playsinline preload="none" tabindex="-1" aria-hidden="true"></video>
@@ -1223,39 +1226,24 @@
     }
   }
 
-  async function loadRegulatoryCount() {
-    try {
-      const { count, error } = await sb
-        .from('regulatory_documents')
-        .select('*', { count: 'exact', head: true });
-      if (!error && count !== null && count > 0) {
-        document.getElementById('regulatory-count').textContent = `${count} документів`;
-      } else {
-        // Fallback to local count if Supabase table is empty or errored
-        try {
-          const res = await fetch('regulatory/data/regulatory_documents.json');
-          const localData = await res.json();
-          const localCount = localData.documents?.length || 4;
-          document.getElementById('regulatory-count').textContent = `${localCount} документів`;
-        } catch(f) {
-          document.getElementById('regulatory-count').textContent = `4 документів`;
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to load regulatory count from Supabase:', e);
-      document.getElementById('regulatory-count').textContent = `4 документів`;
-    }
-  }
+  // loadRegulatoryCount() прибрано 30.07.2026: лічильник #regulatory-count зник із
+  // розмітки ще при переробці карток, а функція лишалася — щоразу падала з
+  // «Cannot set properties of null» і дарма ходила в Supabase.
 
   document.addEventListener("DOMContentLoaded", () => {
     loadDigest();
     loadHomeMetrics();
-    loadRegulatoryCount();
     if (sb.auth && typeof sb.auth.onAuthStateChange === 'function') {
-      sb.auth.onAuthStateChange(() => {
+      // Тільки реальна зміна користувача. Без фільтра подій сюди прилітали
+      // INITIAL_SESSION і TOKEN_REFRESHED, і головна перебудовувала дайджест
+      // та метрики по кілька разів за візит.
+      let currentUid = null;
+      sb.auth.onAuthStateChange((event, session) => {
+        const uid = session?.user?.id ?? null;
+        if (event === 'TOKEN_REFRESHED' || uid === currentUid) return;
+        currentUid = uid;
         loadDigest();
         loadHomeMetrics();
-        loadRegulatoryCount();
       });
     }
   });

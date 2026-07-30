@@ -99,7 +99,11 @@ async function init() {
         .catch(() => fetch("../data/contracts.json").then(r => r.json())),
       fetch("../data/dec_documents.json").then(r => r.json()).catch(() => ({ documents: [] })),
       fetch("../dec/data/package_dec_links.json").then(r => r.json()).catch(() => ({})),
-      fetch("../data/documents.json").then(r => r.json()),
+      // Індекс без search_text (0,7 МБ замість 2,7); excerpt у ньому лишився —
+      // паспорт показує фрагмент документа
+      fetch("../data/documents_index.json")
+        .then(r => { if (!r.ok) throw new Error("no index"); return r.json(); })
+        .catch(() => fetch("../data/documents.json").then(r => r.json())),
       fetch("../postanova/data/resolution_1808.json").then(r => r.json()).catch(() => null)
     ]);
 
