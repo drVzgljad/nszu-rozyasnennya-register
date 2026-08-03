@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>НавігаторПМГ26 | Посади · ДКХП-78 і коди НСЗУ</title>
+  <link rel="stylesheet" href="../styles.css?v=20260728f">
+  <link rel="stylesheet" href="classifiers.css?v=20260725d">
+  <link rel="stylesheet" href="posady.css?v=20260803c">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260729b">
+  <script type="module" src="../auth-v2.js?v=20260803a"></script>
+</head>
+<body id="top">
+  <header class="hero classifiers-hero">
+    <div class="hero-copy">
+      <div class="overline">Довідник кваліфікаційних характеристик · Випуск 78 · коди посад НСЗУ 2026 ·
+        <a class="xnav" href="index.html">↔ Хвороби НК 025</a>
+        <a class="xnav" href="nk026.html">↔ Інтервенції НК 026</a>
+        <a class="xnav" href="tabel.html">↔ Табелі оснащення</a>
+        <a class="xnav" href="../pakety/index.html">↔ Пакети ПМГ-2026</a></div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів, постанови та правил</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Посади в охороні здоров'я</h1>
+      <p>Три довідники, які в оригіналі ніде не перетинаються, зведені в один паспорт посади:
+         кваліфікаційна характеристика з&nbsp;ДКХП (випуск&nbsp;78, чинна редакція
+         від&nbsp;24.02.2025), код, яким ЗОЗ кодує працівника в&nbsp;ЕСОЗ, і перелік пакетів
+         ПМГ-2026, де ця посада є кадровою вимогою. Пошук працює і за назвою, і за кодом&nbsp;<b>P…</b>.</p>
+    </div>
+    <div class="stats" id="poStats" aria-label="Статистика розділу"></div>
+  </header>
+
+  <nav class="mobile-tabs" id="mobileTabs" aria-label="Навігація між панелями">
+    <button class="mobile-tab active" data-tab="browser" type="button">Огляд і пошук</button>
+    <button class="mobile-tab" data-tab="reader" type="button">Паспорт посади</button>
+  </nav>
+
+  <main class="nk-layout" data-active="browser">
+    <!-- ЛІВА ПАНЕЛЬ: пошук + каскад -->
+    <section class="nk-browser" aria-label="Пошук і навігація довідника посад">
+      <div class="search-panel nk-search">
+        <label class="search">
+          <span>Пошук за назвою посади або кодом НСЗУ</span>
+          <input id="poSearch" type="search"
+                 placeholder="Напр.: анестезіолог, P37, сестра медична, ендоскопіст…" autocomplete="off">
+        </label>
+
+        <details class="nk-batch">
+          <summary>📋 Пакетний пошук — кілька посад або кодів разом</summary>
+          <textarea id="poBatch" rows="4"
+            placeholder="Вставте назви або коди — по одному в рядку, через кому чи пробіл:&#10;P37&#10;лікар-ендоскопіст&#10;рентгенолаборант, акушерка"></textarea>
+          <div class="batch-actions">
+            <button id="poBatchRun" type="button" class="batch-primary">Знайти всі</button>
+            <button id="poBatchCopy" type="button" hidden>⧉ Копіювати знайдене</button>
+            <button id="poBatchClear" type="button">Очистити</button>
+          </div>
+        </details>
+
+        <!-- Каскадна навігація: Розділ → Підрозділ → Посада -->
+        <div class="nk-cascade" aria-label="Навігація по довіднику">
+          <div class="casc-field">
+            <label for="selSection">Розділ ДКХП</label>
+            <select id="selSection"><option value="">Завантаження…</option></select>
+          </div>
+          <div class="casc-field">
+            <label for="selSub">Підрозділ (напрям підготовки)</label>
+            <select id="selSub" disabled><option value="">— оберіть розділ —</option></select>
+          </div>
+          <div class="casc-field">
+            <label for="selPost">Посада</label>
+            <select id="selPost" disabled><option value="">— оберіть розділ —</option></select>
+          </div>
+        </div>
+        <p class="casc-note">Розділи Довідника відповідають рівню освіти: <b>Професіонали</b> —
+           повна вища (спеціаліст, магістр), <b>Фахівці</b> — молодший спеціаліст, бакалавр або
+           післядипломна підготовка, <b>Технічні службовці</b> й <b>Робітники</b> — середня освіта
+           та підготовка на робочому місці.</p>
+
+        <div class="nk-filters">
+          <label class="nk-check"><input type="checkbox" id="onlyPkg"> лише посади, які є вимогою в пакетах ПМГ-2026</label>
+          <label class="nk-check"><input type="checkbox" id="onlyCode"> лише посади з кодом НСЗУ</label>
+          <label class="nk-check"><input type="checkbox" id="onlyGap"> лише коди без кваліфікаційної характеристики</label>
+        </div>
+        <div class="results-summary">
+          <span id="poCount">Завантаження…</span>
+          <button id="poClear" type="button">✕ Очистити форму</button>
+        </div>
+
+        <details class="po-issues" id="poIssues" hidden>
+          <summary>⚠️ Зауваги до джерел</summary>
+          <div id="poIssuesBody"></div>
+        </details>
+      </div>
+
+      <div class="nk-results" id="poResults" hidden></div>
+    </section>
+
+    <!-- ПРАВА ПАНЕЛЬ: паспорт посади -->
+    <article class="nk-reader reader-empty" id="poReader" aria-live="polite">
+      <div class="reader-hint">
+        <div class="reader-hint-ico">👥</div>
+        <p>Оберіть посаду в каскаді (Розділ → Підрозділ → Посада) або через пошук, щоб побачити
+           її паспорт: завдання та обов'язки, що працівник повинен знати, кваліфікаційні вимоги,
+           код НСЗУ для кодування в ЕСОЗ і перелік пакетів ПМГ-2026, де ця посада є кадровою
+           вимогою.</p>
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Джерела: Довідник кваліфікаційних характеристик професій працівників, випуск 78
+           «Охорона здоров'я» (наказ МОЗ від 29.03.2002 № 117, редакція від 24.02.2025 за наказом
+           № 307); довідник «Коди посад НСЗУ 2026»; блок «Спеціалісти» специфікацій пакетів
+           ПМГ-2026 (постанова КМУ від 31.12.2025 № 1808). Зв'язок між довідниками обчислено за
+           назвами посад — офіційного зіставнення не існує. Довідковий інструмент; у разі
+           розбіжностей переважну силу має офіційний текст Довідника та специфікація пакета.</p>
+      </div>
+    </div>
+  </footer>
+
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <script src="posady.js?v=20260803c" defer></script>
+</body>
+</html>

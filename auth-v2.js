@@ -344,6 +344,7 @@ function applyAccess() {
       { text: '🧾 Номенклатура · НК 031', path: 'classifiers/nk031.html' },
       { text: '📋 Табелі оснащення', path: 'classifiers/tabel.html' },
       { text: '🧪 Лабораторні · LOINC', path: 'classifiers/loinc.html' },
+      { text: '👥 Посади · ДКХП-78', path: 'classifiers/posady.html' },
       { text: '🔗 Таблиця співставлення', path: 'mapping/index.html' }
     ];
 
@@ -2289,7 +2290,7 @@ if ('serviceWorker' in navigator &&
   // неї браузер до десяти хвилин не помічає, що воркер змінився, і продовжує
   // роздавати старі файли з кешу. Змінений URL змушує перевірити одразу.
   // ПРИ ЗМІНІ sw.js ПІДНІМАТИ ЦЮ ВЕРСІЮ РАЗОМ З CACHE усередині воркера.
-  navigator.serviceWorker.register('/sw.js?v=9').catch(() => {});
+  navigator.serviceWorker.register('/sw.js?v=10').catch(() => {});
 
   // Перезавантаження на controllerchange прибрано 30.07.2026 разом зі
   // skipWaiting() у воркері (див. коментар у sw.js). Новий воркер більше не

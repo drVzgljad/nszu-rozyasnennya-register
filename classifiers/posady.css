@@ -1,0 +1,89 @@
+/* ============================================================
+   Посади (ДКХП, випуск 78 + коди НСЗУ 2026) — додаткові стилі
+   поверх classifiers.css: бейджі коду й пакетів, блоки паспорта,
+   кадрові вимоги пакетів, зауваги до джерел.
+   Токени — зі styles.css (--ink, --accent, --surface, --line…).
+   ============================================================ */
+
+/* ── Бейджі в рядку результату ─────────────────────────────── */
+.po-code, .po-pkgn {
+  flex: 0 0 auto; align-self: center; white-space: nowrap;
+  font-size: .68rem; font-weight: 800; letter-spacing: .02em;
+  border-radius: 20px; padding: 2px 9px;
+}
+.po-code { background: var(--accent-soft); color: var(--accent-dark); }
+.po-pkgn { background: var(--teal); color: #fff; }
+.rrow.po-gap .tname { color: var(--muted); }
+.rrow.po-gap .tcode.code { background: var(--warm); color: var(--teal-dark); }
+
+/* ── Шапка паспорта ────────────────────────────────────────── */
+.po-title { margin: 4px 0 2px; font-size: 1.32rem; line-height: 1.25; }
+.po-meta { font-size: .8rem; color: var(--muted); margin-bottom: 14px; }
+.po-loading { color: var(--muted); padding: 20px 0; }
+
+/* ── Коди НСЗУ ─────────────────────────────────────────────── */
+.po-codes { display: flex; flex-direction: column; gap: 8px; }
+.po-codecard {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: 11px;
+  background: var(--soft);
+}
+.po-codecard.legacy { background: var(--warm); border-color: transparent; }
+.po-codename { font-weight: 600; flex: 1 1 180px; }
+.po-legacy {
+  flex: 1 1 100%; font-size: .78rem; line-height: 1.4; color: var(--teal-dark);
+}
+.po-nocode p, .po-nopkg p { line-height: 1.5; }
+
+/* ── Кадрові вимоги пакетів ────────────────────────────────── */
+.po-pkglist { display: flex; flex-direction: column; gap: 10px; }
+.po-pkgrow {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 9px 10px; border: 1px solid var(--line); border-radius: 11px;
+  background: var(--surface);
+}
+.po-pkgbody { flex: 1 1 auto; min-width: 0; }
+.po-pkgtitle {
+  font-size: .82rem; font-weight: 700; color: var(--teal-dark);
+  margin-bottom: 3px; line-height: 1.35;
+}
+.po-pkgcond {
+  font-size: .84rem; line-height: 1.45; color: var(--ink);
+  padding-left: 10px; border-left: 2px solid var(--line); margin-top: 4px;
+}
+.po-pkgcond.crit { border-left-color: var(--accent); }
+.po-pkgcond b { color: var(--muted); font-weight: 700; }
+
+/* ── Текстові блоки характеристики ─────────────────────────── */
+.po-block p { line-height: 1.55; margin: 0 0 9px; }
+.po-block p:last-child { margin-bottom: 0; }
+.po-variant {
+  margin: 14px 0 8px; font-size: .95rem; text-transform: none;
+  color: var(--accent-dark); letter-spacing: .01em;
+}
+/* Примітка про зміну — вужчий кегль і смуга збоку, як у джерелі. */
+.po-note {
+  font-size: .8rem; line-height: 1.45; color: var(--muted);
+  padding: 6px 0 6px 11px; border-left: 2px solid var(--line);
+  background: none; margin: 0 0 9px;
+}
+
+/* ── Зауваги до джерел ─────────────────────────────────────── */
+.po-issues {
+  margin-top: 12px; border: 1px solid var(--line); border-radius: 11px;
+  background: var(--soft); padding: 8px 12px;
+}
+.po-issues > summary {
+  cursor: pointer; font-size: .85rem; font-weight: 700; color: var(--teal-dark);
+  list-style: none;
+}
+.po-issues > summary::-webkit-details-marker { display: none; }
+.po-issues ul { margin: 8px 0 0; padding-left: 18px; font-size: .83rem; line-height: 1.5; }
+.po-issues li { margin-bottom: 6px; }
+.po-alias { white-space: nowrap; }
+
+/* ── Темна тема ────────────────────────────────────────────────
+   Портал перемикає тему класом :root.dark-theme (не prefers-color-scheme),
+   і всі токени, використані вище (--surface, --soft, --line, --warm,
+   --teal-dark, --accent-soft), у ньому вже перевизначені — власних правил
+   на темну тему цій сторінці не потрібно. */
