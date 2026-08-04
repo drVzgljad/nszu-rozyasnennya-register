@@ -776,14 +776,17 @@ header.top {
 }
 
 /* Назва посади у вимозі веде на кваліфікаційну характеристику ДКХП-78 */
-.posada-link {
+.posada-link,
+.device-link {
   color: inherit;
   text-decoration: none;
   border-bottom: 1px dashed var(--accent, #4a8fc7);
   transition: color .12s, background .12s;
 }
 .posada-link:hover,
-.posada-link:focus-visible {
+.posada-link:focus-visible,
+.device-link:hover,
+.device-link:focus-visible {
   color: var(--accent-dark, #2f6b9e);
   background: var(--accent-soft, #eef6fc);
   border-bottom-color: var(--accent-dark, #2f6b9e);

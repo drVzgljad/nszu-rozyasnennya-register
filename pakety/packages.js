@@ -48,14 +48,14 @@ function itemSearchText(item) {
   return `${itemMarker(item)} ${itemText(item)}`.trim();
 }
 
-function renderRequirementItem(item, query, linkPkg) {
+function renderRequirementItem(item, query, link) {
   const marker = itemMarker(item);
   const level = Math.min(itemLevel(item), 5);
   const text = itemText(item);
   // Підсвітку пошуку віддаємо як форматер: інакше <mark> ліг би всередину
-  // href і посилання на паспорт посади розсипалося б.
-  const body = linkPkg
-    ? window.SpecLinks.render(text, linkPkg, (chunk) => highlight(chunk, query))
+  // href і посилання на паспорт розсипалося б.
+  const body = link
+    ? window.SpecLinks.render(text, link.pkg, (chunk) => highlight(chunk, query), link.kind)
     : highlight(text, query);
   return `<div class="requirement-item level-${level}">
     <span class="requirement-marker">${escapeHtml(marker)}</span>
@@ -63,12 +63,14 @@ function renderRequirementItem(item, query, linkPkg) {
   </div>`;
 }
 
-// Номер пакета для лінкування назв посад — або "" , якщо лінкувати нічого.
+// Що лінкувати в цьому розділі — {pkg, kind} або null.
 // Пілоти нумеруються власним рядом НСЗУ, який перетинається з нумерацією
 // постанови 1808, тож карту вимог до них не прикладаємо.
-function staffLinkPkg(pkg, section) {
-  if (!pkg || pkg.pilot || !section || section.key !== "specialists") return "";
-  return window.SpecLinks && window.SpecLinks.has(pkg.number) ? pkg.number : "";
+function sectionLinks(pkg, section) {
+  if (!pkg || pkg.pilot || !section || !window.SpecLinks) return null;
+  const kind = section.key;
+  if (!window.SpecLinks.KINDS.includes(kind)) return null;
+  return window.SpecLinks.has(pkg.number, kind) ? { pkg: pkg.number, kind } : null;
 }
 
 function allSections(pkg) {
@@ -306,9 +308,9 @@ function renderReader() {
   container.classList.remove("reader-empty");
   const query = queryText();
   const context = pkg.units.length > 1 ? packageState.selectedUnit.label : `Пакет ${pkg.number}`;
-  const linkPkg = staffLinkPkg(pkg, section);
+  const link = sectionLinks(pkg, section);
   const items = section.items.length
-    ? `<div class="requirement-list">${section.items.map((item) => renderRequirementItem(item, query, linkPkg)).join("")}</div>`
+    ? `<div class="requirement-list">${section.items.map((item) => renderRequirementItem(item, query, link)).join("")}</div>`
     : "<p>Окремі пункти у цьому розділі не виділено.</p>";
   // Пілотні проєкти живуть поза постановою 1808: у них немає ні DOCX,
   // ні норм оплати 1808, ні прив'язки до ДЕЦ — показуємо їхню нормативку

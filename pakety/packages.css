@@ -175,14 +175,17 @@
 /* Назва посади у вимозі веде на кваліфікаційну характеристику ДКХП-78.
    Підкреслення пунктиром, а не суцільне: це виноска в довідник, а не
    перехід на інший документ, і читати вимогу воно не заважає. */
-.posada-link {
+.posada-link,
+.device-link {
   color: inherit;
   text-decoration: none;
   border-bottom: 1px dashed var(--accent);
   transition: color .12s, background .12s;
 }
 .posada-link:hover,
-.posada-link:focus-visible {
+.posada-link:focus-visible,
+.device-link:hover,
+.device-link:focus-visible {
   color: var(--accent-dark);
   background: var(--accent-soft);
   border-bottom-color: var(--accent-dark);

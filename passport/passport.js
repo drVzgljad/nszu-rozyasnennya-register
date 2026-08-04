@@ -601,10 +601,11 @@ function renderRequirements() {
         const listDiv = document.createElement("div");
         listDiv.className = "spec-items-list";
 
-        // У блоці «Спеціалісти» назви посад ведуть на кваліфікаційну
-        // характеристику ДКХП-78 (координати дає spec-links.js).
-        const staffLinks = section.key === "specialists" && window.SpecLinks
-          && window.SpecLinks.has(pkg.number);
+        // У блоках «Спеціалісти» й «Обладнання» назви ведуть на паспорт
+        // довідника — характеристику ДКХП-78 або картку виробу
+        // (координати дає spec-links.js).
+        const linked = window.SpecLinks && window.SpecLinks.KINDS.includes(section.key)
+          && window.SpecLinks.has(pkg.number, section.key);
 
         section.items.forEach(item => {
           const itemDiv = document.createElement("div");
@@ -612,8 +613,8 @@ function renderRequirements() {
           itemDiv.className = `spec-item level-${level}`;
 
           const marker = item.marker ? `<span class="spec-item-marker">${escapeHtml(item.marker)}</span>` : "";
-          const body = staffLinks
-            ? window.SpecLinks.render(item.text, pkg.number, escapeHtml)
+          const body = linked
+            ? window.SpecLinks.render(item.text, pkg.number, escapeHtml, section.key)
             : escapeHtml(item.text);
           itemDiv.innerHTML = `${marker}<span>${body}</span>`;
           listDiv.appendChild(itemDiv);

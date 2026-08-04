@@ -345,6 +345,7 @@ function applyAccess() {
       { text: '📋 Табелі оснащення', path: 'classifiers/tabel.html' },
       { text: '🧪 Лабораторні · LOINC', path: 'classifiers/loinc.html' },
       { text: '👥 Посади · ДКХП-78', path: 'classifiers/posady.html' },
+      { text: '🩻 Обладнання у вимогах ПМГ', path: 'classifiers/obladnannia.html' },
       { text: '🔗 Таблиця співставлення', path: 'mapping/index.html' }
     ];
 

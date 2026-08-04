@@ -1,0 +1,93 @@
+/* ============================================================
+   Обладнання у вимогах ПМГ-2026 — додаткові стилі поверх
+   classifiers.css: бейджі рівня збігу, картки кандидатів із
+   довідників, перелік пакетів, де виріб є вимогою.
+   Токени — зі styles.css (--ink, --accent, --surface, --line…).
+   ============================================================ */
+
+/* ── Бейджі в рядку результату ─────────────────────────────── */
+.eq-tag {
+  flex: 0 0 auto; align-self: center; white-space: nowrap;
+  font-size: .68rem; font-weight: 800; letter-spacing: .02em;
+  border-radius: 20px; padding: 2px 9px;
+}
+.eq-tag.crit { background: var(--accent); color: #fff; }
+.eq-tag.cond { background: var(--warm); color: var(--teal-dark); }
+/* Рівень збігу з довідником — колір несе довіру, а не настрій:
+   зелений «точний», синій «ймовірний», теплий «ширший», сірий «нічого». */
+.eq-tag.band-exact { background: var(--teal); color: #fff; }
+.eq-tag.band-likely { background: var(--accent-soft); color: var(--accent-dark); }
+.eq-tag.band-broad { background: var(--warning-bg); color: var(--warning-text); }
+.eq-tag.band-none { background: var(--soft); color: var(--muted); }
+
+.eq-more { font-size: .8rem; color: var(--muted); padding: 10px 12px; margin: 0; }
+
+/* ── Інші написання тієї самої вимоги ──────────────────────── */
+.eq-aliases {
+  margin: 10px 0 4px; border: 1px dashed var(--line); border-radius: 11px;
+  padding: 2px 12px 8px;
+}
+.eq-aliases > summary {
+  cursor: pointer; font-size: .82rem; font-weight: 600; color: var(--accent-dark);
+  padding: 8px 0; list-style: none;
+}
+.eq-aliases > summary::-webkit-details-marker { display: none; }
+.eq-aliases > summary::before { content: "▸ "; }
+.eq-aliases[open] > summary::before { content: "▾ "; }
+.eq-aliases ul { margin: 4px 0 8px; padding-left: 18px; font-size: .84rem; line-height: 1.5; }
+
+/* ── Кандидати з довідників ────────────────────────────────── */
+.eq-refs { display: flex; flex-direction: column; gap: 8px; }
+.eq-ref {
+  display: grid; gap: 3px;
+  padding: 9px 11px; border: 1px solid var(--line); border-left-width: 3px;
+  border-radius: 11px; background: var(--surface);
+  text-decoration: none; color: var(--ink);
+  transition: background .12s, border-color .12s;
+}
+.eq-ref:hover { background: var(--accent-soft); border-color: var(--accent); }
+.eq-ref.band-exact { border-left-color: var(--teal); }
+.eq-ref.band-likely { border-left-color: var(--accent); }
+.eq-ref.band-broad { border-left-color: var(--warning-border); }
+.eq-ref-src { font-size: .72rem; font-weight: 700; color: var(--muted); letter-spacing: .02em; }
+.eq-ref-name { font-size: .92rem; line-height: 1.4; }
+.eq-ref-foot { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+.eq-ref-foot code {
+  font-family: ui-monospace, monospace; font-size: .78rem;
+  background: var(--soft); border-radius: 6px; padding: 1px 7px; color: var(--accent-dark);
+}
+
+/* ── Де це вимагають ───────────────────────────────────────── */
+.eq-pkgs { display: flex; flex-direction: column; gap: 10px; }
+.eq-pkg {
+  padding: 9px 11px; border: 1px solid var(--line); border-radius: 11px;
+  background: var(--surface);
+}
+.eq-pkg-head {
+  display: block; font-size: .86rem; line-height: 1.4; color: var(--teal-dark);
+  text-decoration: none; margin-bottom: 4px;
+}
+.eq-pkg-head:hover { text-decoration: underline; }
+.eq-pkg-head b { color: var(--ink); }
+/* Рядок «де саме і скільки» — той самий виріб у пакеті вимагають і в
+   операційній, і в палаті інтенсивної терапії, з різною кількістю. */
+.eq-req {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  font-size: .82rem; line-height: 1.45; color: var(--ink);
+  padding: 3px 0 3px 10px; border-left: 2px solid var(--line); margin-top: 3px;
+}
+.eq-scope { color: var(--muted); }
+.eq-qty { font-weight: 700; color: var(--accent-dark); }
+.eq-pkg-spec {
+  display: inline-block; margin-top: 6px; font-size: .76rem;
+  color: var(--accent); text-decoration: none;
+}
+.eq-pkg-spec:hover { text-decoration: underline; }
+
+/* ── Зауваги ───────────────────────────────────────────────── */
+.eq-note { font-size: .8rem; line-height: 1.5; color: var(--muted); margin: 8px 0 0; }
+.eq-note b { color: var(--ink); }
+.eq-unmatched { margin: 6px 0 0; padding-left: 18px; font-size: .82rem; line-height: 1.5; }
+.eq-unmatched b { font-weight: 600; }
+
+/* Темна тема працює на токенах зі styles.css — власних правил не треба. */

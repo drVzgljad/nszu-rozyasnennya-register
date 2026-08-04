@@ -1,20 +1,22 @@
 // ═══════════════════════════════════════════════════════════════
 // Лінкування довідників просто в тексті вимог пакета ПМГ-2026
 //
-// Кадрова вимога в специфікації — це рядок «Посада – скільки осіб і на
-// яких умовах». Раніше посада була голим текстом: щоб дізнатися, що вона
-// взагалі означає, треба було йти в розділ «Посади» і шукати руками.
-// Тепер назва у вимозі веде просто на кваліфікаційну характеристику
-// ДКХП-78 — паспорт посади з обов'язками і кваліфікаційними вимогами.
+// Вимога у специфікації — це рядок «Що саме – скільки і на яких умовах».
+// Раніше і посада, і апарат були голим текстом: щоб дізнатися, що вони
+// означають, треба було йти в довідник і шукати руками. Тепер назва у
+// вимозі веде просто на паспорт — кваліфікаційну характеристику ДКХП-78
+// для посади, картку виробу з кандидатами НК 024 / НК 031 / табелів для
+// обладнання.
 //
-// Координати назв рахує білдер (classifiers/build_posady.py) і кладе в
-// classifiers/data/posady/posady_pkg.json. Сторінка НЕ розбирає вимогу
-// вдруге: другий парсер того самого неминуче розійшовся б із першим.
-// Формат: pkgs[номер пакета] = [{h: голова вимоги дослівно,
-//                               p: [[зсув, довжина, id посади], …]}]
+// Координати назв рахують білдери (classifiers/build_posady.py і
+// classifiers/build_equipment.py) і кладуть у *_pkg.json. Сторінка НЕ
+// розбирає вимогу вдруге: другий парсер того самого неминуче розійшовся б
+// із першим. Формат обох карт однаковий:
+//   pkgs[номер пакета] = [{h: голова вимоги дослівно,
+//                          p: [[зсув, довжина, id], …]}]
 // Голову шукаємо в тексті пункту через indexOf, зсуви — від її початку.
-// Тому посилання не потрапляє в хвіст умови, де та сама посада згадана
-// в іншому відмінку («…за наявності лікаря-анестезіолога»).
+// Тому посилання не потрапляє в хвіст умови, де те саме названо в іншому
+// відмінку («…за наявності лікаря-анестезіолога»).
 //
 // Підключення: <script src="../spec-links.js?v=…" defer></script> ПЕРЕД
 // скриптом сторінки. Далі SpecLinks.load(cb) і SpecLinks.render(...).
@@ -25,12 +27,30 @@
   // Шляхи рахуємо від самого файлу, а не від сторінки: модуль лежить у
   // корені, а споживачі — на різній глибині.
   var BASE = (document.currentScript && document.currentScript.src) || location.href;
-  var DATA_URL = new URL("classifiers/data/posady/posady_pkg.json", BASE).href;
-  var CARD_URL = new URL("classifiers/posady.html", BASE).href;
 
-  var map = null;         // завантажена карта
-  var pending = null;     // проміс завантаження
-  var failed = false;
+  // Ключ розділу специфікації → де брати карту і куди вести.
+  var KINDS = {
+    specialists: {
+      data: "classifiers/data/posady/posady_pkg.json",
+      page: "classifiers/posady.html",
+      cls: "posada-link",
+      hint: "Кваліфікаційна характеристика: ",
+      fallback: "Кваліфікаційна характеристика ДКХП-78",
+    },
+    equipment: {
+      data: "classifiers/data/equipment/equipment_pkg.json",
+      page: "classifiers/obladnannia.html",
+      cls: "device-link",
+      hint: "Вимога до обладнання: ",
+      fallback: "Картка вимоги до обладнання",
+    },
+  };
+  Object.keys(KINDS).forEach(function (k) {
+    KINDS[k].dataUrl = new URL(KINDS[k].data, BASE).href;
+    KINDS[k].pageUrl = new URL(KINDS[k].page, BASE).href;
+    KINDS[k].map = null;
+    KINDS[k].pending = null;
+  });
 
   function escapeHtml(value) {
     return String(value == null ? "" : value)
@@ -40,30 +60,32 @@
       .replace(/"/g, "&quot;");
   }
 
-  function load(onReady) {
-    if (map || failed) {
-      if (onReady && map) onReady(map);
-      return pending || Promise.resolve(map);
-    }
-    if (!pending) {
-      pending = fetch(DATA_URL)
+  function fetchKind(k) {
+    if (k.map || k.failed) return Promise.resolve(k.map);
+    if (!k.pending) {
+      k.pending = fetch(k.dataUrl)
         .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
-        .then(function (d) { map = d; return d; })
+        .then(function (d) { k.map = d; return d; })
         .catch(function () {
-          // Довідник посад — прикраса поверх вимог, а не їх умова.
-          // Не завантажився — сторінка й далі показує чистий текст.
-          failed = true;
+          // Довідники — прикраса поверх вимог, а не їх умова. Не завантажилися —
+          // сторінка й далі показує чистий текст специфікації.
+          k.failed = true;
           return null;
         });
     }
-    if (onReady) pending.then(function (d) { if (d) onReady(d); });
-    return pending;
+    return k.pending;
   }
 
-  // Позиції назв посад у тексті одного пункту вимог.
-  function spansFor(text, pkgNumber) {
-    if (!map || !text) return [];
-    var rows = map.pkgs[String(pkgNumber)];
+  function load(onReady) {
+    var all = Promise.all(Object.keys(KINDS).map(function (n) { return fetchKind(KINDS[n]); }));
+    if (onReady) all.then(function () { onReady(); });
+    return all;
+  }
+
+  // Позиції назв у тексті одного пункту вимог.
+  function spansFor(text, pkgNumber, k) {
+    if (!k.map || !text) return [];
+    var rows = k.map.pkgs[String(pkgNumber)];
     if (!rows) return [];
     var found = [];
     for (var i = 0; i < rows.length; i++) {
@@ -83,40 +105,52 @@
     // й викидаємо все, що з нею перетинається.
     found.sort(function (a, b) { return a.s - b.s || b.e - a.e; });
     var out = [], last = -1;
-    for (var k = 0; k < found.length; k++) {
-      if (found[k].s >= last) { out.push(found[k]); last = found[k].e; }
+    for (var m = 0; m < found.length; m++) {
+      if (found[m].s >= last) { out.push(found[m]); last = found[m].e; }
     }
     return out;
   }
 
+  // Хвіст ?back=… — на сторінці довідника з'явиться кнопка повернення сюди
+  // (домовленість порталу, читає auth-v2.js).
+  function back(pkgNumber) {
+    return "&back=" + encodeURIComponent(location.pathname + location.search) +
+      "&backLabel=" + encodeURIComponent("до вимог пакета " + pkgNumber);
+  }
+
   /**
-   * Текст пункту → HTML із посиланнями на паспорти посад.
+   * Текст пункту → HTML із посиланнями на паспорти довідника.
+   * kind — ключ розділу специфікації ("specialists" або "equipment").
    * fmt — форматер сторінки (екранування + підсвітка пошуку). Він
-   * застосовується до КОЖНОГО шматка окремо, тож розмітка посилання
-   * не потрапляє під заміну і <mark> не рве href.
+   * застосовується до КОЖНОГО шматка окремо, тож розмітка посилання не
+   * потрапляє під заміну і <mark> не рве href.
    */
-  function render(text, pkgNumber, fmt) {
+  function render(text, pkgNumber, fmt, kind) {
+    var k = KINDS[kind || "specialists"];
     var format = fmt || escapeHtml;
-    var spans = spansFor(text, pkgNumber);
+    if (!k) return format(text);
+    var spans = spansFor(text, pkgNumber, k);
     if (!spans.length) return format(text);
 
     var html = "", pos = 0;
     for (var i = 0; i < spans.length; i++) {
       var sp = spans[i];
-      var name = (map.names && map.names[sp.id]) || "";
+      var name = (k.map.names && k.map.names[sp.id]) || "";
       html += format(text.slice(pos, sp.s));
-      html += '<a class="posada-link" href="' + escapeHtml(CARD_URL) + "?id=" +
-        encodeURIComponent(sp.id) + '" title="' + escapeHtml(
-          name ? "Кваліфікаційна характеристика: " + name : "Кваліфікаційна характеристика ДКХП-78"
-        ) + '">' + format(text.slice(sp.s, sp.e)) + "</a>";
+      html += '<a class="' + k.cls + '" href="' + escapeHtml(k.pageUrl) + "?id=" +
+        encodeURIComponent(sp.id) + back(pkgNumber) + '" title="' +
+        escapeHtml(name ? k.hint + name : k.fallback) + '">' +
+        format(text.slice(sp.s, sp.e)) + "</a>";
       pos = sp.e;
     }
     return html + format(text.slice(pos));
   }
 
-  function has(pkgNumber) {
-    return !!(map && map.pkgs[String(pkgNumber)]);
+  /** Чи є в цьому пакеті що лінкувати в цьому розділі специфікації. */
+  function has(pkgNumber, kind) {
+    var k = KINDS[kind || "specialists"];
+    return !!(k && k.map && k.map.pkgs[String(pkgNumber)]);
   }
 
-  window.SpecLinks = { load: load, render: render, has: has, KEYS: ["specialists"] };
+  window.SpecLinks = { load: load, render: render, has: has, KINDS: Object.keys(KINDS) };
 })();

@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>НавігаторПМГ26 | Обладнання у вимогах ПМГ-2026</title>
+  <link rel="stylesheet" href="../styles.css?v=20260728f">
+  <link rel="stylesheet" href="classifiers.css?v=20260725d">
+  <link rel="stylesheet" href="obladnannia.css?v=20260804a">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260729b">
+  <script type="module" src="../auth-v2.js?v=20260804b"></script>
+</head>
+<body id="top">
+  <header class="hero classifiers-hero">
+    <div class="hero-copy">
+      <div class="overline">Вимоги до обладнання · пакети ПМГ-2026 ·
+        <a class="xnav" href="nk024.html">↔ Медвироби НК 024</a>
+        <a class="xnav" href="nk031.html">↔ Номенклатура НК 031</a>
+        <a class="xnav" href="tabel.html">↔ Табелі оснащення</a>
+        <a class="xnav" href="posady.html">↔ Посади</a>
+        <a class="xnav" href="../pakety/index.html">↔ Пакети ПМГ-2026</a></div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів, постанови та правил</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Обладнання у вимогах ПМГ-2026</h1>
+      <p>Вимоги до переліку обладнання розсипані по специфікаціях 43&nbsp;пакетів — той самий
+         апарат згадано в десятках місць, щоразу трохи іншими словами. Тут вони зведені в один
+         реєстр: у скількох пакетах виріб є вимогою, де саме він потрібен, скільки одиниць і чи
+         вимога критична. Для кожного — кандидати з&nbsp;НК&nbsp;024, НК&nbsp;031 і табелів
+         оснащення.</p>
+    </div>
+    <div class="stats" id="eqStats" aria-label="Статистика розділу"></div>
+  </header>
+
+  <nav class="mobile-tabs" id="mobileTabs" aria-label="Навігація між панелями">
+    <button class="mobile-tab active" data-tab="browser" type="button">Огляд і пошук</button>
+    <button class="mobile-tab" data-tab="reader" type="button">Картка виробу</button>
+  </nav>
+
+  <main class="nk-layout" data-active="browser">
+    <!-- ЛІВА ПАНЕЛЬ -->
+    <section class="nk-browser" aria-label="Пошук обладнання">
+      <div class="search-panel nk-search">
+        <label class="search">
+          <span>Пошук за назвою обладнання</span>
+          <input id="eqSearch" type="search"
+                 placeholder="Напр.: дефібрилятор, ШВЛ, кисень, аналізатор…" autocomplete="off">
+        </label>
+
+        <div class="nk-cascade" aria-label="Відбір за пакетом">
+          <div class="casc-field">
+            <label for="selPkg">Пакет ПМГ-2026</label>
+            <select id="selPkg"><option value="">— усі пакети —</option></select>
+          </div>
+          <div class="casc-field">
+            <label for="selBand">Зв'язок із довідниками</label>
+            <select id="selBand">
+              <option value="">— будь-який —</option>
+              <option value="точний">точний збіг</option>
+              <option value="ймовірний">ймовірний</option>
+              <option value="ширший">ширший (рід замість виду)</option>
+              <option value="—">без кандидатів</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="nk-filters">
+          <label class="nk-check"><input type="checkbox" id="onlyCrit"> лише критичні вимоги</label>
+          <label class="nk-check"><input type="checkbox" id="onlyMany"> лише те, що вимагають від 5 пакетів</label>
+        </div>
+        <div class="results-summary">
+          <span id="eqCount">Завантаження…</span>
+          <button id="eqClear" type="button">✕ Очистити форму</button>
+        </div>
+
+        <details class="po-issues" id="eqIssues" hidden>
+          <summary>⚠️ Як читати цей розділ і чого тут немає</summary>
+          <div id="eqIssuesBody"></div>
+        </details>
+      </div>
+
+      <div class="nk-results" id="eqResults" hidden></div>
+    </section>
+
+    <!-- ПРАВА ПАНЕЛЬ -->
+    <article class="nk-reader reader-empty" id="eqReader" aria-live="polite">
+      <div class="reader-hint">
+        <div class="reader-hint-ico">🩻</div>
+        <p>Оберіть виріб у переліку, щоб побачити його картку: у яких пакетах ПМГ-2026 він є
+           вимогою, у якому підрозділі й у якій кількості, чи вимога критична — і які позиції
+           НК&nbsp;024, НК&nbsp;031 та табелів оснащення до нього найближчі.</p>
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Джерело вимог: блок «Вимоги до переліку обладнання» специфікацій пакетів ПМГ-2026
+           (постанова КМУ від 31.12.2025 № 1808). Довідники: НК 024:2023 (наказ Мінекономіки
+           від 24.05.2023 № 4139), НК 031:2024 (наказ Мінекономіки від 24.09.2024 № 23992),
+           табелі матеріально-технічного оснащення (накази МОЗ). Офіційного зіставлення вимог
+           із довідниками не існує — показані кандидати обчислені за назвами й потребують
+           перевірки. У разі розбіжностей переважну силу має текст специфікації пакета.</p>
+      </div>
+    </div>
+  </footer>
+
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <script src="obladnannia.js?v=20260804a" defer></script>
+</body>
+</html>
