@@ -200,6 +200,26 @@
       </button>`;
   }
 
+  /** Чим підписати кандидата: кодом чи підрозділом.
+   *
+   * У НК 024 і НК 031 «46201» та «Z120305» — справжні коди, ними кодують
+   * виріб. А «951-1154» — лише наскрізний номер рядка, який портал вигадав,
+   * щоб позиції табеля мали унікальний ідентифікатор: у підтаблицях наказу
+   * нумерація починається заново. Показувати його в такій самій рамці, як
+   * код НК 024, — вводити в оману, тож для табелів підписуємо підрозділом.
+   */
+  function refIdHTML(r) {
+    if (!r.src.startsWith("tabel")) return `<code>${esc(r.code)}</code>`;
+    const w = r.where || [];
+    if (!w.length) return '<span class="eq-where">позиція табеля</span>';
+    if (w.length === 1) return `<span class="eq-where">${esc(w[0])}</span>`;
+    // Роздільник крапкою з комою, а не « · »: самі назви розділів табеля
+    // містять « · частина 4», і два різні підрозділи злилися б в один.
+    return `<span class="eq-where" title="${escAttr(w.join("; "))}">${w.length}
+      ${plural(w.length, "підрозділ", "підрозділи", "підрозділів")}:
+      ${esc(trim(w[0], 34))} та інші</span>`;
+  }
+
   function bandClass(b) {
     return b === "точний" ? "exact" : b === "ймовірний" ? "likely"
       : b === "ширший" ? "broad" : "none";
@@ -282,7 +302,7 @@
       return `<a class="eq-ref band-${bandClass(r.band)}" href="${escAttr(href)}">
         <span class="eq-ref-src">${esc(REF_LABEL[r.src] || r.src)}</span>
         <span class="eq-ref-name">${esc(r.name)}</span>
-        <span class="eq-ref-foot"><code>${esc(r.code)}</code>
+        <span class="eq-ref-foot">${refIdHTML(r)}
           <span class="eq-tag band-${bandClass(r.band)}" title="${escAttr(BAND_HINT[r.band] || "")}">${
             esc(r.band)}${r.band === "ширший" ? "" : " · " + r.score}</span></span></a>`;
     }).join("");

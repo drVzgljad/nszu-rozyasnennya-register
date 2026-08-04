@@ -56,6 +56,10 @@
   font-family: ui-monospace, monospace; font-size: .78rem;
   background: var(--soft); border-radius: 6px; padding: 1px 7px; color: var(--accent-dark);
 }
+/* Позиція табеля власного коду не має — підписуємо підрозділом, для якого
+   табель писаний. Навмисно НЕ рамкою коду: наскрізний номер рядка («951-1154»)
+   не є класифікаційним кодом і не має на нього скидатися. */
+.eq-where { font-size: .78rem; color: var(--muted); line-height: 1.35; }
 
 /* ── Де це вимагають ───────────────────────────────────────── */
 .eq-pkgs { display: flex; flex-direction: column; gap: 10px; }

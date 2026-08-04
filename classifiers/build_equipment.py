@@ -192,22 +192,45 @@ def parse_packages(path, devices=frozenset()):
 
 # ──────────────────────────── довідники виробів ──────────────────────────────
 
+def tabel_sections():
+    """(наказ, id розділу) → назва підрозділу, для якого писаний табель.
+
+    Ідентифікатор позиції табеля («951-1154») — наскрізний номер рядка, який
+    вигадав build_tabel.py: у підтаблицях наказу нумерація починається заново.
+    Кодом медичного виробу він НЕ є, показувати його поруч із 46201 (НК 024)
+    і Z120305 (НК 031) — вводити в оману. Корисне натомість — підрозділ:
+    той самий глюкометр стоїть у шести табелях наказу 951.
+    """
+    out = {}
+    reg = BASE / "data" / "tabel" / "registry.json"
+    if not reg.exists():
+        return out
+    for doc in json.loads(reg.read_text(encoding="utf-8")).get("docs", []):
+        for group in doc.get("tables") or []:
+            for sec in group.get("sections", []):
+                title = re.sub(r"^\s*[IVXLC\d]+[.)]\s*", "", sec.get("title", "")).strip()
+                out[(str(doc["id"]), sec["id"])] = title
+    return out
+
+
 def load_refs():
     refs = []
     p = BASE / "data" / "nk024" / "nk024_index.json"
     if p.exists():
         for r in json.loads(p.read_text(encoding="utf-8")):
-            refs.append(("nk024", r[0], r[1]))
+            refs.append(("nk024", r[0], r[1], ""))
     p = BASE / "data" / "nk031" / "nk031_index.json"
     if p.exists():
         for r in json.loads(p.read_text(encoding="utf-8")):
-            refs.append(("nk031", r[0], r[1]))
+            refs.append(("nk031", r[0], r[1], ""))
+    secs = tabel_sections()
     for f in sorted((BASE / "data" / "tabel").glob("doc_*.json")):
         order = f.stem.split("_")[1]
         for r in json.loads(f.read_text(encoding="utf-8")):
-            refs.append(("tabel" + order, r[0], r[1]))
+            refs.append(("tabel" + order, r[0], r[1], secs.get((order, r[4]), "")))
     log(f"Довідники: {len(refs)} позицій "
-        f"({', '.join(f'{k}={v}' for k, v in Counter(s for s, _, _ in refs).most_common())})")
+        f"({', '.join(f'{k}={v}' for k, v in Counter(s for s, _, _, _ in refs).most_common())}); "
+        f"розділів табелів {len(secs)}")
     return refs
 
 
@@ -223,9 +246,9 @@ class Matcher:
     def __init__(self, refs, device_words=frozenset()):
         self.devices = set(device_words) - GENERIC
         self.rows, self.inv = [], defaultdict(list)
-        for i, (src, code, nm) in enumerate(refs):
+        for i, (src, code, nm, where) in enumerate(refs):
             tt = toks(nm)
-            self.rows.append((src, code, nm, set(tt), len(tt)))
+            self.rows.append((src, code, nm, set(tt), len(tt), where))
             for t in set(tt):
                 self.inv[t].append(i)
         self.idf = {t: 1.0 / (1 + len(v)) ** 0.5 for t, v in self.inv.items()}
@@ -253,36 +276,50 @@ class Matcher:
             seen.update(self.inv.get(t, ())[:600])
         out = []
         for i in seen:
-            src, code, nm, tt, ln = self.rows[i]
+            src, code, nm, tt, ln, where = self.rows[i]
             if not tt:
                 continue
             cover = sum(self.w(t) for t in want & tt) / total
             noise = len(tt - want) / max(ln, 1)
             score = round(cover * (1 - 0.35 * noise), 3)
             if score >= 0.45:
-                out.append((score, src, code, nm, band(score)))
+                out.append((score, src, code, nm, band(score), where))
             elif tt <= want and tt & self.devices:
                 # Назва довідника цілком міститься у вимозі: рід замість виду.
                 # Ваговий поріг тут не працює — «Дефібрилятор» важить 0,12 від
                 # «портативний дефібрилятор з функцією синхронізації» саме тому,
                 # що вимога навісила рідкісні уточнення. Критерій інший: слово
                 # довідника має бути самостійною назвою виробу.
-                out.append((round(cover, 3), src, code, nm, "ширший"))
+                out.append((round(cover, 3), src, code, nm, "ширший", where))
+        # Той самий рядок табеля повторюється в кожному підрозділі, де виріб
+        # потрібен: «Дефібрилятор» у наказі 153 — десять разів. Показувати
+        # два випадкові з десяти гірше, ніж не показувати нічого, тож зводимо
+        # в один кандидат, а підрозділи збираємо списком.
+        merged = {}
+        for score, src, code, nm, bd, where in out:
+            k = (src, norm(nm))
+            m = merged.get(k)
+            if m is None:
+                merged[k] = m = {"score": score, "src": src, "code": code,
+                                 "name": nm, "band": bd, "where": []}
+            elif score > m["score"]:
+                m.update(score=score, code=code, band=bd)
+            if where and where not in m["where"]:
+                m["where"].append(where)
+
         # Спершу справжні збіги, ширші — після них, і лише як запасний варіант.
         rank = {"точний": 0, "ймовірний": 1, "ширший": 2}
-        out.sort(key=lambda x: (rank[x[4]], -x[0], x[1], x[2]))
+        rows = sorted(merged.values(),
+                      key=lambda m: (rank[m["band"]], -m["score"], m["src"], m["code"]))
         # По два найкращі кандидати з довідника: три однакові «Пульсоксиметри»
-        # з різних наказів корисні, п'ять — уже шум. Дублі назв прибираємо:
-        # табель 153 має «Дефібрилятор» десять разів у різних відділеннях.
-        best, per, seen = [], Counter(), set()
-        for row in out:
-            k = (row[1], norm(row[3]))
-            if k in seen:
-                continue
-            seen.add(k)
-            per[row[1]] += 1
-            if per[row[1]] <= 2:
-                best.append(row)
+        # з різних наказів корисні, п'ять — уже шум.
+        best, per = [], Counter()
+        for m in rows:
+            per[m["src"]] += 1
+            if per[m["src"]] <= 2:
+                m["where"].sort()
+                best.append((m["score"], m["src"], m["code"], m["name"],
+                             m["band"], m["where"]))
             if len(best) >= top:
                 break
         return best
@@ -298,7 +335,7 @@ def build():
     refs = load_refs()
     # Однослівні назви довідників — словник «це справді виріб» для розрізання
     # вимог по «та/або» (див. split_names).
-    device_words = {toks(nm)[0] for _, _, nm in refs if len(toks(nm)) == 1}
+    device_words = {toks(nm)[0] for _, _, nm, _ in refs if len(toks(nm)) == 1}
     rows, heads = parse_packages(PKG_JSON, device_words)
     matcher = Matcher(refs, device_words)
 
@@ -316,8 +353,9 @@ def build():
         e["pkgs"] = sorted({r["pkg"] for r in e["rows"]}, key=lambda n: int(re.match(r"\d+", n).group()))
         e["critical"] = any(r["critical"] for r in e["rows"])
         e["refs"] = ([] if e["kind"] == "умова" else
-                     [{"src": s, "code": c, "name": n, "score": sc, "band": bd}
-                      for sc, s, c, n, bd in matcher.find(e["name"])])
+                     [{"src": s, "code": c, "name": n, "score": sc, "band": bd,
+                       "where": wh}
+                      for sc, s, c, n, bd, wh in matcher.find(e["name"])])
 
     entries = sorted(items.values(), key=lambda e: (-len(e["rows"]), e["name"]))
     devices = [e for e in entries if e["kind"] == "виріб"]
