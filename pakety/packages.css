@@ -172,6 +172,21 @@
   white-space: nowrap;
 }
 .requirement-text { min-width: 0; }
+/* Назва посади у вимозі веде на кваліфікаційну характеристику ДКХП-78.
+   Підкреслення пунктиром, а не суцільне: це виноска в довідник, а не
+   перехід на інший документ, і читати вимогу воно не заважає. */
+.posada-link {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px dashed var(--accent);
+  transition: color .12s, background .12s;
+}
+.posada-link:hover,
+.posada-link:focus-visible {
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+  border-bottom-color: var(--accent-dark);
+}
 .requirement-item.level-1 { margin-left: 22px; }
 .requirement-item.level-2 { margin-left: 44px; }
 .requirement-item.level-3,

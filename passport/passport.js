@@ -90,7 +90,7 @@ async function init() {
       decDocsRes,
       decLinksRes,
       docsRes,
-      resolutionRes
+      resolutionRes,
     ] = await Promise.all([
       fetch("../pakety/data/packages_2026.json").then(r => r.json()),
       // Полегшена версія договорів (4.5 МБ замість 19); якщо її немає — повна
@@ -104,7 +104,11 @@ async function init() {
       fetch("../data/documents_index.json")
         .then(r => { if (!r.ok) throw new Error("no index"); return r.json(); })
         .catch(() => fetch("../data/documents.json").then(r => r.json())),
-      fetch("../postanova/data/resolution_1808.json").then(r => r.json()).catch(() => null)
+      fetch("../postanova/data/resolution_1808.json").then(r => r.json()).catch(() => null),
+      // Карта посад для лінкування вимог до спеціалістів. Вантажимо разом з
+      // рештою, щоб посилання були вже на першому малюванні вкладки «Вимоги»;
+      // load() не кидає — без карти сторінка просто покаже чистий текст.
+      window.SpecLinks ? window.SpecLinks.load() : Promise.resolve(null)
     ]);
 
     // Populate State
@@ -597,13 +601,21 @@ function renderRequirements() {
         const listDiv = document.createElement("div");
         listDiv.className = "spec-items-list";
 
+        // У блоці «Спеціалісти» назви посад ведуть на кваліфікаційну
+        // характеристику ДКХП-78 (координати дає spec-links.js).
+        const staffLinks = section.key === "specialists" && window.SpecLinks
+          && window.SpecLinks.has(pkg.number);
+
         section.items.forEach(item => {
           const itemDiv = document.createElement("div");
           const level = Math.min(item.level || 0, 3);
           itemDiv.className = `spec-item level-${level}`;
 
           const marker = item.marker ? `<span class="spec-item-marker">${escapeHtml(item.marker)}</span>` : "";
-          itemDiv.innerHTML = `${marker}<span>${escapeHtml(item.text)}</span>`;
+          const body = staffLinks
+            ? window.SpecLinks.render(item.text, pkg.number, escapeHtml)
+            : escapeHtml(item.text);
+          itemDiv.innerHTML = `${marker}<span>${body}</span>`;
           listDiv.appendChild(itemDiv);
         });
 

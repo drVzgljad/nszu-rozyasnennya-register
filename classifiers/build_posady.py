@@ -405,10 +405,11 @@ MARKER = re.compile(r"^\s*(?:\d+\.|[a-zа-я]\.)\s*", re.I)
 def parse_packages(path):
     if not path.exists():
         log("! packages_2026.json не знайдено — блок пакетів пропущено")
-        return {}, []
+        return {}, [], []
     d = json.loads(path.read_text(encoding="utf-8"))
     hits = defaultdict(list)
     raw = []
+    heads = []
     for pkg in d.get("packages", []):
         for unit in pkg.get("units", []):
             for sec in unit.get("sections", []):
@@ -430,7 +431,13 @@ def parse_packages(path):
                         continue
                     name, cond = m
                     raw.append(name)
-                    for part in split_names(name):
+                    parts = split_names(name)
+                    # Голова вимоги — дослівний шматок тексту пункту до тире.
+                    # Її віддаємо на фронт як якір: сторінка шукає її через
+                    # indexOf і лінкує назви ЛИШЕ всередині неї, тож парсер
+                    # вимоги не доводиться писати вдруге на JS.
+                    heads.append({"pkg": pkg.get("number"), "h": name, "p": parts})
+                    for part in parts:
                         hits[canon(part)].append({
                             "pkg": pkg.get("number"),
                             "title": pkg.get("title"),
@@ -440,7 +447,7 @@ def parse_packages(path):
                             "critical": "критичн" in (scope + " " + cond).lower(),
                         })
     log(f"Пакети: {len(raw)} згадок спеціалістів, {len(hits)} унікальних посад")
-    return hits, raw
+    return hits, raw, heads
 
 
 def split_requirement(body):
@@ -484,6 +491,58 @@ def split_names(name):
     return out or [name]
 
 
+def build_pkg_links(heads, id_of_key, name_of_id):
+    """Карта для лінкування назв посад просто в тексті вимоги пакета.
+
+    Фронт не має права розбирати вимогу вдруге — це другий парсер того самого,
+    і він неминуче розійдеться з цим. Тому віддаємо готові координати:
+    голову вимоги дослівно (сторінка знаходить її в тексті пункту через
+    indexOf) і зсуви назв УСЕРЕДИНІ голови. Так посилання не потрапить у
+    хвіст умови, де та сама посада згадана у знахідному відмінку.
+    """
+    out, used, dropped = defaultdict(list), {}, Counter()
+    for h in heads:
+        head, spans, cursor = h["h"], [], 0
+        for part in h["p"]:
+            pid = id_of_key.get(canon(part))
+            if pid is None:
+                continue
+            off = head.find(part, cursor)
+            if off < 0:
+                # split_names зрізає хвостовий уточнювач у дужках, тож частина
+                # завжди має лишатися дослівним шматком голови. Якщо ні —
+                # мовчки не лінкуємо, а рахуємо: це сигнал, що правило змінилося.
+                dropped[part] += 1
+                continue
+            spans.append([off, len(part), pid])
+            used[pid] = name_of_id.get(pid, "")
+            cursor = off + len(part)
+        if spans:
+            out[h["pkg"]].append({"h": head, "p": spans})
+
+    # Той самий рядок вимоги трапляється у пакеті двічі (різні блоки послуг) —
+    # координати однакові, тримати обидві копії немає сенсу.
+    links = {}
+    for pkg, rows in out.items():
+        seen, uniq = set(), []
+        for r in rows:
+            if r["h"] in seen:
+                continue
+            seen.add(r["h"])
+            uniq.append(r)
+        links[str(pkg)] = uniq
+
+    if dropped:
+        log(f"! назв поза головою вимоги: {sum(dropped.values())} "
+            f"({', '.join(list(dropped)[:3])})")
+    log(f"Лінки в пакетах: {sum(len(v) for v in links.values())} вимог "
+        f"у {len(links)} пакетах, {len(used)} посад")
+    return {"pkgs": links, "names": used,
+            "counts": {"packages": len(links), "positions": len(used),
+                       "requirements": sum(len(v) for v in links.values()),
+                       "dropped": sum(dropped.values())}}
+
+
 # ──────────────────────────────── зіставлення ────────────────────────────────
 
 def build():
@@ -493,7 +552,7 @@ def build():
     entries, doc = parse_dkhp(PDF_DKHP)
     idx_names = parse_index(doc)
     codes = parse_codes(PDF_CODES)
-    pkg_hits, pkg_raw = parse_packages(PKG_JSON)
+    pkg_hits, pkg_raw, pkg_heads = parse_packages(PKG_JSON)
 
     # ── ідентифікатори та пошукові ключі
     seen = Counter()
@@ -556,10 +615,12 @@ def build():
     # ── кадрові вимоги пакетів → характеристика
     pkg_of = defaultdict(list)
     pkg_unmatched = Counter()
+    id_of_key = {}
     for k, rows in pkg_hits.items():
         target, _ = resolve(rows[0]["name"])
         if target is not None:
             pkg_of[target["id"]].extend(rows)
+            id_of_key[k] = target["id"]
         else:
             pkg_unmatched[rows[0]["name"]] += len(rows)
 
@@ -571,6 +632,8 @@ def build():
         rows = pkg_of.get(e["id"], [])
         e["pkgs"] = sorted({r["pkg"] for r in rows}, key=pkg_sort)
         e["pkg_rows"] = sorted(rows, key=lambda r: pkg_sort(r["pkg"]))
+
+    pkg_links = build_pkg_links(pkg_heads, id_of_key, by_key_name)
 
     # ── видача
     meta = {
@@ -646,6 +709,7 @@ def build():
     write(DATA / "posady_index.json", index)
     write(DATA / "posady_cards.json", cards)
     write(DATA / "posady_codes.json", codes)
+    write(DATA / "posady_pkg.json", {"generated": meta["generated"], **pkg_links})
 
     log(f"Готово: {len(entries)} характеристик, {len(codes)} кодів "
         f"({meta['counts']['codes_matched']} зіставлено), "

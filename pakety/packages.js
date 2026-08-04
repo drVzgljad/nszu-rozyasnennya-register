@@ -48,13 +48,27 @@ function itemSearchText(item) {
   return `${itemMarker(item)} ${itemText(item)}`.trim();
 }
 
-function renderRequirementItem(item, query) {
+function renderRequirementItem(item, query, linkPkg) {
   const marker = itemMarker(item);
   const level = Math.min(itemLevel(item), 5);
+  const text = itemText(item);
+  // Підсвітку пошуку віддаємо як форматер: інакше <mark> ліг би всередину
+  // href і посилання на паспорт посади розсипалося б.
+  const body = linkPkg
+    ? window.SpecLinks.render(text, linkPkg, (chunk) => highlight(chunk, query))
+    : highlight(text, query);
   return `<div class="requirement-item level-${level}">
     <span class="requirement-marker">${escapeHtml(marker)}</span>
-    <span class="requirement-text">${highlight(itemText(item), query)}</span>
+    <span class="requirement-text">${body}</span>
   </div>`;
+}
+
+// Номер пакета для лінкування назв посад — або "" , якщо лінкувати нічого.
+// Пілоти нумеруються власним рядом НСЗУ, який перетинається з нумерацією
+// постанови 1808, тож карту вимог до них не прикладаємо.
+function staffLinkPkg(pkg, section) {
+  if (!pkg || pkg.pilot || !section || section.key !== "specialists") return "";
+  return window.SpecLinks && window.SpecLinks.has(pkg.number) ? pkg.number : "";
 }
 
 function allSections(pkg) {
@@ -292,8 +306,9 @@ function renderReader() {
   container.classList.remove("reader-empty");
   const query = queryText();
   const context = pkg.units.length > 1 ? packageState.selectedUnit.label : `Пакет ${pkg.number}`;
+  const linkPkg = staffLinkPkg(pkg, section);
   const items = section.items.length
-    ? `<div class="requirement-list">${section.items.map((item) => renderRequirementItem(item, query)).join("")}</div>`
+    ? `<div class="requirement-list">${section.items.map((item) => renderRequirementItem(item, query, linkPkg)).join("")}</div>`
     : "<p>Окремі пункти у цьому розділі не виділено.</p>";
   // Пілотні проєкти живуть поза постановою 1808: у них немає ні DOCX,
   // ні норм оплати 1808, ні прив'язки до ДЕЦ — показуємо їхню нормативку
@@ -488,6 +503,9 @@ async function initPackages() {
       renderReader();
     })
     .catch((error) => console.warn("Не вдалося підвантажити норми постанови.", error));
+  // Карта посад тягнеться окремо й може приїхати після першого малювання —
+  // тоді просто перемальовуємо читалку вже з посиланнями.
+  if (window.SpecLinks) window.SpecLinks.load(() => renderReader());
 }
 
 initPackages().catch(() => {
