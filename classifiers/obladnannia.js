@@ -50,7 +50,7 @@
     [["search", "#eqSearch"], ["count", "#eqCount"], ["clear", "#eqClear"],
      ["results", "#eqResults"], ["reader", "#eqReader"], ["stats", "#eqStats"],
      ["selPkg", "#selPkg"], ["selBand", "#selBand"], ["onlyCrit", "#onlyCrit"],
-     ["onlyMany", "#onlyMany"], ["issues", "#eqIssues"], ["issuesBody", "#eqIssuesBody"],
+     ["onlyMany", "#onlyMany"], ["onlyEsoz", "#onlyEsoz"], ["issues", "#eqIssues"], ["issuesBody", "#eqIssuesBody"],
      ["layout", ".nk-layout"]].forEach(([k, sel]) => (el[k] = $(sel)));
 
     readerEmptyHTML = el.reader.innerHTML;
@@ -108,6 +108,7 @@
       [nf(c.entries), "унікальних вимог"],
       [nf(c.packages), "пакетів ПМГ-2026"],
       [nf(c.exact + c.likely + c.broader), "вимог із кандидатом у довіднику"],
+      [nf(c.esoz_items), "вимог, що реєструються в ЕСОЗ"],
     ].map(([n, l]) => `<div class="stat"><strong>${n}</strong><span>${esc(l)}</span></div>`).join("");
   }
 
@@ -143,11 +144,12 @@
     el.selBand.addEventListener("change", refilter);
     el.onlyCrit.addEventListener("change", refilter);
     el.onlyMany.addEventListener("change", refilter);
+    el.onlyEsoz.addEventListener("change", refilter);
     el.clear.addEventListener("click", () => {
       el.search.value = "";
       el.selPkg.value = "";
       el.selBand.value = "";
-      el.onlyCrit.checked = el.onlyMany.checked = false;
+      el.onlyCrit.checked = el.onlyMany.checked = el.onlyEsoz.checked = false;
       refilter();
     });
     $$(".mobile-tab").forEach((b) =>
@@ -165,6 +167,7 @@
       if (band && (e.band || "—") !== band) return false;
       if (el.onlyCrit.checked && !e.critical) return false;
       if (el.onlyMany.checked && e.pkgs.length < 5) return false;
+      if (el.onlyEsoz.checked && !e.esoz) return false;
       return true;
     });
     showResults(list);
@@ -188,6 +191,7 @@
       `${e.hits} ${plural(e.hits, "згадка", "згадки", "згадок")}`,
     ];
     if (e.kind === "умова") meta.push("умова, не виріб");
+    if (e.esoz) meta.push("реєструється в ЕСОЗ");
     return `
       <button class="rrow" type="button" data-id="${escAttr(e.id)}">
         <span class="rmain">
@@ -265,6 +269,7 @@
       </div>
       <h2 class="reader-name">${esc(card.name)}</h2>
       ${aliasHTML(card)}
+      ${esozHTML(card)}
       ${refsHTML(card)}
       ${pkgHTML(card)}`;
   }
@@ -276,6 +281,40 @@
       card.aliases.map((a) => `<li>${esc(a)}</li>`).join("")}</ul>
       <p class="eq-note">Специфікації різних пакетів пишуть той самий виріб по-різному; тут вони
          зведені в одну позицію.</p></details>`;
+  }
+
+  /** Обов'язок реєстрації в Реєстрі СГ в ЕСОЗ (наказ МОЗ № 697).
+   *
+   * Це не підказка й не кандидат, як усе решта в картці, а норма: якщо виріб
+   * є в Переліку — заклад ВНОСИТЬ його до Реєстру, назву й код типу вказує
+   * за Переліком. Тому блок стоїть вище за кандидатів із довідників.
+   */
+  function esozHTML(card) {
+    const list = card.esoz || [];
+    if (!list.length) return "";
+    const rows = list.map((t) => `
+      <a class="esoz-type" href="nk031.html?code=${encodeURIComponent(t.code)}${
+        backTail(card.id, card.name)}">
+        <span class="esoz-type-name">${esc(t.name)}</span>
+        <span class="esoz-type-foot"><code>${esc(t.code)}</code>
+          ${t.nk031 ? `<span class="esoz-type-nk">НК 031: ${esc(t.nk031)}</span>` : ""}</span>
+      </a>`).join("");
+    const many = list.length > 1;
+    return `<section class="reader-block esoz-block">
+      <h3>Реєстрація в ЕСОЗ <span class="muted">— обов'язкова за наказом МОЗ № 697</span></h3>
+      <p class="eq-note eq-duty">Цей виріб є в Переліку медичного обладнання, затвердженому
+         наказом МОЗ від 22.04.2025 № 697. Заклад, який його має, <b>вносить його до Реєстру
+         суб'єктів господарювання</b> в електронній системі охорони здоров'я — назву та код
+         типу вказує за Переліком.</p>
+      <div class="esoz-types">${rows}</div>
+      ${many ? `<p class="eq-note">Перелік розписує цей виріб на ${list.length}
+         ${plural(list.length, "тип", "типи", "типів")} за технічними параметрами —
+         конкретний обирає заклад при реєстрації.</p>` : ""}
+      <details class="eq-aliases"><summary>Що ще вносять у запис про обладнання</summary>
+        <ul>${(META.esoz_attributes || []).map((a) => `<li>${esc(a)}</li>`).join("")}</ul>
+        <p class="eq-note">Зміни до Порядку ведення Реєстру, затвердженого наказом МОЗ
+           від 18.10.2021 № 2243.</p></details>
+      </section>`;
   }
 
   function refsHTML(card) {

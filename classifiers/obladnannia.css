@@ -95,3 +95,28 @@
 .eq-unmatched b { font-weight: 600; }
 
 /* Темна тема працює на токенах зі styles.css — власних правил не треба. */
+
+/* ── Реєстрація в ЕСОЗ (наказ МОЗ № 697) ───────────────────────
+   Це єдиний блок картки, що каже про ОБОВ'ЯЗОК, а не про схожість
+   назв. Тому й вигляд інший: тепла заливка замість нейтральної. */
+.esoz-block h3 { color: var(--teal-dark); }
+.eq-duty {
+  color: var(--ink); background: var(--warm); border-radius: 11px;
+  padding: 9px 12px; margin: 0 0 10px;
+}
+.esoz-types { display: flex; flex-direction: column; gap: 8px; }
+.esoz-type {
+  display: grid; gap: 3px; padding: 9px 11px;
+  border: 1px solid var(--line); border-left: 3px solid var(--teal);
+  border-radius: 11px; background: var(--surface);
+  text-decoration: none; color: var(--ink);
+  transition: background .12s, border-color .12s;
+}
+.esoz-type:hover { background: var(--warm); border-color: var(--teal); }
+.esoz-type-name { font-size: .92rem; line-height: 1.4; font-weight: 600; }
+.esoz-type-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.esoz-type-foot code {
+  font-family: ui-monospace, monospace; font-size: .78rem;
+  background: var(--warm); border-radius: 6px; padding: 1px 7px; color: var(--teal-dark);
+}
+.esoz-type-nk { font-size: .74rem; color: var(--muted); }

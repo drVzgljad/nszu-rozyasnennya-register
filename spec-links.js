@@ -111,6 +111,29 @@
     return out;
   }
 
+  /** Мітка обов'язку зареєструвати виріб у Реєстрі СГ в ЕСОЗ.
+   *
+   * Наказ МОЗ від 22.04.2025 № 697 затвердив Перелік медичного обладнання:
+   * що з нього ЗОЗ має, те він вносить до Реєстру — назву й код типу СУВОРО
+   * за Переліком. Тому код стоїть просто у тексті вимоги: експерт бачить не
+   * лише «пакет вимагає цей апарат», а й «під яким кодом він має бути в ЕСОЗ».
+   *
+   * Одна вимога може вести на кілька кодів: «комп'ютерний томограф» у Переліку
+   * розписаний на чотири класи за кількістю зрізів, і який саме — вирішує ЗОЗ
+   * при реєстрації. Тоді показуємо кількість, а коди йдуть у підказку.
+   */
+  function esozBadge(k, id) {
+    var codes = k.map.esoz && k.map.esoz[id];
+    if (!codes || !codes.length) return "";
+    var one = codes.length === 1;
+    var tip = "Підлягає реєстрації в Реєстрі суб'єктів господарювання (ЕСОЗ) — "
+      + "наказ МОЗ від 22.04.2025 № 697. " + (one
+        ? "Код типу: " + codes[0]
+        : "Тип уточнює заклад при реєстрації, коди: " + codes.join(", "));
+    return '<span class="esoz-code" title="' + escapeHtml(tip) + '">ЕСОЗ&nbsp;' +
+      escapeHtml(one ? codes[0] : codes.length + " кодів") + "</span>";
+  }
+
   // Хвіст ?back=… — на сторінці довідника з'явиться кнопка повернення сюди
   // (домовленість порталу, читає auth-v2.js).
   function back(pkgNumber) {
@@ -140,7 +163,7 @@
       html += '<a class="' + k.cls + '" href="' + escapeHtml(k.pageUrl) + "?id=" +
         encodeURIComponent(sp.id) + back(pkgNumber) + '" title="' +
         escapeHtml(name ? k.hint + name : k.fallback) + '">' +
-        format(text.slice(sp.s, sp.e)) + "</a>";
+        format(text.slice(sp.s, sp.e)) + "</a>" + esozBadge(k, sp.id);
       pos = sp.e;
     }
     return html + format(text.slice(pos));

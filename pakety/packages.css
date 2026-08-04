@@ -314,3 +314,21 @@ mark { padding: 0 2px; border-radius: 3px; color: inherit; background: #ffe69a; 
   color: #8a6207;
 }
 :root.dark-theme .pilot-flag { color: #e3b34c; }
+
+/* Код, під яким виріб реєструється в Реєстрі СГ в ЕСОЗ (наказ МОЗ № 697).
+   Стоїть просто у тексті вимоги, бо саме там про нього згадують: пакет
+   вимагає апарат — заклад мусить мати його в Реєстрі під цим кодом. */
+.esoz-code {
+  display: inline-block;
+  margin-left: 5px;
+  padding: 0 6px;
+  border-radius: 5px;
+  background: var(--warm, #eef8f1);
+  color: var(--teal-dark, #3a8462);
+  font-size: .74em;
+  font-weight: 700;
+  letter-spacing: .01em;
+  white-space: nowrap;
+  vertical-align: 1px;
+  cursor: help;
+}

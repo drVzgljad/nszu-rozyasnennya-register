@@ -101,6 +101,10 @@ def slug(s):
 # ─────────────────────── вимоги пакетів до обладнання ────────────────────────
 
 SPLIT = re.compile(r"\s*,?\s+(?:та\s*/\s*або|і\s*/\s*або|та\s+або)\s+", re.I)
+# Закінчення, на яких в українській стоять прикметники: «змішана»,
+# «централізована», «портативний». Іменник-виріб закінчується приголосним
+# («відеоцистоскоп», «тонометр») або -ор/-ер.
+ADJ = re.compile(r"(ий|ій|а|я|е|є|ої|ий|их|ими|ою|ому|ому)$", re.I)
 
 
 def split_names(name, devices=frozenset()):
@@ -114,8 +118,12 @@ def split_names(name, devices=frozenset()):
     Друга пастка того ж «та/або»: «централізована та/або змішана, та/або
     децентралізована система постачання кисню» — тут сполучник перелічує
     ПРИКМЕТНИКИ до спільного іменника, і розріз народжує вимогу «змішана».
-    Розрізняємо за довідниками: однослівна частина лишається вимогою, лише
-    якщо таке слово взагалі є назвою виробу («тонометр» — є, «змішана» — ні).
+
+    Розрізняємо так: однослівна частина ламає розріз, лише якщо вона схожа на
+    прикметник (закінчення -а/-е/-ий/-ій/-ої…) І її немає в довідниках. Раніше
+    вето давало будь-яке незнайоме однослівне слово — і перелік із п'яти
+    ендоскопів не розрізався через один «відеоцистоскоп», якого немає в
+    жодному довіднику. Іменник на приголосний — це виріб, навіть незнайомий.
     """
     cuts, depth = [], 0
     for i, ch in enumerate(name):
@@ -141,7 +149,7 @@ def split_names(name, devices=frozenset()):
     if len(out) > 1:
         for p in out:
             tt = toks(p)
-            if len(tt) == 1 and tt[0] not in devices:
+            if len(tt) == 1 and tt[0] not in devices and ADJ.search(p.strip()):
                 return [name.strip(" .;,")]
     return out or [name.strip(" .;,")]
 
@@ -191,6 +199,31 @@ def parse_packages(path, devices=frozenset()):
 
 
 # ──────────────────────────── довідники виробів ──────────────────────────────
+
+def load_nakaz697():
+    """Перелік обладнання, що ЗОЗ вносить до Реєстру СГ в ЕСОЗ (наказ 697).
+
+    Це єдиний НОРМАТИВНИЙ місток «назва договірною мовою ↔ код НК 031»:
+    специфікації пакетів говорять тією самою мовою, що й Перелік, а НК 031 —
+    своєю. Тому тут не бали й ваги, а звичайне зіставлення назв.
+    """
+    p = DATA / "nakaz697.json"
+    if not p.exists():
+        log("! nakaz697.json немає — спершу запусти build_nakaz697.py")
+        return {"types": []}
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+# Хвостові параметри типу в дужках: «Комп'ютерний томограф (16 або більше
+# зрізів, але менше, ніж 64 зрізи)». Вимога пакета таких подробиць не має —
+# вона каже просто «комп'ютерний томограф», і це нормально: клас апарата ЗОЗ
+# уточнює вже при реєстрації. Для зіставлення параметри зрізаємо.
+PARAMS = re.compile(r"\s*[—-]?\s*\([^)]*\)\s*$|\s+[—–-]\s+[^—–-]*$")
+
+
+def esoz_core(name):
+    return set(toks(PARAMS.sub("", name)))
+
 
 def tabel_sections():
     """(наказ, id розділу) → назва підрозділу, для якого писаний табель.
@@ -333,9 +366,15 @@ def band(score):
 
 def build():
     refs = load_refs()
+    n697 = load_nakaz697()
+    log(f"Наказ 697: {len(n697['types'])} типів обладнання для Реєстру СГ")
     # Однослівні назви довідників — словник «це справді виріб» для розрізання
-    # вимог по «та/або» (див. split_names).
+    # вимог по «та/або» (див. split_names). Перелік наказу 697 дає сюди те,
+    # чого в НК 031 немає в однослівній формі: «відеогістероскоп»,
+    # «відеоцистоскоп» — без них перелік із п'яти ендоскопів не розрізався.
     device_words = {toks(nm)[0] for _, _, nm, _ in refs if len(toks(nm)) == 1}
+    device_words |= {toks(t["name"])[0] for t in n697["types"]
+                     if len(toks(t["name"])) == 1}
     rows, heads = parse_packages(PKG_JSON, device_words)
     matcher = Matcher(refs, device_words)
 
@@ -356,6 +395,22 @@ def build():
                      [{"src": s, "code": c, "name": n, "score": sc, "band": bd,
                        "where": wh}
                       for sc, s, c, n, bd, wh in matcher.find(e["name"])])
+
+    # ── обов'язок реєстрації в ЕСОЗ (наказ 697)
+    #
+    # Тут навмисно НЕ обчислені бали: це твердження про обов'язок ЗОЗ, а не
+    # підказка. Пов'язуємо лише тоді, коли всі значущі слова типу з Переліку
+    # є у вимозі. Одна вимога може вести на кілька типів — «комп'ютерний
+    # томограф» у Переліку розписаний на чотири класи за кількістю зрізів,
+    # і який саме, вирішує ЗОЗ при реєстрації.
+    types = [(t, esoz_core(t["name"])) for t in n697["types"]]
+    for e in items.values():
+        if e["kind"] != "виріб":
+            e["esoz"] = []
+            continue
+        et = set(toks(e["name"]))
+        e["esoz"] = [{"code": t["code"], "name": t["name"], "nk031": t["nk031"]}
+                     for t, core in types if core and core <= et]
 
     entries = sorted(items.values(), key=lambda e: (-len(e["rows"]), e["name"]))
     devices = [e for e in entries if e["kind"] == "виріб"]
@@ -420,7 +475,12 @@ def build():
             "likely": tally["ймовірний"],
             "broader": tally["ширший"],
             "unmatched": tally["—"],
+            "esoz_items": sum(1 for e in devices if e["esoz"]),
+            "esoz_types": len({t["code"] for e in devices for t in e["esoz"]}),
+            "esoz_total": len(n697["types"]),
         },
+        "nakaz697": n697.get("order", {}),
+        "esoz_attributes": n697.get("attributes", []),
         "notes": [
             "Блок обладнання пакета 42 містить таблицю «Медичний кошик» — перелік "
             "лікарських засобів. Її клітинки не є вимогами до обладнання і в реєстр "
@@ -444,13 +504,14 @@ def build():
 
     index = [{"id": e["id"], "name": e["name"], "kind": e["kind"],
               "hits": len(e["rows"]), "pkgs": e["pkgs"], "critical": e["critical"],
-              "refs": len(e["refs"]),
+              "refs": len(e["refs"]), "esoz": len(e["esoz"]),
               "band": e["refs"][0]["band"] if e["refs"] else ""} for e in entries]
 
     cards = {e["id"]: {
         "id": e["id"], "name": e["name"], "kind": e["kind"],
         "aliases": [n for n, _ in e["names"].most_common() if n != e["name"]],
         "critical": e["critical"], "pkgs": e["pkgs"], "refs": e["refs"],
+        "esoz": e["esoz"],
         "rows": [{"pkg": r["pkg"], "title": r["title"], "scope": r["scope"],
                   "qty": r["qty"], "critical": r["critical"], "name": r["name"]}
                  for r in e["rows"]],
@@ -459,9 +520,14 @@ def build():
     write(DATA / "equipment_meta.json", meta)
     write(DATA / "equipment_index.json", index)
     write(DATA / "equipment_cards.json", cards)
+    # Коди ЕСОЗ їдуть окремою мапою, а не в кожен зсув: та сама вимога
+    # трапляється в десятках пакетів, і дублювати коди в кожному спані —
+    # роздути файл утричі задарма.
     write(DATA / "equipment_pkg.json",
           {"generated": meta["generated"], "pkgs": pkg_links,
-           "names": {e["id"]: e["name"] for e in entries}})
+           "names": {e["id"]: e["name"] for e in entries},
+           "esoz": {e["id"]: [t["code"] for t in e["esoz"]]
+                    for e in entries if e["esoz"]}})
     log(f"Готово: {len(entries)} вимог, {len(exact)} точних збігів із довідниками")
 
 
