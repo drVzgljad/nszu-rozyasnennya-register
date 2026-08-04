@@ -1504,34 +1504,92 @@ function playNewsAlertSound() {
   }
 }
 
-/* ── Нагадування про зустрічі (планувальник, поки портал відкрито) ── */
+/* ── Нагадування про зустрічі (планувальник, поки портал відкрито) ──
+ *
+ * Такт і запит до бази — РІЗНІ речі, і плутати їх дорого. Раніше кожні
+ * 45 секунд ішов запит у planner_events — з кожної відкритої вкладки, у
+ * кожного залогіненого, цілий день, заради події, якої зазвичай сьогодні
+ * немає взагалі. Це 80 запитів на годину на вкладку.
+ *
+ * Тепер розклад на сьогодні береться раз і лежить у пам'яті, а такт лише
+ * звіряє його з годинником — без мережі. База перепитується, коли настала
+ * нова доба, коли кеш застарів (розклад могли поповнити в планувальнику)
+ * або коли людина повернулася на вкладку.
+ *
+ * ⚠️ Такт при цьому НЕ зупиняється на схованій вкладці. Саме сховану
+ * вкладку нагадування й обслуговує: fireMeetingReminder показує системне
+ * сповіщення саме тоді, коли document.hidden. Зупинити такт означало б
+ * вимкнути функцію рівно там, де вона потрібна.
+ */
 let meetingReminderTimer = null;
+let meetingVisibilityBound = false;
+let meetingCheckInFlight = false;
+let meetingCache = { day: '', events: [], at: 0 };
+
+const MEET_TICK_MS = 30000;             // локальна звірка з годинником
+const MEET_REFRESH_MS = 10 * 60 * 1000; // як часто перепитувати базу
+
+function meetingDayKey(d) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
 
 function startMeetingReminders() {
   if (!user || role === 'guest') return;
   if (meetingReminderTimer) { clearInterval(meetingReminderTimer); meetingReminderTimer = null; }
+  meetingCache = { day: '', events: [], at: 0 };
   checkMeetingReminders();
-  meetingReminderTimer = setInterval(checkMeetingReminders, 45000); // кожні 45 с
+  meetingReminderTimer = setInterval(checkMeetingReminders, MEET_TICK_MS);
+  if (!meetingVisibilityBound) {
+    document.addEventListener('visibilitychange', onMeetingVisibility);
+    meetingVisibilityBound = true;
+  }
+}
+
+function onMeetingVisibility() {
+  // Повернулися на вкладку — поки її не дивилися, у планувальнику могли
+  // з'явитися нові події. Скидаємо вік кешу, щоб такт їх підтягнув.
+  if (document.hidden) return;
+  meetingCache.at = 0;
+  checkMeetingReminders();
+}
+
+async function loadTodayMeetings(dayKey) {
+  const { data, error } = await sb
+    .from('planner_events')
+    .select('id, title, start_time, meeting_link, status')
+    .eq('user_id', user.id)
+    .eq('event_date', dayKey)
+    .eq('status', 'planned')
+    .not('start_time', 'is', null);
+  return error ? null : (data || []);
 }
 
 async function checkMeetingReminders() {
   if (!user || role === 'guest') return;
   if (localStorage.getItem('news_notifications_enabled') === 'false') return;
+  if (meetingCheckInFlight) return;
 
   const now = new Date();
-  const pad = n => String(n).padStart(2, '0');
-  const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const todayStr = meetingDayKey(now);
 
-  const { data, error } = await sb
-    .from('planner_events')
-    .select('id, title, start_time, meeting_link, status')
-    .eq('user_id', user.id)
-    .eq('event_date', todayStr)
-    .eq('status', 'planned')
-    .not('start_time', 'is', null);
-  if (error || !data) return;
+  // Нова доба — перепитуємо завжди, навіть на схованій вкладці: це раз на
+  // день. Застарілий кеш оновлюємо лише коли вкладку видно.
+  const stale = meetingCache.day !== todayStr ||
+    (!document.hidden && Date.now() - meetingCache.at > MEET_REFRESH_MS);
 
-  data.forEach(ev => {
+  if (stale) {
+    meetingCheckInFlight = true;
+    try {
+      const events = await loadTodayMeetings(todayStr);
+      // Мережа впала — працюємо далі на тому, що вже маємо, а не мовчимо.
+      if (events !== null) meetingCache = { day: todayStr, events, at: Date.now() };
+    } finally {
+      meetingCheckInFlight = false;
+    }
+  }
+
+  meetingCache.events.forEach(ev => {
     const parts = String(ev.start_time).split(':');
     const start = new Date(now);
     start.setHours(Number(parts[0]) || 0, Number(parts[1]) || 0, 0, 0);
@@ -2291,7 +2349,7 @@ if ('serviceWorker' in navigator &&
   // неї браузер до десяти хвилин не помічає, що воркер змінився, і продовжує
   // роздавати старі файли з кешу. Змінений URL змушує перевірити одразу.
   // ПРИ ЗМІНІ sw.js ПІДНІМАТИ ЦЮ ВЕРСІЮ РАЗОМ З CACHE усередині воркера.
-  navigator.serviceWorker.register('/sw.js?v=13').catch(() => {});
+  navigator.serviceWorker.register('/sw.js?v=14').catch(() => {});
 
   // Перезавантаження на controllerchange прибрано 30.07.2026 разом зі
   // skipWaiting() у воркері (див. коментар у sw.js). Новий воркер більше не
