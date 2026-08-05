@@ -1,3 +1,24 @@
+/* ── Аліаси ролей ────────────────────────────────────────────────
+   Цей файл підключений на КОЖНІЙ сторінці порталу й сам вживає --p-*
+   (шапка, дропдауни, темна тема). Але оголошені --p-* лише в portal.css,
+   а він є тільки на 12 сторінках із 44 — на решті (вони стоять на
+   styles.css) --p-* були б невизначені й падали б у світлий fallback.
+   Саме так поламалася темна тема на «Укладених договорах» 05.08.2026.
+   Тому аліаси живуть тут: значення беруться з ролей активної теми. */
+:root {
+  --p-ink:        var(--ink);
+  --p-muted:      var(--muted);
+  --p-faint:      var(--faint, var(--muted));
+  --p-line:       var(--line);
+  --p-soft:       var(--soft);
+  --p-soft-hover: var(--soft-hover, var(--soft));
+  --p-page:       var(--page, var(--soft));
+  --p-surface:    var(--surface);
+  --p-shadow:     var(--shadow);
+  --p-shadow-sm:  var(--shadow-sm, var(--shadow));
+  --p-shadow-lg:  var(--shadow-lg, var(--shadow));
+}
+
 /* ── Auth nav button ─────────────────────────────── */
 .auth-nav-btn {
   margin-left: 8px;
@@ -1197,6 +1218,8 @@
   --soft: #0f172a;
   --soft-hover: #1e293b;
   --page: #0f172a;
+  --shadow-sm: 0 8px 22px rgba(0,0,0,.35);
+  --shadow-lg: 0 28px 70px rgba(0,0,0,.5);
   --accent-dark: #38bdf8;
   --accent-soft: #1e293b;
   --teal: #4ade80;

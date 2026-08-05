@@ -54,9 +54,13 @@
   --cta-grad:    linear-gradient(120deg, var(--b-500), var(--g-500));
   --emblem-grad: linear-gradient(135deg, var(--b-500), var(--g-500));
 
-  --p-shadow:    0 18px 44px rgba(38,78,112,.10);
-  --p-shadow-sm: 0 8px 22px rgba(38,78,112,.08);
-  --p-shadow-lg: 0 28px 70px rgba(33,70,102,.13);
+  --shadow:      0 18px 44px rgba(38,78,112,.10);
+  --shadow-sm:   0 8px 22px rgba(38,78,112,.08);
+  --shadow-lg:   0 28px 70px rgba(33,70,102,.13);
+
+  --p-shadow:    var(--shadow);
+  --p-shadow-sm: var(--shadow-sm);
+  --p-shadow-lg: var(--shadow-lg);
 
   --pr-pill:  999px;
   --pr-chip:  12px;
