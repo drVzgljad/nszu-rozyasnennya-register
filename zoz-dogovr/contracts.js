@@ -568,10 +568,6 @@ function selectContract(id) {
         <span>Термін дії</span>
         <strong>з ${escapeHtml(contract.start_date)} до ${escapeHtml(contract.end_date)}</strong>
       </div>
-      <div class="details-grid-item span-2">
-        <span>Керівник закладу</span>
-        <strong>${escapeHtml(contract.leader_title)} — ${escapeHtml(contract.leader_name)}</strong>
-      </div>
       <div class="details-grid-item">
         <span>Контактний email</span>
         <strong>${contract.email ? `<a href="mailto:${escapeHtml(contract.email)}">${escapeHtml(contract.email)}</a>` : "—"}</strong>
