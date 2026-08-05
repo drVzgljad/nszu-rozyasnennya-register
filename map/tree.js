@@ -26,13 +26,28 @@
           { name: "Пілотні проєкти", icon: "🧪", path: "pilots/index.html", role: "guest" },
           { name: "Постанова № 1808", icon: "📜", path: "postanova/index.html", role: "guest" },
           { name: "Алгоритми (Наказ 377)", icon: "🧮", path: "algorithms/index.html", role: "guest" },
+          { name: "Кодування амбулаторки", icon: "🏥", path: "algorithms/ambulatory.html", role: "guest" },
           { name: "Нормативна база", icon: "⚖️", path: "regulatory/index.html", role: "guest" },
           { name: "ДЕЦ МОЗ", icon: "🏥", path: "dec/index.html", role: "guest" },
           { name: "Договори ЗОЗ", icon: "📑", path: "zoz-dogovr/index.html", role: "guest" },
         ],
       },
       {
-        name: "Робота відділу", icon: "🧭", tone: "g",
+        name: "Довідники та класифікатори", icon: "📚", tone: "g",
+        children: [
+          { name: "Хвороби (НК 025)", icon: "🩺", path: "classifiers/index.html", role: "guest" },
+          { name: "Інтервенції (НК 026)", icon: "🔬", path: "classifiers/nk026.html", role: "guest" },
+          { name: "Лабораторні (LOINC)", icon: "🧪", path: "classifiers/loinc.html", role: "guest" },
+          { name: "Медвироби (НК 024)", icon: "🩹", path: "classifiers/nk024.html", role: "guest" },
+          { name: "Номенклатура (НК 031)", icon: "🧾", path: "classifiers/nk031.html", role: "guest" },
+          { name: "Табелі оснащення", icon: "📋", path: "classifiers/tabel.html", role: "guest" },
+          { name: "Обладнання у вимогах", icon: "🩻", path: "classifiers/obladnannia.html", role: "guest" },
+          { name: "Посади (ДКХП-78)", icon: "👥", path: "classifiers/posady.html", role: "guest" },
+          { name: "Таблиця співставлення", icon: "🔗", path: "mapping/index.html", role: "guest" },
+        ],
+      },
+      {
+        name: "Робота відділу", icon: "🧭", tone: "b",
         children: [
           { name: "Особистий кабінет", icon: "👤", path: "cabinet/index.html", role: "expert" },
           { name: "Планувальник", icon: "🗓️", path: "cabinet/planner.html", role: "expert" },
@@ -43,7 +58,7 @@
         ],
       },
       {
-        name: "Інформація та комунікації", icon: "💬", tone: "b",
+        name: "Інформація та комунікації", icon: "💬", tone: "g",
         children: [
           { name: "Робочий чат", icon: "💬", path: "chat/index.html", role: "expert" },
           { name: "Новини та аналітика", icon: "📰", path: "news/index.html", role: "expert" },
@@ -51,7 +66,7 @@
         ],
       },
       {
-        name: "Взаємодія та експертиза", icon: "🤝", tone: "g",
+        name: "Взаємодія та експертиза", icon: "🤝", tone: "b",
         children: [
           { name: "Запитання ЗОЗ", icon: "❓", path: "zoz-questions/index.html", role: "expert" },
           { name: "Пропозиції до ПМГ-2026", icon: "🗳️", path: "pmg-proposals/index.html", role: "expert" },
@@ -59,7 +74,7 @@
         ],
       },
       {
-        name: "Сервіс і зручності", icon: "🌿", tone: "b",
+        name: "Сервіс і зручності", icon: "🌿", tone: "g",
         children: [
           { name: "Глобальний пошук (Ctrl+K)", icon: "🔍", path: null, role: "guest" },
           { name: "Встановлення застосунку", icon: "📱", path: null, role: "guest" },

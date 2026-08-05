@@ -278,8 +278,10 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Dropdown items */
-.nav-dropdown-menu a {
+/* Dropdown items (обидва коліна меню — див. .nav-submenu нижче;
+   !important тут не з примхи: .top-nav a в portal.css інакше перефарбовує) */
+.nav-dropdown-menu a,
+.nav-submenu a {
   display: flex !important;
   align-items: center;
   justify-content: space-between;
@@ -296,17 +298,124 @@
   border: none !important;
   margin: 0 !important;
 }
-.nav-dropdown-menu a:hover {
+.nav-dropdown-menu a:hover,
+.nav-submenu a:hover {
   background: var(--soft, #f2f8fb) !important;
   color: var(--accent-dark, #2f6b9e) !important;
 }
-.nav-dropdown-menu a.active {
+.nav-dropdown-menu a.active,
+.nav-submenu a.active {
   background: var(--accent-soft, #eef6fc) !important;
   color: var(--accent-dark, #2f6b9e) !important;
 }
 .nav-dropdown-menu .lock-icon {
   font-size: 11px;
   opacity: 0.6;
+}
+
+/* ── Друге коліно меню: гнізда всередині дропдауна ──
+   Вкладка «Довідники» зібрала дев'ять сторінок, і плоский список
+   перестав читатися. Гніздо виглядає як звичайний рядок меню зі
+   стрілкою, а випадайка виїжджає ліворуч — саме меню притиснуте
+   до правого краю шапки, тож вправо їй нікуди. */
+.nav-subgroup {
+  position: relative;
+}
+.nav-subgroup-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink, #1f3347);
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: inherit;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.nav-subgroup:hover > .nav-subgroup-btn,
+.nav-subgroup:focus-within > .nav-subgroup-btn {
+  background: var(--soft, #f2f8fb);
+  color: var(--accent-dark, #2f6b9e);
+}
+.nav-subgroup-btn.active {
+  background: var(--accent-soft, #eef6fc);
+  color: var(--accent-dark, #2f6b9e);
+}
+.nav-subgroup-arrow {
+  font-size: 9px;
+  opacity: 0.55;
+  transition: transform .2s ease, opacity .15s;
+}
+.nav-subgroup:hover .nav-subgroup-arrow,
+.nav-subgroup:focus-within .nav-subgroup-arrow {
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+.nav-submenu {
+  position: absolute;
+  top: -6px;
+  right: 100%;
+  margin-right: 4px;
+  min-width: 216px;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--line, #dde6ee);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(14, 30, 55, 0.12);
+  padding: 6px;
+  display: none;
+  z-index: 101;
+  animation: navSubmenuFade .18s ease;
+}
+/* Місток під курсор: без нього 4px проміжку гасять наведення */
+.nav-subgroup::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 100%;
+  width: 8px;
+  height: 100%;
+  background: transparent;
+}
+.nav-subgroup:hover > .nav-submenu,
+.nav-subgroup:focus-within > .nav-submenu,
+.nav-submenu.show {
+  display: block;
+}
+
+@keyframes navSubmenuFade {
+  from { opacity: 0; transform: translateX(4px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Самі посилання підменю стилізовані разом із пунктами першого коліна —
+   див. правило «Dropdown items» вище. */
+
+.dark-theme .nav-subgroup-btn {
+  color: #e2e8f0;
+}
+.dark-theme .nav-subgroup:hover > .nav-subgroup-btn,
+.dark-theme .nav-subgroup:focus-within > .nav-subgroup-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--accent, #4a8fc7);
+}
+.dark-theme .nav-subgroup-btn.active {
+  background: rgba(74, 143, 199, 0.2);
+  color: var(--accent, #4a8fc7);
+}
+.dark-theme .nav-submenu {
+  background: rgba(30, 41, 59, 0.97);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 /* Dark theme overrides for services dropdown */
@@ -316,16 +425,19 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
-.dark-theme .nav-dropdown-menu a {
+.dark-theme .nav-dropdown-menu a,
+.dark-theme .nav-submenu a {
   color: #e2e8f0 !important;
 }
 
-.dark-theme .nav-dropdown-menu a:hover {
+.dark-theme .nav-dropdown-menu a:hover,
+.dark-theme .nav-submenu a:hover {
   background: rgba(255, 255, 255, 0.08) !important;
   color: var(--accent, #4a8fc7) !important;
 }
 
-.dark-theme .nav-dropdown-menu a.active {
+.dark-theme .nav-dropdown-menu a.active,
+.dark-theme .nav-submenu a.active {
   background: rgba(74, 143, 199, 0.2) !important;
   color: var(--accent, #4a8fc7) !important;
 }

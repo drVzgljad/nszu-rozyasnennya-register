@@ -119,6 +119,13 @@
     const q = new URLSearchParams(location.search);
     const id = (q.get("id") || "").trim();
     const raw = (q.get("code") || q.get("q") || "").trim();
+
+    // Вхід із меню «Довідники → Посади»: три пункти ведуть на цю саму сторінку,
+    // різниця лише в увімкненому фільтрі — сторінка одна, а входи різні.
+    const view = (q.get("view") || "").trim();
+    const viewBox = { codes: el.onlyCode, pkg: el.onlyPkg, gap: el.onlyGap }[view];
+    if (viewBox) { viewBox.checked = true; refilter(); }
+
     if (id && byId.has(id)) { openCard(id); syncCascade(id); return; }
     if (raw) { el.search.value = raw; runSearch(); }
   }

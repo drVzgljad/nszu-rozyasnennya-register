@@ -254,6 +254,20 @@ function applyAccess() {
       return currentPath.includes('rozjasnennya') && !currentPath.includes('_semantic');
     }
     
+    // Довідники: у теці classifiers/ живе вісім різних сторінок, тож збіг лише
+    // за текою підсвітив би одразу всі пункти підменю. Звіряємо ім'я файлу, а
+    // для «Посад» — ще й ?view=, бо три пункти ведуть на одну сторінку.
+    if (segments[0] === 'classifiers' && segments.length === 2) {
+      const [file, query] = segments[1].split('?');
+      const here = file === 'index.html'
+        ? (currentPath.endsWith('/classifiers/') || currentPath.endsWith('/classifiers/index.html'))
+        : currentPath.endsWith('/' + file);
+      if (!here) return false;
+      const wanted = new URLSearchParams(query || '').get('view') || '';
+      const opened = new URLSearchParams(window.location.search).get('view') || '';
+      return wanted === opened;
+    }
+
     if (normalized === 'pakety/report.html') {
       return currentPath.includes('report.html');
     }
@@ -336,16 +350,33 @@ function applyAccess() {
       { text: 'Паспорт пакета', path: 'passport/index.html' }
     ];
 
-    // Класифікатори та коди — окрема вкладка «Коди»
-    const codesItems = [
-      { text: '🩺 Хвороби · НК 025', path: 'classifiers/index.html' },
-      { text: '🔬 Інтервенції · НК 026', path: 'classifiers/nk026.html' },
-      { text: '🩹 Медвироби · НК 024', path: 'classifiers/nk024.html' },
-      { text: '🧾 Номенклатура · НК 031', path: 'classifiers/nk031.html' },
-      { text: '📋 Табелі оснащення', path: 'classifiers/tabel.html' },
-      { text: '🧪 Лабораторні · LOINC', path: 'classifiers/loinc.html' },
-      { text: '👥 Посади · ДКХП-78', path: 'classifiers/posady.html' },
-      { text: '🩻 Обладнання у вимогах ПМГ', path: 'classifiers/obladnannia.html' },
+    // Довідники — вкладка з підменю. Дев'ять сторінок одним списком уже не
+    // читалися: «табелі оснащення» і «посади» — не коди, а НК 024 і НК 031
+    // губилися серед кодів хвороб. Тому три смислові гнізда: чим кодують
+    // випадок, чим його оснащують і хто його надає.
+    const referenceItems = [
+      {
+        text: '🩺 Коди', items: [
+          { text: 'Хвороби · НК 025', path: 'classifiers/index.html' },
+          { text: 'Інтервенції · НК 026', path: 'classifiers/nk026.html' },
+          { text: 'Лабораторні · LOINC', path: 'classifiers/loinc.html' }
+        ]
+      },
+      {
+        text: '🩻 Обладнання', items: [
+          { text: 'Медвироби · НК 024', path: 'classifiers/nk024.html' },
+          { text: 'Номенклатура · НК 031', path: 'classifiers/nk031.html' },
+          { text: 'Табелі оснащення', path: 'classifiers/tabel.html' },
+          { text: 'Обладнання у вимогах ПМГ', path: 'classifiers/obladnannia.html' }
+        ]
+      },
+      {
+        text: '👥 Посади', items: [
+          { text: 'Характеристики ДКХП-78', path: 'classifiers/posady.html' },
+          { text: 'Коди посад НСЗУ', path: 'classifiers/posady.html?view=codes' },
+          { text: 'Кадрові вимоги пакетів', path: 'classifiers/posady.html?view=pkg' }
+        ]
+      },
       { text: '🔗 Таблиця співставлення', path: 'mapping/index.html' }
     ];
 
@@ -402,11 +433,63 @@ function applyAccess() {
       });
     };
 
+    /** Посилання всередині дропдауна — і в меню, і в підменю однакове. */
+    const makeMenuLink = (item) => {
+      const a = document.createElement('a');
+      a.href = prefix + item.path;
+      a.innerHTML = `<span>${item.text}</span>`;
+      if (isActive(item.path)) {
+        a.classList.add('active');
+        a.setAttribute('aria-current', 'page');
+      }
+      return a;
+    };
+
+    /**
+     * Гніздо другого рівня: заголовок у меню + випадайка збоку.
+     * Наведення відкриває саме так, як увесь дропдаун вище, а клік
+     * лишає меню відкритим — інакше на тач-екранах у гніздо не зайти.
+     */
+    const makeSubgroup = (group) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'nav-subgroup';
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'nav-subgroup-btn';
+      if (group.items.some(sub => isActive(sub.path))) btn.classList.add('active');
+      btn.innerHTML = `<span>${group.text}</span><span class="nav-subgroup-arrow">▸</span>`;
+      btn.setAttribute('aria-label', group.text);
+      btn.setAttribute('aria-haspopup', 'true');
+      btn.setAttribute('aria-expanded', 'false');
+
+      const submenu = document.createElement('div');
+      submenu.className = 'nav-submenu';
+      group.items.forEach(sub => submenu.appendChild(makeMenuLink(sub)));
+
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const open = submenu.classList.toggle('show');
+        btn.setAttribute('aria-expanded', String(open));
+      });
+
+      wrap.appendChild(btn);
+      wrap.appendChild(submenu);
+      return wrap;
+    };
+
     const appendDropdown = (label, items) => {
-      const visibleItems = items.filter(item => hasAccess(item.role));
+      const visibleItems = items
+        .map(item => item.items
+          ? { ...item, items: item.items.filter(sub => hasAccess(sub.role)) }
+          : item)
+        .filter(item => item.items ? item.items.length > 0 : hasAccess(item.role));
       if (visibleItems.length === 0) return;
 
-      const isDropdownActive = visibleItems.some(item => isActive(item.path));
+      const itemActive = (item) => item.items
+        ? item.items.some(sub => isActive(sub.path))
+        : isActive(item.path);
+      const isDropdownActive = visibleItems.some(itemActive);
 
       const dropdownDiv = document.createElement('div');
       dropdownDiv.className = 'nav-dropdown';
@@ -421,15 +504,17 @@ function applyAccess() {
       menuDiv.className = 'nav-dropdown-menu';
 
       visibleItems.forEach(item => {
-        const a = document.createElement('a');
-        a.href = prefix + item.path;
-        a.innerHTML = `<span>${item.text}</span>`;
+        menuDiv.appendChild(item.items ? makeSubgroup(item) : makeMenuLink(item));
+      });
 
-        if (isActive(item.path)) {
-          a.classList.add('active');
-          a.setAttribute('aria-current', 'page');
-        }
-        menuDiv.appendChild(a);
+      // Гніздо, відкрите кліком, не має лишатися відкритим після того, як
+      // курсор пішов із меню: інакше наступне наведення на вкладку одразу
+      // вивалює чуже підменю.
+      dropdownDiv.addEventListener('mouseleave', () => {
+        menuDiv.querySelectorAll('.nav-submenu.show').forEach(sub => {
+          sub.classList.remove('show');
+          sub.previousElementSibling?.setAttribute('aria-expanded', 'false');
+        });
       });
 
       dropdownDiv.appendChild(btn);
@@ -440,7 +525,7 @@ function applyAccess() {
     // Головна · Реєстр · Пакети · Паспорт · Документи ▼ · Сервіси ▼ · Структура · Чат
     appendBackLink(navContainer);
     appendNavLinks(coreItems);
-    appendDropdown('🩺 Коди', codesItems);
+    appendDropdown('📚 Довідники', referenceItems);
     appendDropdown('Документи', documentsItems);
     appendDropdown('Сервіси', dropdownItems);
     appendNavLinks(tailItems);
@@ -2178,7 +2263,9 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '🩹', label: 'Медвироби · НК 024', path: 'classifiers/nk024.html' },
     { icon: '🧾', label: 'Номенклатура · НК 031', path: 'classifiers/nk031.html' },
     { icon: '📋', label: 'Табелі оснащення', path: 'classifiers/tabel.html' },
+    { icon: '🩻', label: 'Обладнання у вимогах', path: 'classifiers/obladnannia.html' },
     { icon: '🧪', label: 'LOINC (лаб. коди)', path: 'classifiers/loinc.html' },
+    { icon: '👥', label: 'Посади · ДКХП-78', path: 'classifiers/posady.html' },
     { icon: '🔗', label: 'Таблиця співставлення', path: 'mapping/index.html' },
     { icon: '📑', label: 'Договори ЗОЗ', path: 'zoz-dogovr/index.html' },
     { icon: '👤', label: 'Кабінет', path: 'cabinet/index.html', role: 'expert' },
@@ -2349,7 +2436,7 @@ if ('serviceWorker' in navigator &&
   // неї браузер до десяти хвилин не помічає, що воркер змінився, і продовжує
   // роздавати старі файли з кешу. Змінений URL змушує перевірити одразу.
   // ПРИ ЗМІНІ sw.js ПІДНІМАТИ ЦЮ ВЕРСІЮ РАЗОМ З CACHE усередині воркера.
-  navigator.serviceWorker.register('/sw.js?v=14').catch(() => {});
+  navigator.serviceWorker.register('/sw.js?v=15').catch(() => {});
 
   // Перезавантаження на controllerchange прибрано 30.07.2026 разом зі
   // skipWaiting() у воркері (див. коментар у sw.js). Новий воркер більше не

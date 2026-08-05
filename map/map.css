@@ -123,6 +123,32 @@
   white-space: nowrap; align-self: center;
 }
 
+/* ── Гніздо всередині кластера ────────────────────────
+   Довідники згруповано (Коди · Обладнання · Посади) — так само, як
+   у меню шапки. Заголовок гнізда навмисно легший за кластерний:
+   смужка збоку замість підкреслення на всю ширину. */
+.map-group + .map-group,
+.map-group + .map-grid,
+.map-cluster > .map-grid + .map-group { margin-top: 26px; }
+.mg-head {
+  display: grid; grid-template-columns: auto 1fr; align-items: start;
+  gap: 12px; margin: 0 0 14px; padding: 10px 14px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 0 12px 12px 0;
+}
+.mg-ico { font-size: 20px; line-height: 1.35; }
+.mg-title {
+  font-family: var(--p-display); font-weight: 800; font-size: 16.5px;
+  margin: 0; color: var(--p-ink); letter-spacing: -.01em;
+}
+.mg-count {
+  font-size: 12px; font-weight: 700; color: var(--accent-deep);
+  background: var(--p-surface); padding: 1px 8px; border-radius: var(--pr-pill);
+  vertical-align: middle; margin-left: 4px;
+}
+.mg-lead { margin: 3px 0 0; font-size: 13.5px; color: var(--p-muted); line-height: 1.45; }
+
 /* ── Сітка карток ─────────────────────────────────────── */
 .map-grid {
   display: grid; gap: 16px;
