@@ -30,6 +30,11 @@ body {
 
 .hero {
   display: flex;
+  /* Плитки статистики не стискаються (flex-shrink: 0), тож на проміжних
+     ширинах (~1040–1230px) вони чавили текстову колонку вдвічі: заголовок і
+     опис розповзалися на пів екрана вниз, а плитки лишалися самотньо висіти
+     праворуч унизу. Дозволяємо перенос — тоді статистика йде під текст. */
+  flex-wrap: wrap;
   gap: 38px;
   justify-content: space-between;
   align-items: end;
@@ -38,7 +43,8 @@ body {
   border-bottom: 1px solid var(--line);
 }
 
-.hero-copy { max-width: 1200px; width: 100%; }
+/* 640px — межа, нижче якої текстову колонку тиснути вже нема куди */
+.hero-copy { max-width: 1200px; width: 100%; flex: 1 1 640px; }
 .hero-copy h1,
 .hero-copy p,
 .hero-copy .overline { max-width: 710px; }
