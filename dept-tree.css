@@ -766,11 +766,13 @@
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.18);
 }
 
+/* Тут довго стояла світла пара #f8fafc / #475569 — вона з ЛІВОЇ, світлої
+   палітри, тож у темній темі неактивні фільтри світилися білими плитками. */
 :root.dark-theme .tree-filter-btn,
 .dark-theme .tree-filter-btn {
   border-color: rgba(148, 163, 184, 0.26);
-  background: #f8fafc;
-  color: #475569;
+  background: var(--surface, #1e293b);
+  color: var(--muted, #94a3b8);
 }
 
 :root.dark-theme .org-map,

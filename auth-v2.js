@@ -178,45 +178,29 @@ function applyAccess() {
     }
   }
 
-  // Update role badge next to the button
+  // Update role badge next to the button.
+  // Кольори бейджа живуть у auth-v2.css (.auth-role-badge.role-*) — тут лише
+  // підпис і клас ролі. Інлайнові стилі колись ставили як запобіжник проти
+  // застарілого кешу CSS, але інлайн б'є і темну тему: бейдж лишався світлим
+  // на кожній сторінці. Свіжість CSS тепер тримається на ?v= і версії SW.
   const badge = document.getElementById('auth-role-badge');
   if (badge) {
-    badge.className = 'auth-role-badge';
-    // Fail-safe inline styles to bypass browser cache of auth-v2.css
-    badge.style.display = 'inline-flex';
-    badge.style.alignItems = 'center';
-    badge.style.padding = '6px 10px';
-    badge.style.borderRadius = '8px';
-    badge.style.fontSize = '11px';
-    badge.style.fontWeight = '700';
-    badge.style.textTransform = 'uppercase';
-    badge.style.letterSpacing = '0.05em';
-    badge.style.whiteSpace = 'nowrap';
-    badge.style.lineHeight = '1';
-
+    const roleLabels = {
+      guest: 'Гість',
+      expert: 'Експерт',
+      manager: 'Керівник',
+      deputy_director: 'Заступник',
+      director: 'Директор',
+      admin: 'Адмін'
+    };
+    let roleKey = 'guest';
     if (user) {
-      const roleLabels = {
-        guest: { text: 'Гість', bg: '#f2f8fb', color: '#647688', border: '1px solid #e3edf3' },
-        expert: { text: 'Експерт', bg: '#e9f7f3', color: '#08705e', border: '1px solid rgba(84, 173, 132, 0.25)' },
-        manager: { text: 'Керівник', bg: '#eef6fc', color: '#2f6b9e', border: '1px solid rgba(74, 143, 199, 0.2)' },
-        deputy_director: { text: 'Заступник', bg: '#fffdf5', color: '#c27d0e', border: '1px solid rgba(194, 125, 14, 0.25)' },
-        director: { text: 'Директор', bg: '#fdebee', color: '#c71585', border: '1px solid rgba(199, 21, 133, 0.2)' },
-        admin: { text: 'Адмін', bg: '#f5f0ff', color: '#6a0dad', border: '1px solid rgba(106, 13, 173, 0.25)' }
-      };
-      const clerkLabel = { text: 'Діловод', bg: '#f4f1fb', color: '#5a4a9c', border: '1px solid rgba(90, 74, 156, 0.25)' };
-      const labelInfo = (isClerk && !['deputy_director', 'director', 'admin'].includes(role))
-        ? clerkLabel
-        : (roleLabels[role] || roleLabels.guest);
-      badge.textContent = labelInfo.text;
-      badge.style.background = labelInfo.bg;
-      badge.style.color = labelInfo.color;
-      badge.style.border = labelInfo.border;
-    } else {
-      badge.textContent = 'Гість';
-      badge.style.background = '#f2f8fb';
-      badge.style.color = '#647688';
-      badge.style.border = '1px solid #e3edf3';
+      roleKey = (isClerk && !['deputy_director', 'director', 'admin'].includes(role))
+        ? 'clerk'
+        : (roleLabels[role] ? role : 'guest');
     }
+    badge.textContent = roleKey === 'clerk' ? 'Діловод' : roleLabels[roleKey];
+    badge.className = 'auth-role-badge role-' + roleKey;
   }
 
   // Show/hide daily status chip next to access status button
@@ -2451,7 +2435,7 @@ if ('serviceWorker' in navigator &&
   // неї браузер до десяти хвилин не помічає, що воркер змінився, і продовжує
   // роздавати старі файли з кешу. Змінений URL змушує перевірити одразу.
   // ПРИ ЗМІНІ sw.js ПІДНІМАТИ ЦЮ ВЕРСІЮ РАЗОМ З CACHE усередині воркера.
-  navigator.serviceWorker.register('/sw.js?v=16').catch(() => {});
+  navigator.serviceWorker.register('/sw.js?v=17').catch(() => {});
 
   // Перезавантаження на controllerchange прибрано 30.07.2026 разом зі
   // skipWaiting() у воркері (див. коментар у sw.js). Новий воркер більше не

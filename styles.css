@@ -542,7 +542,7 @@ select {
   margin: 0;
   padding: 8px 14px;
   border-radius: 9px;
-  background: #fff;
+  background: var(--surface, #fff);
   border: 1px solid rgba(0,111,201,.22);
   box-shadow: 0 4px 12px rgba(38,78,112,.05);
   font-size: 13px;

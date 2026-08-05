@@ -42,6 +42,13 @@
 }
 
 /* ── Role badge ──────────────────────────────────── */
+/* Кожна роль задає лише три значення (--rb-bg/--rb-ink/--rb-line), а малює
+   їх одне правило нижче — тож темна тема перевизначає значення, а не
+   переписує правила. Класи звуться так само, як ключі ролі в базі
+   (deputy_director з підкресленням), бо cabinet.js ліпить клас із самого
+   ключа: role-${userProfile.role}.
+   Інлайнових кольорів з auth-v2.js тут більше немає: інлайн б'є будь-яку
+   тему, і бейдж у темній лишався світлою плямою. */
 .auth-role-badge {
   display: inline-flex;
   align-items: center;
@@ -53,21 +60,80 @@
   letter-spacing: 0.05em;
   white-space: nowrap;
   line-height: 1;
+  background: var(--rb-bg, var(--soft, #f2f8fb));
+  color: var(--rb-ink, var(--muted, #647688));
+  border: 1px solid var(--rb-line, var(--line, #e3edf3));
 }
 .auth-role-badge.role-guest {
-  background: var(--soft, #f2f8fb);
-  color: var(--muted, #647688);
-  border: 1px solid var(--line, #e3edf3);
+  --rb-bg: var(--soft, #f2f8fb);
+  --rb-ink: var(--muted, #647688);
+  --rb-line: var(--line, #e3edf3);
 }
-.auth-role-badge.role-registered {
-  background: #eef6fc;
-  color: var(--accent-dark, #2f6b9e);
-  border: 1px solid rgba(74, 143, 199, 0.2);
+.auth-role-badge.role-registered,
+.auth-role-badge.role-manager {
+  --rb-bg: #eef6fc;
+  --rb-ink: #2f6b9e;
+  --rb-line: rgba(74, 143, 199, 0.2);
 }
-.auth-role-badge.role-full {
-  background: #e9f7f3;
-  color: #08705e;
-  border: 1px solid rgba(84, 173, 132, 0.25);
+.auth-role-badge.role-expert {
+  --rb-bg: #e9f7f3;
+  --rb-ink: #08705e;
+  --rb-line: rgba(84, 173, 132, 0.25);
+}
+/* Бурштин темніший за той, що ставив JS (#c27d0e): на майже білому тлі
+   бейджа він давав контраст 3.3 — під порогом для 11px. Тепер 4.9. */
+.auth-role-badge.role-deputy_director {
+  --rb-bg: #fffdf5;
+  --rb-ink: #9a6408;
+  --rb-line: rgba(154, 100, 8, 0.3);
+}
+.auth-role-badge.role-director {
+  --rb-bg: #fdebee;
+  --rb-ink: #c71585;
+  --rb-line: rgba(199, 21, 133, 0.2);
+}
+.auth-role-badge.role-admin {
+  --rb-bg: #f5f0ff;
+  --rb-ink: #6a0dad;
+  --rb-line: rgba(106, 13, 173, 0.25);
+}
+.auth-role-badge.role-clerk {
+  --rb-bg: #f4f1fb;
+  --rb-ink: #5a4a9c;
+  --rb-line: rgba(90, 74, 156, 0.25);
+}
+
+/* Темні відповідники: тло з родини --surface, текст світлий і насичений. */
+:root.dark-theme .auth-role-badge.role-registered,
+:root.dark-theme .auth-role-badge.role-manager {
+  --rb-bg: #1b3348;
+  --rb-ink: #8ec5ec;
+  --rb-line: rgba(142, 197, 236, 0.28);
+}
+:root.dark-theme .auth-role-badge.role-expert {
+  --rb-bg: #14321f;
+  --rb-ink: #7bd8a2;
+  --rb-line: rgba(123, 216, 162, 0.28);
+}
+:root.dark-theme .auth-role-badge.role-deputy_director {
+  --rb-bg: #3a2c12;
+  --rb-ink: #e8b862;
+  --rb-line: rgba(232, 184, 98, 0.28);
+}
+:root.dark-theme .auth-role-badge.role-director {
+  --rb-bg: #3a1b2c;
+  --rb-ink: #f0a0cf;
+  --rb-line: rgba(240, 160, 207, 0.28);
+}
+:root.dark-theme .auth-role-badge.role-admin {
+  --rb-bg: #2a2540;
+  --rb-ink: #b8a6e8;
+  --rb-line: rgba(184, 166, 232, 0.28);
+}
+:root.dark-theme .auth-role-badge.role-clerk {
+  --rb-bg: #232544;
+  --rb-ink: #a9a0e8;
+  --rb-line: rgba(169, 160, 232, 0.28);
 }
 
 /* ── Modal overlay ───────────────────────────────── */
