@@ -1082,6 +1082,17 @@ async function init() {
   el("statProvidersCount").textContent = state.data.unique_providers.toLocaleString('uk-UA');
   el("statTotalSum").textContent = formatCurrency(state.data.total_sum);
 
+  // Свіжість бази. source_date — дата самої вивантажки НСЗУ, built_at — коли її
+  // перезібрали. У старих JSON цих полів немає, тож бейдж просто лишається схованим.
+  const freshnessEl = el("dataFreshness");
+  if (freshnessEl && state.data.source_date) {
+    freshnessEl.textContent = `База станом на ${state.data.source_date}`;
+    freshnessEl.title = state.data.built_at
+      ? `Вивантажка ${state.data.source_file || ""} від ${state.data.source_date}, перезібрано ${state.data.built_at}`.trim()
+      : `Вивантажка від ${state.data.source_date}`;
+    freshnessEl.hidden = false;
+  }
+
   // Initialize multiselect dropdowns
   initDropdowns();
 

@@ -531,6 +531,21 @@ header.top {
   color: var(--ink, #1f3347);
 }
 
+/* Дата вивантажки договорів: перелік звідси йде в листи, де пишуть «станом на» */
+.zoz-freshness {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted, #6b7f92);
+  background: var(--soft, #f1f6f9);
+  border: 1px solid var(--line, #dde6ec);
+  border-radius: 999px;
+  padding: 2px 9px;
+  vertical-align: middle;
+  cursor: help;
+}
+
 .hospitals-filter-row {
   display: flex;
   gap: 8px;

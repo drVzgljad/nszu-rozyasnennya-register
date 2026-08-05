@@ -11,7 +11,7 @@
   <title>Паспорт пакета ПМГ 2026 — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260719h">
   <link rel="stylesheet" href="../styles.css?v=20260805a">
-  <link rel="stylesheet" href="passport.css?v=20260804c">
+  <link rel="stylesheet" href="passport.css?v=20260805a">
   <link rel="stylesheet" href="../auth-v2.css?v=20260805b">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script type="module" src="../auth-v2.js?v=20260805b"></script>
@@ -160,7 +160,7 @@
             <!-- Contracted Hospitals Table -->
             <div class="hospitals-section">
               <div class="hospitals-header">
-                <h3>Перелік законтрактованих медичних закладів</h3>
+                <h3>Перелік законтрактованих медичних закладів <span id="zozFreshness" class="zoz-freshness" hidden></span></h3>
                 <div class="hospitals-filter-row">
                   <input type="search" id="hospitalSearchInput" placeholder="Шукати за назвою, ЄДРПОУ чи областю..." autocomplete="off">
                   <select id="hospitalOblastFilter">
@@ -232,6 +232,6 @@
 
 </div>
 <script src="../spec-links.js?v=20260804c" defer></script>
-<script src="passport.js?v=20260804c" defer></script>
+<script src="passport.js?v=20260805a" defer></script>
 </body>
 </html>

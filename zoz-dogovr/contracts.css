@@ -622,5 +622,19 @@
   border-color: var(--line) !important;
 }
 
+/* Позначка свіжості бази: дата вивантажки поруч із лічильником знайденого.
+   Потрібна, бо переліки закладів звідси йдуть у листи — там пишуть «станом на». */
+.data-freshness {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+  cursor: help;
+}
+
 
 

@@ -119,6 +119,17 @@ async function init() {
     passportState.explanations = docsRes.documents || [];
     passportState.resolution = resolutionRes;
 
+    // Дата вивантажки договорів — поруч із заголовком переліку закладів.
+    // У старих contracts_slim.json поля немає, тоді бейдж лишається схованим.
+    const zozFreshEl = el("zozFreshness");
+    if (zozFreshEl && contractsRes.source_date) {
+      zozFreshEl.textContent = `станом на ${contractsRes.source_date}`;
+      zozFreshEl.title = contractsRes.built_at
+        ? `Вивантажка договорів від ${contractsRes.source_date}, перезібрано ${contractsRes.built_at}`
+        : `Вивантажка договорів від ${contractsRes.source_date}`;
+      zozFreshEl.hidden = false;
+    }
+
     // Populate hospital oblast filter select
     populateOblastFilter();
 
