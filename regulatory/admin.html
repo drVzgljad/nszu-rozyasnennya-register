@@ -9,9 +9,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Управління нормативною базою</title>
-  <link rel="stylesheet" href="../styles.css?v=20260805c">
+  <link rel="stylesheet" href="../styles.css?v=20260805d">
   <link rel="stylesheet" href="../auth-v2.css?v=20260805e">
-  <script type="module" src="../auth-v2.js?v=20260805g"></script>
+  <script type="module" src="../auth-v2.js?v=20260805h"></script>
   <style>
     .adm {
       max-width: 1480px;
@@ -97,6 +97,16 @@
     .pill.s-draft      { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
     .pill.s-expired    { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
     .pill.s-amended    { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+
+    /* Темні відповідники — та сама палітра, що й у реєстрі норм. */
+    :root.dark-theme .pill.t-zakon      { background: #232544; color: #a9a0e8; border-color: rgba(169,160,232,.28); }
+    :root.dark-theme .pill.t-postanova  { background: #123037; color: #7fd3e0; border-color: rgba(127,211,224,.28); }
+    :root.dark-theme .pill.t-nakaz-moz  { background: #3a2c12; color: #e8b862; border-color: rgba(232,184,98,.28); }
+    :root.dark-theme .pill.t-nakaz-nszu,
+    :root.dark-theme .pill.s-active     { background: #14321f; color: #7bd8a2; border-color: rgba(123,216,162,.28); }
+    :root.dark-theme .pill.s-draft      { background: #3a2612; color: #f0a874; border-color: rgba(240,168,116,.28); }
+    :root.dark-theme .pill.s-expired    { background: #3a1f1f; color: #e79a9a; border-color: rgba(231,154,154,.28); }
+    :root.dark-theme .pill.s-amended    { background: #1b3348; color: #8ec5ec; border-color: rgba(142,197,236,.28); }
 
     /* ---- Форма ---- */
     .form-head {

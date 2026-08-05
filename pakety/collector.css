@@ -602,6 +602,20 @@
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
+/* Позначки формату (PDF/DOCX) — світлі плашки, яких у темній темі було
+   найбільше на порталі: 282 штуки на одній сторінці. */
+:root.dark-theme .badge-format.pdf {
+  background: #3a1f1f;
+  color: #e79a9a;
+  border-color: rgba(231, 154, 154, 0.28);
+}
+
+:root.dark-theme .badge-format.docx {
+  background: #1b3348;
+  color: #8ec5ec;
+  border-color: rgba(142, 197, 236, 0.28);
+}
+
 :root.dark-theme .file-card {
   background: #1e293b;
   border-color: #334155;

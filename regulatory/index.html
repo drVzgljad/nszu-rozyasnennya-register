@@ -9,9 +9,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Нормативно-правова база</title>
-  <link rel="stylesheet" href="../styles.css?v=20260805c">
+  <link rel="stylesheet" href="../styles.css?v=20260805d">
   <link rel="stylesheet" href="../auth-v2.css?v=20260805e">
-  <script type="module" src="../auth-v2.js?v=20260805g"></script>
+  <script type="module" src="../auth-v2.js?v=20260805h"></script>
   <style>
     /* ============ NPA Service v2 — Search hub + Document workstation ============ */
 
@@ -156,6 +156,18 @@
     .pill.s-draft      { background: #fff7ed; color: #c2410c; border-color: #fed7aa; }
     .pill.s-expired    { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
     .pill.has-text     { background: var(--accent-soft); color: var(--accent-dark); border-color: #d7e9f7; }
+
+    /* Темні відповідники пігулок: без них це були єдині світлі плями на
+       сторінці — решта тримається на токенах порталу і темніє сама. */
+    :root.dark-theme .pill.t-zakon      { background: #232544; color: #a9a0e8; border-color: rgba(169,160,232,.28); }
+    :root.dark-theme .pill.t-postanova  { background: #123037; color: #7fd3e0; border-color: rgba(127,211,224,.28); }
+    :root.dark-theme .pill.t-nakaz-moz  { background: #3a2c12; color: #e8b862; border-color: rgba(232,184,98,.28); }
+    :root.dark-theme .pill.t-nakaz-nszu,
+    :root.dark-theme .pill.s-active     { background: #14321f; color: #7bd8a2; border-color: rgba(123,216,162,.28); }
+    :root.dark-theme .pill.s-draft      { background: #3a2612; color: #f0a874; border-color: rgba(240,168,116,.28); }
+    :root.dark-theme .pill.s-expired    { background: #3a1f1f; color: #e79a9a; border-color: rgba(231,154,154,.28); }
+    :root.dark-theme .pill.has-text     { border-color: rgba(56,189,248,.32); }
+    :root.dark-theme .copy-toast        { background: #334155; color: var(--ink); }
 
     .hub-empty {
       text-align: center; padding: 60px 20px; color: var(--muted);

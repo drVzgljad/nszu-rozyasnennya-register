@@ -86,6 +86,9 @@ const CSS = `
   border-radius: 50%;
   border: 1px solid var(--p-line, #e3edf3);
   background: var(--p-surface, #fff);
+  /* без явного color кнопка бере чорний за замовчуванням браузера — на
+     темному тлі це 1.44 контрасту; рятував лише емодзі, який має свій колір */
+  color: var(--p-ink, #1f3347);
   font-size: 19px;
   cursor: pointer;
   box-shadow: 0 8px 22px rgba(38,78,112,.18);

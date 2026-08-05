@@ -219,7 +219,12 @@ select {
   color: var(--muted);
   font-size: 14px;
 }
-#reset {
+/* Кнопка «Очистити» в смужці результатів. Адресуємо і за id (історичний
+   #reset на головній), і за місцем — кожен розділ, який позичив розмітку
+   .results-summary, дає своїй кнопці власний id (#rzReset, #ivClear…) і
+   раніше лишався з сірою кнопкою за замовчуванням браузера. */
+#reset,
+.results-summary button {
   border: 0;
   color: var(--accent-dark);
   background: transparent;

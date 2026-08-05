@@ -186,9 +186,12 @@
   font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: var(--pr-pill);
   letter-spacing: .01em; white-space: nowrap;
 }
-.role-guest   { background: var(--g-50); color: var(--g-700); border: 1px solid var(--g-200); }
-.role-expert  { background: var(--b-50); color: var(--b-700); border: 1px solid var(--b-200); }
-.role-manager { background: #fdf3e7; color: #b4671a; border: 1px solid #f6d9b3; }
+/* Обов'язково через .mc-badge: голі .role-guest/.role-expert/.role-manager
+   перехоплювали бейдж ролі в шапці порталу (.auth-role-badge.role-*) — на
+   карті «Гість» ставав зеленим з контрастом 2,8. */
+.mc-badge.role-guest   { background: var(--g-50); color: var(--g-700); border: 1px solid var(--g-200); }
+.mc-badge.role-expert  { background: var(--b-50); color: var(--b-700); border: 1px solid var(--b-200); }
+.mc-badge.role-manager { background: #fdf3e7; color: #b4671a; border: 1px solid #f6d9b3; }
 .mis-science  { background: #eef2ff; color: #4f46b5; border: 1px solid #d5d9fb; }
 .mis-org      { background: #ecfdf5; color: #0f766e; border: 1px solid #c3ecde; }
 .mis-both     { background: var(--p-soft); color: var(--p-muted); border: 1px solid var(--p-line); }
@@ -280,7 +283,11 @@
 }
 
 /* ── Точкові правки темної теми (те, що не покривають змінні) ── */
-:root.dark-theme .role-manager { background: #3a2a12; color: #f0b878; border-color: #6b4a1e; }
+/* Бейджі guest/expert у темній темі брали --g-700/--b-700 як колір тексту
+   на --g-50/--b-50: зелене по темно-зеленому давало 2,8 контрасту. */
+:root.dark-theme .mc-badge.role-guest  { background: #14321f; color: #7bd8a2; border-color: rgba(123,216,162,.3); }
+:root.dark-theme .mc-badge.role-expert { background: #1b3348; color: #8ec5ec; border-color: rgba(142,197,236,.3); }
+:root.dark-theme .mc-badge.role-manager { background: #3a2a12; color: #f0b878; border-color: #6b4a1e; }
 :root.dark-theme .mis-science  { background: #23204a; color: #b9b6f0; border-color: #3d3a7a; }
 :root.dark-theme .mis-org      { background: #10352c; color: #7fe3c2; border-color: #1e5a48; }
 :root.dark-theme .map-chip.is-active { color: #06232f; }

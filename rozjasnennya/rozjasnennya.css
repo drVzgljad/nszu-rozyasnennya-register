@@ -109,7 +109,18 @@
   --rz-attach:     #7fa0b8;
 }
 
-.rz-hero .xnav { margin-left: 10px; white-space: nowrap; }
+/* Крос-посилання в шапці. Задавали лише відступ, тож колір лишався
+   браузерним синім (#0000ee) — у темній темі це 1,9 контрасту. Вигляд
+   такий самий, як у довідників: пунктир під акцентним текстом. */
+.rz-hero .xnav {
+  margin-left: 10px;
+  white-space: nowrap;
+  color: var(--rz-accent);
+  text-decoration: none;
+  font-weight: 700;
+  border-bottom: 1px dashed currentColor;
+}
+.rz-hero .xnav:hover { color: var(--rz-accent-ink); border-bottom-style: solid; }
 
 .rz-layout {
   display: grid;

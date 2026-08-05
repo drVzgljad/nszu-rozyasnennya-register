@@ -1236,7 +1236,9 @@
   --status-vacation: #d7aefb;
   --status-agreement: #80cbc4;
   --status-weekend: #94a3b8;
-  --status-unregistered: #4b5563;
+  /* був #4b5563 — як колір тексту мітки «не відмітився» це 1,9 контрасту
+     на картці відділу; лишаємо найтьмянішим зі статусів, але читаним */
+  --status-unregistered: #7c8a9c;
 }
 
 /* Статус «вихідний» (сб/нд) */

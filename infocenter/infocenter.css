@@ -89,8 +89,19 @@
   font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
-  border: 1px solid transparent;
+  /* Колір тут нейтральний навмисне: іменовані фільтри (qf-pmg, qf-nszu,
+     qf-moz) перебивають його нижче, а решта — qf-community, qf-screening і
+     будь-який новий — раніше падала на сіру кнопку браузера. */
+  background: var(--soft, #f2f8fb);
+  color: var(--muted, #647688);
+  border: 1px solid var(--line, #e3edf3);
   transition: transform .12s, box-shadow .12s, filter .12s;
+}
+
+.quick-filter.active {
+  background: var(--accent, #0ea5e9);
+  border-color: var(--accent, #0ea5e9);
+  color: #fff;
 }
 
 .quick-filter:hover { transform: translateY(-1px); filter: brightness(1.03); }
