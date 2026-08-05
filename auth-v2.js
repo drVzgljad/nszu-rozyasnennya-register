@@ -345,8 +345,17 @@ function applyAccess() {
     const coreItems = [
       { text: 'Головна', path: 'index.html' },
       { text: '🗺️ Карта', path: 'map/index.html' },
-      { text: 'Роз\'яснення', path: 'rozjasnennya/index.html' },
-      { text: 'Пакети 2026', path: 'pakety/index.html' },
+      { text: 'Роз\'яснення', path: 'rozjasnennya/index.html' }
+    ];
+
+    // «Пакети» — вкладка з підменю: за постановою 1808 і поза нею. Пілоти лежали
+    // в «Документах», хоча шукають їх там само, де й пакети ПМГ.
+    const packagesItems = [
+      { text: '📗 Пакети ПМГ 2026', path: 'pakety/index.html' },
+      { text: '🧪 Пілотні проєкти', path: 'pilots/index.html' }
+    ];
+
+    const passportItems = [
       { text: 'Паспорт пакета', path: 'passport/index.html' }
     ];
 
@@ -383,7 +392,6 @@ function applyAccess() {
     // Довідково-нормативні розділи — згруповані в дропдаун «Документи»
     const documentsItems = [
       { text: 'Постанова 1808', path: 'postanova/index.html' },
-      { text: '🧪 Пілотні проєкти', path: 'pilots/index.html' },
       { text: 'Алгоритми та правила (наказ 377)', path: 'algorithms/index.html' },
       { text: 'Нормативна база', path: 'regulatory/index.html' },
       { text: 'ДЕЦ МОЗ', path: 'dec/index.html' },
@@ -523,9 +531,11 @@ function applyAccess() {
       navContainer.appendChild(dropdownDiv);
     };
 
-    // Головна · Реєстр · Пакети · Паспорт · Документи ▼ · Сервіси ▼ · Структура · Чат
+    // Головна · Карта · Роз'яснення · Пакети ▼ · Паспорт · Довідники ▼ · Документи ▼ · Сервіси ▼
     appendBackLink(navContainer);
     appendNavLinks(coreItems);
+    appendDropdown('Пакети', packagesItems);
+    appendNavLinks(passportItems);
     appendDropdown('📚 Довідники', referenceItems);
     appendDropdown('Документи', documentsItems);
     appendDropdown('Сервіси', dropdownItems);
@@ -569,13 +579,16 @@ function applyAccess() {
   const isCabinetPage = currentPath.includes('cabinet');
   const isTasksPage = currentPath.includes('skod/tasks') || currentPath.includes('skod/reports');
   const isMapPage = currentPath.includes('/map/') || currentPath.endsWith('/map');
+  // Пілотні проєкти — довідкова сторінка з власним банером розділу; смуга
+  // «Вітаємо… активні доручення» тут лише відтісняла зміст униз
+  const isPilotsPage = currentPath.includes('/pilots');
 
   let alertBanner = document.getElementById('user-news-alert-banner');
   if (header) {
     if (!user || role === 'guest' || currentPath.includes('passport')) {
       if (alertBanner) alertBanner.remove();
     } else {
-      if (!isHomePage && !isCabinetPage && !isTasksPage && !isMapPage) {
+      if (!isHomePage && !isCabinetPage && !isTasksPage && !isMapPage && !isPilotsPage) {
         dashboard = document.createElement('div');
         dashboard.id = 'user-task-dashboard';
         dashboard.className = 'user-task-dashboard';

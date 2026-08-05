@@ -250,14 +250,67 @@ function selectPackage(pkgNum) {
   window.history.replaceState(null, "", `${window.location.pathname}?${params}`);
 }
 
+// Номери пілотних напрямів — це внутрішня нумерація НСЗУ/ЕСОЗ, у постанові 1808
+// таких пакетів немає. Раніше ?package=66 мовчки відкривав пакет 1 і людина
+// читала «Первинну медичну допомогу» замість зубопротезування ветеранів.
+const PILOT_PACKAGES = {
+  "66": "Зубопротезування окремих категорій осіб, які захищають/захищали незалежність України",
+  "67": "Стоматологічна допомога окремій категорії осіб, які захищають/захищали незалежність України",
+  "71": "Забір, кріоконсервація та зберігання репродуктивних клітин",
+  "73": "Розширені послуги з первинної медичної допомоги",
+  "84": "Довготривалий медсестринський догляд внутрішньо переміщених осіб",
+  "87": "Довготривалий медичний догляд окремим категоріям осіб",
+};
+
 function selectInitialPackage() {
   const params = new URLSearchParams(window.location.search);
   const pkgNum = params.get("package");
   if (pkgNum && passportState.packages.some(p => p.number === pkgNum)) {
     selectPackage(pkgNum);
-  } else if (passportState.packages.length > 0) {
+    return;
+  }
+  if (pkgNum && PILOT_PACKAGES[pkgNum]) {
+    showPilotNotice(pkgNum);
+    return;
+  }
+  if (pkgNum) {
+    showUnknownPackageNotice(pkgNum);
+    return;
+  }
+  if (passportState.packages.length > 0) {
     selectPackage(passportState.packages[0].number);
   }
+}
+
+/** Запитаний номер — пілотний напрям: ведемо туди, де він насправді описаний. */
+function showPilotNotice(pkgNum) {
+  const welcome = el("passportWelcome");
+  if (!welcome) return;
+  welcome.style.display = "";
+  el("passportContent").style.display = "none";
+  welcome.innerHTML = `
+    <div class="welcome-box">
+      <div class="welcome-icon">🧪</div>
+      <h2>№ ${escapeHtml(pkgNum)} — це пілотний проєкт, а не пакет ПМГ</h2>
+      <p>«${escapeHtml(PILOT_PACKAGES[pkgNum])}» закуповується окремою постановою Кабінету Міністрів,
+         поза постановою № 1808, тому паспорта пакета в нього немає.</p>
+      <p><a class="passport-btn btn-excel" href="../pilots/index.html?p=${encodeURIComponent(pkgNum)}">
+        Відкрити напрям у розділі «Пілотні проєкти»</a></p>
+    </div>`;
+}
+
+/** Номер, якого немає ні серед пакетів, ні серед пілотів. */
+function showUnknownPackageNotice(pkgNum) {
+  const welcome = el("passportWelcome");
+  if (!welcome) return;
+  welcome.style.display = "";
+  el("passportContent").style.display = "none";
+  welcome.innerHTML = `
+    <div class="welcome-box">
+      <div class="welcome-icon">❓</div>
+      <h2>Пакета № ${escapeHtml(pkgNum)} немає у ПМГ-2026</h2>
+      <p>У постанові № 1808 такого номера немає. Оберіть пакет зі списку ліворуч.</p>
+    </div>`;
 }
 
 // ── Header & Key Metrics ──────────────────────────────────────

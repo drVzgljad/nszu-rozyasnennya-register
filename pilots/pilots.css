@@ -16,7 +16,9 @@
   gap: 24px; flex-wrap: wrap;
   padding: 26px 28px;
   border-radius: var(--pr-card);
-  background: linear-gradient(135deg, #4a3410, #8a6207 55%, #a8770e);
+  /* Фірмові кольори порталу замість власного золотого градієнта: розділ має
+     виглядати частиною НавігатораПМГ26, а не окремим сайтом */
+  background: linear-gradient(135deg, #2f6b9e, #3a8462 62%, #54ad84);
   color: #fff;
   box-shadow: var(--p-shadow-sm);
 }
@@ -43,27 +45,9 @@
 .pl-stat-lbl { font-size: 11px; font-weight: 700; color: rgba(255,255,255,.82); text-align: center; }
 .pl-stat-warn { background: rgba(255,190,120,.22); border-color: rgba(255,200,140,.4); }
 
-/* ── Пояснення ПМГ vs пілот ────────────────────────────────────── */
-.pl-explain {
-  display: flex; align-items: stretch; gap: 14px; flex-wrap: wrap;
-}
-.pl-explain-col {
-  flex: 1 1 300px;
-  padding: 16px 18px;
-  background: var(--p-surface);
-  border: 1px solid var(--p-line);
-  border-radius: 16px;
-  box-shadow: var(--p-shadow-sm);
-}
-.pl-explain-col h3 { margin: 0 0 6px; font-size: 15px; }
-.pl-explain-col p { margin: 0; font-size: 13px; line-height: 1.55; color: var(--p-muted); }
-.pl-explain-col strong { color: var(--p-ink); }
-.pl-explain-pilot { border-color: #e0cb95; background: linear-gradient(180deg, #fdfaf3, var(--p-surface)); }
-.pl-explain-arrow {
-  align-self: center;
-  font-size: 11.5px; font-weight: 800; color: var(--p-muted);
-  text-transform: uppercase; letter-spacing: .06em;
-}
+/* Блок «Пакет ПМГ проти пілотного проєкту» прибрано 05.08.2026 на прохання
+   власника: різниця пояснена в тексті банера, а дві картки з «проти» лише
+   відсували список напрямів нижче згину. */
 
 /* ── Розкладка: список + паспорт ───────────────────────────────── */
 .pl-layout {
@@ -81,7 +65,9 @@
   border-radius: var(--pr-card);
   box-shadow: var(--p-shadow-sm);
 }
-.pl-list-title { margin: 0 0 12px; font-size: 13px; font-weight: 800; color: var(--p-muted); text-transform: uppercase; letter-spacing: .04em; }
+/* «Напрями» — заголовок списку, а не дрібний підпис: піднято з 13 до 17 px
+   і з приглушеного кольору до основного */
+.pl-list-title { margin: 0 0 12px; font-size: 17px; font-weight: 800; color: var(--p-ink); letter-spacing: -.01em; }
 .pl-list { display: flex; flex-direction: column; gap: 6px; }
 
 .pl-item {
@@ -95,14 +81,14 @@
 .pl-item:hover { background: var(--p-soft); }
 .pl-item.active {
   background: var(--p-soft);
-  border-color: #d9b96a;
-  box-shadow: inset 3px 0 0 #a8770e;   /* акцент, який видно навіть без фону */
+  border-color: #9dc4e2;
+  box-shadow: inset 3px 0 0 #2f6b9e;   /* акцент, який видно навіть без фону */
 }
 .pl-item.active .pl-item-title { font-weight: 800; }
 .pl-item-icon { font-size: 19px; flex: none; }
 .pl-item-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .pl-item-top { display: flex; align-items: center; gap: 6px; }
-.pl-item-num { font-size: 11px; font-weight: 800; color: #8a6207; }
+.pl-item-num { font-size: 11px; font-weight: 800; color: #2f6b9e; }
 .pl-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
 .pl-dot.ok { background: #2f9e5f; }
 .pl-dot.off { background: #d08a2c; }
@@ -126,7 +112,7 @@
   padding: 22px 24px;
   background: var(--p-surface);
   border: 1px solid var(--p-line);
-  border-left: 4px solid #a8770e;
+  border-left: 4px solid #2f6b9e;
   border-radius: var(--pr-card);
   box-shadow: var(--p-shadow-sm);
 }
@@ -134,7 +120,7 @@
 .pl-head-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
 .pl-head-num {
   padding: 4px 12px; border-radius: 9px;
-  background: #a8770e; color: #fff;
+  background: #2f6b9e; color: #fff;
   font-size: 13px; font-weight: 800;
 }
 .pl-status {
@@ -216,7 +202,7 @@
 }
 .pl-table td { padding: 9px 12px; border-bottom: 1px solid var(--p-line); line-height: 1.45; }
 .pl-table tbody tr:last-child td { border-bottom: 0; }
-.pl-rate-code { font-weight: 800; color: #8a6207; white-space: nowrap; }
+.pl-rate-code { font-weight: 800; color: #2f6b9e; white-space: nowrap; }
 .pl-rate-val { font-weight: 700; white-space: nowrap; }
 
 /* Нормативні акти */
@@ -246,17 +232,15 @@
 .pl-src { font-size: 12.5px; color: var(--accent-deep); word-break: break-all; }
 
 /* ── Темна тема ────────────────────────────────────────────────── */
-:root.dark-theme .pl-explain-pilot {
-  background: linear-gradient(180deg, #2a2416, var(--p-surface));
-  border-color: #4d3f1e;
-}
 :root.dark-theme .pl-warn {
   background: #2a2416; border-color: #4d3f1e; color: #e3b34c;
 }
 :root.dark-theme .pl-warn-strong { background: #33290f; border-color: #6b551f; }
-:root.dark-theme .pl-item-num { color: #e3b34c; }
-:root.dark-theme .pl-item.active { border-color: #6b551f; }
-:root.dark-theme .pl-rate-code { color: #e3b34c; }
+/* Номер напряму, код тарифу й активний пункт — у фірмовому синьому, як решта
+   порталу; жовтим лишилися тільки попередження, де колір несе зміст */
+:root.dark-theme .pl-item-num { color: #7fbdea; }
+:root.dark-theme .pl-item.active { border-color: #2c4a66; }
+:root.dark-theme .pl-rate-code { color: #7fbdea; }
 :root.dark-theme .pl-status-active { background: #14301f; color: #7fd6a2; border-color: #2c5c3d; }
 :root.dark-theme .pl-status-ended  { background: #33290f; color: #e3b34c; border-color: #6b551f; }
 :root.dark-theme .pl-chip-accent   { background: #14301f; color: #7fd6a2; border-color: #2c5c3d; }
@@ -264,7 +248,7 @@
 :root.dark-theme .pl-role-amend { background: #16283a; color: #7fbdea; }
 :root.dark-theme .pl-role-old   { background: #262421; color: #a8a49b; }
 :root.dark-theme .pl-hl { color: #ef9a6b; }
-:root.dark-theme .pl-head-num { background: #8a6207; }
+:root.dark-theme .pl-head-num { background: #2f6b9e; }
 
 /* ── Мобільна версія ───────────────────────────────────────────── */
 @media (max-width: 900px) {
