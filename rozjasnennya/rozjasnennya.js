@@ -166,8 +166,10 @@ function docState(id) {
 
 /* ── фільтри ───────────────────────────────────────────────── */
 function currentFilters() {
+  const query = el("rzSearch").value.trim().toLowerCase();
   return {
-    query: el("rzSearch").value.trim().toLowerCase(),
+    query,
+    codeDocs: looksLikeCode(query) ? docsWithCode(query) : null,
     pkg: el("fPackage").value,
     topic: el("fTopic").value,
     kind: el("fKind").value,
@@ -175,6 +177,49 @@ function currentFilters() {
     docState: el("fState").value,
     flag: el("fFlag").value,
   };
+}
+
+/* ── пошук за кодом ────────────────────────────────────────────
+   Рядок пошуку раніше дивився лише в назву, тему й номер листа, тож запит
+   «I63.9», «40803-00» чи «47544-2» не знаходив нічого — а саме з кодом на руках
+   експерт найчастіше й приходить. Зворотні індекси (код → документи) лежать
+   готові поруч, але важать 1,4 МБ, тому вантажимо їх лише тоді, коли запит
+   справді схожий на код. */
+const CODE_QUERY_RE = /^(?:[A-ZА-ЯІЇЄҐ]\d{2}(?:\.\d{1,2})?|\d{5}-\d{2}|[A-ZА-ЯІЇЄҐ]\d{5}|\d{2,6}-\d|[PР]\d{1,3})$/i;
+let codeIndexes = null;
+let codeIndexPromise = null;
+
+function looksLikeCode(query) {
+  return CODE_QUERY_RE.test(query.trim());
+}
+
+function loadCodeIndexes() {
+  if (codeIndexes) return Promise.resolve(codeIndexes);
+  if (!codeIndexPromise) {
+    codeIndexPromise = Promise.all([
+      fetch("data/codes_index.json").then((r) => r.ok ? r.json() : null).catch(() => null),
+      fetch("data/codes_tables.json").then((r) => r.ok ? r.json() : null).catch(() => null),
+    ]).then(([texts, tables]) => {
+      codeIndexes = { texts: texts?.index || {}, tables: tables?.index || {} };
+      return codeIndexes;
+    });
+  }
+  return codeIndexPromise;
+}
+
+/** Множина id документів, де код згадано — у тексті або в таблиці додатка. */
+function docsWithCode(query) {
+  if (!codeIndexes) return null;
+  const wanted = query.trim().toUpperCase();
+  const found = new Set();
+  for (const source of (["texts", "tables"])) {
+    for (const byCode of Object.values(codeIndexes[source])) {
+      const hits = byCode[wanted];
+      if (!hits) continue;
+      hits.forEach((hit) => found.add(typeof hit === "object" ? hit.d : hit));
+    }
+  }
+  return found;
 }
 
 function matches(doc, f) {
@@ -188,7 +233,10 @@ function matches(doc, f) {
   if (f.flag === "attachment" && !doc.is_attachment) return false;
   if (f.flag === "letters" && doc.is_attachment) return false;
   if (f.flag === "ocr" && !doc.ocr) return false;
-  if (f.query && !doc._search.includes(f.query)) return false;
+  if (f.query && !doc._search.includes(f.query)) {
+    // Запит-код: документ проходить, якщо код згадано в його тексті або таблиці
+    if (!(f.codeDocs && f.codeDocs.has(doc.id))) return false;
+  }
   return true;
 }
 
@@ -972,8 +1020,16 @@ async function init() {
   });
 
   renderStats();
-  ["rzSearch", "fPackage", "fTopic", "fKind", "fYear", "fState", "fFlag"].forEach((id) =>
-    el(id).addEventListener(id === "rzSearch" ? "input" : "change", apply));
+  ["fPackage", "fTopic", "fKind", "fYear", "fState", "fFlag"].forEach((id) =>
+    el(id).addEventListener("change", apply));
+  // Запит-код спершу дочікується індексів, інакше перше натискання Enter після
+  // набору «I63.9» показало б нуль, а друге — вже результат
+  el("rzSearch").addEventListener("input", () => {
+    if (looksLikeCode(el("rzSearch").value) && !codeIndexes) {
+      loadCodeIndexes().then(apply);
+    }
+    apply();
+  });
   el("rzReset").addEventListener("click", () => {
     ["rzSearch", "fPackage", "fTopic", "fKind", "fYear", "fState", "fFlag"]
       .forEach((id) => { el(id).value = ""; });
