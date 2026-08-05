@@ -19,13 +19,29 @@
   --g-500: #54ad84;
   --g-700: #3a8462;
 
-  --p-ink:    #1f3347;
-  --p-muted:  #647688;
-  --p-faint:  #8a9aab;
-  --p-line:   #e3edf3;
-  --p-soft:   #f2f8fb;
-  --p-page:   #f5fafb;
-  --p-surface:#ffffff;
+  /* Ролі інтерфейсу — єдине джерело значень для всього порталу.
+     Історично тут стояла друга система токенів (--p-*), яка дублювала базову
+     зі styles.css тими самими значеннями — і в світлій, і в темній темі. Через
+     це та сама роль правилася у трьох файлах. Тепер значення живуть тут і в
+     styles.css однаково, а --p-* лишилися АЛІАСАМИ: розділи, що на них
+     спираються (portal-сторінки, паспорт, кабінет, пілоти), не чіпаємо. */
+  --ink:     #1f3347;
+  --muted:   #647688;
+  --faint:   #8a9aab;
+  --line:    #e3edf3;
+  --soft:    #f2f8fb;
+  --soft-hover: #e6f0f6;
+  --page:    #f5fafb;
+  --surface: #ffffff;
+
+  --p-ink:     var(--ink);
+  --p-muted:   var(--muted);
+  --p-faint:   var(--faint);
+  --p-line:    var(--line);
+  --p-soft:    var(--soft);
+  --p-soft-hover: var(--soft-hover);
+  --p-page:    var(--page);
+  --p-surface: var(--surface);
 
   --accent:        var(--b-500);
   --accent-2:      var(--g-500);

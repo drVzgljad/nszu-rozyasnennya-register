@@ -1,11 +1,18 @@
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@700;800&display=swap');
 
+/* Ролі інтерфейсу. Той самий набір і з тими самими значеннями оголошує
+   portal.css (там же — аліаси --p-*, якими користуються портальні розділи).
+   Сторінка підключає або цей файл, або portal.css — набір ролей однаковий,
+   тож розділи не залежать від того, на якому фундаменті вони стоять. */
 :root {
   --ink: #1f3347;
   --muted: #647688;
+  --faint: #8a9aab;
   --line: #e3edf3;
   --surface: #ffffff;
   --soft: #f2f8fb;
+  --soft-hover: #e6f0f6;
+  --page: #f5fafb;
   --accent: #4a8fc7;
   --accent-dark: #2f6b9e;
   --accent-soft: #eef6fc;

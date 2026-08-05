@@ -215,7 +215,9 @@
 }
 
 .proposal-item.active {
-  background: var(--accent-light, #f0fdfa);
+  /* --accent-light у порталі не існувало — колір брався з fallback і жив поза
+     палітрою. Тепла зелена підкладка вже є під іменем --warm. */
+  background: var(--warm);
   border-color: var(--accent, #0d9488);
   box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.15);
 }

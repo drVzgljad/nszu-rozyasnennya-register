@@ -1170,14 +1170,9 @@
   --g-500: #22c55e;
   --g-700: #16a34a;
 
-  --p-ink:    #e2e8f0;
-  --p-muted:  #94a3b8;
-  --p-faint:  #64748b;
-  --p-line:   #334155;
-  --p-soft:   #0f172a;
-  --p-page:   #0f172a;
-  --p-surface:#1e293b;
-
+  /* --p-* більше не перевизначаємо: у portal.css вони аліаси базових ролей
+     (--p-ink: var(--ink) тощо), тож темні значення нижче доїжджають самі.
+     Раніше та сама пара кольорів стояла тут двічі — під двома іменами. */
   --accent:        var(--b-500);
   --accent-2:      var(--g-500);
   --accent-deep:   var(--b-400); /* Lighter accent in dark mode for accessibility */
@@ -1193,12 +1188,15 @@
   --p-shadow-sm: 0 8px 22px rgba(0,0,0,.35);
   --p-shadow-lg: 0 28px 70px rgba(0,0,0,.5);
 
-  /* styles.css overrides */
+  /* Ролі інтерфейсу в темній темі — одне місце для обох систем імен */
   --ink: #e2e8f0;
   --muted: #94a3b8;
+  --faint: #64748b;
   --line: #334155;
   --surface: #1e293b;
   --soft: #0f172a;
+  --soft-hover: #1e293b;
+  --page: #0f172a;
   --accent-dark: #38bdf8;
   --accent-soft: #1e293b;
   --teal: #4ade80;

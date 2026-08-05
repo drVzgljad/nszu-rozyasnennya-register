@@ -75,6 +75,9 @@
   width: 100%; padding: 10px 12px;
   border: 1px solid transparent; border-radius: 12px;
   background: transparent;
+  /* колір кнопці треба задавати явно: без цього браузер малює її системним
+     чорним, і в темній темі назва напряму зникала на темному тлі */
+  color: var(--p-ink);
   font: inherit; text-align: left; cursor: pointer;
   transition: background .12s, border-color .12s;
 }
