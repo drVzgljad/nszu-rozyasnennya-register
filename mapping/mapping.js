@@ -263,13 +263,21 @@
     if (!raw) return '<span class="muted">—</span>';
     const parts = [];
     let last = 0;
-    const rx = /(\d{5}-\d{2})|(ОДК\s*:?\s*\d+[-–—]?[A-ZА-Яa-zа-я]?)|([A-Z]\d{5})\b|(\d{1,5}-\d)\b|([A-ZА-Я]\d{2}(?:\.\d+)?)\b/g;
+    // Гілка (?:\s*[-–—]\s*\d+)? ловить діапазон «ОДК 1-22» цілим: без неї чипом
+    // ставало «ОДК 1-», а «22» лишалося голим текстом.
+    const rx = /(\d{5}-\d{2})|(ОДК\s*:?\s*\d+(?:\s*[-–—]\s*\d+)?[-–—]?[A-ZА-Яa-zа-я]?)|([A-Z]\d{5})\b|(\d{1,5}-\d)\b|([A-ZА-Я]\d{2}(?:\.\d+)?)\b/g;
     let m;
     while ((m = rx.exec(raw))) {
       parts.push(esc(raw.slice(last, m.index)));
       const t = m[0];
       if (m[1]) parts.push(link(`../classifiers/nk026.html?code=${encodeURIComponent(t)}${backTail()}`, t, "code-achi", "Код НК 026"));
-      else if (m[2]) parts.push(`<button class="code-chip code-odk" data-odk-open="${escAttr(t)}"${tipTitle("Показати склад ОДК")}>${esc(t)}</button>`);
+      else if (m[2]) {
+        // Діапазон («ОДК 1-22») однією карткою не відкриєш — його склад лежить
+        // нижче окремими блоками, тож чип лишається просто позначкою.
+        parts.push(/\d\s*[-–—]\s*\d/.test(t)
+          ? `<span class="code-chip code-odk code-odk-range"${tipTitle("Діапазон категорій ОДК — склад нижче")}>${esc(t)}</span>`
+          : `<button class="code-chip code-odk" data-odk-open="${escAttr(t)}"${tipTitle("Показати склад ОДК")}>${esc(t)}</button>`);
+      }
       else if (m[3]) parts.push(`<span class="code-chip code-esoz"${tipTitle("Код медичної послуги ЕСОЗ")}>${esc(t)}</span>`);
       else if (m[4]) {
         parts.push(loincSet && loincSet.has(t)
@@ -302,20 +310,28 @@
     if (kind === "achi" && cell.achi.length) stats.push(codes(cell.achi.length) + " НК 026");
     if (cell.esoz.length) stats.push(codes(cell.esoz.length) + " послуг ЕСОЗ");
     if (cell.loinc.length) stats.push(`${cell.loinc.length} LOINC`);
-    if (cell.odk.length) stats.push(`ОДК: ${cell.odk.join(", ")}`);
+    // Діапазон дає два десятки категорій — перелічувати їх у шапці немає сенсу
+    if (cell.odk.length) {
+      stats.push(cell.odk.length > 6
+        ? plural(cell.odk.length, "категорія", "категорії", "категорій") + " ОДК"
+        : `ОДК: ${cell.odk.join(", ")}`);
+    }
 
     const ranges = cell.ranges.length
       ? `<div class="mp-ranges">Розкрито діапазони: ${cell.ranges.map((r) =>
         `<span class="range-chip">${esc(r.from)}–${esc(r.to)} <em>${nf(r.codes)}</em></span>`).join(" ")}</div>`
       : "";
 
+    // Коди категорій малюємо лише на розкриття (див. fillOdkCodes): клітинка
+    // «ОДК 1-22» тягне 23 категорії — це понад 14 тисяч чипів, і вкладати їх
+    // у DOM наперед означало б секунду затримки на кожній такій послузі.
     const odkBlocks = cell.odk.map((id) => {
       const o = odkById.get(id);
       if (!o) return "";
-      return `<details class="mp-odk"><summary>${esc(o.id)} · ${esc(o.name)}
+      return `<details class="mp-odk" data-odk-codes="${escAttr(o.id)}">
+        <summary>${esc(o.id)} · ${esc(o.name)}
           <span class="odk-count">${codes(o.codes.length)}</span></summary>
-        <div class="chip-list odk-codes">${o.codes.map((c) =>
-        `<a class="code-chip code-icd" href="../classifiers/index.html?code=${encodeURIComponent(c)}${backTail()}">${esc(c)}</a>`).join("")}</div>
+        <div class="chip-list odk-codes"></div>
       </details>`;
     }).join("");
 
@@ -326,6 +342,18 @@
       ${ranges}
       ${odkBlocks}
     </div>`;
+  }
+
+  /** Коди категорії — у розкритий блок; підсвітку шуканого коду теж застосовуємо
+   *  тут, бо на момент відкриття картки чипів у блоці ще немає. */
+  function fillOdkCodes(details) {
+    const box = $(".odk-codes", details);
+    const o = odkById.get(details.dataset.odkCodes);
+    if (!box || !o || box.childElementCount) return;
+    box.innerHTML = o.codes.map((c) =>
+      `<a class="code-chip code-icd" href="../classifiers/index.html?code=${encodeURIComponent(c)}${backTail()}">${esc(c)}</a>`
+    ).join("");
+    markSearchedCode("box");
   }
 
   /** Вагові коефіцієнти ДСГ із додатків 1–2 постанови 1808. */
@@ -397,7 +425,9 @@
       <div class="reader-foot">Таблиця співставлення · рядок ${s.i + 1} з ${SERVICES.length}</div>`;
     warmNames(el.reader.querySelectorAll(".mp-raw .code-chip"), 8);
     $$(".mp-odk", el.reader).forEach((d) => d.addEventListener("toggle", () => {
-      if (d.open) warmNames(d.querySelectorAll(".code-chip"), 8);
+      if (!d.open) return;
+      fillOdkCodes(d);
+      warmNames(d.querySelectorAll(".code-chip"), 8);
     }));
     setTab("reader");
     markSearchedCode("box");
@@ -465,12 +495,14 @@
     icd: "НК 025 · хвороба", achi: "НК 026 · втручання",
     esoz: "Медична послуга ЕСОЗ", loinc: "LOINC · дослідження",
     odk: "Об'єднана діагностична категорія",
+    odkrange: "Діапазон категорій ОДК",
   };
   const KIND_HINT = {
     icd: "натисніть, щоб відкрити код у класифікаторі НК 025",
     achi: "натисніть, щоб відкрити код у класифікаторі НК 026",
     loinc: "натисніть, щоб відкрити код у довіднику LOINC",
     odk: "натисніть, щоб побачити склад категорії",
+    odkrange: "склад кожної категорії — блоками нижче",
   };
 
   const nameCache = new Map();   // "icd:I21.0" → назва ("" — назви немає)
@@ -532,8 +564,25 @@
   }
 
   function chipKind(node) {
+    if (node.classList.contains("code-odk-range")) return "odkrange";
     for (const k in KIND_LABEL) if (node.classList.contains("code-" + k)) return k;
     return null;
+  }
+
+  /** «ОДК 1-22» → реальні категорії діапазону. Правило те саме, що в
+   *  build_mapping.py: номер із власною категорією бере саме її («ОДК 23»),
+   *  номер без неї — усі свої літерні («21» → 21A і 21B). */
+  function odkRange(text) {
+    const m = /(\d+)\s*[-–—]\s*(\d+)/.exec(text);
+    if (!m || !ODK) return [];
+    const num = (o) => (/^\d+/.exec(normOdk(o.id)) || [""])[0];
+    const out = [];
+    for (let n = +m[1]; n <= +m[2]; n++) {
+      const exact = ODK.find((o) => normOdk(o.id) === String(n));
+      if (exact) out.push(exact);
+      else out.push(...ODK.filter((o) => num(o) === String(n)));
+    }
+    return out;
   }
 
   /** value: назва рядком або [код рубрики, її назва] — коли точного коду в
@@ -569,6 +618,15 @@
     if (!kind) return;
     tipChip = chip;
     const code = chip.textContent.trim();
+    if (kind === "odkrange") {
+      const list = odkRange(code);
+      const total = list.reduce((n, o) => n + o.codes.length, 0);
+      fillTip(kind, code, list.length
+        ? `${plural(list.length, "категорія", "категорії", "категорій")} · ${codes(total)} НК 025: ${list.map((o) => o.id).join(", ")}`
+        : "");
+      placeTip(chip);
+      return;
+    }
     if (kind === "odk") {
       const o = ODK && ODK.find((x) => normOdk(x.id) === normOdk(code));
       fillTip(kind, code, o ? `${o.name} · ${codes(o.codes.length)} НК 025` : "");

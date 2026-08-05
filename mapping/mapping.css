@@ -44,6 +44,8 @@
   background: var(--teal); color: #fff; cursor: pointer; font: inherit;
   font-size: .8rem; font-weight: 700; border: 0;
 }
+/* Діапазон категорій: не окрема картка, а позначка — склад розкрито нижче */
+.code-chip.code-odk-range { cursor: default; background: var(--teal-dark); }
 a.code-chip:hover { border-color: currentColor; }
 
 /* Код, за яким шукали: у переліку на тисячу чипів око саме його не знайде. */
