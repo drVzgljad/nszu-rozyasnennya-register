@@ -278,7 +278,11 @@
           ? `<span class="code-chip code-odk code-odk-range"${tipTitle("Діапазон категорій ОДК — склад нижче")}>${esc(t)}</span>`
           : `<button class="code-chip code-odk" data-odk-open="${escAttr(t)}"${tipTitle("Показати склад ОДК")}>${esc(t)}</button>`);
       }
-      else if (m[3]) parts.push(`<span class="code-chip code-esoz"${tipTitle("Код медичної послуги ЕСОЗ")}>${esc(t)}</span>`);
+      // Свого довідника послуг ЕСОЗ у порталі немає, тому код вів у нікуди й
+      // лишався мертвим чипом. Тепер веде в «Хто це лікує» — там за ним видно
+      // пакети й законтрактовані заклади.
+      else if (m[3]) parts.push(link(`../zoz-poshuk/index.html?q=${encodeURIComponent(t)}`, t,
+        "code-esoz", "Код медичної послуги ЕСОЗ — показати законтрактовані заклади"));
       else if (m[4]) {
         parts.push(loincSet && loincSet.has(t)
           ? link(`../classifiers/loinc.html?code=${encodeURIComponent(t)}`, t, "code-loinc", "Код LOINC — відкрити в довіднику")

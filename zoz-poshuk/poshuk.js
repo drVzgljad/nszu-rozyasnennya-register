@@ -18,6 +18,7 @@ const el = (id) => document.getElementById(id);
 const KIND_LABEL = {
   icd: "Хвороба (НК 025)",
   achi: "Інтервенція (НК 026)",
+  esoz: "Медична послуга ЕСОЗ",
   equip: "Обладнання у вимогах пакета",
   pkg: "Пакет ПМГ",
 };
@@ -81,6 +82,9 @@ function packageName(num) {
 // ── Пошук підказок ─────────────────────────────────────────────────────────
 const RE_ICD = /^[a-zа-яїієґ]\d/i;        // I21, C50.9
 const RE_ACHI = /^\d{4,5}(-\d{1,2})?$/;   // 11000-00
+// A33023, T34010 — літера і рівно п'ять цифр. Формально підходить і під RE_ICD,
+// тому ЕСОЗ перевіряємо раніше й даємо йому вищий ранг при точному збігу.
+const RE_ESOZ = /^[a-zа-яїієґ]\d{3,5}$/i;
 
 // Питають «МРТ», а у вимогах пакета написано «магнітно-резонансний томограф».
 // Розкриваємо лише при повному збігу запиту з абревіатурою: підрядок «кт»
@@ -104,6 +108,18 @@ function buildSuggestions(raw) {
 
   const isCodeIcd = RE_ICD.test(q);
   const isCodeAchi = RE_ACHI.test(q.replace(/\s/g, ""));
+  const isCodeEsoz = RE_ESOZ.test(q);
+
+  for (const [code, name, pkgs] of state.index.esoz || []) {
+    const lc = code.toLowerCase();
+    let rank = -1;
+    if (isCodeEsoz) {
+      if (lc === q) rank = 0.5;          // точний код ЕСОЗ — найточніша відповідь
+      else if (lc.startsWith(q)) rank = 1.5;
+    }
+    if (rank < 0 && !isCodeEsoz && name && norm(name).includes(q)) rank = 4.2;
+    if (rank > 0 || rank === 0.5) push("esoz", code, name, pkgs, rank);
+  }
 
   // Пакет: «12», «пакет 12»
   const pkgMatch = q.match(/^(?:пакет\s*)?(\d{1,3})$/);

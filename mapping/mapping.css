@@ -38,7 +38,8 @@
 }
 .code-chip.code-icd { background: var(--accent-soft); color: var(--accent-dark); }
 .code-chip.code-achi { background: var(--warm); color: var(--teal-dark); }
-.code-chip.code-esoz { background: var(--soft); color: var(--muted); border-color: var(--line); }
+.code-chip.code-esoz { background: var(--soft); color: var(--accent-dark); border-color: var(--line); }
+a.code-chip.code-esoz:hover { border-color: var(--accent); background: var(--accent-soft); }
 .code-chip.code-loinc { background: var(--soft); color: var(--teal-dark); border-color: var(--teal); }
 .code-chip.code-odk {
   background: var(--teal); color: #fff; cursor: pointer; font: inherit;
