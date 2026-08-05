@@ -330,7 +330,7 @@
 }
 
 .task-askod-copy:hover {
-  background: var(--accent, #4a8fc7);
+  background: var(--accent-fill, #4a8fc7);
   color: #fff;
 }
 
@@ -436,7 +436,7 @@
 }
 
 .btn-card-action:hover {
-  background: var(--accent);
+  background: var(--accent-fill);
   color: #fff;
 }
 
@@ -1152,7 +1152,7 @@
   height: 24px;
   padding: 0 8px;
   border-radius: 999px;
-  background: var(--accent, #4a8fc7);
+  background: var(--accent-fill, #4a8fc7);
   color: #fff;
   font-size: 13px;
   font-weight: 800;

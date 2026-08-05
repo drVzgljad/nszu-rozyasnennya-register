@@ -164,7 +164,7 @@ header.top {
 }
 
 .sidebar-pkg-card.active .sidebar-pkg-num {
-  background: var(--accent, #4a8fc7);
+  background: var(--accent-fill, #4a8fc7);
   color: #fff;
 }
 
@@ -674,7 +674,7 @@ header.top {
 }
 
 .page-btn.active {
-  background: var(--accent, #4a8fc7);
+  background: var(--accent-fill, #4a8fc7);
   color: #fff;
   border-color: var(--accent, #4a8fc7);
 }
@@ -1084,7 +1084,7 @@ header.top {
 }
 
 .dark-theme .sidebar-pkg-card.active .sidebar-pkg-num {
-  background: var(--accent, #4a8fc7);
+  background: var(--accent-fill, #4a8fc7);
   color: #fff;
 }
 

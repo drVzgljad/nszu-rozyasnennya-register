@@ -85,7 +85,12 @@
 }
 .batch-actions button:hover { background: var(--accent-soft); }
 .batch-actions .batch-primary { background: var(--accent-dark); color: #fff; border-color: var(--accent-dark); }
-.batch-actions .batch-primary:hover { background: var(--accent); }
+.batch-actions .batch-primary:hover { background: var(--accent-fill); }
+/* У темній темі --accent-dark світлішає до #38bdf8 (він там для тексту),
+   і білий напис на ньому тонув. Заливка йде на --accent-fill. */
+:root.dark-theme .batch-actions .batch-primary {
+  background: var(--accent-fill); border-color: var(--accent-fill);
+}
 
 /* ── Результати (текстовий і пакетний пошук) ────────────────── */
 .nk-results {

@@ -82,7 +82,7 @@
 }
 .map-chip:hover { border-color: var(--accent); color: var(--accent-deep); }
 .map-chip.is-active {
-  background: var(--accent); border-color: var(--accent); color: #fff;
+  background: var(--accent-fill); border-color: var(--accent-fill); color: #fff;
   box-shadow: 0 4px 12px var(--accent-soft);
 }
 .map-chip.mis.is-active { background: var(--accent-2); border-color: var(--accent-2); }
@@ -228,7 +228,7 @@
 .mc-howto:hover { color: var(--accent-deep); }
 .mc-open {
   font-family: var(--p-display); font-weight: 700; font-size: 13.5px;
-  color: #fff; background: var(--accent); text-decoration: none;
+  color: #fff; background: var(--accent-fill); text-decoration: none;
   padding: 8px 16px; border-radius: var(--pr-pill);
   transition: background .15s, transform .1s;
 }

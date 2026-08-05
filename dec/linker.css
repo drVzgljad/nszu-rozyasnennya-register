@@ -113,7 +113,7 @@
 }
 
 .btn-primary {
-  background: var(--accent, #4a8fc7);
+  background: var(--accent-fill, #4a8fc7);
   color: #ffffff;
 }
 

@@ -11,7 +11,7 @@
   font-size: .68rem; font-weight: 800; letter-spacing: .02em;
   border-radius: 20px; padding: 2px 9px;
 }
-.eq-tag.crit { background: var(--accent); color: #fff; }
+.eq-tag.crit { background: var(--accent-fill); color: #fff; }
 .eq-tag.cond { background: var(--warm); color: var(--teal-dark); }
 /* Рівень збігу з довідником — колір несе довіру, а не настрій:
    зелений «точний», синій «ймовірний», теплий «ширший», сірий «нічого». */

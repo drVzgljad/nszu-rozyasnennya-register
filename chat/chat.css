@@ -993,7 +993,7 @@ body.is-popup-window #pipToggleBtn {
 }
 .cat-chip:hover { border-color: var(--accent); color: var(--ink); }
 .cat-chip.active {
-  background: var(--accent, #4a8fc7);
+  background: var(--accent-fill, #4a8fc7);
   color: #fff;
   border-color: transparent;
 }

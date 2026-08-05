@@ -99,8 +99,8 @@
 }
 
 .quick-filter.active {
-  background: var(--accent, #0ea5e9);
-  border-color: var(--accent, #0ea5e9);
+  background: var(--accent-fill, #0ea5e9);
+  border-color: var(--accent-fill, #0ea5e9);
   color: #fff;
 }
 

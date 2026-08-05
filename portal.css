@@ -49,6 +49,8 @@
   --accent-2-deep: var(--g-700);
   --accent-soft:   var(--b-50);
   --accent-2-soft: var(--g-50);
+  /* Акцент у ролі ТЛА під білим текстом — див. styles.css */
+  --accent-fill:   var(--accent);
 
   --brand-grad:  linear-gradient(118deg, var(--b-50) 0%, #f4fbf8 52%, var(--g-50) 100%);
   --cta-grad:    linear-gradient(120deg, var(--b-500), var(--g-500));

@@ -206,7 +206,7 @@
 .action.primary {
   border-color: var(--accent);
   color: #fff;
-  background: var(--accent);
+  background: var(--accent-fill);
 }
 .algorithm-card-header {
   display: flex;

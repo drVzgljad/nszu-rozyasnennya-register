@@ -108,7 +108,9 @@
   border: 1px solid var(--accent-dark); background: var(--accent-dark); color: #fff;
   border-radius: 9px; padding: 6px 12px; font: inherit; font-size: .82rem; font-weight: 600; cursor: pointer;
 }
-.tb-open:hover { background: var(--accent); border-color: var(--accent); }
+.tb-open:hover { background: var(--accent-fill); border-color: var(--accent-fill); }
+/* Те саме, що з .batch-primary: у темній темі --accent-dark світлий. */
+:root.dark-theme .tb-open { background: var(--accent-fill); border-color: var(--accent-fill); }
 .tb-nodata { font-size: .78rem; color: var(--muted); flex: 1 1 200px; }
 .tb-src { font-size: .8rem; font-weight: 600; color: var(--accent-dark); text-decoration: none; }
 .tb-src:hover { text-decoration: underline; }

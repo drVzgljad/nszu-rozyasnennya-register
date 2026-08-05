@@ -85,7 +85,7 @@
 .tree-filter-btn:hover,
 .tree-filter-btn.active {
   border-color: var(--accent);
-  background: var(--accent);
+  background: var(--accent-fill);
   color: #fff;
   box-shadow: 0 8px 18px rgba(74, 143, 199, 0.18);
 }
@@ -736,8 +736,8 @@
 .dark-theme .tree-filter-btn.active,
 :root.dark-theme .tree-filter-btn:hover,
 .dark-theme .tree-filter-btn:hover {
-  background: #0ea5e9;
-  border-color: #38bdf8;
+  background: var(--accent-fill);
+  border-color: var(--accent-fill);
   color: #ffffff;
   box-shadow: 0 10px 22px rgba(14, 165, 233, 0.22);
 }

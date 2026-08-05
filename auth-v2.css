@@ -36,7 +36,7 @@
 }
 .auth-nav-btn:hover { background: rgba(0,111,201,.07); }
 .auth-nav-btn.is-signed-in {
-  background: var(--accent);
+  background: var(--accent-fill);
   color: #fff;
   border-color: var(--accent);
 }
@@ -245,7 +245,7 @@
   padding: 11px;
   border: none;
   border-radius: 10px;
-  background: var(--accent, #006fc9);
+  background: var(--accent-fill, #006fc9);
   color: #fff;
   font-size: 15px;
   font-weight: 700;
@@ -322,7 +322,7 @@
 /* Active styling if a page inside dropdown is active */
 .nav-dropdown-btn.active {
   color: #fff !important;
-  background: var(--accent, #4a8fc7) !important;
+  background: var(--accent-fill, #4a8fc7) !important;
 }
 .nav-dropdown-btn:hover:not(.active) {
   color: var(--accent-dark, #2f6b9e);
@@ -564,7 +564,7 @@
 
 /* Active state (when user is inside /chat/ directory) */
 .nav-chat-btn.active {
-  background: var(--accent, #4a8fc7) !important;
+  background: var(--accent-fill, #4a8fc7) !important;
   color: #fff !important;
   border: 1px solid var(--accent, #4a8fc7) !important;
   box-shadow: 0 4px 12px rgba(74, 143, 199, 0.25);
@@ -928,7 +928,7 @@
   transform: translateY(-1px);
 }
 .dashboard-action-btn.primary {
-  background: var(--accent, #4a8fc7);
+  background: var(--accent-fill, #4a8fc7);
   color: #fff;
 }
 .dashboard-action-btn.primary:hover {
@@ -1266,6 +1266,11 @@
   --accent-2-deep: var(--g-400);
   --accent-soft:   var(--b-50);
   --accent-2-soft: var(--g-50);
+  /* Акцент розділився на дві ролі, бо одному кольору вони не по силі:
+     --accent лишається для ТЕКСТУ й обведень (#0ea5e9 на темній картці —
+     5,3), а під білим текстом іде глибший --accent-fill (5,8 замість 2,77).
+     У світлій темі --accent-fill дорівнює --accent, вигляд не змінюється. */
+  --accent-fill:   #0369a1;
 
   --brand-grad:  linear-gradient(118deg, #0f172a 0%, #11221b 52%, #0f172a 100%);
   --cta-grad:    linear-gradient(120deg, var(--b-500), var(--g-500));
@@ -1335,8 +1340,8 @@
   color: var(--accent) !important;
 }
 :root.dark-theme .top-auth .auth-nav-btn.is-signed-in {
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
+  background: var(--accent-fill) !important;
+  border-color: var(--accent-fill) !important;
   color: #fff !important;
 }
 
@@ -1446,8 +1451,8 @@
 }
 :root.dark-theme .action.primary {
   color: #fff !important;
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
+  background: var(--accent-fill) !important;
+  border-color: var(--accent-fill) !important;
 }
 :root.dark-theme .excerpt {
   color: var(--ink) !important;
@@ -1774,7 +1779,7 @@
   color: var(--ink) !important;
 }
 :root.dark-theme .filter-chip.active {
-  background: var(--accent) !important;
+  background: var(--accent-fill) !important;
   color: #fff !important;
   border-color: var(--accent) !important;
 }
@@ -1897,7 +1902,7 @@
   color: var(--ink) !important;
 }
 :root.dark-theme .type-chip.active {
-  background: var(--accent) !important;
+  background: var(--accent-fill) !important;
   color: #fff !important;
   border-color: var(--accent) !important;
 }
@@ -2449,7 +2454,7 @@
 }
 
 .status-opt-btn.active {
-  background: var(--accent, #3b82f6) !important;
+  background: var(--accent-fill, #3b82f6) !important;
   color: #fff !important;
   border-color: var(--accent, #3b82f6) !important;
 }
@@ -2466,7 +2471,7 @@
 }
 
 :root.dark-theme .status-opt-btn.active {
-  background: var(--accent, #3b82f6) !important;
+  background: var(--accent-fill, #3b82f6) !important;
   color: #fff !important;
   border-color: var(--accent, #3b82f6) !important;
 }
@@ -2783,7 +2788,7 @@
   border: 1px solid transparent;
 }
 .status-until-row .until-confirm {
-  background: var(--accent, #4a8fc7);
+  background: var(--accent-fill, #4a8fc7);
   color: #fff;
 }
 .status-until-row .until-confirm:hover { background: var(--accent-dark, #2f6b9e); }

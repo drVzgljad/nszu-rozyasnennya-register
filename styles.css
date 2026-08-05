@@ -16,6 +16,9 @@
   --accent: #4a8fc7;
   --accent-dark: #2f6b9e;
   --accent-soft: #eef6fc;
+  /* Акцент у ролі ТЛА під білим текстом. У світлій темі це той самий колір,
+     у темній — глибший (auth-v2.css), бо білий на #0ea5e9 дає лише 2,77. */
+  --accent-fill: var(--accent);
   --teal: #54ad84;
   --teal-dark: #3a8462;
   --warm: #eef8f1;
@@ -113,7 +116,7 @@ body {
 }
 .section-switch a.active {
   color: #fff;
-  background: var(--accent);
+  background: var(--accent-fill);
 }
 .section-switch a.report-nav-cta { display: none; }
 
@@ -386,7 +389,7 @@ select {
   font-size: 14px;
   text-decoration: none;
 }
-.action.primary { color: #fff; border-color: var(--accent); background: var(--accent); }
+.action.primary { color: #fff; border-color: var(--accent); background: var(--accent-fill); }
 .section-title {
   margin: 22px 0 9px;
   color: var(--muted);
@@ -557,7 +560,7 @@ select {
   border-color: rgba(0,111,201,.35);
 }
 .header-nav-row .auth-container .auth-nav-btn.is-signed-in {
-  background: var(--accent);
+  background: var(--accent-fill);
   color: #fff;
   border-color: var(--accent);
 }
@@ -617,7 +620,7 @@ select {
   outline: none;
 }
 .dec-view-btn.active {
-  background: var(--accent) !important;
+  background: var(--accent-fill) !important;
   color: #ffffff !important;
   border-color: var(--accent) !important;
   box-shadow: 0 4px 10px rgba(74, 143, 199, 0.25);
@@ -802,7 +805,7 @@ select {
   font-weight: 700;
   border-radius: 10px;
   border: none;
-  background: var(--accent);
+  background: var(--accent-fill);
   color: #fff;
   cursor: pointer;
   transition: background 0.15s, transform 0.1s;
