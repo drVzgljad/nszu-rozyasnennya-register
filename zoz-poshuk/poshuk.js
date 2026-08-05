@@ -293,6 +293,8 @@ function applyFilters() {
     if (nameQuery && !(norm(p.n).includes(nameQuery) || norm(p.f).includes(nameQuery) || p.e.includes(nameQuery))) return false;
     return addressesFor(p).length > 0;
   });
+  const f = state.filters;
+  el("resetFilters").disabled = !(f.package || f.oblast || f.settlement || f.ownership || f.name);
   renderResults();
 }
 
@@ -518,12 +520,51 @@ function setupListeners() {
     }, 150);
   });
 
+  el("resetFilters").addEventListener("click", resetFilters);
+  el("newSearch").addEventListener("click", newSearch);
+
   el("copyText").addEventListener("click", () =>
     copyToClipboard(buildLetterText(),
       `Скопійовано ${state.filtered.length} ${plural(state.filtered.length, "заклад", "заклади", "закладів")} у форматі для листа`));
   el("copyTable").addEventListener("click", () =>
     copyToClipboard(buildTableText(), "Таблицю скопійовано — вставляйте у Word або Excel"));
   el("exportXlsx").addEventListener("click", exportXlsx);
+}
+
+// Скидає лише звуження — сам запит і знайдені заклади лишаються на місці.
+// Після довгого підбору «пакет + область + село» це найчастіша потреба:
+// повернутися до повного переліку, не набираючи код заново.
+function resetFilters() {
+  state.filters.package = "";
+  state.filters.oblast = "";
+  state.filters.settlement = "";
+  state.filters.ownership = "";
+  state.filters.name = "";
+  el("filterPackage").value = "";
+  el("filterOblast").value = "";
+  el("filterOwnership").value = "";
+  el("filterName").value = "";
+  populateSettlements();
+  applyFilters();
+  showNote("Фільтри скинуто — показано всі заклади за запитом");
+}
+
+// Повне очищення: порожнє поле, порожній стан, курсор у пошуку
+function newSearch() {
+  state.query = null;
+  state.matched = [];
+  state.filtered = [];
+  const input = el("queryInput");
+  input.value = "";
+  input.title = "";
+  closeSuggestions();
+  el("chainBox").hidden = true;
+  el("resultsSection").hidden = true;
+  el("emptyHint").hidden = false;
+  el("copyNote").hidden = true;
+  el("zozList").innerHTML = "";
+  if (history.replaceState) history.replaceState(null, "", location.pathname);
+  input.focus();
 }
 
 // Запит текстом: беремо найкращу підказку. Так працюють і кнопки «часто питають»,

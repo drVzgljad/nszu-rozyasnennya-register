@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Хто це лікує — пошук законтрактованого закладу</title>
   <link rel="stylesheet" href="../styles.css?v=20260805a">
-  <link rel="stylesheet" href="poshuk.css?v=20260805a">
+  <link rel="stylesheet" href="poshuk.css?v=20260805f">
   <link rel="stylesheet" href="../auth-v2.css?v=20260805b">
   <script type="module" src="../auth-v2.js?v=20260805e"></script>
 </head>
@@ -90,6 +90,7 @@
         <span class="chain-label">Законтрактовано</span>
         <strong id="chainCount">—</strong>
       </div>
+      <button type="button" class="chain-reset" id="newSearch" title="Очистити й почати новий пошук">✕ Новий пошук</button>
     </section>
 
     <section class="results" id="resultsSection" hidden>
@@ -122,6 +123,7 @@
           <button type="button" class="action" id="copyText">📋 Копіювати для листа</button>
           <button type="button" class="action" id="copyTable">📑 Копіювати таблицю</button>
           <button type="button" class="action" id="exportXlsx">📥 Excel</button>
+          <button type="button" class="reset-btn" id="resetFilters">Очистити фільтри</button>
         </div>
       </div>
       <div class="copy-note" id="copyNote" hidden></div>
@@ -151,6 +153,6 @@
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="poshuk.js?v=20260805e" defer></script>
+  <script src="poshuk.js?v=20260805f" defer></script>
 </body>
 </html>
