@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>НавігаторПМГ26 | Хто це лікує — пошук законтрактованого закладу</title>
+  <link rel="stylesheet" href="../styles.css?v=20260805a">
+  <link rel="stylesheet" href="poshuk.css?v=20260805a">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260805b">
+  <script type="module" src="../auth-v2.js?v=20260805e"></script>
+</head>
+<body id="top">
+  <header class="hero poshuk-hero">
+    <div class="hero-copy">
+      <div class="overline">Аналітика та реєстри ПМГ</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Хто це лікує</h1>
+      <p>Пошук законтрактованого закладу за кодом чи назвою хвороби, назвою операції, обладнанням (КТ, МРТ, ангіограф) або номером пакета. Для відповідей на звернення: перелік з адресами місць надання послуг можна скопіювати одним рухом.</p>
+    </div>
+    <div class="stats" aria-label="Обсяг довідника">
+      <div class="stat">
+        <strong id="statProviders">-</strong>
+        <span>закладів у базі</span>
+      </div>
+      <div class="stat">
+        <strong id="statIcd">-</strong>
+        <span>кодів хвороб</span>
+      </div>
+      <div class="stat">
+        <strong id="statAchi">-</strong>
+        <span>інтервенцій</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout poshuk-layout">
+    <section class="poshuk-panel" aria-label="Пошук">
+      <label class="poshuk-search">
+        <span>Що шукаємо</span>
+        <input id="queryInput" type="search" autocomplete="off" spellcheck="false"
+               placeholder="I21.0, інфаркт, 11000-00, холецистектомія, МРТ, пакет 12…"
+               aria-describedby="queryHint">
+        <span class="poshuk-loading" id="queryLoading">Завантажую довідник…</span>
+      </label>
+      <div class="poshuk-hint" id="queryHint">Введіть код хвороби (НК 025), код інтервенції (НК 026), назву хвороби чи операції, назву обладнання або номер пакета.</div>
+      <div class="suggest" id="suggestBox" role="listbox" hidden></div>
+
+      <div class="quick-row" id="quickRow" aria-label="Часті запити">
+        <span class="quick-label">Часто питають:</span>
+        <button type="button" class="quick-btn" data-quick="МРТ">МРТ</button>
+        <button type="button" class="quick-btn" data-quick="КТ">КТ</button>
+        <button type="button" class="quick-btn" data-quick="ангіограф">Ангіограф</button>
+        <button type="button" class="quick-btn" data-quick="мамограф">Мамограф</button>
+        <button type="button" class="quick-btn" data-quick="I21">Інфаркт (I21)</button>
+        <button type="button" class="quick-btn" data-quick="інсульт">Інсульт</button>
+      </div>
+    </section>
+
+    <section class="chain" id="chainBox" hidden aria-live="polite">
+      <div class="chain-step">
+        <span class="chain-label">Знайдено</span>
+        <strong id="chainQuery">—</strong>
+      </div>
+      <div class="chain-arrow">→</div>
+      <div class="chain-step">
+        <span class="chain-label">Пакети</span>
+        <div class="chain-packages" id="chainPackages"></div>
+      </div>
+      <div class="chain-arrow">→</div>
+      <div class="chain-step">
+        <span class="chain-label">Законтрактовано</span>
+        <strong id="chainCount">—</strong>
+      </div>
+    </section>
+
+    <section class="results" id="resultsSection" hidden>
+      <div class="filters-row">
+        <label class="f-item f-grow">
+          <span>Пакет</span>
+          <select id="filterPackage"><option value="">Усі пакети запиту</option></select>
+        </label>
+        <label class="f-item">
+          <span>Область</span>
+          <select id="filterOblast"><option value="">Усі області</option></select>
+        </label>
+        <label class="f-item">
+          <span>Населений пункт</span>
+          <select id="filterSettlement"><option value="">Усі населені пункти</option></select>
+        </label>
+        <label class="f-item">
+          <span>Форма власності</span>
+          <select id="filterOwnership"><option value="">Будь-яка</option></select>
+        </label>
+        <label class="f-item f-grow">
+          <span>Назва закладу</span>
+          <input id="filterName" type="search" placeholder="Частина назви або ЄДРПОУ…" autocomplete="off">
+        </label>
+      </div>
+
+      <div class="results-bar">
+        <div class="results-count" id="resultsCount">—</div>
+        <div class="results-actions">
+          <button type="button" class="action" id="copyText">📋 Копіювати для листа</button>
+          <button type="button" class="action" id="copyTable">📑 Копіювати таблицю</button>
+          <button type="button" class="action" id="exportXlsx">📥 Excel</button>
+        </div>
+      </div>
+      <div class="copy-note" id="copyNote" hidden></div>
+
+      <div class="zoz-list" id="zozList"></div>
+    </section>
+
+    <section class="empty-hint" id="emptyHint">
+      <div class="empty-icon">?</div>
+      <h2>Почніть із запиту</h2>
+      <p>Наприклад: <button type="button" class="link-btn" data-quick="C50">C50 — рак грудної залози</button>,
+        <button type="button" class="link-btn" data-quick="інсульт">інсульт</button>,
+        <button type="button" class="link-btn" data-quick="МРТ">МРТ</button>.</p>
+      <p class="empty-caveat">Пам'ятайте: договір укладається на <strong>пакет</strong>, а не на окрему процедуру. Перелік показує заклади, законтрактовані за пакетом, у межах якого надається ця послуга. Місця надання послуг наведені за договором у цілому — вони не прив'язані до конкретного пакета.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Дані про договори — з вивантажки НСЗУ, <span id="footerFresh">дата уточнюється</span>.</p>
+      </div>
+    </div>
+  </footer>
+
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="poshuk.js?v=20260805e" defer></script>
+</body>
+</html>

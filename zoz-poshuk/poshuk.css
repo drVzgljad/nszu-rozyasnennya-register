@@ -1,0 +1,397 @@
+/* Розділ «Хто це лікує» — пошук законтрактованого закладу. */
+
+.poshuk-layout {
+  display: block;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 18px 60px;
+}
+
+/* ── Пошук ───────────────────────────────────────────────────────────────── */
+.poshuk-panel {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 22px 24px 18px;
+  margin-top: -28px;
+}
+
+.poshuk-search {
+  display: block;
+  position: relative;
+}
+
+.poshuk-search > span {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.poshuk-search input {
+  width: 100%;
+  font-size: 17px;
+  font-family: inherit;
+  color: var(--ink);
+  padding: 14px 16px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: var(--soft);
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.poshuk-search input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+.poshuk-search input:disabled {
+  opacity: 0.6;
+}
+
+.poshuk-loading {
+  position: absolute;
+  right: 14px;
+  bottom: 16px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.poshuk-hint {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+/* Підказки лежать поверх наступних блоків, інакше список «штовхав» результати */
+.suggest {
+  position: absolute;
+  z-index: 40;
+  left: 24px;
+  right: 24px;
+  top: calc(100% - 52px);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 18px 40px rgba(38, 78, 112, 0.18);
+  overflow: hidden;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.suggest-item {
+  display: grid;
+  grid-template-columns: 168px 1fr auto;
+  gap: 12px;
+  align-items: baseline;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.suggest-item:last-child { border-bottom: 0; }
+.suggest-item:hover,
+.suggest-item.active { background: var(--accent-soft); }
+
+.s-kind {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--accent-dark);
+}
+
+.s-main { line-height: 1.35; }
+.s-pkgs { font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+.quick-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.quick-label { font-size: 12.5px; color: var(--muted); }
+
+.quick-btn,
+.link-btn {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--soft);
+  color: var(--accent-dark);
+  padding: 5px 12px;
+}
+
+.quick-btn:hover,
+.link-btn:hover { background: var(--accent-soft); border-color: var(--accent); }
+
+.link-btn {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-decoration: underline;
+}
+
+/* ── Ланцюжок «код → пакети → заклади» ───────────────────────────────────── */
+.chain {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 18px 0 0;
+  padding: 14px 18px;
+  background: var(--warm);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.chain-step { min-width: 0; }
+.chain-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.chain-step strong { font-size: 14.5px; color: var(--ink); }
+.chain-arrow { color: var(--muted); font-size: 18px; }
+.chain-packages { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+
+.pkg-badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 2px 7px;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  border: 1px solid transparent;
+}
+
+.pkg-badge.hit { background: var(--teal-dark); color: #fff; }
+.pkg-badge.dim { background: var(--soft); color: var(--muted); }
+.pkg-badge.muted { background: transparent; color: var(--muted); }
+
+/* ── Фільтри й дії ───────────────────────────────────────────────────────── */
+.results { margin-top: 18px; }
+
+.filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.f-item { display: flex; flex-direction: column; gap: 4px; min-width: 190px; }
+.f-item.f-grow { flex: 1 1 220px; }
+.f-item > span {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+}
+
+.f-item select,
+.f-item input {
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--ink);
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  max-width: 100%;
+}
+
+.results-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.results-count { font-size: 13.5px; color: var(--muted); }
+.results-count strong { color: var(--ink); font-size: 15px; }
+.results-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.results-actions .action {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 7px 13px;
+  border-radius: 9px;
+  border: 1px solid var(--accent-dark);
+  background: var(--accent-dark);
+  color: #fff;
+}
+
+.results-actions .action:hover { filter: brightness(1.08); }
+.results-actions .action:nth-child(n+2) {
+  background: var(--surface);
+  color: var(--accent-dark);
+}
+
+.copy-note {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--teal-dark);
+  background: var(--warm);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 8px 12px;
+}
+
+/* ── Перелік закладів ────────────────────────────────────────────────────── */
+.zoz-list { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+
+.zoz {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  padding: 14px 16px;
+  box-shadow: 0 4px 14px rgba(38, 78, 112, 0.05);
+}
+
+.zoz-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.zoz-title strong { font-size: 14.5px; font-weight: 700; color: var(--ink); }
+
+.zoz-sub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.zoz-sub .edrpou {
+  font-family: monospace;
+  font-weight: 700;
+  background: var(--soft);
+  border-radius: 4px;
+  padding: 1px 6px;
+  letter-spacing: 0.04em;
+}
+
+.zoz-sub .net { color: var(--teal-dark); font-weight: 600; }
+.zoz-pkgs { display: flex; flex-wrap: wrap; gap: 4px; max-width: 46%; justify-content: flex-end; }
+
+.zoz-addr {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.zoz-addr li { padding: 2px 0 2px 18px; position: relative; line-height: 1.45; }
+.zoz-addr li::before { content: "📍"; position: absolute; left: 0; font-size: 11px; }
+.zoz-addr li.more { color: var(--muted); font-size: 12px; }
+.zoz-addr li.more::before { content: ""; }
+
+.zoz-mail { margin-top: 8px; font-size: 12.5px; color: var(--muted); }
+.zoz-mail a { color: var(--accent-dark); }
+
+.no-results {
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  padding: 22px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+.no-results.soft { background: var(--accent-soft); border-style: solid; color: var(--accent-dark); }
+
+/* ── Порожній стан ───────────────────────────────────────────────────────── */
+.empty-hint {
+  margin-top: 22px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 28px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+
+.empty-hint .empty-icon {
+  width: 42px;
+  height: 42px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-size: 20px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-hint h2 { font-size: 17px; margin: 0 0 6px; color: var(--ink); }
+.empty-hint p { font-size: 13.5px; color: var(--muted); margin: 6px 0; }
+
+.empty-caveat {
+  max-width: 720px;
+  margin: 14px auto 0 !important;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 12.5px !important;
+  line-height: 1.5;
+  text-align: left;
+}
+
+@media (max-width: 720px) {
+  .poshuk-panel { padding: 18px 14px 14px; margin-top: -18px; }
+  .suggest { left: 14px; right: 14px; }
+  .suggest-item { grid-template-columns: 1fr; gap: 2px; }
+  .s-pkgs { white-space: normal; }
+  .zoz-pkgs { max-width: 100%; justify-content: flex-start; }
+  .chain-arrow { display: none; }
+}
+
+/* ── Темна тема ──────────────────────────────────────────────────────────── */
+.dark-theme .poshuk-panel,
+.dark-theme .zoz,
+.dark-theme .empty-hint,
+.dark-theme .suggest {
+  background: var(--surface);
+  border-color: var(--line);
+}
+
+.dark-theme .poshuk-search input { background: var(--soft); color: var(--ink); }
+.dark-theme .results-actions .action:nth-child(n+2) { background: var(--surface); }

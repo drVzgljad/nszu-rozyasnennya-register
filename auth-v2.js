@@ -23,8 +23,8 @@ let isClerk = false;
 // відносні посилання на кореневі ресурси потребують префікса '../'.
 const PORTAL_SUBDIRS = [
   'algorithms', 'cabinet', 'chat', 'classifiers', 'dec', 'expert-proposals', 'infocenter',
-  'map', 'mapping', 'news', 'pakety', 'passport', 'pmg-proposals', 'postanova', 'regulatory',
-  'relax', 'reminders', 'rozjasnennya', 'skod', 'zoz-dogovr', 'zoz-questions'
+  'map', 'mapping', 'news', 'pakety', 'passport', 'pilots', 'pmg-proposals', 'postanova', 'regulatory',
+  'relax', 'reminders', 'rozjasnennya', 'skod', 'zoz-dogovr', 'zoz-poshuk', 'zoz-questions'
 ];
 
 function isInPortalSubdir() {
@@ -387,7 +387,8 @@ function applyAccess() {
       { text: 'Алгоритми та правила (наказ 377)', path: 'algorithms/index.html' },
       { text: 'Нормативна база', path: 'regulatory/index.html' },
       { text: 'ДЕЦ МОЗ', path: 'dec/index.html' },
-      { text: 'Укладені договори', path: 'zoz-dogovr/index.html' }
+      { text: 'Укладені договори', path: 'zoz-dogovr/index.html' },
+      { text: '🏥 Хто це лікує', path: 'zoz-poshuk/index.html' }
     ];
 
     const tailItems = [
@@ -2268,6 +2269,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '👥', label: 'Посади · ДКХП-78', path: 'classifiers/posady.html' },
     { icon: '🔗', label: 'Таблиця співставлення', path: 'mapping/index.html' },
     { icon: '📑', label: 'Договори ЗОЗ', path: 'zoz-dogovr/index.html' },
+    { icon: '🏥', label: 'Хто це лікує', path: 'zoz-poshuk/index.html' },
     { icon: '👤', label: 'Кабінет', path: 'cabinet/index.html', role: 'expert' },
     { icon: '🗓️', label: 'Планувальник', path: 'cabinet/planner.html', role: 'expert' },
     { icon: '📊', label: 'Звіти СКО-Д', path: 'skod/reports.html', role: 'expert' },
