@@ -267,11 +267,20 @@ function firstMatchedParagraph(node, query) {
 
 function appendixRows(node) {
   if (!node || node.kind !== "appendix" || node.id === "appendix-3") return [];
-  if (!node._appendixRows) node._appendixRows = splitAppendixTable(node.text).rows.map((row, index) => ({
-    ...row,
-    id: `${node.id}-row-${index + 1}`,
-    searchText: [row.code, row.title, ...row.coeffs].join(" "),
-  }));
+  if (!node._appendixRows) {
+    // node.table — таблиця з розміткою колонок (build_resolution_data.py бере
+    // її з HTM разом із порожніми клітинками). Розбір суцільного тексту —
+    // запасний шлях: він тулить значення підряд, тож у 47 рядках додатка 1
+    // коефіцієнт за лікування травм опинявся в колонці «за допомогу дітям».
+    const source = node.table && node.table.rows && node.table.rows.length
+      ? node.table.rows
+      : splitAppendixTable(node.text).rows;
+    node._appendixRows = source.map((row, index) => ({
+      ...row,
+      id: `${node.id}-row-${index + 1}`,
+      searchText: [row.code, row.title, ...row.coeffs].join(" "),
+    }));
+  }
   return node._appendixRows;
 }
 
@@ -398,7 +407,7 @@ function renderAppendixOutline(node, container, pages) {
         <span class="paragraph-main">
           <strong>${highlight(row.code, query)}</strong>
           ${highlight(row.title, query)}
-          <span class="appendix-outline-coefs">${row.coeffs.map((value) => highlight(value, query)).join(" · ")}</span>
+          <span class="appendix-outline-coefs">${outlineCoefs(node.id, row.coeffs, query)}</span>
         </span>
       </button>
       <button class="copy-fragment" type="button" data-copy-appendix-row="${row.id}" title="Копіювати рядок додатка" aria-label="Копіювати рядок додатка ${escapeHtml(row.code)}">⧉</button>
@@ -540,14 +549,44 @@ function appendixColumns(nodeId) {
   return ["Коефіцієнти"];
 }
 
+// Стислі підписи для переліку зліва: без них два числа поспіль не читаються —
+// незрозуміло, друге з них за дітей чи за травми (у документі це різні колонки,
+// і порожня клітинка — теж відповідь).
+const APPENDIX_SHORT_COLUMNS = {
+  "appendix-1": ["ваговий", "діти", "травми"],
+  "appendix-2": ["ваговий", "діти"],
+};
+
+function outlineCoefs(nodeId, coeffs, query) {
+  const short = APPENDIX_SHORT_COLUMNS[nodeId] || [];
+  return coeffs
+    .map((value, index) => (value
+      ? `<span class="coef-pair"><em>${highlight(value, query)}</em>${escapeHtml(short[index] || "")}</span>`
+      : ""))
+    .filter(Boolean)
+    .join(" · ");
+}
+
 function renderCoeffCell(value, query) {
   return value ? `<span class="coef-value">${highlight(value, query)}</span>` : '<span class="coef-empty">—</span>';
 }
 
+// Що саме означають колонки. Питання «де діти, а де дорослі» виникає щоразу:
+// окремої колонки для дорослих немає — ваговий коефіцієнт спільний, а два
+// наступні застосовуються ДОДАТКОВО у своїх випадках.
+const APPENDIX_LEGEND = {
+  "appendix-1": "Ваговий коефіцієнт стосується всіх пацієнтів; наступні дві колонки — " +
+    "додаткові коефіцієнти, які застосовують за допомогу дітям і за лікування травм. " +
+    "Прочерк означає, що для цієї ДСГ додаткового коефіцієнта в постанові немає.",
+  "appendix-2": "Ваговий коефіцієнт за ДСГ стосується всіх пацієнтів; друга колонка — " +
+    "додатковий коефіцієнт за допомогу дітям. Прочерк означає, що для цієї ДСГ його немає.",
+};
+
 function renderAppendixTable(nodeId, rows, query, selectedRowId = "") {
   if (!rows.length) return "";
   const columns = appendixColumns(nodeId);
-  return `<div class="appendix-table-wrap" role="region" aria-label="Таблиця додатка">
+  return `${APPENDIX_LEGEND[nodeId] ? `<p class="appendix-legend">${APPENDIX_LEGEND[nodeId]}</p>` : ""}
+  <div class="appendix-table-wrap" role="region" aria-label="Таблиця додатка">
     <table class="appendix-table">
       <thead>
         <tr>

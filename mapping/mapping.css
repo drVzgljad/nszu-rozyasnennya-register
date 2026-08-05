@@ -20,6 +20,7 @@
 /* ── Бейджі в рядку результату ─────────────────────────────── */
 .pk-dot.cond { background: #b4762a; }
 .pk-dot.note { background: var(--accent-dark); }
+.pk-dot.hit { background: var(--teal-dark); }
 
 /* ── Дослівний текст клітинки ──────────────────────────────── */
 .mp-raw {
@@ -44,6 +45,18 @@
   font-size: .8rem; font-weight: 700; border: 0;
 }
 a.code-chip:hover { border-color: currentColor; }
+
+/* Код, за яким шукали: у переліку на тисячу чипів око саме його не знайде. */
+.code-chip.code-hit {
+  background: var(--accent-dark); color: #fff; border-color: var(--accent-dark);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  animation: code-hit-pulse 1.1s ease-out 2;
+}
+@keyframes code-hit-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px var(--accent-soft); }
+  50% { box-shadow: 0 0 0 7px var(--accent-soft); }
+}
+@media (prefers-reduced-motion: reduce) { .code-chip.code-hit { animation: none; } }
 
 /* ── Підказка з назвою коду (наведення на чип у картці) ────── */
 .code-tip {

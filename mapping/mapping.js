@@ -47,6 +47,7 @@
   let readerEmptyHTML = "";
   let pendingQuery = false;   // користувач почав шукати ще до завантаження даних
   let currentService = null;  // відкрита картка — для кнопок «назад» у переходах
+  let hitCode = "";           // код, за яким шукали — його підсвічуємо в картці
 
   // ══════════════════════════════════════════════════════════
   // Завантаження
@@ -173,6 +174,7 @@
     const pkg = el.selPkg.value, odkRef = el.selOdk.value;
     const out = [];
 
+    let byCode = false;
     for (const s of SERVICES) {
       if (pkg && !s.pkgs.includes(pkg)) continue;
       if (odkRef && !s.icd.odk.includes(odkRef) && !s.achi.odk.includes(odkRef)) continue;
@@ -183,7 +185,7 @@
       if (q) {
         const name = s.name.toLowerCase();
         if (s.code && s.code.toUpperCase() === codeQ) score = 100;
-        else if (serviceHasCode(s, codeQ)) score = 90;
+        else if (serviceHasCode(s, codeQ)) { score = 90; byCode = true; }
         else if (s.code && s.code.toUpperCase().startsWith(codeQ)) score = 70;
         else if (name.startsWith(q)) score = 60;
         else if (name.includes(q)) score = 40;
@@ -193,6 +195,7 @@
       }
       if (score > 0) out.push([score, s]);
     }
+    hitCode = byCode ? codeQ : "";
     out.sort((a, b) => b[0] - a[0] || a[1].i - b[1].i);
     show(out.map((x) => x[1]).map(serviceRow), out.length, plural(out.length, "послуга", "послуги", "послуг").replace(/^[\d\s]+/, ""));
   }
@@ -202,7 +205,8 @@
     const codeQ = el.search.value.trim().toUpperCase().replace(/\s+/g, "");
     const hits = ODK.filter((o) => !q || o.name.toLowerCase().includes(q) ||
       o.id.toLowerCase().includes(q) || o.codes.includes(codeQ));
-    show(hits.map(odkRow), hits.length, "ОДК");
+    hitCode = hits.some((o) => o.codes.includes(codeQ)) ? codeQ : "";
+    show(hits.map((o) => odkRow(o, o.codes.includes(codeQ))), hits.length, "ОДК");
   }
 
   const CAP = 400;
@@ -227,11 +231,15 @@
     </button>`;
   }
 
-  function odkRow(o) {
+  /** byCode — категорія потрапила в список саме через шуканий код, а не назву.
+   *  Без цього підпису незрозуміло, чому рядок тут: назва ж нічого не містить. */
+  function odkRow(o, byCode) {
     return `<button class="rrow" type="button" data-odk="${escAttr(o.id)}">
       <span class="tcode code">${esc(o.id)}</span>
       <span class="rmain"><span class="tname">${esc(o.name)}</span>
-        <span class="rmeta">${codes(o.codes.length)} НК 025</span></span>
+        <span class="rmeta">${codes(o.codes.length)} НК 025${
+      byCode ? " · містить " + esc(hitCode) : ""}</span></span>
+      ${byCode ? '<span class="pk-dot hit">є код</span>' : ""}
     </button>`;
   }
 
@@ -333,11 +341,13 @@
           <span class="coef-title">${esc(d.t || "")}</span>
           <span class="coef-none">коефіцієнта в додатках немає</span></div>`;
       }
-      // Підписуємо колонки лише коли кількість значень збігається з кількістю
-      // колонок додатка: у витягу з PDF порожні клітинки не збереглися, тож
-      // здогадуватися, якого саме коефіцієнта бракує, — означало б вигадувати.
+      // Значення прив'язані до колонок додатка; порожню клітинку не показуємо
+      // зовсім — у документі це «коефіцієнта за цією колонкою немає».
+      // Гілка без підписів лишається запасною: спрацює, якщо збірка колись
+      // піде з суцільного тексту, де колонку встановити неможливо.
       const values = d.kl
-        ? d.k.map((v, n) => `<span class="coef-val"><em>${esc(v)}</em>${esc(COEF_COLS[d.ka][n])}</span>`).join("")
+        ? d.k.map((v, n) => (v
+          ? `<span class="coef-val"><em>${esc(v)}</em>${esc(COEF_COLS[d.ka][n])}</span>` : "")).join("")
         : `<span class="coef-raw">${d.k.map(esc).join(" · ")}</span>
            <span class="coef-warn" title="У джерелі порожні клітинки не збереглися — звірте з додатком">колонки не розмічені</span>`;
       return `<div class="coef-row"><b>${esc(d.c)}</b>
@@ -390,6 +400,7 @@
       if (d.open) warmNames(d.querySelectorAll(".code-chip"), 8);
     }));
     setTab("reader");
+    markSearchedCode("box");
   }
 
   function openOdk(id) {
@@ -417,6 +428,7 @@
       </div>`;
     warmNames(el.reader.querySelectorAll(".odk-codes .code-chip"), 8);
     setTab("reader");
+    markSearchedCode("page");
   }
 
   el.reader.addEventListener("click", (ev) => {
@@ -622,6 +634,33 @@
     document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") hideTip(); });
   }
 
+  // ══════════════════════════════════════════════════════════
+  // Підсвітка коду, за яким шукали
+  // У картці ОДК перелік буває на 1 117 чипів — без підсвітки й прокрутки
+  // незрозуміло, куди дивитися і чому категорія взагалі знайшлася.
+  // ══════════════════════════════════════════════════════════
+  /** scroll: "page" — довести код до середини екрана (довідник ОДК);
+   *          "box"  — прокрутити лише сам перелік, не смикаючи сторінку. */
+  function markSearchedCode(scroll) {
+    if (!hitCode) return;
+    const all = $$(".code-chip", el.reader);
+    // Точний збіг, а якщо його немає — коди рубрики («I21» → I21.0, I21.1…)
+    let chips = all.filter((c) => c.textContent.trim() === hitCode);
+    if (!chips.length) chips = all.filter((c) => c.textContent.trim().indexOf(hitCode + ".") === 0);
+    if (!chips.length) return;
+    chips.forEach((c) => c.classList.add("code-hit"));
+
+    const first = chips[0];
+    const box = first.closest(".mp-raw, .odk-codes");
+    if (box && box.scrollHeight > box.clientHeight) {
+      const cr = first.getBoundingClientRect(), br = box.getBoundingClientRect();
+      box.scrollTop += (cr.top - br.top) - (box.clientHeight - cr.height) / 2;
+    }
+    // Без behavior:"smooth" — плавну прокрутку браузер мовчки ігнорує, якщо
+    // вкладка не малює кадри, і код лишається за межами екрана.
+    if (scroll === "page") first.scrollIntoView({ block: "center" });
+  }
+
   /** «ОДК 23-А», «ОДК 23А» → «23A» (у таблиці сусідять кирилична й латинська літери). */
   function normOdk(s) {
     return String(s).toUpperCase().replace("ОДК", "").replace(/[\s:\-–—]+/g, "")
@@ -631,6 +670,7 @@
   // ══════════════════════════════════════════════════════════
   function resetForm() {
     hideTip();
+    hitCode = "";
     el.search.value = ""; el.selPkg.value = ""; el.selOdk.value = "";
     el.onlyCond.checked = false; el.onlyNote.checked = false;
     el.results.hidden = true; el.results.innerHTML = "";

@@ -103,6 +103,9 @@
   font-size: 12px;
   font-weight: 700;
 }
+/* Число + підпис колонки: «7,15 ваговий · 11,3944 травми» */
+.coef-pair { white-space: nowrap; font-weight: 500; }
+.coef-pair em { font-style: normal; font-weight: 700; color: var(--ink); margin-right: 5px; }
 .paragraph-page {
   flex-shrink: 0;
   color: var(--muted);
@@ -151,6 +154,17 @@
   background: var(--soft);
   font-size: 13px;
   line-height: 1.55;
+}
+/* Пояснення колонок над таблицею коефіцієнтів */
+.appendix-legend {
+  margin: 0 0 10px;
+  padding: 9px 13px;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 10px 10px 0;
+  background: var(--soft);
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
 }
 .appendix-package-grid {
   display: grid;
