@@ -349,7 +349,6 @@ function renderResults() {
           <div class="zoz-pkgs">${pkgHtml}</div>
         </div>
         <ul class="zoz-addr">${addrHtml}</ul>
-        ${p.em ? `<div class="zoz-mail">✉ <a href="mailto:${escapeHtml(p.em)}">${escapeHtml(p.em)}</a></div>` : ""}
       </article>`;
   }).join("");
 
@@ -386,10 +385,10 @@ function buildLetterText() {
     `Дані станом на ${state.index.source_date || "—"}.`,
     "",
   ];
+  // Тільки назва, код і адреси: пошту надавача в перелік не виводимо
   const body = state.filtered.map((p, i) => {
     const lines = [`${i + 1}. ${p.f || p.n} (ЄДРПОУ ${p.e})`];
     addressesFor(p).forEach(a => lines.push(`   ${fullAddress(a)}`));
-    if (p.em) lines.push(`   Електронна пошта: ${p.em}`);
     return lines.join("\n");
   });
   return head.concat(body).join("\n");
@@ -397,7 +396,7 @@ function buildLetterText() {
 
 function buildTableText() {
   const rows = [["ЄДРПОУ", "Назва закладу", "Область", "Населений пункт", "Адреса місця надання послуг",
-    "Пакети за запитом", "Усі пакети закладу", "Електронна пошта"]];
+    "Пакети за запитом", "Усі пакети закладу"]];
   const wanted = new Set(activePackages());
   state.filtered.forEach(p => {
     // Заклад може мати 27 пакетів; у листі важливі ті, через які його знайшли
@@ -405,7 +404,7 @@ function buildTableText() {
     addressesFor(p).forEach(a => {
       const s = state.data.settlements[a[0]];
       rows.push([p.e, p.f || p.n, s ? oblastLabel(s[1]) : "", settlementLabel(a[0]), a[1] || "",
-        hit, p.p.join(", "), p.em || ""]);
+        hit, p.p.join(", ")]);
     });
   });
   return rows.map(r => r.join("\t")).join("\n");
@@ -445,7 +444,7 @@ function exportXlsx() {
     [`Дані станом на ${state.index.source_date || "—"}`],
     [],
   ].concat(rows));
-  ws["!cols"] = [{ wch: 12 }, { wch: 48 }, { wch: 20 }, { wch: 20 }, { wch: 44 }, { wch: 18 }, { wch: 26 }, { wch: 26 }];
+  ws["!cols"] = [{ wch: 12 }, { wch: 48 }, { wch: 20 }, { wch: 20 }, { wch: 44 }, { wch: 18 }, { wch: 26 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Заклади");
   const stamp = (state.index.source_date || "").replace(/\./g, "-");
