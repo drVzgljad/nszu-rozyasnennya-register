@@ -249,7 +249,8 @@
   // ══════════════════════════════════════════════════════════
   /** Оригінальний текст клітинки з кодами-посиланнями.
    *  loincSet — коди LOINC саме цієї клітинки (за розміткою build_mapping.py);
-   *  без нього шаблон «12345-6» ловив би й звичайні числа в тексті. */
+   *  без нього шаблон «12345-6» ловив би й звичайні числа в тексті.
+   *  Назву коду показує підказка при наведенні (див. розділ нижче). */
   function decorate(raw, loincSet) {
     if (!raw) return '<span class="muted">—</span>';
     const parts = [];
@@ -260,8 +261,8 @@
       parts.push(esc(raw.slice(last, m.index)));
       const t = m[0];
       if (m[1]) parts.push(link(`../classifiers/nk026.html?code=${encodeURIComponent(t)}${backTail()}`, t, "code-achi", "Код НК 026"));
-      else if (m[2]) parts.push(`<button class="code-chip code-odk" data-odk-open="${escAttr(t)}" title="Показати склад ОДК">${esc(t)}</button>`);
-      else if (m[3]) parts.push(`<span class="code-chip code-esoz" title="Код медичної послуги ЕСОЗ">${esc(t)}</span>`);
+      else if (m[2]) parts.push(`<button class="code-chip code-odk" data-odk-open="${escAttr(t)}"${tipTitle("Показати склад ОДК")}>${esc(t)}</button>`);
+      else if (m[3]) parts.push(`<span class="code-chip code-esoz"${tipTitle("Код медичної послуги ЕСОЗ")}>${esc(t)}</span>`);
       else if (m[4]) {
         parts.push(loincSet && loincSet.has(t)
           ? link(`../classifiers/loinc.html?code=${encodeURIComponent(t)}`, t, "code-loinc", "Код LOINC — відкрити в довіднику")
@@ -275,7 +276,7 @@
   }
 
   function link(href, text, cls, title) {
-    return `<a class="code-chip ${cls}" href="${href}" title="${escAttr(title)}">${esc(text)}</a>`;
+    return `<a class="code-chip ${cls}" href="${href}"${tipTitle(title)}>${esc(text)}</a>`;
   }
 
   function condBadges(cell) {
@@ -358,6 +359,7 @@
   function openService(i) {
     const s = SERVICES[i];
     if (!s) return;
+    hideTip();            // стара підказка вказувала б на чип, якого вже немає
     currentService = i;
     const pkgChips = s.pkgs.map((p) => {
       const title = (META.packages || {})[p] || "";
@@ -383,12 +385,17 @@
       ${s.note ? `<div class="reader-block"><h3>Додаткова інформація</h3>
           <p class="mp-note">${esc(s.note)}</p></div>` : ""}
       <div class="reader-foot">Таблиця співставлення · рядок ${s.i + 1} з ${SERVICES.length}</div>`;
+    warmNames(el.reader.querySelectorAll(".mp-raw .code-chip"), 8);
+    $$(".mp-odk", el.reader).forEach((d) => d.addEventListener("toggle", () => {
+      if (d.open) warmNames(d.querySelectorAll(".code-chip"), 8);
+    }));
     setTab("reader");
   }
 
   function openOdk(id) {
     const o = odkById.get(id);
     if (!o) return;
+    hideTip();
     const users = SERVICES.filter((s) => s.icd.odk.includes(id) || s.achi.odk.includes(id));
     el.reader.classList.remove("reader-empty");
     el.reader.innerHTML = `
@@ -408,6 +415,7 @@
         <div class="chip-list odk-codes">${o.codes.map((c) =>
       `<a class="code-chip code-icd" href="../classifiers/index.html?code=${encodeURIComponent(c)}">${esc(c)}</a>`).join("")}</div>
       </div>`;
+    warmNames(el.reader.querySelectorAll(".odk-codes .code-chip"), 8);
     setTab("reader");
   }
 
@@ -428,6 +436,192 @@
     }
   });
 
+  // ══════════════════════════════════════════════════════════
+  // Підказка з назвою коду
+  // Наведення на чип у картці показує, що це за код. Назви лежать у
+  // data/names/ шматками за префіксом коду (збирає build_mapping.py --names):
+  // повні класифікатори — це 4,3 МБ, а тут під курсором довантажується один
+  // шматок на кілька кілобайт, і той лише раз за сеанс.
+  // ══════════════════════════════════════════════════════════
+  const HOVER_TIPS = !!(window.matchMedia && window.matchMedia("(hover: hover)").matches);
+
+  /** Нативний title лишаємо лише там, де своєї підказки не буде (сенсорний екран):
+   *  інакше поверх неї вилазить друга, системна. */
+  function tipTitle(text) { return HOVER_TIPS ? "" : ` title="${escAttr(text)}"`; }
+
+  const KIND_LABEL = {
+    icd: "НК 025 · хвороба", achi: "НК 026 · втручання",
+    esoz: "Медична послуга ЕСОЗ", loinc: "LOINC · дослідження",
+    odk: "Об'єднана діагностична категорія",
+  };
+  const KIND_HINT = {
+    icd: "натисніть, щоб відкрити код у класифікаторі НК 025",
+    achi: "натисніть, щоб відкрити код у класифікаторі НК 026",
+    loinc: "натисніть, щоб відкрити код у довіднику LOINC",
+    odk: "натисніть, щоб побачити склад категорії",
+  };
+
+  const nameCache = new Map();   // "icd:I21.0" → назва ("" — назви немає)
+  const shardJobs = new Map();   // "icd_I2" → Promise завантаження
+  let namesIndex = null, namesIndexJob = null;
+
+  function namesReady() {
+    if (namesIndex) return Promise.resolve(namesIndex);
+    if (!namesIndexJob) {
+      namesIndexJob = fetch("data/names/index.json")
+        .then((r) => r.json())
+        .catch(() => ({ shards: {} }))
+        .then((j) => (namesIndex = j && j.shards ? j : { shards: {} }));
+    }
+    return namesIndexJob;
+  }
+
+  /** Найдовший префікс-шматок, що покриває код («I21.0» → «I2»). */
+  function shardOf(kind, code) {
+    const keys = (namesIndex && namesIndex.shards[kind]) || [];
+    if (keys.length === 1 && keys[0] === "all") return "all";
+    let best = null;
+    for (const k of keys) if (code.indexOf(k) === 0 && (!best || k.length > best.length)) best = k;
+    return best;
+  }
+
+  function loadShard(kind, key) {
+    const id = kind + "_" + key;
+    if (!shardJobs.has(id)) {
+      shardJobs.set(id, fetch(`data/names/${id}.json`)
+        .then((r) => r.json())
+        .then((map) => Object.keys(map).forEach((c) => nameCache.set(kind + ":" + c, map[c])))
+        .catch(() => {}));
+    }
+    return shardJobs.get(id);
+  }
+
+  /** Назва коду: рядок, якщо вона вже в пам'яті, інакше Promise з назвою. */
+  function codeName(kind, code) {
+    const key = kind + ":" + code;
+    if (nameCache.has(key)) return nameCache.get(key);
+    return namesReady().then(() => {
+      const shard = shardOf(kind, code);
+      if (!shard) { nameCache.set(key, ""); return ""; }
+      return loadShard(kind, shard).then(() => {
+        if (!nameCache.has(key)) nameCache.set(key, "");
+        return nameCache.get(key);
+      });
+    });
+  }
+
+  const tipBox = HOVER_TIPS ? document.createElement("div") : null;
+  let tipChip = null, tipTimer = null;
+  if (tipBox) {
+    tipBox.className = "code-tip";
+    tipBox.setAttribute("role", "tooltip");
+    tipBox.hidden = true;
+    document.body.appendChild(tipBox);
+  }
+
+  function chipKind(node) {
+    for (const k in KIND_LABEL) if (node.classList.contains("code-" + k)) return k;
+    return null;
+  }
+
+  /** value: назва рядком або [код рубрики, її назва] — коли точного коду в
+   *  класифікаторі немає (підкоди МКХ-10, яких НК 025 не має). */
+  function fillTip(kind, code, value, pending) {
+    const rubric = Array.isArray(value) ? value[0] : "";
+    const name = Array.isArray(value) ? value[1] : value;
+    const hint = KIND_HINT[kind];
+    tipBox.innerHTML =
+      `<span class="tip-kind">${esc(KIND_LABEL[kind] || "Код")}</span>` +
+      `<span class="tip-code">${esc(code)}</span>` +
+      `<span class="tip-name">${name ? esc(name)
+        : `<em>${pending ? "шукаємо назву…" : "назви в довіднику немає"}</em>`}</span>` +
+      (rubric ? `<span class="tip-note">точного коду в НК 025 немає — це назва рубрики ${esc(rubric)}</span>` : "") +
+      (hint ? `<span class="tip-hint">${esc(hint)}</span>` : "");
+  }
+
+  /** Під кодом, а якщо там немає місця — над ним; у межах вікна. */
+  function placeTip(chip) {
+    tipBox.hidden = false;
+    tipBox.style.left = "0px";
+    tipBox.style.top = "0px";
+    const r = chip.getBoundingClientRect(), t = tipBox.getBoundingClientRect(), pad = 8;
+    const left = Math.min(Math.max(pad, r.left), Math.max(pad, window.innerWidth - t.width - pad));
+    let top = r.bottom + 6;
+    if (top + t.height > window.innerHeight - pad) top = Math.max(pad, r.top - t.height - 6);
+    tipBox.style.left = Math.round(left) + "px";
+    tipBox.style.top = Math.round(top) + "px";
+  }
+
+  function openTip(chip) {
+    const kind = chipKind(chip);
+    if (!kind) return;
+    tipChip = chip;
+    const code = chip.textContent.trim();
+    if (kind === "odk") {
+      const o = ODK && ODK.find((x) => normOdk(x.id) === normOdk(code));
+      fillTip(kind, code, o ? `${o.name} · ${codes(o.codes.length)} НК 025` : "");
+      placeTip(chip);
+      return;
+    }
+    const found = codeName(kind, code);
+    if (!found || typeof found.then !== "function") {
+      fillTip(kind, code, found); placeTip(chip); return;
+    }
+    fillTip(kind, code, "", true);
+    placeTip(chip);
+    found.then((value) => {
+      if (tipChip !== chip) return;        // курсор уже поїхав далі
+      fillTip(kind, code, value);
+      placeTip(chip);
+    });
+  }
+
+  function hideTip() {
+    clearTimeout(tipTimer);
+    tipChip = null;
+    if (tipBox) tipBox.hidden = true;
+  }
+
+  /** Тихо тягнемо шматки для кодів, що вже на екрані, — щоб перша підказка
+   *  не чекала на мережу. Обмеження: картка з ОДК має коди на весь алфавіт. */
+  function warmNames(nodes, cap) {
+    if (!tipBox || !nodes || !nodes.length) return;
+    const run = () => namesReady().then(() => {
+      const want = new Set();
+      for (const n of nodes) {
+        const kind = chipKind(n);
+        if (!kind || kind === "odk") continue;
+        const shard = shardOf(kind, n.textContent.trim());
+        if (shard) want.add(kind + " " + shard);
+        if (want.size >= (cap || 6)) break;
+      }
+      want.forEach((id) => loadShard(id.split(" ")[0], id.split(" ")[1]));
+    });
+    if (window.requestIdleCallback) requestIdleCallback(run, { timeout: 900 });
+    else setTimeout(run, 60);
+  }
+
+  if (tipBox) {
+    el.reader.addEventListener("mouseover", (ev) => {
+      const chip = ev.target.closest(".code-chip");
+      if (!chip || chip === tipChip) return;
+      clearTimeout(tipTimer);
+      tipTimer = setTimeout(() => openTip(chip), 120);
+    });
+    el.reader.addEventListener("mouseout", (ev) => {
+      if (ev.target.closest(".code-chip")) hideTip();
+    });
+    el.reader.addEventListener("focusin", (ev) => {
+      const chip = ev.target.closest(".code-chip");
+      if (chip) openTip(chip);
+    });
+    el.reader.addEventListener("focusout", hideTip);
+    el.reader.addEventListener("click", hideTip);
+    window.addEventListener("scroll", hideTip, true);
+    window.addEventListener("resize", hideTip);
+    document.addEventListener("keydown", (ev) => { if (ev.key === "Escape") hideTip(); });
+  }
+
   /** «ОДК 23-А», «ОДК 23А» → «23A» (у таблиці сусідять кирилична й латинська літери). */
   function normOdk(s) {
     return String(s).toUpperCase().replace("ОДК", "").replace(/[\s:\-–—]+/g, "")
@@ -436,6 +630,7 @@
 
   // ══════════════════════════════════════════════════════════
   function resetForm() {
+    hideTip();
     el.search.value = ""; el.selPkg.value = ""; el.selOdk.value = "";
     el.onlyCond.checked = false; el.onlyNote.checked = false;
     el.results.hidden = true; el.results.innerHTML = "";

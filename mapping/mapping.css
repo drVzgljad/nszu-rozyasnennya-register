@@ -45,6 +45,33 @@
 }
 a.code-chip:hover { border-color: currentColor; }
 
+/* ── Підказка з назвою коду (наведення на чип у картці) ────── */
+.code-tip {
+  position: fixed; z-index: 10600; max-width: 340px;
+  display: grid; gap: 2px; padding: 8px 11px;
+  background: var(--surface); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(16, 42, 67, .18);
+  font-size: .85rem; line-height: 1.45;
+  pointer-events: none;   /* підказка не має перехоплювати курсор із коду */
+}
+.code-tip[hidden] { display: none; }
+.tip-kind {
+  font-size: .66rem; font-weight: 700; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--muted);
+}
+.tip-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .82rem; font-weight: 700; color: var(--accent-dark);
+}
+.tip-name { overflow-wrap: anywhere; }
+.tip-name em { font-style: normal; color: var(--muted); }
+.tip-note { font-size: .72rem; color: #8a5a17; }
+.tip-hint { margin-top: 2px; font-size: .7rem; color: var(--muted); }
+
+:root.dark-theme .code-tip { box-shadow: 0 10px 28px rgba(0, 0, 0, .5); }
+:root.dark-theme .tip-note { color: #f0c894; }
+
 /* ── Умови ─────────────────────────────────────────────────── */
 .cond-badge {
   font-size: .72rem; font-weight: 700; letter-spacing: .01em;
