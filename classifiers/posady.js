@@ -558,7 +558,11 @@
           <div class="po-pkgbody">
             <div class="po-pkgtitle">${esc(list[0].title || "")}</div>
             ${list.map((r) => `<div class="po-pkgcond${r.critical ? " crit" : ""}">
-              ${r.scope ? `<b>${esc(r.scope)}:</b> ` : ""}${esc(r.name)} — ${esc(r.cond)}
+              ${r.scope ? `<b>${esc(r.scope)}:</b> ` : ""}${esc(r.name)}${r.alts > 1
+                ? ` <span class="po-combo" title="У вимозі пакета ця посада стоїть у переліку взаємозамінних
+                     («та/або»), тож умова стосується переліку загалом, а не цієї посади окремо">одна
+                     з ${r.alts} посад переліку «та/або»</span>`
+                : ""} — ${esc(r.cond)}
             </div>`).join("")}
           </div>
         </div>`).join("")}</div>
