@@ -440,6 +440,159 @@ mark { padding: 0 2px; border-radius: 3px; color: inherit; background: #ffe69a; 
   .amb-row { flex-direction: column; gap: 3px; }
   .amb-row-label { flex: none; }
 }
+/* ── Кодування реабілітації (rehab.html, наказ № 182) ──────────────────
+   Третя сторінка того самого розділу. Кольори — тільки наявні токени порталу,
+   тож темна тема підхоплюється без окремої гілки. Категорія діагнозу має свій
+   відтінок і тримає його всюди: у списку, у формулі, у паспорті — саме за
+   кольором око зчитує роль коду швидше, ніж за підписом. */
+.rehab-hint { margin: -4px 0 10px; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+.rehab-dim { color: var(--muted); font-size: 12.5px; line-height: 1.55; }
+
+.rehab-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 9px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--soft); color: var(--accent-dark);
+  font-size: 11.5px; font-weight: 750; white-space: nowrap;
+}
+.rehab-pill--fo { background: var(--accent-soft); color: var(--accent-dark); border-color: rgba(0,111,201,.32); }
+.rehab-pill--pp { background: var(--warm); color: var(--teal-dark); border-color: rgba(20,131,90,.28); }
+.rehab-pill--sp { background: var(--warning-bg); color: var(--warning-text); border-color: var(--warning-border); }
+.rehab-pill--st  { background: var(--soft); color: var(--muted); }
+.rehab-pill--sfz { background: var(--surface); color: var(--muted); border-style: dashed; }
+.rehab-pill--star { background: var(--surface); color: var(--muted); }
+.rehab-pill--group { background: var(--accent-soft); color: var(--accent-dark); }
+.rehab-pill-btn { border-width: 1px; font: inherit; font-size: 11.5px; font-weight: 750; cursor: pointer; }
+.rehab-pill-btn:hover { border-color: var(--accent); }
+.rehab-pill-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+
+/* Список груп порушень — головний вхід у правила наказу. */
+.rehab-group-list { display: grid; gap: 6px; }
+.rehab-group-btn {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 9px 11px; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface); color: var(--ink); text-align: left; cursor: pointer;
+}
+.rehab-group-btn:hover, .rehab-group-btn.active {
+  border-color: rgba(0,111,201,.42); background: var(--accent-soft);
+}
+.rehab-group-n {
+  flex: 0 0 28px; display: grid; place-items: center; height: 28px;
+  border-radius: 9px; background: var(--soft); color: var(--accent-dark);
+  font-size: 13px; font-weight: 850;
+}
+.rehab-group-btn.active .rehab-group-n { background: var(--surface); }
+.rehab-group-copy { min-width: 0; }
+.rehab-group-copy strong { display: block; font-size: 13.5px; font-weight: 700; line-height: 1.35; }
+.rehab-group-copy em { display: block; margin-top: 2px; color: var(--muted); font-size: 11.5px; font-style: normal; }
+
+.rehab-steps { margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.55; }
+.rehab-steps li { margin-bottom: 7px; }
+.rehab-details { margin-top: 10px; font-size: 13px; }
+.rehab-details summary { color: var(--accent-dark); font-weight: 700; cursor: pointer; }
+.rehab-nots { margin: 8px 0 0; padding-left: 20px; line-height: 1.55; }
+.rehab-nots li { margin-bottom: 6px; }
+.rehab-gap-list { margin: 8px 0; padding-left: 18px; font-size: 12.5px; line-height: 1.55; }
+
+.rehab-cat-list { display: grid; gap: 7px; }
+.rehab-cat {
+  padding: 10px 11px; border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface); text-align: left; cursor: pointer;
+}
+.rehab-cat:hover { border-color: var(--accent); }
+.rehab-cat-head { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+.rehab-cat-head strong { font-size: 13px; font-weight: 700; color: var(--ink); }
+.rehab-cat-head em { color: var(--muted); font-size: 11.5px; font-style: normal; }
+.rehab-cat-note { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.rehab-source p { margin: 0 0 9px; font-size: 13px; line-height: 1.55; }
+.rehab-badge-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+
+/* Крапка статусу в картці: чи може код бути основним діагнозом. */
+.rehab-main-dot {
+  padding: 3px 8px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 800; letter-spacing: .02em;
+}
+.rehab-main-dot--ok { background: var(--warm); color: var(--teal-dark); }
+.rehab-main-dot--warm { background: var(--accent-soft); color: var(--accent-dark); }
+.rehab-main-dot--warn { background: var(--warning-bg); color: var(--warning-text); }
+.rehab-main-dot--no { background: var(--soft); color: var(--muted); }
+
+.rehab-verdict {
+  margin: 4px 0 16px; padding: 12px 14px;
+  border: 1px solid var(--line); border-left-width: 4px; border-radius: 12px;
+  background: var(--surface);
+}
+.rehab-verdict p { margin: 5px 0 0; font-size: 14px; line-height: 1.5; }
+.rehab-verdict-title { font-size: 12px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; }
+.rehab-verdict--ok { border-left-color: var(--teal-dark); background: var(--warm); }
+.rehab-verdict--ok .rehab-verdict-title { color: var(--teal-dark); }
+.rehab-verdict--warm { border-left-color: var(--accent); background: var(--accent-soft); }
+.rehab-verdict--warm .rehab-verdict-title { color: var(--accent-dark); }
+.rehab-verdict--warn { border-left-color: var(--warning-border); background: var(--warning-bg); }
+.rehab-verdict--warn .rehab-verdict-title { color: var(--warning-text); }
+.rehab-verdict--no { border-left-color: var(--muted); background: var(--soft); }
+.rehab-verdict--no .rehab-verdict-title { color: var(--muted); }
+
+/* Формула кодування — ланцюжком, а не рядком у лапках. */
+.rehab-chain {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 7px;
+  padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--soft);
+}
+.rehab-chain-head {
+  padding: 6px 10px; border-radius: 9px; background: var(--surface);
+  color: var(--ink); font-size: 14px; font-weight: 800;
+}
+.rehab-chain-op { color: var(--muted); font-size: 12px; font-weight: 700; }
+.rehab-chain-or { margin: 0 4px; color: var(--muted); font-size: 11px; }
+.rehab-chain-slot { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 3px; }
+
+.rehab-code { font-size: 12px; }
+.rehab-code--unknown { border-style: dashed; color: var(--muted); }
+.rehab-focus { font-weight: 700; }
+
+.rehab-mentions { display: grid; gap: 7px; }
+.rehab-mention {
+  display: block; width: 100%; padding: 10px 12px;
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface); color: var(--ink); text-align: left; cursor: pointer;
+}
+.rehab-mention:hover { border-color: var(--accent); background: var(--accent-soft); }
+.rehab-mention b { font-size: 12.5px; color: var(--accent-dark); }
+.rehab-mention span { margin-left: 7px; color: var(--muted); font-size: 12px; }
+.rehab-mention em { display: block; margin-top: 5px; color: var(--ink); font-size: 12.5px; font-style: normal; line-height: 1.5; }
+
+.rehab-rules { display: grid; gap: 9px; }
+.rehab-rule { padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.rehab-rule--focus { border-color: var(--accent); background: var(--accent-soft); }
+.rehab-rule-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 7px; }
+.rehab-rule-id {
+  padding: 3px 8px; border-radius: 999px; background: var(--soft);
+  color: var(--accent-dark); font-size: 11.5px; font-weight: 850;
+}
+.rehab-rule-date { color: var(--muted); font-size: 11.5px; }
+.rehab-rule p { margin: 0; font-size: 13.5px; line-height: 1.6; }
+
+.rehab-subgroups { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6; }
+.rehab-subgroups li { margin-bottom: 6px; }
+
+.rehab-examples { display: grid; gap: 9px; }
+.rehab-example { padding: 11px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.rehab-example-head { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-bottom: 8px; }
+.rehab-example-head b { font-size: 12.5px; }
+.rehab-example-head em { color: var(--muted); font-size: 12px; font-style: normal; }
+.rehab-example-body { display: grid; gap: 8px; }
+.rehab-example-label {
+  display: block; margin-bottom: 4px; color: var(--muted);
+  font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+}
+.rehab-example-body ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 5px; }
+.rehab-example-body li { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; font-size: 12.5px; line-height: 1.45; }
+.rehab-more { margin: 10px 2px 0; color: var(--muted); font-size: 12.5px; }
+
+@media (max-width: 640px) {
+  .rehab-chain { gap: 5px; padding: 10px; }
+  .rehab-example-body li { gap: 5px; }
+}
+
 .amb-more-codes { display: inline-block; margin-left: 6px; }
 .amb-more-codes summary { display: inline; color: var(--accent-dark); font-size: 12.5px; cursor: pointer; }
 .amb-more-codes[open] summary { display: block; margin-bottom: 6px; }

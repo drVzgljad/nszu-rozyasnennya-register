@@ -373,10 +373,17 @@ function applyAccess() {
       { text: '🔗 Таблиця співставлення', path: 'mapping/index.html' }
     ];
 
-    // Довідково-нормативні розділи — згруповані в дропдаун «Документи»
+    // Довідково-нормативні розділи — згруповані в дропдаун «Документи».
+    // Накази НСЗУ винесені у власне гніздо: їх уже два, і поруч у списку вони
+    // читаються як два різні розділи, хоча це один тип документа.
     const documentsItems = [
       { text: 'Постанова 1808', path: 'postanova/index.html' },
-      { text: 'Алгоритми та правила (наказ 377)', path: 'algorithms/index.html' },
+      {
+        text: '📜 Накази НСЗУ', items: [
+          { text: 'Наказ 377 · Алгоритми та правила', path: 'algorithms/index.html' },
+          { text: 'Наказ 182 · Кодування реабілітації', path: 'algorithms/rehab.html' }
+        ]
+      },
       { text: 'Нормативна база', path: 'regulatory/index.html' },
       { text: 'ДЕЦ МОЗ', path: 'dec/index.html' },
       { text: 'Укладені договори', path: 'zoz-dogovr/index.html' },
@@ -2435,7 +2442,7 @@ if ('serviceWorker' in navigator &&
   // неї браузер до десяти хвилин не помічає, що воркер змінився, і продовжує
   // роздавати старі файли з кешу. Змінений URL змушує перевірити одразу.
   // ПРИ ЗМІНІ sw.js ПІДНІМАТИ ЦЮ ВЕРСІЮ РАЗОМ З CACHE усередині воркера.
-  navigator.serviceWorker.register('/sw.js?v=19').catch(() => {});
+  navigator.serviceWorker.register('/sw.js?v=20').catch(() => {});
 
   // Перезавантаження на controllerchange прибрано 30.07.2026 разом зі
   // skipWaiting() у воркері (див. коментар у sw.js). Новий воркер більше не

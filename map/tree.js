@@ -26,6 +26,7 @@
           { name: "Пілотні проєкти", icon: "🧪", path: "pilots/index.html", role: "guest" },
           { name: "Постанова № 1808", icon: "📜", path: "postanova/index.html", role: "guest" },
           { name: "Алгоритми (Наказ 377)", icon: "🧮", path: "algorithms/index.html", role: "guest" },
+          { name: "Кодування реабілітації (Наказ 182)", icon: "🦼", path: "algorithms/rehab.html", role: "guest" },
           { name: "Кодування амбулаторки", icon: "🏥", path: "algorithms/ambulatory.html", role: "guest" },
           { name: "Нормативна база", icon: "⚖️", path: "regulatory/index.html", role: "guest" },
           { name: "ДЕЦ МОЗ", icon: "🏥", path: "dec/index.html", role: "guest" },

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>НавігаторПМГ26 | Кодування реабілітації (наказ 182)</title>
+  <link rel="stylesheet" href="../styles.css?v=20260806a">
+  <link rel="stylesheet" href="algorithms.css?v=20260806a">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260806a">
+  <script type="module" src="../auth-v2.js?v=20260806a"></script>
+</head>
+<body id="top">
+  <header class="hero algorithms-hero">
+    <div class="hero-copy">
+      <div class="overline">Наказ НСЗУ № 182 від 16.04.2026 · застосовується з 01.05.2026</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів, постанови та правил</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Кодування реабілітації</h1>
+      <p>Від коду МКХ-10 до групи порушень: чим цей код є у випадку, чи може бути основним діагнозом,
+         за якою формулою кодувати і в якому правилі наказу він згаданий. Правила — з тексту наказу,
+         коди — з Додатка до нього.</p>
+      <div class="algorithm-xnav">
+        <a class="xnav" href="index.html">↔ Наказ № 377: алгоритми та правила</a>
+        <a class="xnav" href="ambulatory.html">↔ Кодування амбулаторки (пакет 9)</a>
+        <a class="xnav" href="../passport/index.html?package=53">↔ Пакет 53 · стаціонарна реабілітація</a>
+        <a class="xnav" href="../passport/index.html?package=54">↔ Пакет 54 · амбулаторна реабілітація</a>
+      </div>
+    </div>
+    <div class="stats" id="rehabStats" aria-label="Статистика розділу"></div>
+  </header>
+
+  <nav class="mobile-tabs" id="mobileTabs" aria-label="Навігація між панелями">
+    <button class="mobile-tab active" data-tab="browser" type="button">Пошук і групи</button>
+    <button class="mobile-tab" data-tab="results" type="button">Коди <span id="mobileCount"></span></button>
+    <button class="mobile-tab" data-tab="reader" type="button">Деталі</button>
+  </nav>
+
+  <main class="algorithms-layout" data-active="browser">
+    <section class="algorithm-browser" aria-label="Пошук за кодами та групами порушень">
+      <div class="search-panel algorithm-search">
+        <label class="search">
+          <span>Пошук за кодом, назвою діагнозу або номером правила</span>
+          <input id="rehabSearch" type="search"
+                 placeholder="Напр.: I63.3, геміплегія, CR_1_2, ампутація…" autocomplete="off">
+        </label>
+        <div class="algorithm-filters">
+          <label>Група порушень
+            <select id="rehabGroup"><option value="">Усі групи</option></select>
+          </label>
+          <label>Категорія діагнозу
+            <select id="rehabCat"><option value="">Будь-яка</option></select>
+          </label>
+          <label>Основний діагноз
+            <select id="rehabMain"><option value="">Будь-який статус</option></select>
+          </label>
+        </div>
+        <div class="results-summary">
+          <span id="rehabCount"></span>
+          <button id="rehabClear" type="button">Очистити</button>
+        </div>
+      </div>
+
+      <div class="source-panel">
+        <h2>16 груп порушень</h2>
+        <p class="rehab-hint">Група визначає, до якої клініко-реабілітаційної групи потрапить випадок.
+           Оберіть групу, щоб побачити її правила, підгрупи та приклади кодування.</p>
+        <div id="rehabGroups" class="rehab-group-list"></div>
+      </div>
+
+      <div class="source-panel">
+        <h2>Як визначити основний діагноз</h2>
+        <ol class="rehab-steps" id="rehabSteps"></ol>
+        <details class="rehab-details">
+          <summary>Основним діагнозом не можуть бути</summary>
+          <ul class="rehab-nots" id="rehabNots"></ul>
+        </details>
+      </div>
+
+      <div class="source-panel">
+        <h2>П'ять категорій діагнозів</h2>
+        <p class="rehab-hint">Категорія — це роль коду у випадку. Натисніть, щоб відфільтрувати перелік.</p>
+        <div id="rehabCats" class="rehab-cat-list"></div>
+      </div>
+
+      <div class="source-panel">
+        <h2>Що варто знати про джерело</h2>
+        <div id="rehabSource" class="rehab-source"></div>
+      </div>
+    </section>
+
+    <section class="algorithm-results" aria-label="Знайдені коди">
+      <div class="algorithm-cards" id="rehabCards"></div>
+    </section>
+
+    <article class="algorithm-reader reader-empty" id="rehabReader" aria-live="polite">
+      <p>Оберіть код, щоб побачити його паспорт: категорія, дозвіл бути основним діагнозом,
+         формула кодування та місця в наказі, де цей код згаданий. Або оберіть групу порушень —
+         відкриються її правила й приклади.</p>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Розділ зібрано з наказу НСЗУ № 182 від 16.04.2026 та Додатка до нього. Робочі (приховані)
+           стовпчики Додатка не використовуються.</p>
+      </div>
+    </div>
+  </footer>
+
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <script src="rehab.js?v=20260806a" defer></script>
+</body>
+</html>
