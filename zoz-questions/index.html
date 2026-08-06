@@ -8,16 +8,16 @@
   <link rel="apple-touch-icon" href="/assets/icon-180.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>НавігаторПМГ26 | Запитання ЗОЗ</title>
+  <title>НавігаторПМГ26 | Питання ЗОЗ — шпаргалка</title>
   <link rel="stylesheet" href="../styles.css?v=20260806a">
-  <link rel="stylesheet" href="questions.css">
+  <link rel="stylesheet" href="questions.css?v=20260806c">
   <link rel="stylesheet" href="../auth-v2.css?v=20260806a">
   <script type="module" src="../auth-v2.js?v=20260806b"></script>
 </head>
 <body id="top" data-required-role="registered">
   <header class="hero questions-hero">
     <div class="hero-copy">
-      <div class="overline">Зворотний зв'язок ЗОЗ</div>
+      <div class="overline">Робочий простір · Ранкові зустрічі</div>
       <div class="header-nav-row">
         <div class="nav-row-1">
           <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
@@ -33,92 +33,106 @@
           <nav class="section-switch" aria-label="Розділи сайту"></nav>
         </div>
       </div>
-      <h1>Запитання ЗОЗ за ПМГ</h1>
-      <p>Задайте питання експертам Департаменту НСЗУ або перегляньте базу наданих роз'яснень щодо умов укладення договорів за ПМГ та фінансування.</p>
+      <h1>Питання ЗОЗ: шпаргалка ранкових зустрічей</h1>
+      <p>Всі питання закладів і відповіді НСЗУ з ранкових зустрічей та опитувальника — з миттєвим пошуком.
+      Знайшли схоже питання — скопіювали відповідь — вставили в чат зустрічі.</p>
     </div>
-    <div class="stats" id="questionsStats" aria-label="Статистика запитань"></div>
+    <div class="stats" id="questionsStats" aria-label="Статистика питань"></div>
   </header>
 
-  <main class="questions-layout">
-    <section class="questions-browser" aria-label="Пошук питань">
-      <div class="search-panel questions-search">
-        <label class="search">
-          <span>Пошук у питаннях ЗОЗ</span>
-          <input id="questionSearch" type="search" placeholder="Наприклад: укладення договорів, терапевтичний пакет, лікарі..." autocomplete="off">
-        </label>
-        <div class="questions-filters">
-          <label>Категорія питання
-            <select id="categoryFilter">
-              <option value="">Усі категорії</option>
-              <option value="contracting">Укладення договорів за ПМГ</option>
-              <option value="coding">Кодування та ЕМЗ</option>
-              <option value="billing">Оплата та тарифи</option>
-              <option value="technical">Технічні вимоги</option>
-              <option value="other">Інші питання</option>
-            </select>
-          </label>
-        </div>
-        <div class="results-summary">
-          <span id="questionCount">Завантаження запитань...</span>
-          <button id="askQuestionBtn" class="action primary" type="button">Поставити питання</button>
-        </div>
-      </div>
+  <div class="qtabs" role="tablist" aria-label="Режим розділу">
+    <button type="button" class="qtab active" data-view="search" role="tab" aria-selected="true">Пошук</button>
+    <button type="button" class="qtab" data-view="stats" role="tab" aria-selected="false">Аналітика</button>
+  </div>
 
-      <div class="question-cards" id="questionCards"></div>
+  <main>
+    <!-- ПОШУК -->
+    <section class="questions-layout" id="viewSearch" aria-label="Пошук питань">
+      <section class="questions-browser">
+        <div class="search-panel questions-search">
+          <label class="search">
+            <span>Пошук у питаннях і відповідях</span>
+            <input id="questionSearch" type="search"
+                   placeholder="діаліз · Y36 · розшифровка · Бартел · пакет 54…"
+                   autocomplete="off" autofocus>
+          </label>
+
+          <div class="chip-group" id="themeChips" aria-label="Фільтр за темою"></div>
+          <div class="chip-row">
+            <div class="chip-group" id="statusChips" aria-label="Фільтр за статусом відповіді"></div>
+            <div class="chip-group" id="extraChips" aria-label="Додаткові фільтри"></div>
+          </div>
+          <div class="chip-group chip-group-pkg" id="pkgChips" aria-label="Фільтр за пакетом"></div>
+
+          <div class="results-summary">
+            <span id="questionCount">Завантаження…</span>
+            <button id="resetFilters" class="action" type="button">Скинути все</button>
+          </div>
+        </div>
+
+        <div class="question-cards" id="questionCards"></div>
+        <button id="showMoreBtn" class="action show-more" type="button" hidden>Показати ще</button>
+      </section>
+
+      <aside class="question-panel-side" id="questionPanelSide" aria-live="polite">
+        <div class="empty-state" id="panelEmptyState">
+          <div class="empty-icon">?</div>
+          <h2>Оберіть питання</h2>
+          <p>Тут з'явиться повний текст питання і відповідь НСЗУ з кнопкою копіювання.
+          Порада: клавіша <kbd>/</kbd> — фокус у пошук, <kbd>Esc</kbd> — очистити.</p>
+        </div>
+
+        <div class="question-detail-viewer" id="questionDetailViewer" style="display:none">
+          <div class="detail-badges" id="detBadges"></div>
+          <h2 id="detQuestionTitle"></h2>
+          <p class="detail-author" id="detMeta"></p>
+
+          <div class="section-title">Питання закладу</div>
+          <div class="excerpt question-body" id="detText"></div>
+
+          <div class="answer-section" id="detAnswerSection">
+            <div class="section-title">Відповідь НСЗУ</div>
+            <div class="answer-box" id="detAnswer"></div>
+            <div class="detail-actions">
+              <button class="action primary" type="button" id="copyAnswerBtn">Скопіювати відповідь</button>
+              <button class="action" type="button" id="copyBothBtn">Питання + відповідь</button>
+            </div>
+          </div>
+        </div>
+      </aside>
     </section>
 
-    <!-- Side details or Question Form -->
-    <aside class="question-panel-side" id="questionPanelSide" aria-live="polite">
-      <!-- Default empty state -->
-      <div class="empty-state" id="panelEmptyState">
-        <div class="empty-icon">?</div>
-        <h2>Оберіть запитання</h2>
-        <p>Тут з'явиться детальний текст питання, статус відповіді та роз'яснення експертів НСЗУ.</p>
-      </div>
+    <!-- АНАЛІТИКА -->
+    <section class="stats-layout" id="viewStats" hidden aria-label="Аналітика питань">
+      <div class="stat-tiles" id="statTiles"></div>
 
-      <!-- Question Form (Hidden by default) -->
-      <div class="question-form-container" id="questionFormContainer" style="display:none">
-        <h2>Поставити нове питання</h2>
-        <p class="form-lead">Ваше питання буде передано департаменту на опрацювання. Після надання відповіді воно з'явиться в загальному переліку.</p>
-        <form id="newQuestionForm">
-          <div class="form-field">
-            <label for="qCategory">Категорія</label>
-            <select id="qCategory" required>
-              <option value="contracting">Укладення договорів за ПМГ</option>
-              <option value="coding">Кодування та ЕМЗ</option>
-              <option value="billing">Оплата та тарифи</option>
-              <option value="technical">Технічні вимоги</option>
-              <option value="other">Інші питання</option>
-            </select>
-          </div>
-          <div class="form-field">
-            <label for="qText">Текст запитання</label>
-            <textarea id="qText" required placeholder="Опишіть ваше питання детально. Вкажіть номер пакета чи пункту постанови, якщо необхідно..." rows="6"></textarea>
-          </div>
-          <div class="form-actions">
-            <button class="action primary" type="submit" id="submitQuestionBtn">Надіслати запит</button>
-            <button class="action" type="button" id="cancelQuestionBtn">Скасувати</button>
-          </div>
-          <div class="form-status" id="formStatus"></div>
-        </form>
-      </div>
+      <div class="chart-grid">
+        <div class="chart-card">
+          <h3>Про що питають</h3>
+          <p class="chart-sub">Кількість питань за темами, лютий–серпень 2026</p>
+          <div class="hbar-list" id="chartThemes"></div>
+        </div>
 
-      <!-- Question Detail Viewer (Hidden by default) -->
-      <div class="question-detail-viewer" id="questionDetailViewer" style="display:none">
-        <div class="detail-category-badge" id="detCategory">Категорія</div>
-        <h2 id="detQuestionTitle">Питання від закладу</h2>
-        <p class="detail-author" id="detAuthor">Автор: ...</p>
-        
-        <div class="section-title">Текст запитання</div>
-        <div class="excerpt question-body" id="detText">Текст запитання...</div>
+        <div class="chart-card">
+          <h3>Потік питань і покриття відповідями</h3>
+          <p class="chart-sub">Питань на місяць, за статусом відповіді НСЗУ</p>
+          <div class="chart-legend" id="monthsLegend"></div>
+          <div class="hbar-list" id="chartMonths"></div>
+        </div>
 
-        <div class="answer-section" id="detAnswerSection">
-          <div class="section-title">Офіційна відповідь Департаменту</div>
-          <div class="answer-box" id="detAnswer">Відповідь експертів...</div>
-          <p class="answer-date" id="detAnswerDate">Надано: ...</p>
+        <div class="chart-card">
+          <h3>Найгарячіші пакети</h3>
+          <p class="chart-sub">Скільки питань згадують пакет (одне питання може згадувати кілька)</p>
+          <div class="hbar-list" id="chartPkgs"></div>
+        </div>
+
+        <div class="chart-card">
+          <h3>Підтеми, що повторюються</h3>
+          <p class="chart-sub">Однакові підтеми у різних питаннях — кандидати в письмові роз'яснення</p>
+          <div class="hbar-list" id="chartSubs"></div>
         </div>
       </div>
-    </aside>
+    </section>
   </main>
 
   <footer class="site-footer">
@@ -126,11 +140,11 @@
       <div class="footer-copy">
         <div class="footer-agency">НСЗУ</div>
         <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
-        <p>Реєстр розроблено силами Департаменту без зовнішнього сприяння та проєктів.</p>
+        <p>Внутрішній робочий інструмент. Дані: чати й опитувальник ранкових зустрічей, лютий–серпень 2026.</p>
       </div>
     </div>
   </footer>
 
-  <script type="module" src="questions.js?v=20260719a" defer></script>
+  <script type="module" src="questions.js?v=20260806d" defer></script>
 </body>
 </html>

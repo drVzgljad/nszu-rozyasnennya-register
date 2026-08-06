@@ -1,4 +1,51 @@
-/* Q&A Layout */
+/* Питання ЗОЗ — шпаргалка ранкових зустрічей */
+
+/* Статусні кольори (перевірені на контраст і CVD, світла/темна тема) */
+:root {
+  --st-f: #1d9160;
+  --st-p: #c8860d;
+  --st-n: #ad3550;
+  --st-f-soft: #eaf6f0;
+  --st-p-soft: #faf1dd;
+  --st-n-soft: #f9e9ed;
+}
+:root.dark-theme {
+  --st-f: #27ab72;
+  --st-p: #bb831c;
+  --st-n: #e0607e;
+  --st-f-soft: #103123;
+  --st-p-soft: #33270e;
+  --st-n-soft: #391721;
+}
+
+/* ---------- вкладки ---------- */
+.qtabs {
+  display: flex;
+  gap: 8px;
+  max-width: 1480px;
+  margin: 18px auto 0;
+  padding: 0 24px;
+}
+.qtab {
+  padding: 9px 22px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.qtab:hover { border-color: var(--accent); color: var(--accent-dark); }
+.qtab.active {
+  background: var(--accent-fill, var(--accent));
+  border-color: var(--accent-fill, var(--accent));
+  color: #fff;
+}
+
+/* ---------- розкладка пошуку ---------- */
 .questions-layout {
   display: grid;
   grid-template-columns: minmax(470px, 1fr) minmax(450px, 1.15fr);
@@ -9,96 +56,169 @@
   align-items: start;
 }
 
-.questions-browser {
-  position: sticky;
-  top: 18px;
-}
-
 .questions-search {
   margin-bottom: 14px;
   padding: 18px;
 }
 
-.questions-filters {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 9px;
-  margin-top: 14px;
+/* ---------- чіпи ---------- */
+.chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
 }
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  align-items: flex-start;
+}
+.chip-row .chip-group { margin-top: 12px; }
 
-.questions-filters label {
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color .12s, background .12s, color .12s;
+}
+.chip:hover { border-color: var(--accent); }
+.chip.active {
+  background: var(--accent-fill, var(--accent));
+  border-color: var(--accent-fill, var(--accent));
+  color: #fff;
+}
+.chip-count {
+  font-size: 11px;
+  font-weight: 700;
   color: var(--muted);
-  font-size: 12px;
+  background: var(--soft);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.chip.active .chip-count { background: rgba(255, 255, 255, .22); color: #fff; }
+
+/* статусні чіпи мають кольорову крапку */
+.chip-st::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+}
+.chip-st-f::before { background: var(--st-f); }
+.chip-st-p::before { background: var(--st-p); }
+.chip-st-n::before { background: var(--st-n); }
+
+.results-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--muted);
   font-weight: 600;
 }
 
+/* ---------- картки ---------- */
 .question-cards {
   display: flex;
   flex-direction: column;
   gap: 9px;
-  max-height: calc(100vh - 315px);
+  max-height: calc(100vh - 250px);
   overflow: auto;
   padding-right: 4px;
 }
 
-/* Question Card Styling */
 .question-card {
   width: 100%;
-  padding: 15px;
+  padding: 13px 15px;
   text-align: left;
   border: 1px solid var(--line);
   border-radius: 15px;
-  background: #fff;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
   cursor: pointer;
   transition: border-color .15s, box-shadow .15s, background .15s;
 }
-
 .question-card:hover, .question-card.active {
-  border-color: rgba(0, 111, 201, 0.4);
-  background: #f5faff;
+  border-color: var(--accent);
+  background: var(--soft);
   box-shadow: 0 7px 17px rgba(18, 79, 128, 0.08);
 }
-
 .question-card strong {
   display: block;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 13.5px;
+  font-weight: 700;
   line-height: 1.4;
   color: var(--ink);
-  margin-bottom: 8px;
+  margin-bottom: 5px;
 }
-
+.card-snippet {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 .card-meta-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 10px;
+  gap: 8px;
+  margin-top: 9px;
   font-size: 12px;
   color: var(--muted);
 }
+.card-badges, .card-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.card-date { font-variant-numeric: tabular-nums; }
 
-/* Status Badges */
+.show-more {
+  margin-top: 10px;
+  width: 100%;
+}
+
+/* ---------- бейджі ---------- */
 .status-badge {
   display: inline-flex;
-  padding: 4px 8px;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
   border-radius: 6px;
   font-size: 11px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: .02em;
+  white-space: nowrap;
 }
-
-.status-badge.status-pending {
-  background: #fff5de;
-  color: #8a5d0c;
+.status-badge::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
 }
+.status-badge.st-f { background: var(--st-f-soft); color: var(--st-f); }
+.status-badge.st-p { background: var(--st-p-soft); color: var(--st-p); }
+.status-badge.st-n { background: var(--st-n-soft); color: var(--st-n); }
 
-.status-badge.status-answered {
-  background: #eef8f1;
-  color: var(--teal-dark, #3a8462);
-}
-
-/* Category Badges */
 .category-badge {
   padding: 3px 7px;
   border-radius: 6px;
@@ -106,13 +226,33 @@
   color: var(--accent-dark, #2f6b9e);
   font-size: 11px;
   font-weight: 700;
+  white-space: nowrap;
 }
+.pkg-badge {
+  padding: 3px 7px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.mil-badge {
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: var(--warm, #f4efe3);
+  color: #7a5b1e;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+:root.dark-theme .mil-badge { color: #d9b96a; }
 
-/* Side Panel Layouts */
+/* ---------- панель деталей ---------- */
 .question-panel-side {
   position: sticky;
   top: 18px;
-  min-height: calc(100vh - 170px);
+  min-height: calc(100vh - 190px);
   padding: 27px;
   background: var(--surface);
   border: 1px solid var(--line);
@@ -120,144 +260,242 @@
   box-shadow: var(--shadow);
 }
 
-/* Form Styling */
-.question-form-container {
-  display: flex;
-  flex-direction: column;
-}
-
-.question-form-container h2 {
-  margin: 0 0 8px;
-  font-size: 22px;
-  letter-spacing: -.03em;
-}
-
-.form-lead {
-  color: var(--muted);
-  font-size: 13.5px;
-  line-height: 1.5;
-  margin: 0 0 20px;
-}
-
-.form-field {
-  margin-bottom: 16px;
-}
-
-.form-field label {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
-}
-
-.form-field textarea {
-  width: 100%;
-  padding: 12px;
-  font: inherit;
-  font-size: 14.5px;
-  color: var(--ink);
-  border: 1.5px solid #cddbe7;
-  border-radius: 11px;
-  outline: none;
-  background: var(--soft);
-  resize: vertical;
-  transition: border-color .15s;
-}
-
-.form-field textarea:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(0, 111, 201, 0.12);
-}
-
-.form-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.form-status {
-  margin-top: 14px;
-  font-size: 13.5px;
-  font-weight: 600;
-}
-
-/* Detail Viewer */
 .question-detail-viewer {
   display: flex;
   flex-direction: column;
 }
-
-.detail-category-badge {
-  display: inline-flex;
-  align-self: flex-start;
-  padding: 5px 9px;
-  border-radius: 8px;
-  background: var(--accent-soft);
-  color: var(--accent-dark);
-  font-size: 11.5px;
-  font-weight: 700;
-  text-transform: uppercase;
+.detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   margin-bottom: 12px;
 }
-
 .question-detail-viewer h2 {
   margin: 0 0 6px;
-  font-size: 24px;
-  line-height: 1.25;
+  font-size: 21px;
+  line-height: 1.3;
   letter-spacing: -.02em;
 }
-
 .detail-author {
-  margin: 0 0 20px;
+  margin: 0 0 18px;
   font-size: 13px;
   color: var(--muted);
 }
-
 .question-body {
   font-size: 14px;
   line-height: 1.55;
-  color: #364b63;
-  margin-bottom: 24px;
+  color: var(--ink);
+  margin-bottom: 22px;
   white-space: pre-wrap;
 }
-
 .answer-section {
-  padding-top: 20px;
+  padding-top: 18px;
   border-top: 1px dashed var(--line);
 }
-
 .answer-box {
   padding: 16px;
   border-radius: 14px;
-  background: #f4fbf8;
-  border: 1px solid rgba(84, 173, 132, 0.2);
-  color: #24523d;
+  background: var(--st-f-soft);
+  border: 1px solid var(--st-f);
+  color: var(--ink);
   font-size: 14px;
   line-height: 1.58;
   white-space: pre-wrap;
 }
-
-.answer-date {
-  margin-top: 10px;
-  font-size: 12px;
+.answer-box.answer-missing {
+  background: var(--st-n-soft);
+  border-color: var(--st-n);
   color: var(--muted);
-  text-align: right;
+}
+.detail-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
 }
 
+/* підсвітка збігів пошуку */
+.qmark {
+  background: #ffe9a8;
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 1px;
+}
+:root.dark-theme .qmark { background: #6b5309; }
+
+kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--soft);
+  font-size: 12px;
+}
+
+/* ---------- аналітика ---------- */
+.stats-layout {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 22px 24px 40px;
+}
+
+.stat-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.stat-tile {
+  padding: 16px 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm, none);
+}
+.tile-val {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -.03em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.tile-val.tile-f { color: var(--st-f); }
+.tile-val.tile-p { color: var(--st-p); }
+.tile-val.tile-n { color: var(--st-n); }
+.tile-label {
+  margin-top: 3px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(430px, 1fr));
+  gap: 16px;
+}
+.chart-card {
+  padding: 20px 22px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+.chart-card h3 {
+  margin: 0 0 3px;
+  font-size: 16px;
+  letter-spacing: -.01em;
+}
+.chart-sub {
+  margin: 0 0 14px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.chart-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex: none;
+}
+.legend-dot.st-f { background: var(--st-f); }
+.legend-dot.st-p { background: var(--st-p); }
+.legend-dot.st-n { background: var(--st-n); }
+
+/* горизонтальні бари */
+.hbar-list { display: flex; flex-direction: column; gap: 8px; }
+.hbar-row {
+  display: grid;
+  grid-template-columns: 150px 1fr 44px;
+  align-items: center;
+  gap: 10px;
+}
+.hbar-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hbar-track {
+  height: 14px;
+  border-radius: 4px;
+  background: var(--soft);
+  overflow: hidden;
+}
+.hbar-fill {
+  height: 100%;
+  border-radius: 0 4px 4px 0;
+  background: var(--accent-fill, var(--accent));
+}
+.hbar-track.stacked {
+  display: flex;
+  gap: 2px;
+  background: transparent;
+}
+.seg { height: 14px; }
+.seg:first-child { border-radius: 4px 0 0 4px; }
+.seg:last-child { border-radius: 0 4px 4px 0; }
+.seg:only-child { border-radius: 4px; }
+.seg.st-f { background: var(--st-f); }
+.seg.st-p { background: var(--st-p); }
+.seg.st-n { background: var(--st-n); }
+.hbar-val {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.no-results {
+  padding: 18px;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+/* ---------- порожній стан ---------- */
+.empty-state { text-align: center; padding: 40px 20px; }
+.empty-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 14px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-size: 24px;
+  font-weight: 800;
+}
+.empty-state h2 { margin: 0 0 8px; font-size: 20px; }
+.empty-state p { color: var(--muted); font-size: 13.5px; line-height: 1.55; }
+
+/* ---------- мобільна ---------- */
 @media (max-width: 1040px) {
+  .qtabs { padding: 0 16px; }
   .questions-layout {
     display: block;
     padding: 16px;
   }
-  
   .question-cards {
     max-height: 50vh;
     margin-bottom: 16px;
   }
-  
   .question-panel-side {
     position: static;
     min-height: auto;
   }
+  .hbar-row { grid-template-columns: 92px 1fr 40px; }
+  .chart-grid { grid-template-columns: 1fr; }
 }
