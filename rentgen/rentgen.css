@@ -13,6 +13,11 @@
 .rt-stat-warn strong { color: var(--warning-text); }
 
 .rt-layout {
+  /* Портальний .layout — це двоколонковий grid (minmax(470px,.9fr) +
+     minmax(450px,1.1fr)). Без цього скидання вкладки лягають у ліву
+     колонку, вміст — у праву, і півекрана лишається порожнім.
+     Свою сітку розділ будує нижче, у .rt-body. */
+  display: block;
   max-width: 1400px;
   margin: 0 auto;
   padding: 16px 20px 48px;
@@ -261,11 +266,45 @@ mark { background: #ffe58a; color: #4a3200; border-radius: 3px; padding: 0 2px; 
 :root.dark-theme .rt-cls.therapy { background: #45280a; color: #fbbf78; }
 :root.dark-theme .rt-cls.nuclear { background: #2e2551; color: #c4b5fd; }
 
+.rt-h3 { font-size: 15px; margin: 22px 0 10px; color: var(--ink); }
+.rt-h3:first-of-type { margin-top: 0; }
+
 .rt-eq { margin: 0 0 26px; padding: 0; list-style: none; }
 .rt-eq li {
-  padding: 11px 14px; margin-bottom: 7px;
+  padding: 12px 15px; margin-bottom: 9px;
   background: var(--soft); border-radius: 9px;
   font-size: 13.5px; line-height: 1.5; color: var(--ink);
+}
+.rt-eq-name { font-weight: 600; }
+.rt-eq-esoz { margin-top: 9px; padding-top: 9px; border-top: 1px dashed var(--line); }
+.rt-eq-esoz-cap {
+  font-size: 11px; font-weight: 800; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+}
+.rt-esoz { display: flex; gap: 10px; align-items: baseline; margin-bottom: 4px; }
+.rt-esoz code {
+  background: var(--accent-soft); color: var(--accent-dark);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px; font-weight: 700; padding: 3px 9px; border-radius: 6px;
+  white-space: nowrap;
+}
+.rt-esoz span { font-size: 13px; color: var(--ink); }
+.rt-eq-hint { font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 6px; }
+
+/* блок «дотичне до ПМГ» у читалці */
+.rt-pmg-box {
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 12px; padding: 14px 18px; margin: 16px 0 22px;
+}
+.rt-pmg-cap {
+  font-size: 12px; font-weight: 800; letter-spacing: .04em;
+  color: var(--accent-dark); margin-bottom: 6px;
+}
+.rt-pmg-note { font-size: 13.5px; line-height: 1.6; color: var(--ink); margin-bottom: 10px; }
+.rt-pmg-toggle { background: var(--surface); }
+.rt-sec.is-pmg .rt-sec-num::after {
+  content: "🩻"; margin-left: 6px; font-size: 11px;
 }
 .rt-permit {
   border: 1px solid var(--line); border-radius: 12px;

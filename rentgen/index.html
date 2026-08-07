@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Рентген та джерела іонізуючого випромінювання</title>
   <link rel="stylesheet" href="../styles.css?v=20260806a">
-  <link rel="stylesheet" href="rentgen.css?v=20260807a">
+  <link rel="stylesheet" href="rentgen.css?v=20260807b">
   <link rel="stylesheet" href="../auth-v2.css?v=20260806a">
   <script type="module" src="../auth-v2.js?v=20260807a"></script>
 </head>
@@ -46,12 +46,12 @@
 
   <main class="layout rt-layout">
     <div class="rt-tabs" role="tablist" aria-label="Режим перегляду">
-      <button class="rt-tab is-active" id="tabNorms" role="tab" aria-selected="true" type="button">📖 Норми</button>
-      <button class="rt-tab" id="tabPkg" role="tab" aria-selected="false" type="button">🩻 Пакет → дозвіл</button>
+      <button class="rt-tab is-active" id="tabPkg" role="tab" aria-selected="true" type="button">🩻 Пакет → дозвіл</button>
+      <button class="rt-tab" id="tabNorms" role="tab" aria-selected="false" type="button">📖 Норми</button>
     </div>
 
     <!-- ============ РЕЖИМ: НОРМИ ============ -->
-    <section class="rt-view is-visible" id="viewNorms">
+    <section class="rt-view" id="viewNorms" hidden>
       <div class="rt-toolbar">
         <div class="rt-search">
           <span class="rt-search-ico" aria-hidden="true">🔍</span>
@@ -81,7 +81,7 @@
     </section>
 
     <!-- ============ РЕЖИМ: ПАКЕТ → ДОЗВІЛ ============ -->
-    <section class="rt-view" id="viewPkg" hidden>
+    <section class="rt-view is-visible" id="viewPkg">
       <p class="rt-lead">Обладнання з іонізуючим випромінюванням вимагають <strong id="pkgCount">21</strong> із 46 пакетів ПМГ-2026. Оберіть пакет — побачите, яке саме ДІВ він вимагає і який комплект дозвільних документів із цього випливає.</p>
       <div class="rt-body rt-body-pkg">
         <aside class="rt-pkglist" id="pkgList" aria-label="Пакети"></aside>
@@ -107,6 +107,6 @@
   </footer>
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
-  <script src="rentgen.js?v=20260807a" defer></script>
+  <script src="rentgen.js?v=20260807d" defer></script>
 </body>
 </html>

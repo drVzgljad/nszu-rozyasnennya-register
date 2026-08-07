@@ -22,6 +22,7 @@
     openKey: null,
     chip: 'all',
     query: '',
+    pmgOnly: false,
     expanded: new Set(),
   };
 
@@ -43,7 +44,11 @@
   }
 
   async function getJSON(path) {
-    const r = await fetch(path);
+    // Дані розділу ходять без ?v= (така конвенція порталу для /data/), тож без
+    // цього браузер віддає вчорашній JSON новим кодом. 'no-cache' — це не
+    // відмова від кешу, а обов'язкова ревалідація: незмінений файл повертає
+    // 304 і майже нічого не коштує.
+    const r = await fetch(path, { cache: 'no-cache' });
     if (!r.ok) throw new Error(`${path}: HTTP ${r.status}`);
     return r.json();
   }
@@ -174,13 +179,32 @@
     if (m.amendments_raw) {
       html += `<div class="rt-amend">${esc(m.amendments_raw)}</div>`;
     }
+
+    // Що саме в цьому акті стосується ПМГ. Для актів, де вимогою є весь
+    // документ, фільтр не показуємо — інакше він удавав би точність.
+    if (doc.pmg_note) {
+      const part = doc.pmg_scope === 'part';
+      html += `<div class="rt-pmg-box">
+        <div class="rt-pmg-cap">🩻 Дотичне до вимог ПМГ</div>
+        <div class="rt-pmg-note">${esc(doc.pmg_note)}</div>
+        ${part ? `<button class="rt-chip rt-pmg-toggle${state.pmgOnly ? ' is-on' : ''}"
+            type="button" data-act="pmgonly">Показати лише дотичні пункти (${doc.pmg_nodes})</button>
+          <div class="rt-eq-hint">Відбір експертний, а не норма закону — решта тексту акта нікуди не зникає.</div>`
+          : '<div class="rt-eq-hint">Тут вимогою є весь акт, тож відбирати пункти немає з чого.</div>'}
+      </div>`;
+    }
+
     if (doc.preamble) {
       html += `<div class="rt-preamble">${esc(doc.preamble)}</div>`;
     }
 
     // суцільний текст із якорями — документ читається як документ
-    html += doc.nodes.map((n) => `
-      <section class="rt-sec lvl-${n.level}" id="sec-${esc(n.id)}">
+    const part = doc.pmg_scope === 'part';
+    const shown = (state.pmgOnly && part) ? doc.nodes.filter((n) => n.pmg) : doc.nodes;
+    // позначку на пункті ставимо лише там, де вона щось розрізняє: коли
+    // вимогою є весь акт, 🩻 на кожному пункті — просто шум
+    html += shown.map((n) => `
+      <section class="rt-sec lvl-${n.level}${n.pmg && part ? ' is-pmg' : ''}" id="sec-${esc(n.id)}">
         <div class="rt-sec-head">
           <span class="rt-sec-num">${esc(n.label)}</span>
           <span class="rt-sec-title">${highlight(n.title, state.query)}</span>
@@ -244,14 +268,28 @@
         `<span class="rt-cls ${esc(c)}">${esc(clsTitle(c))}</span>`).join('')}</div>
     </div>`;
 
-    html += `<h3 style="font-size:15px;margin:0 0 10px">Обладнання з ДІВ у вимогах пакета</h3>
-      <ul class="rt-eq">${p.equipment.map((e) => `<li>${esc(e.name)}</li>`).join('')}</ul>`;
+    html += `<h3 class="rt-h3">Обладнання з ДІВ у вимогах пакета</h3>
+      <ul class="rt-eq">${p.equipment.map((e) => `
+        <li>
+          <div class="rt-eq-name">${esc(e.name)}</div>
+          ${e.esoz && e.esoz.length ? `
+            <div class="rt-eq-esoz">
+              <div class="rt-eq-esoz-cap">Вносити до Реєстру суб'єктів господарювання за кодом
+                (${esc(state.packages.esoz_source.act)}):</div>
+              ${e.esoz.map((z) => `<div class="rt-esoz">
+                 <code>${esc(z.code)}</code><span>${esc(z.name)}</span></div>`).join('')}
+              ${e.esoz.length > 1
+                ? '<div class="rt-eq-hint">Вимога сформульована описово, тож типів у Переліку кілька — заклад вносить той, що відповідає фактичному апарату.</div>'
+                : ''}
+            </div>` : `
+            <div class="rt-eq-hint">У Переліку за наказом № 697 такого типу немає — код ЕСОЗ не передбачено.</div>`}
+        </li>`).join('')}</ul>`;
 
     if (notes) {
       html += `<div class="rt-amend"><ul style="margin:0;padding-left:18px">${notes}</ul></div>`;
     }
 
-    html += `<h3 style="font-size:15px;margin:22px 0 10px">Що з цього випливає: ${p.permits.length} дозвільних блоків</h3>`;
+    html += `<h3 class="rt-h3">Що з цього випливає: ${p.permits.length} дозвільних блоків</h3>`;
     html += p.permits.map((pm) => `
       <div class="rt-permit">
         <div class="rt-permit-title">${esc(pm.title)}</div>
@@ -281,7 +319,9 @@
     $('tabPkg').classList.toggle('is-active', !norms);
     $('tabNorms').setAttribute('aria-selected', String(norms));
     $('tabPkg').setAttribute('aria-selected', String(!norms));
-    location.hash = norms ? '' : '#packages';
+    // «Пакет → дозвіл» — стартовий режим: експерт приходить із питанням про
+    // пакет, а не з наміром почитати наказ. Тому чистий URL веде саме туди.
+    location.hash = norms ? '#norms' : '';
   }
 
   /* ---------------- події ---------------- */
@@ -300,6 +340,9 @@
       } else if (act === 'more') {
         state.expanded.add(t.dataset.key);
         renderNodeList(t.dataset.key);
+      } else if (act === 'pmgonly') {
+        state.pmgOnly = !state.pmgOnly;
+        await openDoc(state.openKey);
       } else if (act === 'pkg') {
         openPackage(t.dataset.num);
       } else if (act === 'jump') {
@@ -357,7 +400,7 @@
       renderTree();
       renderPackages();
       wire();
-      if (location.hash === '#packages') setView('packages');
+      if (location.hash === '#norms') setView('norms');
     } catch (err) {
       $('tree').innerHTML = `<div class="rt-loading">Не вдалося завантажити дані: ${esc(err.message)}</div>`;
       console.error(err);
