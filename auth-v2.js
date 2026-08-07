@@ -24,7 +24,7 @@ let isClerk = false;
 const PORTAL_SUBDIRS = [
   'algorithms', 'cabinet', 'chat', 'classifiers', 'dec', 'expert-proposals', 'infocenter',
   'map', 'mapping', 'news', 'pakety', 'passport', 'pilots', 'pmg-proposals', 'postanova', 'regulatory',
-  'relax', 'reminders', 'rozjasnennya', 'skod', 'zoz-dogovr', 'zoz-poshuk', 'zoz-questions'
+  'relax', 'reminders', 'rentgen', 'rozjasnennya', 'skod', 'zoz-dogovr', 'zoz-poshuk', 'zoz-questions'
 ];
 
 function isInPortalSubdir() {
@@ -385,6 +385,7 @@ function applyAccess() {
         ]
       },
       { text: 'Нормативна база', path: 'regulatory/index.html' },
+      { text: '🩻 Рентген і ДІВ', path: 'rentgen/index.html' },
       { text: 'ДЕЦ МОЗ', path: 'dec/index.html' },
       { text: 'Укладені договори', path: 'zoz-dogovr/index.html' },
       { text: '🏥 Хто це лікує', path: 'zoz-poshuk/index.html' }
@@ -2262,6 +2263,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '📜', label: 'Постанова 1808', path: 'postanova/index.html' },
     { icon: '🧮', label: 'Наказ 377', path: 'algorithms/index.html' },
     { icon: '⚖️', label: 'Нормативна база', path: 'regulatory/index.html' },
+    { icon: '☢️', label: 'Рентген і ДІВ', path: 'rentgen/index.html' },
     { icon: '🏥', label: 'ДЕЦ МОЗ', path: 'dec/index.html' },
     { icon: '🩺', label: 'Хвороби · НК 025', path: 'classifiers/index.html' },
     { icon: '🔬', label: 'Інтервенції · НК 026', path: 'classifiers/nk026.html' },
@@ -2442,7 +2444,7 @@ if ('serviceWorker' in navigator &&
   // неї браузер до десяти хвилин не помічає, що воркер змінився, і продовжує
   // роздавати старі файли з кешу. Змінений URL змушує перевірити одразу.
   // ПРИ ЗМІНІ sw.js ПІДНІМАТИ ЦЮ ВЕРСІЮ РАЗОМ З CACHE усередині воркера.
-  navigator.serviceWorker.register('/sw.js?v=21').catch(() => {});
+  navigator.serviceWorker.register('/sw.js?v=22').catch(() => {});
 
   // Перезавантаження на controllerchange прибрано 30.07.2026 разом зі
   // skipWaiting() у воркері (див. коментар у sw.js). Новий воркер більше не

@@ -29,6 +29,7 @@
           { name: "Кодування реабілітації (Наказ 182)", icon: "🦼", path: "algorithms/rehab.html", role: "guest" },
           { name: "Кодування амбулаторки", icon: "🏥", path: "algorithms/ambulatory.html", role: "guest" },
           { name: "Нормативна база", icon: "⚖️", path: "regulatory/index.html", role: "guest" },
+          { name: "Рентген і ДІВ", icon: "☢️", path: "rentgen/index.html", role: "guest" },
           { name: "ДЕЦ МОЗ", icon: "🏥", path: "dec/index.html", role: "guest" },
           { name: "Договори ЗОЗ", icon: "📑", path: "zoz-dogovr/index.html", role: "guest" },
         ],
