@@ -1,10 +1,10 @@
 {
-  "generated": "2026-08-07T06:07:03.908458+00:00",
-  "archive_fetched_at": "2026-08-07T06:07:03.093263+00:00",
+  "generated": "2026-08-08T09:07:01.110546+00:00",
+  "archive_fetched_at": "2026-08-08T09:06:58.455577+00:00",
   "archive_source": "https://nszu.gov.ua/arxiv-dokumentiv?groups[2][attributes][]=36",
-  "archive_records": 183,
-  "total": 190,
-  "from_archive": 179,
+  "archive_records": 185,
+  "total": 192,
+  "from_archive": 181,
   "external": 11,
   "duplicate_files": 4,
   "records": [
@@ -4496,6 +4496,51 @@
         "table_rows": 265,
         "unreadable": 0
       }
+    },
+    {
+      "id": 320,
+      "url": "https://backend.nszu.gov.ua/storage/application/26/08/07/TgOXVwMyxOfnDIyPTKz3c6w4EydHvaAgczfWn7wv.pdf",
+      "local_name": "TgOXVwMyxOfnDIyPTKz3c6w4EydHvaAgczfWn7wv.pdf",
+      "archive_title": "Перелік високовартісних досліджень, які, у разі відсутності в закладі, що здійснює основне лікування, необхідного обладнання або технологій для їх проведення, можуть бути виконані спеціалізованим (референтним) закладом під час стаціонарного лікування",
+      "extension": "pdf",
+      "storage_date": "2026-08-07",
+      "first_seen": "2026-08-08",
+      "stage": "extracted",
+      "sha256": "1981355cc51f96db36353d71080169ca02b0ac28799e25ea55db13d34061311e",
+      "size": 106184,
+      "engine": "pdf-text",
+      "stats": {
+        "blocks": 18,
+        "body_blocks": 6,
+        "sentences": 6,
+        "chars": 755,
+        "tables": 0,
+        "table_rows": 0,
+        "unreadable": 0
+      }
+    },
+    {
+      "id": 321,
+      "url": "https://backend.nszu.gov.ua/storage/application/26/08/07/EoahEh55oneGKHFdEYYiQOwYtJfEncemjPzXy8Sv.xlsx",
+      "local_name": "EoahEh55oneGKHFdEYYiQOwYtJfEncemjPzXy8Sv.xlsx",
+      "archive_title": "Додаток 1",
+      "extension": "xlsx",
+      "storage_date": "2026-08-07",
+      "first_seen": "2026-08-08",
+      "stage": "extracted",
+      "sha256": "e0331c25fa146c84f983e53b9ccf293d3ddd3e3b6c25423ac9c11cd29a706116",
+      "size": 32579,
+      "engine": "xlsx",
+      "stats": {
+        "blocks": 1,
+        "body_blocks": 1,
+        "sentences": 1,
+        "chars": 40,
+        "tables": 1,
+        "table_rows": 265,
+        "unreadable": 0
+      }
     }
-  ]
+  ],
+  "docs_built_at": "2026-08-08T09:07:03.743026+00:00"
 }
