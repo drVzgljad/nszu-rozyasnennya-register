@@ -18,6 +18,33 @@
 .classifiers-hero .stat-num { font-size: 1.25rem; font-weight: 800; color: var(--accent-dark); line-height: 1.1; }
 .classifiers-hero .stat-key { font-size: .74rem; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
 
+/* ── Опис розділу під роботою ──────────────────────────────────
+   Раніше цей абзац стояв у шапці й відтісняв пошук на 443-й піксель —
+   на екрані 720 до першого поля не було чого робити. Читають його один
+   раз, а коди шукають щодня, тож він переїхав сюди, перед футером.
+   Ширина й відступи — як у .nk-layout, щоб не випадав із колонки. */
+.nk-about {
+  max-width: 1320px;
+  margin: 0 auto 28px;
+  padding: 16px 18px 0;
+  border-top: 1px solid var(--line, #dde6ee);
+}
+.nk-about h2 {
+  margin: 0 0 6px;
+  font-size: .78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted, #647688);
+}
+.nk-about p {
+  margin: 0;
+  max-width: 96ch;
+  font-size: .92rem;
+  line-height: 1.55;
+  color: var(--muted, #647688);
+}
+
 /* ── Розкладка ─────────────────────────────────────────────── */
 .nk-layout {
   display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
