@@ -22,7 +22,7 @@
   <meta property="og:image:alt" content="НавігаторПМГ26 — робочий простір експертів Департаменту стратегії НСЗУ">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="description" content="Роз'яснення НСЗУ, пакети ПМГ-2026, класифікатори, алгоритми та доручення — в одному місці.">
-  <link rel="stylesheet" href="portal.css?v=20260808a">
+  <link rel="stylesheet" href="portal.css?v=20260808b">
   <link rel="stylesheet" href="brand.css?v=20260808b">
   <link rel="stylesheet" href="auth-v2.css?v=20260806a">
   <script type="module" src="auth-v2.js?v=20260808c"></script>
@@ -701,7 +701,9 @@
          src призначає JS унизу сторінки — після load і лише там, де це доречно
          (не за reduced-motion, не в режимі економії трафіку, не на вузькому
          екрані). Доти й замість нього лишається статичний .brand-canvas -->
-    <video class="hero-bg-video" id="hero-bg-video" muted loop playsinline preload="none"
+    <!-- Без loop: програється один раз за захід на головну і застигає на
+         останньому кадрі — той самий боке, тільки нерухомий -->
+    <video class="hero-bg-video" id="hero-bg-video" muted playsinline preload="none"
            tabindex="-1" aria-hidden="true" disablepictureinpicture></video>
     <!-- Затемнення під заголовок: відео яскравіше за статичний кроп, і без
          цього шару світлий текст на золотих іскрах провалюється -->
@@ -710,6 +712,9 @@
     <!-- Повільний кольоровий перелив: окремий шар поверх фону, а не сам фон, —
          інакше темна тема перебила б його своїм background !important -->
     <div class="hero-sheen" aria-hidden="true"></div>
+    <!-- Хвіст комети за курсором. Лежить нижче .hero-inner (z-index: 2), тож
+         іскри проходять ПОЗАДУ заголовка й нічого не затуляють -->
+    <canvas class="hero-comet" id="hero-comet" aria-hidden="true"></canvas>
     <div class="wrap hero-inner">
       <div class="hero-main-row" style="display: flex; align-items: flex-start; justify-content: space-between; gap: 40px; flex-wrap: wrap;">
         <div class="hero-main-content" style="flex: 2; min-width: 300px;">
@@ -856,7 +861,7 @@
       }
       if (started) return;
       started = true;
-      video.src = 'assets/hero-bg.mp4?v=20260808a';
+      video.src = 'assets/hero-bg.mp4?v=20260808b';
       const played = video.play();
       if (played && played.catch) {
         // Автовідтворення заблоковано — тихо лишаємо статичний фон
@@ -871,6 +876,110 @@
     // Після load: фон не має конкурувати за канал зі змістом сторінки
     if (document.readyState === 'complete') start();
     else window.addEventListener('load', start, { once: true });
+  })();
+
+  // ── Хвіст комети за курсором ──────────────────────────────────────
+  // Ті самі золоті іскри, що летять у відео, тільно тепер їх веде курсор.
+  // Малюємо в canvas, а не елементами: 300 вузлів у DOM браузер не потягне.
+  (() => {
+    const canvas = document.getElementById('hero-comet');
+    const hero = canvas?.closest('.hero');
+    if (!canvas || !hero) return;
+    // Спокійний рух — без ефекту; тач-екран — там і курсора немає
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (window.matchMedia('(hover: none)').matches) return;
+
+    const ctx = canvas.getContext('2d');
+    // Палітра з відео: тепле золото, вершкове, холодний бірюзовий відблиск і біле
+    const HUES = [[255, 230, 148], [251, 254, 196], [172, 242, 238], [255, 255, 255]];
+    const MAX = 300;               // стеля масиву: далі найстаріші витісняються
+    const parts = [];
+    let w = 0, h = 0, prev = null, raf = 0;
+
+    const resize = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      if (hero.clientWidth === w && hero.clientHeight === h) return;
+      w = hero.clientWidth;
+      h = hero.clientHeight;
+      canvas.width = Math.round(w * dpr);
+      canvas.height = Math.round(h * dpr);
+      // Далі малюємо в CSS-пікселях, масштаб бере на себе матриця
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.globalCompositeOperation = 'lighter';  // іскри складаються в сяйво
+    };
+    // Саме спостерігач, а не один замір: на момент виконання модуля герой ще
+    // не розкладено (clientWidth = 0), а далі його висота ще й змінюється —
+    // від шрифтів, від авторизації, від переходу в макет кабінету.
+    if (window.ResizeObserver) new ResizeObserver(resize).observe(hero);
+    else window.addEventListener('resize', resize);
+    resize();
+
+    const emit = (x, y, dx, dy) => {
+      const speed = Math.hypot(dx, dy);
+      if (speed < 0.6) return;      // курсор стоїть — нічого не сиплемо
+      // Чим швидше рух, тим густіший хвіст, але не більше п'яти за кадр
+      const n = Math.min(5, 1 + Math.round(speed / 14));
+      for (let i = 0; i < n; i++) {
+        if (parts.length >= MAX) parts.shift();
+        parts.push({
+          x, y,
+          // Частинки летять НАЗАД за курсором — звідси відчуття хвоста,
+          // плюс невеликий розкид, щоб він не був ниткою
+          vx: -dx * (0.10 + Math.random() * 0.26) + (Math.random() - 0.5) * 1.7,
+          vy: -dy * (0.10 + Math.random() * 0.26) + (Math.random() - 0.5) * 1.7,
+          life: 1,
+          decay: 0.013 + Math.random() * 0.020,
+          r: 1 + Math.random() * 2.3,
+          c: HUES[(Math.random() * HUES.length) | 0]
+        });
+      }
+    };
+
+    const frame = () => {
+      ctx.clearRect(0, 0, w, h);
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const p = parts[i];
+        const fromX = p.x, fromY = p.y;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vx *= 0.94;
+        p.vy *= 0.94;
+        p.vy += 0.022;              // легке тяжіння: іскри осідають, як у відео
+        p.life -= p.decay;
+        if (p.life <= 0) { parts.splice(i, 1); continue; }
+
+        const a = p.life * p.life;  // у кінці гасне швидше, ніж на початку
+        const [r, g, b] = p.c;
+        // Смужка від попередньої точки — вона й читається як хвіст
+        ctx.strokeStyle = `rgba(${r},${g},${b},${a * 0.5})`;
+        ctx.lineWidth = p.r * p.life;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(fromX, fromY);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+        // Голова іскри
+        ctx.fillStyle = `rgba(${r},${g},${b},${a})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r * p.life * 0.8, 0, 6.2832);
+        ctx.fill();
+      }
+      // Порожній масив — цикл спиняємо, щоб не гріти процесор на нерухомій сторінці
+      raf = parts.length ? requestAnimationFrame(frame) : 0;
+    };
+
+    hero.addEventListener('pointermove', (e) => {
+      if (e.pointerType === 'touch') return;
+      resize();  // запобіжник, якщо ResizeObserver недоступний
+      const box = hero.getBoundingClientRect();
+      const x = e.clientX - box.left;
+      const y = e.clientY - box.top;
+      if (prev) emit(x, y, x - prev.x, y - prev.y);
+      prev = { x, y };
+      if (!raf) raf = requestAnimationFrame(frame);
+    });
+    // Курсор пішов — наступний захід не має тягнути смугу через увесь герой
+    hero.addEventListener('pointerleave', () => { prev = null; });
   })();
 
   // ── Анімація логотипа: один раз за сесію ──────────────────────────

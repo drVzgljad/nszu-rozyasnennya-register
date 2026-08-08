@@ -260,6 +260,21 @@ body {
 .hero.has-bg-video .hero-bg-video,
 .hero.has-bg-video .hero-bg-scrim { opacity: 1; }
 
+/* ── Хвіст комети за курсором ───────────────────────────
+   Поверх фону й затемнення (щоб іскри не гасли), але нижче .hero-inner
+   (z-index: 2) — тож текст лишається зверху, а pointer-events: none не дає
+   полотну перехопити клік по логотипу чи посиланню. */
+.hero .hero-comet {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero .hero-comet { display: none; }
+}
+
 .hero .hero-sheen {
   background: linear-gradient(
     118deg,
