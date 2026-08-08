@@ -263,8 +263,25 @@ function applyAccess() {
     if (normalized === 'pakety/index.html') {
       return currentPath.includes('/pakety/') && !currentPath.includes('report.html') && !currentPath.includes('collector.html');
     }
-    
-    return currentPath.includes(segments[0]);
+
+    // Загальне правило — збіг за текою розділу. Звіряємо саме сегменти шляху:
+    // includes() вважав /mapping/ (Таблиця співставлення) частиною /map/
+    // (Карта порталу), і на таблиці підсвічувалися обидва пункти.
+    const parts = currentPath.split('/');
+    if (!parts.includes(segments[0])) return false;
+
+    const file = (segments[1] || '').split('?')[0];
+    if (segments.length === 2 && file) {
+      // Картка доручення пункту меню не має — світить свого батька
+      const parentOf = { 'task-detail.html': 'tasks.html' };
+      const last = parts[parts.length - 1];
+      const here = parentOf[last] || last;
+      // Сторінки з власним пунктом меню не віддають підсвітку сусідам по теці:
+      // на cabinet/planner.html активний «Планувальник», а не «Внесення роботи».
+      const ownItem = ['planner.html', 'rehab.html', 'linker.html'];
+      return file === 'index.html' ? !ownItem.includes(here) : here === file;
+    }
+    return true;
   }
 
   /**
@@ -326,21 +343,22 @@ function applyAccess() {
   if (navContainer) {
     navContainer.innerHTML = ''; // Rebuild dynamically
 
+    // На самій головній кнопка «Головна» зайва: туди веде і логотип у шапці,
+    // і 🏠 в мобільному таббарі. На решті сторінок вона лишається.
     const coreItems = [
-      { text: 'Головна', path: 'index.html' },
-      { text: '🗺️ Карта', path: 'map/index.html' },
-      { text: 'Роз\'яснення', path: 'rozjasnennya/index.html' }
+      { text: 'Головна', path: 'index.html', hideWhenActive: true }
     ];
 
-    // «Пакети» — вкладка з підменю: за постановою 1808 і поза нею. Пілоти лежали
-    // в «Документах», хоча шукають їх там само, де й пакети ПМГ.
+    // «Пакети» — усе, що стосується пакета медичних послуг: сам пакет, його
+    // паспорт, роз'яснення НСЗУ до нього, пілоти поза постановою 1808 і архів
+    // минулих років. Роз'яснення, паспорт і архів були розкидані по трьох
+    // різних місцях меню, хоча шукають їх там само, де й пакет.
     const packagesItems = [
       { text: '📗 Пакети ПМГ 2026', path: 'pakety/index.html' },
-      { text: '🧪 Пілотні проєкти', path: 'pilots/index.html' }
-    ];
-
-    const passportItems = [
-      { text: 'Паспорт пакета', path: 'passport/index.html' }
+      { text: '🪪 Паспорт пакета', path: 'passport/index.html' },
+      { text: '📄 Роз\'яснення НСЗУ', path: 'rozjasnennya/index.html' },
+      { text: '🧪 Пілотні проєкти', path: 'pilots/index.html' },
+      { text: '🗃️ Архів пакетів ПМГ', path: 'pakety/collector.html' }
     ];
 
     // Довідники — вкладка з підменю. Дев'ять сторінок одним списком уже не
@@ -393,30 +411,49 @@ function applyAccess() {
 
     const tailItems = [
       { text: '📡 Інфоцентр', path: 'infocenter/index.html', role: 'expert' },
-      { text: 'Структура', path: 'dept-tree.html', role: 'expert' },
+      { text: 'Структура Департаменту', path: 'dept-tree.html', role: 'expert' },
       { text: 'Робочий чат', path: 'chat/index.html', isChat: true, role: 'expert' }
     ];
 
-    const dropdownItems = [
-      { text: 'Архів пакетів ПМГ', path: 'pakety/collector.html' },
-      { text: 'Машина пошуку', path: 'pakety/report.html', role: 'expert' },
-      { text: 'Конструктор зв\'язків', path: 'dec/linker.html', role: 'expert' },
-      { text: 'Календар нагадувань', path: 'reminders/index.html', role: 'expert' },
-      { text: 'Питання ЗОЗ', path: 'zoz-questions/index.html', role: 'expert' },
-      { text: 'Пропозиції ПМГ', path: 'pmg-proposals/index.html', role: 'expert' },
-      { text: 'Пропозиції робочих груп', path: 'expert-proposals/index.html', role: 'expert' },
-      { text: 'СКО-Д (Внесення)', path: 'cabinet/index.html', role: 'expert' },
-      { text: 'СКО-Д (Звіти)', path: 'skod/reports.html', role: 'expert' },
-      { text: 'СКО-Д (Доручення)', path: 'skod/tasks.html', role: 'manager' },
-      { text: 'Новини', path: 'news/index.html', role: 'expert' },
-      { text: 'Інфоцентр', path: 'infocenter/index.html', role: 'expert' },
-      { text: 'Хвилинка відпочинку', path: 'relax/index.html', role: 'expert' }
+    // «Сервіси» — робочі інструменти департаменту. Тринадцять пунктів одним
+    // списком уже не читалися: три рядки «СКО-Д (…)» займали чверть меню, а
+    // «Інфоцентр» дублював вкладку праворуч. Тепер гнізда за тим самим поділом,
+    // що й кластери карти порталу: робота → взаємодія → інструменти.
+    const servicesItems = [
+      { text: '🗺️ Карта порталу', path: 'map/index.html' },
+      {
+        text: '🧭 СКО-Д', items: [
+          { text: 'Внесення роботи', path: 'cabinet/index.html', role: 'expert' },
+          { text: 'Планувальник', path: 'cabinet/planner.html', role: 'expert' },
+          { text: 'Звіти та аналітика', path: 'skod/reports.html', role: 'expert' },
+          { text: 'Доручення', path: 'skod/tasks.html', role: 'manager' }
+        ]
+      },
+      {
+        text: '🗳️ Взаємодія', items: [
+          { text: 'Питання ЗОЗ', path: 'zoz-questions/index.html', role: 'expert' },
+          { text: 'Пропозиції ПМГ', path: 'pmg-proposals/index.html', role: 'expert' },
+          { text: 'Пропозиції робочих груп', path: 'expert-proposals/index.html', role: 'expert' }
+        ]
+      },
+      {
+        text: '🛠️ Інструменти', items: [
+          { text: 'Машина пошуку', path: 'pakety/report.html', role: 'expert' },
+          { text: 'Конструктор зв\'язків', path: 'dec/linker.html', role: 'expert' }
+        ]
+      },
+      { text: '⏰ Календар нагадувань', path: 'reminders/index.html', role: 'expert' },
+      { text: '📰 Новини', path: 'news/index.html', role: 'expert' },
+      { text: '🌿 Хвилинка відпочинку', path: 'relax/index.html', role: 'expert' }
     ];
 
     const appendNavLinks = (items) => {
       items.forEach(item => {
         if (item.role && !hasAccess(item.role)) {
           return; // Hide completely
+        }
+        if (item.hideWhenActive && isActive(item.path)) {
+          return; // Посилання на сторінку, де ми вже стоїмо
         }
         const a = document.createElement('a');
         a.href = prefix + item.path;
@@ -523,14 +560,16 @@ function applyAccess() {
       navContainer.appendChild(dropdownDiv);
     };
 
-    // Головна · Карта · Роз'яснення · Пакети ▼ · Паспорт · Довідники ▼ · Документи ▼ · Сервіси ▼
+    // Головна · Пакети ▼ · Довідники ▼ · Документи ▼ · Сервіси ▼ · Інфоцентр ·
+    // Структура Департаменту · Робочий чат.
+    // Зліва направо: зміст ПМГ (пакет → чим його кодують → на чому стоїть),
+    // далі робочі сервіси, і аж потім усе, що про сам департамент.
     appendBackLink(navContainer);
     appendNavLinks(coreItems);
     appendDropdown('Пакети', packagesItems);
-    appendNavLinks(passportItems);
     appendDropdown('📚 Довідники', referenceItems);
     appendDropdown('Документи', documentsItems);
-    appendDropdown('Сервіси', dropdownItems);
+    appendDropdown('Сервіси', servicesItems);
     appendNavLinks(tailItems);
   }
 
@@ -2280,7 +2319,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '🗓️', label: 'Планувальник', path: 'cabinet/planner.html', role: 'expert' },
     { icon: '📊', label: 'Звіти СКО-Д', path: 'skod/reports.html', role: 'expert' },
     { icon: '✅', label: 'Доручення', path: 'skod/tasks.html', role: 'manager' },
-    { icon: '👥', label: 'Структура', path: 'dept-tree.html', role: 'expert' },
+    { icon: '👥', label: 'Структура Департаменту', path: 'dept-tree.html', role: 'expert' },
     { icon: '💬', label: 'Робочий чат', path: 'chat/index.html', role: 'expert' },
     { icon: '📰', label: 'Новини', path: 'news/index.html', role: 'expert' },
     { icon: '📡', label: 'Інфоцентр', path: 'infocenter/index.html', role: 'expert' },
@@ -2444,7 +2483,7 @@ if ('serviceWorker' in navigator &&
   // неї браузер до десяти хвилин не помічає, що воркер змінився, і продовжує
   // роздавати старі файли з кешу. Змінений URL змушує перевірити одразу.
   // ПРИ ЗМІНІ sw.js ПІДНІМАТИ ЦЮ ВЕРСІЮ РАЗОМ З CACHE усередині воркера.
-  navigator.serviceWorker.register('/sw.js?v=22').catch(() => {});
+  navigator.serviceWorker.register('/sw.js?v=23').catch(() => {});
 
   // Перезавантаження на controllerchange прибрано 30.07.2026 разом зі
   // skipWaiting() у воркері (див. коментар у sw.js). Новий воркер більше не
