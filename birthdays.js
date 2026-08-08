@@ -102,16 +102,31 @@ export function birthdayBuckets(list, today) {
   };
 }
 
+/** Висота смужки з минулого візиту: auth-v2.js тримає під неї місце ще до
+ *  першого малювання, інакше смужка виїжджає згори і зсуває всю сторінку.
+ *  Зберігаємо саму лише висоту в пікселях — жодних імен у сховищі. */
+function rememberHeight(container) {
+  try {
+    localStorage.setItem('portal-boot-bday-h',
+      String(container.hidden ? 0 : Math.round(container.offsetHeight)));
+  } catch (e) { /* приватний режим — просто без резерву місця */ }
+}
+
 export async function renderBirthdayStrip(container) {
   if (!container) return;
   const list = await load();
-  if (!list.length) { container.hidden = true; return; }
+  if (!list.length) { container.hidden = true; container.style.minHeight = ''; rememberHeight(container); return; }
 
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const { celebrating, upcoming } = birthdayBuckets(list, today);
 
-  if (!celebrating.length && !upcoming.length) { container.hidden = true; return; }
+  if (!celebrating.length && !upcoming.length) {
+    container.hidden = true;
+    container.style.minHeight = '';
+    rememberHeight(container);
+    return;
+  }
 
   container.hidden = false;
   container.className = celebrating.length ? 'bday-strip is-today' : 'bday-strip';
@@ -130,6 +145,9 @@ export async function renderBirthdayStrip(container) {
     : '';
 
   container.innerHTML = `<div class="bday-inner">${head}${rest}</div>`;
+  // Зарезервоване місце віддаємо назад: далі висоту тримає сам зміст
+  container.style.minHeight = '';
+  rememberHeight(container);
 }
 
 // Тортик на картці людини у структурі департаменту

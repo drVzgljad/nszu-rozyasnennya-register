@@ -8,6 +8,76 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
   }
 })();
 
+/* ── Знімок стану для миттєвого старту ──────────────────────────────────
+   Портал перемальовувався тричі поспіль, і це було видно оком:
+     1) ~0,15 с — порожня смуга меню заповнюється (чекала на мережний запит
+        ролі в profiles);
+     2) ~0,30 с — головна перекидається з гостьового макета в «залогінений»
+        (клас home-logged-in), на мобільному при цьому зникає півсторінки;
+     3) ~0,45 с — згори виїжджає смужка днів народження і зсуває все вниз.
+   Лікуємо не швидкістю запитів, а порядком: після кожного визначення ролі
+   кладемо знімок у localStorage і на наступному заході застосовуємо його ДО
+   першого малювання — тим самим прийомом, що й тема вище. Сервер потім лише
+   підтверджує знімок, і тоді не смикається взагалі нічого. */
+const BOOT_KEY = 'portal-boot-v1';
+const BOOT_BDAY_KEY = 'portal-boot-bday-h';
+const BOOT_DASH_KEY = 'portal-boot-dash-h';
+
+/** Чи лежить у сховищі сесія supabase-js. Ключ шукаємо регуляркою, а не
+ *  константою: у наступній версії клієнта назва може змінитися, і жорсткий
+ *  ключ тихо повернув би нас до миготіння. */
+function hasStoredSession() {
+  try {
+    return Object.keys(localStorage).some(k => /^sb-.+-auth-token$/.test(k));
+  } catch (e) { return false; }
+}
+
+/** Знімок дійсний лише поки є сесія: вийшли в сусідній вкладці — і ми знову
+ *  малюємо гостя, а не чужий кабінет. */
+function readBoot() {
+  try {
+    if (!hasStoredSession()) return null;
+    return JSON.parse(localStorage.getItem(BOOT_KEY) || 'null');
+  } catch (e) { return null; }
+}
+
+function saveBoot() {
+  try {
+    if (!user) { localStorage.removeItem(BOOT_KEY); return; }
+    localStorage.setItem(BOOT_KEY, JSON.stringify({
+      uid: user.id,
+      role, isHead, isClerk,
+      name: user.user_metadata?.full_name || user.user_metadata?.name ||
+            user.email?.split('@')[0] || ''
+    }));
+  } catch (e) { /* приватний режим — просто без миттєвого старту */ }
+}
+
+const boot = readBoot();
+
+// Модуль відкладений (type="module"), тож тут документ уже розібраний і
+// document.body існує — але браузер ще не малював.
+(function applyBootSnapshot() {
+  const root = document.documentElement;
+  root.dataset.auth = boot ? 'user' : 'guest';
+  if (boot?.role) root.dataset.role = boot.role;
+
+  const metrics = document.getElementById('home-metrics');
+  if (!metrics || !boot) return;  // не головна або гість — далі нема чого чіпати
+
+  const ROLES = ['guest', 'expert', 'manager', 'deputy_director', 'director', 'admin'];
+  if (ROLES.indexOf(boot.role) < ROLES.indexOf('expert')) return;
+
+  document.body.classList.add('home-logged-in');
+  metrics.style.display = 'block';
+
+  // Смужка днів народження приходить окремим запитом і зсуває сторінку вниз.
+  // Тримаємо для неї місце рівно тієї висоти, яку вона мала минулого разу.
+  const bdayHeight = parseInt(localStorage.getItem(BOOT_BDAY_KEY) || '0', 10);
+  const strip = document.getElementById('birthday-strip');
+  if (strip && bdayHeight > 0) strip.style.minHeight = bdayHeight + 'px';
+})();
+
 const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -18,6 +88,8 @@ let isHead = false;
 // Діловод департаменту: ортогонально до role — ширші повноваження
 // (доручення по всіх відділах, оголошення, табель), але НЕ права керівника
 let isClerk = false;
+// Прохід малювання за знімком: розмітку будуємо, у мережу не ходимо
+let bootPaint = false;
 
 // Єдиний перелік підтек порталу: якщо сторінка лежить в одній з них,
 // відносні посилання на кореневі ресурси потребують префікса '../'.
@@ -632,7 +704,18 @@ function applyAccess() {
         dashboard.id = 'user-task-dashboard';
         dashboard.className = 'user-task-dashboard';
         header.insertAdjacentElement('afterend', dashboard);
-        renderDashboard(dashboard, prefix);
+        // Тримаємо під смугу місце тієї висоти, яку вона мала минулого разу:
+        // її зміст приходить після трьох запитів, і без резерву поява смуги
+        // зсувала весь зміст сторінки вниз. Резерв знімає сам renderDashboard,
+        // щойно напише зміст. Робимо це на обох проходах: справжній прохід
+        // перестворює елемент, тож інакше резерв зник би саме перед показом.
+        try {
+          const h = parseInt(localStorage.getItem(BOOT_DASH_KEY) || '0', 10);
+          if (h > 0) dashboard.style.minHeight = h + 'px';
+        } catch (e) { /* приватний режим — без резерву */ }
+        // На проході за знімком у мережу не йдемо: справжній прохід зробить це
+        // за кілька десятків мілісекунд
+        if (!bootPaint) renderDashboard(dashboard, prefix);
       }
 
       if (!alertBanner) {
@@ -640,7 +723,7 @@ function applyAccess() {
         alertBanner.id = 'user-news-alert-banner';
       }
       (dashboard || header).insertAdjacentElement('afterend', alertBanner);
-      renderAlertBanner(alertBanner, prefix);
+      if (!bootPaint) renderAlertBanner(alertBanner, prefix);
     }
   }
 
@@ -1303,6 +1386,14 @@ async function renderDashboard(dashboardEl, prefix) {
     </div>
   `;
 
+  // Смуга приходить після трьох запитів і досі зсувала весь зміст униз.
+  // Запам'ятовуємо її висоту: наступного разу applyAccess() потримає під неї
+  // місце ще на проході за знімком — так само, як під смужку днів народження.
+  dashboardEl.style.minHeight = '';
+  try {
+    localStorage.setItem(BOOT_DASH_KEY, String(Math.round(dashboardEl.offsetHeight)));
+  } catch (e) { /* приватний режим — просто без резерву місця */ }
+
   // Attach event listeners for expand/collapse actions
   const toggleTasksBtn = dashboardEl.querySelector('#dashboard-toggle-tasks');
   if (toggleTasksBtn) {
@@ -1360,9 +1451,24 @@ async function renderDashboard(dashboardEl, prefix) {
 
 async function init() {
   inject();
+
+  // Перший прохід — за знімком: меню, бейдж ролі та рольові елементи стають на
+  // місце ще до відповіді сервера. Мережу тут не чіпаємо (див. bootPaint), бо
+  // за кілька десятків мілісекунд усе одно піде справжній прохід.
+  if (boot) {
+    user = { id: boot.uid, email: '', user_metadata: { full_name: boot.name } };
+    role = boot.role;
+    isHead = boot.isHead;
+    isClerk = boot.isClerk;
+    bootPaint = true;
+    applyAccess();
+    bootPaint = false;
+  }
+
   const { data: { session } } = await sb.auth.getSession();
   user = session?.user ?? null;
   await fetchRole();
+  saveBoot();
   applyAccess();
 
   trackGlobalPresence();
@@ -1383,6 +1489,7 @@ async function init() {
   sb.auth.onAuthStateChange(async (_event, session) => {
     user = session?.user ?? null;
     await fetchRole();
+    saveBoot();
     applyAccess();
     trackGlobalPresence();
     setupNewsRealtime();

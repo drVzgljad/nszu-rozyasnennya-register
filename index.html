@@ -25,7 +25,7 @@
   <link rel="stylesheet" href="portal.css?v=20260805c">
   <link rel="stylesheet" href="brand.css?v=20260730c">
   <link rel="stylesheet" href="auth-v2.css?v=20260806a">
-  <script type="module" src="auth-v2.js?v=20260808b"></script>
+  <script type="module" src="auth-v2.js?v=20260808c"></script>
   <style>
     /* ── Експрес-інфоблок кабінету на головній ── */
     .home-metrics-section {
@@ -624,7 +624,7 @@
           </span>
         </a>
         <div class="top-row-1-right">
-          <!-- auth-v2.js?v=20260808b inject point -->
+          <!-- auth-v2.js?v=20260808c inject point -->
           <nav class="section-switch top-auth" aria-label="Авторизація"></nav>
         </div>
       </div>
@@ -813,7 +813,7 @@
 
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-  import { renderBirthdayStrip } from './birthdays.js?v=20260729c';
+  import { renderBirthdayStrip } from './birthdays.js?v=20260808a';
 
   const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
@@ -1231,6 +1231,13 @@
   // «Cannot set properties of null» і дарма ходила в Supabase.
 
   document.addEventListener("DOMContentLoaded", () => {
+    // Куди належить рядок пошуку, знаємо зі знімка стану: data-role ставить
+    // auth-v2.js ще до першого малювання. Без цього рядок спершу ставав у
+    // шапку і аж через третину секунди переїжджав у панель кабінету — саме
+    // цей переїзд і читався як стрибок сторінки.
+    const bootRole = document.documentElement.dataset.role;
+    if (bootRole) placeGlobalSearchForRole(bootRole);
+
     loadDigest();
     loadHomeMetrics();
     if (sb.auth && typeof sb.auth.onAuthStateChange === 'function') {
