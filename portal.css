@@ -519,7 +519,11 @@ body {
 /* ============================================================
    Footer
    ============================================================ */
-.p-footer { background: #16344e; color: #fff; }
+/* padding-bottom — місце під кутовий стос («↑ Верх» + стежка навігації):
+   обидві position: fixed і без резерву лежали на тексті футера.
+   Те саме зроблено для .site-footer у styles.css — там і пояснення, чому
+   резерв, а не підйом кнопок за скролом. */
+.p-footer { background: #16344e; color: #fff; padding-bottom: 132px; }
 .p-footer .wrap { padding-block: 48px; }
 .p-foot-grid {
   display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 40px;
