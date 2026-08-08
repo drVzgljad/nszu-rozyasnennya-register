@@ -227,15 +227,38 @@ body {
 .hero .plus-field { position: absolute; inset: 0; }
 
 /* ── Живий фон героя головної ──────────────────────────
-   Два шари поверх статичного фону: повільний кольоровий перелив
-   і хвиля дрібних кубиків, що пробігає по діагоналі. Обидва —
-   pointer-events: none, тож нічого не перехоплюють. */
-.hero .hero-sheen,
-.hero .cube-wave {
+   Повільний кольоровий перелив поверх статичного фону.
+   pointer-events: none, тож нічого не перехоплює.
+
+   Тут же колись жила .cube-wave — сітка кубиків під рухомою маскою. Прибрано
+   08.08.2026: вона періодично напливала й щезала, і це впадало в око. Її місце
+   зайняло відео hero-bg.mp4 (див. .hero-bg-video нижче). */
+.hero .hero-sheen {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
+
+/* ── Рухомий фон героя: відео ──────────────────────────
+   Лежить поверх статичного .brand-canvas і проявляється лише коли справді
+   заграло, — доти видно звичний статичний кроп, тож підміни ніхто не помічає. */
+.hero .hero-bg-video,
+.hero .hero-bg-scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .9s ease;
+}
+.hero .hero-bg-video {
+  width: 100%;
+  height: 100%;
+  /* Кроп по центру: 16:9 лягає в будь-яку ширину героя без полів */
+  object-fit: cover;
+  border: 0;
+}
+.hero.has-bg-video .hero-bg-video,
+.hero.has-bg-video .hero-bg-scrim { opacity: 1; }
 
 .hero .hero-sheen {
   background: linear-gradient(
@@ -256,28 +279,6 @@ body {
   to   { background-position: 100% 50%; }
 }
 
-.hero .cube-wave {
-  /* Сітка кубиків: дві лінійні заливки в перетині дають клітинку 26px */
-  background-image:
-    linear-gradient(90deg, var(--accent) 1px, transparent 1px),
-    linear-gradient(180deg, var(--accent) 1px, transparent 1px);
-  background-size: 26px 26px;
-  /* Маска — світлова смуга; видно лише ті кубики, на які вона зараз падає */
-  -webkit-mask-image: linear-gradient(115deg, transparent 32%, #000 46%, #000 54%, transparent 68%);
-  mask-image: linear-gradient(115deg, transparent 32%, #000 46%, #000 54%, transparent 68%);
-  -webkit-mask-size: 280% 280%;
-  mask-size: 280% 280%;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  opacity: 0.24;
-  animation: cube-wave-run 18s linear infinite;
-}
-
-@keyframes cube-wave-run {
-  from { -webkit-mask-position: 130% 130%; mask-position: 130% 130%; }
-  to   { -webkit-mask-position: -30% -30%; mask-position: -30% -30%; }
-}
-
 :root.dark-theme .hero .hero-sheen,
 .dark-theme .hero .hero-sheen {
   background: linear-gradient(
@@ -291,13 +292,10 @@ body {
   background-size: 260% 260%;
 }
 
-:root.dark-theme .hero .cube-wave,
-.dark-theme .hero .cube-wave { opacity: 0.2; }
-
 @media (prefers-reduced-motion: reduce) {
-  .hero .hero-sheen,
-  .hero .cube-wave { animation: none; }
-  .hero .cube-wave { opacity: 0.12; }
+  .hero .hero-sheen { animation: none; }
+  /* Відео за такої настройки взагалі не вантажиться — див. index.html */
+  .hero .hero-bg-video { display: none; }
 }
 /* ── Плашка логотипа в героєві (стилі винесені з inline) ── */
 .hero-logo-card {

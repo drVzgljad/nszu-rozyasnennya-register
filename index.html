@@ -22,8 +22,8 @@
   <meta property="og:image:alt" content="НавігаторПМГ26 — робочий простір експертів Департаменту стратегії НСЗУ">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="description" content="Роз'яснення НСЗУ, пакети ПМГ-2026, класифікатори, алгоритми та доручення — в одному місці.">
-  <link rel="stylesheet" href="portal.css?v=20260805c">
-  <link rel="stylesheet" href="brand.css?v=20260730c">
+  <link rel="stylesheet" href="portal.css?v=20260808a">
+  <link rel="stylesheet" href="brand.css?v=20260808b">
   <link rel="stylesheet" href="auth-v2.css?v=20260806a">
   <script type="module" src="auth-v2.js?v=20260808c"></script>
   <style>
@@ -697,12 +697,19 @@
     <!-- Фірмовий фон НСЗУ: окремий шар (див. brand.css), не background
          самого .hero — інакше темна тема перебила б його своїм !important -->
     <div class="brand-canvas brand-canvas--photo" aria-hidden="true"></div>
+    <!-- Живий фон: те саме фірмове боке, що намальоване в brand.css, але в русі.
+         src призначає JS унизу сторінки — після load і лише там, де це доречно
+         (не за reduced-motion, не в режимі економії трафіку, не на вузькому
+         екрані). Доти й замість нього лишається статичний .brand-canvas -->
+    <video class="hero-bg-video" id="hero-bg-video" muted loop playsinline preload="none"
+           tabindex="-1" aria-hidden="true" disablepictureinpicture></video>
+    <!-- Затемнення під заголовок: відео яскравіше за статичний кроп, і без
+         цього шару світлий текст на золотих іскрах провалюється -->
+    <div class="hero-bg-scrim" aria-hidden="true"></div>
     <div class="plus-field" aria-hidden="true"></div>
-    <!-- Живий фон: повільний перелив і хвиля дрібних кубиків.
-         Окремі шари поверх фону, а не сам фон, — інакше темна тема
-         перебила б їх своїм background !important -->
+    <!-- Повільний кольоровий перелив: окремий шар поверх фону, а не сам фон, —
+         інакше темна тема перебила б його своїм background !important -->
     <div class="hero-sheen" aria-hidden="true"></div>
-    <div class="cube-wave" aria-hidden="true"></div>
     <div class="wrap hero-inner">
       <div class="hero-main-row" style="display: flex; align-items: flex-start; justify-content: space-between; gap: 40px; flex-wrap: wrap;">
         <div class="hero-main-content" style="flex: 2; min-width: 300px;">
@@ -822,6 +829,49 @@
   // Смужка днів народження: показується лише авторизованим (RLS віддає дані тільки їм)
   renderBirthdayStrip(document.getElementById('birthday-strip'));
   sb.auth.onAuthStateChange(() => renderBirthdayStrip(document.getElementById('birthday-strip')));
+
+  // ── Рухомий фон героя ─────────────────────────────────────────────
+  // Відео вмикаємо не завжди: 1,1 МБ мають сенс лише там, де його побачать
+  // і де він доречний. Доти й замість нього лишається статичний .brand-canvas,
+  // тож головна ніде не залишається порожньою.
+  (() => {
+    const video = document.getElementById('hero-bg-video');
+    const hero = video?.closest('.hero');
+    if (!video || !hero) return;
+
+    const calmMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const saveData = navigator.connection?.saveData === true;
+    // Вузький екран — це майже завжди мобільний трафік; а в залогіненого на
+    // мобільному героя взагалі немає (display: none), і offsetWidth це ловить
+    const narrow = window.innerWidth < 768;
+    if (calmMotion || saveData || narrow || !hero.offsetWidth) return;
+
+    let started = false;
+    const start = () => {
+      // У прихованій вкладці браузер не починає вантажити відео взагалі
+      // (networkState лишається EMPTY), тож чекаємо, поки її відкриють
+      if (document.visibilityState === 'hidden') {
+        document.addEventListener('visibilitychange', start, { once: true });
+        return;
+      }
+      if (started) return;
+      started = true;
+      video.src = 'assets/hero-bg.mp4?v=20260808a';
+      const played = video.play();
+      if (played && played.catch) {
+        // Автовідтворення заблоковано — тихо лишаємо статичний фон
+        played.catch(() => { video.removeAttribute('src'); video.load(); });
+      }
+    };
+    // Проявляємо лише коли кадри реально пішли: інакше на повільному зв'язку
+    // затемнення з'явилося б над ще порожнім відео
+    video.addEventListener('playing', () => hero.classList.add('has-bg-video'), { once: true });
+    video.addEventListener('error', () => hero.classList.remove('has-bg-video'));
+
+    // Після load: фон не має конкурувати за канал зі змістом сторінки
+    if (document.readyState === 'complete') start();
+    else window.addEventListener('load', start, { once: true });
+  })();
 
   // ── Анімація логотипа: один раз за сесію ──────────────────────────
   // Десять секунд збірки — приємно на перший раз і дратує на п'ятий,
