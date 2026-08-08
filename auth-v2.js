@@ -294,6 +294,14 @@ function applyAccess() {
    *   2) document.referrer того ж походження — тоді просто history.back().
    */
   const appendBackLink = (container) => {
+    // Головна — корінь порталу, а не сторінка, куди «зайшли звідкись». Referrer
+    // тут є майже завжди (зайшли в розділ → тицьнули логотип), і кнопка
+    // «Назад» щоразу пропонувала повернутися в розділ, який щойно покинули.
+    if (isActive('index.html')) {
+      document.getElementById('mobile-back-btn')?.remove();
+      return;
+    }
+
     const params = new URLSearchParams(location.search);
     const back = params.get('back');
     const label = params.get('backLabel');
