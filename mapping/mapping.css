@@ -1,9 +1,93 @@
 /* ============================================================
    Таблиця співставлення — стилі поверх classifiers.css.
-   Перемикач режимів, чипи кодів у дослівному тексті клітинки,
-   розкривні ОДК, бейджі умов.
+   Три колонки (хвороби · картка · інтервенції), перемикач режимів,
+   чипи кодів у дослівному тексті клітинки, розкривні ОДК, бейджі умов.
    Токени — зі styles.css (--ink, --accent, --surface, --line…).
    ============================================================ */
+
+/* ── Розкладка у три колонки ───────────────────────────────────
+   Повторює сам документ: ліворуч колонка «Коди хвороб», праворуч —
+   «Коди інтервенцій», посередині — картка обраної послуги. Центр
+   ширший: там уся інформація, а з боків лише списки.
+   Успадковує .nk-layout з classifiers.css і перевизначає сітку. */
+.mp-layout {
+  max-width: 1620px;
+  gap: 16px;
+  grid-template-columns: minmax(0, .92fr) minmax(0, 1.3fr) minmax(0, .92fr);
+  grid-template-areas: "icd card achi";
+}
+.mp-pane-icd { grid-area: icd; }
+.mp-pane-card { grid-area: card; }
+.mp-pane-achi { grid-area: achi; }
+
+/* Шапка колонки: чия це колонка й що саме тут шукають. */
+.mp-pane-head {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--line);
+}
+.mp-pane-ico { font-size: 1.25rem; line-height: 1.2; }
+.mp-pane-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.mp-pane-title { font-size: .95rem; font-weight: 800; color: var(--accent-dark); }
+.mp-pane-sub { font-size: .74rem; line-height: 1.35; color: var(--muted); }
+
+.mp-pane .search-panel.nk-search { border-top: 3px solid var(--accent); }
+.mp-pane-achi .search-panel.nk-search { border-top-color: var(--teal); }
+.mp-pane-achi .mp-pane-title { color: var(--teal-dark); }
+
+/* Легенда правої колонки — на висоту перемикача режимів лівої. */
+.mp-legend {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
+  min-height: 36px; margin-bottom: 12px;   /* = висота .mp-modebar лівої колонки */
+  font-size: .78rem; color: var(--muted);
+}
+
+/* Атрибут hidden програвав display:grid/flex із classifiers.css — режим ОДК
+   ховав фільтри лише в розмітці, а на екрані вони лишалися. */
+.nk-cascade[hidden], .nk-filters[hidden] { display: none; }
+
+/* Рядок, у якого ЦЯ колонка таблиці порожня: у списку лишається (послуга ж
+   існує), але не відтягує око — і в сортуванні йде після наповнених. */
+.rrow-dim { opacity: .58; }
+.rrow-dim:hover, .rrow-dim.active { opacity: 1; }
+
+.pk-dot.via { background: #8a6bbf; }
+
+/* ── Підказка «шукали не в тій колонці» ────────────────────── */
+.mp-xhint {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 10px; padding: 8px 10px;
+  background: var(--warm); border: 1px solid var(--line); border-radius: 10px;
+  font-size: .8rem; line-height: 1.4; color: var(--ink);
+}
+.mp-xhint[hidden] { display: none; }
+.mp-xhint button {
+  border: 1px solid var(--teal); background: var(--surface); color: var(--teal-dark);
+  border-radius: 8px; padding: 4px 10px; font: inherit; font-size: .78rem;
+  font-weight: 700; cursor: pointer;
+}
+.mp-xhint button:hover { background: var(--teal); color: #fff; }
+
+/* ── Мобільні вкладки: НК 025 · Картка · НК 026 ─────────────── */
+@media (max-width: 1240px) {
+  /* Два колонки: пошуки один під одним ліворуч, картка — на всю висоту. */
+  .mp-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    grid-template-areas: "icd card" "achi card";
+  }
+}
+@media (max-width: 900px) {
+  .mp-layout {
+    grid-template-columns: 1fr;
+    grid-template-areas: "icd" "card" "achi";
+  }
+  .mp-layout[data-active="icd"] .mp-pane-card,
+  .mp-layout[data-active="icd"] .mp-pane-achi,
+  .mp-layout[data-active="card"] .mp-pane-icd,
+  .mp-layout[data-active="card"] .mp-pane-achi,
+  .mp-layout[data-active="achi"] .mp-pane-icd,
+  .mp-layout[data-active="achi"] .mp-pane-card { display: none; }
+  .mp-tabs .mobile-tab { font-size: .8rem; padding: 9px 4px; }
+}
 
 /* ── Режим: послуги / ОДК ──────────────────────────────────── */
 .mp-modebar {
@@ -113,6 +197,11 @@ a.code-chip:hover { border-color: currentColor; }
 .mp-odk[open] summary::before { content: "▾ "; }
 .odk-count { float: right; font-size: .74rem; font-weight: 700; color: var(--muted); }
 .odk-codes { max-height: 260px; overflow-y: auto; padding: 0 12px 12px; gap: 3px; }
+
+/* Клітинки в картці підписані кольором своєї колонки — видно, звідки що. */
+.mp-cell { padding-left: 11px; border-left: 3px solid var(--line); }
+.mp-cell-icd { border-left-color: var(--accent); }
+.mp-cell-achi { border-left-color: var(--teal); }
 
 /* ── Додаткова інформація ──────────────────────────────────── */
 .mp-note {

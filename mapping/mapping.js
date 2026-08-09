@@ -1,8 +1,16 @@
 /* ============================================================
    Таблиця співставлення медичних послуг — фронтенд.
    Послуга ↔ пакет ПМГ ↔ коди НК 025 / НК 026 / ЕСОЗ ↔ ОДК.
-   Клітинки з кодами показуємо ДОСЛІВНО, підсвічуючи коди як
-   посилання; умови («разом з», «за винятком») лише позначаємо.
+
+   Розкладка — три колонки, як у самому документі:
+     ліворуч  — пошук у колонці «Коди хвороб» (НК 025 + ОДК),
+     праворуч — пошук у колонці «Коди інтервенцій» (НК 026, ЕСОЗ, LOINC),
+     посередині — картка обраної послуги з усією інформацією.
+   Колонки незалежні: свій запит, свої фільтри, свій список; обидві
+   відкривають картку в центрі.
+
+   Клітинки з кодами показуємо ДОСЛІВНО, підсвічуючи коди як посилання;
+   умови («разом з», «за винятком») лише позначаємо.
    Дані: data/mapping_meta.json, data/services.json, data/odk.json.
    ============================================================ */
 (function () {
@@ -32,22 +40,26 @@
     together: "разом з", except: "за винятком", absent: "за відсутності", or: "або",
   };
 
+  /** Підписи колонок — у списках, підказках і перекиданні запиту між ними. */
+  const SIDE = {
+    icd: { title: "Коди хвороб · НК 025", short: "НК 025", ico: "🩺" },
+    achi: { title: "Коди інтервенцій · НК 026", short: "НК 026", ico: "🔧" },
+  };
+  const other = (side) => (side === "icd" ? "achi" : "icd");
+
   let META = null, SERVICES = null, ODK = null, ready = false;
-  let mode = "services";
   const odkById = new Map();
+  const odkIndex = new Map();   // id → {set, rubrics} для пошуку коду «через ОДК»
 
   const el = {
-    stats: $("#mpStats"), search: $("#mpSearch"), searchLabel: $("#mpSearchLabel"),
-    count: $("#mpCount"), clear: $("#mpClear"), results: $("#mpResults"),
+    stats: $("#mpStats"),
     reader: $("#mpReader"), layout: $(".nk-layout"),
-    selPkg: $("#selPkg"), selOdk: $("#selOdk"),
-    onlyCond: $("#onlyCond"), onlyNote: $("#onlyNote"),
-    filters: $("#mpFilters"), checks: $("#mpChecks"),
   };
   let readerEmptyHTML = "";
-  let pendingQuery = false;   // користувач почав шукати ще до завантаження даних
   let currentService = null;  // відкрита картка — для кнопок «назад» у переходах
-  let hitCode = "";           // код, за яким шукали — його підсвічуємо в картці
+  let cardHit = "";           // код, за яким шукали — його підсвічуємо в картці
+
+  const panes = {};
 
   // ══════════════════════════════════════════════════════════
   // Завантаження
@@ -57,12 +69,14 @@
     try {
       META = await fetch("data/mapping_meta.json").then((r) => r.json());
     } catch (e) {
-      el.count.textContent = "Не вдалося завантажити таблицю.";
+      eachPane((p) => (p.els.count.textContent = "Не вдалося завантажити таблицю."));
       return;
     }
     renderStats();
+    initPane("icd");
+    initPane("achi");
     populatePackages();
-    wireUI();
+    wireTabs();
 
     // Послідовно, а не Promise.all: services.json важить ~1,5 МБ, і два
     // паралельні великі завантаження ставлять з'єднання в чергу — на слабкій
@@ -75,22 +89,53 @@
       })
       .then((odk) => {
         ODK = odk;
-        ODK.forEach((o) => odkById.set(o.id, o));
+        ODK.forEach((o) => {
+          odkById.set(o.id, o);
+          const set = new Set(o.codes), rubrics = new Set();
+          o.codes.forEach((c) => rubrics.add(c.split(".")[0]));
+          odkIndex.set(o.id, { set, rubrics });
+        });
         populateOdk();
         ready = true;
         onReady();
       })
-      .catch(() => { el.count.textContent = "Дані таблиці недоступні. Оновіть сторінку."; });
+      .catch(() => {
+        eachPane((p) => (p.els.count.textContent = "Дані таблиці недоступні. Оновіть сторінку."));
+      });
   }
 
   function onReady() {
-    el.count.textContent = plural(SERVICES.length, "послуга", "послуги", "послуг") + " · введіть запит або оберіть пакет";
-    if (pendingQuery || el.search.value.trim()) { runSearch(); return; }
+    eachPane((p) => { p.els.count.textContent = idleCount(); });
+    // Запит, введений поки вантажилися дані, не губимо
+    const typed = Object.values(panes).filter((p) => p.pending || p.els.search.value.trim());
+    if (typed.length) { typed.forEach(runPane); return; }
+
     const q = new URLSearchParams(location.search);
-    const raw = (q.get("q") || q.get("code") || "").trim();
     const svc = q.get("service");
     if (svc !== null && SERVICES[+svc]) { openService(+svc); return; }
-    if (raw) { el.search.value = raw; runSearch(); }
+
+    const odkRef = (q.get("odk") || "").trim();
+    if (odkRef) {
+      const found = ODK.find((o) => normOdk(o.id) === normOdk(odkRef));
+      if (found) { setMode(panes.icd, "odk"); openOdk(found.id); return; }
+    }
+
+    const raw = (q.get("q") || q.get("code") || "").trim();
+    if (raw) {
+      const p = panes[sniffSide(raw)];
+      p.els.search.value = raw;
+      runPane(p);
+    }
+  }
+
+  /** У яку колонку класти зовнішній запит: код втручання / ЕСОЗ / LOINC —
+   *  праворуч, усе інше (діагноз, ОДК, код чи назва послуги) — ліворуч. */
+  function sniffSide(raw) {
+    const t = raw.toUpperCase().replace(/\s+/g, "");
+    if (/^\d{5}-\d{2}$/.test(t)) return "achi";          // НК 026
+    if (/^[A-Z]\d{5}$/.test(t)) return "achi";           // послуга ЕСОЗ
+    if (/^\d{1,5}-\d$/.test(t)) return "achi";           // LOINC
+    return "icd";
   }
 
   function renderStats() {
@@ -98,6 +143,7 @@
     const cards = [
       ["Медичних послуг", c.services || 0],
       ["Пакетів ПМГ", c.packages || 0],
+      ["Кодів НК 025", c.icd_codes || 0],
       ["Кодів НК 026", c.achi_codes || 0],
       ["ОДК", c.odk || 0],
     ];
@@ -111,149 +157,276 @@
     for (const [num, title] of Object.entries(META.packages || {})) {
       opts.push(`<option value="${num}">Пакет ${num}${title ? " · " + esc(trim(title, 60)) : ""}</option>`);
     }
-    el.selPkg.innerHTML = opts.join("");
+    eachPane((p) => { p.els.pkg.innerHTML = opts.join(""); });
   }
 
   function populateOdk() {
     const opts = ['<option value="">— будь-яка —</option>'];
     for (const o of ODK) opts.push(`<option value="${esc(o.id)}">${esc(o.id)} · ${esc(trim(o.name, 54))}</option>`);
-    el.selOdk.innerHTML = opts.join("");
+    panes.icd.els.odk.innerHTML = opts.join("");
   }
 
+  const idleCount = () => plural(SERVICES.length, "послуга", "послуги", "послуг") +
+    " · введіть запит або оберіть пакет";
+
   // ══════════════════════════════════════════════════════════
-  // Пошук і список
+  // Колонка пошуку (їх дві — ліва по хворобах, права по втручаннях)
   // ══════════════════════════════════════════════════════════
-  let timer = null;
-  function wireUI() {
-    el.search.addEventListener("input", () => {
-      clearTimeout(timer); timer = setTimeout(runSearch, 130);
+  function initPane(side) {
+    const els = {
+      search: $("#" + side + "Search"), label: $("#" + side + "SearchLabel"),
+      count: $("#" + side + "Count"), clear: $("#" + side + "Clear"),
+      results: $("#" + side + "Results"), pkg: $("#" + side + "Pkg"),
+      odk: $("#" + side + "Odk"), kind: $("#" + side + "Kind"),
+      cond: $("#" + side + "Cond"), codesOnly: $("#" + side + "Codes"),
+      note: $("#" + side + "Note"), filters: $("#" + side + "Filters"),
+      checks: $("#" + side + "Checks"), hint: $("#" + side + "Hint"),
+      pane: $(".mp-pane-" + side),
+    };
+    const p = { side, els, mode: "services", hit: "", pending: false, timer: null };
+    panes[side] = p;
+
+    els.search.addEventListener("input", () => {
+      clearTimeout(p.timer);
+      p.timer = setTimeout(() => runPane(p), 130);
     });
-    [el.selPkg, el.selOdk, el.onlyCond, el.onlyNote].forEach((c) =>
-      c.addEventListener("change", runSearch));
-    el.clear.addEventListener("click", resetForm);
-    $$(".mp-mode").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
-    $$("#mobileTabs .mobile-tab").forEach((b) =>
-      b.addEventListener("click", () => setTab(b.dataset.tab)));
+    [els.pkg, els.odk, els.kind, els.cond, els.codesOnly, els.note].forEach((c) =>
+      c && c.addEventListener("change", () => runPane(p)));
+    els.clear.addEventListener("click", () => resetPane(p));
+    $$(".mp-mode", els.pane).forEach((b) =>
+      b.addEventListener("click", () => setMode(p, b.dataset.mode)));
+
+    els.results.addEventListener("click", (ev) => {
+      const b = ev.target.closest(".rrow");
+      if (!b) return;
+      $$(".rrow.active").forEach((r) => r.classList.remove("active"));
+      b.classList.add("active");
+      if (b.dataset.svc !== undefined) { cardHit = p.hit; openService(+b.dataset.svc); }
+      else if (b.dataset.odk) { cardHit = p.hit; openOdk(b.dataset.odk); }
+    });
+
+    els.hint.addEventListener("click", (ev) => {
+      const b = ev.target.closest("[data-send]");
+      if (!b) return;
+      const dst = panes[b.dataset.send];
+      dst.els.search.value = b.dataset.q;
+      if (dst.mode !== "services") setMode(dst, "services");
+      else runPane(dst);
+      setTab(dst.side);
+      dst.els.search.focus();
+    });
   }
 
-  function setMode(m) {
-    mode = m;
-    $$(".mp-mode").forEach((b) => b.classList.toggle("active", b.dataset.mode === m));
+  const eachPane = (fn) => Object.values(panes).forEach(fn);
+
+  function setMode(p, m) {
+    p.mode = m;
+    $$(".mp-mode", p.els.pane).forEach((b) => b.classList.toggle("active", b.dataset.mode === m));
     const services = m === "services";
-    el.filters.hidden = !services;
-    el.checks.hidden = !services;
-    el.searchLabel.textContent = services
-      ? "Пошук за назвою, кодом послуги або кодом класифікатора"
-      : "Пошук за назвою ОДК або кодом НК 025";
-    el.search.placeholder = services
-      ? "Напр.: A15, EКMO, інсульт, 30294-00, I21.0, ОДК 8…"
-      : "Напр.: нервової системи, опіки, I21.0…";
-    el.search.value = "";
-    runSearch();
+    p.els.filters.hidden = !services;
+    p.els.checks.hidden = !services;
+    p.els.label.textContent = services
+      ? "Код хвороби, ОДК або назва послуги"
+      : "Назва категорії або код НК 025";
+    p.els.search.placeholder = services
+      ? "Напр.: I21.0, I21, ОДК 8, інсульт, A15…"
+      : "Напр.: нервової системи, опіки, I21.0, I21…";
+    p.els.search.value = "";
+    runPane(p);
   }
 
-  /** Чи згадано код у послузі (у будь-якій із колонок). */
-  function serviceHasCode(s, code) {
-    return s.icd.icd.includes(code) || s.achi.achi.includes(code) ||
-      s.achi.esoz.includes(code) || s.achi.loinc.includes(code);
+  const cellOf = (s, side) => (side === "icd" ? s.icd : s.achi);
+  const cellEmpty = (cell) => !cell.raw || cell.raw === "-";
+  /** Рубрика без крапки: «I21» покриває I21.0, I21.1… */
+  const isRubric = (t) => /^[A-ZА-Я]\d{2}$/.test(t);
+
+  /** Код зустрічається в клітинці цієї колонки. */
+  function cellHasCode(cell, code) {
+    return cell.icd.includes(code) || cell.achi.includes(code) ||
+      cell.esoz.includes(code) || cell.loinc.includes(code);
+  }
+  function cellHasRubric(cell, code) {
+    const pre = code + ".";
+    return cell.icd.some((c) => c.indexOf(pre) === 0);
+  }
+  /** Код заведено не напряму, а через ОДК, на яку посилається клітинка.
+   *  Саме так у таблиці описано більшість пакетів, тож без цієї гілки пошук
+   *  за діагнозом чесно казав би «нічого не знайдено». */
+  function cellViaOdk(cell, code, rubric) {
+    for (const id of cell.odk) {
+      const ix = odkIndex.get(id);
+      if (!ix) continue;
+      if (ix.set.has(code) || (rubric && ix.rubrics.has(code))) return id;
+    }
+    return "";
   }
 
-  function runSearch() {
+  /** Оцінка збігу в межах ОДНІЄЇ колонки. score 0 — не показувати. */
+  function scoreService(s, side, q, codeQ) {
+    const cell = cellOf(s, side);
+    const bonus = cellEmpty(cell) ? 0 : 1;   // порожня колонка — у кінець списку
+    if (!q) return { score: 10 + bonus };
+    if (s.code && s.code.toUpperCase() === codeQ) return { score: 100 + bonus };
+    if (cellHasCode(cell, codeQ)) return { score: 92, hit: codeQ };
+    const rubric = isRubric(codeQ);
+    if (rubric && cellHasRubric(cell, codeQ)) return { score: 86, hit: codeQ };
+    const via = cellViaOdk(cell, codeQ, rubric);
+    if (via) return { score: 80, hit: codeQ, via };
+    const name = s.name.toLowerCase();
+    if (s.code && s.code.toUpperCase().indexOf(codeQ) === 0) return { score: 70 + bonus };
+    if (name.indexOf(q) === 0) return { score: 60 + bonus };
+    if (name.indexOf(q) >= 0) return { score: 40 + bonus };
+    if (cell.raw.toLowerCase().indexOf(q) >= 0) return { score: 20 };
+    if ((s.note || "").toLowerCase().indexOf(q) >= 0) return { score: 15 + bonus };
+    return { score: 0 };
+  }
+
+  function runPane(p) {
     if (!ready) {
-      // Запит, введений поки вантажаться дані, не губимо — виконаємо в onReady()
-      pendingQuery = true;
-      el.count.textContent = "Дані вантажаться, зачекайте секунду — пошук виконається сам…";
+      p.pending = true;
+      p.els.count.textContent = "Дані вантажаться, зачекайте секунду — пошук виконається сам…";
       return;
     }
-    pendingQuery = false;
-    if (mode === "odk") { runOdkSearch(); return; }
+    p.pending = false;
+    if (p.mode === "odk") { runOdkSearch(p); return; }
 
-    const raw = el.search.value.trim();
+    const raw = p.els.search.value.trim();
     const q = raw.toLowerCase();
     const codeQ = raw.toUpperCase().replace(/\s+/g, "");
-    const pkg = el.selPkg.value, odkRef = el.selOdk.value;
+    const pkg = p.els.pkg.value;
+    const odkRef = p.els.odk ? p.els.odk.value : "";
+    const kind = p.els.kind ? p.els.kind.value : "";
     const out = [];
+    let hit = "";
 
-    let byCode = false;
     for (const s of SERVICES) {
+      const cell = cellOf(s, p.side);
       if (pkg && !s.pkgs.includes(pkg)) continue;
-      if (odkRef && !s.icd.odk.includes(odkRef) && !s.achi.odk.includes(odkRef)) continue;
-      if (el.onlyCond.checked && !s.icd.cond.length && !s.achi.cond.length) continue;
-      if (el.onlyNote.checked && !s.note) continue;
+      if (odkRef && !cell.odk.includes(odkRef)) continue;
+      if (kind && !cell[kind].length) continue;
+      if (p.els.cond && p.els.cond.checked && !cell.cond.length) continue;
+      if (p.els.codesOnly && p.els.codesOnly.checked && !cell.icd.length && !cell.odk.length) continue;
+      if (p.els.note && p.els.note.checked && !s.note) continue;
 
-      let score = 10;
-      if (q) {
-        const name = s.name.toLowerCase();
-        if (s.code && s.code.toUpperCase() === codeQ) score = 100;
-        else if (serviceHasCode(s, codeQ)) { score = 90; byCode = true; }
-        else if (s.code && s.code.toUpperCase().startsWith(codeQ)) score = 70;
-        else if (name.startsWith(q)) score = 60;
-        else if (name.includes(q)) score = 40;
-        else if (s.icd.raw.toLowerCase().includes(q) || s.achi.raw.toLowerCase().includes(q)) score = 20;
-        else if ((s.note || "").toLowerCase().includes(q)) score = 15;
-        else score = 0;
-      }
-      if (score > 0) out.push([score, s]);
+      const r = scoreService(s, p.side, q, codeQ);
+      if (r.score > 0) { out.push([r.score, s, r.via]); if (r.hit) hit = r.hit; }
     }
-    hitCode = byCode ? codeQ : "";
+    p.hit = hit;
     out.sort((a, b) => b[0] - a[0] || a[1].i - b[1].i);
-    show(out.map((x) => x[1]).map(serviceRow), out.length, plural(out.length, "послуга", "послуги", "послуг").replace(/^[\d\s]+/, ""));
+    show(p, out.map((x) => serviceRow(x[1], p.side, x[2])), out.length,
+      plural(out.length, "послуга", "послуги", "послуг").replace(/^[\d\s]+/, ""));
+    crossHint(p, raw, q, codeQ, out.length);
   }
 
-  function runOdkSearch() {
-    const q = el.search.value.trim().toLowerCase();
-    const codeQ = el.search.value.trim().toUpperCase().replace(/\s+/g, "");
-    const hits = ODK.filter((o) => !q || o.name.toLowerCase().includes(q) ||
-      o.id.toLowerCase().includes(q) || o.codes.includes(codeQ));
-    hitCode = hits.some((o) => o.codes.includes(codeQ)) ? codeQ : "";
-    show(hits.map((o) => odkRow(o, o.codes.includes(codeQ))), hits.length, "ОДК");
+  function runOdkSearch(p) {
+    const raw = p.els.search.value.trim();
+    const q = raw.toLowerCase();
+    const codeQ = raw.toUpperCase().replace(/\s+/g, "");
+    const rubric = isRubric(codeQ);
+    const hits = [];
+    for (const o of ODK) {
+      const ix = odkIndex.get(o.id);
+      const byCode = !!q && (ix.set.has(codeQ) || (rubric && ix.rubrics.has(codeQ)));
+      if (!q || byCode || o.name.toLowerCase().indexOf(q) >= 0 ||
+        normOdk(o.id).indexOf(normOdk(raw)) === 0) hits.push([o, byCode]);
+    }
+    p.hit = hits.some((h) => h[1]) ? codeQ : "";
+    show(p, hits.map(([o, byCode]) => odkRow(o, byCode, p.hit)), hits.length, "ОДК");
+    p.els.hint.hidden = true;
   }
 
   const CAP = 400;
-  function show(rows, total, what) {
-    el.count.textContent = total
+  function show(p, rows, total, what) {
+    p.els.count.textContent = total
       ? `Знайдено ${nf(total)} ${what}${total > CAP ? " · показано " + CAP : ""}`
       : "Нічого не знайдено";
-    el.results.innerHTML = rows.slice(0, CAP).join("");
-    el.results.hidden = false;
+    p.els.results.innerHTML = rows.slice(0, CAP).join("");
+    p.els.results.hidden = false;
+    markActiveRows();
   }
 
-  function serviceRow(s) {
-    const cond = [...new Set([...s.icd.cond, ...s.achi.cond])];
-    return `<button class="rrow" type="button" data-svc="${s.i}">
+  /** «Шукали не в тій колонці» — найчастіша розгубленість: код втручання в
+   *  колонці хвороб дає порожньо. Мовчати про це не варто, тож коли своя
+   *  колонка порожня, а сусідня щось знайшла, пропонуємо перекинути запит. */
+  function crossHint(p, raw, q, codeQ, total) {
+    const box = p.els.hint;
+    if (!raw || total) { box.hidden = true; return; }
+    const o = other(p.side);
+    let n = 0;
+    for (const s of SERVICES) if (scoreService(s, o, q, codeQ).score > 0) n++;
+    if (!n) { box.hidden = true; return; }
+    box.innerHTML = `<span>${SIDE[o].ico} У колонці «${esc(SIDE[o].short)}» —
+      ${plural(n, "збіг", "збіги", "збігів")}.</span>
+      <button type="button" data-send="${o}" data-q="${escAttr(raw)}">Шукати там →</button>`;
+    box.hidden = false;
+  }
+
+  /** Рядок списку показує саме СВОЮ колонку: ліворуч — коди хвороб і ОДК,
+   *  праворуч — втручання, ЕСОЗ, LOINC. Інакше два списки виглядали б однаково. */
+  function serviceRow(s, side, via) {
+    const cell = cellOf(s, side);
+    const bits = [s.pkgs.map((p) => "Пакет " + p).join(" · ")];
+    if (side === "icd") {
+      if (cell.icd.length) bits.push(codes(cell.icd.length) + " НК 025");
+      if (cell.odk.length) {
+        bits.push(cell.odk.length > 3
+          ? plural(cell.odk.length, "категорія", "категорії", "категорій") + " ОДК"
+          : cell.odk.join(", "));
+      }
+    } else {
+      if (cell.achi.length) bits.push(codes(cell.achi.length) + " НК 026");
+      if (cell.esoz.length) bits.push(cell.esoz.length + " ЕСОЗ");
+      if (cell.loinc.length) bits.push(cell.loinc.length + " LOINC");
+    }
+    if (cellEmpty(cell)) bits.push("у цій колонці не зазначено");
+
+    return `<button class="rrow${cellEmpty(cell) ? " rrow-dim" : ""}" type="button" data-svc="${s.i}">
       <span class="tcode code">${s.code ? esc(s.code) : "—"}</span>
       <span class="rmain"><span class="tname">${esc(s.name)}</span>
-        <span class="rmeta">${s.pkgs.map((p) => "Пакет " + p).join(" · ")}
-          ${s.icd.odk.length ? " · " + s.icd.odk.join(", ") : ""}</span></span>
-      ${s.achi.achi.length ? `<span class="pk-dot" title="НК 026: ${codes(s.achi.achi.length)}">026</span>` : ""}
-      ${cond.length ? `<span class="pk-dot cond" title="Умови: ${cond.map((c) => COND_LABEL[c]).join(", ")}">умова</span>` : ""}
+        <span class="rmeta">${esc(bits.join(" · "))}</span></span>
+      ${via ? `<span class="pk-dot via" title="Код заведено через категорію ${escAttr(via)}">через ОДК</span>` : ""}
+      ${cell.cond.length ? `<span class="pk-dot cond" title="Умови: ${cell.cond.map((c) => COND_LABEL[c]).join(", ")}">умова</span>` : ""}
       ${s.note ? `<span class="pk-dot note" title="${escAttr(s.note)}">і</span>` : ""}
     </button>`;
   }
 
   /** byCode — категорія потрапила в список саме через шуканий код, а не назву.
    *  Без цього підпису незрозуміло, чому рядок тут: назва ж нічого не містить. */
-  function odkRow(o, byCode) {
+  function odkRow(o, byCode, hit) {
     return `<button class="rrow" type="button" data-odk="${escAttr(o.id)}">
       <span class="tcode code">${esc(o.id)}</span>
       <span class="rmain"><span class="tname">${esc(o.name)}</span>
         <span class="rmeta">${codes(o.codes.length)} НК 025${
-      byCode ? " · містить " + esc(hitCode) : ""}</span></span>
+      byCode ? " · містить " + esc(hit) : ""}</span></span>
       ${byCode ? '<span class="pk-dot hit">є код</span>' : ""}
     </button>`;
   }
 
-  el.results.addEventListener("click", (ev) => {
-    const b = ev.target.closest(".rrow");
-    if (!b) return;
+  /** Відкрита послуга підсвічується в обох списках — видно, що це той самий рядок. */
+  function markActiveRows() {
     $$(".rrow.active").forEach((r) => r.classList.remove("active"));
-    b.classList.add("active");
-    if (b.dataset.svc !== undefined) openService(+b.dataset.svc);
-    else if (b.dataset.odk) openOdk(b.dataset.odk);
-  });
+    if (currentService == null) return;
+    $$(`.rrow[data-svc="${currentService}"]`).forEach((r) => r.classList.add("active"));
+  }
+
+  function resetPane(p) {
+    p.hit = "";
+    p.els.search.value = "";
+    p.els.pkg.value = "";
+    if (p.els.odk) p.els.odk.value = "";
+    if (p.els.kind) p.els.kind.value = "";
+    if (p.els.cond) p.els.cond.checked = false;
+    if (p.els.codesOnly) p.els.codesOnly.checked = false;
+    if (p.els.note) p.els.note.checked = false;
+    p.els.results.hidden = true;
+    p.els.results.innerHTML = "";
+    p.els.hint.hidden = true;
+    p.els.count.textContent = ready ? idleCount() : "Завантаження…";
+    p.els.search.focus();
+  }
 
   // ══════════════════════════════════════════════════════════
-  // Картка послуги
+  // Картка послуги (центральна колонка)
   // ══════════════════════════════════════════════════════════
   /** Оригінальний текст клітинки з кодами-посиланнями.
    *  loincSet — коди LOINC саме цієї клітинки (за розміткою build_mapping.py);
@@ -306,8 +479,9 @@
   }
 
   function codeCell(title, cell, kind) {
-    if (!cell.raw || cell.raw === "-") {
-      return `<div class="reader-block"><h3>${title}</h3><p class="muted">У таблиці не зазначено.</p></div>`;
+    if (cellEmpty(cell)) {
+      return `<div class="reader-block mp-cell mp-cell-${kind}"><h3>${title}</h3>
+        <p class="muted">У таблиці не зазначено.</p></div>`;
     }
     const stats = [];
     if (kind === "icd" && cell.icd.length) stats.push(codes(cell.icd.length) + " НК 025");
@@ -339,7 +513,7 @@
       </details>`;
     }).join("");
 
-    return `<div class="reader-block">
+    return `<div class="reader-block mp-cell mp-cell-${kind}">
       <h3>${title}${stats.length ? ` <span class="src">${esc(stats.join(" · "))}</span>` : ""}</h3>
       ${condBadges(cell)}
       <div class="mp-raw">${decorate(cell.raw, new Set(cell.loinc || []))}</div>
@@ -422,8 +596,8 @@
         <div class="chip-list">${pkgChips}</div>
       </div>
       ${renderCoeffs(s)}
-      ${codeCell("Коди хвороб · НК 025", s.icd, "icd")}
-      ${codeCell("Коди інтервенцій · НК 026", s.achi, "achi")}
+      ${codeCell("🩺 Коди хвороб · НК 025", s.icd, "icd")}
+      ${codeCell("🔧 Коди інтервенцій · НК 026", s.achi, "achi")}
       ${s.note ? `<div class="reader-block"><h3>Додаткова інформація</h3>
           <p class="mp-note">${esc(s.note)}</p></div>` : ""}
       <div class="reader-foot">Таблиця співставлення · рядок ${s.i + 1} з ${SERVICES.length}</div>`;
@@ -433,14 +607,27 @@
       fillOdkCodes(d);
       warmNames(d.querySelectorAll(".code-chip"), 8);
     }));
-    setTab("reader");
-    markSearchedCode("box");
+    setTab("card");
+    markActiveRows();
+    // Шуканого коду може не бути в самій клітинці — він усередині ОДК; тоді
+    // розкриваємо потрібну категорію, інакше картка виглядає так, ніби коду тут немає.
+    if (!markSearchedCode("box")) revealOdkWithHit(s);
+  }
+
+  function revealOdkWithHit(s) {
+    if (!cardHit) return;
+    const rubric = isRubric(cardHit);
+    const id = cellViaOdk(s.icd, cardHit, rubric) || cellViaOdk(s.achi, cardHit, rubric);
+    if (!id) return;
+    const d = $$(".mp-odk", el.reader).find((x) => x.dataset.odkCodes === id);
+    if (d) d.open = true;   // toggle-слухач домалює коди й підсвітить шуканий
   }
 
   function openOdk(id) {
     const o = odkById.get(id);
     if (!o) return;
     hideTip();
+    currentService = null;
     const users = SERVICES.filter((s) => s.icd.odk.includes(id) || s.achi.odk.includes(id));
     el.reader.classList.remove("reader-empty");
     el.reader.innerHTML = `
@@ -461,7 +648,8 @@
       `<a class="code-chip code-icd" href="../classifiers/index.html?code=${encodeURIComponent(c)}">${esc(c)}</a>`).join("")}</div>
       </div>`;
     warmNames(el.reader.querySelectorAll(".odk-codes .code-chip"), 8);
-    setTab("reader");
+    setTab("card");
+    markActiveRows();
     markSearchedCode("page");
   }
 
@@ -470,11 +658,11 @@
     if (openOdkBtn) {
       const key = normOdk(openOdkBtn.dataset.odkOpen);
       const found = ODK.find((o) => normOdk(o.id) === key);
-      if (found) { setMode("odk"); openOdk(found.id); }
+      if (found) { setMode(panes.icd, "odk"); openOdk(found.id); }
       return;
     }
     const goto = ev.target.closest("[data-goto-svc]");
-    if (goto) { setMode("services"); openService(+goto.dataset.gotoSvc); return; }
+    if (goto) { openService(+goto.dataset.gotoSvc); return; }
     const cp = ev.target.closest("[data-copy]");
     if (cp) {
       navigator.clipboard && navigator.clipboard.writeText(cp.dataset.copy);
@@ -702,14 +890,15 @@
   // незрозуміло, куди дивитися і чому категорія взагалі знайшлася.
   // ══════════════════════════════════════════════════════════
   /** scroll: "page" — довести код до середини екрана (довідник ОДК);
-   *          "box"  — прокрутити лише сам перелік, не смикаючи сторінку. */
+   *          "box"  — прокрутити лише сам перелік, не смикаючи сторінку.
+   *  Повертає true, якщо код у картці знайшовся. */
   function markSearchedCode(scroll) {
-    if (!hitCode) return;
+    if (!cardHit) return false;
     const all = $$(".code-chip", el.reader);
     // Точний збіг, а якщо його немає — коди рубрики («I21» → I21.0, I21.1…)
-    let chips = all.filter((c) => c.textContent.trim() === hitCode);
-    if (!chips.length) chips = all.filter((c) => c.textContent.trim().indexOf(hitCode + ".") === 0);
-    if (!chips.length) return;
+    let chips = all.filter((c) => c.textContent.trim() === cardHit);
+    if (!chips.length) chips = all.filter((c) => c.textContent.trim().indexOf(cardHit + ".") === 0);
+    if (!chips.length) return false;
     chips.forEach((c) => c.classList.add("code-hit"));
 
     const first = chips[0];
@@ -721,6 +910,7 @@
     // Без behavior:"smooth" — плавну прокрутку браузер мовчки ігнорує, якщо
     // вкладка не малює кадри, і код лишається за межами екрана.
     if (scroll === "page") first.scrollIntoView({ block: "center" });
+    return true;
   }
 
   /** «ОДК 23-А», «ОДК 23А» → «23A» (у таблиці сусідять кирилична й латинська літери). */
@@ -730,26 +920,18 @@
   }
 
   // ══════════════════════════════════════════════════════════
-  function resetForm() {
-    hideTip();
-    hitCode = "";
-    el.search.value = ""; el.selPkg.value = ""; el.selOdk.value = "";
-    el.onlyCond.checked = false; el.onlyNote.checked = false;
-    el.results.hidden = true; el.results.innerHTML = "";
-    el.reader.classList.add("reader-empty");
-    el.reader.innerHTML = readerEmptyHTML;
-    el.count.textContent = ready
-      ? plural(SERVICES.length, "послуга", "послуги", "послуг") + " · введіть запит або оберіть пакет"
-      : "Завантаження…";
-    setTab("browser");
-    el.search.focus();
+  // Мобільні вкладки: НК 025 · Картка · НК 026
+  // ══════════════════════════════════════════════════════════
+  function wireTabs() {
+    $$("#mobileTabs .mobile-tab").forEach((b) =>
+      b.addEventListener("click", () => setTab(b.dataset.tab)));
   }
-
   function setTab(tab) {
     if (!el.layout) return;
     el.layout.dataset.active = tab;
     $$("#mobileTabs .mobile-tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
   }
+
   function trim(s, n) { s = String(s || ""); return s.length > n ? s.slice(0, n - 1) + "…" : s; }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
   function escAttr(s) { return esc(s).replace(/"/g, "&quot;"); }

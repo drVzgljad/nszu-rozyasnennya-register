@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="../styles.css?v=20260808b">
   <!-- спільна розкладка «браузер + паспорт» із розділу класифікаторів -->
   <link rel="stylesheet" href="../classifiers/classifiers.css?v=20260805a">
-  <link rel="stylesheet" href="mapping.css?v=20260805h">
+  <link rel="stylesheet" href="mapping.css?v=20260809a">
   <link rel="stylesheet" href="../auth-v2.css?v=20260806a">
   <script type="module" src="../auth-v2.js?v=20260808c"></script>
 </head>
@@ -40,69 +40,149 @@
         </div>
       </div>
       <h1>Таблиця співставлення медичних послуг</h1>
-      <p>Міст між пакетами ПМГ і класифікаторами: <strong>639 медичних послуг</strong> —
-         який пакет, які коди хвороб (НК&nbsp;025) і втручань (НК&nbsp;026) їх підтверджують.
-         Кожну клітинку показано <em>як у документі</em>, разом з умовами «разом з»,
-         «за винятком», «за відсутності» — портал їх не тлумачить, а підсвічує.
-         Плюс довідник <strong>27&nbsp;ОДК</strong> (об'єднаних діагностичних категорій).</p>
+      <!-- Опис розділу переїхав під робочу зону (.nk-about перед футером) —
+           так само, як у класифікаторі НК 025: читають його раз, а шукають
+           коди щодня, і в шапці він відтісняв обидві колонки пошуку вниз. -->
     </div>
     <div class="stats" id="mpStats" aria-label="Статистика таблиці"></div>
   </header>
 
-  <nav class="mobile-tabs" id="mobileTabs" aria-label="Навігація між панелями">
-    <button class="mobile-tab active" data-tab="browser" type="button">Пошук послуг</button>
-    <button class="mobile-tab" data-tab="reader" type="button">Картка послуги</button>
+  <nav class="mobile-tabs mp-tabs" id="mobileTabs" aria-label="Навігація між колонками">
+    <button class="mobile-tab active" data-tab="icd" type="button">🩺 НК 025</button>
+    <button class="mobile-tab" data-tab="card" type="button">Картка</button>
+    <button class="mobile-tab" data-tab="achi" type="button">🔧 НК 026</button>
   </nav>
 
-  <main class="nk-layout" data-active="browser">
-    <!-- ЛІВА ПАНЕЛЬ -->
-    <section class="nk-browser" aria-label="Пошук послуг">
+  <main class="nk-layout mp-layout" data-active="icd">
+    <!-- ЛІВА КОЛОНКА: колонка «Коди хвороб» таблиці -->
+    <section class="nk-browser mp-pane mp-pane-icd" aria-label="Пошук за колонкою кодів хвороб НК 025">
       <div class="search-panel nk-search">
-        <div class="mp-modebar" role="group" aria-label="Режим перегляду">
+        <div class="mp-pane-head">
+          <span class="mp-pane-ico" aria-hidden="true">🩺</span>
+          <span class="mp-pane-copy">
+            <span class="mp-pane-title">Хвороби · НК 025</span>
+            <span class="mp-pane-sub">шукаємо в колонці «Коди хвороб»: діагноз, ОДК, назва послуги</span>
+          </span>
+        </div>
+
+        <div class="mp-modebar" role="group" aria-label="Що шукаємо">
           <button type="button" class="mp-mode active" data-mode="services">Медичні послуги</button>
           <button type="button" class="mp-mode" data-mode="odk">Довідник ОДК</button>
         </div>
 
         <label class="search">
-          <span id="mpSearchLabel">Пошук за назвою, кодом послуги або кодом класифікатора</span>
-          <input id="mpSearch" type="search"
-                 placeholder="Напр.: A15, EКMO, інсульт, 30294-00, I21.0, ОДК 8…" autocomplete="off">
+          <span id="icdSearchLabel">Код хвороби, ОДК або назва послуги</span>
+          <input id="icdSearch" type="search"
+                 placeholder="Напр.: I21.0, I21, ОДК 8, інсульт, A15…" autocomplete="off">
         </label>
 
-        <div class="nk-cascade" id="mpFilters" aria-label="Фільтри">
+        <div class="nk-cascade" id="icdFilters" aria-label="Фільтри колонки хвороб">
           <div class="casc-field">
-            <label for="selPkg">Пакет ПМГ</label>
-            <select id="selPkg"><option value="">— усі пакети —</option></select>
+            <label for="icdPkg">Пакет ПМГ</label>
+            <select id="icdPkg"><option value="">— усі пакети —</option></select>
           </div>
           <div class="casc-field">
-            <label for="selOdk">Прив'язка до ОДК</label>
-            <select id="selOdk"><option value="">— будь-яка —</option></select>
+            <label for="icdOdk">Прив'язка до ОДК</label>
+            <select id="icdOdk"><option value="">— будь-яка —</option></select>
           </div>
         </div>
 
-        <div class="nk-filters" id="mpChecks">
-          <label class="nk-check"><input type="checkbox" id="onlyCond"> лише з умовами («разом з», «за винятком»…)</label>
-          <label class="nk-check"><input type="checkbox" id="onlyNote"> лише з додатковою інформацією</label>
+        <div class="nk-filters" id="icdChecks">
+          <label class="nk-check"><input type="checkbox" id="icdCond"> лише з умовами («разом з», «за винятком»…)</label>
+          <label class="nk-check"><input type="checkbox" id="icdCodes"> лише з кодами хвороб</label>
         </div>
         <div class="results-summary">
-          <span id="mpCount">Завантаження…</span>
-          <button id="mpClear" type="button">✕ Очистити форму</button>
+          <span id="icdCount">Завантаження…</span>
+          <button id="icdClear" type="button">✕ Очистити</button>
         </div>
+        <div class="mp-xhint" id="icdHint" hidden></div>
       </div>
 
-      <div class="nk-results" id="mpResults" hidden></div>
+      <div class="nk-results" id="icdResults" hidden></div>
     </section>
 
-    <!-- ПРАВА ПАНЕЛЬ -->
-    <article class="nk-reader reader-empty" id="mpReader" aria-live="polite">
+    <!-- ЦЕНТР: смарт-картка з усією інформацією -->
+    <article class="nk-reader reader-empty mp-pane mp-pane-card" id="mpReader" aria-live="polite">
       <div class="reader-hint">
         <div class="reader-hint-ico">🔗</div>
-        <p>Оберіть медичну послугу зліва, щоб побачити її картку: пакети ПМГ, коди
-           НК&nbsp;025 і НК&nbsp;026 у первинному формулюванні документа, розкриті ОДК
-           та діапазони, коди послуг ЕСОЗ і додаткову інформацію.</p>
+        <p>Оберіть послугу <b>ліворуч</b> — за кодом хвороби чи ОДК, або <b>праворуч</b> —
+           за кодом втручання, послуги ЕСОЗ чи LOINC. Тут з'явиться вся інформація по ній:
+           пакети ПМГ, вагові коефіцієнти ДСГ, обидві клітинки таблиці дослівно
+           (з умовами «разом з», «за винятком»), розкриті ОДК і діапазони
+           та додаткова інформація.</p>
       </div>
     </article>
+
+    <!-- ПРАВА КОЛОНКА: колонка «Коди інтервенцій» таблиці -->
+    <section class="nk-browser mp-pane mp-pane-achi" aria-label="Пошук за колонкою кодів інтервенцій НК 026">
+      <div class="search-panel nk-search">
+        <div class="mp-pane-head">
+          <span class="mp-pane-ico" aria-hidden="true">🔧</span>
+          <span class="mp-pane-copy">
+            <span class="mp-pane-title">Інтервенції · НК 026</span>
+            <span class="mp-pane-sub">шукаємо в колонці «Коди інтервенцій»: втручання, ЕСОЗ, LOINC</span>
+          </span>
+        </div>
+
+        <!-- Легенда стоїть на місці перемикача режимів лівої колонки: тримає
+             обидва поля пошуку на одній лінії й одразу каже, які саме коди
+             живуть у цій колонці таблиці (кольори — ті самі, що в картці). -->
+        <div class="mp-legend">У цій колонці:
+          <span class="code-chip code-achi">НК 026</span>
+          <span class="code-chip code-esoz">ЕСОЗ</span>
+          <span class="code-chip code-loinc">LOINC</span>
+        </div>
+
+        <label class="search">
+          <span id="achiSearchLabel">Код втручання, ЕСОЗ, LOINC або назва послуги</span>
+          <input id="achiSearch" type="search"
+                 placeholder="Напр.: 30294-00, A33001, 94309-2, ЕКМО…" autocomplete="off">
+        </label>
+
+        <div class="nk-cascade" id="achiFilters" aria-label="Фільтри колонки інтервенцій">
+          <div class="casc-field">
+            <label for="achiPkg">Пакет ПМГ</label>
+            <select id="achiPkg"><option value="">— усі пакети —</option></select>
+          </div>
+          <div class="casc-field">
+            <label for="achiKind">Вид коду в колонці</label>
+            <select id="achiKind">
+              <option value="">— будь-який —</option>
+              <option value="achi">НК 026 · втручання</option>
+              <option value="esoz">Медичні послуги ЕСОЗ</option>
+              <option value="loinc">LOINC · лабораторні</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="nk-filters" id="achiChecks">
+          <label class="nk-check"><input type="checkbox" id="achiCond"> лише з умовами («разом з», «за винятком»…)</label>
+          <label class="nk-check"><input type="checkbox" id="achiNote"> лише з додатковою інформацією</label>
+        </div>
+        <div class="results-summary">
+          <span id="achiCount">Завантаження…</span>
+          <button id="achiClear" type="button">✕ Очистити</button>
+        </div>
+        <div class="mp-xhint" id="achiHint" hidden></div>
+      </div>
+
+      <div class="nk-results" id="achiResults" hidden></div>
+    </section>
   </main>
+
+  <!-- Опис розділу: був у шапці, тепер під роботою -->
+  <section class="nk-about" aria-label="Про розділ">
+    <h2>Про цей розділ</h2>
+    <p>Міст між пакетами ПМГ і класифікаторами: <strong>639 медичних послуг</strong> —
+       який пакет, які коди хвороб (НК&nbsp;025) і втручань (НК&nbsp;026) їх підтверджують.
+       Ліва колонка шукає в колонці таблиці «Коди хвороб», права — у колонці «Коди інтервенцій»
+       (там же коди медичних послуг ЕСОЗ і LOINC), посередині — картка обраної послуги.
+       Кожну клітинку показано <em>як у документі</em>, разом з умовами «разом з»,
+       «за винятком», «за відсутності» — портал їх не тлумачить, а підсвічує.
+       Плюс довідник <strong>27&nbsp;ОДК</strong> (об'єднаних діагностичних категорій)
+       у лівій колонці: пошук за кодом знаходить послугу і тоді, коли код заведено
+       не напряму, а через категорію.</p>
+  </section>
 
   <footer class="site-footer">
     <div class="footer-inner">
@@ -119,6 +199,6 @@
   </footer>
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
-  <script src="mapping.js?v=20260805h" defer></script>
+  <script src="mapping.js?v=20260809a" defer></script>
 </body>
 </html>
