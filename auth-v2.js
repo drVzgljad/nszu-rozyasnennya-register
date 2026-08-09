@@ -468,7 +468,11 @@ function applyAccess() {
           { text: 'Кадрові вимоги пакетів', path: 'classifiers/posady.html?view=pkg' }
         ]
       },
-      { text: '🔗 Таблиця співставлення', path: 'mapping/index.html' }
+      { text: '🔗 Таблиця співставлення', path: 'mapping/index.html' },
+      // «Інструменти ДСГ» стоять поруч із Таблицею співставлення, а не в
+      // гнізді «Інструменти» вкладки «Сервіси»: там усі пункти для expert, а
+      // паспорт коду й розрахунок випадку — публічні, як і решта довідників.
+      { text: '🧮 Інструменти ДСГ', path: 'drg/index.html' }
     ];
 
     // Довідково-нормативні розділи — згруповані в дропдаун «Документи».
@@ -2428,6 +2432,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '🧪', label: 'LOINC (лаб. коди)', path: 'classifiers/loinc.html' },
     { icon: '👥', label: 'Посади · ДКХП-78', path: 'classifiers/posady.html' },
     { icon: '🔗', label: 'Таблиця співставлення', path: 'mapping/index.html' },
+    { icon: '🧮', label: 'Інструменти ДСГ', path: 'drg/index.html' },
     { icon: '📑', label: 'Договори ЗОЗ', path: 'zoz-dogovr/index.html' },
     { icon: '🏥', label: 'Хто це лікує', path: 'zoz-poshuk/index.html' },
     { icon: '👤', label: 'Кабінет', path: 'cabinet/index.html', role: 'expert' },

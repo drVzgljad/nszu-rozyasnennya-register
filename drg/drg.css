@@ -1,0 +1,315 @@
+/* Розділ «Інструменти ДСГ». Базу беремо з styles.css і classifiers.css
+   (.search-panel, .reader-block, .chip-list, .stats, .nk-about), тут — лише
+   те, чого в них немає: вкладки модулів, таблиця розрахунку, таблиця аномалій.
+   Кольори — тільки через токени порталу, щоб темна тема працювала сама. */
+
+/* ── Вкладки модулів ─────────────────────────────────────────────────────── */
+.drg-tabs {
+  max-width: 1180px; margin: 18px auto 0; padding: 0 18px;
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.drg-tab {
+  border: 1px solid var(--line); background: var(--surface); color: var(--muted);
+  border-radius: 12px 12px 0 0; padding: 11px 18px; cursor: pointer;
+  font-size: .92rem; font-weight: 700; font-family: inherit;
+  border-bottom-width: 3px; transition: color .15s, border-color .15s, background .15s;
+}
+.drg-tab:hover { color: var(--accent-dark); }
+.drg-tab.active {
+  color: var(--accent-dark); background: var(--surface);
+  border-bottom-color: var(--accent);
+}
+
+.drg-main { max-width: 1180px; margin: 0 auto; padding: 14px 18px 30px; }
+.drg-panel { margin-bottom: 14px; }
+.drg-h2 {
+  font-size: .82rem; text-transform: uppercase; letter-spacing: .03em;
+  color: var(--muted); margin: 0 0 10px;
+}
+.drg-h2 .drg-src, .drg-src {
+  font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--muted);
+}
+.drg-hint { font-size: .78rem; color: var(--muted); margin-top: 8px; }
+
+/* ── Застереження ────────────────────────────────────────────────────────── */
+.drg-note {
+  border: 1px solid var(--line); border-left: 4px solid var(--accent);
+  background: var(--soft); border-radius: 12px; padding: 12px 14px;
+  font-size: .85rem; line-height: 1.5; margin-bottom: 14px; color: var(--ink);
+}
+.drg-note-warn {
+  border-left-color: var(--warning-border, #d98324);
+  background: var(--warning-bg, var(--soft)); color: var(--warning-text, var(--ink));
+}
+.drg-note-gap { border-left-color: var(--muted); margin-top: 14px; }
+.drg-note ul { margin: 6px 0 0; padding-left: 20px; }
+.drg-note li { margin-bottom: 3px; }
+
+/* ── Картка ──────────────────────────────────────────────────────────────── */
+.drg-card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 18px; padding: 20px 22px; box-shadow: var(--shadow);
+}
+.drg-card-empty, .drg-card-none { text-align: center; padding: 34px 22px; }
+.drg-card-none h2 { margin: 0 0 10px; font-size: 1.1rem; }
+.drg-card-head {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding-bottom: 10px; border-bottom: 1px solid var(--line);
+}
+.drg-card-code {
+  font-size: 1.5rem; font-weight: 800; color: var(--accent-dark);
+  font-variant-numeric: tabular-nums;
+}
+.drg-card-title { margin: 12px 0 4px; font-size: 1.12rem; line-height: 1.35; }
+.drg-card-kinds { display: flex; gap: 6px; flex-wrap: wrap; }
+.drg-kind {
+  font-size: .7rem; border-radius: 20px; padding: 3px 10px;
+  border: 1px solid var(--line); color: var(--muted); background: var(--soft);
+}
+.drg-kind-drg { background: var(--accent-soft); color: var(--accent-dark); }
+.drg-card-foot {
+  margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--line);
+  font-size: .74rem; color: var(--muted); line-height: 1.5;
+}
+.drg-chips { display: flex; gap: 7px; flex-wrap: wrap; margin: 10px 0 4px; }
+
+/* ── Перелік груп у паспорті ─────────────────────────────────────────────── */
+.drg-glist { display: flex; flex-direction: column; gap: 12px; }
+.drg-grow {
+  border: 1px solid var(--line); border-radius: 14px; padding: 13px 15px;
+  background: var(--soft);
+}
+.drg-grow-main { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.drg-gcode {
+  font-size: 1.05rem; color: var(--accent-dark); font-variant-numeric: tabular-nums;
+}
+.drg-gname { font-size: .92rem; line-height: 1.4; }
+.drg-via { font-size: .76rem; color: var(--muted); }
+.drg-grow-meta {
+  display: flex; gap: 7px; flex-wrap: wrap; align-items: center; margin: 9px 0;
+}
+.drg-app {
+  font-size: .7rem; font-weight: 700; border-radius: 7px; padding: 3px 9px;
+  border: 1px solid var(--line); color: var(--muted); background: var(--surface);
+  font-style: normal;
+}
+.drg-app-1 { color: var(--accent-dark); border-color: var(--accent); }
+.drg-app-2 { color: var(--teal-dark, var(--accent-2-deep)); border-color: var(--teal, var(--accent-2)); }
+.drg-badge {
+  font-size: .68rem; border-radius: 20px; padding: 2px 9px; font-style: normal;
+  border: 1px solid var(--line); color: var(--muted);
+}
+
+.drg-ktable { width: 100%; border-collapse: collapse; font-size: .8rem; margin: 4px 0 10px; }
+.drg-ktable th {
+  text-align: left; font-weight: 500; color: var(--muted); padding: 3px 8px 3px 0;
+}
+.drg-ktable td {
+  text-align: right; font-weight: 700; font-variant-numeric: tabular-nums;
+  padding: 3px 0; width: 6.5rem;
+}
+.drg-ktable tr.is-empty th, .drg-ktable tr.is-empty td { opacity: .45; font-weight: 400; }
+
+.drg-grow-sum {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding-top: 9px; border-top: 1px dashed var(--line);
+}
+.drg-sum-label { font-size: .74rem; color: var(--muted); }
+.drg-grow-sum b { font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.drg-grow-svc { margin-top: 9px; font-size: .78rem; line-height: 1.6; }
+.drg-svc-label { color: var(--muted); }
+.drg-svc { color: var(--accent-dark); text-decoration: none; margin-right: 8px; }
+.drg-svc:hover { text-decoration: underline; }
+
+.drg-links { display: flex; gap: 8px; flex-wrap: wrap; }
+.drg-xlink {
+  border: 1px solid var(--line); border-radius: 10px; padding: 7px 12px;
+  background: var(--surface); color: var(--accent-dark); text-decoration: none;
+  font-size: .82rem; font-weight: 600;
+}
+.drg-xlink:hover { background: var(--accent-soft); }
+
+/* ── Модуль 2: дві колонки ───────────────────────────────────────────────── */
+.drg-split { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 16px; }
+.drg-factors { display: flex; flex-direction: column; gap: 3px; max-height: 60vh; overflow-y: auto; }
+.drg-f { border-bottom: 1px solid var(--line); padding: 8px 2px; }
+.drg-f:last-child { border-bottom: 0; }
+.drg-frow {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: .84rem;
+}
+.drg-frow label { display: flex; align-items: center; gap: 7px; cursor: pointer; }
+.drg-f.is-fixed .drg-frow label, .drg-f.is-base { cursor: default; }
+.drg-f.is-base { background: var(--accent-soft); border-radius: 9px; padding: 9px 10px; }
+.drg-f.is-unknown { opacity: .72; }
+.drg-fico { font-weight: 800; color: var(--muted); }
+.drg-fval {
+  font-weight: 700; font-variant-numeric: tabular-nums; color: var(--accent-dark);
+}
+.drg-sub { font-size: .7rem; color: var(--muted); white-space: nowrap; }
+.drg-pkgs { font-size: .7rem; color: var(--muted); }
+.drg-fnote { font-size: .73rem; color: var(--muted); line-height: 1.45; margin-top: 4px; }
+.drg-days { display: inline-flex; align-items: center; gap: 5px; font-size: .78rem; color: var(--muted); }
+.drg-factors input[type="number"], .drg-factors select {
+  border: 1px solid var(--line); border-radius: 8px; padding: 4px 7px;
+  background: var(--surface); color: var(--ink); font-family: inherit; font-size: .82rem;
+}
+.drg-factors input[type="number"] { width: 5rem; }
+
+/* ── Таблиця розрахунку ──────────────────────────────────────────────────── */
+.drg-calc-table { width: 100%; border-collapse: collapse; font-size: .86rem; margin-top: 14px; }
+.drg-calc-table th {
+  text-align: left; font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .03em; color: var(--muted); padding: 6px 8px; font-weight: 600;
+}
+.drg-calc-table td { padding: 7px 8px; border-top: 1px solid var(--line); vertical-align: top; }
+.drg-calc-table tr.is-rate td { background: var(--soft); }
+.drg-op {
+  width: 2.2rem; color: var(--muted); font-weight: 800; text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.drg-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.drg-step-src { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+.drg-total td {
+  border-top: 2px solid var(--accent); font-weight: 800; font-size: .95rem;
+  padding-top: 9px;
+}
+.drg-formula {
+  margin-top: 12px; padding: 11px 13px; border-radius: 11px; background: var(--soft);
+  font-size: .84rem; line-height: 1.7; font-variant-numeric: tabular-nums;
+}
+
+/* ── Порівняння груп ─────────────────────────────────────────────────────── */
+.drg-cmp, .drg-pick { display: flex; flex-direction: column; gap: 6px; }
+.drg-cmp-row, .drg-pick-row {
+  display: grid; grid-template-columns: 4.5rem minmax(0, 1fr) auto auto auto;
+  gap: 10px; align-items: center; text-align: left;
+  border: 1px solid var(--line); border-radius: 11px; padding: 9px 12px;
+  background: var(--surface); color: var(--ink); cursor: pointer;
+  font-family: inherit; font-size: .84rem;
+}
+.drg-cmp-row:hover, .drg-pick-row:hover { background: var(--accent-soft); }
+.drg-pick-row.is-picked { border-color: var(--accent); background: var(--accent-soft); }
+.drg-cmp-row b, .drg-pick-row b {
+  color: var(--accent-dark); font-variant-numeric: tabular-nums;
+}
+.drg-cmp-row span, .drg-pick-row span { min-width: 0; }
+.drg-cmp-sum, .drg-pick-sum { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.drg-delta { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* Приріст суми фарбуємо роллю «увага», а не власним хардкодом: --warning-text
+   портал перевизначає в темній темі (#7a5000 → #fb923c), тож обидві теми
+   лишаються читаними без окремого правила. */
+.drg-delta.up { color: var(--warning-text); }
+.drg-delta.down { color: var(--muted); }
+.drg-pick-none { font-size: .82rem; color: var(--muted); padding: 8px 2px; }
+
+/* ── Модуль 3 ────────────────────────────────────────────────────────────── */
+.drg-subtabs { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
+.drg-subtab {
+  border: 1px solid var(--line); background: var(--surface); color: var(--muted);
+  border-radius: 20px; padding: 8px 15px; cursor: pointer; font-family: inherit;
+  font-size: .82rem; font-weight: 600;
+}
+.drg-subtab.active {
+  background: var(--accent-soft); color: var(--accent-dark); border-color: var(--accent);
+}
+.drg-thresholds { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.drg-th { display: flex; flex-direction: column; gap: 4px; font-size: .78rem; color: var(--muted); }
+.drg-th input {
+  border: 1px solid var(--line); border-radius: 9px; padding: 8px 10px;
+  background: var(--soft); color: var(--ink); font-family: inherit; width: 9rem;
+}
+.drg-rules { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+.drg-rule { display: flex; gap: 9px; align-items: flex-start; font-size: .84rem; cursor: pointer; }
+.drg-rule input { margin-top: 3px; }
+.drg-rule b { display: block; font-weight: 700; }
+.drg-rule em { display: block; font-style: normal; font-size: .75rem; color: var(--muted); line-height: 1.45; }
+
+.drg-actions { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; }
+.drg-btn {
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  border-radius: 10px; padding: 9px 15px; cursor: pointer; font-family: inherit;
+  font-size: .85rem; font-weight: 600;
+}
+.drg-btn:hover:not(:disabled) { background: var(--accent-soft); }
+.drg-btn:disabled { opacity: .45; cursor: default; }
+/* Заливка під білим текстом — --accent-fill, не --accent: у темній темі
+   портал підмінює саме fill на глибший відтінок (див. розділення ролей у v28
+   сервіс-воркера), і кнопка з --accent там світилася б. */
+.drg-btn-main { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
+.drg-btn-main:hover:not(:disabled) { background: var(--accent-dark); }
+.drg-btn-sm { padding: 5px 11px; font-size: .78rem; }
+.drg-count { font-size: .8rem; color: var(--muted); }
+
+.drg-results { margin-top: 14px; }
+.drg-filter {
+  display: flex; gap: 14px; flex-wrap: wrap; align-items: center;
+  font-size: .8rem; padding: 11px 14px; background: var(--soft);
+  border: 1px solid var(--line); border-radius: 12px; margin-bottom: 10px;
+}
+.drg-filter label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+.drg-filter em { font-style: normal; color: var(--muted); }
+
+.drg-table-wrap {
+  overflow-x: auto; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--surface);
+}
+.drg-table { width: 100%; border-collapse: collapse; font-size: .82rem; min-width: 900px; }
+.drg-table th {
+  text-align: left; padding: 10px 12px; background: var(--soft);
+  border-bottom: 1px solid var(--line); font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .03em; color: var(--muted); position: sticky; top: 0; z-index: 1;
+}
+.drg-table th[data-sort] { cursor: pointer; user-select: none; }
+.drg-table th[data-sort]:hover { color: var(--accent-dark); }
+.drg-table td { padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.drg-table tbody tr:hover { background: var(--soft); }
+.drg-type {
+  font-size: .72rem; border-radius: 20px; padding: 2px 9px; white-space: nowrap;
+  border: 1px solid var(--line); color: var(--muted);
+}
+.drg-why { font-size: .78rem; color: var(--muted); line-height: 1.45; min-width: 20rem; }
+.drg-linkish {
+  border: 0; background: none; padding: 0; cursor: pointer; font-family: inherit;
+  color: var(--accent-dark); font-weight: 700; font-size: inherit; text-decoration: underline;
+}
+.drg-flags { margin: 0; padding-left: 20px; font-size: .84rem; line-height: 1.55; }
+.drg-flags li { margin-bottom: 6px; }
+.drg-ok { font-size: .86rem; color: var(--muted); }
+
+/* Замок режиму C */
+.drg-lock {
+  text-align: center; padding: 40px 24px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow);
+}
+.drg-lock-ico { font-size: 2.2rem; margin-bottom: 10px; }
+.drg-lock h2 { margin: 0 0 10px; font-size: 1.08rem; }
+.drg-lock p { max-width: 52ch; margin: 0 auto 8px; font-size: .88rem; line-height: 1.55; }
+
+/* ── Мобільний ───────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .drg-split { grid-template-columns: minmax(0, 1fr); }
+  .drg-factors { max-height: none; }
+}
+@media (max-width: 640px) {
+  .drg-tabs { padding: 0 12px; gap: 5px; }
+  .drg-tab { padding: 9px 12px; font-size: .84rem; }
+  .drg-main { padding: 12px 12px 26px; }
+  .drg-card { padding: 16px 14px; border-radius: 14px; }
+  .drg-cmp-row, .drg-pick-row { grid-template-columns: 3.6rem minmax(0, 1fr); row-gap: 5px; }
+  .drg-cmp-row .drg-cmp-sum, .drg-pick-row .drg-pick-sum { grid-column: 2; }
+  .drg-th input { width: 100%; }
+  .drg-th { flex: 1 1 8rem; }
+}
+
+/* ── Друк: паспорт і розрахунок в один екран без обрізань ────────────────── */
+@media print {
+  .hero, .drg-tabs, .drg-subtabs, .nk-about, .site-footer, .back-to-top,
+  .drg-panel, .drg-actions, .drg-filter, .drg-btn { display: none !important; }
+  .drg-main { padding: 0; max-width: none; }
+  .drg-card { border: 0; box-shadow: none; padding: 0; }
+  .drg-split { grid-template-columns: minmax(0, 1fr); }
+  .drg-grow, .drg-note { break-inside: avoid; }
+  .drg-table { min-width: 0; font-size: .72rem; }
+  .drg-table-wrap { overflow: visible; border: 0; }
+  .drg-factors { max-height: none; overflow: visible; }
+}

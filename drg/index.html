@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>НавігаторПМГ26 | Інструменти ДСГ</title>
+  <link rel="stylesheet" href="../styles.css?v=20260808b">
+  <!-- пошукова панель і блоки паспорта — спільні з класифікаторами -->
+  <link rel="stylesheet" href="../classifiers/classifiers.css?v=20260805a">
+  <link rel="stylesheet" href="drg.css?v=20260809b">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260806a">
+  <script type="module" src="../auth-v2.js?v=20260809a"></script>
+</head>
+<body id="top">
+  <header class="hero classifiers-hero">
+    <div class="hero-copy">
+      <div class="overline">Інструменти ДСГ · код → група → сума ·
+        <a class="xnav" href="../classifiers/index.html">↔ Хвороби НК 025</a>
+        <a class="xnav" href="../classifiers/nk026.html">↔ Інтервенції НК 026</a>
+        <a class="xnav" href="../mapping/index.html">↔ Таблиця співставлення</a>
+        <a class="xnav" href="../postanova/index.html">↔ Постанова 1808</a></div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів, постанови та правил</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Інструменти діагностично-споріднених груп</h1>
+    </div>
+    <div class="stats" id="drgStats" aria-label="Статистика розділу"></div>
+  </header>
+
+  <nav class="drg-tabs" role="tablist" aria-label="Інструменти">
+    <button class="drg-tab active" type="button" role="tab" data-mod="passport"
+            aria-selected="true">🪪 Паспорт коду</button>
+    <button class="drg-tab" type="button" role="tab" data-mod="calc"
+            aria-selected="false">🧮 Розрахунок випадку</button>
+    <button class="drg-tab" type="button" role="tab" data-mod="audit"
+            aria-selected="false">🔍 Пошук аномалій</button>
+  </nav>
+
+  <main class="drg-main">
+    <!-- ─────────── Модуль 1. Паспорт коду ─────────── -->
+    <section class="drg-mod" id="mod-passport" role="tabpanel" aria-label="Паспорт коду">
+      <div class="search-panel nk-search drg-panel">
+        <label class="search">
+          <span>Код НК 025, код НК 026 або код ДСГ — тип визначається за самими довідниками</span>
+          <input id="pQ" type="search" autocomplete="off" spellcheck="false"
+                 placeholder="J18.9 · 13750-00 · F04C · B02">
+        </label>
+        <div class="drg-hint" id="pHint">Введіть код: діагноз (J18.9), інтервенцію (13750-00) або групу (B02).</div>
+        <div class="drg-suggest" id="pSuggest" hidden></div>
+      </div>
+      <article class="drg-card drg-card-empty" id="pCard">
+        <p class="muted">Паспорт показує, до яких діагностично-споріднених груп може
+           привести код, з якими коефіцієнтами, у межах яких пакетів — і скільки це
+           коштує за постановою № 1808.</p>
+      </article>
+    </section>
+
+    <!-- ─────────── Модуль 2. Розрахунок випадку ─────────── -->
+    <section class="drg-mod" id="mod-calc" role="tabpanel" aria-label="Розрахунок випадку" hidden>
+      <div class="drg-note drg-note-warn" role="note">
+        <b>Розрахунок є наближенням.</b> Групування пролікованого випадку в конкретну
+        ДСГ виконує групер ЕСОЗ; правил групування (вибір між групами одного кореня,
+        супутні стани й ускладнення) у постанові немає, тому нижче — <em>можливі</em>
+        сценарії, а не результат групування. Порядок дій при поєднанні коефіцієнтів
+        постанова не описує: показано послідовне застосування, кожен крок підписано.
+        Це інструмент верифікації, а не клінічна рекомендація — він не визначає,
+        які інтервенції «потрібні».
+      </div>
+      <div class="drg-split">
+        <div class="drg-col-in">
+          <div class="search-panel nk-search drg-panel">
+            <label class="search">
+              <span>Група ДСГ або код, який до неї веде</span>
+              <input id="cQ" type="search" autocomplete="off" spellcheck="false"
+                     placeholder="B02 · J18.9 · 38488-08">
+            </label>
+            <div class="drg-hint" id="cHint">Введіть код — покажемо всі можливі групи.</div>
+            <div class="drg-pick" id="cPick" hidden></div>
+          </div>
+          <div class="search-panel drg-panel drg-factors-panel">
+            <h2 class="drg-h2">Коефіцієнти до ставки на пролікований випадок
+              <span class="drg-src">пункт 38 глави 3 розділу II Порядку</span></h2>
+            <div id="cFactors" class="drg-factors"></div>
+          </div>
+        </div>
+        <div class="drg-col-out" id="cOut">
+          <div class="drg-card drg-card-empty">
+            <p class="muted">Виберіть групу — покажемо розрахунок покроково
+               й порівняємо з іншими можливими групами для того самого коду.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────── Модуль 3. Пошук аномалій ─────────── -->
+    <section class="drg-mod" id="mod-audit" role="tabpanel" aria-label="Пошук аномалій" hidden>
+      <div class="drg-note" role="note">
+        <b>Прапорець аномалії — не констатація помилки, а кандидат на експертну перевірку.</b>
+        Усі порівняння ваг робляться лише в межах одного додатка: додатки 1 і 2 —
+        це два різні режими оплати, і різниця між ними задана підпунктом 15 пункту 38,
+        а не дизайном тарифу.
+      </div>
+      <nav class="drg-subtabs" role="tablist" aria-label="Режими пошуку">
+        <button class="drg-subtab active" type="button" data-mode="A">A · Сканування довідників</button>
+        <button class="drg-subtab" type="button" data-mode="B">B · Перевірка комбінації</button>
+        <button class="drg-subtab" type="button" data-mode="C">C · Стрес-тест моделі 🔒</button>
+      </nav>
+
+      <div class="drg-submod" id="aud-A">
+        <div class="search-panel drg-panel">
+          <div class="drg-thresholds">
+            <label class="drg-th"><span>Розкид ваг, разів (N)</span>
+              <input id="thN" type="number" min="1.1" step="0.1" value="3"></label>
+            <label class="drg-th"><span>Зміна суми документованим фактором, % (X)</span>
+              <input id="thX" type="number" min="1" step="1" value="30"></label>
+            <label class="drg-th"><span>Поріг «дешевої» суми, грн</span>
+              <input id="thSum" type="number" min="0" step="500" value="15000"></label>
+          </div>
+          <div class="drg-rules" id="auditRules"></div>
+          <div class="drg-actions">
+            <button id="auditRun" class="drg-btn drg-btn-main" type="button">Прогнати правила</button>
+            <button id="auditCsv" class="drg-btn" type="button" disabled>⤓ Експорт у CSV</button>
+            <span class="drg-count" id="auditCount"></span>
+          </div>
+        </div>
+        <div class="drg-results" id="auditOut"></div>
+      </div>
+
+      <div class="drg-submod" id="aud-B" hidden>
+        <div class="search-panel nk-search drg-panel">
+          <label class="search">
+            <span>Діагнози НК 025 і/або інтервенції НК 026 — через кому</span>
+            <input id="bQ" type="search" autocomplete="off" spellcheck="false"
+                   placeholder="J18.9, 38488-08">
+          </label>
+          <div class="drg-actions">
+            <button id="bRun" class="drg-btn drg-btn-main" type="button">Перевірити комбінацію</button>
+          </div>
+        </div>
+        <div class="drg-results" id="bOut"></div>
+      </div>
+
+      <div class="drg-submod" id="aud-C" hidden>
+        <div class="drg-lock" id="cLock">
+          <div class="drg-lock-ico" aria-hidden="true">🔒</div>
+          <h2>Стрес-тест тарифної моделі — за логіном</h2>
+          <p>Режим ранжує маніпуляції з кодуванням за розміром переплати. Це
+             інструмент платника для перевірки дизайну тарифу, тому він
+             доступний лише авторизованим користувачам порталу.</p>
+          <p class="muted">Увійдіть через кнопку в шапці сторінки.</p>
+        </div>
+        <div class="drg-submod-body" id="cBody" hidden>
+          <div class="drg-note drg-note-warn" role="note">
+            <b>Призначення — стрес-тест дизайну тарифної моделі, а не звинувачення
+            будь-кого.</b> Режим працює виключно на довідниках: жодних даних про
+            фактично надані послуги, заклади чи пацієнтів тут немає й не буде.
+            Кожна стратегія показана разом із тим, чим постанова її стримує.
+          </div>
+          <div class="search-panel nk-search drg-panel">
+            <label class="search">
+              <span>Базовий, «чесно» закодований випадок: група ДСГ або код, що до неї веде</span>
+              <input id="fQ" type="search" autocomplete="off" spellcheck="false"
+                     placeholder="B02 · 38488-08">
+            </label>
+            <div class="drg-pick" id="fPick" hidden></div>
+            <div class="drg-actions">
+              <button id="fRun" class="drg-btn drg-btn-main" type="button" disabled>Побудувати карту</button>
+              <button id="fCsv" class="drg-btn" type="button" disabled>⤓ Експорт у CSV</button>
+            </div>
+          </div>
+          <div class="drg-results" id="fOut"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <section class="nk-about" aria-label="Про розділ">
+    <h2>Про цей розділ</h2>
+    <p>Розділ зшиває дві вже зібрані бази порталу: <strong>додатки 1 і 2 постанови
+       № 1808</strong> (вагові коефіцієнти <strong>481 ДСГ</strong>) і
+       <strong>Таблицю співставлення</strong> (639 медичних послуг, які зв'язують
+       групи з кодами НК 025 і НК 026). Власних даних у нього немає — тому
+       коефіцієнт, який ви бачите тут, це той самий коефіцієнт, що в розділі
+       «Постанова 1808».</p>
+    <p><strong>Чого розділ не робить.</strong> Він не групує випадок. Групування
+       виконує групер ЕСОЗ, а правил групування немає ні в постанові, ні в наказі
+       № 377, ні в Таблиці співставлення: немає правил вибору між групами одного
+       кореня, немає таблиць супутніх станів і ускладнень. Тому за кодом розділ
+       чесно показує перелік <em>можливих</em> груп і рахує суму для кожної.
+       Коефіцієнти, величину яких визначають алгоритми і правила НСЗУ
+       (підпункти 9 і 10 пункту 38), позначено як невідомі, а не підставлено
+       навмання.</p>
+    <p><strong>Режим оплати має значення.</strong> За додатками оплачуються пакети
+       3, 4 і 47; пакет 8 (новонароджені) і пакет 19 (психіатрія) мають власні
+       коефіцієнти в тексті своїх глав, тому їх у розрахунку випадку немає.
+       Пункт 36 постанови теж не тут: його коефіцієнти діють на глобальну ставку
+       на місяць, тобто на бюджет закладу за період, а не на окремий випадок.</p>
+  </section>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p id="drgSource">Джерела: постанова Кабінету Міністрів України від 31.12.2025
+           № 1808 (додатки 1 і 2, пункти 34 і 38 глави 3 розділу II Порядку) та
+           Таблиця співставлення медичних послуг з кодами НК&nbsp;025:2021 та/або
+           НК&nbsp;026:2021. Довідковий інструмент; переважну силу має офіційний
+           текст документа. Офіційне групування пролікованих випадків здійснює
+           електронна система охорони здоров'я.</p>
+      </div>
+    </div>
+  </footer>
+
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <script type="module" src="drg.js?v=20260809h"></script>
+</body>
+</html>
