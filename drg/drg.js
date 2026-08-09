@@ -11,10 +11,30 @@
  * трапляється у двох ролях, показуємо обидві, а не вибираємо за нас.
  */
 
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+/* Сесію читаємо зі знімка, який кладе auth-v2.js (`portal-boot-v1`), і НЕ
+ * створюємо власного клієнта Supabase. Причина: клієнт тягне за собою другий
+ * GoTrueClient на той самий ключ сховища, і бібліотека сама попереджає, що
+ * два екземпляри під одним ключем дають невизначену поведінку — зокрема два
+ * паралельних оновлення токена, після яких один із них може вважати refresh
+ * token використаним і затерти сесію. Публічній сторінці клієнт не потрібен:
+ * знімок auth-v2 з'являється після входу і зникає після виходу.
+ *
+ * Прямо кажучи, чим це є: замок режиму C — міра розсуду в інтерфейсі, а не
+ * контроль доступу. Дані, на яких він рахує (drg.json), і так публічні, тож
+ * будь-яка клієнтська перевірка тут декоративна — так само як була й перевірка
+ * через getSession(). Якщо потрібне справжнє обмеження, режим C мусить рахувати
+ * на боці Supabase під RLS, а не в браузері.
+ */
+const BOOT_KEY = 'portal-boot-v1';
 
-const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
+function portalUser() {
+  try {
+    const snapshot = JSON.parse(localStorage.getItem(BOOT_KEY) || 'null');
+    return snapshot && snapshot.uid ? snapshot : null;
+  } catch (e) {
+    return null;   // приватний режим — просто вважаємо, що гість
+  }
+}
 
 const CYR2LAT = { А: 'A', В: 'B', С: 'C', Е: 'E', К: 'K', М: 'M', Н: 'H', О: 'O', Р: 'P', Т: 'T', Х: 'X', І: 'I' };
 
@@ -1141,16 +1161,21 @@ function runCombo() {
 let fraudRows = [];
 let fraudGroup = null;
 
-async function wireFraudGate() {
-  const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
-  const apply = (session) => {
-    const open = Boolean(session?.user);
+function wireFraudGate() {
+  const apply = () => {
+    const open = Boolean(portalUser());
     el('cLock').hidden = open;
     el('cBody').hidden = !open;
   };
-  const { data } = await sb.auth.getSession();
-  apply(data?.session);
-  sb.auth.onAuthStateChange((_event, session) => apply(session));
+  apply();
+  // Вхід і вихід у цій же вкладці робить auth-v2.js, у сусідніх — подія storage.
+  // Перемальовуємо й при поверненні до вкладки: знімок міг змінитися там.
+  window.addEventListener('storage', (ev) => {
+    if (!ev.key || ev.key === BOOT_KEY) apply();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) apply();
+  });
 
   const input = el('fQ');
   let timer = null;

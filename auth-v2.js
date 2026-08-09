@@ -93,8 +93,15 @@ let bootPaint = false;
 
 // Єдиний перелік підтек порталу: якщо сторінка лежить в одній з них,
 // відносні посилання на кореневі ресурси потребують префікса '../'.
+//
+// ⚠️ НОВИЙ РОЗДІЛ ОБОВ'ЯЗКОВО ДОДАВАТИ СЮДИ. Забути легко, а наслідок брутальний
+// і не схожий на причину: сторінка розділу відкривається й виглядає справною, але
+// префікс стає './', і КОЖНЕ посилання меню веде в неї саму — /drg/classifiers/
+// index.html замість /classifiers/index.html, тобто 404 на будь-якому переході.
+// Після перезавантаження з кореня все знову працює, тож збій легко списати на
+// кеш. Спіймано 09.08.2026 на розділі «Інструменти ДСГ» (drg), який тут забули.
 const PORTAL_SUBDIRS = [
-  'algorithms', 'cabinet', 'chat', 'classifiers', 'dec', 'expert-proposals', 'infocenter',
+  'algorithms', 'cabinet', 'chat', 'classifiers', 'dec', 'drg', 'expert-proposals', 'infocenter',
   'map', 'mapping', 'news', 'pakety', 'passport', 'pilots', 'pmg-proposals', 'postanova', 'regulatory',
   'relax', 'reminders', 'rentgen', 'rozjasnennya', 'skod', 'zoz-dogovr', 'zoz-poshuk', 'zoz-questions'
 ];
