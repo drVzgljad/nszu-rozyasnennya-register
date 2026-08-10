@@ -119,13 +119,25 @@
 
   function renderStats() {
     const c = META.counts;
+    const withPost = c.specialties - (META.unmatched || []).length;
+    // Числівник тут не декоративний: «172 спеціальностей» і «301 позицій» —
+    // помилка відмінка, яку видно з першого екрана.
     el.stats.innerHTML = [
-      [nf(c.specialties), "спеціальностей у Додатку 7"],
-      [nf(c.posts), "позицій у Переліку МОЗ № 1065"],
-      [nf(c.specialties - (META.unmatched || []).length), "спеціальностей мають посаду"],
-      [nf(c.packages_with_staff), "пакетів із кадровими вимогами"],
-      [nf(c.staff_unmatched), "вимог поза Переліком МОЗ"],
-    ].map(([n, l]) => `<div class="stat"><strong>${n}</strong><span>${esc(l)}</span></div>`).join("");
+      [c.specialties,
+       plural(c.specialties, "спеціальність", "спеціальності", "спеціальностей") +
+       " у Додатку 7"],
+      [c.posts,
+       plural(c.posts, "позиція", "позиції", "позицій") + " у Переліку МОЗ № 1065"],
+      [withPost,
+       plural(withPost, "спеціальність має", "спеціальності мають", "спеціальностей мають") +
+       " посаду"],
+      [c.packages_with_staff,
+       plural(c.packages_with_staff, "пакет", "пакети", "пакетів") +
+       " із кадровими вимогами"],
+      [c.staff_unmatched,
+       plural(c.staff_unmatched, "вимога", "вимоги", "вимог") + " поза Переліком МОЗ"],
+    ].map(([n, l]) =>
+      `<div class="stat"><strong>${nf(n)}</strong><span>${esc(l)}</span></div>`).join("");
     el.cntS.textContent = nf(c.specialties);
     el.cntP.textContent = nf(c.posts);
   }
