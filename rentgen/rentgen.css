@@ -150,8 +150,10 @@
   padding: 12px 10px 6px;
 }
 .rt-doc { margin-bottom: 2px; }
+/* Вузли дерева й картки — посилання, а не кнопки: у кожного екрана є адреса,
+   тож їх можна відкрити в новій вкладці й кинути в лист. */
 .rt-doc-btn {
-  width: 100%; text-align: left;
+  width: 100%; text-align: left; text-decoration: none;
   border: none; background: transparent; color: var(--ink);
   font: inherit; font-size: 13.5px; line-height: 1.35;
   padding: 8px 10px; border-radius: 9px; cursor: pointer;
@@ -169,7 +171,7 @@
 .rt-nodes { display: none; padding: 2px 0 8px 6px; border-left: 2px solid var(--line); margin-left: 12px; }
 .rt-doc.is-open .rt-nodes { display: block; }
 .rt-node {
-  width: 100%; text-align: left;
+  width: 100%; text-align: left; text-decoration: none;
   border: none; background: transparent; color: var(--muted);
   font: inherit; font-size: 12.5px; line-height: 1.4;
   padding: 5px 8px; border-radius: 7px; cursor: pointer;
@@ -247,7 +249,7 @@ mark { background: #ffe58a; color: #4a3200; border-radius: 3px; padding: 0 2px; 
 
 /* ---------- пакети ---------- */
 .rt-pkg-btn {
-  width: 100%; text-align: left;
+  width: 100%; text-align: left; text-decoration: none;
   border: none; background: transparent; color: var(--ink);
   font: inherit; font-size: 13px; line-height: 1.35;
   padding: 9px 10px; border-radius: 9px; cursor: pointer;
@@ -313,18 +315,33 @@ mark { background: #ffe58a; color: #4a3200; border-radius: 3px; padding: 0 2px; 
 .rt-sec.is-pmg .rt-sec-num::after {
   content: "🩻"; margin-left: 6px; font-size: 11px;
 }
+/* Дозвільні блоки згорнуті: сім розгорнутих простирадл — саме те, за що
+   розділ і лаяли. Видно назву і скільки актів; пояснення — під підписом. */
 .rt-permit {
   border: 1px solid var(--line); border-radius: 12px;
-  padding: 14px 18px; margin-bottom: 12px;
+  padding: 12px 16px; margin-bottom: 9px;
 }
+.rt-permit[open] { background: var(--soft); }
+.rt-permit > summary {
+  cursor: pointer; list-style: none;
+  display: flex; gap: 10px; align-items: baseline; justify-content: space-between;
+}
+.rt-permit > summary::-webkit-details-marker { display: none; }
+.rt-permit > summary::after {
+  content: "▾"; color: var(--muted); font-size: 12px; transition: transform .15s;
+}
+.rt-permit[open] > summary::after { transform: rotate(180deg); }
 .rt-permit-title {
-  font-weight: 800; font-size: 14.5px; color: var(--ink); margin-bottom: 5px;
-  display: flex; gap: 8px; align-items: baseline;
+  font-weight: 800; font-size: 14.5px; color: var(--ink);
 }
-.rt-permit-note { font-size: 12.5px; color: var(--muted); line-height: 1.55; margin-bottom: 10px; }
+.rt-permit-count { font-size: 12px; color: var(--muted); white-space: nowrap; margin-left: auto; }
+.rt-permit-note {
+  font-size: 12.5px; color: var(--muted); line-height: 1.55;
+  margin: 10px 0; padding-top: 10px; border-top: 1px dashed var(--line);
+}
 .rt-permit-docs { display: flex; flex-direction: column; gap: 5px; }
 .rt-permit-doc {
-  border: none; background: var(--soft); color: var(--ink);
+  border: none; background: var(--surface); color: var(--ink); text-decoration: none;
   font: inherit; font-size: 12.5px; text-align: left;
   padding: 8px 12px; border-radius: 8px; cursor: pointer;
   display: flex; gap: 9px; align-items: baseline;
@@ -406,4 +423,226 @@ mark { background: #ffe58a; color: #4a3200; border-radius: 3px; padding: 0 2px; 
 @media (max-width: 720px) {
   .rt-change { margin-left: 0; }
   .rt-pend-tag { margin-left: 0; }
+}
+
+/* ============================================================
+   Аналітичний шар: розбори рішень
+   Світлофор має три тони, і жоден із них не «червоний просто так»:
+   ok — шлях є, warn — є, але з умовою, risk — тут норми немає або вона
+   проти вас. Портальних ролей для «ok» і «risk» немає, тому пари
+   оголошені локально — обидві теми явно, як у плашок класів ДІВ.
+   ============================================================ */
+.tone-ok   { --tone-fg: #2c6b52; --tone-bg: #eaf6f0; --tone-bd: #a9d8c2; }
+.tone-warn { --tone-fg: #7a5000; --tone-bg: #fff3cd; --tone-bd: #ffc107; }
+.tone-risk { --tone-fg: #9b2c2c; --tone-bg: #fdecec; --tone-bd: #e8a6a6; }
+:root.dark-theme .tone-ok   { --tone-fg: #86e0b8; --tone-bg: #123227; --tone-bd: #2f6b52; }
+:root.dark-theme .tone-warn { --tone-fg: #fbbf78; --tone-bg: #3a2a0a; --tone-bd: #7c5310; }
+:root.dark-theme .tone-risk { --tone-fg: #f8b4b4; --tone-bg: #3a1a1b; --tone-bd: #7c2d2d; }
+
+/* ---------- смуга навігації: назад + де я ---------- */
+.rt-navbar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin: 0 0 14px;
+}
+.rt-back {
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  font: inherit; font-size: 13px; font-weight: 700;
+  padding: 7px 14px; border-radius: 999px; cursor: pointer;
+}
+.rt-back:hover { border-color: var(--accent); color: var(--accent-dark); background: var(--accent-soft); }
+.rt-crumbs { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; font-size: 12.5px; }
+.rt-crumbs a { color: var(--accent-dark); text-decoration: none; font-weight: 600; }
+.rt-crumbs a:hover { text-decoration: underline; }
+.rt-crumbs span { color: var(--muted); }
+.rt-crumbs i { color: var(--faint); font-style: normal; }
+
+/* ---------- перелік розборів ---------- */
+.rt-cases { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+/* Власний display перебиває атрибут hidden (у нього лише стиль браузера),
+   тому ховати доводиться явно — інакше перелік лишався б висіти над розбором. */
+.rt-cases[hidden], .rt-casedetail[hidden], .rt-lead[hidden] { display: none; }
+.rt-case {
+  display: flex; gap: 14px; align-items: flex-start; text-align: left;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 18px 20px; cursor: pointer; font: inherit; color: var(--ink);
+  transition: border-color .15s, box-shadow .15s, transform .15s;
+}
+.rt-case:hover {
+  border-color: var(--accent); box-shadow: var(--shadow); transform: translateY(-1px);
+}
+.rt-case-ico { font-size: 26px; line-height: 1.2; }
+.rt-case-body { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.rt-case-q { font-size: 15.5px; font-weight: 800; line-height: 1.35; }
+.rt-case-verdict {
+  font-size: 13px; line-height: 1.45; color: var(--tone-fg);
+  background: var(--tone-bg); border-radius: 8px; padding: 7px 11px;
+}
+.rt-case-meta { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.rt-case-meta b { color: var(--accent-dark); }
+.rt-case-go { color: var(--faint); font-size: 18px; align-self: center; }
+
+/* ---------- сам розбір ---------- */
+.rt-casedetail {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 26px 30px 40px;
+}
+.rt-case-head { border-bottom: 2px solid var(--line); padding-bottom: 16px; margin-bottom: 22px; }
+.rt-case-lead { font-size: 14.5px; line-height: 1.6; color: var(--muted); margin: 10px 0 12px; }
+.rt-case-links { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.rt-normlink {
+  color: var(--accent-dark); text-decoration: none; font-weight: 700; font-size: 12.5px;
+  background: var(--accent-soft); border-radius: 999px; padding: 5px 12px;
+}
+.rt-normlink:hover { background: var(--soft-hover); }
+.rt-tag {
+  font-size: 12px; color: var(--muted); background: var(--soft);
+  border-radius: 999px; padding: 5px 12px;
+}
+
+/* вердикт і три замки */
+.rt-verdict {
+  border: 1px solid var(--tone-bd); border-left-width: 5px;
+  background: var(--tone-bg); border-radius: 12px; padding: 16px 20px; margin-bottom: 26px;
+}
+.rt-verdict-head { font-size: 16px; font-weight: 800; color: var(--tone-fg); line-height: 1.4; }
+.rt-locks { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-top: 14px; }
+.rt-lock {
+  background: var(--surface); border-radius: 10px; padding: 12px 14px;
+  border-top: 3px solid var(--tone-bd);
+}
+.rt-lock-t { font-weight: 800; font-size: 13px; color: var(--tone-fg); margin-bottom: 5px; }
+.rt-lock-x { font-size: 13px; line-height: 1.55; color: var(--ink); }
+
+/* кроки */
+.rt-steps { list-style: none; margin: 0 0 26px; padding: 0; }
+.rt-step { display: flex; gap: 14px; padding: 0 0 18px; position: relative; }
+.rt-step::before {
+  content: ""; position: absolute; left: 15px; top: 32px; bottom: 0;
+  width: 2px; background: var(--line);
+}
+.rt-step:last-child::before { display: none; }
+.rt-step-n {
+  flex: 0 0 32px; height: 32px; border-radius: 50%;
+  background: var(--accent-soft); color: var(--accent-dark);
+  font-weight: 800; font-size: 14px;
+  display: flex; align-items: center; justify-content: center; z-index: 1;
+}
+.rt-step.is-opt .rt-step-n { background: var(--soft); color: var(--muted); }
+.rt-step-main { flex: 1; padding-top: 4px; }
+.rt-step-t { font-size: 15px; font-weight: 800; color: var(--ink); }
+.rt-step-opt {
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  background: var(--soft); border-radius: 999px; padding: 2px 9px; margin-left: 8px;
+}
+.rt-step-facts {
+  display: flex; gap: 8px 18px; flex-wrap: wrap; margin: 7px 0;
+  font-size: 12.5px; color: var(--muted);
+}
+.rt-step-facts b { color: var(--ink); font-weight: 700; }
+.rt-step-x { font-size: 13.5px; line-height: 1.6; color: var(--ink); }
+.rt-step-docs { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 9px; }
+
+/* гроші */
+.rt-moneybox {
+  display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  background: var(--soft); border-radius: 12px; padding: 18px 20px; margin-bottom: 26px;
+}
+.rt-money-rate { display: flex; flex-direction: column; gap: 2px; }
+.rt-money-rate b { font-size: 30px; color: var(--accent-dark); line-height: 1.1; }
+.rt-money-rate span { font-size: 13px; color: var(--ink); }
+.rt-money-rate i { font-size: 11.5px; color: var(--muted); font-style: normal; }
+.rt-money-rules p { margin: 0 0 7px; font-size: 12.5px; line-height: 1.55; color: var(--muted); }
+.rt-money-flag { color: var(--warning-text) !important; font-weight: 600; }
+.rt-calc { background: var(--surface); border-radius: 10px; padding: 14px 16px; }
+.rt-calc-cap {
+  font-size: 11px; font-weight: 800; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 9px;
+}
+.rt-calc label {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  font-size: 12.5px; color: var(--ink); margin-bottom: 7px;
+}
+.rt-calc input {
+  width: 82px; padding: 6px 9px; font: inherit; font-size: 13px;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: var(--surface); color: var(--ink);
+}
+.rt-calc input:focus { outline: none; border-color: var(--accent); }
+.rt-calc-out {
+  margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line);
+  font-size: 13.5px; color: var(--ink);
+}
+.rt-calc-out b { color: var(--accent-dark); font-size: 16px; }
+.rt-calc-note { font-size: 11.5px; color: var(--muted); line-height: 1.5; margin-top: 7px; }
+
+/* що це змінює для пакета */
+.rt-impact { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); margin-bottom: 26px; }
+.rt-imp { background: var(--soft); border-radius: 10px; padding: 13px 16px; }
+.rt-imp-t { font-weight: 800; font-size: 13.5px; color: var(--ink); margin-bottom: 4px; }
+.rt-imp-x { font-size: 13px; line-height: 1.55; color: var(--muted); }
+
+/* ризики */
+.rt-risks { display: flex; flex-direction: column; gap: 9px; margin-bottom: 26px; }
+.rt-risk { border-left: 4px solid var(--line); padding: 11px 15px; background: var(--soft); border-radius: 0 9px 9px 0; }
+.rt-risk.lvl-high { border-left-color: #d76a6a; }
+.rt-risk.lvl-mid { border-left-color: var(--warning-border); }
+.rt-risk.lvl-low { border-left-color: var(--accent); }
+.rt-risk-t { font-weight: 800; font-size: 13.5px; color: var(--ink); display: flex; gap: 9px; align-items: baseline; }
+.rt-risk-t span {
+  font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--muted); background: var(--surface); border-radius: 999px; padding: 2px 8px;
+}
+.rt-risk-x { font-size: 13px; line-height: 1.55; color: var(--muted); margin-top: 4px; }
+
+/* перелік звільнених типів */
+.rt-exempt { border: 1px solid var(--line); border-radius: 12px; padding: 16px 20px; margin-bottom: 26px; }
+.rt-exempt-head { font-size: 13.5px; color: var(--ink); line-height: 1.5; margin-bottom: 10px; }
+.rt-exempt-list { margin: 0 0 12px; padding-left: 22px; columns: 2; column-gap: 26px; }
+.rt-exempt-list li { font-size: 13px; line-height: 1.5; margin-bottom: 6px; break-inside: avoid; }
+.rt-exempt-foot { font-size: 12.5px; line-height: 1.6; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; }
+.rt-exempt-foot b { color: var(--ink); }
+.rt-warnline { margin-top: 8px; color: var(--warning-text); }
+
+/* підстави */
+.rt-srcs { display: flex; gap: 8px; flex-wrap: wrap; }
+.rt-src {
+  font-size: 12.5px; text-decoration: none; color: var(--ink);
+  background: var(--soft); border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px;
+}
+.rt-src:hover { border-color: var(--accent); color: var(--accent-dark); background: var(--accent-soft); }
+
+/* ---------- плитки в паспорті пакета ---------- */
+.rt-tiles { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+.rt-tile {
+  background: var(--soft); border-radius: 12px; padding: 12px 16px;
+  /* Підпис під числом — 12px, а на такому кеглі --muted на --soft дає 4,37.
+     Тому підпис іде на --ink: у плитці він і так короткий. */
+  font-size: 12px; color: var(--ink); font-weight: 600; line-height: 1.4; min-width: 130px;
+}
+.rt-tile span { display: block; font-size: 22px; font-weight: 800; color: var(--accent-dark); }
+.rt-tile-wide span { font-size: 15px; }
+.rt-caselinks { display: grid; gap: 9px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); margin-bottom: 20px; }
+.rt-caselink {
+  display: block; text-decoration: none; padding: 12px 15px;
+  border: 1px solid var(--accent); background: var(--accent-soft); border-radius: 11px;
+}
+.rt-caselink b { display: block; font-size: 13.5px; color: var(--accent-dark); margin-bottom: 3px; }
+.rt-caselink span { font-size: 12.5px; color: var(--ink); line-height: 1.45; }
+
+/* ---------- згортання довгих службових блоків ---------- */
+.rt-fold { margin: 14px 0 20px; }
+.rt-fold > summary {
+  cursor: pointer; font-size: 12.5px; font-weight: 700; color: var(--accent-dark);
+  list-style: none;
+}
+.rt-fold > summary::-webkit-details-marker { display: none; }
+.rt-fold > summary::before { content: "▸ "; }
+.rt-fold[open] > summary::before { content: "▾ "; }
+.rt-fold .rt-amend { margin-top: 9px; }
+
+@media (max-width: 900px) {
+  .rt-casedetail { padding: 18px 16px 28px; }
+  .rt-exempt-list { columns: 1; }
+  .rt-cases { grid-template-columns: 1fr; }
+  .rt-money-rate b { font-size: 26px; }
 }

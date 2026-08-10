@@ -1,6 +1,6 @@
 {
  "corpus": "Рентген та джерела іонізуючого випромінювання",
- "built_nodes": 4181,
+ "built_nodes": 4204,
  "documents": [
   {
    "key": "39-95-vr",
@@ -166,6 +166,21 @@
    "source": null,
    "nodes": 9,
    "chars": 113238
+  },
+  {
+   "key": "z2148-13",
+   "kind": "Наказ ДІЯР",
+   "num": "138",
+   "date": "2013-12-03",
+   "title": "Перелік ДІВ, діяльність по використанню яких звільняється від ліцензування",
+   "contour": "ДІЯР",
+   "url": "https://zakon.rada.gov.ua/laws/show/z2148-13",
+   "status": "чинний",
+   "in_force": true,
+   "revision": "03.02.2015",
+   "source": null,
+   "nodes": 6,
+   "chars": 16151
   },
   {
    "key": "949-2021",
@@ -346,6 +361,21 @@
    "source": null,
    "nodes": 163,
    "chars": 188796
+  },
+  {
+   "key": "813-2026",
+   "kind": "Постанова КМУ",
+   "num": "813",
+   "date": "2026-06-24",
+   "title": "Зміни до Ліцензійних умов з медичної практики (чинні з 01.09.2026)",
+   "contour": "Ліцензія МОЗ",
+   "url": "https://zakon.rada.gov.ua/laws/show/813-2026-%D0%BF",
+   "status": "набирає чинності",
+   "in_force": false,
+   "revision": "24.06.2026",
+   "source": null,
+   "nodes": 17,
+   "chars": 8336
   },
   {
    "key": "753-2013",

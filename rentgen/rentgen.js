@@ -1,12 +1,16 @@
 /* ============================================================
    Розділ «Рентген та ДІВ»
 
-   Два принципи, від яких тут усе залежить:
-   1. Дерево, а не шеренга фільтрів. Структура видна одразу, і кожен
-      вузол має підпис — «п. 1.17 | Підставою на право експлуатації…»,
-      а не голий номер, по якому доводиться клікати наосліп.
-   2. Читалка, а не нарізка. Документ показується суцільним текстом
-      із якорями; фрагменти лишаються двигуном пошуку під капотом.
+   Три принципи, від яких тут усе залежить:
+   1. Спершу питання, потім акти. Стартовий екран — розбори рішень
+      («чи вводити пересувний мамограф»), а не перелік наказів. Норми
+      лежать на третій вкладці й відкриваються з кроку розбору.
+   2. Кожен екран має адресу. Усе, що відкривається, змінює hash:
+      #/case/…, #/pkg/…, #/doc/…. Тому кнопка «назад» у браузері працює,
+      а посилання на конкретний пункт акта можна кинути в лист.
+   3. Дерево, а не шеренга фільтрів; читалка, а не нарізка. Структура
+      видна одразу, кожен вузол має підпис, документ показується суцільним
+      текстом із якорями.
    ============================================================ */
 (() => {
   'use strict';
@@ -18,6 +22,9 @@
     index: null,
     search: null,
     packages: null,
+    // Аналітичний шар: розбори рішень і паспорт оплати пакета. Необов'язковий —
+    // якщо файла немає, розділ працює як довідник без вкладки «Рішення».
+    analytics: null,
     // Майбутні зміни: акт опубліковано, але він ще не діє. Текст акта в
     // корпусі лишається чинною редакцією — накладка лише позначає пункти,
     // які зміняться, і показує майбутню редакцію поруч. Див.
@@ -29,6 +36,7 @@
     query: '',
     pmgOnly: false,
     expanded: new Set(),
+    route: { view: 'cases' },
   };
 
   const $ = (id) => document.getElementById(id);
@@ -38,6 +46,9 @@
   // нормалізація для пошуку: регістр + апострофи, яких в українських
   // текстах трапляється чотири різновиди
   const norm = (s) => String(s ?? '').toLowerCase().replace(/[’'`ʼ]/g, "'");
+
+  const money = (n) => n.toLocaleString('uk-UA', { minimumFractionDigits: 2,
+                                                  maximumFractionDigits: 2 });
 
   function highlight(text, q) {
     if (!q) return esc(text);
@@ -65,7 +76,287 @@
     return doc;
   }
 
-  /* ---------------- дерево документів ---------------- */
+  /* ================= маршрутизація ================= */
+
+  /* Один екран — одна адреса. Без цього розділ мав ваду, за яку його й
+     лаяли: акт розкривався, а повернутися до попереднього стану було нічим —
+     «назад» виводило зі сторінки. */
+  function parseHash() {
+    const h = location.hash.replace(/^#\/?/, '');
+    if (!h) return { view: 'cases' };
+    const [a, b, c] = h.split('/');
+    if (a === 'norms') return { view: 'norms' };
+    if (a === 'pkg') return { view: 'pkg', num: b || null };
+    if (a === 'case') return { view: 'cases', caseId: b || null };
+    if (a === 'doc') return { view: 'norms', key: b || null, node: c || null };
+    // Чужий якір (портальне «↑ Верх» — це #top) не має скидати екран:
+    // інакше кнопка «нагору» викидала б із відкритого акта на стартову.
+    return { ...state.route };
+  }
+
+  const routeHash = (r) => {
+    if (r.view === 'norms') return r.key ? `#/doc/${r.key}${r.node ? '/' + r.node : ''}` : '#/norms';
+    if (r.view === 'pkg') return r.num ? `#/pkg/${r.num}` : '#/pkg';
+    return r.caseId ? `#/case/${r.caseId}` : '#/';
+  };
+
+  const go = (hash) => { location.hash = hash; };
+
+  function crumbs(route) {
+    const trail = [{ label: '🧭 Рішення', hash: '#/' }];
+    if (route.view === 'cases' && route.caseId) {
+      const c = caseById(route.caseId);
+      trail.push({ label: c ? c.title : route.caseId });
+    }
+    if (route.view === 'pkg') {
+      trail.length = 0;
+      trail.push({ label: '🩻 Пакети', hash: '#/pkg' });
+      if (route.num) {
+        const p = state.packages.packages.find((x) => x.number === route.num);
+        trail.push({ label: `Пакет ${route.num}${p ? ' · ' + shortTitle(p.title) : ''}` });
+      }
+    }
+    if (route.view === 'norms') {
+      trail.length = 0;
+      trail.push({ label: '📖 Норми', hash: '#/norms' });
+      if (route.key) {
+        const d = state.index.documents.find((x) => x.key === route.key);
+        trail.push({ label: d ? `${d.kind} № ${d.num}` : route.key });
+      }
+    }
+    const html = trail.map((t, i) => {
+      const last = i === trail.length - 1;
+      const el = t.hash && !last
+        ? `<a href="${esc(t.hash)}">${esc(t.label)}</a>`
+        : `<span>${esc(t.label)}</span>`;
+      return el + (last ? '' : '<i aria-hidden="true">›</i>');
+    }).join('');
+    $('crumbs').innerHTML = html;
+    // «Назад» показуємо лише там, де є куди повертатися всередині розділу
+    $('backBtn').hidden = trail.length < 2;
+  }
+
+  const shortTitle = (t) => {
+    const s = t.charAt(0) + t.slice(1).toLowerCase();
+    return s.length > 42 ? s.slice(0, 40).trim() + '…' : s;
+  };
+
+  const caseById = (id) =>
+    (state.analytics ? state.analytics.cases : []).find((c) => c.id === id) || null;
+
+  const casesForPackage = (num) =>
+    (state.analytics ? state.analytics.cases : []).filter((c) => c.package === num);
+
+  async function applyRoute() {
+    const r = parseHash();
+    state.route = r;
+    const view = r.view;
+    [['viewCases', 'cases'], ['viewPkg', 'pkg'], ['viewNorms', 'norms']].forEach(([id, v]) => {
+      $(id).classList.toggle('is-visible', view === v);
+      $(id).hidden = view !== v;
+    });
+    [['tabCases', 'cases'], ['tabPkg', 'pkg'], ['tabNorms', 'norms']].forEach(([id, v]) => {
+      $(id).classList.toggle('is-active', view === v);
+      $(id).setAttribute('aria-selected', String(view === v));
+    });
+    crumbs(r);
+
+    if (view === 'cases') {
+      if (r.caseId) renderCase(r.caseId);
+      else renderCaseList();
+    } else if (view === 'pkg') {
+      renderPackages();
+      if (r.num) openPackage(r.num);
+      else resetPkgDetail();
+    } else {
+      renderTree();
+      if (r.key) await openDoc(r.key, r.node);
+      else resetReader();
+    }
+    // Нагору — крім переходу на конкретний пункт: там прокручує gotoNode,
+    // і два скроли підряд дали б смикання.
+    if (!r.node) window.scrollTo(0, 0);
+  }
+
+  /* ================= вкладка «Рішення» ================= */
+
+  const TONE_ICON = { ok: '✔', warn: '▲', risk: '■' };
+  const LEVEL_LABEL = { high: 'високий', mid: 'середній', low: 'низький' };
+
+  function renderCaseList() {
+    const host = $('caseGrid');
+    host.hidden = false;
+    $('caseDetail').hidden = true;
+    $('casesLead').hidden = false;
+    if (!state.analytics) {
+      host.innerHTML = '<div class="rt-loading">Аналітичний шар не завантажився.</div>';
+      return;
+    }
+    host.innerHTML = state.analytics.cases.map((c) => `
+      <button class="rt-case" type="button" data-act="case" data-id="${esc(c.id)}">
+        <span class="rt-case-ico" aria-hidden="true">${esc(c.icon)}</span>
+        <span class="rt-case-body">
+          <span class="rt-case-q">${esc(c.question)}</span>
+          <span class="rt-case-verdict tone-${esc(c.verdict.tone)}">
+            ${esc(TONE_ICON[c.verdict.tone] || '•')} ${esc(c.verdict.headline)}</span>
+          <span class="rt-case-meta">
+            <b>Пакет ${esc(c.package)}</b>
+            <span>${c.steps.length} ${plural(c.steps.length, 'крок', 'кроки', 'кроків')}</span>
+            <span>${c.risks.length} ${plural(c.risks.length, 'ризик', 'ризики', 'ризиків')}</span>
+            ${c.money ? `<span>${esc(money(c.money.rate))} грн ${esc(c.money.unit)}</span>` : ''}
+          </span>
+        </span>
+        <span class="rt-case-go" aria-hidden="true">→</span>
+      </button>`).join('');
+  }
+
+  function locksHTML(v) {
+    return `<div class="rt-verdict tone-${esc(v.tone)}">
+      <div class="rt-verdict-head">${esc(TONE_ICON[v.tone] || '•')} ${esc(v.headline)}</div>
+      <div class="rt-locks">${v.locks.map((l) => `
+        <div class="rt-lock tone-${esc(l.tone)}">
+          <div class="rt-lock-t">${esc(l.title)}</div>
+          <div class="rt-lock-x">${esc(l.text)}</div>
+        </div>`).join('')}</div>
+    </div>`;
+  }
+
+  function stepsHTML(steps) {
+    return `<ol class="rt-steps">${steps.map((s) => `
+      <li class="rt-step${s.optional ? ' is-opt' : ''}">
+        <div class="rt-step-n">${s.n}</div>
+        <div class="rt-step-main">
+          <div class="rt-step-t">${esc(s.title)}${
+            s.optional ? '<span class="rt-step-opt">лише для однієї гілки</span>' : ''}</div>
+          <div class="rt-step-facts">
+            <span><b>Хто:</b> ${esc(s.who)}</span>
+            <span><b>Строк:</b> ${esc(s.term)}</span>
+            <span><b>Результат:</b> ${esc(s.out)}</span>
+          </div>
+          <div class="rt-step-x">${esc(s.text)}</div>
+          ${s.docs.length ? `<div class="rt-step-docs">${s.docs.map((d) => `
+            <a class="rt-normlink" href="#/doc/${esc(d.key)}${d.node ? '/' + esc(d.node) : ''}">
+              ${esc(d.label)} →</a>`).join('')}</div>` : ''}
+        </div>
+      </li>`).join('')}</ol>`;
+  }
+
+  function moneyHTML(m) {
+    if (!m) return '';
+    const total = m.rate * m.calc.per_day * m.calc.days;
+    return `<div class="rt-moneybox">
+      <div class="rt-money-rate">
+        <b>${esc(money(m.rate))} грн</b><span>${esc(m.unit)}</span>
+        <i>${esc(m.source)}</i>
+      </div>
+      <div class="rt-money-rules">
+        <p>${esc(m.planned)}</p>
+        <p>${esc(m.fact)}</p>
+        <p class="rt-money-flag">${esc(m.extra)}</p>
+      </div>
+      <div class="rt-calc" data-rate="${m.rate}">
+        <div class="rt-calc-cap">Прикинути обсяг</div>
+        <label>досліджень на день
+          <input type="number" min="0" max="200" step="1" id="calcDay" value="${m.calc.per_day}"></label>
+        <label>виїзних днів на місяць
+          <input type="number" min="0" max="31" step="1" id="calcDays" value="${m.calc.days}"></label>
+        <div class="rt-calc-out">
+          <span id="calcCount">${m.calc.per_day * m.calc.days}</span> досліджень ·
+          <b id="calcSum">${money(total)}</b> грн на місяць
+        </div>
+        <div class="rt-calc-note">Це виручка за тарифом, а не прибуток: пальне,
+          бригада й амортизація в ставку не закладені.</div>
+      </div>
+    </div>`;
+  }
+
+  function exemptHTML() {
+    const e = state.analytics.exempt;
+    return `<div class="rt-exempt">
+      <div class="rt-exempt-head">
+        <b>${esc(e.act.label)}</b> — 15 типів мамографів, звільнених від ліцензування
+        <span class="rt-badge ok">чинний · ред. ${esc(e.act.revision)}</span>
+      </div>
+      <ol class="rt-exempt-list">${e.mammographs.map((m) =>
+        `<li>${esc(m)}</li>`).join('')}</ol>
+      <div class="rt-exempt-foot">
+        <div><b>Ще в переліку:</b> ${e.other_groups.map(esc).join('; ')}.</div>
+        <div><b>Ніколи не звільняються:</b> ${e.never.map(esc).join('; ')}.</div>
+        <div class="rt-warnline">${esc(e.act.note)}</div>
+      </div>
+    </div>`;
+  }
+
+  function renderCase(id) {
+    const c = caseById(id);
+    const host = $('caseDetail');
+    const grid = $('caseGrid');
+    if (!c) { go('#/'); return; }
+    grid.hidden = true;
+    host.hidden = false;
+    $('casesLead').hidden = true;
+
+    const pkg = state.packages.packages.find((p) => p.number === c.package);
+    const pay = state.analytics.payment[c.package];
+
+    host.innerHTML = `
+      <div class="rt-case-head">
+        <div class="rt-doc-kind">Розбір рішення · пакет ${esc(c.package)}${
+          pkg ? ' · ' + esc(shortTitle(pkg.title)) : ''}</div>
+        <h2 class="rt-doc-title">${esc(c.question)}</h2>
+        <p class="rt-case-lead">${esc(c.lead)}</p>
+        <div class="rt-case-links">
+          <a class="rt-normlink" href="#/pkg/${esc(c.package)}">Дозволи пакета ${esc(c.package)} →</a>
+          ${pay ? `<span class="rt-tag">Оплата: ${esc(pay.model || 'глава ' + pay.chapter +
+            ' постанови № 1808')}</span>` : ''}
+        </div>
+      </div>
+
+      ${locksHTML(c.verdict)}
+
+      <h3 class="rt-h3">Порядок дій</h3>
+      ${stepsHTML(c.steps)}
+
+      ${c.money ? '<h3 class="rt-h3">Гроші</h3>' + moneyHTML(c.money) : ''}
+
+      <h3 class="rt-h3">Що це змінює для пакета</h3>
+      <div class="rt-impact">${c.impact.map((i) => `
+        <div class="rt-imp"><div class="rt-imp-t">${esc(i.title)}</div>
+          <div class="rt-imp-x">${esc(i.text)}</div></div>`).join('')}</div>
+
+      <h3 class="rt-h3">Ризики і прогалини</h3>
+      <div class="rt-risks">${c.risks.map((r) => `
+        <div class="rt-risk lvl-${esc(r.level)}">
+          <div class="rt-risk-t"><span>${esc(LEVEL_LABEL[r.level] || r.level)}</span>
+            ${esc(r.title)}</div>
+          <div class="rt-risk-x">${esc(r.text)}</div>
+        </div>`).join('')}</div>
+
+      ${c.show_exempt_list ? '<h3 class="rt-h3">Перелік типів</h3>' + exemptHTML() : ''}
+
+      <h3 class="rt-h3">Підстави</h3>
+      <div class="rt-srcs">${c.sources.map((s) => `
+        <a class="rt-src" href="#/doc/${esc(s.key)}${s.node ? '/' + esc(s.node) : ''}">
+          ${esc(s.label)}</a>`).join('')}</div>`;
+
+    wireCalc();
+  }
+
+  function wireCalc() {
+    const box = document.querySelector('.rt-calc');
+    if (!box) return;
+    const rate = Number(box.dataset.rate);
+    const recalc = () => {
+      const n = Math.max(0, Number($('calcDay').value) || 0) *
+                Math.max(0, Number($('calcDays').value) || 0);
+      $('calcCount').textContent = n;
+      $('calcSum').textContent = money(n * rate);
+    };
+    $('calcDay').addEventListener('input', recalc);
+    $('calcDays').addEventListener('input', recalc);
+  }
+
+  /* ================= дерево документів ================= */
 
   function docsForView() {
     let docs = state.index.documents;
@@ -117,10 +408,10 @@
         const open = state.openKey === d.key;
         const dead = d.in_force ? '' : ' <span class="rt-dead">❗ нечинний</span>';
         html += `<div class="rt-doc${open ? ' is-open' : ''}" data-key="${esc(d.key)}">
-          <button class="rt-doc-btn" type="button" data-act="open" data-key="${esc(d.key)}">
+          <a class="rt-doc-btn" href="#/doc/${esc(d.key)}">
             <span class="rt-doc-num">${esc(d.kind)} № ${esc(d.num)}</span>
             <span class="rt-doc-name">${highlight(d.title, state.query)}${dead}</span>
-          </button>
+          </a>
           <div class="rt-nodes" data-nodes="${esc(d.key)}"></div>
         </div>`;
       }
@@ -132,7 +423,8 @@
   async function renderNodeList(key) {
     const host = document.querySelector(`[data-nodes="${CSS.escape(key)}"]`);
     if (!host) return;
-    const doc = await getDoc(key);
+    let doc;
+    try { doc = await getDoc(key); } catch { return; }
     const hits = nodesForDoc(key);
     let nodes = doc.nodes;
     if (hits) {
@@ -147,19 +439,17 @@
     const shown = expanded ? nodes : nodes.slice(0, MAX_NODES_COLLAPSED);
 
     host.innerHTML = shown.map((n) => `
-      <button class="rt-node lvl-${n.level}" type="button" data-act="goto"
-              data-key="${esc(key)}" data-id="${esc(n.id)}">
+      <a class="rt-node lvl-${n.level}" href="#/doc/${esc(key)}/${esc(n.id)}"
+         data-id="${esc(n.id)}">
         <b>${esc(n.label)}</b> · ${highlight(n.title, state.query)}
-      </button>`).join('') +
+      </a>`).join('') +
       (nodes.length > shown.length
         ? `<button class="rt-node-more" type="button" data-act="more" data-key="${esc(key)}">
              ↓ показати всі (${nodes.length})</button>`
         : '');
   }
 
-  /* ---------------- читалка ---------------- */
-
-  /* ------------- майбутні зміни (акт опубліковано, ще не діє) ------------- */
+  /* ================= читалка ================= */
 
   const plural = (n, one, few, many) => {
     const a = Math.abs(n) % 100, b = a % 10;
@@ -226,9 +516,30 @@
     </div>`;
   }
 
+  function resetReader() {
+    state.openKey = null;
+    $('reader').innerHTML = `<div class="rt-empty">
+      <div class="rt-empty-ico" aria-hidden="true">📖</div>
+      <h2>Оберіть акт зліва</h2>
+      <p>Документ відкриється суцільним текстом — так, як він читається, а не
+      нарізкою на фрагменти. Кожен акт має власну адресу, тож посилання на
+      пункт можна кинути в лист.</p></div>`;
+  }
+
   async function openDoc(key, scrollToId) {
     state.openKey = key;
-    const doc = await getDoc(key);
+    let doc;
+    try {
+      doc = await getDoc(key);
+    } catch (err) {
+      // Мовчазна порожня читалка — найгірший варіант: людина думає, що акт
+      // порожній. Кажемо прямо і даємо кнопку, бо це майже завжди мережа.
+      $('reader').innerHTML = `<div class="rt-alert">
+        <b>Текст акта не завантажився.</b><br>${esc(err.message)}.
+        <button class="rt-chip" type="button" data-act="retry" data-key="${esc(key)}"
+                style="margin-top:10px">Спробувати ще раз</button></div>`;
+      return;
+    }
     const m = doc.meta;
     const dead = !m.in_force;
 
@@ -264,8 +575,11 @@
         «/rada/», відомчий наказ без реєстрації в Мін'юсті). Статус проставлено вручну
         за результатом звірки — див. примітку в реєстрі корпусу.</div>`;
     }
+    // Простирадло «Із змінами, внесеними згідно з…» ховаємо під підпис: воно
+    // потрібне разів на десять відкриттів, а місця з'їдає більше за преамбулу.
     if (m.amendments_raw) {
-      html += `<div class="rt-amend">${esc(m.amendments_raw)}</div>`;
+      html += `<details class="rt-fold"><summary>Перелік змін до акта</summary>
+        <div class="rt-amend">${esc(m.amendments_raw)}</div></details>`;
     }
 
     const pend = pendingFor(key);
@@ -316,7 +630,6 @@
     $('reader').innerHTML = html;
     renderTree();
     if (scrollToId) gotoNode(scrollToId);
-    else $('reader').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function gotoNode(id) {
@@ -326,21 +639,22 @@
     el.classList.add('is-hit');
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     document.querySelectorAll('.rt-node.is-current').forEach((e) => e.classList.remove('is-current'));
-    const btn = document.querySelector(`[data-act="goto"][data-id="${CSS.escape(id)}"]`);
+    const btn = document.querySelector(`.rt-node[data-id="${CSS.escape(id)}"]`);
     if (btn) btn.classList.add('is-current');
   }
 
-  /* ---------------- пакети → дозвіл ---------------- */
+  /* ================= пакети → дозвіл ================= */
 
   function renderPackages() {
     const host = $('pkgList');
     host.innerHTML = state.packages.packages.map((p) => {
       const cls = p.classes.map((c) =>
         `<span class="rt-cls ${esc(c)}">${esc(clsTitle(c))}</span>`).join('');
-      return `<button class="rt-pkg-btn" type="button" data-act="pkg" data-num="${esc(p.number)}">
+      const cur = state.route.num === p.number ? ' is-current' : '';
+      return `<a class="rt-pkg-btn${cur}" href="#/pkg/${esc(p.number)}">
         <span class="rt-pkg-n">${esc(p.number)}</span>
-        <span><span class="rt-pkg-name">${esc(p.title)}</span><br>${cls}</span>
-      </button>`;
+        <span><span class="rt-pkg-name">${esc(shortTitle(p.title))}</span><br>${cls}</span>
+      </a>`;
     }).join('');
     $('pkgCount').textContent = state.packages.packages.length;
   }
@@ -350,24 +664,45 @@
     return c ? c.title : key;
   }
 
+  function resetPkgDetail() {
+    $('pkgDetail').innerHTML = `<div class="rt-empty">
+      <div class="rt-empty-ico" aria-hidden="true">🩻</div>
+      <h2>Оберіть пакет</h2>
+      <p>Для кожного пакета — обладнання-ДІВ, коди ЕСОЗ і повний ланцюжок
+      дозволів. Нечинні акти позначено, щоб вони не потрапили в лист.</p></div>`;
+  }
+
   function openPackage(num) {
     const p = state.packages.packages.find((x) => x.number === num);
-    if (!p) return;
-    document.querySelectorAll('.rt-pkg-btn.is-current').forEach((e) => e.classList.remove('is-current'));
-    const btn = document.querySelector(`[data-act="pkg"][data-num="${CSS.escape(num)}"]`);
-    if (btn) btn.classList.add('is-current');
-
-    const notes = p.classes.map((c) => {
-      const info = state.packages.classes.find((x) => x.key === c);
-      return info ? `<li><b>${esc(info.title)}.</b> ${esc(info.note)}</li>` : '';
-    }).join('');
+    if (!p) { go('#/pkg'); return; }
+    const pay = state.analytics ? state.analytics.payment[num] : null;
+    const cases = casesForPackage(num);
 
     let html = `<div class="rt-doc-head">
       <div class="rt-doc-kind">Пакет ${esc(p.number)} · ПМГ-2026</div>
-      <h2 class="rt-doc-title">${esc(p.title)}</h2>
+      <h2 class="rt-doc-title">${esc(shortTitle(p.title))}</h2>
       <div class="rt-meta">${p.classes.map((c) =>
         `<span class="rt-cls ${esc(c)}">${esc(clsTitle(c))}</span>`).join('')}</div>
     </div>`;
+
+    // Верхні плитки: три числа, за якими зазвичай і приходять.
+    html += `<div class="rt-tiles">
+      <div class="rt-tile"><span>${esc(p.equipment.length)}</span>
+        ${plural(p.equipment.length, 'позиція обладнання', 'позиції обладнання',
+                 'позицій обладнання')}</div>
+      <div class="rt-tile"><span>${esc(p.permits.length)}</span>
+        ${plural(p.permits.length, 'дозвільний блок', 'дозвільні блоки',
+                 'дозвільних блоків')}</div>
+      ${pay ? `<div class="rt-tile rt-tile-wide"><span>Глава ${esc(pay.chapter)}</span>
+        ${esc(pay.model || 'постанови КМУ № 1808')}</div>` : ''}
+    </div>`;
+
+    if (cases.length) {
+      html += `<div class="rt-caselinks">${cases.map((c) =>
+        `<a class="rt-caselink" href="#/case/${esc(c.id)}">
+           <b>${esc(c.icon)} ${esc(c.title)}</b>
+           <span>${esc(c.question)}</span></a>`).join('')}</div>`;
+    }
 
     html += `<h3 class="rt-h3">Обладнання з ДІВ у вимогах пакета</h3>
       <ul class="rt-eq">${p.equipment.map((e) => `
@@ -375,7 +710,7 @@
           <div class="rt-eq-name">${esc(e.name)}</div>
           ${e.esoz && e.esoz.length ? `
             <div class="rt-eq-esoz">
-              <div class="rt-eq-esoz-cap">Вносити до Реєстру суб'єктів господарювання за кодом
+              <div class="rt-eq-esoz-cap">Код для Реєстру суб'єктів господарювання
                 (${esc(state.packages.esoz_source.act)}):</div>
               ${e.esoz.map((z) => `<div class="rt-esoz">
                  <code>${esc(z.code)}</code><span>${esc(z.name)}</span></div>`).join('')}
@@ -386,70 +721,63 @@
             <div class="rt-eq-hint">У Переліку за наказом № 697 такого типу немає — код ЕСОЗ не передбачено.</div>`}
         </li>`).join('')}</ul>`;
 
-    if (notes) {
-      html += `<div class="rt-amend"><ul style="margin:0;padding-left:18px">${notes}</ul></div>`;
-    }
-
-    html += `<h3 class="rt-h3">Що з цього випливає: ${p.permits.length} дозвільних блоків</h3>`;
+    html += `<h3 class="rt-h3">Дозвільні блоки</h3>`;
+    // Кожен блок згорнутий: розгорнутими сімома простирадлами сторінку й
+    // ганили. Видно назву й акти; пояснення — під підписом.
     html += p.permits.map((pm) => `
-      <div class="rt-permit">
-        <div class="rt-permit-title">${esc(pm.title)}</div>
+      <details class="rt-permit">
+        <summary>
+          <span class="rt-permit-title">${esc(pm.title)}</span>
+          <span class="rt-permit-count">${pm.docs.length} ${
+            plural(pm.docs.length, 'акт', 'акти', 'актів')}${
+            pm.docs.some((d) => !d.in_force) ? ' · ❗ є нечинний' : ''}</span>
+        </summary>
         <div class="rt-permit-note">${esc(pm.note)}</div>
         <div class="rt-permit-docs">${pm.docs.map((d) => `
-          <button class="rt-permit-doc${d.in_force ? '' : ' dead'}" type="button"
-                  data-act="jump" data-key="${esc(d.key)}">
+          <a class="rt-permit-doc${d.in_force ? '' : ' dead'}" href="#/doc/${esc(d.key)}">
             <span>${esc(d.kind)} № ${esc(d.num)}</span>
             <span>${esc(d.title)}</span>
             ${d.in_force ? '' : '<span class="rt-dead">❗ нечинний</span>'}
-          </button>`).join('')}</div>
-      </div>`).join('');
+          </a>`).join('')}</div>
+      </details>`).join('');
+
+    const notes = p.classes.map((c) => {
+      const info = state.packages.classes.find((x) => x.key === c);
+      return info ? `<li><b>${esc(info.title)}.</b> ${esc(info.note)}</li>` : '';
+    }).join('');
+    if (notes) {
+      html += `<details class="rt-fold"><summary>Чому саме такий набір дозволів</summary>
+        <div class="rt-amend"><ul style="margin:0;padding-left:18px">${notes}</ul></div></details>`;
+    }
 
     $('pkgDetail').innerHTML = html;
-    $('pkgDetail').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  /* ---------------- режими ---------------- */
-
-  function setView(which) {
-    const norms = which === 'norms';
-    $('viewNorms').classList.toggle('is-visible', norms);
-    $('viewPkg').classList.toggle('is-visible', !norms);
-    $('viewNorms').hidden = !norms;
-    $('viewPkg').hidden = norms;
-    $('tabNorms').classList.toggle('is-active', norms);
-    $('tabPkg').classList.toggle('is-active', !norms);
-    $('tabNorms').setAttribute('aria-selected', String(norms));
-    $('tabPkg').setAttribute('aria-selected', String(!norms));
-    // «Пакет → дозвіл» — стартовий режим: експерт приходить із питанням про
-    // пакет, а не з наміром почитати наказ. Тому чистий URL веде саме туди.
-    location.hash = norms ? '#norms' : '';
-  }
-
-  /* ---------------- події ---------------- */
+  /* ================= події ================= */
 
   function wire() {
-    document.addEventListener('click', async (e) => {
+    document.addEventListener('click', (e) => {
       const t = e.target.closest('[data-act]');
       if (!t) return;
       const act = t.dataset.act;
-      if (act === 'open') {
-        if (state.openKey === t.dataset.key) { state.openKey = null; renderTree(); }
-        else await openDoc(t.dataset.key);
-      } else if (act === 'goto') {
-        if (state.openKey !== t.dataset.key) await openDoc(t.dataset.key, t.dataset.id);
-        else gotoNode(t.dataset.id);
-      } else if (act === 'more') {
+      if (act === 'more') {
         state.expanded.add(t.dataset.key);
         renderNodeList(t.dataset.key);
       } else if (act === 'pmgonly') {
         state.pmgOnly = !state.pmgOnly;
-        await openDoc(state.openKey);
-      } else if (act === 'pkg') {
-        openPackage(t.dataset.num);
-      } else if (act === 'jump') {
-        setView('norms');
-        await openDoc(t.dataset.key);
+        openDoc(state.openKey);
+      } else if (act === 'case') {
+        go(`#/case/${t.dataset.id}`);
+      } else if (act === 'retry') {
+        state.docCache.delete(t.dataset.key);
+        openDoc(t.dataset.key, state.route.node);
       }
+    });
+
+    $('backBtn').addEventListener('click', () => {
+      if (history.length > 1) history.back();
+      else go(state.route.view === 'norms' ? '#/norms'
+             : state.route.view === 'pkg' ? '#/pkg' : '#/');
     });
 
     let timer;
@@ -463,49 +791,54 @@
       $('q').value = ''; state.query = ''; $('qClear').hidden = true; renderTree();
     });
 
-    document.querySelectorAll('.rt-chip').forEach((c) => {
+    document.querySelectorAll('.rt-chip[data-chip]').forEach((c) => {
       c.addEventListener('click', () => {
-        document.querySelectorAll('.rt-chip').forEach((x) => x.classList.remove('is-on'));
+        document.querySelectorAll('.rt-chip[data-chip]').forEach((x) => x.classList.remove('is-on'));
         c.classList.add('is-on');
         state.chip = c.dataset.chip;
         renderTree();
       });
     });
 
-    $('tabNorms').addEventListener('click', () => setView('norms'));
-    $('tabPkg').addEventListener('click', () => setView('packages'));
+    $('tabCases').addEventListener('click', () => go('#/'));
+    $('tabPkg').addEventListener('click', () => go('#/pkg'));
+    $('tabNorms').addEventListener('click', () => go('#/norms'));
+
+    window.addEventListener('hashchange', applyRoute);
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === '/' && document.activeElement !== $('q')) { e.preventDefault(); $('q').focus(); }
+      if (e.key === '/' && document.activeElement !== $('q') &&
+          state.route.view === 'norms') { e.preventDefault(); $('q').focus(); }
     });
   }
 
-  /* ---------------- старт ---------------- */
+  /* ================= старт ================= */
 
   async function init() {
     try {
-      const [index, search, packages, pending] = await Promise.all([
+      const [index, search, packages, pending, analytics] = await Promise.all([
         getJSON(`${DATA}index.json`),
         getJSON(`${DATA}search.json`),
         getJSON(`${DATA}packages_div.json`),
-        // Накладка необов'язкова: якщо жодного акта на підході немає, файла
+        // Накладки необов'язкові: якщо жодного акта на підході немає, файла
         // просто не буде, і розділ має працювати як раніше.
         getJSON(`${DATA}pending_amendments.json`).catch(() => null),
+        getJSON(`${DATA}analytics.json`).catch(() => null),
       ]);
       state.index = index;
       state.search = search;
       state.packages = packages;
       state.pending = pending;
+      state.analytics = analytics;
 
       $('statDocs').textContent = index.documents.length;
       $('statNodes').textContent = index.built_nodes.toLocaleString('uk-UA');
       $('statPkg').textContent = packages.packages.length;
-      $('statDead').textContent = index.documents.filter((d) => !d.in_force).length;
+      $('statCases').textContent = analytics ? analytics.cases.length : '—';
+      if (!analytics) $('tabCases').hidden = true;
 
-      renderTree();
-      renderPackages();
       wire();
-      if (location.hash === '#norms') setView('norms');
+      await applyRoute();
     } catch (err) {
       $('tree').innerHTML = `<div class="rt-loading">Не вдалося завантажити дані: ${esc(err.message)}</div>`;
       console.error(err);

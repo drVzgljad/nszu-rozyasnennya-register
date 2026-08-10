@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Рентген та джерела іонізуючого випромінювання</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="rentgen.css?v=20260810b">
+  <link rel="stylesheet" href="rentgen.css?v=20260810c">
   <link rel="stylesheet" href="../auth-v2.css?v=20260806a">
   <script type="module" src="../auth-v2.js?v=20260810b"></script>
 </head>
@@ -34,21 +34,53 @@
         </div>
       </div>
       <h1>Рентген та джерела іонізуючого випромінювання</h1>
-      <p>Дозвільна система для рентгенобладнання: ліцензія ДІЯР, реєстрація ДІВ, санітарний паспорт, медична ліцензія. Повні тексти актів із деревом структури — і зв'язка «пакет ПМГ → яке ДІВ → які дозвільні документи».</p>
+      <p>Починається з питання, а не з переліку наказів: що робити, що це потягне
+        для пакета і де це написано.</p>
     </div>
     <div class="stats" aria-label="Обсяг розділу">
+      <div class="stat"><strong id="statCases">-</strong><span>розборів рішень</span></div>
+      <div class="stat"><strong id="statPkg">-</strong><span>пакетів ПМГ з ДІВ</span></div>
       <div class="stat"><strong id="statDocs">-</strong><span>актів у базі</span></div>
       <div class="stat"><strong id="statNodes">-</strong><span>пунктів і статей</span></div>
-      <div class="stat"><strong id="statPkg">-</strong><span>пакетів ПМГ з ДІВ</span></div>
-      <div class="stat rt-stat-warn"><strong id="statDead">-</strong><span>нечинних актів</span></div>
     </div>
   </header>
 
   <main class="layout rt-layout">
     <div class="rt-tabs" role="tablist" aria-label="Режим перегляду">
-      <button class="rt-tab is-active" id="tabPkg" role="tab" aria-selected="true" type="button">🩻 Пакет → дозвіл</button>
+      <button class="rt-tab is-active" id="tabCases" role="tab" aria-selected="true" type="button">🧭 Рішення</button>
+      <button class="rt-tab" id="tabPkg" role="tab" aria-selected="false" type="button">🩻 Пакет → дозвіл</button>
       <button class="rt-tab" id="tabNorms" role="tab" aria-selected="false" type="button">📖 Норми</button>
     </div>
+
+    <div class="rt-navbar">
+      <button class="rt-back" id="backBtn" type="button" hidden>← Назад</button>
+      <nav class="rt-crumbs" id="crumbs" aria-label="Де я"></nav>
+    </div>
+
+    <!-- ============ РЕЖИМ: РІШЕННЯ ============ -->
+    <section class="rt-view is-visible" id="viewCases">
+      <p class="rt-lead" id="casesLead">Розбір відповідає на питання «чи варто» і «що потягне»:
+        вердикт, порядок дій зі строками, гроші й ризики. Кожен крок веде
+        в текст акта, на якому він стоїть.</p>
+      <div class="rt-cases" id="caseGrid"></div>
+      <section class="rt-casedetail" id="caseDetail" hidden tabindex="-1"></section>
+    </section>
+
+    <!-- ============ РЕЖИМ: ПАКЕТ → ДОЗВІЛ ============ -->
+    <section class="rt-view" id="viewPkg" hidden>
+      <p class="rt-lead">Обладнання з іонізуючим випромінюванням вимагають
+        <strong id="pkgCount">21</strong> із 46 пакетів ПМГ-2026.</p>
+      <div class="rt-body rt-body-pkg">
+        <aside class="rt-pkglist" id="pkgList" aria-label="Пакети"></aside>
+        <section class="rt-pkgdetail" id="pkgDetail" aria-label="Дозвільні документи" tabindex="-1">
+          <div class="rt-empty">
+            <div class="rt-empty-ico" aria-hidden="true">🩻</div>
+            <h2>Оберіть пакет</h2>
+            <p>Для кожного пакета — обладнання-ДІВ, коди ЕСОЗ і повний ланцюжок дозволів.</p>
+          </div>
+        </section>
+      </div>
+    </section>
 
     <!-- ============ РЕЖИМ: НОРМИ ============ -->
     <section class="rt-view" id="viewNorms" hidden>
@@ -56,7 +88,7 @@
         <div class="rt-search">
           <span class="rt-search-ico" aria-hidden="true">🔍</span>
           <input id="q" type="search" autocomplete="off"
-                 placeholder="Пошук за назвами пунктів і статей — напр. «санітарний паспорт», «ліцензія», «дозиметричний»">
+                 placeholder="Пошук за назвами пунктів і статей — напр. «санітарний паспорт», «звільняється»">
           <button class="rt-search-clear" id="qClear" type="button" aria-label="Очистити пошук" hidden>✕</button>
         </div>
         <div class="rt-chips" role="group" aria-label="Відбір">
@@ -74,22 +106,8 @@
           <div class="rt-empty">
             <div class="rt-empty-ico" aria-hidden="true">📖</div>
             <h2>Оберіть акт зліва</h2>
-            <p>Документ відкриється суцільним текстом — так, як він читається, а не нарізкою на фрагменти. Дерево структури підкаже, де що: кожен пункт має підпис, а не самий лише номер.</p>
-          </div>
-        </section>
-      </div>
-    </section>
-
-    <!-- ============ РЕЖИМ: ПАКЕТ → ДОЗВІЛ ============ -->
-    <section class="rt-view is-visible" id="viewPkg">
-      <p class="rt-lead">Обладнання з іонізуючим випромінюванням вимагають <strong id="pkgCount">21</strong> із 46 пакетів ПМГ-2026. Оберіть пакет — побачите, яке саме ДІВ він вимагає і який комплект дозвільних документів із цього випливає.</p>
-      <div class="rt-body rt-body-pkg">
-        <aside class="rt-pkglist" id="pkgList" aria-label="Пакети"></aside>
-        <section class="rt-pkgdetail" id="pkgDetail" aria-label="Дозвільні документи" tabindex="-1">
-          <div class="rt-empty">
-            <div class="rt-empty-ico" aria-hidden="true">🩻</div>
-            <h2>Оберіть пакет</h2>
-            <p>Для кожного пакета показано обладнання-ДІВ і повний ланцюжок дозволів із посиланнями на конкретні акти. Нечинні акти позначено — щоб вони не потрапили у лист.</p>
+            <p>Документ відкриється суцільним текстом. Кожен акт має власну адресу,
+              тож посилання на пункт можна кинути в лист.</p>
           </div>
         </section>
       </div>
@@ -101,12 +119,14 @@
       <div class="footer-copy">
         <div class="footer-agency">НСЗУ</div>
         <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
-        <p>Тексти актів — із zakon.rada.gov.ua, звірено <span id="footerFresh">07.08.2026</span>. Чинність і редакцію вказано за карткою документа; перед посиланням у листі варто перевірити на дату.</p>
+        <p>Тексти актів — із zakon.rada.gov.ua, звірено <span id="footerFresh">10.08.2026</span>.
+          Розбори рішень — експертні: вердикт і строки не є нормою, а посилання під
+          кожним кроком — є. Чинність і редакцію перед листом варто перевірити на дату.</p>
       </div>
     </div>
   </footer>
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
-  <script src="rentgen.js?v=20260810b" defer></script>
+  <script src="rentgen.js?v=20260810c" defer></script>
 </body>
 </html>
