@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>НавігаторПМГ26 | Спеціальності та посади · Додаток 7 і наказ 1065</title>
+  <link rel="stylesheet" href="../styles.css?v=20260808b">
+  <link rel="stylesheet" href="classifiers.css?v=20260809d">
+  <link rel="stylesheet" href="specialnosti.css?v=20260810b">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260806a">
+  <script type="module" src="../auth-v2.js?v=20260810b"></script>
+</head>
+<body id="top">
+  <header class="hero classifiers-hero">
+    <div class="hero-copy">
+      <div class="overline">Додаток 7 до Ліцензійних умов · наказ МОЗ № 1065 ·
+        <a class="xnav" href="posady.html">↔ Характеристики ДКХП-78</a>
+        <a class="xnav" href="../pakety/index.html">↔ Пакети ПМГ-2026</a>
+        <a class="xnav" href="../rentgen/index.html?doc=285-2016">↔ Ліцензійні умови</a></div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів, постанови та правил</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Спеціальності та посади</h1>
+      <p>Дві осі, які вирішують, хто має право працювати в закладі. <b>Спеціальність</b> —
+         те, за чим видається ліцензія на медичну практику (Додаток&nbsp;7 до Ліцензійних
+         умов). <b>Посада</b> — те, що заклад вписує у штатний розпис (Перелік МОЗ).
+         Досі вони жили в різних актах і ніде не перетиналися; з&nbsp;01.09.2026 пункт&nbsp;32
+         Ліцензійних умов зв'язує їх жорстко — посад поза Переліком вводити не можна.</p>
+      <div class="spec-banner" id="specBanner" hidden></div>
+    </div>
+    <div class="stats" id="spStats" aria-label="Статистика розділу"></div>
+  </header>
+
+  <nav class="mobile-tabs" id="mobileTabs" aria-label="Навігація між панелями">
+    <button class="mobile-tab active" data-tab="browser" type="button">Огляд і пошук</button>
+    <button class="mobile-tab" data-tab="reader" type="button">Паспорт</button>
+  </nav>
+
+  <main class="nk-layout" data-active="browser">
+    <section class="nk-browser" aria-label="Пошук спеціальностей і посад">
+      <div class="search-panel nk-search">
+        <div class="spec-toggle" role="tablist" aria-label="Реєстр">
+          <button class="spec-tab active" data-reg="s" role="tab" type="button"
+                  aria-selected="true">Спеціальності <span class="tag" id="cntS"></span></button>
+          <button class="spec-tab" data-reg="p" role="tab" type="button"
+                  aria-selected="false">Посади <span class="tag" id="cntP"></span></button>
+        </div>
+
+        <label class="search">
+          <span>Пошук за назвою</span>
+          <input id="spSearch" type="search"
+                 placeholder="Напр.: кардіологія, ерготерапія, сестра медична, фізичний терапевт…"
+                 autocomplete="off">
+        </label>
+
+        <div class="nk-cascade" aria-label="Фільтри">
+          <div class="casc-field" data-for="s">
+            <label for="selSec">Розділ Додатка 7</label>
+            <select id="selSec"><option value="">— усі розділи —</option></select>
+          </div>
+          <div class="casc-field" data-for="s">
+            <label for="selKind">Вид допомоги</label>
+            <select id="selKind"><option value="">— будь-який —</option></select>
+          </div>
+          <div class="casc-field" data-for="p" hidden>
+            <label for="selPart">Розділ Переліку МОЗ</label>
+            <select id="selPart">
+              <option value="">— увесь Перелік —</option>
+              <option value="base">Розділ 1 · базові посади</option>
+              <option value="profile">Розділ 2 · посади за профілями роботи</option>
+            </select>
+          </div>
+          <div class="casc-field">
+            <label for="selPkg">Пакет ПМГ-2026</label>
+            <select id="selPkg"><option value="">— будь-який —</option></select>
+          </div>
+        </div>
+
+        <div class="nk-filters">
+          <label class="nk-check" data-for="s"><input type="checkbox" id="onlyNoPost">
+            лише без посади в Переліку МОЗ</label>
+          <label class="nk-check" data-for="s"><input type="checkbox" id="onlyCross">
+            лише слабкі зв'язки (посада іншого рівня)</label>
+          <label class="nk-check"><input type="checkbox" id="onlyPkg">
+            лише те, що є кадровою вимогою пакета</label>
+          <label class="nk-check" data-for="p"><input type="checkbox" id="onlyReg" hidden>
+            <span>лише професії з додатковим регулюванням</span></label>
+        </div>
+
+        <div class="results-summary">
+          <span id="spCount">Завантаження…</span>
+          <button id="spClear" type="button">✕ Очистити форму</button>
+        </div>
+
+        <details class="sp-issues" id="spIssues" hidden>
+          <summary>⚠️ Вади джерел</summary>
+          <div id="spIssuesBody"></div>
+        </details>
+      </div>
+
+      <div class="nk-results" id="spResults" hidden></div>
+    </section>
+
+    <article class="nk-reader reader-empty" id="spReader" aria-live="polite">
+      <div class="reader-hint">
+        <div class="reader-hint-ico">🪪</div>
+        <p>Оберіть спеціальність або посаду, щоб побачити паспорт: до якого розділу
+           належить, який вид допомоги дозволяє, яка посада їй відповідає в Переліку
+           МОЗ&nbsp;№&nbsp;1065, якої професійної кваліфікації вимагає і в яких пакетах
+           ПМГ-2026 вона є кадровою вимогою.</p>
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Джерела: Додаток 7 до Ліцензійних умов провадження господарської діяльності
+           з медичної практики (затверджені постановою КМУ від 02.03.2016 № 285) у редакції
+           постанови КМУ від 24.06.2026 № 813 — <b>набирає чинності 01.09.2026</b>;
+           Перелік професій (посад) працівників сфери охорони здоров'я, затверджений наказом
+           МОЗ від 05.07.2025 № 1065 (зареєстровано в Мін'юсті 23.07.2025 за № 1109/44515),
+           редакція від 26.06.2026; блок «Спеціалісти» специфікацій пакетів ПМГ-2026
+           (постанова КМУ від 31.12.2025 № 1808). Зв'язок «спеціальність ↔ посада»
+           обчислено за морфологією назв — офіційного зіставнення між цими двома переліками
+           не існує; рівень збігу показано в кожній картці. Довідковий інструмент; переважну
+           силу має офіційний текст акта.</p>
+      </div>
+    </div>
+  </footer>
+
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <script src="specialnosti.js?v=20260810b" defer></script>
+</body>
+</html>

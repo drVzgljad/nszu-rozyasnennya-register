@@ -18,6 +18,11 @@
     index: null,
     search: null,
     packages: null,
+    // Майбутні зміни: акт опубліковано, але він ще не діє. Текст акта в
+    // корпусі лишається чинною редакцією — накладка лише позначає пункти,
+    // які зміняться, і показує майбутню редакцію поруч. Див.
+    // 17_рентген_НПБ/build_pending.py.
+    pending: null,
     docCache: new Map(),
     openKey: null,
     chip: 'all',
@@ -154,6 +159,73 @@
 
   /* ---------------- читалка ---------------- */
 
+  /* ------------- майбутні зміни (акт опубліковано, ще не діє) ------------- */
+
+  const plural = (n, one, few, many) => {
+    const a = Math.abs(n) % 100, b = a % 10;
+    if (a > 10 && a < 20) return many;
+    if (b > 1 && b < 5) return few;
+    return b === 1 ? one : many;
+  };
+
+  const ACTION_TAG = {
+    replace: 'нова редакція',
+    amend: 'зміна',
+    add: 'доповнення',
+    delete: 'виключається',
+  };
+
+  function pendingFor(key) {
+    const p = state.pending;
+    return p && p.doc === key && p.act.status === 'pending' ? p : null;
+  }
+
+  function pendingBoxHTML(p) {
+    const a = p.act;
+    const c = p.counts;
+    // Три пункти живуть у корпусі всередині сусідніх (rada не виділяє
+    // 9-1, 26-1 і 26-2 окремими вузлами) — про них кажемо окремим рядком,
+    // інакше вони просто зникли б із переліку змін.
+    const orphans = p.changes.filter((x) => !x.node);
+    return `<div class="rt-pending">
+      <div class="rt-pending-cap">⏳ Акт змінюється: ${esc(a.kind || 'постанова КМУ')}
+        № ${esc(a.number)} від ${esc(a.date)}</div>
+      <div class="rt-pending-body">
+        <p>${esc(a.status_note)}</p>
+        <p><b>Набирає чинності ${esc(a.effective_from)}.</b> Опубліковано:
+          ${esc(a.published)}. Зачеплено <b>${c.nodes_touched}</b> ${
+            plural(c.nodes_touched, 'пункт', 'пункти', 'пунктів')}
+          із ${c.nodes_total}: нових редакцій — ${c.by_action.replace || 0},
+          точкових змін — ${c.by_action.amend || 0},
+          доповнень — ${c.by_action.add || 0},
+          виключено — ${c.by_action.delete || 0}.</p>
+        ${orphans.length ? `<p class="rt-pending-orphan">Ще ${orphans.length}
+          зміни стосуються пунктів, які rada не подає окремими вузлами
+          (${esc(orphans.map((o) => o.point).join(', '))}) — їх видно лише
+          в тексті самої постанови.</p>` : ''}
+        <a href="${esc(a.url)}" target="_blank" rel="noopener">Текст постанови
+          № ${esc(a.number)} на zakon.rada ↗</a>
+      </div>
+    </div>`;
+  }
+
+  function changeHTML(ch) {
+    const scope = ch.scope ? `<span class="rt-ch-scope">${esc(ch.scope)}</span>` : '';
+    const now = ch.now
+      ? `<div class="rt-ch-now"><div class="rt-ch-now-cap">Редакція з ${
+          esc(state.pending.act.effective_from)}</div>${
+          esc(ch.now).replace(/\n/g, '<br>')}</div>`
+      : '';
+    const link = ch.link
+      ? `<a class="rt-ch-link" href="${esc(ch.link.href)}">${esc(ch.link.text)} →</a>`
+      : '';
+    return `<div class="rt-change">
+      <div class="rt-ch-head">${esc(ACTION_TAG[ch.action] || ch.action)}${scope}</div>
+      <div class="rt-ch-sum">${esc(ch.summary)}</div>
+      ${now}${link}
+    </div>`;
+  }
+
   async function openDoc(key, scrollToId) {
     state.openKey = key;
     const doc = await getDoc(key);
@@ -196,6 +268,9 @@
       html += `<div class="rt-amend">${esc(m.amendments_raw)}</div>`;
     }
 
+    const pend = pendingFor(key);
+    if (pend) html += pendingBoxHTML(pend);
+
     // Що саме в цьому акті стосується ПМГ. Для актів, де вимогою є весь
     // документ, фільтр не показуємо — інакше він удавав би точність.
     if (doc.pmg_note) {
@@ -219,14 +294,24 @@
     const shown = (state.pmgOnly && part) ? doc.nodes.filter((n) => n.pmg) : doc.nodes;
     // позначку на пункті ставимо лише там, де вона щось розрізняє: коли
     // вимогою є весь акт, 🩻 на кожному пункті — просто шум
-    html += shown.map((n) => `
-      <section class="rt-sec lvl-${n.level}${n.pmg && part ? ' is-pmg' : ''}" id="sec-${esc(n.id)}">
+    const byNode = new Map();
+    if (pend) pend.changes.forEach((c) => c.node && byNode.set(c.node, c));
+
+    html += shown.map((n) => {
+      const ch = byNode.get(n.id);
+      return `
+      <section class="rt-sec lvl-${n.level}${n.pmg && part ? ' is-pmg' : ''}${
+        ch ? ' is-pending pend-' + esc(ch.action) : ''}" id="sec-${esc(n.id)}">
         <div class="rt-sec-head">
           <span class="rt-sec-num">${esc(n.label)}</span>
           <span class="rt-sec-title">${highlight(n.title, state.query)}</span>
+          ${ch ? `<span class="rt-pend-tag">${esc(ACTION_TAG[ch.action] || ch.action)} з ${
+            esc(pend.act.effective_from)}</span>` : ''}
         </div>
         <div class="rt-sec-body">${highlight(n.text, state.query)}</div>
-      </section>`).join('');
+        ${ch ? changeHTML(ch) : ''}
+      </section>`;
+    }).join('');
 
     $('reader').innerHTML = html;
     renderTree();
@@ -399,14 +484,18 @@
 
   async function init() {
     try {
-      const [index, search, packages] = await Promise.all([
+      const [index, search, packages, pending] = await Promise.all([
         getJSON(`${DATA}index.json`),
         getJSON(`${DATA}search.json`),
         getJSON(`${DATA}packages_div.json`),
+        // Накладка необов'язкова: якщо жодного акта на підході немає, файла
+        // просто не буде, і розділ має працювати як раніше.
+        getJSON(`${DATA}pending_amendments.json`).catch(() => null),
       ]);
       state.index = index;
       state.search = search;
       state.packages = packages;
+      state.pending = pending;
 
       $('statDocs').textContent = index.documents.length;
       $('statNodes').textContent = index.built_nodes.toLocaleString('uk-UA');

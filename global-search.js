@@ -12,10 +12,11 @@ const GROUPS = [
   { type: 4, label: 'Класифікатор НК 025', icon: '🩺' },
   { type: 5, label: 'Класифікатор НК 026', icon: '🔬' },
   { type: 6, label: 'Таблиця співставлення', icon: '🔗' },
+  { type: 7, label: 'Спеціальності та посади', icon: '🪪' },
   { type: 0, label: "Роз'яснення НСЗУ", icon: '📄' },
   { type: 3, label: 'Договори ЗОЗ', icon: '🏥' },
 ];
-const GROUP_ORDER = { 1: 0, 2: 1, 6: 2, 4: 3, 5: 4, 0: 5, 3: 6 };
+const GROUP_ORDER = { 1: 0, 2: 1, 6: 2, 4: 3, 5: 4, 7: 5, 0: 6, 3: 7 };
 const PER_GROUP = 7;
 
 function buildUrl(entry, prefix) {
@@ -28,6 +29,10 @@ function buildUrl(entry, prefix) {
     case 4: return `${prefix}classifiers/index.html?code=${encodeURIComponent(link)}`;
     case 5: return `${prefix}classifiers/nk026.html?code=${encodeURIComponent(link)}`;
     case 6: return `${prefix}mapping/index.html?service=${encodeURIComponent(link)}`;
+    // Реєстр у link закодовано першою літерою id: S… — спеціальність
+    // Додатка 7, P… — посада за наказом МОЗ № 1065.
+    case 7: return `${prefix}classifiers/specialnosti.html?reg=${
+      link.startsWith('P') ? 'p' : 's'}&id=${encodeURIComponent(link)}`;
   }
 }
 

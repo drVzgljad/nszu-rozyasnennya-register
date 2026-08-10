@@ -428,7 +428,18 @@
       <div class="reader-head">
         <div class="reader-code">${e.c}</div>
         <div class="reader-level lvl-${e.l}">${LEVEL_LABEL[e.l]}</div>
-        <button class="copy-btn" type="button" data-copy="${escAttr(copyText)}" title="Скопіювати код і назву">⧉ Копіювати</button>
+        <div class="copy-wrap">
+          <button class="copy-btn" type="button" data-copy-menu
+                  aria-haspopup="true" aria-expanded="false">⧉ Копіювати ▾</button>
+          <div class="copy-menu" hidden>
+            <button type="button" data-copy="${escAttr(e.c)}" title="${escAttr(e.c)}">
+              Лише код<em>${esc(e.c)}</em></button>
+            <button type="button" data-copy="${escAttr(e.c + " — " + e.n)}" title="${escAttr(e.c + " — " + e.n)}">
+              Код і назву<em>${esc(e.c)} — ${esc(e.n.slice(0, 40))}${e.n.length > 40 ? "…" : ""}</em></button>
+            <button type="button" data-copy="${escAttr(copyText)}" title="${escAttr(copyText)}">
+              Код, назву і клас<em>…${esc(cls ? "Клас " + ROMAN[cls.no] : "")}</em></button>
+          </div>
+        </div>
       </div>
       <h2 class="reader-name">${esc(e.n)}</h2>
       <div class="reader-crumbs">${crumbs.join('<span class="sep">›</span>')}</div>
@@ -523,11 +534,44 @@
   el.reader.addEventListener("click", (ev) => {
     const goto = ev.target.closest("[data-goto]");
     if (goto) { const c = goto.dataset.goto; openCode(c); syncCascade(c); return; }
+    const toggle = ev.target.closest("[data-copy-menu]");
+    if (toggle) { setCopyMenu(toggle, toggle.getAttribute("aria-expanded") !== "true"); return; }
+
     const cp = ev.target.closest("[data-copy]");
     if (cp) {
       navigator.clipboard && navigator.clipboard.writeText(cp.dataset.copy);
-      cp.textContent = "✓ Скопійовано"; setTimeout(() => (cp.textContent = "⧉ Копіювати"), 1400);
+      // Підтвердження показуємо на КНОПЦІ меню, а не на пункті: пункт зникає
+      // разом із меню, і «✓ Скопійовано» ніхто б не побачив.
+      const wrap = cp.closest(".copy-wrap");
+      const btn = wrap && wrap.querySelector("[data-copy-menu]");
+      if (btn) {
+        setCopyMenu(btn, false);
+        btn.textContent = "✓ Скопійовано";
+        setTimeout(() => (btn.textContent = "⧉ Копіювати ▾"), 1400);
+      }
     }
+  });
+
+  /** Меню «Копіювати»: код окремо, код із назвою, код із назвою та класом. */
+  function setCopyMenu(btn, open) {
+    const menu = btn.parentElement.querySelector(".copy-menu");
+    if (!menu) return;
+    menu.hidden = !open;
+    btn.setAttribute("aria-expanded", String(open));
+  }
+
+  function closeCopyMenus() {
+    el.reader.querySelectorAll("[data-copy-menu]").forEach((b) => setCopyMenu(b, false));
+  }
+
+  // Клік поза меню й Escape закривають його. Слухаємо на документі один раз:
+  // паспорт перемальовується щоразу, тож вішати це в рендері означало б плодити
+  // обробники на кожен відкритий код.
+  document.addEventListener("click", (ev) => {
+    if (!ev.target.closest(".copy-wrap")) closeCopyMenus();
+  });
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape") closeCopyMenus();
   });
 
   // ══════════════════════════════════════════════════════════

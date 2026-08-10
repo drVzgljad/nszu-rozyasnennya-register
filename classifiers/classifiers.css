@@ -215,6 +215,49 @@
   border-radius: 9px; padding: 6px 12px; font-size: .82rem; cursor: pointer;
 }
 .copy-btn:hover { background: var(--accent-soft); }
+
+/* Меню «Копіювати»: код окремо / код із назвою / код із назвою та класом.
+   .copy-wrap перебирає на себе margin-left:auto від кнопки, інакше кнопка
+   штовхала б праворуч себе, а не всю пару. */
+.copy-wrap { position: relative; margin-left: auto; }
+.copy-wrap .copy-btn { margin-left: 0; }
+.copy-menu {
+  position: absolute; right: 0; top: calc(100% + 5px); z-index: 40;
+  min-width: 15rem; max-width: min(24rem, calc(100vw - 32px));
+  display: flex; flex-direction: column;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 11px; box-shadow: var(--shadow-lg, var(--shadow)); overflow: hidden;
+}
+.copy-menu button {
+  display: flex; flex-direction: column; gap: 2px; align-items: flex-start;
+  text-align: left; border: 0; border-bottom: 1px solid var(--line);
+  background: none; color: var(--ink); font-family: inherit; font-size: .84rem;
+  font-weight: 600; padding: 9px 13px; cursor: pointer; width: 100%; min-width: 0;
+}
+/* ОБОВ'ЯЗКОВО: display:flex вище перебиває [hidden] { display: none } з
+   таблиці браузера, тож без цього рядка «закрите» меню лишається в потоці —
+   видиме й таке, що розпирає картку паспорта (міряно: 339 → 437 px на 375 px
+   екрані). Спіймано 09.08.2026 одразу після додавання меню. */
+.copy-menu[hidden] { display: none; }
+.copy-menu button:last-child { border-bottom: 0; }
+.copy-menu button:hover { background: var(--accent-soft); color: var(--accent-dark); }
+.copy-menu em {
+  font-style: normal; font-weight: 400; font-size: .74rem; color: var(--muted);
+  font-family: ui-monospace, monospace; max-width: 100%; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+/* На вузькому екрані меню лишається АБСОЛЮТНИМ і саме тому не шкодить: картка
+   паспорта тут лежить у контейнері, ширина якого рахується за вмістом, і блок
+   у потоці розпирав її вмістом меню з 339 до 437 px на 375 px екрані. Елемент
+   поза потоком у цей розрахунок не входить. Ширину обмежуємо від ВІКНА, а не
+   від контейнера, інакше повертається той самий цикл «вміст → ширина». */
+@media (max-width: 640px) {
+  .copy-wrap { margin-left: 0; }
+  .copy-menu {
+    left: 0; right: auto;
+    width: max-content; min-width: 0; max-width: calc(100vw - 96px);
+  }
+}
 .reader-name { font-size: 1.28rem; line-height: 1.35; margin: 14px 0 10px; color: var(--ink); }
 
 .reader-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 4px; margin-bottom: 4px; }

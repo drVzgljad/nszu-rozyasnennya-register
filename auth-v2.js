@@ -120,7 +120,7 @@ async function openGlobalSearch() {
   try {
     if (!globalSearchModule) {
       // Шлях відносно МОДУЛЯ auth-v2.js (обидва лежать у корені), а не сторінки
-      globalSearchModule = await import('./global-search.js?v=20260725d');
+      globalSearchModule = await import('./global-search.js?v=20260810b');
     }
     globalSearchModule.open(getPathPrefix());
   } catch (err) {
@@ -472,7 +472,9 @@ function applyAccess() {
         text: '👥 Посади', items: [
           { text: 'Характеристики ДКХП-78', path: 'classifiers/posady.html' },
           { text: 'Коди посад НСЗУ', path: 'classifiers/posady.html?view=codes' },
-          { text: 'Кадрові вимоги пакетів', path: 'classifiers/posady.html?view=pkg' }
+          { text: 'Кадрові вимоги пакетів', path: 'classifiers/posady.html?view=pkg' },
+          { text: 'Спеціальності · Додаток 7', path: 'classifiers/specialnosti.html' },
+          { text: 'Перелік посад МОЗ № 1065', path: 'classifiers/specialnosti.html?reg=p' }
         ]
       },
       { text: '🔗 Таблиця співставлення', path: 'mapping/index.html' },
@@ -2610,7 +2612,7 @@ if ('serviceWorker' in navigator &&
   // неї браузер до десяти хвилин не помічає, що воркер змінився, і продовжує
   // роздавати старі файли з кешу. Змінений URL змушує перевірити одразу.
   // ПРИ ЗМІНІ sw.js ПІДНІМАТИ ЦЮ ВЕРСІЮ РАЗОМ З CACHE усередині воркера.
-  navigator.serviceWorker.register('/sw.js?v=23').catch(() => {});
+  navigator.serviceWorker.register('/sw.js?v=24').catch(() => {});
 
   // Перезавантаження на controllerchange прибрано 30.07.2026 разом зі
   // skipWaiting() у воркері (див. коментар у sw.js). Новий воркер більше не

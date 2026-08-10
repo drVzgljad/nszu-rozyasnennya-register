@@ -1,0 +1,124 @@
+/* ============================================================
+   Спеціальності та посади — власні елементи розділу.
+   Каркас (.nk-layout, .rrow, .reader-block, .chip-list) — classifiers.css.
+   Кольори беремо тільки з ролей auth-v2.css: розділ живе і в темній темі.
+   ============================================================ */
+
+/* Смуга «ще не чинне». Додаток 7 у редакції ПКМУ № 813 набирає чинності
+   01.09.2026 — до того дня розділ показує майбутню редакцію, і це має бути
+   видно з першого погляду, а не в підвалі. */
+.spec-banner {
+  margin-top: 14px; padding: 10px 14px; border-radius: 12px;
+  background: var(--warning-bg); color: var(--warning-text);
+  border: 1px solid var(--warning-border, transparent);
+  font-size: .86rem; line-height: 1.45; max-width: 70ch;
+}
+.spec-banner b { font-weight: 800; }
+
+/* Перемикач реєстрів */
+.spec-toggle { display: flex; gap: 6px; margin-bottom: 12px; }
+.spec-tab {
+  flex: 1 1 0; padding: 9px 10px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--soft); color: var(--muted);
+  font: inherit; font-size: .87rem; font-weight: 700; line-height: 1.2;
+}
+.spec-tab:hover { background: var(--accent-soft); color: var(--accent-dark); }
+.spec-tab.active {
+  background: var(--accent-fill); color: #fff; border-color: transparent;
+}
+.spec-tab .tag { display: block; font-size: .7rem; font-weight: 600; opacity: .8; }
+
+/* Позначки рівня збігу. Колір несе довіру, а не настрій. */
+.sp-tag {
+  flex: 0 0 auto; align-self: center; white-space: nowrap;
+  font-size: .68rem; font-weight: 800; letter-spacing: .02em;
+  border-radius: 20px; padding: 2px 9px;
+}
+.sp-tag.m-exact,
+.sp-tag.m-manual { background: var(--teal); color: #fff; }
+.sp-tag.m-root { background: var(--accent-soft); color: var(--accent-dark); }
+.sp-tag.m-morph { background: var(--warm); color: var(--teal-dark); }
+.sp-tag.m-none { background: var(--soft); color: var(--muted); }
+.sp-tag.cross { background: var(--warning-bg); color: var(--warning-text); }
+.sp-tag.reg { background: var(--accent-soft); color: var(--accent-dark); }
+
+/* Види допомоги — рядок чіпів у списку і в картці */
+.sp-kinds { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 3px; }
+.sp-kind {
+  font-size: .69rem; font-weight: 700; border-radius: 6px; padding: 1px 7px;
+  background: var(--soft); color: var(--muted);
+}
+.sp-kind.k-первинна { background: var(--teal); color: #fff; }
+.sp-kind.k-екстрена { background: var(--accent-fill); color: #fff; }
+.sp-kind.k-спеціалізована { background: var(--accent-soft); color: var(--accent-dark); }
+.sp-kind.k-паліативна { background: var(--warm); color: var(--teal-dark); }
+.sp-kind.k-реабілітаційна { background: var(--warning-bg); color: var(--warning-text); }
+
+/* Паспорт */
+.sp-title { font-size: 1.22rem; font-weight: 800; line-height: 1.25; margin: 0 0 4px; }
+.sp-sub { font-size: .82rem; color: var(--muted); margin: 0 0 2px; }
+.sp-path { font-size: .78rem; color: var(--muted); line-height: 1.5; }
+
+.sp-links { display: grid; gap: 8px; }
+.sp-link {
+  display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px;
+  background: var(--soft); border: 1px solid var(--line); border-radius: 10px;
+  padding: 9px 12px; font-size: .87rem; line-height: 1.4;
+  color: var(--ink); text-decoration: none; cursor: pointer; width: 100%;
+  text-align: left; font-family: inherit;
+}
+.sp-link:hover { background: var(--accent-soft); border-color: var(--accent); }
+.sp-link .sp-linkname { font-weight: 650; }
+.sp-link .sp-linkpath { display: block; font-size: .72rem; color: var(--muted); margin-top: 2px; }
+
+.sp-qual {
+  background: var(--soft); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0;
+  padding: 9px 13px; font-size: .88rem; line-height: 1.5;
+}
+
+/* Кадрові вимоги пакетів */
+.sp-pkglist { display: grid; gap: 9px; }
+.sp-pkgrow {
+  background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px;
+}
+.sp-pkgn {
+  display: inline-block; min-width: 2.2em; text-align: center; margin-right: 8px;
+  background: var(--accent-fill); color: #fff; border-radius: 6px;
+  font-size: .74rem; font-weight: 800; padding: 1px 6px;
+}
+.sp-pkgtitle { font-size: .84rem; font-weight: 700; }
+.sp-pkgline { font-size: .82rem; line-height: 1.5; color: var(--muted); margin-top: 5px; }
+
+/* Порожні стани — окремим тоном, щоб «немає» не читалося як «не завантажилось» */
+.sp-empty {
+  background: var(--warning-bg); color: var(--warning-text);
+  border-radius: 10px; padding: 10px 13px; font-size: .85rem; line-height: 1.5;
+}
+
+/* Вади джерел. Розділ не підключає posady.css, тож блок стилюємо в себе —
+   інакше він поїхав би тільки тому, що чужий файл поруч не завантажили. */
+.sp-issues {
+  margin-top: 12px; border: 1px solid var(--line); border-radius: 11px;
+  background: var(--soft); padding: 8px 12px;
+}
+.sp-issues > summary {
+  cursor: pointer; font-size: .85rem; font-weight: 700; color: var(--teal-dark);
+  list-style: none;
+}
+.sp-issues > summary::-webkit-details-marker { display: none; }
+
+/* Обрізання довгого списку результатів. Клас той самий, що в «Обладнанні»,
+   але той CSS сюди не підключений. */
+.eq-more {
+  margin: 8px 6px; font-size: .8rem; color: var(--muted); line-height: 1.5;
+}
+
+#spIssuesBody { font-size: .83rem; line-height: 1.5; }
+#spIssuesBody h4 { margin: 10px 0 4px; font-size: .84rem; }
+#spIssuesBody ul { margin: 0 0 8px; padding-left: 20px; }
+#spIssuesBody li { margin-bottom: 3px; color: var(--muted); }
+
+@media (max-width: 720px) {
+  .spec-toggle { position: sticky; top: 0; z-index: 2; }
+  .sp-link { grid-template-columns: 1fr; }
+}
