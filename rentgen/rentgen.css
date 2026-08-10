@@ -213,6 +213,13 @@
   background: var(--soft); border-radius: 8px; padding: 12px 16px;
   font-size: 12.5px; color: var(--muted); line-height: 1.55; margin-bottom: 20px;
 }
+/* Пояснення походження тексту: акт не з rada або зі свідомо проставленим
+   статусом. Не тривога — довідка, тому тон спокійніший за .rt-alert. */
+.rt-source {
+  border-left: 3px solid var(--border);
+  background: var(--soft); border-radius: 8px; padding: 11px 15px;
+  font-size: 12.5px; color: var(--muted); line-height: 1.55; margin: 14px 0 20px;
+}
 
 .rt-preamble { font-size: 14px; line-height: 1.65; color: var(--muted); margin-bottom: 24px; }
 

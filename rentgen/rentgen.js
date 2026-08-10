@@ -168,13 +168,29 @@
         ${m.revision ? `<span>Редакція: <b>${esc(m.revision)}</b></span>` : ''}
         ${m.revision_basis ? `<span>Підстава: <b>${esc(m.revision_basis)}</b></span>` : ''}
         ${m.amendments_count ? `<span>Змін: <b>${esc(m.amendments_count)}</b></span>` : ''}
-        <a href="${esc(m.url)}" target="_blank" rel="noopener">Перевірити на zakon.rada ↗</a>
+        ${m.pages ? `<span>Сторінок: <b>${esc(m.pages)}</b></span>` : ''}
+        ${m.source === 'dec.gov.ua'
+          ? `<a href="${esc(m.url)}" target="_blank" rel="noopener">Оригінал PDF на dec.gov.ua ↗</a>`
+          : `<a href="${esc(m.url)}" target="_blank" rel="noopener">Перевірити на zakon.rada ↗</a>`}
       </div>
     </div>`;
 
     if (dead && m.repeal_note) {
       html += `<div class="rt-alert"><b>Акт нечинний — не посилатися в листі.</b><br>
         ${esc(m.repeal_note)}</div>`;
+    }
+    // Чому цього акта немає на rada: стандарти медичної допомоги та клінічні
+    // настанови в Мін'юсті не реєструються, тож єдине державне джерело — ДЕЦ.
+    if (m.source === 'dec.gov.ua') {
+      html += `<div class="rt-source">Стандарти медичної допомоги та клінічні настанови
+        МОЗ у Мін'юсті не реєструються — на zakon.rada їх немає. Джерело тексту —
+        Державний експертний центр МОЗ (dec.gov.ua), Реєстр медико-технологічних
+        документів. Чинність звіряти на картці МТД у ДЕЦ.</div>`;
+    }
+    if (!dead && m.status_curated) {
+      html += `<div class="rt-source">Чинність цього акта rada не відстежує (секція
+        «/rada/», відомчий наказ без реєстрації в Мін'юсті). Статус проставлено вручну
+        за результатом звірки — див. примітку в реєстрі корпусу.</div>`;
     }
     if (m.amendments_raw) {
       html += `<div class="rt-amend">${esc(m.amendments_raw)}</div>`;
