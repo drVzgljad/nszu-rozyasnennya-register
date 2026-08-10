@@ -1,12 +1,12 @@
 {
- "generated": "2026-08-05",
+ "generated": "2026-08-09",
  "source": "Таблиця_співставлення_2026_03__ (1).docx",
  "title": "Таблиця співставлення медичних послуг з кодами НК 025:2021 та/або НК 026:2021",
  "counters": {
   "services": 639,
-  "services_with_code": 408,
-  "drg": 500,
-  "drg_with_coeff": 464,
+  "services_with_code": 389,
+  "drg": 462,
+  "drg_with_coeff": 443,
   "packages": 36,
   "odk": 27,
   "odk_codes": 16011,
@@ -16,7 +16,9 @@
   "loinc_codes": 10,
   "with_note": 26,
   "with_conditions": 79,
-  "ranges_expanded": 26
+  "ranges_expanded": 26,
+  "icd_span_rows": 19,
+  "cross_regime": 0
  },
  "packages": {
   "3": "ХІРУРГІЧНІ ОПЕРАЦІЇ ДОРОСЛИМ ТА ДІТЯМ У СТАЦІОНАРНИХ УМОВАХ",
@@ -61,5 +63,6 @@
   "except": "за винятком / крім — коди виключаються",
   "absent": "за відсутності — умова діє, якщо коду немає",
   "or": "або — альтернативні набори кодів"
- }
+ },
+ "crossRegime": []
 }
