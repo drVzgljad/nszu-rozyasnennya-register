@@ -46,6 +46,8 @@ from pathlib import Path
 
 import fitz  # PyMuPDF
 
+import pkg_staff  # спільний розбір блоку «Спеціалісти» специфікацій пакетів
+
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 BASE = Path(__file__).resolve().parent
@@ -399,96 +401,42 @@ def parse_codes(pdf):
 
 # ───────────────────── кадрові вимоги пакетів ПМГ-2026 ───────────────────────
 
-MARKER = re.compile(r"^\s*(?:\d+\.|[a-zа-я]\.)\s*", re.I)
-
-
 def parse_packages(path):
-    if not path.exists():
-        log("! packages_2026.json не знайдено — блок пакетів пропущено")
+    """Кадрові вимоги пакетів → зіставлення з ДКХП.
+
+    Витяг і нормалізацію тексту робить спільний модуль pkg_staff: той самий
+    блок читає ще й build_specialnosti.py, і поки парсерів було два, вони
+    давали різні числа на одному джерелі. Тут лишається тільки те, що
+    справді своє, — прив'язка назв до характеристик Довідника.
+    """
+    reqs = pkg_staff.load_requirements(path)
+    if not reqs:
+        log("! packages_2026.json не знайдено або без блоку «Спеціалісти»")
         return {}, [], []
-    d = json.loads(path.read_text(encoding="utf-8"))
+
     hits = defaultdict(list)
-    raw = []
-    heads = []
-    for pkg in d.get("packages", []):
-        for unit in pkg.get("units", []):
-            for sec in unit.get("sections", []):
-                if sec.get("key") != "specialists":
-                    continue
-                scope = ""
-                for it in sec.get("items", []):
-                    txt = (it.get("text") or "").strip()
-                    if not txt:
-                        continue
-                    body = MARKER.sub("", txt).strip()
-                    # «1. За місцем надання медичних послуг (критичні*):» — це
-                    # заголовок групи, він задає контекст наступним підпунктам.
-                    if body.endswith(":"):
-                        scope = body.rstrip(":").strip()
-                        continue
-                    m = split_requirement(body)
-                    if not m:
-                        continue
-                    name, cond = m
-                    raw.append(name)
-                    parts = split_names(name)
-                    # Голова вимоги — дослівний шматок тексту пункту до тире.
-                    # Її віддаємо на фронт як якір: сторінка шукає її через
-                    # indexOf і лінкує назви ЛИШЕ всередині неї, тож парсер
-                    # вимоги не доводиться писати вдруге на JS.
-                    heads.append({"pkg": pkg.get("number"), "h": name, "p": parts})
-                    for part in parts:
-                        hits[canon(part)].append({
-                            "pkg": pkg.get("number"),
-                            "title": pkg.get("title"),
-                            "name": part,
-                            "scope": scope,
-                            "cond": cond,
-                            "critical": "критичн" in (scope + " " + cond).lower(),
-                        })
+    raw, heads = [], []
+    for r in reqs:
+        raw.append(r["head"])
+        # Голова вимоги — дослівний шматок тексту пункту до тире. Її віддаємо
+        # на фронт як якір: сторінка шукає її через indexOf і лінкує назви
+        # ЛИШЕ всередині неї, тож парсер вимоги не пишеться вдруге на JS.
+        heads.append({"pkg": r["package"], "h": r["head"], "p": r["alts"]})
+        for part in r["alts"]:
+            hits[canon(part)].append({
+                "pkg": r["package"],
+                "title": r["title"],
+                "name": part,
+                "scope": r["scope"],
+                "cond": r["cond"],
+                "critical": r["critical"],
+                # Скільки посад стоїть у вимозі через «та/або». >1 — посада
+                # лише альтернатива в переліку, і картка мусить казати це
+                # прямо, а не видавати умову за персональну.
+                "alts": len(r["alts"]),
+            })
     log(f"Пакети: {len(raw)} згадок спеціалістів, {len(hits)} унікальних посад")
     return hits, raw, heads
-
-
-def split_requirement(body):
-    """Ділить «Посада – вимога» по першому тире ПОЗА дужками.
-
-    «Лікар з надання ПМД (лікар загальної практики – сімейний лікар) – …»:
-    наївний нежадібний пошук зупиняється на тире всередині дужок і обрізає
-    назву посади посередині.
-    """
-    depth = 0
-    for i, ch in enumerate(body):
-        if ch == "(":
-            depth += 1
-        elif ch == ")":
-            depth = max(0, depth - 1)
-        elif depth == 0 and (ch in "–—" or (ch == "-" and 0 < i < len(body) - 1
-                                            and body[i - 1] == " "
-                                            and body[i + 1] == " ")):
-            name, cond = body[:i].strip(), body[i + 1:].strip()
-            if 3 <= len(name) <= 160 and cond:
-                return name, cond
-            return None
-    return None
-
-
-def split_names(name):
-    """«Лікар-анестезіолог та/або лікар-анестезіолог дитячий» — це дві посади.
-
-    Ділимо ЛИШЕ по «та/або», «і/або», «або» — голе «та» всередині назви
-    сполучає її частини: «Лікар фізичної та реабілітаційної медицини»,
-    «Терапевт мови і мовлення».
-    """
-    parts = re.split(r"\s*,?\s+(?:та\s*/\s*або|і\s*/\s*або|та\s+або|або)\s+", name)
-    out = []
-    for p in parts:
-        p = p.strip(" .;,")
-        # «клінічний психолог (психолог)» — уточнення в кінці не є частиною назви
-        p = re.sub(r"\s*\([^)]*\)\s*$", "", p).strip()
-        if len(p) > 3:
-            out.append(p)
-    return out or [name]
 
 
 def build_pkg_links(heads, id_of_key, name_of_id):

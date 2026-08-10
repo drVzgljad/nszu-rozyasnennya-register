@@ -59,6 +59,8 @@ from collections import Counter, defaultdict
 from datetime import date
 from pathlib import Path
 
+import pkg_staff  # спільний розбір блоку «Спеціалісти» специфікацій пакетів
+
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 BASE = Path(__file__).resolve().parent
@@ -488,109 +490,87 @@ def build_bridge(specs, posts):
 
 
 # ── джерело 3: кадрові вимоги пакетів ───────────────────────────────────
-def load_package_staff():
-    """Витягує блок «Спеціалісти» зі специфікацій пакетів ПМГ-2026."""
-    data = json.loads(PKG_JSON.read_text(encoding="utf-8"))
-    out = []
-    for pk in data.get("packages", []):
-        lines = []
-        # Блок «Спеціалісти» лежить не в самому пакеті, а в його одиницях:
-        # packages[].units[].sections[key == "specialists"].items[].text
-        for unit in pk.get("units") or []:
-            for sec in unit.get("sections") or []:
-                if sec.get("key") != "specialists":
-                    continue
-                for it in sec.get("items") or []:
-                    txt = clean(it.get("text") or "")
-                    if len(txt) > 2 and txt not in lines:
-                        lines.append(txt)
-        if lines:
-            out.append({"package": str(pk.get("number")),
-                        "name": pk.get("title") or "", "lines": lines})
-    return out
-
-
-# Рядки блоку «Спеціалісти», які взагалі не називають посаду: заголовки
-# розділів вимоги, організаційні умови, виноски, обірвані хвости речень.
-NOT_A_REQUIREMENT = re.compile(
-    r"^(у зоз|у надавача|за місцем надання|у відділен|у палаті|у структурному|"
-    r"додаткові вимоги|інші вимоги|критичні|примітк|послуга|сервіс|"
-    r"щонайменше|за потреби|у разі|для закладів|відповідність|допоміжн|\*)", re.I)
-# Нумерація на початку рядка: «2.1.», «a.», «b)». Крапка або дужка тут
-# обов'язкова — інакше шаблон з'їдає перше слово заголовка «У ЗОЗ (критичні*)»
-# і рядок перестає впізнаватися як заголовок.
-ENUM = re.compile(r"^(?:\d+(?:\.\d+)*\.|[a-zа-яіїєґ][.)])\s*", re.I)
-# Вимога перелічує взаємозамінні посади: «X та/або Y, та/або Z».
-ALTS = re.compile(r"\s*(?:,?\s*та/або|,?\s*і/або|,\s*або|\s+або\s+|,)\s*", re.I)
-
 # Написання у специфікаціях пакетів, які основами не беруться: посада стоїть
 # у родовому відмінку або Перелік називає її складеним іменем.
 PKG_ALIAS = [
     (re.compile(r"сестри медичної\s*/\s*брата медичного", re.I),
      "Сестра медична (брат медичний)"),
+    # У специфікаціях первинки посада зветься за видом допомоги, а не за
+    # назвою з Переліку. Той самий аліас є і в build_posady.py.
+    (re.compile(r"^лікар з надання ПМД", re.I),
+     "Лікар загальної практики — сімейний лікар"),
     (re.compile(r"^трансплант-координатор$", re.I),
      "Трансплант-координатор, трансплант-координатор патолого-анатомічного "
      "бюро (бюро судово-медичної експертизи)"),
 ]
 
 
-def match_package_staff(staff, posts):
-    """Для кожного рядка кадрової вимоги шукає посади з наказу 1065.
+def match_package_staff(reqs, posts):
+    """Для кожної кадрової вимоги шукає посади з наказу 1065.
+
+    Витяг і нормалізацію вимоги робить спільний модуль pkg_staff — тут лише
+    зіставлення з Переліком. Кожна альтернатива з «та/або» зіставляється
+    окремо: інакше довгий ланцюг дає одну випадкову довгу назву (рядок про
+    акушера-гінеколога чіплявся за «Лікар-хірург щелепно-лицевий»).
 
     Після п. 32 Ліцензійних умов у редакції ПКМУ № 813 вимога, яка називає
     посаду поза Переліком МОЗ, стає непридатною до виконання: таку посаду
-    заклад ввести не має права. Тому рядки без збігу — не шум, а те, заради
-    чого ця звірка робиться."""
+    заклад ввести не має права. Тому альтернативи без збігу — не шум, а те,
+    заради чого ця звірка робиться.
+    """
     post_stems = [(p, stems(p["name"])) for p in posts]
-    hits_total = 0
-    for pk in staff:
-        matched, unmatched = [], []
-        for line in pk["lines"]:
-            body = ENUM.sub("", line).strip()
-            if NOT_A_REQUIREMENT.match(body) or len(body) < 8:
+    by_pkg, hits_total = {}, 0
+
+    for r in reqs:
+        slot = by_pkg.setdefault(r["package"], {
+            "package": r["package"], "name": r["title"],
+            "matched": [], "unmatched": []})
+        ids, found_any, orphan_alts = [], [], []
+        full = r.get("alts_full") or r["alts"]
+        for i, alt in enumerate(r["alts"]):
+            als = stems(alt)
+            cands = [p for p, ps in post_stems if ps and ps <= als]
+            if not cands and i < len(full) and full[i] != alt:
+                # Розбір зрізає хвостове уточнення в дужках, а там буває друга
+                # половина парної назви: «Сестра медична (брат медичний)» стає
+                # «Сестра медична», і посада з Переліку вже не вкладається.
+                # Пробуємо ТУ САМУ альтернативу з дужками — не всю вимогу,
+                # інакше будь-яка посада знайдеться десь у сусідній частині
+                # ланцюга «та/або» і сироти зникнуть як клас.
+                cands = [p for p, ps in post_stems if ps and ps <= stems(full[i])]
+            if not cands:
+                for rx, target in PKG_ALIAS:
+                    if rx.search(alt):
+                        cands = [p for p in posts if fold(p["name"]) == fold(target)]
+                        break
+            if not cands:
+                orphan_alts.append(alt)
                 continue
-            # Голова рядка — до тире перед кількістю: далі йдуть «щонайменше
-            # N осіб» і умови зайнятості, які додають чужих основ.
-            # Тире розділяє посаду і кількість тільки тоді, коли далі йде
-            # «щонайменше» або число. Без цієї умови «Лікар - анестезіолог»
-            # (пробіли навколо дефіса — так у специфікації пакета 63) ріжеться
-            # навпіл і від вимоги лишається саме слово «Лікар».
-            head = re.split(r"\s[–—-]\s*(?=щонайменше|\d)|\bщонайменше\b|\(за умови",
-                            body, maxsplit=1)[0]
-            # Вимога зазвичай перелічує взаємозамінні посади — кожну треба
-            # зіставляти окремо. Інакше довгий ланцюг «та/або» дає одну
-            # випадкову довгу назву: рядок про акушера-гінеколога чіплявся
-            # за «Лікар-хірург щелепно-лицевий».
-            ids, found_any = [], []
-            for alt in ALTS.split(head):
-                alt = alt.strip()
-                if len(alt) < 5:
-                    continue
-                als = stems(alt)
-                cands = [p for p, ps in post_stems if ps and ps <= als]
-                if not cands:
-                    for rx, target in PKG_ALIAS:
-                        if rx.search(alt):
-                            cands = [p for p in posts if fold(p["name"]) == fold(target)]
-                            break
-                if not cands:
-                    continue
-                cands.sort(key=lambda p: -len(stems(p["name"])))
-                best = len(stems(cands[0]["name"]))
-                for p in cands:
-                    if len(stems(p["name"])) == best and p["id"] not in ids:
-                        ids.append(p["id"])
-                        found_any.append(p)
-            if ids:
-                matched.append({"line": line, "posts": ids})
-                hits_total += 1
-                for p in found_any:
-                    p.setdefault("packages", []).append(pk["package"])
-            else:
-                unmatched.append(line)
-        pk["matched"] = matched
-        pk["unmatched"] = unmatched
-    return hits_total
+            cands.sort(key=lambda p: -len(stems(p["name"])))
+            best = len(stems(cands[0]["name"]))
+            for p in cands:
+                if len(stems(p["name"])) == best and p["id"] not in ids:
+                    ids.append(p["id"])
+                    found_any.append(p)
+        if ids:
+            slot["matched"].append({
+                "line": r["raw"], "head": r["head"], "cond": r["cond"],
+                "scope": r["scope"], "critical": r["critical"],
+                "posts": ids,
+                # Альтернативи, яких у Переліку немає: вимогу ще можна
+                # виконати через сусідню, але вибір у закладу вужчий.
+                "orphans": orphan_alts,
+            })
+            hits_total += 1
+            for p in found_any:
+                p.setdefault("packages", []).append(r["package"])
+        else:
+            slot["unmatched"].append(r["raw"])
+
+    order = {}
+    for i, r in enumerate(reqs):
+        order.setdefault(r["package"], i)
+    return sorted(by_pkg.values(), key=lambda s: order[s["package"]]), hits_total
 
 
 def main():
@@ -605,8 +585,8 @@ def main():
     stats = build_bridge(specs, posts)
     print("Місток спеціальність → посада:", dict(stats))
 
-    staff = load_package_staff()
-    hits = match_package_staff(staff, posts)
+    reqs = pkg_staff.load_requirements(PKG_JSON)
+    staff, hits = match_package_staff(reqs, posts)
     n_lines = sum(len(p["matched"]) + len(p["unmatched"]) for p in staff)
     print(f"Пакетів із блоком «Спеціалісти»: {len(staff)}; "
           f"вимог розібрано {n_lines}, зійшлося з наказом 1065 — {hits}, "
@@ -663,6 +643,25 @@ def main():
                      "ввести не має права",
             "items": rest,
         })
+    # Найважливіше для планування: посади, які вимога пропонує як варіант, а
+    # Перелік МОЗ їх не знає. Вимогу ще можна виконати через сусідню
+    # альтернативу, але з 01.09.2026 цей вибір у закладу зникає.
+    orphans = {}
+    for pk in staff:
+        for m in pk["matched"]:
+            for o in m.get("orphans", []):
+                orphans.setdefault(o.lower(), set()).add(pk["package"])
+    if orphans:
+        defects.append({
+            "source": "специфікації пакетів ПМГ-2026 ↔ Перелік МОЗ № 1065",
+            "issue": "вимога пропонує посаду, якої в Переліку МОЗ немає. Вимога "
+                     "лишається виконуваною через інші варіанти того самого "
+                     "переліку «та/або», але саме цю посаду з 01.09.2026 ввести "
+                     "не можна — набір альтернатив у закладу звужується",
+            "items": [f"{name} — пакети " +
+                      ", ".join(sorted(p, key=lambda x: int(x) if x.isdigit() else 999))
+                      for name, p in sorted(orphans.items(), key=lambda x: -len(x[1]))],
+        })
     if dups:
         defects.append({
             "source": "Додаток 7 (ПКМУ № 813)",
@@ -711,6 +710,8 @@ def main():
             "staff_lines": n_lines,
             "staff_matched": hits,
             "staff_unmatched": n_lines - hits,
+            "staff_orphan_names": len(orphans),
+            "staff_orphan_packages": len({p for ps in orphans.values() for p in ps}),
             "sections": dict(sec_counts),
         },
         "match_levels": MATCH_LEVELS,

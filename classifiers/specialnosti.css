@@ -89,6 +89,14 @@
 .sp-pkgtitle { font-size: .84rem; font-weight: 700; }
 .sp-pkgline { font-size: .82rem; line-height: 1.5; color: var(--muted); margin-top: 5px; }
 
+/* Посада, яку вимога пропонує, а Перелік МОЗ не знає. Вимога виконувана через
+   сусідній варіант, тому тон попереджувальний, а не тривожний. */
+.sp-orphan {
+  margin-top: 6px; padding: 7px 10px; border-radius: 8px;
+  background: var(--warning-bg); color: var(--warning-text);
+  font-size: .78rem; line-height: 1.45;
+}
+
 /* Порожні стани — окремим тоном, щоб «немає» не читалося як «не завантажилось» */
 .sp-empty {
   background: var(--warning-bg); color: var(--warning-text);

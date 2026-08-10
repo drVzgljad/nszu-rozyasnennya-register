@@ -134,8 +134,9 @@
       [c.packages_with_staff,
        plural(c.packages_with_staff, "пакет", "пакети", "пакетів") +
        " із кадровими вимогами"],
-      [c.staff_unmatched,
-       plural(c.staff_unmatched, "вимога", "вимоги", "вимог") + " поза Переліком МОЗ"],
+      [c.staff_orphan_names,
+       plural(c.staff_orphan_names, "посада", "посади", "посад") +
+       " з вимог пакетів поза Переліком"],
     ].map(([n, l]) =>
       `<div class="stat"><strong>${nf(n)}</strong><span>${esc(l)}</span></div>`).join("");
     el.cntS.textContent = nf(c.specialties);
@@ -461,7 +462,13 @@
           const card = CARDS[openedId] || {};
           return pid === openedId || (card.posts || []).includes(pid);
         }))
-        .map((m) => `<div class="sp-pkgline">${esc(m.line)}</div>`).join("");
+        .map((m) => `<div class="sp-pkgline">${
+          m.critical ? '<span class="sp-tag cross">критична</span> ' : ""}${esc(m.line)}${
+          (m.orphans || []).length
+            ? `<div class="sp-orphan">У цій вимозі поза Переліком МОЗ: ${
+                esc(m.orphans.join(", "))}. З 01.09.2026 таку посаду ввести не можна —
+                виконувати доведеться через інший варіант переліку.</div>`
+            : ""}</div>`).join("");
       return `<div class="sp-pkgrow">
           <a href="../pakety/index.html?package=${esc(n)}" class="sp-pkgtitle">
             <span class="sp-pkgn">${esc(n)}</span>${esc(p.name)}</a>
