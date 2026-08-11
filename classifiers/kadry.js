@@ -58,9 +58,12 @@
           setAnchor({ kind: "pkg", id: sel.value });
         }
       })
-      .catch(() => {
+      .catch((e) => {
+        // Помилку видно в консолі: інакше будь-яка похибка в малюванні
+        // виглядає як «не завантажилися дані», хоча дані вже тут.
+        console.error("Кадровий ланцюжок:", e);
         $("#kdFigure").innerHTML =
-          '<p class="kd-error">Не вдалося завантажити граф кадрових сутностей.</p>';
+          '<p class="kd-error">Не вдалося побудувати ланцюжок. Подробиці — у консолі.</p>';
       });
   }
 
@@ -256,9 +259,20 @@
   }
 
   // ── малювання ───────────────────────────────────────────────────────────
-  const BOX = { w: 176, h: 74 };
-  const COL = [20, 214, 408, 602, 796];   // п'ять колонок
-  const ROW = 132;                        // верх основного ряду
+  //
+  // Схема на HTML, а не на SVG, і це навмисно: у вікні має стояти сам зміст —
+  // назва посади, назва характеристики, код, — а не число. SVG не переносить
+  // рядки, тож довгі назви довелося б або різати, або міряти вручну. Сітка
+  // CSS заодно вирівнює вікна й стрілки між ними сама.
+
+  // Скільки назв показуємо просто у вікні. Більше — і вікно перетворюється на
+  // список; тоді чесніше показати число і відкрити список натисканням.
+  const SHOW_MAX = 3;
+
+  const TITLES_BOX = {
+    req: "Кадрові вимоги", spec: "Спеціальності",
+    post: "Посади", dkhp: "Характеристики", code: "Коди НСЗУ",
+  };
 
   function draw() {
     if (!anchor || !anchor.id) {
@@ -267,12 +281,13 @@
     }
     current = walkFrom(anchor);
     renderSummary(current);
-    $("#kdFigure").innerHTML = svg(current);
-    $("#kdFigure").querySelectorAll("[data-box]").forEach((g) =>
-      g.addEventListener("click", () => openBox(g.dataset.box)));
+    $("#kdFigure").innerHTML = figureHTML(current);
+    $("#kdFigure").querySelectorAll("[data-box]").forEach((b) =>
+      b.addEventListener("click", () => openBox(b.dataset.box)));
     if (opened) openBox(opened); else $("#kdDetail").hidden = true;
   }
 
+  /** Рядок над схемою: що саме зараз показано і чи є з ним проблема. */
   function renderSummary(w) {
     if (anchor.kind === "pkg") {
       const t = w.tone, bad = (t.warn || 0) + (t.risk || 0);
@@ -306,78 +321,91 @@
       : '<div class="kd-sum-kind">жоден пакет ПМГ-2026 цього не вимагає</div>'}`;
   }
 
-  function box(key, x, y, title, count, note, lost) {
-    const src = actLabel(key);
-    // Якір — те, що ввели: рамка товща, щоб було видно, звідки розповзався обхід.
+  /** Вміст вікна: назви, поки їх мало, і число, коли їх багато. */
+  function boxBody(key, ids) {
+    if (!ids.length) {
+      return `<div class="kd-none">${esc(emptyWhy(key))}</div>`;
+    }
+    if (ids.length <= SHOW_MAX) {
+      return `<div class="kd-vals">${ids.map((id) => {
+        const n = N.get(id) || {};
+        const extra = key === "code" ? `<span class="kd-code">${esc(id.split(":")[1])}</span>`
+          : key === "dkhp" && n.page ? `<span class="kd-sub">с. ${esc(n.page)} Довідника</span>`
+          : key === "post" && n.no ? `<span class="kd-sub">позиція № ${esc(n.no)}</span>`
+          : key === "spec" && n.sec ? `<span class="kd-sub">${esc(secLabel(n.sec))}</span>`
+          : key === "req" ? `<span class="kd-sub">пакет № ${esc(n.package)}</span>` : "";
+        return `<div class="kd-val"><span class="kd-val-n">${
+          esc(trim(n.name || id, 90))}</span>${extra}</div>`;
+      }).join("")}</div>`;
+    }
+    const sample = ids.slice(0, 2).map((id) => trim((N.get(id) || {}).name || id, 34));
+    return `<div class="kd-many">
+        <span class="kd-cnt-big">${nf(ids.length)}</span>
+        <span class="kd-cnt-word">${esc(countWord(key, ids.length))}</span>
+        <span class="kd-sample">${esc(sample.join(" · "))} …</span>
+      </div>`;
+  }
+
+  /** Підпис розділу Додатка 7 — з реєстру підписів у графі, не свій список. */
+  function secLabel(k) { return ((G.labels || {}).sec || {})[k] || k; }
+
+  function countWord(key, n) {
+    if (key === "req") return plural(n, "вимога", "вимоги", "вимог");
+    if (key === "post") return plural(n, "посада", "посади", "посад");
+    if (key === "dkhp") return plural(n, "характеристика", "характеристики", "характеристик");
+    if (key === "code") return plural(n, "код", "коди", "кодів");
+    return plural(n, "спеціальність", "спеціальності", "спеціальностей");
+  }
+
+  function emptyWhy(key) {
+    return key === "dkhp" ? "характеристики в ДКХП немає"
+      : key === "code" ? "коду НСЗУ немає"
+      : key === "spec" ? "жодна спеціальність не веде на цю посаду"
+      : key === "req" ? "жоден пакет цього не вимагає"
+      : "немає";
+  }
+
+  function boxHTML(key, ids, lostText) {
     const on = current && current.anchorKey === key ? " on" : "";
+    const empty = ids.length ? "" : " empty";
     return `
-      <g data-box="${key}" class="kd-box${on}" tabindex="0" role="button"
-         aria-label="${esc(title)}: ${count}${on ? ", звідси починається обхід" : ""}">
-        <rect x="${x}" y="${y}" width="${BOX.w}" height="${BOX.h}" rx="5"/>
-        <text x="${x + BOX.w / 2}" y="${y + 24}" text-anchor="middle"
-              class="kd-t">${esc(title)}</text>
-        <text x="${x + BOX.w / 2}" y="${y + 48}" text-anchor="middle"
-              class="kd-n">${nf(count)}</text>
-        <text x="${x + BOX.w / 2}" y="${y + 65}" text-anchor="middle"
-              class="kd-src">${esc(trim(src, 30))}</text>
-      </g>
-      ${note ? `<text x="${x + BOX.w / 2}" y="${y + BOX.h + 20}" text-anchor="middle"
-          class="kd-note">${esc(note)}</text>` : ""}
-      ${lost ? `<text x="${x + BOX.w / 2}" y="${y + BOX.h + 20}" text-anchor="middle"
-          class="kd-lost">${esc(lost)}</text>` : ""}`;
+      <div class="kd-cell">
+        <button type="button" class="kd-box${on}${empty}" data-box="${key}"
+                aria-label="${esc(TITLES_BOX[key])}: ${ids.length}">
+          <span class="kd-box-head">
+            <span class="kd-box-title">${esc(TITLES_BOX[key])}</span>
+            ${ids.length > SHOW_MAX ? "" : `<span class="kd-box-n">${nf(ids.length)}</span>`}
+          </span>
+          ${boxBody(key, ids)}
+          <span class="kd-box-src">${esc(actLabel(key))}</span>
+        </button>
+        ${lostText ? `<div class="kd-lost">${esc(lostText)}</div>` : ""}
+      </div>`;
   }
 
-  function arrow(x1, y1, x2, y2, label, up) {
-    const mx = (x1 + x2) / 2;
-    return `
-      <line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="kd-arrow"
-            marker-end="url(#kd-ar)"/>
-      ${label ? `<text x="${mx}" y="${up ? y1 - 8 : y1 - 9}" text-anchor="middle"
-          class="kd-al">${esc(label)}</text>` : ""}`;
-  }
-
-  function svg(w) {
-    const y = ROW;
-    const cy = y + BOX.h / 2;
-    // Відмінок числівника тут не декоративний: «1 посад без характеристики»
-    // видно з першого погляду.
+  function figureHTML(w) {
     const lost = (arr, one, few, many, tail) =>
       arr.length ? `${arr.length} ${plural(arr.length, one, few, many)} ${tail}` : "";
-
+    const ar = '<div class="kd-ar" aria-hidden="true">→</div>';
     return `
-    <svg viewBox="0 0 990 340" role="img" class="kd-svg"
-         aria-label="Ланцюжок пакета ${esc(w.pkg)}: ${w.req.length} кадрових вимог,
-         ${w.post.length} посад, ${w.dkhp.length} характеристик, ${w.code.length} кодів НСЗУ">
-      <defs>
-        <marker id="kd-ar" viewBox="0 0 10 10" refX="9" refY="5"
-                markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
-        </marker>
-      </defs>
-
-      ${box("req", COL[0], y, "Кадрові вимоги", w.req.length, "",
-            lost(w.lost.req, "вимога", "вимоги", "вимог", "без посади"))}
-      ${box("post", COL[1], y, "Посади", w.post.length, "",
-            lost(w.lost.post, "посада", "посади", "посад", "без характеристики"))}
-      ${box("dkhp", COL[2], y, "Характеристики", w.dkhp.length, "",
-            lost(w.lost.dkhp, "характеристика", "характеристики", "характеристик", "без коду"))}
-      ${box("code", COL[3], y, "Коди НСЗУ", w.code.length, "", "")}
-
-      ${arrow(COL[0] + BOX.w, cy, COL[1] - 6, cy,
-              `${w.req.length - w.lost.req.length} з ${w.req.length}`)}
-      ${arrow(COL[1] + BOX.w, cy, COL[2] - 6, cy,
-              `${w.post.length - w.lost.post.length} з ${w.post.length}`)}
-      ${arrow(COL[2] + BOX.w, cy, COL[3] - 6, cy,
-              `${w.dkhp.length - w.lost.dkhp.length} з ${w.dkhp.length}`)}
-
-      <!-- ліцензійна гілка: спеціальність дає право обіймати посаду -->
-      ${box("spec", COL[1], y + 148, "Спеціальності", w.spec.length, "",
+      <div class="kd-grid">
+        <div class="kd-top">
+          ${boxHTML("req", w.req, lost(w.lost.req, "вимога", "вимоги", "вимог", "без посади"))}
+          <div class="kd-ar down" aria-hidden="true">↓</div>
+        </div>
+        <div class="kd-row">
+          ${boxHTML("spec", w.spec,
             lost(w.lost.spec, "посада", "посади", "посад", "без спеціальності"))}
-      <line x1="${COL[1] + BOX.w / 2}" y1="${y + 148}" x2="${COL[1] + BOX.w / 2}"
-            y2="${y + BOX.h + 34}" class="kd-arrow" marker-end="url(#kd-ar)"/>
-      <text x="${COL[1] + BOX.w / 2 + 10}" y="${y + BOX.h + 62}" class="kd-al">
-        за якою спеціальністю ліцензія</text>
-    </svg>`;
+          ${ar}
+          ${boxHTML("post", w.post,
+            lost(w.lost.post, "посада", "посади", "посад", "без характеристики"))}
+          ${ar}
+          ${boxHTML("dkhp", w.dkhp,
+            lost(w.lost.dkhp, "характеристика", "характеристики", "характеристик", "без коду"))}
+          ${ar}
+          ${boxHTML("code", w.code, "")}
+        </div>
+      </div>`;
   }
 
   // ── деталі під схемою ───────────────────────────────────────────────────

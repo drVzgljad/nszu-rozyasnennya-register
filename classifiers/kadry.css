@@ -30,60 +30,91 @@
 .kd-chain { margin-top: 16px; }
 .kd-figure {
   background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
-  padding: 10px 12px; box-shadow: var(--shadow); overflow-x: auto;
+  padding: 18px 16px; box-shadow: var(--shadow); overflow-x: auto;
 }
-.kd-svg { max-width: 100%; height: auto; display: block; min-width: 760px; color: var(--ink); }
 .kd-hint { font-size: .8rem; color: var(--muted); margin: 8px 2px 0; }
 .kd-error { color: var(--warning-text); font-size: .9rem; margin: 12px; }
 
-/* Вікно ланки. Обведення — лінією каркаса, заливка — поверхнею: так вікно
-   лишається читабельним і на світлому, і на темному тлі. */
-.kd-box rect {
-  fill: var(--soft); stroke: var(--line); stroke-width: 1.5;
+/* Сітка: чотири вікна й три стрілки між ними. Колонки однакової ширини, тож
+   вікна вирівняні за визначенням, а стрілки стоять рівно посередині проміжку —
+   без ручного підганяння координат, як було на SVG. */
+.kd-grid { display: grid; gap: 14px; min-width: 940px; }
+.kd-row {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  column-gap: 0; align-items: stretch;
 }
-.kd-box { cursor: pointer; }
-.kd-box:hover rect { stroke: var(--accent); fill: var(--accent-soft); }
-.kd-box:focus-visible { outline: none; }
-.kd-box:focus-visible rect { stroke: var(--accent); stroke-width: 2.5; }
-/* Якір обходу — те, що ввели в пошук. */
-.kd-box.on rect { stroke: var(--accent); stroke-width: 2.5; fill: var(--accent-soft); }
+.kd-row > .kd-cell { grid-row: 1; }
+.kd-row > .kd-ar { grid-row: 1; }
+/* Вікна в колонках 1,3,5,7; стрілки — у 2,4,6 */
+.kd-row { grid-template-columns: 1fr 46px 1fr 46px 1fr 46px 1fr; }
 
-/* ── пошук за назвою ──────────────────────────────────────── */
-.kd-search { position: relative; }
-.kd-search > label {
-  font-size: .72rem; font-weight: 700; letter-spacing: .04em;
-  text-transform: uppercase; color: var(--muted);
+/* Верхній ряд: «Кадрові вимоги» стоять рівно над колонкою посад. */
+.kd-top {
+  display: grid; grid-template-columns: 1fr 46px 1fr 46px 1fr 46px 1fr;
+  justify-items: stretch;
 }
-.kd-search input {
-  font: inherit; font-size: .9rem; padding: 8px 10px; border-radius: 9px;
-  border: 1px solid var(--line); background: var(--soft); color: var(--ink); width: 100%;
+.kd-top > .kd-cell { grid-column: 3; }
+.kd-top > .kd-ar.down { grid-column: 3; justify-self: center; }
+
+.kd-cell { display: flex; flex-direction: column; gap: 6px; }
+
+.kd-ar {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.5rem; line-height: 1; color: var(--faint); user-select: none;
 }
-.kd-search input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.kd-suggest {
-  position: absolute; z-index: 5; top: 100%; left: 0; right: 0; margin: 4px 0 0;
-  padding: 4px; list-style: none; max-height: 17rem; overflow: auto;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
-  box-shadow: var(--shadow);
+.kd-ar.down { font-size: 1.4rem; padding: 2px 0; }
+
+/* Вікно ланки. Кнопка, бо натискається; вміст — сам зміст, а не число. */
+.kd-box {
+  display: flex; flex-direction: column; gap: 8px; width: 100%;
+  min-height: 148px; text-align: left; font: inherit; color: var(--ink);
+  background: var(--soft); border: 1.5px solid var(--line); border-radius: 12px;
+  padding: 12px 14px; cursor: pointer;
 }
-.kd-suggest li {
-  display: flex; gap: 10px; align-items: baseline; justify-content: space-between;
-  padding: 7px 9px; border-radius: 7px; cursor: pointer; font-size: .87rem;
+.kd-box:hover { border-color: var(--accent); background: var(--accent-soft); }
+.kd-box:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Якір — те, від чого будується схема. */
+.kd-box.on { border-color: var(--accent); border-width: 2.5px; background: var(--accent-soft); }
+.kd-box.empty { background: var(--warning-bg); border-color: var(--warning-border, var(--line)); }
+
+.kd-box-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.kd-box-title { font-size: .84rem; font-weight: 800; letter-spacing: .01em; }
+.kd-box-n {
+  font-size: .76rem; font-weight: 800; color: var(--accent-dark);
+  background: var(--surface); border-radius: 20px; padding: 1px 9px;
 }
-.kd-suggest li.on, .kd-suggest li:hover { background: var(--accent-soft); }
-.kd-sg-n { flex: 1 1 auto; min-width: 0; }
-.kd-sg-t { flex: 0 0 auto; font-size: .72rem; font-weight: 700; color: var(--muted); }
-.kd-pkgfield { flex: 0 1 18rem; }
-.kd-t { font-size: 13px; font-weight: 700; fill: var(--ink); }
-.kd-n { font-size: 21px; font-weight: 800; fill: var(--accent-dark); }
-/* Акт під вікном — те, заради чого схема й підписана; --muted на цьому тлі
-   дає 4,37, тож колір основний. Вторинність несе кегль, а не блідість. */
-.kd-src { font-size: 10.5px; fill: var(--ink); }
-.kd-arrow { stroke: var(--ink); stroke-width: 1.5; opacity: .55; }
-.kd-al { font-size: 11px; fill: var(--muted); }
-.kd-note { font-size: 11px; fill: var(--muted); }
-/* Втрата на переході — єдине місце, де на схемі з'являється попереджувальний
-   тон. Без нього ланцюжок виглядав би суцільним, а він не суцільний. */
-.kd-lost { font-size: 11.5px; fill: var(--warning-text); font-weight: 600; }
+.kd-box-src { font-size: .72rem; color: var(--ink); opacity: .65; margin-top: auto; }
+
+/* Мало позицій — показуємо самі назви. */
+.kd-vals { display: flex; flex-direction: column; gap: 7px; flex: 1 1 auto; }
+.kd-val { display: flex; flex-direction: column; gap: 1px; }
+.kd-val-n { font-size: .9rem; font-weight: 600; line-height: 1.3; }
+.kd-sub { font-size: .72rem; color: var(--muted); }
+.kd-code {
+  align-self: flex-start; font-size: .74rem; font-weight: 800;
+  background: var(--accent-fill); color: #fff; border-radius: 6px; padding: 1px 7px;
+}
+
+/* Багато — показуємо число і два приклади, решта за натисканням. */
+.kd-many { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; }
+.kd-cnt-big { font-size: 1.7rem; font-weight: 800; line-height: 1.1; color: var(--accent-dark); }
+.kd-cnt-word { font-size: .78rem; color: var(--muted); }
+.kd-sample { font-size: .74rem; color: var(--muted); line-height: 1.4; margin-top: 3px; }
+
+.kd-none { flex: 1 1 auto; font-size: .86rem; font-weight: 600; color: var(--warning-text); }
+.kd-lost { font-size: .78rem; font-weight: 600; color: var(--warning-text); text-align: center; }
+
+/* Поріг рівно там, де сітка вже не вміщається в контейнер (940 px + поля):
+   інакше між 900 і 940 фігура починала б скролитися вбік. */
+@media (max-width: 1000px) {
+  /* Вузько — ланцюжок стає стовпчиком, стрілки повертаються вниз. */
+  .kd-grid { min-width: 0; }
+  .kd-row, .kd-top { grid-template-columns: 1fr; }
+  .kd-top > .kd-cell, .kd-top > .kd-ar.down { grid-column: 1; }
+  .kd-row > .kd-cell, .kd-row > .kd-ar { grid-row: auto; }
+  .kd-ar { transform: rotate(90deg); padding: 4px 0; }
+  .kd-box { min-height: 0; }
+}
 
 /* ── деталі ───────────────────────────────────────────────── */
 .kd-detail {
