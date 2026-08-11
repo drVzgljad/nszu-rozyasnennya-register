@@ -1,0 +1,121 @@
+/* ============================================================
+   Кадровий ланцюжок пакета — проба.
+   Кольори тільки з ролей порталу: сторінка живе і в темній темі.
+   ============================================================ */
+
+.kd-main { max-width: 1080px; margin: 0 auto; padding: 18px 16px 40px; }
+
+/* ── вибір пакета ─────────────────────────────────────────── */
+.kd-picker {
+  display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: flex-end;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 14px 16px; box-shadow: var(--shadow);
+}
+.kd-field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 22rem; min-width: 0; }
+.kd-field > span {
+  font-size: .72rem; font-weight: 700; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--muted);
+}
+.kd-field select {
+  font: inherit; font-size: .9rem; padding: 8px 10px; border-radius: 9px;
+  border: 1px solid var(--line); background: var(--soft); color: var(--ink);
+  max-width: 100%;
+}
+.kd-summary { display: flex; flex-direction: column; gap: 2px; font-size: .85rem; }
+.kd-sum-line b { font-size: 1.15rem; }
+.kd-sum-warn { color: var(--warning-text); font-weight: 600; }
+.kd-sum-ok { color: var(--teal-dark); font-weight: 600; }
+
+/* ── схема ────────────────────────────────────────────────── */
+.kd-chain { margin-top: 16px; }
+.kd-figure {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+  padding: 10px 12px; box-shadow: var(--shadow); overflow-x: auto;
+}
+.kd-svg { max-width: 100%; height: auto; display: block; min-width: 760px; color: var(--ink); }
+.kd-hint { font-size: .8rem; color: var(--muted); margin: 8px 2px 0; }
+.kd-error { color: var(--warning-text); font-size: .9rem; margin: 12px; }
+
+/* Вікно ланки. Обведення — лінією каркаса, заливка — поверхнею: так вікно
+   лишається читабельним і на світлому, і на темному тлі. */
+.kd-box rect {
+  fill: var(--soft); stroke: var(--line); stroke-width: 1.5;
+}
+.kd-box { cursor: pointer; }
+.kd-box:hover rect { stroke: var(--accent); fill: var(--accent-soft); }
+.kd-box:focus-visible { outline: none; }
+.kd-box:focus-visible rect { stroke: var(--accent); stroke-width: 2.5; }
+/* Якір обходу — те, що ввели в пошук. */
+.kd-box.on rect { stroke: var(--accent); stroke-width: 2.5; fill: var(--accent-soft); }
+
+/* ── пошук за назвою ──────────────────────────────────────── */
+.kd-search { position: relative; }
+.kd-search > label {
+  font-size: .72rem; font-weight: 700; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--muted);
+}
+.kd-search input {
+  font: inherit; font-size: .9rem; padding: 8px 10px; border-radius: 9px;
+  border: 1px solid var(--line); background: var(--soft); color: var(--ink); width: 100%;
+}
+.kd-search input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.kd-suggest {
+  position: absolute; z-index: 5; top: 100%; left: 0; right: 0; margin: 4px 0 0;
+  padding: 4px; list-style: none; max-height: 17rem; overflow: auto;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+.kd-suggest li {
+  display: flex; gap: 10px; align-items: baseline; justify-content: space-between;
+  padding: 7px 9px; border-radius: 7px; cursor: pointer; font-size: .87rem;
+}
+.kd-suggest li.on, .kd-suggest li:hover { background: var(--accent-soft); }
+.kd-sg-n { flex: 1 1 auto; min-width: 0; }
+.kd-sg-t { flex: 0 0 auto; font-size: .72rem; font-weight: 700; color: var(--muted); }
+.kd-pkgfield { flex: 0 1 18rem; }
+.kd-t { font-size: 13px; font-weight: 700; fill: var(--ink); }
+.kd-n { font-size: 21px; font-weight: 800; fill: var(--accent-dark); }
+/* Акт під вікном — те, заради чого схема й підписана; --muted на цьому тлі
+   дає 4,37, тож колір основний. Вторинність несе кегль, а не блідість. */
+.kd-src { font-size: 10.5px; fill: var(--ink); }
+.kd-arrow { stroke: var(--ink); stroke-width: 1.5; opacity: .55; }
+.kd-al { font-size: 11px; fill: var(--muted); }
+.kd-note { font-size: 11px; fill: var(--muted); }
+/* Втрата на переході — єдине місце, де на схемі з'являється попереджувальний
+   тон. Без нього ланцюжок виглядав би суцільним, а він не суцільний. */
+.kd-lost { font-size: 11.5px; fill: var(--warning-text); font-weight: 600; }
+
+/* ── деталі ───────────────────────────────────────────────── */
+.kd-detail {
+  margin-top: 16px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 14px; padding: 16px 18px; box-shadow: var(--shadow);
+}
+.kd-detail h2 { font-size: 1.05rem; margin: 0 0 3px; }
+.kd-cnt {
+  display: inline-block; margin-left: 6px; font-size: .78rem; font-weight: 700;
+  background: var(--accent-soft); color: var(--accent-dark);
+  border-radius: 20px; padding: 2px 9px; vertical-align: middle;
+}
+.kd-act { font-size: .8rem; color: var(--muted); margin: 0 0 12px; line-height: 1.5; }
+.kd-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.kd-item {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline;
+  padding: 7px 10px; border-radius: 8px; background: var(--soft);
+  font-size: .87rem; line-height: 1.45;
+}
+.kd-item-n { flex: 1 1 20rem; min-width: 0; }
+.kd-item.gone { background: var(--warning-bg); }
+.kd-flag {
+  font-size: .72rem; font-weight: 700; color: var(--warning-text);
+  white-space: nowrap;
+}
+.kd-code {
+  font-size: .74rem; font-weight: 800; background: var(--accent-fill); color: #fff;
+  border-radius: 6px; padding: 1px 7px;
+}
+.kd-empty { font-size: .87rem; color: var(--muted); margin: 0; }
+
+@media (max-width: 720px) {
+  .kd-picker { flex-direction: column; align-items: stretch; }
+  .kd-figure { padding: 8px; }
+}

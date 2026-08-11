@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>НавігаторПМГ26 | Кадровий ланцюжок</title>
+  <link rel="stylesheet" href="../styles.css?v=20260808b">
+  <link rel="stylesheet" href="classifiers.css?v=20260809d">
+  <link rel="stylesheet" href="kadry.css?v=20260811c">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260806a">
+  <script type="module" src="../auth-v2.js?v=20260810c"></script>
+</head>
+<body id="top">
+  <header class="hero classifiers-hero">
+    <div class="hero-copy">
+      <div class="overline">Проба · кадровий контур ·
+        <a class="xnav" href="specialnosti.html">↔ Спеціальності та посади</a>
+        <a class="xnav" href="posady.html">↔ Характеристики ДКХП-78</a>
+        <a class="xnav" href="../pakety/index.html">↔ Пакети ПМГ-2026</a></div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів, постанови та правил</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Кадровий ланцюжок</h1>
+      <p>Введіть назву спеціальності, посади, характеристики чи код НСЗУ — або
+         оберіть пакет. Схема покаже, що з цього випливає в решті реєстрів:
+         за чим ліцензія, яку посаду вводити у штатний розпис, чи є на неї
+         кваліфікаційна характеристика і чим кодувати працівника в ЕСОЗ.
+         Під кожним вікном стоїть акт, який цю ланку встановлює; червоне
+         під вікном — скільки позицій до наступної ланки не доходить.</p>
+    </div>
+  </header>
+
+  <main class="kd-main">
+    <div class="kd-picker">
+      <div class="kd-field kd-search">
+        <label for="kdSearch">Спеціальність, посада, характеристика або код</label>
+        <input id="kdSearch" type="search" autocomplete="off" role="combobox"
+               aria-expanded="false" aria-controls="kdSuggest"
+               placeholder="Напр.: Кардіологія · Лікар-анестезіолог · Сестра медична · P37">
+        <ul class="kd-suggest" id="kdSuggest" role="listbox" hidden></ul>
+      </div>
+      <label class="kd-field kd-pkgfield">
+        <span>або пакет ПМГ-2026</span>
+        <select id="kdPkg"><option value="">Завантаження…</option></select>
+      </label>
+      <div class="kd-summary" id="kdSummary"></div>
+    </div>
+
+    <section class="kd-chain" aria-label="Ланцюжок">
+      <div class="kd-figure" id="kdFigure"></div>
+      <p class="kd-hint">Натисніть будь-яке вікно, щоб побачити, що саме в ньому.</p>
+    </section>
+
+    <section class="kd-detail" id="kdDetail" hidden></section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Джерела ланок: кадрові вимоги — специфікації пакетів ПМГ-2026 (постанова КМУ
+           від 31.12.2025 № 1808); посади — Перелік професій (посад) працівників сфери
+           охорони здоров'я (наказ МОЗ від 05.07.2025 № 1065, Мін'юст № 1109/44515);
+           кваліфікаційні характеристики — Довідник, випуск 78 (наказ МОЗ від 29.03.2002
+           № 117, редакція 24.02.2025); коди — довідник «Коди посад НСЗУ 2026»
+           (не нормативний акт); спеціальності — Додаток 7 до Ліцензійних умов
+           (ПКМУ від 02.03.2016 № 285 у редакції ПКМУ від 24.06.2026 № 813, чинність
+           з 01.09.2026). Зв'язки «спеціальність ↔ посада» і «посада ↔ характеристика»
+           обчислені: офіційного зіставлення між цими переліками не існує.</p>
+      </div>
+    </div>
+  </footer>
+
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <script src="kadry.js?v=20260811b" defer></script>
+</body>
+</html>

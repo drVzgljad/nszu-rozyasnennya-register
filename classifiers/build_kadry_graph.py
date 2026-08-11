@@ -855,6 +855,10 @@ def main():
         "edge_rels": EDGE_RELS,
         "tones": TONES,
         "labels": {"sec": spec_meta.get("section_labels", {}), "part": PART_LABELS},
+        # Назви пакетів лежать і тут, і в шапці. Шапці вони потрібні для
+        # випадаючого списку, а графу — щоб він лишався ПОВНИМ: інструмент, який
+        # читає лише graph.json, не має шукати підпис вузла в іншому файлі.
+        "packages": {p["package"]: p["name"] for p in spec_pkg},
         "counts": {"nodes": dict(by_type), "edges": dict(by_rel)},
         "check": {
             "ok": bool(ok),
