@@ -110,8 +110,8 @@ EXPECTED = {
     "pkgreq": 356,
     "packages_with_staff": 40,
     "dkhp_in_packages": 138,
-    "tone": {"ok": 330, "warn": 24, "risk": 2},
-    "req_with_post": 354,
+    "tone": {"ok": 332, "warn": 24},
+    "req_with_post": 356,
     "spec_without_post": 1,
     "orphan_names": 9,
     "orphan_packages": 17,
@@ -392,6 +392,10 @@ def nodes_from_reqs(reqs):
             "cond": r["cond"],
             "critical": r["critical"],
             "alts": r["alts"],
+            # Назву для зіставлення відновив pkg_staff (загублена скісна
+            # риска). Показуємо це на вузлі: у тексті специфікації помилка
+            # лишилася, і читач має про неї знати.
+            "repaired": r.get("repaired", False),
             # Дослівний рядок специфікації. Він дублює head + cond, і це
             # свідомо: сторінки показують вимогу як вона написана в акті, а
             # склеювати її назад із половин означало б тихо міняти текст
@@ -593,7 +597,7 @@ LIGHT_FIELDS = {
     "dkhp": ("section", "sub", "alt"),
     "code": ("kind",),
     # tone — світлофор вимоги; потрібен у списку, не тільки в паспорті.
-    "pkgreq": ("package", "critical", "tone", "tone_why"),
+    "pkgreq": ("package", "critical", "tone", "tone_why", "repaired"),
     "profstd": (),
 }
 
@@ -736,7 +740,7 @@ def main():
             # відсутня посада: у назві загублено скісну риску. Сказати тут
             # «заклад не може виконати вимогу» було б неправдою — вимогу не
             # можна ЗІСТАВИТИ, і причина в тексті джерела, не в закладі.
-            if re.search(r"медичнабрат|медичнийбрат", n["name"], re.I):
+            if pkg_staff.GLUE.search(n["name"]):
                 n["tone_why"] = (
                     "у назві посади загублено скісну риску («Сестра медичнабрат "
                     "медичний» замість «Сестра медична/брат медичний»). Сама посада "

@@ -126,17 +126,33 @@
   border-radius: 20px; padding: 1px 8px;
 }
 
-/* Виноска про критичність. */
+/* Виноска про критичність — на всю ширину схеми, врівень із чотирма вікнами.
+   Та сама min-width, що в сітки: інакше при горизонтальній прокрутці виноска
+   лишалася б вужчою за ряд і «від'їжджала» від нього.
+   Текст усередині розкладено колонками: рядок на 940 px — це під 130 знаків,
+   а таке не читають. Колонки самі стають однією, коли місця мало. */
 .kd-note {
-  margin-top: 14px; padding: 13px 16px; border-radius: 12px;
+  margin-top: 14px; padding: 14px 18px; border-radius: 12px;
   background: var(--warning-bg); color: var(--ink);
   border: 1px solid var(--warning-border, transparent);
-  font-size: .86rem; line-height: 1.55; max-width: 74ch;
+  font-size: .86rem; line-height: 1.55;
 }
-.kd-note-h { font-weight: 800; margin-bottom: 8px; color: var(--warning-text); }
+/* Ширину врівень із сіткою задаємо ТІЛЬКИ на широкому екрані. Спокуса написати
+   min-width у базовому правилі й скинути його в медіазапиті тут не працює:
+   .kd-note описаний нижче за запит, тож перебиває його за порядком у файлі. */
+@media (min-width: 1001px) {
+  .kd-note { min-width: 940px; }
+}
+.kd-note-h { font-weight: 800; margin-bottom: 10px; color: var(--warning-text); }
+.kd-note-body {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(21rem, 1fr));
+  gap: 4px 28px; align-items: start;
+}
 .kd-note p { margin: 0 0 8px; }
-.kd-note p:last-child { margin-bottom: 0; }
-.kd-note-src { font-size: .76rem; opacity: .8; }
+.kd-note-src {
+  font-size: .76rem; opacity: .8; margin: 6px 0 0;
+  border-top: 1px solid var(--warning-border, var(--line)); padding-top: 8px;
+}
 
 /* ── розкривні секції ─────────────────────────────────────── */
 .kd-detail { margin-top: 16px; display: grid; gap: 8px; }
@@ -182,6 +198,13 @@
 .kd-r-sub { font-size: .78rem; color: var(--ink); opacity: .78; line-height: 1.45; }
 /* Дослівний рядок специфікації — те, заради чого вимогу й розкривають. */
 .kd-r-raw { font-size: .84rem; line-height: 1.5; }
+/* Чому вимога позначена «не зіставлено» або «звужений вибір». Без цього рядок
+   лишає читача з висновком, але без підстави — а підстава тут головна: у двох
+   випадках винна не відсутня посада, а загублена скісна риска в назві. */
+.kd-r-why {
+  font-size: .79rem; line-height: 1.5; color: var(--warning-text);
+  border-left: 2px solid var(--warning-text); padding-left: 8px; margin-top: 2px;
+}
 .kd-r-orphan { font-size: .78rem; font-weight: 600; color: var(--warning-text); }
 .kd-pkg {
   font-size: .74rem; font-weight: 800; background: var(--accent-fill); color: #fff;

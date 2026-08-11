@@ -414,6 +414,7 @@
     return `
       <div class="kd-note">
         <div class="kd-note-h">Чому «критична» — і що буде за невідповідність</div>
+        <div class="kd-note-body">
 
         <p><b>Що це.</b> Рівень вимоги встановлює НСЗУ в умовах закупівлі; у
         специфікації такі вимоги позначені зірочкою. Зірочка веде на пункт 5
@@ -444,6 +445,7 @@
         виконати умову протягом визначеного строку. З 01.09.2026 вводити можна
         лише посади з Переліку МОЗ № 1065 — пункт 32 Ліцензійних умов.</p>
 
+        </div>
         <p class="kd-note-src">Постанова КМУ від 25.04.2018 № 410, Порядок
         укладення, зміни та припинення договору — редакція від 08.05.2026.</p>
       </div>`;
@@ -536,12 +538,17 @@
       body = `
         <span class="kd-r-head">
           <span class="kd-pkg">Пакет № ${esc(n.package)}</span>
-          <span class="kd-pkgname">${esc(trim(G.packages[n.package] || "", 64))}</span>
+          <span class="kd-pkgname">${esc(G.packages[n.package] || "")}</span>
           ${n.critical ? '<span class="kd-flag">критична</span>' : ""}
           ${n.tone && n.tone !== "ok"
             ? `<span class="kd-flag warn">${esc(toneWord(n.tone))}</span>` : ""}
         </span>
         <span class="kd-r-raw">${esc(n.raw || n.name)}</span>
+        ${n.tone_why
+          ? `<span class="kd-r-why">${esc(n.tone_why)}</span>`
+          : n.tone && n.tone !== "ok" && G.tones && G.tones[n.tone]
+            ? `<span class="kd-r-why">${esc(G.tones[n.tone])}</span>`
+            : ""}
         ${n.orphans && n.orphans.length
           ? `<span class="kd-r-orphan">Поза Переліком МОЗ: ${esc(n.orphans.join(", "))}</span>`
           : ""}`;
