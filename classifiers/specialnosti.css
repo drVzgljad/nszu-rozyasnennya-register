@@ -138,13 +138,48 @@
   margin: 8px 6px; font-size: .8rem; color: var(--muted); line-height: 1.5;
 }
 
+/* Банер з алгоритмом світлофора. Живе в панелі пошуку, одразу під фільтром
+   «Чи виконувана вимога» — тобто поруч із тим, чим ці тони й перемикають.
+   Через це він плаский: власна тінь і поверхня всередині панелі виглядали б
+   карткою в картці. Числа в гілках — живі, з підсумків графа. */
+.sp-algo {
+  background: var(--soft); border: 1px solid var(--line); border-radius: 12px;
+  padding: 11px 13px; margin: 2px 0 10px;
+}
+.sp-algo-head {
+  font-size: .78rem; font-weight: 800; letter-spacing: .03em;
+  /* --muted на тлі --soft дає 4,37, --teal-dark (як у сусідніх summary) — 4,21.
+     Обидва замалі для 0,78rem. Основний колір: підпис і так вторинний за
+     рахунок кегля, розрідження й великих літер. */
+  text-transform: uppercase; color: var(--ink); margin-bottom: 7px;
+}
+.sp-algo-q { font-size: .87rem; line-height: 1.45; margin-bottom: 10px; }
+.sp-algo-branches { display: grid; gap: 6px; }
+.sp-algo-branch {
+  display: grid; grid-template-columns: 5.5em auto 1fr auto;
+  align-items: center; gap: 8px;
+  padding: 6px 9px; border-radius: 9px; background: var(--surface);
+  border: 1px solid var(--line);
+}
+.sp-algo-cond { font-size: .83rem; font-weight: 700; }
+.sp-algo-arrow { color: var(--faint); }
+.sp-algo-branch .sp-tag { justify-self: start; }
+/* Не --muted: на тлі --soft це 4,37, а тут саме число — головне, що читають. */
+.sp-algo-n { font-size: .8rem; font-weight: 700; color: var(--ink); }
+/* Не --muted: на тлі --soft це 4,37. Пояснення пишуть, щоб його читали, тож
+   колір основний — вторинність тут несе кегль, а не блідість. Те саме нижче
+   в легенді. */
+.sp-algo-why {
+  margin: 10px 0 0; font-size: .79rem; line-height: 1.5; color: var(--ink);
+}
+
 /* Легенда позначок. Позначка стиснута до двох слів, і без розшифровки список
    читається як шифр — тому вона поруч зі списком, а не в підвалі. */
 #spLegendBody { font-size: .83rem; line-height: 1.5; padding: 2px 0 4px; }
-.sp-legend-lead { margin: 6px 0 10px; color: var(--muted); }
+.sp-legend-lead { margin: 6px 0 10px; color: var(--ink); }
 .sp-legend-row {
   display: grid; grid-template-columns: minmax(7.5em, auto) 1fr;
-  gap: 10px; align-items: start; margin-bottom: 8px; color: var(--muted);
+  gap: 10px; align-items: start; margin-bottom: 8px; color: var(--ink);
 }
 .sp-legend-row .sp-tag { justify-self: start; }
 

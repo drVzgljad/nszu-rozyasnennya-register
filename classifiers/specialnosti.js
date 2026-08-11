@@ -81,7 +81,7 @@
      ["banner", "#specBanner"], ["selSec", "#selSec"], ["selKind", "#selKind"],
      ["selPart", "#selPart"], ["selPkg", "#selPkg"], ["onlyNoPost", "#onlyNoPost"],
      ["onlyCross", "#onlyCross"], ["onlyPkg", "#onlyPkg"], ["onlyReg", "#onlyReg"],
-     ["selTone", "#selTone"], ["onlyCrit", "#onlyCrit"],
+     ["selTone", "#selTone"], ["onlyCrit", "#onlyCrit"], ["algo", "#spAlgo"],
      ["cntS", "#cntS"], ["cntP", "#cntP"], ["cntR", "#cntR"], ["issues", "#spIssues"],
      ["issuesBody", "#spIssuesBody"], ["layout", ".nk-layout"]]
       .forEach(([k, sel]) => (el[k] = $(sel)));
@@ -180,6 +180,7 @@
     renderStats();
     renderIssues();
     renderLegend();
+    renderAlgo();
     populateSelects();
     wireUI();
     applyRegistry();
@@ -286,6 +287,39 @@
     $("#spLegendBody").innerHTML = rows.map(([tag, text]) => tag
       ? `<div class="sp-legend-row">${tag}<span>${esc(text)}</span></div>`
       : `<p class="sp-legend-lead">${esc(text)}</p>`).join("");
+  }
+
+  /** Банер із алгоритмом світлофора.
+   *
+   *  Три кольори без правила читаються як оцінка «добре/погано», а це не
+   *  оцінка — це стан ланцюжка. Тому показуємо саме питання, яке ставить
+   *  білдер, три відповіді на нього і скільки вимог припало на кожну. Числа
+   *  беремо з підсумків графа, а не рахуємо тут: інакше банер розійдеться з
+   *  фільтром, щойно джерело оновиться. */
+  function renderAlgo() {
+    const t = (IDX.counts || {}).tone || {};
+    const tones = IDX.tones || {};
+    const branch = (key, cond) => `
+      <div class="sp-algo-branch">
+        <span class="sp-algo-cond">${esc(cond)}</span>
+        <span class="sp-algo-arrow" aria-hidden="true">→</span>
+        <span class="sp-tag ${TONE_CLASS[key]}" title="${esc(tones[key] || "")}">${
+          esc(TONE_TAG[key])}</span>
+        <span class="sp-algo-n">${nf(t[key] || 0)}</span>
+      </div>`;
+    el.algo.innerHTML = `
+      <div class="sp-algo-head">Як рахується світлофор</div>
+      <div class="sp-algo-q">Вимога перелічує посади через «та/або».
+        <b>Скільки з них є в Переліку професій (посад) МОЗ № 1065?</b></div>
+      <div class="sp-algo-branches">
+        ${branch("ok", "усі")}
+        ${branch("warn", "частина")}
+        ${branch("risk", "жодної")}
+      </div>
+      <p class="sp-algo-why">Питання саме таке, бо з <b>01.09.2026</b> пункт 32
+        Ліцензійних умов дозволяє закладу вводити у штатний розпис лише посади
+        з цього Переліку. Тон не оцінює вимогу — він каже, чи є ким її
+        виконати. Повні формулювання — у блоці «Що означають позначки».</p>`;
   }
 
   function secLabel(k) { return (IDX.labels.sec || {})[k] || k; }
@@ -423,7 +457,7 @@
       el.results.innerHTML = "";
       return;
     }
-    el.results.innerHTML = list.slice(0, 400).map(rowHTML).join("") +
+    el.results.innerHTML = groupedHTML(list.slice(0, 400)) +
       (list.length > 400
         ? `<p class="eq-more">Показано перші 400 із ${nf(list.length)} — уточніть пошук.</p>`
         : "");
@@ -433,6 +467,49 @@
       const a = $(`.rrow[data-id="${cssEsc(openedId)}"]`, el.results);
       if (a) a.classList.add("active");
     }
+  }
+
+  /** Список із заголовками груп.
+   *
+   *  Суцільний стовп на 172 позиції не читається: у Додатку 7 чотири розділи,
+   *  у Переліку два, а кадрові вимоги взагалі належать різним пакетам, і без
+   *  поділу все це виглядає однією купою. Групуємо ПОСЛІДОВНИМИ відрізками, а
+   *  не перебудовуючи порядок: джерела вже впорядковані за розділами, тож
+   *  заголовки просто вставляються між рядками, і сортування лишається таким,
+   *  як в акті. Вигляд заголовка — той самий `.batch-head`, що в пакетному
+   *  пошуку «Посад»: липкий, уже стилізований, той самий сенс. */
+  function groupedHTML(rows) {
+    const groups = [];
+    rows.forEach((n) => {
+      const key = groupKey(n);
+      const last = groups[groups.length - 1];
+      if (last && last.key === key) last.items.push(n);
+      else groups.push({ key, label: groupLabel(n), items: [n] });
+    });
+    // Одна група — заголовок нічого не додає, лише з'їдає рядок.
+    if (groups.length < 2) return rows.map(rowHTML).join("");
+    // Обгортка `.batch-group` обов'язкова: без неї всі липкі заголовки
+    // прилипають до однієї межі прокрутки й накладаються один на одного.
+    // Усередині групи заголовок їде разом із нею і зникає, коли група минула.
+    return groups.map((g) => `
+      <div class="batch-group">
+        <div class="batch-head">
+          <span>${esc(g.label)}</span>
+          <span class="batch-badge">${nf(g.items.length)}</span>
+        </div>${g.items.map(rowHTML).join("")}
+      </div>`).join("");
+  }
+
+  function groupKey(n) {
+    if (n.type === "spec") return n.sec;
+    if (n.type === "post") return n.part;
+    return n.package;
+  }
+
+  function groupLabel(n) {
+    if (n.type === "spec") return secLabel(n.sec);
+    if (n.type === "post") return partLabel(n.part);
+    return `Пакет № ${n.package} · ${IDX.packages[n.package] || ""}`;
   }
 
   function rowHTML(n) {
@@ -467,8 +544,8 @@
 
   function reqRowHTML(n) {
     const tone = n.tone || "ok";
-    const meta = [`Пакет № ${n.package}`, trim(IDX.packages[n.package] || "", 44)];
-    if (n.critical) meta.push("критична");
+    // Номер і назва пакета тепер у заголовку групи, тож у рядку їх немає.
+    const meta = n.critical ? ["критична вимога"] : [];
     return `<button class="rrow" type="button" data-id="${esc(n.id)}">
         <span class="rmain">
           <span class="tname">${esc(trim(n.name, 130))}</span>
