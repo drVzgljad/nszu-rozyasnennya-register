@@ -45,6 +45,25 @@
     root: "за коренем", morph: "за основами", none: "немає пари",
   };
 
+  // Те, чого граф не описує: позначки, які беруться не з рівня збігу, а зі
+  // стану вузла або з самого акта. Формулювання рівнів і тонів звідси НЕ
+  // дублюємо — вони приїжджають із графа й писалися разом із правилом.
+  const HELP = {
+    none: "Жодна посада Переліку МОЗ під цю спеціальність не підійшла. Це не " +
+          "вада зіставлення, а реальна прогалина: заклад не зможе ввести " +
+          "відповідну посаду у штатний розпис.",
+    cross: "Знайшлася лише посада іншого рівня, ніж розділ Додатка 7 — " +
+           "наприклад, спеціальності професіонала відповідає лікарська посада. " +
+           "Зв'язок слабший, і ховати це не можна.",
+    reg: "У Переліку МОЗ № 1065 навпроти професії стоїть відмітка про " +
+         "додаткове регулювання — тобто доступ до неї визначає не лише " +
+         "Перелік, а й окремі вимоги.",
+    crit: "Рівень вимоги за поділом умов закупівлі. Критерії поділу встановлює " +
+          "пункт 5 Порядку, затвердженого постановою КМУ від 25.04.2018 № 410; " +
+          "у специфікації такі вимоги позначені зірочкою. Сам критерій — в акті, " +
+          "специфікація лише посилається на нього.",
+  };
+
   let IDX = null;                    // шапка графа
   let NODES = [];                    // легкі вузли spec + post
   let CARD = null;                   // id → важкі поля вузла
@@ -160,6 +179,7 @@
     renderBanner();
     renderStats();
     renderIssues();
+    renderLegend();
     populateSelects();
     wireUI();
     applyRegistry();
@@ -231,6 +251,43 @@
       `<ul>${x.items.map((i) => `<li>${esc(i)}</li>`).join("")}</ul>`).join("");
   }
 
+  /** Легенда позначок активної вкладки.
+   *
+   *  Позначки — це стиснуті до двох слів твердження про надійність зіставлення
+   *  або про стан вимоги, і без розшифровки список читається як шифр. Тексти
+   *  беремо з графа там, де вони там є: рівні збігу і тони писалися разом із
+   *  самим правилом, тож дублювати їх у сторінці означало б завести другу
+   *  правду. */
+  function renderLegend() {
+    const rows = [];
+    if (registry === "s") {
+      const lv = ((IDX.edge_rels || {}).spec_post || {}).levels || {};
+      rows.push(["", "Офіційного зіставлення спеціальність ↔ посада не існує — " +
+        "місток обчислено за назвами. Позначка каже, наскільки він надійний."]);
+      ["exact", "manual", "root", "morph"].forEach((k) => {
+        if (lv[k]) rows.push([`<span class="sp-tag m-${k}">${esc(MATCH_TAG[k])}</span>`, lv[k]]);
+      });
+      rows.push([`<span class="sp-tag m-none">${esc(MATCH_TAG.none)}</span>`, HELP.none]);
+      rows.push(['<span class="sp-tag cross">інший рівень</span>', HELP.cross]);
+    } else if (registry === "p") {
+      rows.push(['<span class="sp-tag reg">дод. регулювання</span>', HELP.reg]);
+    } else {
+      const tones = IDX.tones || {};
+      rows.push(["", "Світлофор відповідає на одне питання: чи може заклад " +
+        "виконати цю вимогу після 01.09.2026, коли посади поза Переліком МОЗ " +
+        "вводити стане не можна."]);
+      ["ok", "warn", "risk"].forEach((k) => {
+        if (tones[k]) {
+          rows.push([`<span class="sp-tag ${TONE_CLASS[k]}">${esc(TONE_TAG[k])}</span>`, tones[k]]);
+        }
+      });
+      rows.push(["<b>критична</b>", HELP.crit]);
+    }
+    $("#spLegendBody").innerHTML = rows.map(([tag, text]) => tag
+      ? `<div class="sp-legend-row">${tag}<span>${esc(text)}</span></div>`
+      : `<p class="sp-legend-lead">${esc(text)}</p>`).join("");
+  }
+
   function secLabel(k) { return (IDX.labels.sec || {})[k] || k; }
   function partLabel(k) { return (IDX.labels.part || {})[k] || k; }
 
@@ -297,6 +354,7 @@
       b.setAttribute("aria-selected", String(on));
     });
     applyRegistry();
+    renderLegend();
     if (reg === "r" && !NODES.some((n) => n.type === "pkgreq")) {
       el.count.textContent = "Завантаження кадрових вимог…";
       loadReqs().then(refilter).catch(() => {
@@ -383,8 +441,9 @@
         `<span class="sp-kind k-${esc(k)}">${esc(k)}</span>`).join("");
       const m = n.match || "none";
       const tag = n.cross
-        ? '<span class="sp-tag cross">інший рівень</span>'
-        : `<span class="sp-tag m-${esc(m)}">${esc(MATCH_TAG[m] || m)}</span>`;
+        ? `<span class="sp-tag cross" title="${esc(HELP.cross)}">інший рівень</span>`
+        : `<span class="sp-tag m-${esc(m)}" title="${esc(matchHelp(m))}">${
+            esc(MATCH_TAG[m] || m)}</span>`;
       return `<button class="rrow" type="button" data-id="${esc(n.id)}">
           <span class="rmain">
             <span class="tname">${esc(n.name)}</span>
@@ -401,7 +460,9 @@
           <span class="tname">${esc(n.name)}</span>
           <span class="rmeta">${esc(meta.join(" · "))}</span>
         </span>
-        ${n.regulated ? '<span class="sp-tag reg">дод. регулювання</span>' : ""}</button>`;
+        ${n.regulated
+          ? `<span class="sp-tag reg" title="${esc(HELP.reg)}">дод. регулювання</span>`
+          : ""}</button>`;
   }
 
   function reqRowHTML(n) {
@@ -413,7 +474,14 @@
           <span class="tname">${esc(trim(n.name, 130))}</span>
           <span class="rmeta">${esc(meta.filter(Boolean).join(" · "))}</span>
         </span>
-        <span class="sp-tag ${esc(TONE_CLASS[tone])}">${esc(TONE_TAG[tone])}</span></button>`;
+        <span class="sp-tag ${esc(TONE_CLASS[tone])}" title="${
+          esc((IDX.tones || {})[tone] || "")}">${esc(TONE_TAG[tone])}</span></button>`;
+  }
+
+  /** Повне пояснення рівня збігу: з графа, а для «немає пари» — своє. */
+  function matchHelp(level) {
+    if (level === "none") return HELP.none;
+    return (((IDX.edge_rels || {}).spec_post || {}).levels || {})[level] || "";
   }
 
   function plural(n, one, few, many) {

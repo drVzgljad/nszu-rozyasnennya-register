@@ -98,7 +98,12 @@
   background: var(--accent-fill); color: #fff; border-radius: 6px;
   font-size: .74rem; font-weight: 800; padding: 1px 6px;
 }
-.sp-pkgtitle { font-size: .84rem; font-weight: 700; }
+/* Назва пакета — посилання, і без явного кольору браузер малює її своєю
+   стандартною синьою (#0000EE), а після кліку — фіолетовою. У темній темі це
+   1,9 на тлі рядка, тобто просто не видно. Роль посилання в порталі — акцент. */
+.sp-pkgtitle { font-size: .84rem; font-weight: 700; color: var(--accent-dark); }
+/* Той самий випадок у підзаголовку картки кадрової вимоги («Пакет № 3 · …»). */
+.sp-sub a { color: var(--accent-dark); }
 .sp-pkgline { font-size: .82rem; line-height: 1.5; color: var(--muted); margin-top: 5px; }
 
 /* Посада, яку вимога пропонує, а Перелік МОЗ не знає. Вимога виконувана через
@@ -132,6 +137,16 @@
 .eq-more {
   margin: 8px 6px; font-size: .8rem; color: var(--muted); line-height: 1.5;
 }
+
+/* Легенда позначок. Позначка стиснута до двох слів, і без розшифровки список
+   читається як шифр — тому вона поруч зі списком, а не в підвалі. */
+#spLegendBody { font-size: .83rem; line-height: 1.5; padding: 2px 0 4px; }
+.sp-legend-lead { margin: 6px 0 10px; color: var(--muted); }
+.sp-legend-row {
+  display: grid; grid-template-columns: minmax(7.5em, auto) 1fr;
+  gap: 10px; align-items: start; margin-bottom: 8px; color: var(--muted);
+}
+.sp-legend-row .sp-tag { justify-self: start; }
 
 #spIssuesBody { font-size: .83rem; line-height: 1.5; }
 #spIssuesBody h4 { margin: 10px 0 4px; font-size: .84rem; }
