@@ -34,7 +34,8 @@
 
   let G = null, N = null, OUT = null, IN = null;
   let SEARCH = [];                       // легкий індекс для пошуку
-  let current = null, opened = null, anchor = null;
+  let current = null, anchor = null;
+  const openSet = new Set();          // які секції розкриті
 
   function boot() {
     fetch("data/kadry/graph.json")
@@ -161,9 +162,18 @@
     setAnchor({ kind: "node", id: hits[0].id });
   }
 
+  function openBox(key) {
+    openSet.add(key);
+    renderSections();
+    const el = $(`.kd-sec[data-key="${key}"]`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
   function setAnchor(a, keepOpen) {
     anchor = a;
-    if (!keepOpen) opened = null;
+    // Розкриті секції лишаються розкритими: людина щойно їх відкрила, і
+    // згортати все під ногами через перехід — втратити місце.
+    if (!keepOpen) { /* набір openSet зберігаємо навмисно */ }
     draw();
   }
 
@@ -284,7 +294,7 @@
     $("#kdFigure").innerHTML = figureHTML(current);
     $("#kdFigure").querySelectorAll("[data-box]").forEach((b) =>
       b.addEventListener("click", () => openBox(b.dataset.box)));
-    if (opened) openBox(opened); else $("#kdDetail").hidden = true;
+    renderSections();
   }
 
   /** Рядок над схемою: що саме зараз показано і чи є з ним проблема. */
@@ -408,55 +418,102 @@
       </div>`;
   }
 
-  // ── деталі під схемою ───────────────────────────────────────────────────
+  // ── розкривні секції під схемою ─────────────────────────────────────────
+  //
+  // По секції на кожне вікно, і кожна відкривається окремо: так видно, скажімо,
+  // усі вимоги на «Ендоскопію» і поруч — саму характеристику. Спільна панель
+  // цього не давала: вона показувала щось одне.
+
   const TITLES = {
-    req: "Кадрові вимоги пакета",
+    req: "Кадрові вимоги пакетів",
+    spec: "Спеціальності, за якими видається ліцензія",
     post: "Посади, які треба ввести у штатний розпис",
     dkhp: "Кваліфікаційні характеристики",
     code: "Коди посад НСЗУ",
-    spec: "Спеціальності, за якими видається ліцензія",
   };
+  const ORDER = ["req", "spec", "post", "dkhp", "code"];
 
-  function openBox(key) {
-    opened = key;
-    const w = current;
-    const ids = w[key] || [];
-    const d = $("#kdDetail");
+  function renderSections() {
+    const w = current, d = $("#kdDetail");
     d.hidden = false;
+    d.innerHTML = ORDER.map((key) => sectionHTML(key, w)).join("");
+    d.querySelectorAll("[data-goto]").forEach((b) =>
+      b.addEventListener("click", (e) => { e.stopPropagation(); goTo(b.dataset.goto); }));
+    // Запам'ятовуємо, що було розкрито, щоб перемальовування не згортало все.
+    d.querySelectorAll("details").forEach((el) =>
+      el.addEventListener("toggle", () => {
+        if (el.open) openSet.add(el.dataset.key); else openSet.delete(el.dataset.key);
+      }));
+  }
+
+  function sectionHTML(key, w) {
+    const ids = w[key] || [];
+    const t = G.node_types[SRC_KEY[key]] || {};
     const lostSet = new Set(
       key === "req" ? w.lost.req : key === "post" ? w.lost.post :
       key === "dkhp" ? w.lost.dkhp : []);
-    const t = G.node_types[SRC_KEY[key]] || {};
-
-    // Кожен рядок — вхід у власний ланцюжок. Натиснув «Лікар-невролог» у
-    // списку посад пакета — і всі п'ять вікон перемальовуються вже від нього.
-    const rows = ids.map((id) => {
-      const n = N.get(id) || {};
-      const gone = lostSet.has(id);
-      const here = anchor.kind === "node" && anchor.id === id;
-      return `<li>
-        <button type="button" class="kd-item${gone ? " gone" : ""}${here ? " here" : ""}"
-                data-goto="${esc(id)}" ${here ? 'aria-current="true"' : ""}>
-          <span class="kd-item-n">${esc(trim(n.name || id, 150))}</span>
-          ${gone ? `<span class="kd-flag">${esc(lostWhy(key))}</span>` : ""}
-          ${key === "req" && n.tone && n.tone !== "ok"
-            ? `<span class="kd-flag warn">${esc(toneWord(n.tone))}</span>` : ""}
-          ${key === "code" ? `<span class="kd-code">${esc(id.split(":")[1])}</span>` : ""}
-        </button>
-      </li>`;
-    }).join("");
-
-    d.innerHTML = `
-      <h2>${esc(TITLES[key])} <span class="kd-cnt">${nf(ids.length)}</span></h2>
-      <p class="kd-act">${esc(t.act_title || t.source || "")}${
-        t.status ? ` · <b>${esc(t.status)}</b>` : ""}${
-        t.valid_from ? ` з ${esc(ua(t.valid_from))}` : ""}</p>
-      ${ids.length ? `<ul class="kd-list">${rows}</ul>`
-        : '<p class="kd-empty">Порожньо — ланцюжок обірвався раніше.</p>'}`;
-    d.querySelectorAll("[data-goto]").forEach((b) =>
-      b.addEventListener("click", () => goTo(b.dataset.goto)));
-    d.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    const open = openSet.has(key) ? " open" : "";
+    return `
+      <details class="kd-sec" data-key="${key}"${open}>
+        <summary>
+          <span class="kd-sec-t">${esc(TITLES[key])}</span>
+          <span class="kd-sec-n">${nf(ids.length)}</span>
+          <span class="kd-sec-act">${esc(t.act_title || t.source || "")}${
+            t.status ? " · " + esc(t.status) : ""}</span>
+        </summary>
+        ${ids.length
+          ? `<ul class="kd-list">${ids.map((id) => rowHTML(key, id, lostSet)).join("")}</ul>`
+          : `<p class="kd-empty">${esc(emptyWhy(key))}.</p>`}
+      </details>`;
   }
+
+  /** Рядок секції. Для кожного типу показуємо те, заради чого його й відкривають:
+   *  у вимоги — пакет, дослівний текст і умову, у посади — кваліфікацію, у
+   *  характеристики — місце в Довіднику, у коду — сам код. */
+  function rowHTML(key, id, lostSet) {
+    const n = N.get(id) || {};
+    const gone = lostSet.has(id);
+    const here = anchor.kind === "node" && anchor.id === id;
+    let body = "";
+
+    if (key === "req") {
+      body = `
+        <span class="kd-r-head">
+          <span class="kd-pkg">Пакет № ${esc(n.package)}</span>
+          <span class="kd-pkgname">${esc(trim(G.packages[n.package] || "", 64))}</span>
+          ${n.critical ? '<span class="kd-flag">критична</span>' : ""}
+          ${n.tone && n.tone !== "ok"
+            ? `<span class="kd-flag warn">${esc(toneWord(n.tone))}</span>` : ""}
+        </span>
+        <span class="kd-r-raw">${esc(n.raw || n.name)}</span>
+        ${n.orphans && n.orphans.length
+          ? `<span class="kd-r-orphan">Поза Переліком МОЗ: ${esc(n.orphans.join(", "))}</span>`
+          : ""}`;
+    } else {
+      const sub = key === "spec"
+          ? [secLabel(n.sec), (n.kinds || []).join(", ")].filter(Boolean).join(" · ")
+        : key === "post"
+          ? [partLabel(n.part), n.no ? "позиція № " + n.no : "", n.qual].filter(Boolean).join(" · ")
+        : key === "dkhp"
+          ? [n.sub || n.section, n.page ? "с. " + n.page + " Довідника" : ""].filter(Boolean).join(" · ")
+        : n.kind === "status" ? "юридичний статус, не посада"
+        : n.kind === "admin" ? "загальноадміністративна посада" : "";
+      body = `
+        <span class="kd-r-head">
+          ${key === "code" ? `<span class="kd-code">${esc(id.split(":")[1])}</span>` : ""}
+          <span class="kd-r-name">${esc(n.name || id)}</span>
+          ${gone ? `<span class="kd-flag">${esc(lostWhy(key))}</span>` : ""}
+        </span>
+        ${sub ? `<span class="kd-r-sub">${esc(trim(sub, 220))}</span>` : ""}`;
+    }
+
+    return `<li>
+      <button type="button" class="kd-item${gone ? " gone" : ""}${here ? " here" : ""}"
+              data-goto="${esc(id)}" ${here ? 'aria-current="true"' : ""}>${body}</button>
+    </li>`;
+  }
+
+  function partLabel(k) { return ((G.labels || {}).part || {})[k] || k || ""; }
 
   function lostWhy(key) {
     return key === "req" ? "не зіставлено з Переліком"

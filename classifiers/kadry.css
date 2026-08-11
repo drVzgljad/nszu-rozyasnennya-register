@@ -116,44 +116,64 @@
   .kd-box { min-height: 0; }
 }
 
-/* ── деталі ───────────────────────────────────────────────── */
-.kd-detail {
-  margin-top: 16px; background: var(--surface); border: 1px solid var(--line);
-  border-radius: 14px; padding: 16px 18px; box-shadow: var(--shadow);
+/* ── розкривні секції ─────────────────────────────────────── */
+.kd-detail { margin-top: 16px; display: grid; gap: 8px; }
+.kd-sec {
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  padding: 4px 14px; box-shadow: var(--shadow);
 }
-.kd-detail h2 { font-size: 1.05rem; margin: 0 0 3px; }
-.kd-cnt {
-  display: inline-block; margin-left: 6px; font-size: .78rem; font-weight: 700;
-  background: var(--accent-soft); color: var(--accent-dark);
-  border-radius: 20px; padding: 2px 9px; vertical-align: middle;
+.kd-sec > summary {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px;
+  padding: 10px 0; cursor: pointer; list-style: none;
 }
-.kd-act { font-size: .8rem; color: var(--muted); margin: 0 0 12px; line-height: 1.5; }
-.kd-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
-/* Рядок панелі — кнопка: кожен веде у власний ланцюжок. */
+.kd-sec > summary::-webkit-details-marker { display: none; }
+/* Стрілочка-трикутник: показує, що блок розкривається, і повертається у відкритому. */
+.kd-sec > summary::before {
+  content: "▸"; color: var(--accent-dark); font-size: .9rem; line-height: 1;
+  transition: transform .12s ease;
+}
+.kd-sec[open] > summary::before { transform: rotate(90deg); }
+.kd-sec-t { font-size: .95rem; font-weight: 700; }
+.kd-sec-n {
+  font-size: .76rem; font-weight: 800; color: var(--accent-dark);
+  background: var(--accent-soft); border-radius: 20px; padding: 1px 9px;
+}
+.kd-sec-act { flex: 1 1 100%; font-size: .76rem; color: var(--ink); opacity: .7; }
+
+.kd-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 5px; }
 .kd-item {
-  display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline;
-  width: 100%; text-align: left; font: inherit; font-size: .87rem; line-height: 1.45;
-  padding: 7px 10px; border-radius: 8px; background: var(--soft);
+  display: flex; flex-direction: column; gap: 3px; width: 100%;
+  text-align: left; font: inherit; font-size: .87rem; line-height: 1.45;
+  padding: 9px 11px; border-radius: 9px; background: var(--soft);
   border: 1px solid transparent; color: var(--ink); cursor: pointer;
 }
 .kd-item:hover { background: var(--accent-soft); border-color: var(--accent); }
 .kd-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-/* Те, від чого зараз будується схема. */
-.kd-item.here { background: var(--accent-soft); border-color: var(--accent); font-weight: 600; }
-.kd-item-n { flex: 1 1 20rem; min-width: 0; }
+.kd-item.here { background: var(--accent-soft); border-color: var(--accent); }
 .kd-item.gone { background: var(--warning-bg); }
-.kd-item.gone:hover { border-color: var(--warning-border, var(--accent)); }
-.kd-flag {
-  font-size: .72rem; font-weight: 700; color: var(--warning-text);
-  white-space: nowrap;
+
+.kd-r-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.kd-r-name { font-weight: 600; }
+.kd-item.here .kd-r-name { font-weight: 800; }
+/* --muted на тлі --soft дає 4,37; підрядок тут несе кваліфікацію і місце в
+   Довіднику — це читають, а не проглядають. Вторинність несе кегль. */
+.kd-r-sub { font-size: .78rem; color: var(--ink); opacity: .78; line-height: 1.45; }
+/* Дослівний рядок специфікації — те, заради чого вимогу й розкривають. */
+.kd-r-raw { font-size: .84rem; line-height: 1.5; }
+.kd-r-orphan { font-size: .78rem; font-weight: 600; color: var(--warning-text); }
+.kd-pkg {
+  font-size: .74rem; font-weight: 800; background: var(--accent-fill); color: #fff;
+  border-radius: 6px; padding: 1px 8px;
 }
+.kd-pkgname { font-size: .76rem; color: var(--ink); opacity: .78; }
+.kd-flag { font-size: .72rem; font-weight: 700; color: var(--warning-text); white-space: nowrap; }
 .kd-code {
   font-size: .74rem; font-weight: 800; background: var(--accent-fill); color: #fff;
   border-radius: 6px; padding: 1px 7px;
 }
-.kd-empty { font-size: .87rem; color: var(--muted); margin: 0; }
+.kd-empty { font-size: .87rem; color: var(--muted); margin: 0 0 12px; }
 
 @media (max-width: 720px) {
   .kd-picker { flex-direction: column; align-items: stretch; }
-  .kd-figure { padding: 8px; }
+  .kd-figure { padding: 10px; }
 }
