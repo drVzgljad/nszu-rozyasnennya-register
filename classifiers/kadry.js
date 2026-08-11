@@ -158,7 +158,21 @@
     setAnchor({ kind: "node", id: hits[0].id });
   }
 
-  function setAnchor(a) { anchor = a; opened = null; draw(); }
+  function setAnchor(a, keepOpen) {
+    anchor = a;
+    if (!keepOpen) opened = null;
+    draw();
+  }
+
+  /** Перехід за рядком нижньої панелі. Відкрите вікно НЕ закриваємо: людина
+   *  щойно дивилася список, і згорнути його під ногами — втратити контекст. */
+  function goTo(id) {
+    const n = N.get(id);
+    if (!n) return;
+    $("#kdSearch").value = n.type === "pkgreq" ? "" : n.name;
+    $("#kdPkg").value = "";
+    setAnchor({ kind: "node", id }, true);
+  }
 
   /** Обхід ланцюжка від будь-якої точки — в обидва боки.
    *
@@ -175,10 +189,20 @@
     const reqs = new Set();
     let start;
 
+    // Набір вимог фіксований, коли зайшли з пакета або з однієї вимоги: тоді
+    // решта вимог на ті самі посади в кадр не потрапляє — питання ж було про
+    // цю вимогу, а не про всі.
+    let fixedReqs = false;
     if (a.kind === "pkg") {
       G.nodes.forEach((n) => { if (n.type === "pkgreq" && n.package === a.id) reqs.add(n.id); });
       reqs.forEach((r) => out(r, "req_post").forEach((e) => S.post.add(e.to)));
       start = LAYERS.indexOf("post");
+      fixedReqs = true;
+    } else if (N.get(a.id).type === "pkgreq") {
+      reqs.add(a.id);
+      out(a.id, "req_post").forEach((e) => S.post.add(e.to));
+      start = LAYERS.indexOf("post");
+      fixedReqs = true;
     } else {
       const n = N.get(a.id);
       S[n.type].add(a.id);
@@ -193,14 +217,15 @@
       const rel = REL[LAYERS[i]];
       S[LAYERS[i]].forEach((id) => out(id, rel).forEach((e) => S[LAYERS[i + 1]].add(e.to)));
     }
-    if (a.kind !== "pkg") {
+    if (!fixedReqs) {
       S.post.forEach((p) => inc(p, "req_post").forEach((e) => reqs.add(e.from)));
     }
 
     const noNext = (ids, rel) => [...ids].filter((id) => !out(id, rel).length);
     const reqArr = [...reqs].sort(byReqId);
     return {
-      anchorKey: a.kind === "pkg" ? "req" : N.get(a.id).type,
+      anchorKey: a.kind === "pkg" || N.get(a.id).type === "pkgreq"
+        ? "req" : N.get(a.id).type,
       req: reqArr, post: [...S.post], dkhp: [...S.dkhp], code: [...S.code], spec: [...S.spec],
       lost: {
         req: noNext(reqArr, "req_post"),
@@ -260,6 +285,16 @@
       return;
     }
     const n = N.get(anchor.id);
+    if (n.type === "pkgreq") {
+      const t = n.tone || "ok";
+      $("#kdSummary").innerHTML = `
+        <div class="kd-sum-line"><b>${esc(trim(n.name, 70))}</b></div>
+        <div class="kd-sum-kind">кадрова вимога пакета № ${esc(n.package)}${
+          n.critical ? " · критична" : ""}</div>
+        <div class="${t === "ok" ? "kd-sum-ok" : "kd-sum-warn"}">${
+          esc((G.tones || {})[t] || "")}</div>`;
+      return;
+    }
     const pk = new Set(w.req.map((id) => N.get(id).package));
     const t = G.node_types[n.type] || {};
     $("#kdSummary").innerHTML = `
@@ -365,15 +400,21 @@
       key === "dkhp" ? w.lost.dkhp : []);
     const t = G.node_types[SRC_KEY[key]] || {};
 
+    // Кожен рядок — вхід у власний ланцюжок. Натиснув «Лікар-невролог» у
+    // списку посад пакета — і всі п'ять вікон перемальовуються вже від нього.
     const rows = ids.map((id) => {
       const n = N.get(id) || {};
       const gone = lostSet.has(id);
-      return `<li class="${gone ? "kd-item gone" : "kd-item"}">
-        <span class="kd-item-n">${esc(trim(n.name || id, 150))}</span>
-        ${gone ? `<span class="kd-flag">${esc(lostWhy(key))}</span>` : ""}
-        ${key === "req" && n.tone && n.tone !== "ok"
-          ? `<span class="kd-flag warn">${esc(toneWord(n.tone))}</span>` : ""}
-        ${key === "code" ? `<span class="kd-code">${esc(id.split(":")[1])}</span>` : ""}
+      const here = anchor.kind === "node" && anchor.id === id;
+      return `<li>
+        <button type="button" class="kd-item${gone ? " gone" : ""}${here ? " here" : ""}"
+                data-goto="${esc(id)}" ${here ? 'aria-current="true"' : ""}>
+          <span class="kd-item-n">${esc(trim(n.name || id, 150))}</span>
+          ${gone ? `<span class="kd-flag">${esc(lostWhy(key))}</span>` : ""}
+          ${key === "req" && n.tone && n.tone !== "ok"
+            ? `<span class="kd-flag warn">${esc(toneWord(n.tone))}</span>` : ""}
+          ${key === "code" ? `<span class="kd-code">${esc(id.split(":")[1])}</span>` : ""}
+        </button>
       </li>`;
     }).join("");
 
@@ -384,6 +425,8 @@
         t.valid_from ? ` з ${esc(ua(t.valid_from))}` : ""}</p>
       ${ids.length ? `<ul class="kd-list">${rows}</ul>`
         : '<p class="kd-empty">Порожньо — ланцюжок обірвався раніше.</p>'}`;
+    d.querySelectorAll("[data-goto]").forEach((b) =>
+      b.addEventListener("click", () => goTo(b.dataset.goto)));
     d.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 

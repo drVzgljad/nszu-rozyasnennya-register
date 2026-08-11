@@ -98,13 +98,20 @@
 }
 .kd-act { font-size: .8rem; color: var(--muted); margin: 0 0 12px; line-height: 1.5; }
 .kd-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+/* Рядок панелі — кнопка: кожен веде у власний ланцюжок. */
 .kd-item {
   display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline;
+  width: 100%; text-align: left; font: inherit; font-size: .87rem; line-height: 1.45;
   padding: 7px 10px; border-radius: 8px; background: var(--soft);
-  font-size: .87rem; line-height: 1.45;
+  border: 1px solid transparent; color: var(--ink); cursor: pointer;
 }
+.kd-item:hover { background: var(--accent-soft); border-color: var(--accent); }
+.kd-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* Те, від чого зараз будується схема. */
+.kd-item.here { background: var(--accent-soft); border-color: var(--accent); font-weight: 600; }
 .kd-item-n { flex: 1 1 20rem; min-width: 0; }
 .kd-item.gone { background: var(--warning-bg); }
+.kd-item.gone:hover { border-color: var(--warning-border, var(--accent)); }
 .kd-flag {
   font-size: .72rem; font-weight: 700; color: var(--warning-text);
   white-space: nowrap;
