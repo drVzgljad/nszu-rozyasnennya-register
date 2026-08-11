@@ -41,6 +41,18 @@
 .sp-tag.m-none { background: var(--soft); color: var(--muted); }
 .sp-tag.cross { background: var(--warning-bg); color: var(--warning-text); }
 .sp-tag.reg { background: var(--accent-soft); color: var(--accent-dark); }
+/* Світлофор кадрової вимоги.
+   «risk»: своєї ролі «небезпека» в токенах порталу немає, і заводити її заради
+   двох рядків не варто — беремо ту саму попереджувальну родину, але на щабель
+   гучніше: заливка бордюрним відтінком замість тла. Контраст із --ink обидві
+   теми тримають (7,6).
+   «ok»: НЕ через .m-exact, хоч колір і напрошується. Той клас дає білий текст
+   на --teal, а це 2,6 у світлій темі і 1,7 у темній — на 330 рядках такий тег
+   просто не читається. Пара «--warm + --teal-dark» дає 4,1, теж замало для
+   тексту 0,68rem; --ink на тому самому тлі тримає 11 і 9,4, лишаючись
+   спокійним зеленуватим. */
+.sp-tag.risk { background: var(--warning-border); color: var(--ink); }
+.sp-tag.ok { background: var(--warm); color: var(--ink); }
 
 /* Види допомоги — рядок чіпів у списку і в картці */
 .sp-kinds { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 3px; }

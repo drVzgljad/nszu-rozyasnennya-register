@@ -3,10 +3,23 @@
    Каскад (Розділ → Підрозділ → Посада) по ДКХП, випуск 78,
    миттєвий і пакетний пошук за назвою та кодом НСЗУ,
    паспорт посади з кадровими вимогами пакетів ПМГ-2026.
-   Vanilla JS. Дані: data/posady/posady_meta.json  — підсумки й зауваги
-                     data/posady/posady_index.json — легкий список
-                     data/posady/posady_codes.json — коди НСЗУ P1–P286
-                     data/posady/posady_cards.json — паспорти (ліниво)
+
+   Сторінка — ВЬЮ НА СПІЛЬНИЙ ГРАФ, а не власник даних. Характеристика, код
+   НСЗУ і кадрова вимога — це три типи вузлів (dkhp, code, pkgreq), а «код
+   кодує характеристику» і «вимога називає характеристику» — два відношення.
+   Своїх файлів у сторінки більше немає.
+
+   Дані (будує classifiers/build_kadry_graph.py):
+     graph_index.json      — шапка: підсумки, зауваги до джерел, назви пакетів
+     nodes_dkhp.json       — легкі вузли характеристик (список і каскад)
+     nodes_code.json       — легкі вузли кодів НСЗУ
+     edges_dkhp_code.json  — потрібне вже на першому кадрі: код видно в рядку
+                             списку, і пошук за «P37» має спрацювати одразу
+   з першим паспортом:
+     cards_dkhp / cards_code / cards_pkgreq, edges_req_dkhp, text_dkhp.json
+
+   ТЕКСТ ХАРАКТЕРИСТИК лежить окремо (text_dkhp.json, 3 МБ): це тіло
+   документа, а не сутність графа, і тягнути його заради списку немає за що.
    ============================================================ */
 (function () {
   "use strict";
@@ -31,17 +44,45 @@
   };
   const BLOCK_ORDER = ["intro", "duties", "knowledge", "req"];
 
-  let META = null, INDEX = null, CODES = null, CARDS = null;
-  let ready = false, cardsPromise = null;
+  // Текст Довідника тягнемо ОКРЕМО від решти паспорта. Він на 3 МБ — уп'ятеро
+  // важчий за все інше разом, — і поки він їде, показувати порожнє вікно немає
+  // за що: код НСЗУ і кадрові вимоги пакетів уже є. Тому спершу малюємо
+  // паспорт без тексту, а тоді дошиваємо характеристику. Заодно зникає
+  // проблема локального сервера, який рве саме цей файл, коли поруч інші.
+  const DETAIL = [
+    "cards_dkhp.json", "cards_code.json", "cards_pkgreq.json",
+    // Легкі вузли вимог теж потрібні: номер пакета і мітка «критична» лежать
+    // саме там, а не у важких полях.
+    "nodes_pkgreq.json", "edges_req_dkhp.json",
+  ];
+
+  let IDX = null;                  // шапка графа
+  let DKHP = [], CODES = [];       // легкі вузли двох типів
+  let CARD = null, TEXT = null;    // важкі поля вузлів і текст характеристик
+  let REQ = null;                  // id характеристики → ребра від вимог
+  let textState = "idle";          // idle | pending | ready | failed
+  let ready = false, detailPromise = null, textPromise = null;
   let openedId = null, lastBatchFound = [];
   let readerEmptyHTML = "";
 
-  const byId = new Map();          // id характеристики → запис індексу
-  const codesByDkhp = new Map();   // id характеристики → [записи кодів]
+  const byNode = new Map();        // id вузла будь-якого типу → легкий вузол
+  const byId = new Map();          // id характеристики (з префіксом і без)
+  const byCode = new Map();        // «P37» → легкий вузол коду
+  const codesOf = new Map();       // id характеристики → [вузли кодів]
+  const dkhpOfCode = new Map();    // id коду → id характеристики
   const orphans = [];              // коди без характеристики — теж шукаємо
-  const sections = [];             // [{name, subs: [{name, items}], items}]
+  const sections = [];             // [{name, subs: Map, items}]
 
   const el = {};
+
+  const bare = (id) => String(id).split(":").pop();
+
+  function getJSON(name) {
+    return fetch("data/kadry/" + name).then((r) => {
+      if (!r.ok) throw new Error(r.status);
+      return r.json();
+    });
+  }
 
   // ══════════════════════════════════════════════════════════
   // Завантаження
@@ -60,46 +101,87 @@
     readerEmptyHTML = el.reader.innerHTML;
     wireUI();
 
-    Promise.all([
-      fetch("data/posady/posady_meta.json").then((r) => r.json()),
-      fetch("data/posady/posady_index.json").then((r) => r.json()),
-      fetch("data/posady/posady_codes.json").then((r) => r.json()),
-    ]).then(([meta, index, codes]) => {
-      META = meta; INDEX = index; CODES = codes;
-      buildMaps();
-      renderStats();
-      renderIssues();
-      populateSections();
-      ready = true;
-      onReady();
-    }).catch((e) => {
-      el.count.textContent = "Не вдалося завантажити довідник";
-      console.error(e);
-    });
+    Promise.all(["graph_index.json", "nodes_dkhp.json", "nodes_code.json",
+                 "edges_dkhp_code.json"].map(getJSON))
+      .then(([idx, dkhp, codes, edges]) => {
+        IDX = idx; DKHP = dkhp; CODES = codes;
+        buildMaps(edges);
+        renderStats();
+        renderIssues();
+        populateSections();
+        ready = true;
+        onReady();
+      })
+      .catch((e) => {
+        el.count.textContent = "Не вдалося завантажити довідник";
+        console.error(e);
+      });
   }
 
   /** Паспорти важкі — вантажимо один раз, коли знадобився перший. */
-  function loadCards() {
-    if (!cardsPromise) {
-      cardsPromise = fetch("data/posady/posady_cards.json")
-        .then((r) => r.json()).then((d) => (CARDS = d));
+  function loadDetail() {
+    if (CARD) return Promise.resolve(CARD);
+    if (!detailPromise) {
+      detailPromise = Promise.all(DETAIL.map(getJSON))
+        .then(([cd, cc, cr, nReq, eReqDkhp]) => {
+          CARD = Object.assign({}, cd, cc, cr);
+          nReq.forEach((n) => byNode.set(n.id, n));
+          REQ = new Map();
+          eReqDkhp.forEach((e) => {
+            const a = REQ.get(e.to);
+            if (a) a.push(e); else REQ.set(e.to, [e]);
+          });
+          return CARD;
+        })
+        .catch((err) => {
+          detailPromise = null;
+          throw err;
+        });
     }
-    return cardsPromise;
+    return detailPromise;
   }
 
-  function buildMaps() {
-    INDEX.forEach((e) => byId.set(e.id, e));
-    CODES.forEach((c) => {
-      if (c.dkhp && byId.has(c.dkhp)) {
-        const b = codesByDkhp.get(c.dkhp);
-        if (b) b.push(c); else codesByDkhp.set(c.dkhp, [c]);
-      } else if (!c.dkhp) {
-        orphans.push(c);
-      }
+  function loadText() {
+    if (!textPromise) {
+      textState = "pending";
+      textPromise = getJSON("text_dkhp.json")
+        .then((t) => { TEXT = t; textState = "ready"; return t; })
+        .catch((err) => {
+          textPromise = null;
+          textState = "failed";
+          throw err;
+        });
+    }
+    return textPromise;
+  }
+
+  /** Вузол цілком: легкі поля плюс важкі з картки. Легкі беремо із byNode —
+   *  туди складено всі типи, які сторінка вантажить, незалежно від того, коли
+   *  саме вони приїхали. */
+  function full(id) {
+    return Object.assign({}, byNode.get(id), CARD[id]);
+  }
+
+  function buildMaps(edges) {
+    DKHP.concat(CODES).forEach((n) => byNode.set(n.id, n));
+    DKHP.forEach((e) => { byId.set(e.id, e); byId.set(bare(e.id), e); });
+    CODES.forEach((c) => byCode.set(bare(c.id), c));
+
+    edges.forEach((e) => {
+      const c = byCode.get(bare(e.to));
+      if (!c || !byId.has(e.from)) return;
+      dkhpOfCode.set(e.to, e.from);
+      const b = codesOf.get(e.from);
+      if (b) b.push(c); else codesOf.set(e.from, [c]);
     });
+    // Довідник кодів нумерований, і в паспорті вони мають стояти по порядку:
+    // рядкове сортування давало б P1, P10, P100, P11.
+    codesOf.forEach((list) => list.sort((a, b) => +bare(a.id).slice(1) - +bare(b.id).slice(1)));
+
+    CODES.forEach((c) => { if (!dkhpOfCode.has(c.id)) orphans.push(c); });
 
     const secIdx = new Map();
-    INDEX.forEach((e) => {
+    DKHP.forEach((e) => {
       let s = secIdx.get(e.section);
       if (!s) {
         s = { name: e.section, items: [], subs: new Map() };
@@ -114,6 +196,9 @@
     });
   }
 
+  const codeStrings = (id) => (codesOf.get(id) || []).map((c) => bare(c.id));
+  const pkgsOf = (e) => e.pkg || [];
+
   function onReady() {
     el.count.textContent = idleCount();
     const q = new URLSearchParams(location.search);
@@ -126,23 +211,28 @@
     const viewBox = { codes: el.onlyCode, pkg: el.onlyPkg, gap: el.onlyGap }[view];
     if (viewBox) { viewBox.checked = true; refilter(); }
 
-    if (id && byId.has(id)) { openCard(id); syncCascade(id); return; }
+    if (id && byId.has(id)) {
+      const node = byId.get(id);
+      openCard(node.id);
+      syncCascade(node.id);
+      return;
+    }
     if (raw) { el.search.value = raw; runSearch(); }
   }
 
   const idleCount = () =>
-    nf(INDEX.length) + " кваліфікаційних характеристик · " + nf(CODES.length) +
+    nf(DKHP.length) + " кваліфікаційних характеристик · " + nf(CODES.length) +
     " кодів НСЗУ · оберіть розділ або введіть запит";
 
   // ══════════════════════════════════════════════════════════
   // Статистика і зауваги
   // ══════════════════════════════════════════════════════════
   function renderStats() {
-    const c = META.counts || {};
+    const c = IDX.counts || {};
     const cards = [
-      ["Характеристик ДКХП", c.entries || 0],
-      ["Кодів посад НСЗУ", c.codes || 0],
-      ["Посад у пакетах ПМГ", c.pkg_positions || 0],
+      ["Характеристик ДКХП", c.dkhp || 0],
+      ["Кодів посад НСЗУ", c.code || 0],
+      ["Посад у пакетах ПМГ", c.dkhp_in_packages || 0],
       ["Пакетів із кадровою вимогою", c.packages_with_staff || 0],
     ];
     el.stats.innerHTML = cards.map(([k, v]) =>
@@ -152,10 +242,11 @@
 
   /** Розбіжності між джерелами краще показати, ніж мовчки згладити. */
   function renderIssues() {
+    const N = (IDX.notes || {}).dkhp || {};
     const parts = [];
-    (META.notes || []).forEach((n) => parts.push(`<li>${esc(n)}</li>`));
+    (N.notes || []).forEach((n) => parts.push(`<li>${esc(n)}</li>`));
 
-    const al = META.aliases || [];
+    const al = N.aliases || [];
     if (al.length) {
       parts.push(`<li><b>Застарілі назви в кодах НСЗУ (${al.length}).</b> Паспорт відкривається
         від чинної назви: ` + al.map((a) =>
@@ -163,21 +254,21 @@
       ).join(", ") + ".</li>");
     }
 
-    const lac = META.lacunae || [];
+    const lac = N.lacunae || [];
     if (lac.length) {
       parts.push(`<li><b>Коди без кваліфікаційної характеристики (${lac.length}).</b>
         Посада є в довіднику кодів НСЗУ, але Випуск 78 її не описує: ` +
         lac.map((l) => `${esc(l.code)} «${esc(l.name)}»`).join("; ") + ".</li>");
     }
 
-    const un = META.pkg_unmatched || [];
+    const un = N.pkg_unmatched || [];
     if (un.length) {
       parts.push(`<li><b>Кадрові вимоги пакетів без відповідної характеристики (${un.length}).</b>
         У специфікаціях названо: ` + un.map((u) =>
         `«${esc(u.name)}»${u.hits > 1 ? " ×" + u.hits : ""}`).join("; ") + ".</li>");
     }
 
-    (META.no_block || []).forEach((d) => parts.push(
+    (N.no_block || []).forEach((d) => parts.push(
       `<li><b>Дефект зведеного тексту Довідника.</b> У характеристиці «${esc(d.name)}»
        (с.&nbsp;${d.page}) мітку блоку «Кваліфікаційні вимоги» втоплено всередину абзацу,
        тож окремим блоком вона тут не виділяється — див. кінець розділу
@@ -221,7 +312,9 @@
     if (!list || !list.length) { resetSel(el.selPost, "оберіть розділ"); return; }
     const opts = [ph("усі посади")];
     list.forEach((e) => {
-      const tail = [e.codes.length ? e.codes[0] : "", e.pkgs.length ? "📦 " + e.pkgs.length : ""]
+      const codes = codeStrings(e.id);
+      const pkgs = pkgsOf(e);
+      const tail = [codes.length ? codes[0] : "", pkgs.length ? "📦 " + pkgs.length : ""]
         .filter(Boolean).join(" · ");
       opts.push(`<option value="${escAttr(e.id)}">${esc(trim(e.name, 88))}${tail ? " · " + tail : ""}</option>`);
     });
@@ -231,9 +324,9 @@
 
   function currentList() {
     const si = el.selSection.value;
-    if (si === "") return INDEX;
+    if (si === "") return DKHP;
     const s = sections[+si];
-    if (!s) return INDEX;
+    if (!s) return DKHP;
     const sub = el.selSub.value;
     return sub ? (s.subs.get(sub) || []) : s.items;
   }
@@ -269,7 +362,7 @@
     fillSubs(si);
     if (e.sub) el.selSub.value = e.sub;
     fillPosts(currentList());
-    el.selPost.value = id;
+    el.selPost.value = e.id;
   }
 
   // ══════════════════════════════════════════════════════════
@@ -294,7 +387,7 @@
     });
     el.batchCopy.addEventListener("click", () => {
       const text = lastBatchFound.map((r) =>
-        `${r.codes.join(" ") || "—"}\t${r.name}`).join("\n");
+        `${codeStrings(r.id).join(" ") || "—"}\t${r.name}`).join("\n");
       navigator.clipboard && navigator.clipboard.writeText(text);
       el.batchCopy.textContent = "✓ Скопійовано (" + lastBatchFound.length + ")";
       setTimeout(() => (el.batchCopy.textContent = "⧉ Копіювати знайдене"), 1500);
@@ -305,8 +398,8 @@
 
   function applyFilters(list) {
     let out = list;
-    if (el.onlyPkg.checked) out = out.filter((e) => e.pkgs && e.pkgs.length);
-    if (el.onlyCode.checked) out = out.filter((e) => e.codes && e.codes.length);
+    if (el.onlyPkg.checked) out = out.filter((e) => pkgsOf(e).length);
+    if (el.onlyCode.checked) out = out.filter((e) => codesOf.has(e.id));
     return out;
   }
 
@@ -331,21 +424,25 @@
     let rows = orphans.filter((c) => c.kind === "position");
     if (q) {
       rows = rows.filter((c) => c.name.toLowerCase().includes(q) ||
-        c.code.toLowerCase() === q.replace(/\s+/g, ""));
+        bare(c.id).toLowerCase() === q.replace(/\s+/g, ""));
     }
     el.count.textContent = nf(rows.length) + " кодів без кваліфікаційної характеристики" +
       (q ? ` · запит «${el.search.value.trim()}»` : "");
     el.results.hidden = false;
-    el.results.innerHTML = rows.map((c) => `
-      <button class="rrow po-gap" type="button" data-code="${escAttr(c.code)}">
-        <span class="tcode code">${esc(c.code)}</span>
-        <span class="rmain">
-          <span class="tname">${esc(c.name)}</span>
-          <span class="rmeta">немає характеристики в ДКХП, випуск 78</span>
-        </span>
-      </button>`).join("");
+    el.results.innerHTML = rows.map((c) => gapRowHTML(c, "немає характеристики в ДКХП, випуск 78")).join("");
     el.results.querySelectorAll(".rrow").forEach((r) =>
       r.addEventListener("click", () => openGap(r.dataset.code)));
+  }
+
+  function gapRowHTML(c, note) {
+    return `
+      <button class="rrow po-gap" type="button" data-code="${escAttr(bare(c.id))}">
+        <span class="tcode code">${esc(bare(c.id))}</span>
+        <span class="rmain">
+          <span class="tname">${esc(c.name)}</span>
+          <span class="rmeta">${esc(note)}</span>
+        </span>
+      </button>`;
   }
 
   function matches(e, q) {
@@ -353,7 +450,7 @@
       // Назви кодів НСЗУ, що не збіглися з назвою характеристики: хто шукає
       // «провізор», має вийти на «Фармацевта», а не на порожній результат.
       (e.alt || []).some((a) => a.toLowerCase().includes(q)) ||
-      (e.codes || []).some((c) => c.toLowerCase() === q);
+      codeStrings(e.id).some((c) => c.toLowerCase() === q);
   }
 
   function runSearch() {
@@ -372,17 +469,18 @@
     let list;
     if (CODE_RE.test(raw)) {
       const code = raw.toUpperCase().replace(/\s+/g, "");
-      const hit = CODES.find((c) => c.code === code);
-      if (hit && hit.dkhp && byId.has(hit.dkhp)) { openCard(hit.dkhp); syncCascade(hit.dkhp); }
+      const hit = byCode.get(code);
+      const target = hit && dkhpOfCode.get(hit.id);
+      if (target) { openCard(target); syncCascade(target); }
       else if (hit) { openGap(code); }
-      list = INDEX.filter((e) => (e.codes || []).includes(code));
+      list = DKHP.filter((e) => codeStrings(e.id).includes(code));
       if (!list.length && hit) {
         el.count.textContent = `Код ${code} — «${hit.name}»`;
         el.results.hidden = true;
         return;
       }
     } else {
-      list = INDEX.filter((e) => matches(e, q));
+      list = DKHP.filter((e) => matches(e, q));
     }
     list = applyFilters(list);
 
@@ -402,8 +500,8 @@
     items.forEach((it) => {
       const q = it.toLowerCase();
       const hits = CODE_RE.test(it)
-        ? INDEX.filter((e) => (e.codes || []).includes(it.toUpperCase().replace(/\s+/g, "")))
-        : INDEX.filter((e) => matches(e, q));
+        ? DKHP.filter((e) => codeStrings(e.id).includes(it.toUpperCase().replace(/\s+/g, "")))
+        : DKHP.filter((e) => matches(e, q));
       groups.push({ q: it, hits });
       hits.forEach((h) => found.push(h));
     });
@@ -430,24 +528,20 @@
       ? `${nf(total)} знайдено · ${esc(label)}`
       : `Нічого не знайдено · ${esc(label)}`;
     el.results.hidden = false;
-    el.results.innerHTML = list.map(rowHTML).join("") + gaps.map((c) => `
-      <button class="rrow po-gap" type="button" data-code="${escAttr(c.code)}">
-        <span class="tcode code">${esc(c.code)}</span>
-        <span class="rmain">
-          <span class="tname">${esc(c.name)}</span>
-          <span class="rmeta">немає характеристики в ДКХП</span>
-        </span>
-      </button>`).join("");
+    el.results.innerHTML = list.map(rowHTML).join("") +
+      gaps.map((c) => gapRowHTML(c, "немає характеристики в ДКХП")).join("");
     wireRows();
   }
 
   function rowHTML(e) {
     const badges = [];
-    if (e.codes && e.codes.length) {
-      badges.push(`<span class="po-code">${e.codes.map(esc).join(" · ")}</span>`);
+    const codes = codeStrings(e.id);
+    if (codes.length) {
+      badges.push(`<span class="po-code">${codes.map(esc).join(" · ")}</span>`);
     }
-    if (e.pkgs && e.pkgs.length) {
-      badges.push(`<span class="po-pkgn">📦 ${e.pkgs.length}</span>`);
+    const pkgs = pkgsOf(e);
+    if (pkgs.length) {
+      badges.push(`<span class="po-pkgn">📦 ${pkgs.length}</span>`);
     }
     const meta = [trim(e.sub || e.section || "", 70)];
     if (e.alt && e.alt.length) meta.push("у кодах НСЗУ: " + e.alt.join(", "));
@@ -472,23 +566,32 @@
   // Паспорт посади
   // ══════════════════════════════════════════════════════════
   function openCard(id) {
-    openedId = id;
+    const node = byId.get(id);
+    if (!node) return;
+    openedId = node.id;
     setTab("reader");
     el.reader.classList.remove("reader-empty");
     el.reader.innerHTML = `<div class="po-loading">Завантаження паспорта…</div>`;
-    loadCards().then(() => {
-      if (openedId !== id) return;
-      const card = CARDS[id];
-      if (!card) { el.reader.innerHTML = `<div class="po-loading">Паспорт не знайдено</div>`; return; }
-      renderCard(card);
+    loadDetail().then(() => {
+      if (openedId !== node.id) return;
+      renderCard(full(node.id));
       el.reader.scrollTop = 0;
+      if (textState !== "ready") {
+        // Текст Довідника дошиваємо, коли доїде. Якщо за цей час відкрили
+        // іншу посаду — перемальовує вже її власний виклик, не цей.
+        loadText()
+          .then(() => { if (openedId === node.id) renderCard(full(node.id)); })
+          .catch(() => { if (openedId === node.id) renderCard(full(node.id)); });
+      }
+    }).catch(() => {
+      el.reader.innerHTML = `<div class="po-loading">Не вдалося завантажити паспорт</div>`;
     });
   }
 
   function renderCard(card) {
     const crumbs = [card.section, card.sub].filter(Boolean)
       .map((s) => `<span>${esc(s)}</span>`).join('<span class="sep">›</span>');
-    const codes = codesByDkhp.get(card.id) || [];
+    const text = TEXT ? (TEXT[card.id] || { blocks: {}, orders: [] }) : null;
 
     el.reader.innerHTML = `
       <div class="reader-crumbs">${crumbs}</div>
@@ -496,10 +599,12 @@
       <div class="po-meta">
         № ${card.num} у підрозділі · с. ${card.page} Довідника
       </div>
-      ${codesHTML(codes)}
+      ${codesHTML(card.id)}
       ${pkgHTML(card)}
-      ${BLOCK_ORDER.filter((b) => card.blocks[b]).map((b) => blockHTML(b, card.blocks[b])).join("")}
-      ${ordersHTML(card)}
+      ${text
+        ? BLOCK_ORDER.filter((b) => text.blocks[b])
+            .map((b) => blockHTML(b, text.blocks[b])).join("") + ordersHTML(text.orders)
+        : textPlaceholderHTML()}
       ${linksHTML(card)}`;
 
     el.reader.querySelectorAll(".copy-btn").forEach((b) =>
@@ -510,7 +615,18 @@
       }));
   }
 
-  function codesHTML(codes) {
+  function textPlaceholderHTML() {
+    return `<div class="reader-block po-block">
+      <h3>Кваліфікаційна характеристика</h3>
+      <p class="muted">${textState === "failed"
+        ? "Текст Довідника не завантажився. Решта паспорта — код НСЗУ і кадрові " +
+          "вимоги пакетів — показана вище; спробуйте відкрити посаду ще раз."
+        : "Завантаження тексту Довідника…"}</p>
+    </div>`;
+  }
+
+  function codesHTML(id) {
+    const codes = codesOf.get(id) || [];
     if (!codes.length) {
       return `<div class="reader-block po-nocode">
         <h3>Код посади НСЗУ</h3>
@@ -519,19 +635,34 @@
     }
     return `<div class="reader-block">
       <h3>Код посади НСЗУ <span class="muted">— для кодування працівника в ЕСОЗ</span></h3>
-      <div class="po-codes">${codes.map((c) => `
-        <div class="po-codecard${c.alias_of ? " legacy" : ""}">
-          <span class="tcode code">${esc(c.code)}</span>
+      <div class="po-codes">${codes.map((c) => {
+        const alias = (CARD[c.id] || {}).alias_of;
+        const code = bare(c.id);
+        return `
+        <div class="po-codecard${alias ? " legacy" : ""}">
+          <span class="tcode code">${esc(code)}</span>
           <span class="po-codename">${esc(c.name)}</span>
-          ${c.alias_of ? `<span class="po-legacy">назва застаріла — чинна характеристика
-             зветься «${esc(c.alias_of)}»</span>` : ""}
-          <button class="copy-btn" type="button" data-copy="${escAttr(c.code)}">⧉ Копіювати</button>
-        </div>`).join("")}</div>
+          ${alias ? `<span class="po-legacy">назва застаріла — чинна характеристика
+             зветься «${esc(alias)}»</span>` : ""}
+          <button class="copy-btn" type="button" data-copy="${escAttr(code)}">⧉ Копіювати</button>
+        </div>`; }).join("")}</div>
     </div>`;
   }
 
+  /** Кадрові вимоги пакетів, які називають цю характеристику.
+   *
+   *  Ребро несе АЛЬТЕРНАТИВУ, якою вимога дотяглася сюди, тож одна вимога
+   *  буває тут двічі: «Лікар-психолог … або психолог» називає цю посаду і
+   *  прямо, і узагальнено. Це два різні твердження, і зводити їх в одне не
+   *  можна. */
   function pkgHTML(card) {
-    const rows = card.pkg_rows || [];
+    const rows = (REQ.get(card.id) || []).map((e) => {
+      const r = full(e.from);
+      return {
+        pkg: r.package, scope: r.scope, cond: r.cond, critical: r.critical,
+        name: e.alt, alts: (r.alts || []).length, key: e.from,
+      };
+    });
     if (!rows.length) {
       return `<div class="reader-block po-nopkg">
         <h3>Кадрова вимога пакетів ПМГ-2026</h3>
@@ -540,6 +671,7 @@
            умовою закупівлі жодного пакета.</p>
       </div>`;
     }
+    rows.sort((a, b) => (+a.pkg || 999) - (+b.pkg || 999) || a.key.localeCompare(b.key));
     const byPkg = new Map();
     rows.forEach((r) => {
       const b = byPkg.get(r.pkg);
@@ -556,7 +688,7 @@
           <a class="pk-pkg" href="../passport/index.html?package=${encodeURIComponent(num)}${
             backTail(card.id, card.name)}" title="Паспорт пакета № ${esc(num)}">Пакет № ${esc(num)}</a>
           <div class="po-pkgbody">
-            <div class="po-pkgtitle">${esc(list[0].title || "")}</div>
+            <div class="po-pkgtitle">${esc(IDX.packages[num] || "")}</div>
             ${list.map((r) => `<div class="po-pkgcond${r.critical ? " crit" : ""}">
               ${r.scope ? `<b>${esc(r.scope)}:</b> ` : ""}${esc(r.name)}${r.alts > 1
                 ? ` <span class="po-combo" title="У вимозі пакета ця посада стоїть у переліку взаємозамінних
@@ -590,8 +722,8 @@
     </div>`;
   }
 
-  function ordersHTML(card) {
-    const o = card.orders || [];
+  function ordersHTML(orders) {
+    const o = orders || [];
     if (!o.length) return "";
     return `<div class="reader-block po-orders">
       <h3>Чим змінювалась ця характеристика <span class="muted">— ${o.length} ${
@@ -619,7 +751,7 @@
 
   /** Паспорт-заглушка для коду, якого Випуск 78 не описує. */
   function openGap(code) {
-    const c = CODES.find((x) => x.code === code);
+    const c = byCode.get(code);
     if (!c) return;
     openedId = null;
     setTab("reader");
@@ -635,7 +767,7 @@
     el.reader.innerHTML = `
       <div class="reader-crumbs"><span>Коди посад НСЗУ 2026</span></div>
       <h2 class="po-title">${esc(c.name)}</h2>
-      <div class="po-meta">Код <b>${esc(c.code)}</b></div>
+      <div class="po-meta">Код <b>${esc(code)}</b></div>
       <div class="reader-block po-nocode">
         <h3>Кваліфікаційної характеристики немає</h3>
         <p>${why}</p>
@@ -645,7 +777,7 @@
         <div class="link-grid">
           <a class="xlink" href="../pakety/index.html?q=${encodeURIComponent(c.name)}">
             <span class="xico">📦</span>Шукати посаду в пакетах ПМГ-2026</a>
-          <a class="xlink" href="?onlyGap=1"><span class="xico">📄</span>Усі коди без характеристики</a>
+          <a class="xlink" href="?view=gap"><span class="xico">📄</span>Усі коди без характеристики</a>
         </div>
       </div>`;
     el.reader.scrollTop = 0;

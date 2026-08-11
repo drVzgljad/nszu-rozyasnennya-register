@@ -11,7 +11,7 @@
   <title>НавігаторПМГ26 | Спеціальності та посади · Додаток 7 і наказ 1065</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
   <link rel="stylesheet" href="classifiers.css?v=20260809d">
-  <link rel="stylesheet" href="specialnosti.css?v=20260810d">
+  <link rel="stylesheet" href="specialnosti.css?v=20260811c">
   <link rel="stylesheet" href="../auth-v2.css?v=20260806a">
   <script type="module" src="../auth-v2.js?v=20260810c"></script>
 </head>
@@ -61,6 +61,8 @@
                   aria-selected="true">Спеціальності <span class="tag" id="cntS"></span></button>
           <button class="spec-tab" data-reg="p" role="tab" type="button"
                   aria-selected="false">Посади <span class="tag" id="cntP"></span></button>
+          <button class="spec-tab" data-reg="r" role="tab" type="button"
+                  aria-selected="false">Кадрові вимоги <span class="tag" id="cntR"></span></button>
         </div>
 
         <label class="search">
@@ -87,6 +89,15 @@
               <option value="profile">Розділ 2 · посади за профілями роботи</option>
             </select>
           </div>
+          <div class="casc-field" data-for="r" hidden>
+            <label for="selTone">Чи виконувана вимога</label>
+            <select id="selTone">
+              <option value="">— будь-яка —</option>
+              <option value="ok">усі посади є в Переліку МОЗ</option>
+              <option value="warn">частина посад поза Переліком</option>
+              <option value="risk">жодна посада не зіставилась</option>
+            </select>
+          </div>
           <div class="casc-field">
             <label for="selPkg">Пакет ПМГ-2026</label>
             <select id="selPkg"><option value="">— будь-який —</option></select>
@@ -98,10 +109,12 @@
             лише без посади в Переліку МОЗ</label>
           <label class="nk-check" data-for="s"><input type="checkbox" id="onlyCross">
             лише слабкі зв'язки (посада іншого рівня)</label>
-          <label class="nk-check"><input type="checkbox" id="onlyPkg">
+          <label class="nk-check" data-for="s p"><input type="checkbox" id="onlyPkg">
             лише те, що є кадровою вимогою пакета</label>
           <label class="nk-check" data-for="p"><input type="checkbox" id="onlyReg" hidden>
             <span>лише професії з додатковим регулюванням</span></label>
+          <label class="nk-check" data-for="r" hidden><input type="checkbox" id="onlyCrit">
+            лише критичні вимоги</label>
         </div>
 
         <div class="results-summary">
@@ -149,6 +162,6 @@
   </footer>
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
-  <script src="specialnosti.js?v=20260810d" defer></script>
+  <script src="specialnosti.js?v=20260811c" defer></script>
 </body>
 </html>

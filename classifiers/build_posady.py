@@ -98,6 +98,28 @@ ALIASES = {
     "дитячий хірург": "Лікар-хірург дитячий",
 }
 
+# Узагальнені назви кадрових вимог: специфікація називає родове поняття, а
+# Довідник описує кілька окремих характеристик. Обрати за експерта одну з них
+# ми не маємо права, тому показуємо всі й підписуємо, що назва узагальнена.
+# «Психолог» — 17 згадок, найбільша позиція з незіставлених.
+GENERIC = {
+    "психолог": ["Лікар-психолог", "Клінічний психолог"],
+}
+
+# Вимога, що описує КВАЛІФІКАЦІЮ, а не називає посаду («лікар будь-якої іншої
+# спеціальності, який пройшов відповідний курс тематичного удосконалення»).
+# Відповідника в Довіднику вона не має за визначенням, і рахувати такі рядки
+# прогалинами Довідника — брехня: прогалина була б у нас, а не в джерелі.
+CONDITION_RE = re.compile(
+    r"\bяк(ий|а|і)\s+пройш|\bбудь-як(ої|ий|ому)\b|\bспеціальною\s+підготовк|"
+    r"\bвідповідн(ий|ого)\s+курс", re.I)
+
+# Хвіст-уточнення сфери роботи після повної назви посади: «Сестра медична /
+# брат медичний ДЛЯ ОБСЛУГОВУВАННЯ НОВОНАРОДЖЕНИХ». Сама посада в Довіднику є,
+# заважає лише хвіст.
+TAIL_RE = re.compile(
+    r"\s+(?:для|з\s+питань|при|у\s+відділенн|в\s+відділенн|зі?\s+спеціалізаці)\s+.+$", re.I)
+
 # Наказ МОЗ № 805 від 10.04.2019 переназвав посади у парну форму: «сестра
 # медична / брат медичний», «акушер/акушерка», «санітар/санітарка». Довідник
 # кодів НСЗУ і специфікації пакетів лишилися на старих назвах, тож для
@@ -439,6 +461,76 @@ def parse_packages(path):
     return hits, raw, heads
 
 
+def load_spec_posts():
+    """Назви посад Переліку МОЗ № 1065 — щоб відрізнити прогалину від межі.
+
+    Частина кадрових вимог («лікар з ядерної медицини», «лікар з радіаційної
+    онкології») — це нові посади, яких Випуск 78 не описує, але вони є в
+    сусідньому розділі «Спеціальності та посади». Казати про них «немає
+    відповідника» — сховати від експерта готову відповідь через дорогу.
+
+    Файл збирає build_specialnosti.py. Якщо його ще немає — рівень просто не
+    спрацює, збірка не падає: залежність між білдерами тут не жорстка.
+    """
+    path = DATA.parent / "spec" / "spec_index.json"
+    if not path.exists():
+        log("! spec_index.json не знайдено — місток у Перелік 1065 вимкнено")
+        return {}
+    try:
+        index = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        log(f"! spec_index.json не читається ({e}) — місток вимкнено")
+        return {}
+    return {canon(e["n"]): e["n"] for e in index if e.get("t") == "p" and e.get("n")}
+
+
+def resolve_pkg(name, resolve, spec_posts):
+    """Кадрова вимога пакета → характеристики ДКХП з чесним рівнем збігу.
+
+    Повертає (targets, level, note). Рівні:
+      exact     — назва вимоги дорівнює назві характеристики;
+      generic   — вимога названа узагальнено, підходить кілька характеристик;
+      comma     — у вимозі дві посади через кому (не через «та/або», тому
+                  спільний парсер їх не поділив: кома буває і в одній назві);
+      base      — назва + хвіст-уточнення сфери;
+      condition — це умова кваліфікації, а не назва посади;
+      spec      — посади немає у Випуску 78, але вона є в Переліку № 1065;
+      None      — справжня прогалина: немає в жодному нашому довіднику.
+    """
+    target, _ = resolve(name)
+    if target is not None:
+        return [target], "exact", None
+
+    generic = GENERIC.get(norm(name))
+    if generic:
+        found = [t for t in (resolve(g)[0] for g in generic) if t is not None]
+        if found:
+            return found, "generic", ", ".join(t["name"] for t in found)
+
+    if "," in name:
+        parts = [p.strip(" .;") for p in name.split(",")]
+        found = [resolve(p)[0] if len(p) > 3 else None for p in parts]
+        # Ділимо ЛИШЕ коли кожна частина сама є назвою посади — інакше кома
+        # всередині однієї назви розсипала б її на сміття.
+        if len(parts) > 1 and all(f is not None for f in found):
+            return found, "comma", None
+
+    base = TAIL_RE.sub("", name).strip()
+    if base and base != name:
+        target, _ = resolve(base)
+        if target is not None:
+            return [target], "base", name[len(base):].strip(" ,;")
+
+    if CONDITION_RE.search(name):
+        return [], "condition", None
+
+    hit = spec_posts.get(canon(name))
+    if hit:
+        return [], "spec", hit
+
+    return [], None, None
+
+
 def build_pkg_links(heads, id_of_key, name_of_id):
     """Карта для лінкування назв посад просто в тексті вимоги пакета.
 
@@ -561,16 +653,35 @@ def build():
         e["alt"] = sorted(set(alt_of.get(e["id"], [])))
 
     # ── кадрові вимоги пакетів → характеристика
+    spec_posts = load_spec_posts()
     pkg_of = defaultdict(list)
-    pkg_unmatched = Counter()
+    pkg_unmatched, pkg_conditions, pkg_levels = Counter(), Counter(), Counter()
+    pkg_elsewhere = {}
     id_of_key = {}
     for k, rows in pkg_hits.items():
-        target, _ = resolve(rows[0]["name"])
-        if target is not None:
-            pkg_of[target["id"]].extend(rows)
-            id_of_key[k] = target["id"]
+        name = rows[0]["name"]
+        targets, level, note = resolve_pkg(name, resolve, spec_posts)
+        pkg_levels[level or "none"] += len(rows)
+        if targets:
+            for target in targets:
+                # Рядок вимоги лягає в картку кожного кандидата, але несе
+                # рівень збігу: інакше узагальнений «психолог» виглядав би в
+                # картці лікаря-психолога як персонально до нього звернена
+                # вимога пакета.
+                pkg_of[target["id"]].extend(
+                    rows if level == "exact"
+                    else [{**r, "via": level, "via_note": note} for r in rows])
+            # Підсвічувати назву посиланням просто в тексті вимоги можна лише
+            # при однозначному збігу: лінк із «психолога» на одну з двох
+            # характеристик означав би вибір за експерта.
+            if len(targets) == 1 and level in ("exact", "base"):
+                id_of_key[k] = targets[0]["id"]
+        elif level == "condition":
+            pkg_conditions[name] += len(rows)
+        elif level == "spec":
+            pkg_elsewhere[name] = {"post": note, "hits": len(rows)}
         else:
-            pkg_unmatched[rows[0]["name"]] += len(rows)
+            pkg_unmatched[name] += len(rows)
 
     def pkg_sort(n):
         m = re.match(r"^(\d+)", str(n or ""))
@@ -617,6 +728,15 @@ def build():
         "sections": section_stats(entries),
         "aliases": [{"code": c, "name": n, "current": v} for c, n, v in alias_pairs],
         "lacunae": [{"code": c["code"], "name": c["name"]} for c in lacunae],
+        # Рівні збігу кадрових вимог — у згадках, а не в назвах: питання
+        # «скільки вимог ми вміємо провести до характеристики» вимірюється
+        # згадками, інакше «психолог» важив би стільки ж, скільки разова
+        # описова умова.
+        "pkg_match_levels": [{"level": l, "hits": h} for l, h in pkg_levels.most_common()],
+        "pkg_elsewhere": [{"name": n, "post": v["post"], "hits": v["hits"]}
+                          for n, v in sorted(pkg_elsewhere.items(),
+                                             key=lambda x: (-x[1]["hits"], x[0]))],
+        "pkg_conditions": [{"name": n, "hits": h} for n, h in pkg_conditions.most_common()],
         "pkg_unmatched": [{"name": n, "hits": h} for n, h in pkg_unmatched.most_common()],
         # Дефекти самого джерела: у зведеному тексті мітка блоку подекуди
         # втоплена всередину абзацу, тож блок не виділяється.
@@ -668,8 +788,10 @@ def build():
 
 def tidy_name(s):
     s = re.sub(r"\s+", " ", s).strip()
-    # у покажчику назви записані з великої, у тілі — капсом
-    return s[0] + s[1:].lower() if s.isupper() else s
+    # у покажчику назви записані з великої, у тілі — капсом; регістр міряємо
+    # тим самим is_caps, бо str.isupper() спотикається об хвостове уточнення
+    # малими літерами («ДИСПЕТЧЕР ... СЛУЖБИ (медицина)») і лишає назву капсом
+    return s[0] + s[1:].lower() if is_caps(s) else s
 
 
 def classify_code(name):
