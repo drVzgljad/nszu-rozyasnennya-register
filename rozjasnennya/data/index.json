@@ -1,10 +1,10 @@
 {
- "generated": "2026-08-10T07:55:40.803323+00:00",
- "total": 192,
- "archive_records": 185,
+ "generated": "2026-08-11T06:11:28.651662+00:00",
+ "total": 193,
+ "archive_records": 186,
  "duplicate_files": 4,
  "with_real_date": 133,
- "content_pending": 1,
+ "content_pending": 2,
  "packageNames": {
   "3": "ХІРУРГІЧНІ ОПЕРАЦІЇ ДОРОСЛИМ ТА ДІТЯМ У СТАЦІОНАРНИХ УМОВАХ",
   "4": "СТАЦІОНАРНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ БЕЗ ПРОВЕДЕННЯ ХІРУРГІЧНИХ ОПЕРАЦІЙ",
@@ -8745,6 +8745,57 @@
    },
    "codes": {},
    "packages": []
+  },
+  {
+   "id": 322,
+   "title": "Роз’яснення щодо правил обліку та кодування надання медичних послуг за пакетами «Стаціонарна паліативна медична допомога дорослим і дітям» та «Мобільна паліативна медична допомога дорослим і дітям»",
+   "subject": "Роз’яснення щодо правил обліку та кодування надання медичних послуг за пакетами «Стаціонарна паліативна медична допомога дорослим і дітям» т",
+   "summary": "",
+   "kind": null,
+   "number": null,
+   "date": null,
+   "signer": "Наталія Гусак",
+   "effective_from": null,
+   "applies_to_years": [],
+   "topics": [],
+   "is_attachment": false,
+   "touches_coding": false,
+   "engine": "pdf-text",
+   "ocr": false,
+   "url": "https://backend.nszu.gov.ua/storage/application/26/08/10/EGIuYsjpROFD5dNLvT8lB0U0LlZGErm4wQ6V8K07.pdf",
+   "extension": "pdf",
+   "storage_date": "2026-08-10",
+   "archive_title": "Роз’яснення щодо правил обліку та кодування надання медичних послуг за пакетами «Стаціонарна паліативна медична допомога дорослим і дітям» та «Мобільна паліативна медична допомога дорослим і дітям»",
+   "archive_aliases": [],
+   "external": false,
+   "origin": null,
+   "quality": null,
+   "stats": {
+    "blocks": 183,
+    "body_blocks": 175,
+    "sentences": 223,
+    "chars": 35749,
+    "tables": 7,
+    "table_rows": 201,
+    "unreadable": 0
+   },
+   "codes": {
+    "package": 9,
+    "icd": 178,
+    "achi": 21,
+    "loinc": 20
+   },
+   "packages": [
+    "3",
+    "4",
+    "17",
+    "18",
+    "20",
+    "23",
+    "24",
+    "38",
+    "72"
+   ]
   }
  ]
 }

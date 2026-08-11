@@ -1,10 +1,10 @@
 {
-  "generated": "2026-08-10T07:55:34.257742+00:00",
-  "archive_fetched_at": "2026-08-10T07:55:33.017312+00:00",
+  "generated": "2026-08-11T06:11:18.733172+00:00",
+  "archive_fetched_at": "2026-08-11T06:11:16.873716+00:00",
   "archive_source": "https://nszu.gov.ua/arxiv-dokumentiv?groups[2][attributes][]=36",
-  "archive_records": 185,
-  "total": 192,
-  "from_archive": 181,
+  "archive_records": 186,
+  "total": 193,
+  "from_archive": 182,
   "external": 11,
   "duplicate_files": 4,
   "records": [
@@ -4540,6 +4540,29 @@
         "table_rows": 265,
         "unreadable": 0
       }
+    },
+    {
+      "id": 322,
+      "url": "https://backend.nszu.gov.ua/storage/application/26/08/10/EGIuYsjpROFD5dNLvT8lB0U0LlZGErm4wQ6V8K07.pdf",
+      "local_name": "EGIuYsjpROFD5dNLvT8lB0U0LlZGErm4wQ6V8K07.pdf",
+      "archive_title": "Роз’яснення щодо правил обліку та кодування надання медичних послуг за пакетами «Стаціонарна паліативна медична допомога дорослим і дітям» та «Мобільна паліативна медична допомога дорослим і дітям»",
+      "extension": "pdf",
+      "storage_date": "2026-08-10",
+      "first_seen": "2026-08-11",
+      "stage": "extracted",
+      "sha256": "fce62e6e4c3528bf9139aa77de2f56ffd5aa28003db3a10949ea8061de0d74c2",
+      "size": 1610337,
+      "engine": "pdf-text",
+      "stats": {
+        "blocks": 183,
+        "body_blocks": 175,
+        "sentences": 223,
+        "chars": 35749,
+        "tables": 7,
+        "table_rows": 201,
+        "unreadable": 0
+      }
     }
-  ]
+  ],
+  "docs_built_at": "2026-08-11T06:11:22.310756+00:00"
 }
