@@ -108,7 +108,9 @@ function renderRules() {
       <summary>
         <span class="amb-rule-state amb-rule-state--${rule.state === "чинне" ? "live" : "old"}">${esc(rule.state)}</span>
         ${esc(rule.headline)}
-        <em>${esc([rule.number ? `№ ${rule.number}` : "", formatDate(rule.date)].filter(Boolean).join(" · "))}</em>
+        <em>${esc([rule.number ? `№ ${rule.number}` : "", formatDate(rule.date),
+          rule.effective_from && rule.effective_from !== rule.date
+            ? `діє з ${formatDate(rule.effective_from)}` : ""].filter(Boolean).join(" · "))}</em>
       </summary>
       <ol class="amb-rule-items">
         ${rule.items.map((item) => `<li>${esc(item.text)}
