@@ -116,6 +116,28 @@
   .kd-box { min-height: 0; }
 }
 
+/* Вікно кадрових вимог, коли серед них є критичні. Єдина ланка, де
+   невідповідність б'є не по зручності, а по відбору пропозицій. */
+.kd-box.crit { border-color: var(--warning-border, var(--warning-text)); }
+.kd-box.crit:hover { border-color: var(--warning-text); }
+.kd-box-crit {
+  font-size: .7rem; font-weight: 800; white-space: nowrap;
+  background: var(--warning-bg); color: var(--warning-text);
+  border-radius: 20px; padding: 1px 8px;
+}
+
+/* Виноска про критичність. */
+.kd-note {
+  margin-top: 14px; padding: 13px 16px; border-radius: 12px;
+  background: var(--warning-bg); color: var(--ink);
+  border: 1px solid var(--warning-border, transparent);
+  font-size: .86rem; line-height: 1.55; max-width: 74ch;
+}
+.kd-note-h { font-weight: 800; margin-bottom: 8px; color: var(--warning-text); }
+.kd-note p { margin: 0 0 8px; }
+.kd-note p:last-child { margin-bottom: 0; }
+.kd-note-src { font-size: .76rem; opacity: .8; }
+
 /* ── розкривні секції ─────────────────────────────────────── */
 .kd-detail { margin-top: 16px; display: grid; gap: 8px; }
 .kd-sec {
