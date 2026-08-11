@@ -474,7 +474,10 @@ function applyAccess() {
           { text: 'Коди посад НСЗУ', path: 'classifiers/posady.html?view=codes' },
           { text: 'Кадрові вимоги пакетів', path: 'classifiers/posady.html?view=pkg' },
           { text: 'Спеціальності · Додаток 7', path: 'classifiers/specialnosti.html' },
-          { text: 'Перелік посад МОЗ № 1065', path: 'classifiers/specialnosti.html?reg=p' }
+          { text: 'Перелік посад МОЗ № 1065', path: 'classifiers/specialnosti.html?reg=p' },
+          // Стоїть останнім у гнізді навмисно: це не ще один довідник, а
+          // прохід крізь усі чотири — від пакета чи посади до коду НСЗУ.
+          { text: '⛓️ Кадровий ланцюжок', path: 'classifiers/kadry.html' }
         ]
       },
       { text: '🔗 Таблиця співставлення', path: 'mapping/index.html' },
@@ -2612,7 +2615,7 @@ if ('serviceWorker' in navigator &&
   // неї браузер до десяти хвилин не помічає, що воркер змінився, і продовжує
   // роздавати старі файли з кешу. Змінений URL змушує перевірити одразу.
   // ПРИ ЗМІНІ sw.js ПІДНІМАТИ ЦЮ ВЕРСІЮ РАЗОМ З CACHE усередині воркера.
-  navigator.serviceWorker.register('/sw.js?v=25').catch(() => {});
+  navigator.serviceWorker.register('/sw.js?v=26').catch(() => {});
 
   // Перезавантаження на controllerchange прибрано 30.07.2026 разом зі
   // skipWaiting() у воркері (див. коментар у sw.js). Новий воркер більше не
