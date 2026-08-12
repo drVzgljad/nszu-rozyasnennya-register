@@ -307,7 +307,10 @@
           plural(w.req.length, "кадрова вимога", "кадрові вимоги", "кадрових вимог")}</div>
         ${bad ? `<div class="kd-sum-warn">${nf(bad)} із них ${
           plural(bad, "має", "мають", "мають")} посади поза Переліком МОЗ</div>`
-        : '<div class="kd-sum-ok">усі вимоги виконувані посадами з Переліку МОЗ</div>'}`;
+        : '<div class="kd-sum-ok">усі вимоги виконувані посадами з Переліку МОЗ</div>'}
+        <button id="kdChecklist" type="button" class="kd-checklist"
+          title="Скопіювати вимоги пакета списком із квадратиками — звірити зі штатним розписом чи вкласти в лист">⧉ Чекліст вимог</button>`;
+      $("#kdChecklist").addEventListener("click", copyChecklist);
       return;
     }
     const n = N.get(anchor.id);
@@ -330,6 +333,40 @@
       ${pk.size ? `<div class="kd-sum-ok">трапляється у ${nf(pk.size)} ${
         plural(pk.size, "пакеті", "пакетах", "пакетах")} ПМГ-2026</div>`
       : '<div class="kd-sum-kind">жоден пакет ПМГ-2026 цього не вимагає</div>'}`;
+  }
+
+  /** Чекліст вимог обраного пакета — текстом у буфер. Інструмент
+   *  контрактування: звірити зі штатним розписом, вкласти в лист ЗОЗ,
+   *  роздрукувати. Рядок вимоги — ДОСЛІВНИЙ (raw зі специфікації): чекліст
+   *  піде за межі порталу, і переказувати акт своїми словами там не можна. */
+  function copyChecklist() {
+    if (!current || anchor.kind !== "pkg") return;
+    const ids = [...current.req].sort(byReqId);
+    const scopes = new Map();
+    ids.forEach((id) => {
+      const n = N.get(id) || {};
+      const key = n.scope || "";
+      if (!scopes.has(key)) scopes.set(key, []);
+      scopes.get(key).push("▢ " + (n.critical ? "[критична] " : "") + (n.raw || n.name));
+    });
+    const lines = [
+      `Кадрові вимоги пакета № ${anchor.id} «${(G.packages || {})[anchor.id] || ""}»`,
+      "Специфікації ПМГ-2026 (постанова КМУ від 31.12.2025 № 1808), блок «Спеціалісти»",
+      `Звірено з НавігаторПМГ26 · ${new Date().toLocaleDateString("uk-UA")}`,
+      "",
+    ];
+    scopes.forEach((rows, scope) => {
+      if (scope) lines.push(scope + ":");
+      lines.push(...rows, "");
+    });
+    lines.push("Позначки: ▢ — звірити; [критична] — вимога умов закупівлі " +
+      "(невідповідність — підстава відхилити пропозицію, п. 20 Порядку, ПКМУ № 410).");
+    navigator.clipboard && navigator.clipboard.writeText(lines.join("\n"));
+    const b = $("#kdChecklist");
+    if (b) {
+      b.textContent = `✓ Скопійовано (${ids.length})`;
+      setTimeout(() => (b.textContent = "⧉ Чекліст вимог"), 1600);
+    }
   }
 
   /** Вміст вікна: назви, поки їх мало, і число, коли їх багато. */

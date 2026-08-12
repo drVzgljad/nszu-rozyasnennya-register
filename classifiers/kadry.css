@@ -25,6 +25,14 @@
 .kd-sum-line b { font-size: 1.15rem; }
 .kd-sum-warn { color: var(--warning-text); font-weight: 600; }
 .kd-sum-ok { color: var(--teal-dark); font-weight: 600; }
+/* Чекліст вимог пакета — копіює дослівні рядки специфікації з квадратиками. */
+.kd-checklist {
+  align-self: flex-start; margin-top: 6px; cursor: pointer;
+  font: inherit; font-size: .8rem; font-weight: 700;
+  color: var(--accent-dark); background: var(--accent-soft);
+  border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px;
+}
+.kd-checklist:hover { filter: brightness(.97); }
 
 /* ── схема ────────────────────────────────────────────────── */
 .kd-chain { margin-top: 16px; }

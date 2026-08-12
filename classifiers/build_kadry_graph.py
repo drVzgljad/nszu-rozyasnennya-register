@@ -117,6 +117,17 @@ EXPECTED = {
     "orphan_packages": 17,
 }
 
+# Перейменування наказу МОЗ від 10.04.2019 № 805, де характеристика ДКХП
+# лишилася під СТАРОЮ назвою, а Перелік № 1065 знає лише нову. Це пошукові
+# синоніми і підказка паспорта, НЕ зіставлення: офіційної рівності назв у
+# актах немає, тому ребра post_dkhp для них свідомо не будується (місток
+# рахується лише там, де назви сходяться нормалізацією або словником
+# синонімів build_posady). Парні форми («сестра медична / брат медичний»)
+# сюди не потрапляють — їх зводить canon().
+RENAMED_805 = {
+    "лікар-невропатолог": "Лікар-невролог",
+}
+
 NODE_TYPES = {
     "spec": {
         "label": "спеціальність",
@@ -593,8 +604,10 @@ LIGHT_FIELDS = {
     "spec": ("sec", "kinds", "match", "cross"),
     "post": ("part", "no", "regulated"),
     # alt — пошукові синоніми з довідника кодів НСЗУ; без них у списку не
-    # знайдеться «провізор», якого чинний ДКХП зве фармацевтом.
-    "dkhp": ("section", "sub", "alt"),
+    # знайдеться «провізор», якого чинний ДКХП зве фармацевтом. syn — назви
+    # тієї самої посади в Переліку № 1065, коли вони різняться: «невролог»
+    # має знаходити характеристику невропатолога.
+    "dkhp": ("section", "sub", "alt", "syn"),
     "code": ("kind",),
     # tone — світлофор вимоги; потрібен у списку, не тільки в паспорті.
     "pkgreq": ("package", "critical", "tone", "tone_why", "repaired"),
@@ -723,6 +736,40 @@ def main():
         reqs, req_ids, matched_of, alt_map)
     e_post_dkhp, post_dkhp_levels, post_no_dkhp = edges_post_dkhp(
         posts, posady_index)
+
+    # Зворотний бік містка post→dkhp — у паспорт характеристики: якою назвою
+    # і під яким номером посада стоїть у Переліку № 1065. Саме це вирішує,
+    # чи можна її ввести у штатний розпис із 01.09.2026 (п. 32 Ліцензійних
+    # умов у ред. ПКМУ № 813). Заодно назва Переліку стає пошуковим
+    # синонімом: користувач шукає «невролога», а не «невропатолога».
+    dkhp_of = {n["id"]: n for n in nodes if n["type"] == "dkhp"}
+    post_of = {p["id"]: p for p in posts}
+    for e in e_post_dkhp:
+        d, p = dkhp_of.get(e["to"]), post_of.get(e["from"])
+        if not d or not p:
+            continue
+        row = {"no": p["no"], "name": p["name"]}
+        if e.get("level"):
+            row["level"] = e["level"]
+        d.setdefault("perelik", []).append(row)
+    for d in dkhp_of.values():
+        known = {d["name"].lower()} | {a.lower() for a in d.get("alt", [])}
+        syn = []
+        for row in d.get("perelik", []):
+            nm = row["name"]
+            if nm.lower() not in known and BP.canon(nm) != BP.canon(d["name"]):
+                syn.append(nm)
+                known.add(nm.lower())
+        renamed = RENAMED_805.get(d["name"].strip().lower())
+        if renamed:
+            hit = next((p for p in posts
+                        if p["name"].strip().lower() == renamed.lower()), None)
+            if hit and renamed.lower() not in known:
+                syn.append(renamed)
+                d.setdefault("perelik", []).append(
+                    {"no": hit["no"], "name": hit["name"], "renamed": True})
+        if syn:
+            d["syn"] = syn
 
     edges = e_spec_post + e_post_dkhp + e_dkhp_code + e_req
     edges.sort(key=lambda e: (e["rel"], e["from"], e["to"]))

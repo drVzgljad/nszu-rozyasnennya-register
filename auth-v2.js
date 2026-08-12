@@ -469,15 +469,18 @@ function applyAccess() {
         ]
       },
       {
+        // Гніздо було на шість пунктів і три числа «посад» (255/286/301) без
+        // пояснення — аудит 12.08.2026 показав, що входи плутаються. Тепер
+        // порядок — за завданням, а не за джерелом: спершу ПМГ-вхід від
+        // пакета, потім право і штатний розпис, і аж тоді довідник-читалка.
+        // «Перелік № 1065» окремим пунктом не потрібен: це вкладка
+        // «Спеціальностей та посад».
         text: '👥 Посади', items: [
-          { text: 'Характеристики ДКХП-78', path: 'classifiers/posady.html' },
-          { text: 'Коди посад НСЗУ', path: 'classifiers/posady.html?view=codes' },
-          { text: 'Кадрові вимоги пакетів', path: 'classifiers/posady.html?view=pkg' },
-          { text: 'Спеціальності · Додаток 7', path: 'classifiers/specialnosti.html' },
-          { text: 'Перелік посад МОЗ № 1065', path: 'classifiers/specialnosti.html?reg=p' },
-          // Стоїть останнім у гнізді навмисно: це не ще один довідник, а
-          // прохід крізь усі чотири — від пакета чи посади до коду НСЗУ.
-          { text: '⛓️ Кадровий ланцюжок', path: 'classifiers/kadry.html' }
+          { text: '⛓️ Кадровий ланцюжок — від пакета', path: 'classifiers/kadry.html' },
+          { text: 'Спеціальності та посади · ліцензія і штат', path: 'classifiers/specialnosti.html' },
+          { text: 'Посади у вимогах ПМГ', path: 'classifiers/posady.html?view=pkg' },
+          { text: 'Коди посад НСЗУ · ЕСОЗ', path: 'classifiers/posady.html?view=codes' },
+          { text: 'Довідник характеристик ДКХП-78', path: 'classifiers/posady.html' }
         ]
       },
       { text: '🔗 Таблиця співставлення', path: 'mapping/index.html' },
@@ -2615,7 +2618,7 @@ if ('serviceWorker' in navigator &&
   // неї браузер до десяти хвилин не помічає, що воркер змінився, і продовжує
   // роздавати старі файли з кешу. Змінений URL змушує перевірити одразу.
   // ПРИ ЗМІНІ sw.js ПІДНІМАТИ ЦЮ ВЕРСІЮ РАЗОМ З CACHE усередині воркера.
-  navigator.serviceWorker.register('/sw.js?v=26').catch(() => {});
+  navigator.serviceWorker.register('/sw.js?v=27').catch(() => {});
 
   // Перезавантаження на controllerchange прибрано 30.07.2026 разом зі
   // skipWaiting() у воркері (див. коментар у sw.js). Новий воркер більше не

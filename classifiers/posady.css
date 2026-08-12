@@ -75,6 +75,30 @@
   background: none; margin: 0 0 9px;
 }
 
+/* ── Розкривні блоки паспорта ──────────────────────────────────
+   Текст Довідника і довгі умови вимог ховаються за <details>: практичні
+   блоки (пакети, Перелік, код) читаються без прокрутки, а хвіст — на клік. */
+.po-fold > summary { cursor: pointer; list-style: none; }
+.po-fold > summary::-webkit-details-marker { display: none; }
+.po-fold > summary h3 { display: inline-block; margin: 0; }
+.po-fold > summary::before { content: "▸ "; color: var(--muted); font-size: .8rem; }
+.po-fold[open] > summary::before { content: "▾ "; }
+.po-fold[open] > summary { margin-bottom: 8px; }
+
+/* Довга умова вимоги: заголовок — початок тексту, повний текст — усередині. */
+.po-cond { margin-top: 2px; }
+.po-cond > summary {
+  cursor: pointer; list-style: none; color: inherit; opacity: .92;
+}
+.po-cond > summary::-webkit-details-marker { display: none; }
+.po-cond > summary::before { content: "… "; color: var(--muted); font-weight: 700; }
+.po-cond[open] > summary { display: none; }
+.po-cond p { margin: 2px 0 0; }
+
+/* Посилання на позицію Переліку МОЗ у паспорті. */
+.po-plink { color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; }
+.po-plink:hover { color: var(--accent-dark); }
+
 /* ── Зауваги до джерел ─────────────────────────────────────── */
 .po-issues {
   margin-top: 12px; border: 1px solid var(--line); border-radius: 11px;
@@ -88,6 +112,9 @@
 .po-issues ul { margin: 8px 0 0; padding-left: 18px; font-size: .83rem; line-height: 1.5; }
 .po-issues li { margin-bottom: 6px; }
 .po-alias { white-space: nowrap; }
+/* Довгі переліки всередині зауваг — за власною розкривачкою. */
+.po-subfold > summary { cursor: pointer; }
+.po-subfold p { margin: 6px 0 0; }
 
 /* ── Темна тема ────────────────────────────────────────────────
    Портал перемикає тему класом :root.dark-theme (не prefers-color-scheme),

@@ -64,6 +64,11 @@
   let ready = false, detailPromise = null, textPromise = null;
   let openedId = null, lastBatchFound = [];
   let readerEmptyHTML = "";
+  // Режим «реєстр кодів НСЗУ»: пункт меню view=codes показує ВСІ коди
+  // довідника, разом із тими, для яких Випуск 78 характеристики не має.
+  // Раніше цей пункт вмикав фільтр по характеристиках — і 46 кодів без
+  // характеристики з «реєстру кодів» мовчки випадали.
+  let codesMode = false;
 
   const byNode = new Map();        // id вузла будь-якого типу → легкий вузол
   const byId = new Map();          // id характеристики (з префіксом і без)
@@ -205,11 +210,16 @@
     const id = (q.get("id") || "").trim();
     const raw = (q.get("code") || q.get("q") || "").trim();
 
-    // Вхід із меню «Довідники → Посади»: три пункти ведуть на цю саму сторінку,
-    // різниця лише в увімкненому фільтрі — сторінка одна, а входи різні.
+    // Вхід із меню «Довідники → Посади»: кілька пунктів ведуть на цю саму
+    // сторінку, різниця лише в увімкненому виді — сторінка одна, а входи різні.
     const view = (q.get("view") || "").trim();
-    const viewBox = { codes: el.onlyCode, pkg: el.onlyPkg, gap: el.onlyGap }[view];
-    if (viewBox) { viewBox.checked = true; refilter(); }
+    if (view === "codes") {
+      codesMode = true;
+      showCodes();
+    } else {
+      const viewBox = { pkg: el.onlyPkg, gap: el.onlyGap }[view];
+      if (viewBox) { viewBox.checked = true; refilter(); }
+    }
 
     if (id && byId.has(id)) {
       const node = byId.get(id);
@@ -229,11 +239,14 @@
   // ══════════════════════════════════════════════════════════
   function renderStats() {
     const c = IDX.counts || {};
+    // Числа тут — дієві, а не бібліографічні: скільки посад реально працює
+    // у вимогах пакетів і де кадровий контур болить (9 посад із вимог, яких
+    // Перелік МОЗ не знає). Розміри довідників видно в самих списках.
     const cards = [
-      ["Характеристик ДКХП", c.dkhp || 0],
-      ["Кодів посад НСЗУ", c.code || 0],
-      ["Посад у пакетах ПМГ", c.dkhp_in_packages || 0],
+      ["Посад у вимогах пакетів ПМГ", c.dkhp_in_packages || 0],
       ["Пакетів із кадровою вимогою", c.packages_with_staff || 0],
+      ["Кодів НСЗУ для ЕСОЗ", c.code || 0],
+      ["Посад з вимог поза Переліком МОЗ", c.orphan_names || 0],
     ];
     el.stats.innerHTML = cards.map(([k, v]) =>
       `<div class="stat"><span class="stat-num">${nf(v)}</span><span class="stat-key">${k}</span></div>`
@@ -246,19 +259,24 @@
     const parts = [];
     (N.notes || []).forEach((n) => parts.push(`<li>${esc(n)}</li>`));
 
+    // Довгі переліки — за розкривачкою: пункт каже, СКІЛЬКИ і ЩО це означає,
+    // а поіменний список читає той, кому він справді потрібен. Розгорнуті,
+    // вони перетворювали зауваги на стіну в три тисячі знаків.
     const al = N.aliases || [];
     if (al.length) {
-      parts.push(`<li><b>Застарілі назви в кодах НСЗУ (${al.length}).</b> Паспорт відкривається
-        від чинної назви: ` + al.map((a) =>
+      parts.push(`<li><details class="po-subfold"><summary><b>Застарілі назви в кодах НСЗУ
+        (${al.length}).</b> Паспорт відкривається від чинної назви — розгорнути
+        перелік</summary><p>` + al.map((a) =>
         `<span class="po-alias">${esc(a.code)} «${esc(a.name)}» → «${esc(a.current)}»</span>`
-      ).join(", ") + ".</li>");
+      ).join(", ") + ".</p></details></li>");
     }
 
     const lac = N.lacunae || [];
     if (lac.length) {
-      parts.push(`<li><b>Коди без кваліфікаційної характеристики (${lac.length}).</b>
-        Посада є в довіднику кодів НСЗУ, але Випуск 78 її не описує: ` +
-        lac.map((l) => `${esc(l.code)} «${esc(l.name)}»`).join("; ") + ".</li>");
+      parts.push(`<li><details class="po-subfold"><summary><b>Коди без кваліфікаційної
+        характеристики (${lac.length}).</b> Посада є в довіднику кодів НСЗУ, але Випуск 78
+        її не описує — розгорнути перелік</summary><p>` +
+        lac.map((l) => `${esc(l.code)} «${esc(l.name)}»`).join("; ") + ".</p></details></li>");
     }
 
     const un = N.pkg_unmatched || [];
@@ -405,6 +423,9 @@
 
   function refilter() {
     if (!ready) return;
+    // Дотик до каскаду чи чекбоксів — це вже робота зі списком характеристик:
+    // режим реєстру кодів на цьому закінчується.
+    codesMode = false;
     if (el.onlyGap.checked) { showGaps(); return; }
     if (el.search.value.trim() || el.batch.value.trim()) { runSearch(); return; }
     const list = applyFilters(currentList());
@@ -434,6 +455,43 @@
       r.addEventListener("click", () => openGap(r.dataset.code)));
   }
 
+  /** Реєстр «Коди посад НСЗУ 2026» повністю — 286 кодів по порядку, разом із
+   *  тими, для яких Випуск 78 характеристики не дає. Клік веде або в паспорт
+   *  характеристики, або в пояснення, чому характеристики немає. */
+  function showCodes() {
+    const raw = el.search.value.trim();
+    const q = raw.toLowerCase().replace(/\s+/g, " ");
+    const qcode = raw.toUpperCase().replace(/\s+/g, "");
+    let rows = CODES.slice().sort((a, b) => +bare(a.id).slice(1) - +bare(b.id).slice(1));
+    if (raw) {
+      rows = rows.filter((c) => c.name.toLowerCase().includes(q) || bare(c.id) === qcode);
+    }
+    el.count.textContent = nf(rows.length) + " " +
+      plural(rows.length, "код", "коди", "кодів") +
+      " довідника «Коди посад НСЗУ 2026»" +
+      (raw ? ` · запит «${raw}»` : " · ними ЗОЗ кодує працівників в ЕСОЗ");
+    el.results.hidden = false;
+    el.results.innerHTML = rows.map((c) => {
+      const did = dkhpOfCode.get(c.id);
+      const target = did ? byNode.get(did) : null;
+      const meta = target
+        ? (target.name === c.name
+            ? "кваліфікаційна характеристика — у паспорті"
+            : `характеристика ДКХП: «${target.name}»`)
+        : "без кваліфікаційної характеристики у Випуску 78";
+      return `
+      <button class="rrow${target ? "" : " po-gap"}" type="button" ${target
+        ? `data-id="${escAttr(did)}"` : `data-code="${escAttr(bare(c.id))}"`}>
+        <span class="tcode code">${esc(bare(c.id))}</span>
+        <span class="rmain">
+          <span class="tname">${esc(c.name)}</span>
+          <span class="rmeta">${esc(meta)}</span>
+        </span>
+      </button>`;
+    }).join("");
+    wireRows();
+  }
+
   function gapRowHTML(c, note) {
     return `
       <button class="rrow po-gap" type="button" data-code="${escAttr(bare(c.id))}">
@@ -450,10 +508,16 @@
       // Назви кодів НСЗУ, що не збіглися з назвою характеристики: хто шукає
       // «провізор», має вийти на «Фармацевта», а не на порожній результат.
       (e.alt || []).some((a) => a.toLowerCase().includes(q)) ||
+      // Назви тієї самої посади в Переліку МОЗ № 1065: хто шукає «невролога»,
+      // має вийти на невропатолога — вимогу семи пакетів, — а не на самого
+      // лише дитячого невролога.
+      (e.syn || []).some((a) => a.toLowerCase().includes(q)) ||
       codeStrings(e.id).some((c) => c.toLowerCase() === q);
   }
 
   function runSearch() {
+    // У режимі реєстру кодів пошук фільтрує самі коди, а не характеристики.
+    if (codesMode) { showCodes(); return; }
     const raw = el.search.value.trim();
     const filtering = el.onlyPkg.checked || el.onlyCode.checked || el.onlyGap.checked;
     if (el.onlyGap.checked) { showGaps(); return; }
@@ -545,6 +609,7 @@
     }
     const meta = [trim(e.sub || e.section || "", 70)];
     if (e.alt && e.alt.length) meta.push("у кодах НСЗУ: " + e.alt.join(", "));
+    if (e.syn && e.syn.length) meta.push("у Переліку МОЗ: " + e.syn.join(", "));
     return `
       <button class="rrow" type="button" data-id="${escAttr(e.id)}">
         <span class="rmain">
@@ -600,6 +665,7 @@
         № ${card.num} у підрозділі · с. ${card.page} Довідника
       </div>
       ${codesHTML(card.id)}
+      ${perelikHTML(card)}
       ${pkgHTML(card)}
       ${text
         ? BLOCK_ORDER.filter((b) => text.blocks[b])
@@ -649,6 +715,38 @@
     </div>`;
   }
 
+  /** Позиції Переліку професій МОЗ № 1065, що відповідають характеристиці:
+   *  якою назвою і під яким номером посаду вводять у штатний розпис. З
+   *  01.09.2026 Перелік закритий (п. 32 Ліцензійних умов у ред. ПКМУ № 813),
+   *  тож для паспорта це найпрактичніше питання. Зіставлення обчислене за
+   *  назвами — офіційного між актами не існує, і приховувати це не можна. */
+  function perelikHTML(card) {
+    const rows = card.perelik || [];
+    if (!rows.length) {
+      return `<div class="reader-block po-nocode">
+        <h3>Перелік професій МОЗ № 1065 <span class="muted">— назва для штатного розпису</span></h3>
+        <p class="muted">Серед 301 позиції Переліку відповідника цієї назви не знайдено
+           (зіставлення обчислене за назвами, офіційного немає). З 01.09.2026 у штатний
+           розпис можна вводити лише посади з Переліку — п. 32 Ліцензійних умов у редакції
+           постанови КМУ № 813.</p>
+      </div>`;
+    }
+    return `<div class="reader-block">
+      <h3>Перелік професій МОЗ № 1065 <span class="muted">— назва для штатного розпису</span></h3>
+      <div class="po-codes">${rows.map((r) => `
+        <div class="po-codecard${r.renamed ? " legacy" : ""}">
+          <span class="tcode code">№ ${esc(r.no)}</span>
+          <a class="po-codename po-plink" title="Відкрити позицію в Переліку МОЗ № 1065"
+             href="specialnosti.html?reg=p&q=${encodeURIComponent(r.name)}">${esc(r.name)}</a>
+          ${r.renamed ? `<span class="po-legacy">Довідник характеристик тримає стару назву;
+             у Переліку посада стоїть під новою після перейменування (наказ МОЗ № 805 від
+             10.04.2019). Офіційного зіставлення актів немає.</span>` : ""}
+          ${r.level ? `<span class="po-legacy">зіставлено ${r.level === "alias"
+             ? "через словник синонімів" : "м'яким збігом назв"} — не дослівно</span>` : ""}
+        </div>`).join("")}</div>
+    </div>`;
+  }
+
   /** Кадрові вимоги пакетів, які називають цю характеристику.
    *
    *  Ребро несе АЛЬТЕРНАТИВУ, якою вимога дотяглася сюди, тож одна вимога
@@ -694,11 +792,22 @@
                 ? ` <span class="po-combo" title="У вимозі пакета ця посада стоїть у переліку взаємозамінних
                      («та/або»), тож умова стосується переліку загалом, а не цієї посади окремо">одна
                      з ${r.alts} посад переліку «та/або»</span>`
-                : ""} — ${esc(r.cond)}
+                : ""}${condHTML(r.cond)}
             </div>`).join("")}
           </div>
         </div>`).join("")}</div>
     </div>`;
+  }
+
+  /** Умова вимоги. Короткі — як були, у рядок; довгі (умови на пів сотні
+   *  посад тягнуть по 250+ знаків і повторюються майже дослівно) — за
+   *  розкривачкою з початком тексту в заголовку. Повний текст нікуди не
+   *  зникає: він на один клік, і копіюється як був у специфікації. */
+  function condHTML(cond) {
+    if (!cond) return "";
+    if (cond.length <= 110) return " — " + esc(cond);
+    return `<details class="po-cond"><summary>${esc(trim(cond, 96))}</summary>
+      <p>${esc(cond)}</p></details>`;
   }
 
   function blockHTML(name, paras) {
@@ -716,10 +825,15 @@
       }
       return `<p>${esc(t)}</p>`;
     }).join("");
-    return `<div class="reader-block po-block">
-      <h3>${esc(BLOCK_TITLE[name] || name)}</h3>
+    // Текст Довідника — довідковий хвіст паспорта, практичні блоки стоять
+    // вище. «Кваліфікаційні вимоги» лишаються розгорнутими — їх дивляться
+    // найчастіше; «Завдання» і «Повинен знати» по півтори-дві тисячі знаків
+    // ховаються за розкривачкою, і паспорт вміщається в екран.
+    const open = name === "req" || name === "intro";
+    return `<details class="reader-block po-block po-fold"${open ? " open" : ""}>
+      <summary><h3>${esc(BLOCK_TITLE[name] || name)}</h3></summary>
       ${body}
-    </div>`;
+    </details>`;
   }
 
   function ordersHTML(orders) {
@@ -787,6 +901,7 @@
   // Допоміжне
   // ══════════════════════════════════════════════════════════
   function resetForm() {
+    codesMode = false;
     el.search.value = "";
     el.onlyPkg.checked = false; el.onlyCode.checked = false; el.onlyGap.checked = false;
     el.batch.value = ""; lastBatchFound = []; el.batchCopy.hidden = true;
