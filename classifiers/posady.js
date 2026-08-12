@@ -666,6 +666,7 @@
       </div>
       ${codesHTML(card.id)}
       ${perelikHTML(card)}
+      ${atestHTML(card)}
       ${pkgHTML(card)}
       ${text
         ? BLOCK_ORDER.filter((b) => text.blocks[b])
@@ -744,6 +745,50 @@
           ${r.level ? `<span class="po-legacy">зіставлено ${r.level === "alias"
              ? "через словник синонімів" : "м'яким збігом назв"} — не дослівно</span>` : ""}
         </div>`).join("")}</div>
+    </div>`;
+  }
+
+  /** Атестація і БПР за наказом МОЗ від 16.04.2025 № 650. Номенклатура
+   *  (додаток 1 до Порядку) атестує ПОСАДИ Переліку, тож характеристика
+   *  отримує це через свої посади — поле atest збирає білдер. Числа БПР —
+   *  з розділу VIII Порядку; воєнний нюанс обов'язковий: сам процес
+   *  атестації відкладено, і мовчати про це означало б лякати людей
+   *  строками, які зараз не йдуть. */
+  function atestHTML(card) {
+    const info = IDX.atest_info || {}, act = info.act || {};
+    const title = act.title || "наказ МОЗ від 16.04.2025 № 650";
+    if (card.atest_excluded) {
+      return `<div class="reader-block po-nocode">
+        <h3>Атестація <span class="muted">— ${esc(title)}</span></h3>
+        <p class="muted">Посади цієї характеристики належать до підрозділу V розділу 1
+           Переліку № 1065 («інші професії») — Порядок проведення атестації на них
+           не поширюється (п. 1 розділу I Порядку).</p>
+      </div>`;
+    }
+    const rows = card.atest || [];
+    if (!rows.length) return "";
+    const spec = rows.filter((r) => r.kind === "spec");
+    const prof = rows.filter((r) => r.kind === "profile");
+    const b = (info.bpr || {})[card.section === "ФАХІВЦІ" ? "fakhivets"
+                                                         : "professional"] || {};
+    const years = (info.bpr || {}).period_max_years || 5;
+    const ladder = Object.entries(b.transition || {})
+      .map(([y, v]) => `${v} — у ${y}`).join(", ");
+    return `<div class="reader-block">
+      <h3>Атестація і БПР <span class="muted">— ${esc(title)}${
+        act.revision ? ", ред. " + esc(String(act.revision).split(" ")[0]) : ""}</span></h3>
+      ${spec.length ? `<p class="po-atest-line">Атестується за ${spec.length > 1
+        ? "спеціальностями" : "спеціальністю"} Номенклатури (додаток 1 до Порядку):
+        <b>${spec.map((r) => esc(r.name)).join("</b>, <b>")}</b>.</p>` : ""}
+      ${prof.length ? `<p class="po-atest-line">Профіл${prof.length > 1 ? "і" : "ь"}
+        роботи (субспеціалізація): ${prof.map((r) => esc(r.name)).join("; ")}.</p>` : ""}
+      ${b.per_year ? `<p class="po-atest-line">Бали БПР: щороку не менше
+        <b>${b.per_year}</b>; з 2029 року — не менше <b>${b.period_from_2029}</b>
+        сумарно за атестаційний період (не довший за ${years} років); на випадок
+        відновлення атестації у 2026–2028 діють перехідні пороги: ${esc(ladder)}.</p>` : ""}
+      <p class="muted po-atest-note">${esc(act.note_war || "")}. Зіставлення
+         «посада ↔ Номенклатура» обчислене за професійними кваліфікаціями двох
+         актів МОЗ.</p>
     </div>`;
   }
 

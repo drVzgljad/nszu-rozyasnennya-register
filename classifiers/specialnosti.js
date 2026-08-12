@@ -706,7 +706,53 @@
         <h3>Спеціальності Додатка 7, які ведуть на цю посаду</h3>
         ${specs}
       </div>
+      ${atestBlockHTML(f)}
       ${pkgBlockHTML(n, [n.id])}`;
+  }
+
+  /** Атестація за наказом МОЗ від 16.04.2025 № 650: за якою спеціальністю чи
+   *  профілем Номенклатури (додаток 1 до Порядку) атестується посада, і
+   *  скільки балів БПР треба. Поле atest на картку кладе білдер графа;
+   *  підрозділ V розділу 1 Переліку Порядок обходить прямо в п. 1 розділу I. */
+  function atestBlockHTML(f) {
+    const info = IDX.atest_info || {}, act = info.act || {};
+    const title = act.title || "наказ МОЗ від 16.04.2025 № 650";
+    if (f.atest_excluded) {
+      return `<div class="reader-block">
+        <h3>Атестація</h3>
+        <div class="sp-empty">Підрозділ V розділу 1 Переліку («інші професії») —
+          Порядок проведення атестації (${esc(title)}) на ці посади не поширюється
+          (п. 1 розділу I Порядку).</div>
+      </div>`;
+    }
+    const rows = f.atest || [];
+    if (!rows.length) {
+      return `<div class="reader-block">
+        <h3>Атестація <span class="muted">— ${esc(title)}</span></h3>
+        <p class="sp-sub">У Номенклатурі спеціальностей / профілів роботи (додаток 1
+           до Порядку) відповідника цієї посади не знайдено — зіставлення обчислене
+           за професійними кваліфікаціями. Для керівних і суто адміністративних
+           посад атестаційної спеціальності може не бути за визначенням.</p>
+      </div>`;
+    }
+    const spec = rows.filter((r) => r.kind === "spec");
+    const prof = rows.filter((r) => r.kind === "profile");
+    const isFah = ((f.path || [])[0] || "").includes("ФАХІВЦІВ");
+    const b = (info.bpr || {})[isFah ? "fakhivets" : "professional"] || {};
+    const years = (info.bpr || {}).period_max_years || 5;
+    return `<div class="reader-block">
+      <h3>Атестація і БПР <span class="muted">— ${esc(title)}${
+        act.revision ? ", ред. " + esc(String(act.revision).split(" ")[0]) : ""}</span></h3>
+      ${spec.length ? `<p class="sp-sub">Атестується за ${spec.length > 1
+        ? "спеціальностями" : "спеціальністю"} Номенклатури:
+        <b>${spec.map((r) => esc(r.name)).join("</b>, <b>")}</b>.</p>` : ""}
+      ${prof.length ? `<p class="sp-sub">Профіл${prof.length > 1 ? "і" : "ь"} роботи
+        (субспеціалізація): ${prof.map((r) => esc(r.name)).join("; ")}.</p>` : ""}
+      ${b.per_year ? `<p class="sp-sub">Бали БПР: щороку не менше <b>${b.per_year}</b>;
+        з 2029 року — не менше <b>${b.period_from_2029}</b> сумарно за атестаційний
+        період (не довший за ${years} років).</p>` : ""}
+      <p class="sp-sub">${esc(act.note_war || "")}.</p>
+    </div>`;
   }
 
   /** Паспорт кадрової вимоги: чи може заклад її виконати і ким саме.

@@ -93,6 +93,7 @@ sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 BASE = Path(__file__).resolve().parent
 SPEC_DIR = BASE / "data" / "spec"
 POSADY_DIR = BASE / "data" / "posady"
+ATEST_DIR = BASE / "data" / "atest"
 OUT_DIR = BASE / "data" / "kadry"
 PKG_JSON = BASE.parent / "pakety" / "data" / "packages_2026.json"
 
@@ -115,6 +116,17 @@ EXPECTED = {
     "spec_without_post": 1,
     "orphan_names": 9,
     "orphan_packages": 17,
+    # Атестаційний шар (наказ № 650, Номенклатура в ред. 26.06.2026):
+    # 243 = 192 спеціальності + 51 профіль роботи. Кожна позиція Номенклатури
+    # дотягується до посад Переліку (no_post = 0 — з точковим словником
+    # розбіжностей RAW_ALIASES). 20 без пари в Додатку 7 — це судово-медичні
+    # і промислово-фармацевтичні спеціальності: атестуються, але медичною
+    # практикою не ліцензуються; список у gaps.atest_without_spec.
+    "atest": 243,
+    "atest_no_post": 0,
+    "atest_no_spec": 20,
+    "posts_with_atest": 270,
+    "posts_atest_excluded": 9,
 }
 
 # Перейменування наказу МОЗ від 10.04.2019 № 805, де характеристика ДКХП
@@ -184,6 +196,25 @@ NODE_TYPES = {
         "valid_from": "2026-01-01",
         "built_by": "pkg_staff.load_requirements(pakety/data/packages_2026.json)",
     },
+    "atest": {
+        "label": "атестаційна спеціальність / профіль",
+        "source": "Номенклатура спеціальностей / профілів роботи за "
+                  "спеціальностями та відповідних їм професійних кваліфікацій / "
+                  "посад працівників сфери охорони здоров'я — додаток 1 до "
+                  "Порядку проведення атестації",
+        "act": "z0824-25",
+        "act_title": "наказ МОЗ від 16.04.2025 № 650",
+        "status": "чинний",
+        "registered": "Мін'юст, 28.05.2025, № 824/44230",
+        "revision": "26.06.2026 (накази МОЗ № 618 від 14.05.2026, № 754 від 04.06.2026)",
+        "valid_from": None,
+        "note": "сама процедура атестації запускається через 6 місяців після "
+                "припинення чи скасування воєнного стану; строк дії сертифікатів "
+                "і посвідчень, що сплив у період воєнного стану, подовжено. "
+                "Порядок прив'язаний до Переліку № 1065 і не поширюється на "
+                "підрозділ V розділу 1 (інші професії)",
+        "built_by": "build_atest.py → data/atest/",
+    },
     "profstd": {
         "label": "професійний стандарт",
         "source": None,
@@ -252,6 +283,25 @@ EDGE_RELS = {
             "comma": "у вимозі дві посади через кому",
             "generic": "вимога названа узагальнено, підходить кілька характеристик",
         },
+    },
+    "atest_post": {
+        "from": "atest", "to": "post",
+        "means": "за цією спеціальністю/профілем Номенклатури атестується посада",
+        "source": "місток офіційний за змістом (обидві колонки — професійні "
+                  "кваліфікації в актах МОЗ), але збіг рядків обчислює "
+                  "build_kadry_graph.py",
+        "levels": {
+            "qual": "кваліфікація Номенклатури = кваліфікація посади в Переліку",
+            "name": "кваліфікація Номенклатури = назва посади в Переліку",
+            "profile": "назва профілю в лапках назви профільної посади",
+        },
+    },
+    "atest_spec": {
+        "from": "atest", "to": "spec",
+        "means": "атестаційна спеціальність відповідає ліцензійній з Додатка 7",
+        "source": "обчислено (build_kadry_graph.py) — офіційного зіставлення "
+                  "Номенклатури № 650 із Додатком 7 не існує",
+        "levels": {"exact": "назви збігаються після нормалізації"},
     },
 }
 
@@ -380,6 +430,134 @@ def nodes_from_codes(codes):
             n["alias_of"] = c["alias_of"]
         out.append(n)
     return out
+
+
+def nodes_from_atest(specs, profiles):
+    """Атестаційні спеціальності і профілі роботи з Номенклатури № 650.
+
+    Один тип вузла на обидві таблиці Додатка 1: розрізняє поле kind. Профіль
+    роботи — не окрема сутність кадрового права, а вісь субспеціалізації тієї
+    самої атестації, і сторінкам зручніше мати їх одним списком.
+    """
+    out = []
+    for s in specs:
+        out.append({
+            "id": f"atest:{s['id']}", "type": "atest", "name": s["name"],
+            "kind": "spec", "path": s["path"], "quals": s["quals"],
+        })
+    for p in profiles:
+        out.append({
+            "id": f"atest:{p['id']}", "type": "atest", "name": p["name"],
+            "kind": "profile", "path": p["path"],
+            "posts": p["posts"], "base_specs": p["base_specs"],
+        })
+    return out
+
+
+def edges_atest(atest_nodes, posts, spec_cards):
+    """Містки Номенклатури № 650: до посад Переліку і до Додатка 7.
+
+    До посад — за професійною кваліфікацією: колонка 4 таблиці 1 Номенклатури
+    і колонка «професійна кваліфікація» Переліку 1065 тримають ті самі рядки,
+    тож збіг тут — не здогадка за морфологією, а рівність двох офіційних
+    колонок (обчислена, і чесно позначена рівнем). Профілі чіпляються до
+    профільних посад Переліку за назвою профілю в лапках.
+
+    До Додатка 7 — за назвою спеціальності: тут офіційності немає зовсім,
+    лише exact-збіг після нормалізації; морфологію свідомо не вмикаємо.
+    """
+    # Розбіжності написання МІЖ двома актами МОЗ — Номенклатурою № 650 і
+    # Переліком № 1065. Це не наша нормалізація назв (canon не чіпаємо —
+    # пастка 8), а точковий словник рівностей саме цієї пари джерел; кожен
+    # запис звірено очима з обома актами. Причини різні й повчальні:
+    #  - «Рентгенлаборант» ↔ «Рентгенолаборант» — просто різне написання;
+    #  - лаборанти КДЛ і судмед — у Переліку ДВІ назви злиплі в одній
+    #    клітинці (вада джерела № 6 з ПЕРЕХІД-файлу), тож обидві
+    #    кваліфікації Номенклатури ведуть на один злиплий рядок;
+    #  - «дитячих відділень» ↔ «дитячого відділення», «неврологічних та
+    #    інсультних відділень» ↔ «неврологічного / інсультного відділення»,
+    #    ФАП «пункту, амбулаторії» ↔ «пункту / фельдшерського пункту /
+    #    амбулаторії» — морфологія і пунктуація розійшлися;
+    #  - «Лікар-лаборант, лікар-мікробіолог-вірусолог» — у Номенклатурі ДВІ
+    #    кваліфікації через кому в одній клітинці; різати всі клітинки за
+    #    комою не можна (у ФАП кома — частина назви), тож пара тут.
+    RAW_ALIASES = {
+        "Рентгенлаборант": ["Рентгенолаборант"],
+        "Лаборант клініко-діагностичної лабораторії":
+            ["Лаборант клініко-діагностичної лабораторії Фельдшер-лаборант "
+             "клініко-діагностичної лабораторії"],
+        "Фельдшер-лаборант клініко-діагностичної лабораторії":
+            ["Лаборант клініко-діагностичної лабораторії Фельдшер-лаборант "
+             "клініко-діагностичної лабораторії"],
+        "Лаборант судово-медичної лабораторії":
+            ["Лаборант судово-медичної лабораторії Фельдшер-лаборант "
+             "судово-медичної лабораторії"],
+        "Фельдшер-лаборант судово-медичної лабораторії":
+            ["Лаборант судово-медичної лабораторії Фельдшер-лаборант "
+             "судово-медичної лабораторії"],
+        "Лікар-лаборант, лікар-мікробіолог-вірусолог":
+            ["Лікар-лаборант", "Лікар-мікробіолог-вірусолог"],
+        "Сестра медична- анестезист (брат медичний-анестезист) дитячих відділень":
+            ["Сестра медична-анестезист (брат медичний-анестезист) дитячого відділення"],
+        "Сестра медична (брат медичний) неврологічних та інсультних відділень":
+            ["Сестра медична (брат медичний) неврологічного / інсультного відділення"],
+        "Фельдшер фельдшерсько-акушерського пункту, амбулаторії":
+            ["Фельдшер фельдшерсько-акушерського пункту / фельдшерського пункту / амбулаторії"],
+    }
+    atest_to_perelik = {BP.canon(k): v for k, v in RAW_ALIASES.items()}
+
+    by_qual, by_name, by_quoted = {}, {}, {}
+    for p in posts:
+        if p.get("qual"):
+            by_qual.setdefault(BP.canon(p["qual"]), []).append(p["id"])
+        by_name.setdefault(BP.canon(p["name"]), []).append(p["id"])
+        m = re.search(r"«(.+?)»", p["name"])
+        if m:
+            by_quoted.setdefault(BP.canon(m.group(1)), []).append(p["id"])
+
+    def lookup(text):
+        """canon-збіг за кваліфікацією, тоді за назвою, тоді за словником
+        розбіжностей — рівень чесно каже, чим саме дотяглися."""
+        keys = [BP.canon(a) for a in atest_to_perelik.get(BP.canon(text), [])] \
+            or [BP.canon(text)]
+        hits = []
+        for cq in keys:
+            h = [(pid, "qual") for pid in by_qual.get(cq, [])]
+            hits += h or [(pid, "name") for pid in by_name.get(cq, [])]
+        return hits
+
+    spec_by_name = {}
+    for sid, card in spec_cards.items():
+        # У spec_cards лежать і посади Переліку — спеціальності Додатка 7
+        # відрізняє поле sec (розділ Додатка).
+        if "sec" in card:
+            spec_by_name.setdefault(BP.canon(card["name"]), sid)
+
+    out, no_post, no_spec = [], [], []
+    for n in atest_nodes:
+        made = set()
+        if n["kind"] == "spec":
+            hits = [h for q in n["quals"] for h in lookup(q)]
+            sid = spec_by_name.get(BP.canon(n["name"]))
+            if sid:
+                out.append({"from": n["id"], "to": f"spec:{sid}",
+                            "rel": "atest_spec"})
+            else:
+                no_spec.append(n["id"])
+        else:
+            hits = [h for cand in n["posts"] for h in lookup(cand)]
+            if not hits:
+                hits = [(pid, "profile")
+                        for pid in by_quoted.get(BP.canon(n["name"]), [])]
+        for pid, level in hits:
+            if pid in made:
+                continue
+            made.add(pid)
+            out.append({"from": n["id"], "to": pid,
+                        "rel": "atest_post", "level": level})
+        if not made:
+            no_post.append(n["id"])
+    return out, no_post, no_spec
 
 
 def nodes_from_reqs(reqs):
@@ -611,6 +789,8 @@ LIGHT_FIELDS = {
     "code": ("kind",),
     # tone — світлофор вимоги; потрібен у списку, не тільки в паспорті.
     "pkgreq": ("package", "critical", "tone", "tone_why", "repaired"),
+    # kind — спеціальність чи профіль роботи; більше списку нічого не треба.
+    "atest": ("kind",),
     "profstd": (),
 }
 
@@ -649,6 +829,11 @@ def reachability(nodes, edges):
             pkg[e["from"]] |= pkg[e["to"]]
         elif e["rel"] == "dkhp_code":
             pkg[e["to"]] |= pkg[e["from"]]
+        elif e["rel"] == "atest_post":
+            # Атестаційна спеціальність дотягується до пакетів через посади,
+            # якими атестується, — тим самим кроком, що й спеціальність
+            # Додатка 7 через свої посади.
+            pkg[e["from"]] |= pkg[e["to"]]
     return deg, pkg
 
 
@@ -720,10 +905,15 @@ def main():
     if not reqs:
         sys.exit("Не знайдено packages_2026.json або в ньому немає блоку «Спеціалісти»")
 
+    atest_specs = load(ATEST_DIR / "atest_specs.json")
+    atest_profiles = load(ATEST_DIR / "atest_profiles.json")
+    atest_meta = load(ATEST_DIR / "atest_meta.json")
+
     nodes = (nodes_from_spec(spec_index, spec_cards)
              + nodes_from_posady(posady_index)
              + nodes_from_codes(posady_codes)
-             + nodes_from_reqs(reqs))
+             + nodes_from_reqs(reqs)
+             + nodes_from_atest(atest_specs, atest_profiles))
     req_ids = [n["id"] for n in nodes if n["type"] == "pkgreq"]
     posts = [n for n in nodes if n["type"] == "post"]
 
@@ -771,7 +961,55 @@ def main():
         if syn:
             d["syn"] = syn
 
-    edges = e_spec_post + e_post_dkhp + e_dkhp_code + e_req
+    atest_nodes = [n for n in nodes if n["type"] == "atest"]
+    e_atest, atest_no_post, atest_no_spec = edges_atest(
+        atest_nodes, posts, spec_cards)
+
+    # Атестація — у паспорти, тим самим прийомом, що й Перелік (perelik):
+    # сторінка не має збирати це ребрами, їй потрібна готова відповідь.
+    #   посада ....... за якою спеціальністю/профілем Номенклатури атестується;
+    #                  підрозділ V розділу 1 — поза Порядком № 650 (п. 1 розд. I)
+    #   характеристика зібране з її посад (ребра post_dkhp)
+    #   спеціальність  атестаційний відповідник у Номенклатурі (обчислений)
+    atest_of = {n["id"]: n for n in atest_nodes}
+    spec_of = {n["id"]: n for n in nodes if n["type"] == "spec"}
+    for e in e_atest:
+        if e["rel"] == "atest_post":
+            p, a = post_of.get(e["to"]), atest_of.get(e["from"])
+            if p and a:
+                p.setdefault("atest", []).append(
+                    {"name": a["name"], "kind": a["kind"], "level": e["level"]})
+        elif e["rel"] == "atest_spec":
+            s, a = spec_of.get(e["to"]), atest_of.get(e["from"])
+            if s and a:
+                s["atest"] = a["name"]
+    for p in posts:
+        if (p.get("path") or [""])[0].startswith("V."):
+            p["atest_excluded"] = True
+    post_by_name = {p["name"]: p for p in posts}
+    dkhp_posts = {}
+    for e in e_post_dkhp:
+        dkhp_posts.setdefault(e["to"], []).append(post_of.get(e["from"]))
+    for d in dkhp_of.values():
+        plist = list(dkhp_posts.get(d["id"], []))
+        # Рядки блока «Перелік № 1065» теж ведуть на посади — зокрема додані
+        # словником перейменувань RENAMED_805, де ребра post_dkhp свідомо
+        # немає: невропатолог мусить показувати атестацію невролога.
+        for row in d.get("perelik", []):
+            hit = post_by_name.get(row["name"])
+            if hit is not None and hit not in plist:
+                plist.append(hit)
+        rows = []
+        for p in plist:
+            for row in (p or {}).get("atest", []):
+                if not any(r["name"] == row["name"] for r in rows):
+                    rows.append({"name": row["name"], "kind": row["kind"]})
+        if rows:
+            d["atest"] = rows
+        elif plist and all((p or {}).get("atest_excluded") for p in plist):
+            d["atest_excluded"] = True
+
+    edges = e_spec_post + e_post_dkhp + e_dkhp_code + e_req + e_atest
     edges.sort(key=lambda e: (e["rel"], e["from"], e["to"]))
 
     # Альтернативи вимог, яких Перелік МОЗ не знає, — вішаємо на вузол вимоги:
@@ -827,6 +1065,11 @@ def main():
                                  and not spec_cards[n["id"].split(":")[1]]["posts"]),
         "orphan_names": len(orphan_names),
         "orphan_packages": len(orphan_pkgs),
+        "atest": by_type["atest"],
+        "atest_no_post": len(atest_no_post),
+        "atest_no_spec": len(atest_no_spec),
+        "posts_with_atest": sum(1 for p in posts if p.get("atest")),
+        "posts_atest_excluded": sum(1 for p in posts if p.get("atest_excluded")),
     }
     ok, check_lines = verify(actual)
 
@@ -855,6 +1098,10 @@ def main():
             {"id": rid, "head": next(n["name"] for n in nodes if n["id"] == rid)}
             for rid in req_no_dkhp],
         "orphan_names": sorted(orphan_names),
+        "atest_without_post": sorted(
+            atest_of[i]["name"] for i in atest_no_post),
+        "atest_without_spec": sorted(
+            atest_of[i]["name"] for i in atest_no_spec),
     }
 
     # Вади джерел показує сторінка, тож вони мають доїхати разом із даними.
@@ -901,7 +1148,13 @@ def main():
         "built_from": {
             "spec": spec_meta.get("generated"),
             "posady": load(POSADY_DIR / "posady_meta.json").get("generated"),
+            "atest": atest_meta.get("generated"),
         },
+        # Довідка про атестацію для паспортів: реквізити наказу № 650 і числа
+        # БПР. Сторінкам потрібні саме факти, а не текст Порядку — текст
+        # лишається на rada, звідси лише те, що малюється в блоці.
+        "atest_info": {"act": atest_meta.get("act"),
+                       "bpr": atest_meta.get("bpr")},
         "node_types": NODE_TYPES,
         "edge_rels": EDGE_RELS,
         "tones": TONES,
@@ -972,6 +1225,8 @@ def main():
         # Назви пакетів окремим реєстром: на вузлі вимоги вони повторювалися б
         # 356 разів, а потрібні для одного випадаючого списку.
         "packages": {p["package"]: p["name"] for p in spec_pkg},
+        "atest_info": {"act": atest_meta.get("act"),
+                       "bpr": atest_meta.get("bpr")},
         "counts": {**actual, "nodes": dict(by_type), "edges": dict(by_rel)},
         # Зауваги до джерел лишаються ТАКИМИ, як їх склав білдер-власник, і
         # розкладені за типом вузла. Звести їх у спільний список спокусливо,
@@ -989,7 +1244,7 @@ def main():
     })
 
     print(f"Вузли:  {sum(by_type.values())}")
-    for t in ("spec", "post", "dkhp", "code", "pkgreq", "profstd"):
+    for t in NODE_TYPES:
         print(f"   {t:8s} {by_type[t]:5d}  {NODE_TYPES[t]['label']}")
     print(f"\nРебра:  {len(edges)}")
     for r, n in sorted(by_rel.items()):

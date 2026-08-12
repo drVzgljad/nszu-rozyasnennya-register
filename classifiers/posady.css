@@ -99,6 +99,10 @@
 .po-plink { color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; }
 .po-plink:hover { color: var(--accent-dark); }
 
+/* Блок «Атестація і БПР» (наказ № 650). */
+.po-atest-line { line-height: 1.5; margin: 0 0 7px; }
+.po-atest-note { font-size: .8rem; line-height: 1.45; margin: 4px 0 0; }
+
 /* ── Зауваги до джерел ─────────────────────────────────────── */
 .po-issues {
   margin-top: 12px; border: 1px solid var(--line); border-radius: 11px;
