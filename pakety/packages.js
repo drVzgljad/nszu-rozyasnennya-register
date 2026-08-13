@@ -9,6 +9,7 @@ const packageState = {
   selectedUnit: null,
   selectedSection: null,
   tag: "",
+  scope: "all",
 };
 
 const byId = (id) => document.getElementById(id);
@@ -30,6 +31,45 @@ function highlight(value, query) {
 
 function queryText() {
   return byId("packageSearch").value.trim().toLowerCase();
+}
+
+// Пошук «У назвах пакетів»: номер + назва (для пілотів — і коротка назва)
+function packageTitleText(pkg) {
+  const short = pkg.pilot ? pkg.pilot_meta?.short_title || "" : "";
+  return `${pkg.number} ${pkg.title} ${short}`.toLowerCase();
+}
+
+// Абревіатури, що у «форматі листа» лишаються великими
+const TITLE_ABBR = ["ВІЛ", "СНІД", "ЕСОЗ", "НСЗУ", "МКХ", "ШВЛ", "КТ", "МРТ"];
+
+// Назва пакета для вставки в лист: перша літера велика, решта малі.
+// Назви, що вже в мішаному регістрі (68, 70, 72, пілоти), не переписуємо.
+function letterCaseTitle(raw) {
+  const title = String(raw || "").replace(/\s+/g, " ").trim();
+  if (!title) return "";
+  if (title !== title.toUpperCase()) return title.charAt(0).toUpperCase() + title.slice(1);
+  const lowered = title.toLowerCase().split(" ").map((word) => {
+    const core = word.replace(/[^а-яіїєґa-z0-9]/gi, "");
+    const abbr = TITLE_ABBR.find((a) => a.toLowerCase() === core);
+    return abbr ? word.replace(core, abbr) : word;
+  }).join(" ");
+  return lowered.charAt(0).toUpperCase() + lowered.slice(1);
+}
+
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const area = document.createElement("textarea");
+    area.value = text;
+    area.style.cssText = "position:fixed;opacity:0";
+    document.body.appendChild(area);
+    area.select();
+    const ok = document.execCommand("copy");
+    area.remove();
+    return ok;
+  }
 }
 
 function itemText(item) {
@@ -91,6 +131,7 @@ function updateUrl() {
   if (packageState.selected) params.set("package", pkgKey(packageState.selected));
   if (packageState.selectedSection) params.set("section", packageState.selectedSection.key);
   if (packageState.selectedUnit && packageState.selected.units.length > 1) params.set("unit", packageState.selectedUnit.id);
+  if (packageState.scope === "title") params.set("scope", "title");
   const query = queryText();
   if (query) params.set("q", query);
   history.replaceState(null, "", `${location.pathname}?${params}`);
@@ -135,14 +176,15 @@ function renderTags() {
 
 function applyPackageFilters() {
   const query = queryText();
+  const titleOnly = packageState.scope === "title";
   packageState.visible = packageState.data.packages.filter((pkg) =>
-    (!query || pkg.search_text.includes(query)) &&
+    (!query || (titleOnly ? packageTitleText(pkg) : pkg.search_text).includes(query)) &&
     (!packageState.tag || pkg.tags.includes(packageState.tag))
   );
   byId("packageCount").textContent = `Знайдено: ${packageState.visible.length} з ${packageState.data.packages.length}`;
   if (!packageState.visible.some((pkg) => pkgKey(pkg) === pkgKey(packageState.selected))) {
     selectPackage(packageState.visible[0] || null);
-  } else if (query) {
+  } else if (query && !titleOnly) {
     const match = firstMatch(packageState.selected, query);
     packageState.selectedUnit = match.unit;
     packageState.selectedSection = match.section;
@@ -156,12 +198,15 @@ function applyPackageFilters() {
 
 function renderCards() {
   const query = queryText();
+  // У режимі «У назвах пакетів» збіг у тексті розділів не шукаємо —
+  // підсвічуємо сам збіг у назві картки
+  const showSectionMatch = packageState.scope !== "title";
   byId("packageCards").innerHTML = packageState.visible.map((pkg) => {
-    const match = firstMatch(pkg, query);
-    const matchLabel = query && match ? `<span class="match-label">Збіг: ${escapeHtml(match.section.label)}</span>` : "";
+    const match = showSectionMatch ? firstMatch(pkg, query) : null;
+    const matchLabel = query && showSectionMatch && match ? `<span class="match-label">Збіг: ${escapeHtml(match.section.label)}</span>` : "";
     return `<button class="package-card ${pkgKey(pkg) === pkgKey(packageState.selected) ? "active" : ""}${pkg.pilot ? " pilot-card" : ""}" data-package="${pkgKey(pkg)}"${pkg.pilot ? ' data-pilot="1"' : ""}>
       <span class="package-number${pkg.pilot ? " pilot-number" : ""}">${pkg.number}</span>
-      <span><strong>${escapeHtml(pkg.title)}</strong>${pkg.pilot ? '<span class="pilot-flag">🧪 пілотний проєкт · поза постановою 1808</span>' : ""}${matchLabel}</span>
+      <span><strong>${highlight(pkg.title, query)}</strong>${pkg.pilot ? '<span class="pilot-flag">🧪 пілотний проєкт · поза постановою 1808</span>' : ""}${matchLabel}</span>
     </button>`;
   }).join("") || '<div class="no-results">За цим запитом пакетів не знайдено.</div>';
   byId("packageCards").querySelectorAll("[data-package]").forEach((card) => {
@@ -180,7 +225,7 @@ function selectPackage(pkg, sectionKey = "", unitId = "") {
     packageState.selectedUnit = null;
     packageState.selectedSection = null;
   } else {
-    const match = firstMatch(pkg, queryText());
+    const match = firstMatch(pkg, packageState.scope === "title" ? "" : queryText());
     packageState.selectedUnit = pkg.units.find((unit) => unit.id === unitId) || match.unit;
     packageState.selectedSection = packageState.selectedUnit.sections.find((section) => section.key === sectionKey) || match.section;
   }
@@ -206,9 +251,24 @@ function renderOutline() {
   `).join("");
   container.innerHTML = `
     <div class="outline-number">ПАКЕТ ${escapeHtml(pkg.number)}</div>
-    <h2>${escapeHtml(pkg.title)}</h2>
+    <div class="outline-title">
+      <h2>${escapeHtml(pkg.title)}</h2>
+      <button class="copy-title-btn" type="button"
+        title="Скопіювати назву для листа: перша велика, решта малі"
+        aria-label="Скопіювати назву пакета у форматі листа">⧉</button>
+    </div>
     <div class="tag-row">${pkg.tags.map((tag) => `<span class="package-tag">${escapeHtml(tag)}</span>`).join("")}</div>
     ${units}`;
+  container.querySelector(".copy-title-btn")?.addEventListener("click", async (event) => {
+    const button = event.currentTarget;
+    const ok = await copyToClipboard(letterCaseTitle(pkg.title));
+    button.textContent = ok ? "✓" : "✗";
+    button.classList.toggle("copied", ok);
+    setTimeout(() => {
+      button.textContent = "⧉";
+      button.classList.remove("copied");
+    }, 1300);
+  });
   container.querySelectorAll("[data-section]").forEach((button) => {
     button.addEventListener("click", () => {
       packageState.selectedUnit = pkg.units.find((unit) => unit.id === button.dataset.unit);
@@ -427,6 +487,28 @@ async function loadPilots() {
   }
 }
 
+const SEARCH_HINTS = {
+  all: "Наприклад: ШВЛ, паліативна, стаціонарно...",
+  title: "Наприклад: інсульт, пологи, діаліз...",
+};
+
+function initScopeToggle() {
+  const box = byId("searchScope");
+  if (!box) return;
+  const sync = () => {
+    box.querySelectorAll("[data-scope]").forEach((chip) =>
+      chip.classList.toggle("active", chip.dataset.scope === packageState.scope));
+    byId("packageSearch").placeholder = SEARCH_HINTS[packageState.scope];
+  };
+  sync();
+  box.querySelectorAll("[data-scope]").forEach((chip) => chip.addEventListener("click", () => {
+    if (packageState.scope === chip.dataset.scope) return;
+    packageState.scope = chip.dataset.scope;
+    sync();
+    applyPackageFilters();
+  }));
+}
+
 async function initPackages() {
   const [packagesResponse, docsResponse, decLinksResponse] = await Promise.all([
     fetch("data/packages_2026.json"),
@@ -483,6 +565,8 @@ async function initPackages() {
   }
   const params = new URLSearchParams(location.search);
   byId("packageSearch").value = params.get("q") || "";
+  packageState.scope = params.get("scope") === "title" ? "title" : "all";
+  initScopeToggle();
   renderStats();
   renderTags();
   packageState.visible = packageState.data.packages;

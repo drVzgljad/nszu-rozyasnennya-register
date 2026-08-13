@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Пакети 2026</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="packages.css?v=20260804c">
+  <link rel="stylesheet" href="packages.css?v=20260813a">
   <link rel="stylesheet" href="../auth-v2.css?v=20260806a">
   <script type="module" src="../auth-v2.js?v=20260812b"></script>
 </head>
@@ -46,6 +46,10 @@
           <span>Пошук у пакетах</span>
           <input id="packageSearch" type="search" placeholder="Наприклад: ШВЛ, паліативна, стаціонарно..." autocomplete="off">
         </label>
+        <div class="search-scope" id="searchScope" role="group" aria-label="Де шукати">
+          <button type="button" class="scope-chip active" data-scope="all">Скрізь</button>
+          <button type="button" class="scope-chip" data-scope="title">У назвах пакетів</button>
+        </div>
         <div class="tag-filters" id="tagFilters" aria-label="Фільтри умов"></div>
         <div class="results-summary">
           <span id="packageCount"></span>
@@ -73,6 +77,6 @@
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
   <script src="../spec-links.js?v=20260804c" defer></script>
-  <script src="packages.js?v=20260804c" defer></script>
+  <script src="packages.js?v=20260813a" defer></script>
 </body>
 </html>

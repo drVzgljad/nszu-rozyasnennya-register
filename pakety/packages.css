@@ -20,6 +20,28 @@
   align-items: center;
   gap: 10px;
 }
+.search-scope {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 10px;
+}
+.scope-chip {
+  padding: 6px 10px;
+  border: 1px solid #d7e4ef;
+  border-radius: 999px;
+  color: #466079;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.scope-chip.active {
+  border-color: rgba(0,111,201,.38);
+  color: var(--accent-dark);
+  background: #eaf4fc;
+  font-weight: 600;
+}
 .tag-filters {
   display: flex;
   flex-wrap: wrap;
@@ -102,6 +124,36 @@
   font-size: 12px;
   font-weight: 700;
   letter-spacing: .08em;
+}
+.outline-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.outline-title h2 { flex: 1; }
+.copy-title-btn {
+  flex-shrink: 0;
+  margin-top: 8px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #d7e4ef;
+  border-radius: 9px;
+  background: #fff;
+  color: var(--accent-dark);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.copy-title-btn:hover {
+  border-color: rgba(0,111,201,.42);
+  background: #f4f9ff;
+}
+.copy-title-btn.copied {
+  border-color: rgba(22,142,80,.5);
+  color: #168e50;
+  background: #ecfaf2;
 }
 .package-outline h2 {
   margin: 8px 0 14px;
