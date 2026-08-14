@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>НавігаторПМГ26 | Тарифи 2025 ↔ 2026</title>
+  <link rel="stylesheet" href="../styles.css?v=20260808b">
+  <link rel="stylesheet" href="porivnyannya.css?v=20260814a">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260806a">
+  <script type="module" src="../auth-v2.js?v=20260814b"></script>
+</head>
+<body id="top">
+  <header class="hero resolution-hero">
+    <div class="hero-copy">
+      <div class="overline">Програма медичних гарантій · порівняння років</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Тарифи й коефіцієнти: 2025 ↔ 2026</h1>
+      <p>Порівняння ставок і коригувальних коефіцієнтів між постановою КМУ від 24.12.2024 № 1503 (ПМГ&#8209;2025) і постановою від 31.12.2025 № 1808 (ПМГ&#8209;2026). Кожне число супроводжується посиланням на главу й пункт постанови, з якої воно взяте, — щоб цифру можна було перевірити, а не приймати на віру.</p>
+    </div>
+    <div class="stats" id="cmpStats" aria-label="Обсяг порівняння"></div>
+  </header>
+
+  <section class="cmp-sources" id="cmpSources" aria-label="Редакції, за якими зроблено порівняння"></section>
+
+  <main class="cmp-layout">
+    <div class="cmp-controls">
+      <div class="cmp-tabs" id="cmpTabs" role="tablist" aria-label="Що порівнюємо"></div>
+      <div class="cmp-filters">
+        <label class="cmp-field">
+          <span>Пакет медичних послуг</span>
+          <select id="cmpPackage"></select>
+        </label>
+        <label class="cmp-field cmp-field-grow">
+          <span>Пошук</span>
+          <input id="cmpSearch" type="search" placeholder="Наприклад: 8735, інсульт, капітаційна, A15…" autocomplete="off">
+        </label>
+        <label class="cmp-check">
+          <input id="cmpChangedOnly" type="checkbox">
+          <span>Лише те, що змінилося</span>
+        </label>
+        <div class="cmp-actions">
+          <button id="cmpExport" type="button" class="cmp-btn cmp-btn-primary">⬇ Вивантажити в Excel</button>
+          <button id="cmpReset" type="button" class="cmp-btn">Очистити</button>
+        </div>
+      </div>
+      <div class="cmp-summary" id="cmpSummary" aria-live="polite"></div>
+    </div>
+
+    <section class="cmp-panel" id="cmpPanel" aria-live="polite"></section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p>Порівняння зібрано з текстів постанов автоматично. Числа звірені з чинними редакціями, але юридично значущим є текст постанови, а не ця таблиця.</p>
+      </div>
+    </div>
+  </footer>
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <script src="porivnyannya.js?v=20260814a" defer></script>
+</body>
+</html>

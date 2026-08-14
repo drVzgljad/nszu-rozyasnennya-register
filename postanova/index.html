@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="../styles.css?v=20260808b">
   <link rel="stylesheet" href="resolution.css?v=20260805a">
   <link rel="stylesheet" href="../auth-v2.css?v=20260806a">
-  <script type="module" src="../auth-v2.js?v=20260814a"></script>
+  <script type="module" src="../auth-v2.js?v=20260814b"></script>
 </head>
 <body id="top">
   <header class="hero resolution-hero">
@@ -38,6 +38,19 @@
     </div>
     <div class="stats" id="resolutionStats" aria-label="Статистика постанови"></div>
   </header>
+
+  <!-- Вхід у порівняння з попереднім роком: сама постанова 1503 у розділі не
+       індексується, тут лише міст до зіставлення тарифів і коефіцієнтів. -->
+  <section style="max-width:1480px; margin:18px auto 0; padding:0 24px;">
+    <a href="porivnyannya.html" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px 18px; padding:16px 20px; border:1px solid var(--line,#e3edf3); border-left:4px solid var(--accent,#0284c7); border-radius:14px; background:var(--surface,#fff); text-decoration:none;">
+      <span style="font-size:22px;">↔️</span>
+      <span style="display:flex; flex-direction:column; gap:3px;">
+        <b style="color:var(--ink,#1f3347); font-size:14.5px;">Тарифи й коефіцієнти: 2025 ↔ 2026</b>
+        <span style="color:var(--muted,#647688); font-size:12.5px;">Що змінилося проти постанови № 1503 — ставки за пакетами, коригувальні коефіцієнти та вагові коефіцієнти ДСГ. З фільтром по пакетах і вивантаженням в Excel.</span>
+      </span>
+      <span style="margin-left:auto; color:var(--accent,#0284c7); font-weight:700; font-size:13px; white-space:nowrap;">Відкрити →</span>
+    </a>
+  </section>
 
   <!-- Актуальність документа (автооновлення: infocenter_pipeline/track_documents.py) -->
   <section id="docStatusSection" style="max-width:1480px; margin:18px auto 0; padding:0 24px; display:none;">

@@ -496,7 +496,12 @@ function applyAccess() {
     // Накази НСЗУ винесені у власне гніздо: їх уже два, і поруч у списку вони
     // читаються як два різні розділи, хоча це один тип документа.
     const documentsItems = [
-      { text: 'Постанова 1808', path: 'postanova/index.html' },
+      {
+        text: '📜 Постанови ПМГ', items: [
+          { text: 'Постанова 1808 · Порядок 2026', path: 'postanova/index.html' },
+          { text: 'Тарифи 2025 ↔ 2026 · порівняння', path: 'postanova/porivnyannya.html' }
+        ]
+      },
       {
         text: '📜 Накази НСЗУ', items: [
           { text: 'Наказ 377 · Алгоритми та правила', path: 'algorithms/index.html' },
@@ -2436,6 +2441,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '🪪', label: 'Паспорт пакета', path: 'passport/index.html' },
     { icon: '🧪', label: 'Пілотні проєкти', path: 'pilots/index.html' },
     { icon: '📜', label: 'Постанова 1808', path: 'postanova/index.html' },
+    { icon: '↔️', label: 'Тарифи 2025 ↔ 2026', path: 'postanova/porivnyannya.html' },
     { icon: '🧮', label: 'Наказ 377', path: 'algorithms/index.html' },
     { icon: '⚖️', label: 'Нормативна база', path: 'regulatory/index.html' },
     { icon: '☢️', label: 'Рентген і ДІВ', path: 'rentgen/index.html' },
