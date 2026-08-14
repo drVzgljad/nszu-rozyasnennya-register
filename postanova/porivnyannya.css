@@ -114,6 +114,111 @@
 }
 .cmp-field select:focus-visible,
 .cmp-field input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* ── Вибір пакетів ───────────────────────────────────────────────
+   Список із чекбоксів, а не <select multiple>: пакетів 46, назви довгі,
+   і добирати їх з натиснутим Ctrl — гарантований шлях загубити вибране
+   одним випадковим кліком. */
+.cmp-field-pkg { position: relative; min-width: 268px; }
+.cmp-pkg-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--p-line);
+  border-radius: 10px;
+  background: var(--p-soft);
+  color: var(--p-ink);
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.cmp-pkg-toggle::after { content: '▾'; color: var(--p-muted); font-size: 11px; }
+.cmp-pkg-toggle[aria-expanded="true"]::after { content: '▴'; }
+.cmp-pkg-toggle:hover { background: var(--p-soft-hover); }
+.cmp-pkg-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.cmp-pkg-panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  width: min(460px, 88vw);
+  padding: 12px;
+  border: 1px solid var(--p-line);
+  border-radius: 12px;
+  background: var(--p-surface);
+  box-shadow: var(--p-shadow-lg);
+}
+.cmp-pkg-panel[hidden] { display: none; }
+.cmp-pkg-panel input[type="search"] {
+  width: 100%;
+  padding: 8px 11px;
+  margin-bottom: 8px;
+  border: 1px solid var(--p-line);
+  border-radius: 9px;
+  background: var(--p-soft);
+  color: var(--p-ink);
+  font: inherit;
+  font-size: 13px;
+}
+.cmp-pkg-list { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; }
+.cmp-pkg-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--p-ink);
+  cursor: pointer;
+}
+.cmp-pkg-item:hover { background: var(--p-soft-hover); }
+.cmp-pkg-item input { margin-top: 2px; flex-shrink: 0; }
+.cmp-pkg-item b { font-weight: 700; white-space: nowrap; }
+.cmp-pkg-item span { color: var(--p-muted); }
+.cmp-pkg-empty { padding: 14px 9px; color: var(--p-muted); font-size: 13px; }
+.cmp-pkg-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--p-line);
+}
+.cmp-pkg-foot > span { margin-right: auto; font-size: 12.5px; color: var(--p-muted); }
+.cmp-pkg-foot .cmp-btn { padding: 7px 13px; font-size: 12.5px; }
+
+.cmp-pkg-chosen { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 100%; }
+.cmp-pkg-chosen:empty { display: none; }
+.cmp-pkg-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 6px 4px 11px;
+  border: 1px solid var(--p-line);
+  border-radius: 999px;
+  background: var(--p-soft);
+  font-size: 12.5px;
+  color: var(--p-ink);
+}
+.cmp-pkg-tag button {
+  border: 0;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  background: transparent;
+  color: var(--p-muted);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+.cmp-pkg-tag button:hover { background: var(--p-line); color: var(--p-ink); }
+
 .cmp-check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--p-ink); padding-bottom: 9px; cursor: pointer; }
 .cmp-actions { display: flex; gap: 8px; margin-left: auto; padding-bottom: 4px; }
 .cmp-btn {

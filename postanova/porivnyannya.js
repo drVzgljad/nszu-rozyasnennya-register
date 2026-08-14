@@ -17,7 +17,10 @@ const TABS = [
 ];
 
 let DB = null;
-const state = { tab: 'rates', pkg: '', q: '', changedOnly: false };
+// pkgs порожній = обмеження немає. Так «нічого не вибрано» і «вибрано все»
+// лишаються різними станами тільки на вигляд, а фільтрують однаково.
+const state = { tab: 'rates', pkgs: new Set(), q: '', changedOnly: false };
+let packageOptions = [];
 
 const el = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -66,9 +69,13 @@ function matchesText(haystack) {
 
 // ── Відбір ───────────────────────────────────────────────────────────────────
 
+/** Рядок належить будь-якому з обраних пакетів. Глава 3 віддає одразу три
+    пакети (3, 4, 47), тож перетин, а не рівність. */
+const inPackages = (packages) => !state.pkgs.size || packages.some((p) => state.pkgs.has(p));
+
 function visibleRates() {
   return DB.rates.filter((r) => {
-    if (state.pkg && !r.packages.includes(state.pkg)) return false;
+    if (!inPackages(r.packages)) return false;
     if (state.changedOnly && !changed(r)) return false;
     return matchesText(`${r.chapter_title} ${r.kind} ${r.qualifier} ${r.qualifier2025} ${r.v2025 ?? ''} ${r.v2026 ?? ''}`);
   });
@@ -77,7 +84,7 @@ function visibleRates() {
 function visibleCoefficients() {
   const groups = [];
   for (const group of DB.coefficients) {
-    if (state.pkg && !group.packages.includes(state.pkg)) continue;
+    if (!inPackages(group.packages)) continue;
     const groupText = `${group.chapter_title} ${group.caption}`;
     const rows = group.rows.filter((row) => {
       if (state.changedOnly && !changed(row)) return false;
@@ -90,7 +97,7 @@ function visibleCoefficients() {
 
 function visibleDrg() {
   return DB.drg.filter((r) => {
-    if (state.pkg && !r.packages.includes(state.pkg)) return false;
+    if (!inPackages(r.packages)) return false;
     if (state.changedOnly && !changed(r)) return false;
     return matchesText(`${r.code} ${r.title} ${r.printed.join(' ')}`);
   });
@@ -142,14 +149,62 @@ function renderStats() {
     <div class="stat"><strong>${esc(value)}</strong><span>${esc(label)}</span></div>`).join('');
 }
 
-function renderPackages() {
+function collectPackages() {
   const used = new Set();
   DB.rates.forEach((r) => r.packages.forEach((p) => used.add(p)));
   DB.coefficients.forEach((g) => g.packages.forEach((p) => used.add(p)));
   DB.drg.forEach((r) => r.packages.forEach((p) => used.add(p)));
-  const options = DB.packages.filter((p) => used.has(p.number))
-    .map((p) => `<option value="${esc(p.number)}">№ ${esc(p.number)} — ${esc(p.title)}</option>`).join('');
-  el('cmpPackage').innerHTML = `<option value="">Усі пакети</option>${options}`;
+  packageOptions = DB.packages.filter((p) => used.has(p.number));
+}
+
+/** Список чекбоксів, відфільтрований пошуком усередині панелі.
+    Уже обрані показуємо завжди — інакше пошук ховав би власний вибір. */
+function renderPackageList(query = '') {
+  const needle = query.trim().toLowerCase();
+  const matched = packageOptions.filter((p) => !needle
+    || state.pkgs.has(p.number)
+    || p.number.includes(needle)
+    || p.title.toLowerCase().includes(needle));
+  el('cmpPkgList').innerHTML = matched.length
+    ? matched.map((p) => `
+        <label class="cmp-pkg-item">
+          <input type="checkbox" value="${esc(p.number)}"${state.pkgs.has(p.number) ? ' checked' : ''}>
+          <span><b>№ ${esc(p.number)}</b> — ${esc(p.title)}</span>
+        </label>`).join('')
+    : '<div class="cmp-pkg-empty">Пакета з такою назвою немає.</div>';
+  el('cmpPkgCount').textContent = state.pkgs.size
+    ? `обрано ${state.pkgs.size} із ${packageOptions.length}`
+    : `усі ${packageOptions.length} пакетів`;
+}
+
+function renderPackageSummary() {
+  const chosen = packageOptions.filter((p) => state.pkgs.has(p.number));
+  el('cmpPkgToggle').textContent = !chosen.length
+    ? 'Усі пакети'
+    : (chosen.length === 1 ? `№ ${chosen[0].number} — ${chosen[0].title}` : `Обрано пакетів: ${chosen.length}`);
+  el('cmpPkgChosen').innerHTML = chosen.length < 2 ? '' : chosen.map((p) => `
+    <span class="cmp-pkg-tag">№ ${esc(p.number)}
+      <button type="button" data-drop="${esc(p.number)}" aria-label="Прибрати пакет № ${esc(p.number)}">×</button>
+    </span>`).join('');
+  el('cmpPkgChosen').querySelectorAll('button[data-drop]').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.pkgs.delete(button.dataset.drop);
+      renderPackageSummary();
+      renderPackageList(el('cmpPkgSearch').value);
+      render();
+    });
+  });
+}
+
+function togglePackagePanel(open) {
+  const panel = el('cmpPkgPanel');
+  const next = open === undefined ? panel.hidden : open;
+  panel.hidden = !next;
+  el('cmpPkgToggle').setAttribute('aria-expanded', String(next));
+  if (next) {
+    renderPackageList(el('cmpPkgSearch').value);
+    el('cmpPkgSearch').focus();
+  }
 }
 
 function tableShell(head, body, note) {
@@ -288,10 +343,14 @@ function renderSummary() {
   } else {
     visibleCoefficients().forEach(({ rows }) => { total += rows.length; changedCount += rows.filter(changed).length; });
   }
-  const pkg = state.pkg ? (DB.packages.find((p) => p.number === state.pkg) || {}).title : '';
+  const chosen = packageOptions.filter((p) => state.pkgs.has(p.number));
+  const pkgText = !chosen.length ? ''
+    : (chosen.length === 1
+      ? `. Пакет: <b>№ ${esc(chosen[0].number)} — ${esc(chosen[0].title)}</b>`
+      : `. Пакети: <b>${chosen.map((p) => '№ ' + esc(p.number)).join(', ')}</b>`);
   el('cmpSummary').innerHTML = `Показано <b>${total}</b> ${total === 1 ? 'рядок' : 'рядків'}`
     + `, з них зі зміною — <b>${changedCount}</b>`
-    + (pkg ? `. Пакет: <b>№ ${esc(state.pkg)} — ${esc(pkg)}</b>` : '')
+    + pkgText
     + (state.q ? `. Пошук: <b>${esc(state.q)}</b>` : '');
 }
 
@@ -497,7 +556,9 @@ function exportRows() {
     ['Джерело 2026', `Постанова КМУ № ${DB.meta.sources['2026'].number} від ${DB.meta.sources['2026'].date}, редакція від ${DB.meta.sources['2026'].edition}`],
     ['Застереження', DB.meta.note],
     [],
-    ['Фільтр: пакет', state.pkg ? `№ ${state.pkg}` : 'усі'],
+    ['Фільтр: пакети', state.pkgs.size
+      ? packageOptions.filter((p) => state.pkgs.has(p.number)).map((p) => `№ ${p.number} — ${p.title}`).join('; ')
+      : 'усі'],
     ['Фільтр: пошук', state.q || '—'],
     ['Фільтр: лише зміни', state.changedOnly ? 'так' : 'ні'],
     ['Вивантажено рядків', `ставки ${rates.length - 1}, коефіцієнти ${coefficients.length - 1}, ДСГ ${drg.length - 1}`]
@@ -528,7 +589,33 @@ let bound = false;
 function bind() {
   if (bound) return;   // start() можна викликати повторно кнопкою «Спробувати ще раз»
   bound = true;
-  el('cmpPackage').addEventListener('change', (e) => { state.pkg = e.target.value; render(); });
+  el('cmpPkgToggle').addEventListener('click', () => togglePackagePanel());
+  el('cmpPkgSearch').addEventListener('input', (e) => renderPackageList(e.target.value));
+  el('cmpPkgList').addEventListener('change', (e) => {
+    const box = e.target.closest('input[type="checkbox"]');
+    if (!box) return;
+    if (box.checked) state.pkgs.add(box.value); else state.pkgs.delete(box.value);
+    el('cmpPkgCount').textContent = state.pkgs.size
+      ? `обрано ${state.pkgs.size} із ${packageOptions.length}`
+      : `усі ${packageOptions.length} пакетів`;
+    renderPackageSummary();
+    render();
+  });
+  el('cmpPkgNone').addEventListener('click', () => {
+    state.pkgs.clear();
+    renderPackageSummary();
+    renderPackageList(el('cmpPkgSearch').value);
+    render();
+  });
+  el('cmpPkgClose').addEventListener('click', () => { togglePackagePanel(false); el('cmpPkgToggle').focus(); });
+  // Панель перекриває таблицю, тож клік повз неї та Esc мають її закривати.
+  document.addEventListener('click', (e) => {
+    if (!el('cmpPkgPanel').hidden && !e.target.closest('.cmp-field-pkg')) togglePackagePanel(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !el('cmpPkgPanel').hidden) { togglePackagePanel(false); el('cmpPkgToggle').focus(); }
+  });
+
   el('cmpSearch').addEventListener('input', (e) => {
     clearTimeout(searchTimer);
     const value = e.target.value.trim().toLowerCase();
@@ -537,8 +624,12 @@ function bind() {
   el('cmpChangedOnly').addEventListener('change', (e) => { state.changedOnly = e.target.checked; render(); });
   el('cmpExport').addEventListener('click', download);
   el('cmpReset').addEventListener('click', () => {
-    state.pkg = ''; state.q = ''; state.changedOnly = false;
-    el('cmpPackage').value = ''; el('cmpSearch').value = ''; el('cmpChangedOnly').checked = false;
+    state.pkgs.clear(); state.q = ''; state.changedOnly = false;
+    el('cmpSearch').value = ''; el('cmpChangedOnly').checked = false;
+    el('cmpPkgSearch').value = '';
+    togglePackagePanel(false);
+    renderPackageSummary();
+    renderPackageList();
     render();
   });
 }
@@ -575,7 +666,9 @@ async function start() {
   }
   renderStats();
   renderSources();
-  renderPackages();
+  collectPackages();
+  renderPackageSummary();
+  renderPackageList();
   bind();
   render();
 }

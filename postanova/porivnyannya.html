@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Тарифи 2025 ↔ 2026</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="porivnyannya.css?v=20260814a">
+  <link rel="stylesheet" href="porivnyannya.css?v=20260814b">
   <link rel="stylesheet" href="../auth-v2.css?v=20260806a">
   <script type="module" src="../auth-v2.js?v=20260814b"></script>
 </head>
@@ -45,10 +45,20 @@
     <div class="cmp-controls">
       <div class="cmp-tabs" id="cmpTabs" role="tablist" aria-label="Що порівнюємо"></div>
       <div class="cmp-filters">
-        <label class="cmp-field">
-          <span>Пакет медичних послуг</span>
-          <select id="cmpPackage"></select>
-        </label>
+        <div class="cmp-field cmp-field-pkg">
+          <span id="cmpPkgLabel">Пакети медичних послуг</span>
+          <button id="cmpPkgToggle" type="button" class="cmp-pkg-toggle"
+                  aria-expanded="false" aria-controls="cmpPkgPanel" aria-labelledby="cmpPkgLabel cmpPkgToggle">Усі пакети</button>
+          <div class="cmp-pkg-panel" id="cmpPkgPanel" hidden>
+            <input id="cmpPkgSearch" type="search" placeholder="Знайти пакет за назвою або номером…" autocomplete="off">
+            <div class="cmp-pkg-list" id="cmpPkgList" role="group" aria-label="Пакети медичних послуг"></div>
+            <div class="cmp-pkg-foot">
+              <span id="cmpPkgCount"></span>
+              <button id="cmpPkgNone" type="button" class="cmp-btn">Зняти всі</button>
+              <button id="cmpPkgClose" type="button" class="cmp-btn cmp-btn-primary">Готово</button>
+            </div>
+          </div>
+        </div>
         <label class="cmp-field cmp-field-grow">
           <span>Пошук</span>
           <input id="cmpSearch" type="search" placeholder="Наприклад: 8735, інсульт, капітаційна, A15…" autocomplete="off">
@@ -57,6 +67,7 @@
           <input id="cmpChangedOnly" type="checkbox">
           <span>Лише те, що змінилося</span>
         </label>
+        <div class="cmp-pkg-chosen" id="cmpPkgChosen" aria-live="polite"></div>
         <div class="cmp-actions">
           <button id="cmpExport" type="button" class="cmp-btn cmp-btn-primary">⬇ Вивантажити в Excel</button>
           <button id="cmpReset" type="button" class="cmp-btn">Очистити</button>
@@ -78,6 +89,6 @@
     </div>
   </footer>
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
-  <script src="porivnyannya.js?v=20260814a" defer></script>
+  <script src="porivnyannya.js?v=20260814b" defer></script>
 </body>
 </html>
