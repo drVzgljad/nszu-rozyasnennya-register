@@ -1,9 +1,16 @@
-/* Коди ЕСОЗ — внутрішній довідник. Доповнює classifiers.css. */
+/* Коди ЕСОЗ — внутрішній довідник. Доповнює classifiers.css.
+
+   Кольори беремо ВИКЛЮЧНО з ролей теми (--ink, --muted, --line, --surface,
+   --soft, --accent-dark, --accent-soft, --warning-*). Запасних значень у
+   var() немає навмисно: саме hardcode-фолбек на кшталт var(--p-accent, #2f6b9e)
+   зламав темну тему 14.08.2026 — токена --p-accent не існує, тож у темній
+   темі текст ставав темно-синім на темному тлі. Якщо роль колись зникне,
+   краще побачити «голий» колір браузера, ніж мовчазно світлу пляму. */
 
 .es-hint {
   margin: 6px 0 0;
   font-size: 13px;
-  color: var(--p-muted, #5b6b7a);
+  color: var(--muted);
 }
 .es-hint code { font-size: 12px; }
 
@@ -13,18 +20,18 @@
   gap: 12px;
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid var(--p-line, #dde6ee);
+  border: 1px solid var(--line);
   border-radius: 10px;
-  background: var(--p-surface, #fff);
+  background: var(--surface);
   text-align: left;
   cursor: pointer;
   margin-bottom: 6px;
   transition: border-color .15s, background-color .15s;
 }
-.es-row:hover { border-color: var(--p-accent, #2f6b9e); }
+.es-row:hover { border-color: var(--accent); }
 .es-row.is-open {
-  border-color: var(--p-accent, #2f6b9e);
-  background: var(--p-accent-soft, #f2f8fd);
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .es-code {
@@ -32,7 +39,7 @@
   font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
   font-size: 13px;
   font-weight: 700;
-  color: var(--p-accent, #2f6b9e);
+  color: var(--accent-dark);
   padding-top: 1px;
   min-width: 62px;
 }
@@ -40,7 +47,7 @@
 .es-name {
   font-size: 14px;
   line-height: 1.35;
-  color: var(--p-ink, #1d2b36);
+  color: var(--ink);
 }
 .es-meta { display: flex; flex-wrap: wrap; gap: 6px; }
 
@@ -49,17 +56,17 @@
   line-height: 1.6;
   padding: 0 7px;
   border-radius: 999px;
-  background: var(--p-chip, #eef3f8);
-  color: var(--p-muted, #5b6b7a);
+  background: var(--soft);
+  color: var(--muted);
   white-space: nowrap;
 }
-.es-tag-kind { background: var(--p-accent-soft, #e8f1f9); color: var(--p-accent, #2f6b9e); }
-.es-tag-warn { background: #fdf1e3; color: #a5651a; }
+.es-tag-kind { background: var(--accent-soft); color: var(--accent-dark); }
+.es-tag-warn { background: var(--warning-bg); color: var(--warning-text); }
 
 .es-more {
   margin: 10px 2px 0;
   font-size: 13px;
-  color: var(--p-muted, #5b6b7a);
+  color: var(--muted);
 }
 
 /* ── Картка коду ─────────────────────────────────────── */
@@ -69,16 +76,16 @@
   gap: 4px;
   padding-bottom: 12px;
   margin-bottom: 14px;
-  border-bottom: 1px solid var(--p-line, #dde6ee);
+  border-bottom: 1px solid var(--line);
 }
 .es-cardcode {
   font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
   font-size: 26px;
   font-weight: 800;
-  color: var(--p-accent, #2f6b9e);
+  color: var(--accent-dark);
   letter-spacing: .5px;
 }
-.es-cardkind { font-size: 13px; color: var(--p-muted, #5b6b7a); }
+.es-cardkind { font-size: 13px; color: var(--muted); }
 
 .es-block { margin-bottom: 18px; }
 .es-block h3 {
@@ -87,7 +94,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .04em;
-  color: var(--p-muted, #5b6b7a);
+  color: var(--muted);
 }
 
 .es-names { list-style: none; margin: 0; padding: 0; }
@@ -96,54 +103,48 @@
   flex-direction: column;
   gap: 2px;
   padding: 8px 10px;
-  border-left: 3px solid var(--p-line, #dde6ee);
-  background: var(--p-chip, #f6f9fc);
+  border-left: 3px solid var(--line);
+  background: var(--soft);
   border-radius: 0 8px 8px 0;
   margin-bottom: 6px;
 }
-.es-nameitem.is-primary { border-left-color: var(--p-accent, #2f6b9e); }
-.es-nametext { font-size: 15px; line-height: 1.4; color: var(--p-ink, #1d2b36); }
-.es-namesrc { font-size: 11px; color: var(--p-muted, #5b6b7a); }
+.es-nameitem.is-primary { border-left-color: var(--accent-dark); }
+.es-nametext { font-size: 15px; line-height: 1.4; color: var(--ink); }
+.es-namesrc { font-size: 11px; color: var(--muted); }
 
 .es-list { list-style: none; margin: 0; padding: 0; }
 .es-list li {
   padding: 7px 0;
-  border-bottom: 1px dashed var(--p-line, #e6edf4);
+  border-bottom: 1px dashed var(--line);
   font-size: 14px;
   line-height: 1.45;
+  color: var(--ink);
 }
 .es-list li:last-child { border-bottom: 0; }
+.es-list a { color: var(--accent-dark); }
 .es-svc { display: block; }
 .es-pkgs { display: inline-flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 .es-pkgs a { font-size: 12px; }
-.es-times { font-size: 12px; color: var(--p-muted, #5b6b7a); margin-left: 6px; }
+.es-times { font-size: 12px; color: var(--muted); margin-left: 6px; }
 
 .es-warn {
   margin: 0 0 10px;
   padding: 9px 11px;
   border-radius: 8px;
-  background: #fdf6ea;
-  border: 1px solid #f0dcc0;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
   font-size: 13px;
   line-height: 1.45;
-  color: #7a5418;
+  color: var(--warning-text);
 }
-.es-warn-strong { background: #fdeeee; border-color: #f0c9c9; color: #8a3232; }
+/* Сильніше попередження — та сама роль, лише насиченіша рамка. */
+.es-warn-strong { border-width: 2px; font-weight: 600; }
 
 .es-foot {
   margin-top: 18px;
   padding-top: 12px;
-  border-top: 1px solid var(--p-line, #dde6ee);
+  border-top: 1px solid var(--line);
   font-size: 12px;
   line-height: 1.5;
-  color: var(--p-muted, #5b6b7a);
-}
-
-/* ── Темна тема ──────────────────────────────────────── */
-:root.dark-theme .es-tag-warn { background: #3a2c17; color: #e0b878; }
-:root.dark-theme .es-warn {
-  background: #33291a; border-color: #5a4726; color: #e8cb98;
-}
-:root.dark-theme .es-warn-strong {
-  background: #38221f; border-color: #5f3330; color: #edb0ab;
+  color: var(--muted);
 }
