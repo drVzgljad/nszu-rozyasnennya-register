@@ -252,6 +252,43 @@
   border-bottom: 1px solid var(--p-line);
   background: var(--p-soft);
 }
+.cmp-head-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.cmp-head-row h2 { margin: 0; }
+.cmp-view { display: flex; margin-left: auto; border: 1px solid var(--p-line); border-radius: 999px; overflow: hidden; }
+.cmp-view button {
+  padding: 6px 15px;
+  border: 0;
+  background: var(--p-surface);
+  color: var(--p-muted);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cmp-view button + button { border-left: 1px solid var(--p-line); }
+.cmp-view button:hover { background: var(--p-soft-hover); color: var(--p-ink); }
+.cmp-view button[aria-pressed="true"] { background: var(--accent-fill, var(--accent)); color: #fff; }
+
+/* Розкриті суми глави — з відступом і приглушено, щоб базовий рядок лишався
+   головним, а не губився серед своїх же доплат. */
+.cmp-sub td { background: var(--p-soft); }
+.cmp-sub td:nth-child(4) { padding-left: 26px; }
+.cmp-more-btn {
+  margin-left: 8px;
+  padding: 2px 10px;
+  border: 1px solid var(--p-line);
+  border-radius: 999px;
+  background: var(--p-surface);
+  color: var(--accent);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.cmp-more-btn:hover { background: var(--p-soft-hover); }
+.cmp-tag-calc { background: var(--p-soft); color: var(--p-muted); border: 1px solid var(--p-line); }
+
 .cmp-group-head h2 { margin: 0 0 4px; font-size: 15px; color: var(--p-ink); }
 .cmp-group-head p { margin: 0; font-size: 12.5px; color: var(--p-muted); line-height: 1.5; }
 .cmp-chip {

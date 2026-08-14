@@ -19,8 +19,10 @@ const TABS = [
 let DB = null;
 // pkgs порожній = обмеження немає. Так «нічого не вибрано» і «вибрано все»
 // лишаються різними станами тільки на вигляд, а фільтрують однаково.
-const state = { tab: 'rates', pkgs: new Set(), q: '', changedOnly: false };
+const state = { tab: 'rates', pkgs: new Set(), q: '', changedOnly: false, ratesView: 'base' };
 let packageOptions = [];
+// Глави, для яких розкрито решту сум у режимі базового тарифу.
+const expanded = new Set();
 
 const el = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -79,6 +81,14 @@ function visibleRates() {
     if (state.changedOnly && !changed(r)) return false;
     return matchesText(`${r.chapter_title} ${r.kind} ${r.qualifier} ${r.qualifier2025} ${r.v2025 ?? ''} ${r.v2026 ?? ''}`);
   });
+}
+
+/** Те, що реально показуємо у вкладці ставок.
+    У режимі «Базовий тариф» — один рядок на пакет плюс розкриті вручну глави. */
+function ratesForDisplay() {
+  const rows = visibleRates();
+  if (state.ratesView === 'all') return rows;
+  return rows.filter((r) => r.base || expanded.has(r.chapter_title));
 }
 
 function visibleCoefficients() {
@@ -215,34 +225,50 @@ function tableShell(head, body, note) {
 }
 
 function renderRates() {
-  const rows = visibleRates();
-  if (!rows.length) return emptyState();
+  const base = state.ratesView === 'base';
+  const rows = ratesForDisplay();
+  const head = ['Пакет', 'Глава', 'Тип ставки', 'Що оплачує',
+    { label: '2025, грн', num: 1 }, { label: '2026, грн', num: 1 },
+    { label: 'Δ, грн', num: 1 }, { label: 'Δ, %', num: 1 }, 'Джерело 2025', 'Джерело 2026'];
+  const shell = `<div class="cmp-group">
+      <div class="cmp-group-head">
+        <div class="cmp-head-row">
+          <h2>${base ? 'Базовий тариф пакета' : 'Усі суми, названі в главах'}</h2>
+          <div class="cmp-view" role="group" aria-label="Що показувати у ставках">
+            <button type="button" data-view="base" aria-pressed="${base}">Базовий тариф</button>
+            <button type="button" data-view="all" aria-pressed="${!base}">Усі суми</button>
+          </div>
+        </div>
+        <p>${base
+          ? 'По одному рядку на пакет — та ставка, яку постанова називає тарифом. Решта сум глави (доплати, вартість окремих етапів, рівні оплати праці) розкривається кнопкою «ще N».'
+          : 'Кожна сума з тарифних пунктів глави окремим рядком разом із тим, що саме вона оплачує. Порожнє поле означає, що в тому році такої суми в главі не було.'}</p>
+      </div>
+      %ROWS%
+    </div>`;
+  if (!rows.length) return shell.replace('%ROWS%', '<div class="cmp-empty">За цим фільтром нічого не знайшлося.</div>');
+
   const shown = rows.slice(0, RENDER_LIMIT);
-  const body = shown.map((r) => `
-    <tr>
-      <td>${r.packages.map((p) => `<span class="cmp-chip">№ ${esc(p)}</span>`).join('')}</td>
-      <td class="cmp-title">${esc(r.chapter_title.replace(/^Глава\s+\d+\.\s*/, ''))}</td>
-      <td>${esc(r.kind)}</td>
-      <td class="cmp-title">${esc(r.qualifier)} ${statusTag(r.status)}</td>
+  const body = shown.map((r) => {
+    const more = base && r.extras
+      ? `<button type="button" class="cmp-more-btn" data-chapter="${esc(r.chapter_title)}">${expanded.has(r.chapter_title) ? '− згорнути' : `ще ${r.extras}`}</button>`
+      : '';
+    return `
+    <tr${base && !r.base ? ' class="cmp-sub"' : ''}>
+      <td>${r.base ? r.packages.map((p) => `<span class="cmp-chip">№ ${esc(p)}</span>`).join('') : ''}</td>
+      <td class="cmp-title">${r.base ? esc(r.chapter_title.replace(/^Глава\s+\d+\.\s*/, '')) : ''}</td>
+      <td>${esc(r.kind)}${r.formula ? ' <span class="cmp-tag cmp-tag-calc">розрахунок</span>' : ''}</td>
+      <td class="cmp-title">${esc(r.qualifier)} ${statusTag(r.status)} ${more}</td>
       <td class="cmp-num">${r.v2025 === null ? '<span class="cmp-absent">—</span>' : fmt(r.v2025)}</td>
       <td class="cmp-num">${r.v2026 === null ? '<span class="cmp-absent">—</span>' : fmt(r.v2026)}</td>
       <td class="cmp-num">${deltaCell(r)}</td>
       <td class="cmp-num">${pct(r)}</td>
       <td>${sourceLink('2025', r.chapter2025, r.point2025, r.page2025)}</td>
       <td>${sourceLink('2026', r.chapter2026, r.point2026, r.page2026)}</td>
-    </tr>`).join('');
-  const head = ['Пакет', 'Глава', 'Тип ставки', 'Що оплачує',
-    { label: '2025, грн', num: 1 }, { label: '2026, грн', num: 1 },
-    { label: 'Δ, грн', num: 1 }, { label: 'Δ, %', num: 1 }, 'Джерело 2025', 'Джерело 2026'];
+    </tr>`;
+  }).join('');
   const note = rows.length > shown.length
     ? `Показано ${shown.length} рядків із ${rows.length}. У вивантаження в Excel потрапляють усі.` : '';
-  return `<div class="cmp-group">
-      <div class="cmp-group-head">
-        <h2>Ставки, з яких складається тариф</h2>
-        <p>У пункті постанови буває кілька сум одразу, тому кожна показана окремо разом із тим, що саме вона оплачує. Порожнє поле означає, що в тому році такої суми в главі не було.</p>
-      </div>
-      ${tableShell(head, body, note)}
-    </div>`;
+  return shell.replace('%ROWS%', tableShell(head, body, note));
 }
 
 function renderCoefficients() {
@@ -333,7 +359,7 @@ function renderSummary() {
   let total = 0;
   let changedCount = 0;
   if (state.tab === 'rates') {
-    const rows = visibleRates();
+    const rows = ratesForDisplay();
     total = rows.length;
     changedCount = rows.filter(changed).length;
   } else if (state.tab === 'drg') {
@@ -519,12 +545,14 @@ ${sheets.map((s, i) => `<Relationship Id="rId${i + 1}" Type="${rel}/worksheet" T
 
 function exportRows() {
   const rates = [[
-    'Пакет', 'Глава 2025', 'Глава 2026', 'Глава', 'Тип ставки', 'Що оплачує',
+    'Пакет', 'Глава 2025', 'Глава 2026', 'Глава', 'Базовий тариф', 'Тип ставки', 'Що оплачує',
     '2025, грн', '2026, грн', 'Δ, грн', 'Δ, %', 'Пункт 2025', 'Стор. 2025', 'Пункт 2026', 'Стор. 2026', 'Стан'
   ]];
-  visibleRates().forEach((r) => rates.push([
+  ratesForDisplay().forEach((r) => rates.push([
     r.packages.join(', '), r.chapter2025, r.chapter2026,
-    r.chapter_title.replace(/^Глава\s+\d+\.\s*/, ''), r.kind, r.qualifier,
+    r.chapter_title.replace(/^Глава\s+\d+\.\s*/, ''),
+    r.base ? (r.formula ? 'так, розрахунком' : 'так') : '',
+    r.kind, r.qualifier,
     r.v2025, r.v2026, r.delta ?? null, r.delta_pct ?? null,
     r.point2025, r.page2025, r.point2026, r.page2026,
     r.status === 'both' ? 'в обох роках' : (r.status === 'only-2025' ? 'лише 2025' : 'лише 2026')
@@ -561,6 +589,9 @@ function exportRows() {
       : 'усі'],
     ['Фільтр: пошук', state.q || '—'],
     ['Фільтр: лише зміни', state.changedOnly ? 'так' : 'ні'],
+    ['Аркуш «Ставки»', state.ratesView === 'base'
+      ? 'базовий тариф — по одному рядку на пакет'
+      : 'усі суми, названі в главах'],
     ['Вивантажено рядків', `ставки ${rates.length - 1}, коефіцієнти ${coefficients.length - 1}, ДСГ ${drg.length - 1}`]
   ];
 
@@ -589,6 +620,23 @@ let bound = false;
 function bind() {
   if (bound) return;   // start() можна викликати повторно кнопкою «Спробувати ще раз»
   bound = true;
+  // Таблиця перемальовується цілком, тож слухаємо на контейнері, а не на кнопках.
+  el('cmpPanel').addEventListener('click', (e) => {
+    const view = e.target.closest('.cmp-view button');
+    if (view) {
+      state.ratesView = view.dataset.view;
+      if (state.ratesView === 'base') expanded.clear();
+      render();
+      return;
+    }
+    const more = e.target.closest('.cmp-more-btn');
+    if (more) {
+      const chapter = more.dataset.chapter;
+      if (expanded.has(chapter)) expanded.delete(chapter); else expanded.add(chapter);
+      render();
+    }
+  });
+
   el('cmpPkgToggle').addEventListener('click', () => togglePackagePanel());
   el('cmpPkgSearch').addEventListener('input', (e) => renderPackageList(e.target.value));
   el('cmpPkgList').addEventListener('change', (e) => {
@@ -625,6 +673,7 @@ function bind() {
   el('cmpExport').addEventListener('click', download);
   el('cmpReset').addEventListener('click', () => {
     state.pkgs.clear(); state.q = ''; state.changedOnly = false;
+    state.ratesView = 'base'; expanded.clear();
     el('cmpSearch').value = ''; el('cmpChangedOnly').checked = false;
     el('cmpPkgSearch').value = '';
     togglePackagePanel(false);

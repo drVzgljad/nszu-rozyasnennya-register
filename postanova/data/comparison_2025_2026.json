@@ -24,8 +24,9 @@
    "chapters_matched": 43,
    "chapters_2025": 43,
    "chapters_2026": 44,
-   "rates": 92,
-   "rates_both": 78,
+   "rates": 96,
+   "rates_base": 44,
+   "rates_both": 82,
    "coefficient_groups": 10,
    "coefficient_rows": 256,
    "drg": 489,
@@ -502,7 +503,7 @@
    "chapter2025": "1",
    "chapter2026": "1",
    "chapter_title": "Глава 1. Первинна медична допомога",
-   "kind": "Капітаційна ставка",
+   "kind": "Базова капітаційна ставка",
    "qualifier": "… медичні послуги з надання первинної медичної допомоги, які передбачені специфікаціями, визначається як базова капітаційна ставка за обслуговування одного пацієнта, що подав декларацію, та становить рік",
    "qualifier2025": "… медичні послуги з надання первинної медичної допомоги, які передбачені специфікаціями, визначається як базова капітаційна ставка за обслуговування одного пацієнта, що подав декларацію , та становить рік",
    "v2025": 844.4,
@@ -513,8 +514,10 @@
    "page2026": 27,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 162.9,
-   "delta_pct": 19.29
+   "delta_pct": 19.29,
+   "extras": 1
   },
   {
    "packages": [
@@ -534,8 +537,10 @@
    "page2026": 30,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -544,7 +549,7 @@
    "chapter2025": "2",
    "chapter2026": "2",
    "chapter_title": "Глава 2. Екстрена медична допомога",
-   "kind": "Глобальна ставка",
+   "kind": "Базова капітаційна ставка",
    "qualifier": "рік на одну особу",
    "qualifier2025": "… визначається як глобальна ставка, яка розраховується на основі базової капітаційної ставки за готовність надати медичні послуги, пов’язані з екстреною медичною допомогою, протягом року, яка становить рік",
    "v2025": 306.3,
@@ -555,8 +560,10 @@
    "page2026": 35,
    "match": 0.5,
    "status": "both",
+   "base": true,
    "delta": 68.7,
-   "delta_pct": 22.43
+   "delta_pct": 22.43,
+   "extras": 7
   },
   {
    "packages": [
@@ -576,8 +583,10 @@
    "page2026": 36,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -597,8 +606,10 @@
    "page2026": 36,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -617,7 +628,9 @@
    "point2026": "30",
    "page2026": 35,
    "match": 0.0,
-   "status": "only-2026"
+   "status": "only-2026",
+   "base": false,
+   "extras": 0
   },
   {
    "packages": [
@@ -636,7 +649,9 @@
    "point2026": "31",
    "page2026": 35,
    "match": 0.0,
-   "status": "only-2026"
+   "status": "only-2026",
+   "base": false,
+   "extras": 0
   },
   {
    "packages": [
@@ -655,7 +670,9 @@
    "point2026": "31",
    "page2026": 35,
    "match": 0.0,
-   "status": "only-2026"
+   "status": "only-2026",
+   "base": false,
+   "extras": 0
   },
   {
    "packages": [
@@ -674,7 +691,9 @@
    "point2026": "31",
    "page2026": 35,
    "match": 0.0,
-   "status": "only-2026"
+   "status": "only-2026",
+   "base": false,
+   "extras": 0
   },
   {
    "packages": [
@@ -693,7 +712,9 @@
    "point2026": "31",
    "page2026": 35,
    "match": 0.0,
-   "status": "only-2026"
+   "status": "only-2026",
+   "base": false,
+   "extras": 0
   },
   {
    "packages": [
@@ -704,7 +725,7 @@
    "chapter2025": "3",
    "chapter2026": "3",
    "chapter_title": "Глава 3. Хірургічні операції дорослим та дітям у стаціонарних умовах, хірургічні операції дорослим та дітям в умовах стаціонару одного дня, стаціонарна допомога дорослим та дітям без проведення хірургічних операцій",
-   "kind": "Інше",
+   "kind": "Базова ставка на пролікований випадок",
    "qualifier": "… та дітям без проведення хірургічних операцій”, що передбачені відповідними специфікаціями, визначається як комбінація глобальної ставки та базової ставки на пролікований випадок, яка становить",
    "qualifier2025": "… та дітям без проведення хірургічних операцій”, що передбачені відповідними специфікаціями, визначається як комбінація глобальної ставки та базової ставки на пролікований випадок, яка становить",
    "v2025": 8735.0,
@@ -715,8 +736,10 @@
    "page2026": 37,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 2
   },
   {
    "packages": [
@@ -738,8 +761,10 @@
    "page2026": 44,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -760,7 +785,9 @@
    "point2026": "43",
    "page2026": 45,
    "match": 0.0,
-   "status": "only-2026"
+   "status": "only-2026",
+   "base": false,
+   "extras": 0
   },
   {
    "packages": [
@@ -780,8 +807,10 @@
    "page2026": 46,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 2
   },
   {
    "packages": [
@@ -801,8 +830,10 @@
    "page2026": 46,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -822,8 +853,10 @@
    "page2026": 46,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -843,8 +876,10 @@
    "page2026": 48,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 1
   },
   {
    "packages": [
@@ -864,8 +899,10 @@
    "page2026": 48,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -885,8 +922,10 @@
    "page2026": 50,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -906,8 +945,10 @@
    "page2026": 51,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -927,8 +968,10 @@
    "page2026": 55,
    "match": 0.5,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 1
   },
   {
    "packages": [
@@ -947,7 +990,9 @@
    "point2026": "62",
    "page2026": 55,
    "match": 0.0,
-   "status": "only-2026"
+   "status": "only-2026",
+   "base": false,
+   "extras": 0
   },
   {
    "packages": [
@@ -967,8 +1012,10 @@
    "page2026": 70,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -988,8 +1035,10 @@
    "page2026": 71,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1009,8 +1058,10 @@
    "page2026": 72,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1030,8 +1081,10 @@
    "page2026": 72,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1051,8 +1104,10 @@
    "page2026": 73,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1072,8 +1127,10 @@
    "page2026": 74,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1093,8 +1150,10 @@
    "page2026": 74,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1114,8 +1173,10 @@
    "page2026": 75,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1135,8 +1196,10 @@
    "page2026": 76,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1156,8 +1219,10 @@
    "page2026": 76,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 1
   },
   {
    "packages": [
@@ -1177,8 +1242,10 @@
    "page2026": 76,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1187,7 +1254,7 @@
    "chapter2025": "19",
    "chapter2026": "19",
    "chapter_title": "Глава 19. Хіміотерапевтичне лікування та супровід пацієнтів з онкологічними захворюваннями у стаціонарних та амбулаторних умовах",
-   "kind": "Глобальна ставка",
+   "kind": "Капітаційна ставка",
    "qualifier": "до якої застосовуються такі коригувальні коефіцієнти залежно від віку пацієнта: 3,555 - за готовність надавати медичні послуги пацієнтам, яким не виповнилося 18 років; 0,97 - за готовність надавати медичні послуги пацієн",
    "qualifier2025": "до якої застосовуються такі коригувальні коефіцієнти залежно від віку пацієнта: 3,555 - за готовність надавати медичні послуги пацієнтам, яким не виповнилося 18 років; 0,97 - за готовність надавати медичні послуги пацієн",
    "v2025": 36807.0,
@@ -1198,8 +1265,10 @@
    "page2026": 77,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1219,8 +1288,10 @@
    "page2026": 79,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1229,7 +1300,7 @@
    "chapter2025": "21",
    "chapter2026": "21",
    "chapter_title": "Глава 21. Лікування та супровід пацієнтів з гематологічними та онкогематологічними захворюваннями в стаціонарних та амбулаторних умовах",
-   "kind": "Глобальна ставка",
+   "kind": "Капітаційна ставка",
    "qualifier": "одну особу на рік, із застосуванням таких коригувальних коефіцієнтів залежно від виду послуги: послуга “Онкогематологія 1” (діагнози C91-C95.9): - 5 - за готовність надавати медичні послуги в стаціонарних умовах або в ст",
    "qualifier2025": "рік, із застосуванням таких коригувальних коефіцієнтів залежно від віку пацієнтів: 3,008 - за готовність надавати медичні послуги пацієнтам, яким не виповнилося 18 років; 1,5 - за готовність надавати медичні послуги паці",
    "v2025": 74429.0,
@@ -1240,8 +1311,10 @@
    "page2026": 80,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1250,7 +1323,7 @@
    "chapter2025": "22",
    "chapter2026": "22",
    "chapter_title": "Глава 22. Психіатрична допомога дорослим та дітям у стаціонарних умовах",
-   "kind": "Інше",
+   "kind": "Ставка на пролікований випадок",
    "qualifier": "до якої застосовуються вагові коефіцієнти залежно від складності пролікованого випадку, із заокругленням до двох знаків після коми",
    "qualifier2025": "до якої застосовуються коригувальні коефіцієнти залежно від складності пролікованого випадку із заокругленням до двох знаків після коми",
    "v2025": 13326.57,
@@ -1261,8 +1334,10 @@
    "page2026": 81,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": -4591.57,
-   "delta_pct": -34.45
+   "delta_pct": -34.45,
+   "extras": 2
   },
   {
    "packages": [
@@ -1282,8 +1357,10 @@
    "page2026": 81,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1292,7 +1369,7 @@
    "chapter2025": "22",
    "chapter2026": "22",
    "chapter_title": "Глава 22. Психіатрична допомога дорослим та дітям у стаціонарних умовах",
-   "kind": "Інше",
+   "kind": "Ставка на пролікований випадок",
    "qualifier": "коригувального коефіцієнта 2,526 із заокругленням до цілого числа та кількості пацієнтів, до яких надавач медичних послуг вживав примусових заходів медичного характеру згідно з даними електронної системи охорони здоров’я",
    "qualifier2025": "та кількості пацієнтів, до яких надавач медичних послуг вживав примусових заходів медичного характеру згідно з даними електронної системи охорони здоров’я протягом звітного місяця",
    "v2025": 13326.57,
@@ -1301,10 +1378,12 @@
    "page2025": 73,
    "point2026": "108",
    "page2026": 84,
-   "match": 0.89,
+   "match": 0.77,
    "status": "both",
+   "base": false,
    "delta": -4591.57,
-   "delta_pct": -34.45
+   "delta_pct": -34.45,
+   "extras": 0
   },
   {
    "packages": [
@@ -1324,8 +1403,10 @@
    "page2026": 85,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 2
   },
   {
    "packages": [
@@ -1345,8 +1426,10 @@
    "page2026": 85,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1366,8 +1449,10 @@
    "page2026": 85,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1387,8 +1472,10 @@
    "page2026": 87,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 1
   },
   {
    "packages": [
@@ -1408,8 +1495,10 @@
    "page2026": 87,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1429,8 +1518,10 @@
    "page2026": 88,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1450,8 +1541,10 @@
    "page2026": 89,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1471,8 +1564,10 @@
    "page2026": 89,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1492,8 +1587,10 @@
    "page2026": 95,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1513,8 +1610,10 @@
    "page2026": 98,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": -2085.0,
-   "delta_pct": -19.27
+   "delta_pct": -19.27,
+   "extras": 0
   },
   {
    "packages": [
@@ -1534,8 +1633,10 @@
    "page2026": 99,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1555,8 +1656,10 @@
    "page2026": 100,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1576,8 +1679,10 @@
    "page2026": 102,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": -650263.0,
-   "delta_pct": -61.72
+   "delta_pct": -61.72,
+   "extras": 0
   },
   {
    "packages": [
@@ -1597,8 +1702,10 @@
    "page2026": 102,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 1
   },
   {
    "packages": [
@@ -1618,8 +1725,10 @@
    "page2026": 102,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1628,7 +1737,7 @@
    "chapter2025": "34",
    "chapter2026": "34",
    "chapter_title": "Глава 34. Медичний огляд осіб, який організовується територіальними центрами комплектування та соціальної підтримки",
-   "kind": "Інше",
+   "kind": "Ставка на медичну послугу",
    "qualifier": "один медичний огляд",
    "qualifier2025": "один медичний огляд",
    "v2025": 883.0,
@@ -1639,8 +1748,10 @@
    "page2026": 103,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1649,7 +1760,7 @@
    "chapter2025": "35",
    "chapter2026": "35",
    "chapter_title": "Глава 35. Секційне дослідження",
-   "kind": "Інше",
+   "kind": "Ставка на медичну послугу",
    "qualifier": "одне секційне дослідження",
    "qualifier2025": "одне секційне дослідження",
    "v2025": 1613.25,
@@ -1660,8 +1771,32 @@
    "page2026": 103,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
+  },
+  {
+   "packages": [
+    "57"
+   ],
+   "chapter2025": "36",
+   "chapter2026": "36",
+   "chapter_title": "Глава 36. Готовність та забезпечення надання медичної допомоги населенню, яке перебуває на території, де ведуться бойові дії",
+   "kind": "Глобальна ставка",
+   "qualifier": "тариф визначається розрахунком — окремої суми постанова не встановлює",
+   "qualifier2025": "",
+   "v2025": null,
+   "v2026": null,
+   "point2025": "156",
+   "page2025": 94,
+   "point2026": "156",
+   "page2026": 104,
+   "match": 0.0,
+   "status": "both",
+   "base": true,
+   "formula": true,
+   "extras": 1
   },
   {
    "packages": [
@@ -1681,8 +1816,10 @@
    "page2026": 104,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1702,8 +1839,10 @@
    "page2026": 105,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1723,8 +1862,10 @@
    "page2026": 107,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 19
   },
   {
    "packages": [
@@ -1744,8 +1885,10 @@
    "page2026": 107,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1765,8 +1908,10 @@
    "page2026": 107,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1786,8 +1931,10 @@
    "page2026": 107,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1807,8 +1954,10 @@
    "page2026": 107,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1828,8 +1977,10 @@
    "page2026": 107,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1849,8 +2000,10 @@
    "page2026": 107,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1870,8 +2023,10 @@
    "page2026": 107,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1891,8 +2046,10 @@
    "page2026": 107,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1912,8 +2069,10 @@
    "page2026": 107,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1933,8 +2092,10 @@
    "page2026": 107,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1954,8 +2115,10 @@
    "page2026": 107,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1975,8 +2138,10 @@
    "page2026": 107,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -1996,8 +2161,10 @@
    "page2026": 107,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -2017,8 +2184,10 @@
    "page2026": 107,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -2038,8 +2207,10 @@
    "page2026": 107,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -2059,8 +2230,10 @@
    "page2026": 107,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -2080,8 +2253,10 @@
    "page2026": 107,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -2101,8 +2276,10 @@
    "page2026": 107,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -2122,8 +2299,10 @@
    "page2026": 107,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -2143,8 +2322,10 @@
    "page2026": 110,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 5
   },
   {
    "packages": [
@@ -2164,8 +2345,10 @@
    "page2026": 110,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -2185,8 +2368,10 @@
    "page2026": 110,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -2206,8 +2391,10 @@
    "page2026": 110,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -2227,8 +2414,10 @@
    "page2026": 110,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -2248,8 +2437,10 @@
    "page2026": 110,
    "match": 1.0,
    "status": "both",
+   "base": false,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
   },
   {
    "packages": [
@@ -2269,8 +2460,76 @@
    "page2026": 112,
    "match": 1.0,
    "status": "both",
+   "base": true,
    "delta": 0.0,
-   "delta_pct": 0.0
+   "delta_pct": 0.0,
+   "extras": 0
+  },
+  {
+   "packages": [
+    "68"
+   ],
+   "chapter2025": "41",
+   "chapter2026": "41",
+   "chapter_title": "Глава 41. Перехідне фінансове забезпечення надання медичних послуг закладами охорони здоров’я",
+   "kind": "Глобальна ставка",
+   "qualifier": "тариф визначається розрахунком — окремої суми постанова не встановлює",
+   "qualifier2025": "",
+   "v2025": null,
+   "v2026": null,
+   "point2025": "176",
+   "page2025": 102,
+   "point2026": "176",
+   "page2026": 113,
+   "match": 0.0,
+   "status": "both",
+   "base": true,
+   "formula": true,
+   "extras": 0
+  },
+  {
+   "packages": [
+    "50"
+   ],
+   "chapter2025": "42",
+   "chapter2026": "42",
+   "chapter_title": "Глава 42. Забезпечення кадрового потенціалу системи охорони здоров’я шляхом організації надання медичної допомоги із залученням лікарів-інтернів",
+   "kind": "Глобальна ставка",
+   "qualifier": "тариф визначається розрахунком — окремої суми постанова не встановлює",
+   "qualifier2025": "",
+   "v2025": null,
+   "v2026": null,
+   "point2025": "180",
+   "page2025": 104,
+   "point2026": "180",
+   "page2026": 115,
+   "match": 0.0,
+   "status": "both",
+   "base": true,
+   "formula": true,
+   "extras": 0
+  },
+  {
+   "packages": [
+    "49"
+   ],
+   "chapter2025": "43",
+   "chapter2026": "43",
+   "chapter_title": "Глава 43. Забезпечення збереження кадрового потенціалу для надання медичної допомоги населенню, яке перебуває на територіях бойових дій",
+   "kind": "Глобальна ставка",
+   "qualifier": "тариф визначається розрахунком — окремої суми постанова не встановлює",
+   "qualifier2025": "",
+   "v2025": null,
+   "v2026": null,
+   "point2025": "",
+   "page2025": null,
+   "point2026": "185",
+   "page2026": 117,
+   "match": 0.0,
+   "status": "both",
+   "base": true,
+   "formula": true,
+   "extras": 6
   },
   {
    "packages": [
@@ -2289,7 +2548,9 @@
    "point2026": "186",
    "page2026": 118,
    "match": 0.0,
-   "status": "only-2026"
+   "status": "only-2026",
+   "base": false,
+   "extras": 0
   },
   {
    "packages": [
@@ -2308,7 +2569,9 @@
    "point2026": "186",
    "page2026": 118,
    "match": 0.0,
-   "status": "only-2026"
+   "status": "only-2026",
+   "base": false,
+   "extras": 0
   },
   {
    "packages": [
@@ -2327,7 +2590,9 @@
    "point2026": "186",
    "page2026": 118,
    "match": 0.0,
-   "status": "only-2026"
+   "status": "only-2026",
+   "base": false,
+   "extras": 0
   },
   {
    "packages": [
@@ -2346,7 +2611,9 @@
    "point2026": "186",
    "page2026": 118,
    "match": 0.0,
-   "status": "only-2026"
+   "status": "only-2026",
+   "base": false,
+   "extras": 0
   },
   {
    "packages": [
@@ -2365,7 +2632,9 @@
    "point2026": "186",
    "page2026": 118,
    "match": 0.0,
-   "status": "only-2026"
+   "status": "only-2026",
+   "base": false,
+   "extras": 0
   },
   {
    "packages": [
@@ -2384,7 +2653,9 @@
    "point2026": "186",
    "page2026": 118,
    "match": 0.0,
-   "status": "only-2026"
+   "status": "only-2026",
+   "base": false,
+   "extras": 0
   },
   {
    "packages": [
@@ -2403,7 +2674,9 @@
    "point2026": "191",
    "page2026": 119,
    "match": 0.0,
-   "status": "only-2026"
+   "status": "only-2026",
+   "base": true,
+   "extras": 0
   }
  ],
  "coefficients": [

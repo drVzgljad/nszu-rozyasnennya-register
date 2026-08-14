@@ -36,6 +36,7 @@ YEARS = {"2025": "1503", "2026": "1808"}
 CHAPTER_RE = re.compile(r"^Глава\s+(\d+)\.\s+")
 APPENDIX_RE = re.compile(r"^Додаток\s+(\d+)\s+до Порядку")
 AMEND_RE = re.compile(r"\{[^{}]*\}")
+TARIFF_ITEM_RE = re.compile(r"^\d+\.\s+Тариф\b")
 # Відмінки перелічені всі: у 1503 трапляється «801071 гривню» у знахідному, і без
 # цієї форми дві суми з двадцяти губилися, а весь ряд трансплантації з'їжджав на
 # одну позицію — 78563 ставало парою до 801071.
@@ -48,16 +49,18 @@ EDITION_RE = re.compile(r"Редакція від\s*([\d.]+)\s*,?\s*підста
 # найкоротшого, інакше «базова ставка на пролікований випадок» звелася б до
 # «базова ставка».
 RATE_KINDS = [
-    ("базова ставка на пролікований випадок", "Базова ставка на пролікований випадок"),
-    ("базова капітаційна ставка", "Базова капітаційна ставка"),
-    ("ставка на пролікований випадок", "Ставка на пролікований випадок"),
-    ("ставка на медичну послугу", "Ставка на медичну послугу"),
-    ("ставки на медичні послуги", "Ставка на медичну послугу"),
-    ("капітаційна ставка", "Капітаційна ставка"),
-    ("глобальна ставка", "Глобальна ставка"),
-    ("базова ставка", "Базова ставка"),
-    ("оплати праці", "Рівень оплати праці"),
+    (re.compile(r"базов\w*\s+ставк\w*\s+на\s+пролікован"), "Базова ставка на пролікований випадок"),
+    (re.compile(r"базов\w*\s+капітаційн\w*\s+ставк"), "Базова капітаційна ставка"),
+    (re.compile(r"ставк\w*\s+на\s+пролікован"), "Ставка на пролікований випадок"),
+    (re.compile(r"ставк\w*\s+(?:на|за)\s+медичн\w*\s+послуг"), "Ставка на медичну послугу"),
+    (re.compile(r"капітаційн\w*\s+ставк"), "Капітаційна ставка"),
+    (re.compile(r"глобальн\w*\s+ставк"), "Глобальна ставка"),
+    (re.compile(r"базов\w*\s+ставк"), "Базова ставка"),
+    (re.compile(r"оплат\w*\s+прац"), "Рівень оплати праці"),
 ]
+# Речення в тексті постанови. Крапка з комою не рахується: у главі 4 нею
+# розділені варіанти однієї й тієї ж ставки на пролікований випадок.
+SENTENCE_SPLIT_RE = re.compile(r"(?<=\.)\s+(?=[А-ЯІЇЄҐ])")
 
 
 def clean(text):
@@ -186,13 +189,38 @@ def read_stream(path):
 # ── Ставки ──────────────────────────────────────────────────────────────────
 
 def rate_kind(text_before):
+    """Тип ставки — за найближчою згадкою ліворуч від суми.
+
+    Формулювання беремо стемами: у тексті трапляється і «визначається як
+    базова ставка», і «комбінація глобальної ставки та базової ставки», і
+    «ставка за медичну послугу» замість «на». Точні рядки все це проґавили б —
+    саме тому глави 3, 22, 34 і 35 спершу отримали тип «Інше».
+    """
     tail = text_before.casefold()[-260:]
-    best, position = "Інше", -1
-    for needle, label in RATE_KINDS:
-        found = tail.rfind(needle)
-        if found > position:
-            best, position = label, found
+    best, position, rank = "Інше", -1, len(RATE_KINDS)
+    for index, (pattern, label) in enumerate(RATE_KINDS):
+        # За кінцем збігу, а не за початком: «базової капітаційної ставки» містить
+        # і коротше «капітаційної ставки», і воно починається пізніше — за початком
+        # перемагало б менш точне формулювання. Кінець у них спільний, тож нічия
+        # розв'язується порядком у списку, де довші формулювання стоять вище.
+        found = max((m.end() for m in pattern.finditer(tail)), default=-1)
+        if found < 0:
+            continue  # без цього «немає збігу» ставало нічиєю з початковим -1
+        if found > position or (found == position and index < rank):
+            best, position, rank = label, found, index
     return best
+
+
+def belongs_to_rate_clause(text_before):
+    """Чи стоїть сума в тому ж реченні, що й слово «ставка».
+
+    Тарифний пункт часто дотягує до себе сусідні речення (розбір зшиває
+    абзаци без власного номера), і в главі 36 першою сумою пункту виявляється
+    1847,2 грн — вартість послуг адміністраторів з окремого речення, тоді як
+    сам тариф там розрахунковий. Прив'язка до речення це відсікає, але не
+    ламає главу 8, де 155 грн стоїть у тому ж реченні, що й «ставки».
+    """
+    return "ставк" in SENTENCE_SPLIT_RE.split(text_before)[-1].casefold()
 
 
 def qualifier_for(text, match, next_start):
@@ -216,10 +244,26 @@ def qualifier_for(text, match, next_start):
     return clean(f"{left} {right}".strip())[:220]
 
 
+def tariff_item_of(chapter):
+    """Пункт, що визначає тариф пакета: «N. Тариф на медичні послуги … становить …».
+
+    Його перша сума — базовий тариф; решта сум глави це доплати, вартість
+    окремих етапів, ставки оплати праці й подібне. Глави 41–43 такий пункт
+    мають, але суми в ньому немає: там тариф — глобальна ставка за розрахунком.
+    """
+    direct = next((i for i in chapter["items"] if TARIFF_ITEM_RE.match(i["text"])), None)
+    if direct:
+        return direct
+    return next((i for i in chapter["items"]
+                 if "визначається як" in i["text"] and "ставк" in i["text"].casefold()), None)
+
+
 def extract_rates(resolution):
     """[(chapter_id, chapter_title, rate)] — усі суми з тарифних пунктів глав."""
     out = []
     for chapter in resolution["chapters"]:
+        tariff_item = tariff_item_of(chapter)
+        base_taken = False
         for item in chapter["items"]:
             text = clean(AMEND_RE.sub(" ", item["text"]))
             matches = list(MONEY_RE.finditer(text))
@@ -230,12 +274,17 @@ def extract_rates(resolution):
                 value = to_number(match.group(1))
                 if value is None:
                     continue
+                before = text[:match.start()]
+                is_base = (not base_taken and tariff_item and item["id"] == tariff_item["id"]
+                           and belongs_to_rate_clause(before))
+                base_taken = base_taken or is_base
                 out.append((chapter["id"], chapter["title"], {
                     "value": value,
-                    "kind": rate_kind(text[:match.start()]),
+                    "kind": rate_kind(before),
                     "qualifier": qualifier_for(text, match, next_start),
                     "point": item["number"],
                     "page": item["page"],
+                    "is_base": bool(is_base),
                 }))
     return out
 
@@ -507,12 +556,38 @@ def main():
     for chapter_id, title, rate in rates_2026:
         grouped_2026.setdefault(chapter_id, (title, []))[1].append(rate)
 
+    # Глава без жодної суми в тарифному пункті — не помилка розбору: у главах 41–43
+    # тариф є глобальною ставкою за розрахунком. Такий пакет усе одно має мати свій
+    # рядок, інакше в огляді «один тариф на пакет» він просто зникне.
+    def formula_note(chapter_id, resolution_key):
+        chapter = next((c for c in resolutions[resolution_key]["chapters"] if c["id"] == chapter_id), None)
+        item = tariff_item_of(chapter) if chapter else None
+        return ({"point": item["number"], "page": item["page"]} if item else {"point": "", "page": None})
+
+    def formula_row(chapter_id_2025, chapter_id_2026):
+        left = formula_note(chapter_id_2025, "2025") if chapter_id_2025 else {"point": "", "page": None}
+        right = formula_note(chapter_id_2026, "2026") if chapter_id_2026 else {"point": "", "page": None}
+        return {
+            "packages": packages_for(chapter_id_2026),
+            "chapter2025": chapter_id_2025.split("-")[1] if chapter_id_2025 else "",
+            "chapter2026": chapter_id_2026.split("-")[1] if chapter_id_2026 else "",
+            "chapter_title": chapters_2026[chapter_id_2026]["title"] if chapter_id_2026 else "",
+            "kind": "Глобальна ставка",
+            "qualifier": "тариф визначається розрахунком — окремої суми постанова не встановлює",
+            "qualifier2025": "", "v2025": None, "v2026": None,
+            "point2025": left["point"], "page2025": left["page"],
+            "point2026": right["point"], "page2026": right["page"],
+            "match": 0.0, "status": "both", "base": True, "formula": True, "extras": 0,
+        }
+
     rates = []
     for chapter_id_2025, chapter_id_2026 in sorted(matched.items(), key=lambda kv: int(kv[0].split("-")[1])):
         title_2025, list_2025 = grouped_2025.get(chapter_id_2025, ("", []))
         title_2026, list_2026 = grouped_2026.get(chapter_id_2026, ("", []))
         if not list_2025 and not list_2026:
+            rates.append(formula_row(chapter_id_2025, chapter_id_2026))
             continue
+        first = len(rates)
         for a, b, score in pair_rates(list_2025, list_2026):
             row = {
                 "packages": packages_for(chapter_id_2026),
@@ -530,16 +605,31 @@ def main():
                 "page2026": b["page"] if b else None,
                 "match": round(score, 2),
                 "status": "both" if a and b else ("only-2025" if a else "only-2026"),
+                # Базовий той рядок, де базова сума стоїть на боці 2026 року —
+                # він і є «тариф пакета». Коли главу зняли після 2025-го, за
+                # орієнтир лишається бік 2025.
+                "base": bool(b["is_base"]) if b else bool(a and a["is_base"]),
             }
             if a and b:
                 row["delta"] = round(b["value"] - a["value"], 2)
                 row["delta_pct"] = round((b["value"] / a["value"] - 1) * 100, 2) if a["value"] else None
             rates.append(row)
 
+        chapter_rows = rates[first:]
+        # Суми в главі є, але жодна не належить тарифній клаузулі — отже тариф
+        # розрахунковий, а знайдені суми це доплати чи вартість окремих послуг.
+        if not any(row["base"] for row in chapter_rows):
+            rates.insert(first, formula_row(chapter_id_2025, chapter_id_2026))
+            chapter_rows = rates[first:]
+        extras = len(chapter_rows) - 1
+        for row in chapter_rows:
+            row["extras"] = extras if row["base"] else 0
+
     # глави 2026 без пари у 2025 — цілком нові пакети
     for chapter_id, (title, list_2026) in grouped_2026.items():
         if chapter_id in used:
             continue
+        first = len(rates)
         for rate in list_2026:
             rates.append({
                 "packages": packages_for(chapter_id),
@@ -548,8 +638,15 @@ def main():
                 "qualifier2025": "", "v2025": None, "v2026": rate["value"],
                 "point2025": "", "page2025": None,
                 "point2026": rate["point"], "page2026": rate["page"],
-                "match": 0.0, "status": "only-2026",
+                "match": 0.0, "status": "only-2026", "base": bool(rate["is_base"]),
             })
+        chapter_rows = rates[first:]
+        if chapter_rows and not any(row["base"] for row in chapter_rows):
+            rates.insert(first, formula_row("", chapter_id))
+            chapter_rows = rates[first:]
+        extras = len(chapter_rows) - 1
+        for row in chapter_rows:
+            row["extras"] = extras if row["base"] else 0
 
     # ── коефіцієнти
     tables_2025 = coefficient_tables(streams["2025"])
@@ -669,6 +766,7 @@ def main():
                 "chapters_2025": len(resolutions["2025"]["chapters"]),
                 "chapters_2026": len(resolutions["2026"]["chapters"]),
                 "rates": len(rates),
+                "rates_base": sum(1 for r in rates if r.get("base")),
                 "rates_both": sum(1 for r in rates if r["status"] == "both"),
                 "coefficient_groups": len(coefficients),
                 "coefficient_rows": sum(len(g["rows"]) for g in coefficients),
