@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="robots" content="noindex, nofollow">
+  <title>НавігаторПМГ26 | Коди ЕСОЗ</title>
+  <link rel="stylesheet" href="../styles.css?v=20260808b">
+  <link rel="stylesheet" href="classifiers.css?v=20260809d">
+  <link rel="stylesheet" href="esoz.css?v=20260814a">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260806a">
+  <script type="module" src="../auth-v2.js?v=20260814a"></script>
+</head>
+<body id="top" data-required-role="expert">
+  <header class="hero classifiers-hero">
+    <div class="hero-copy">
+      <div class="overline">Коди ЕСОЗ · внутрішній довідник ·
+        <a class="xnav" href="nk026.html">↔ Інтервенції НК 026</a>
+        <a class="xnav" href="loinc.html">↔ LOINC</a>
+        <a class="xnav" href="posady.html">↔ Посади</a>
+        <a class="xnav" href="../mapping/index.html">↔ Таблиця співставлення</a></div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів, постанови та правил</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Коди ЕСОЗ</h1>
+      <p>Коди на кшталт <code>A37001</code> стоять у таблиці співставлення, у роз'ясненнях і в
+         пакетах — а подивитися їх ніде. У НК&nbsp;026 вони не шукаються, бо це інший
+         класифікатор: <strong>НК&nbsp;026 має вигляд <code>97052-00</code>, ЕСОЗ —
+         <code>A37001</code></strong>, літера і п'ять цифр. Тут вони зведені разом: назва,
+         де код трапляється в пакетах і роз'ясненнях, і з якого джерела взято кожен
+         варіант назви.</p>
+    </div>
+    <div class="stats" id="esStats" aria-label="Статистика розділу"></div>
+  </header>
+
+  <!-- Access Denied Overlay (Controlled by auth-v2.js) -->
+  <div id="access-denied-overlay" class="access-denied-overlay" style="display:none">
+    <div class="access-denied-box">
+      <h2>Доступ обмежено</h2>
+      <p id="access-denied-msg">Ця сторінка доступна лише для співробітників департаменту.</p>
+      <button class="auth-submit" id="access-denied-btn">Увійти / Зареєструватись</button>
+    </div>
+  </div>
+
+  <nav class="mobile-tabs" id="mobileTabs" aria-label="Навігація між панелями">
+    <button class="mobile-tab active" data-tab="browser" type="button">Огляд і пошук</button>
+    <button class="mobile-tab" data-tab="reader" type="button">Картка коду</button>
+  </nav>
+
+  <main class="nk-layout" data-active="browser">
+    <!-- ЛІВА ПАНЕЛЬ -->
+    <section class="nk-browser" aria-label="Пошук кодів ЕСОЗ">
+      <div class="search-panel nk-search">
+        <label class="search">
+          <span>Пошук за кодом або назвою</span>
+          <input id="esSearch" type="search"
+                 placeholder="Напр.: A37001, гістопатологія, P8, лікар-педіатр…" autocomplete="off">
+        </label>
+        <p class="es-hint" id="esHomoglyph" hidden></p>
+
+        <div class="nk-cascade" aria-label="Відбір">
+          <div class="casc-field">
+            <label for="esKind">Тип коду</label>
+            <select id="esKind">
+              <option value="">— усі —</option>
+              <option value="service">послуги (A37001)</option>
+              <option value="position">посади (P8)</option>
+            </select>
+          </div>
+          <div class="casc-field">
+            <label for="esCat">Категорія</label>
+            <select id="esCat"><option value="">— будь-яка —</option></select>
+          </div>
+          <div class="casc-field">
+            <label for="esPkg">Пакет ПМГ-2026</label>
+            <select id="esPkg"><option value="">— усі пакети —</option></select>
+          </div>
+        </div>
+
+        <div class="nk-filters">
+          <label class="nk-check"><input type="checkbox" id="onlyRoz"> лише ті, що згадані в роз'ясненнях</label>
+          <label class="nk-check"><input type="checkbox" id="onlyConflict"> лише з розбіжними назвами</label>
+          <label class="nk-check"><input type="checkbox" id="onlyNote"> лише із застереженням</label>
+        </div>
+        <div class="results-summary">
+          <span id="esCount">Завантаження…</span>
+          <button id="esClear" type="button">✕ Очистити форму</button>
+        </div>
+
+        <details class="po-issues" id="esIssues">
+          <summary>⚠️ Звідки це зібрано і чого тут немає</summary>
+          <div id="esIssuesBody"></div>
+        </details>
+      </div>
+
+      <div class="nk-results" id="esResults" hidden></div>
+    </section>
+
+    <!-- ПРАВА ПАНЕЛЬ -->
+    <article class="nk-reader reader-empty" id="esReader" aria-live="polite">
+      <div class="reader-hint">
+        <div class="reader-hint-ico">🔠</div>
+        <p>Оберіть код у переліку, щоб побачити його картку: усі варіанти назви із зазначенням
+           джерела, у яких послугах і пакетах таблиці співставлення він трапляється та які
+           роз'яснення НСЗУ його згадують.</p>
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <div class="footer-agency">НСЗУ</div>
+        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+        <p><strong>Внутрішній робочий довідник.</strong> Це реконструкція, зібрана з документів
+           НСЗУ, а не копія офіційного класифікатора: офіційного видання довідника ЕСОЗ у нас
+           немає. Коди й назви взято з таблиці співставлення медичних послуг з кодами НК 025:2021
+           та НК 026:2021, з додатків до роз'яснень НСЗУ та з побічних продуктів інших білдерів
+           порталу. Покриття неповне — це рівно ті коди, що трапилися в опрацьованих документах.
+           Назви подекуди різняться між джерелами, тому в картці показано всі варіанти із
+           зазначенням, звідки взято кожен. Не посилатися на цей довідник як на класифікатор.</p>
+      </div>
+    </div>
+  </footer>
+
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <script src="esoz.js?v=20260814b" defer></script>
+</body>
+</html>

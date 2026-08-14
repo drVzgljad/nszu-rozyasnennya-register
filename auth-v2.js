@@ -457,7 +457,9 @@ function applyAccess() {
         text: '🩺 Коди', items: [
           { text: 'Хвороби · НК 025', path: 'classifiers/index.html' },
           { text: 'Інтервенції · НК 026', path: 'classifiers/nk026.html' },
-          { text: 'Лабораторні · LOINC', path: 'classifiers/loinc.html' }
+          { text: 'Лабораторні · LOINC', path: 'classifiers/loinc.html' },
+          // Внутрішній: реконструкція з документів, не офіційний класифікатор
+          { text: 'Коди ЕСОЗ · внутрішній', path: 'classifiers/esoz.html', role: 'expert' }
         ]
       },
       {

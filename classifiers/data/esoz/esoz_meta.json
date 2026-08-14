@@ -1,0 +1,42 @@
+{
+ "generated": "2026-08-14",
+ "title": "Коди ЕСОЗ",
+ "disclaimer": "Реконструкція, зібрана з документів НСЗУ, а не копія офіційного класифікатора. Покриття неповне: це ті коди, що трапилися в опрацьованих документах.",
+ "counts": {
+  "services": 519,
+  "positions": 97,
+  "with_packages": 488,
+  "with_mentions": 479,
+  "with_note": 3,
+  "conflicting_names": 51,
+  "skipped_codes": 0
+ },
+ "sources": [
+  {
+   "file": "classifiers/data/esoz_names.json",
+   "label": "довідник НК 026"
+  },
+  {
+   "file": "mapping/data/names/esoz_all.json",
+   "label": "таблиця співставлення"
+  },
+  {
+   "file": "rozjasnennya/build/esoz_names.json",
+   "label": "додатки до роз'яснень"
+  },
+  {
+   "file": "rozjasnennya/data/codes_index.json",
+   "label": "покажчик кодів роз'яснень"
+  },
+  {
+   "file": "rozjasnennya/build/positions.json",
+   "label": "посади ЕСОЗ"
+  }
+ ],
+ "categories": [
+  "counselling",
+  "diagnostic_curative",
+  "reproductive",
+  "лабораторна процедура"
+ ]
+}
