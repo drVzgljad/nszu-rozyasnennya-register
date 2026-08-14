@@ -227,9 +227,11 @@ function tableShell(head, body, note) {
 function renderRates() {
   const base = state.ratesView === 'base';
   const rows = ratesForDisplay();
-  const head = ['Пакет', 'Глава', 'Тип ставки', 'Що оплачує',
-    { label: '2025, грн', num: 1 }, { label: '2026, грн', num: 1 },
-    { label: 'Δ, грн', num: 1 }, { label: 'Δ, %', num: 1 }, 'Джерело 2025', 'Джерело 2026'];
+  // Підписи називають документ, а не рік: «Пункт 2025» читалося як «пункт № 2025».
+  const head = ['Пакет', 'Глава', 'Тип ставки', 'За що / одиниця',
+    { label: 'ПМГ-2025, грн', num: 1 }, { label: 'ПМГ-2026, грн', num: 1 },
+    { label: 'Різниця, грн', num: 1 }, { label: 'Різниця, %', num: 1 },
+    'Де в постанові 1503', 'Де в постанові 1808'];
   const shell = `<div class="cmp-group">
       <div class="cmp-group-head">
         <div class="cmp-head-row">
@@ -255,9 +257,9 @@ function renderRates() {
     return `
     <tr${base && !r.base ? ' class="cmp-sub"' : ''}>
       <td>${r.base ? r.packages.map((p) => `<span class="cmp-chip">№ ${esc(p)}</span>`).join('') : ''}</td>
-      <td class="cmp-title">${r.base ? esc(r.chapter_title.replace(/^Глава\s+\d+\.\s*/, '')) : ''}</td>
+      <td class="cmp-title">${r.base ? esc(r.chapter_title.replace(/^Глава\s+\d+\.\s*/, '')) : ''}${more}</td>
       <td>${esc(r.kind)}${r.formula ? ' <span class="cmp-tag cmp-tag-calc">розрахунок</span>' : ''}</td>
-      <td class="cmp-title">${esc(r.qualifier)} ${statusTag(r.status)} ${more}</td>
+      <td class="cmp-title">${esc(r.qualifier)} ${statusTag(r.status)}</td>
       <td class="cmp-num">${r.v2025 === null ? '<span class="cmp-absent">—</span>' : fmt(r.v2025)}</td>
       <td class="cmp-num">${r.v2026 === null ? '<span class="cmp-absent">—</span>' : fmt(r.v2026)}</td>
       <td class="cmp-num">${deltaCell(r)}</td>
@@ -287,8 +289,8 @@ function renderCoefficients() {
         <td class="cmp-num">${deltaCell(row, 4)}</td>
         <td class="cmp-num">${pct(row)}</td>
       </tr>`).join('');
-    const head = ['Показник', { label: '2025', num: 1 }, { label: '2026', num: 1 },
-      { label: 'Δ', num: 1 }, { label: 'Δ, %', num: 1 }];
+    const head = ['Показник', { label: 'Коефіцієнт 2025', num: 1 }, { label: 'Коефіцієнт 2026', num: 1 },
+      { label: 'Різниця', num: 1 }, { label: 'Різниця, %', num: 1 }];
     return `<div class="cmp-group">
         <div class="cmp-group-head">
           <h2>${group.packages.map((p) => `<span class="cmp-chip">№ ${esc(p)}</span>`).join('')}${esc(group.chapter_title.replace(/^Глава\s+\d+\.\s*/, ''))}</h2>
@@ -316,9 +318,12 @@ function renderDrg() {
       <td class="cmp-num">${r.trauma2026 === null ? '<span class="cmp-absent">—</span>' : fmt(r.trauma2026, 4)}</td>
       <td class="cmp-num">${r.simult2025 === null ? '<span class="cmp-absent">—</span>' : fmt(r.simult2025, 4)}</td>
     </tr>`).join('');
-  const head = ['Код', 'Назва групи', { label: 'Вага 2025', num: 1 }, { label: 'Вага 2026', num: 1 },
-    { label: 'Δ', num: 1 }, { label: 'Δ, %', num: 1 },
-    { label: '2026: +діти', num: 1 }, { label: '2026: +травми', num: 1 }, { label: '2025: дод. 3', num: 1 }];
+  const head = ['Код ДСГ', 'Назва групи',
+    { label: 'Ваговий коеф. 2025', num: 1 }, { label: 'Ваговий коеф. 2026', num: 1 },
+    { label: 'Різниця', num: 1 }, { label: 'Різниця, %', num: 1 },
+    { label: 'Дод. коеф. за дітей, 2026', num: 1 },
+    { label: 'Дод. коеф. за травми, 2026', num: 1 },
+    { label: 'Додаток 3, 2025', num: 1 }];
   const note = rows.length > shown.length
     ? `Показано ${shown.length} рядків із ${rows.length}. У вивантаження в Excel потрапляють усі.` : '';
   return finding + `<div class="cmp-group">
@@ -545,20 +550,24 @@ ${sheets.map((s, i) => `<Relationship Id="rId${i + 1}" Type="${rel}/worksheet" T
 
 function exportRows() {
   const rates = [[
-    'Пакет', 'Глава 2025', 'Глава 2026', 'Глава', 'Базовий тариф', 'Тип ставки', 'Що оплачує',
-    '2025, грн', '2026, грн', 'Δ, грн', 'Δ, %', 'Пункт 2025', 'Стор. 2025', 'Пункт 2026', 'Стор. 2026', 'Стан'
+    'Пакет', 'Назва пакета (глава)', 'Базовий тариф', 'Тип ставки', 'За що / одиниця',
+    'ПМГ-2025, грн', 'ПМГ-2026, грн', 'Різниця, грн', 'Різниця, %',
+    'Постанова 1503: глава', 'Постанова 1503: пункт', 'Постанова 1503: стор. PDF',
+    'Постанова 1808: глава', 'Постанова 1808: пункт', 'Постанова 1808: стор. PDF', 'Стан'
   ]];
   ratesForDisplay().forEach((r) => rates.push([
-    r.packages.join(', '), r.chapter2025, r.chapter2026,
+    r.packages.join(', '),
     r.chapter_title.replace(/^Глава\s+\d+\.\s*/, ''),
     r.base ? (r.formula ? 'так, розрахунком' : 'так') : '',
     r.kind, r.qualifier,
     r.v2025, r.v2026, r.delta ?? null, r.delta_pct ?? null,
-    r.point2025, r.page2025, r.point2026, r.page2026,
+    r.chapter2025, r.point2025, r.page2025,
+    r.chapter2026, r.point2026, r.page2026,
     r.status === 'both' ? 'в обох роках' : (r.status === 'only-2025' ? 'лише 2025' : 'лише 2026')
   ]));
 
-  const coefficients = [['Пакет', 'Глава', 'Таблиця', 'Група', 'Показник', 'Назва у 2025', '2025', '2026', 'Δ', 'Δ, %', 'Стан']];
+  const coefficients = [['Пакет', 'Глава', 'Таблиця коефіцієнтів', 'Група в таблиці', 'Показник',
+    'Як показник звався у 2025', 'Коефіцієнт 2025', 'Коефіцієнт 2026', 'Різниця', 'Різниця, %', 'Стан']];
   visibleCoefficients().forEach(({ group, rows }) => rows.forEach((row) => coefficients.push([
     group.packages.join(', '), group.chapter_title.replace(/^Глава\s+\d+\.\s*/, ''), group.caption,
     row.section, row.label, row.label2025,
@@ -567,8 +576,9 @@ function exportRows() {
   ])));
 
   const drg = [[
-    'Код', 'Назва групи', 'Пакет', 'Вага 2025', 'Вага 2026', 'Δ', 'Δ, %',
-    '2026: за дітей', '2026: за травми', '2025: додаток 3', 'Кардіохірургічна 2026', 'Стан'
+    'Код ДСГ', 'Назва групи', 'Пакет', 'Ваговий коефіцієнт 2025', 'Ваговий коефіцієнт 2026',
+    'Різниця', 'Різниця, %', 'Дод. коефіцієнт за дітей, 2026', 'Дод. коефіцієнт за травми, 2026',
+    'Додаток 3 (симультанні), 2025', 'Кардіохірургічна група 2026', 'Стан'
   ]];
   visibleDrg().forEach((r) => drg.push([
     r.code, r.title, r.packages.join(', '),

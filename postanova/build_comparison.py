@@ -61,6 +61,10 @@ RATE_KINDS = [
 # Речення в тексті постанови. Крапка з комою не рахується: у главі 4 нею
 # розділені варіанти однієї й тієї ж ставки на пролікований випадок.
 SENTENCE_SPLIT_RE = re.compile(r"(?<=\.)\s+(?=[А-ЯІЇЄҐ])")
+# Хвіст після суми вважаємо призначенням лише коли він відкривається прийменником:
+# «за пролікований випадок», «на рік», «для лікарів», «що відповідає вартості».
+PURPOSE_RE = re.compile(r"^(за|на|для|що)\s+", re.IGNORECASE)
+CLAUSE_TAIL_RE = re.compile(r",\s+(?=(?:із|з|та|і|до|яка|який|яке|які|причому)\b)", re.IGNORECASE)
 
 
 def clean(text):
@@ -224,24 +228,39 @@ def belongs_to_rate_clause(text_before):
 
 
 def qualifier_for(text, match, next_start):
-    """Що саме оплачує ця сума.
+    """За що саме платиться ця сума — тільки якщо постанова це прямо каже.
 
     Пункт будується як «становить: 41253 гривні - за етап А, 18630 гривень - за
-    етап Б», тож призначення стоїть праворуч від суми. Коли праворуч порожньо
-    (сума завершує речення) — беремо контекст ліворуч.
+    етап Б», тож призначення стоїть праворуч від числа і починається прийменником:
+    «за проведення одного дослідження», «на рік на одну особу», «для лікарів».
+
+    Коли праворуч стоїть не призначення, а продовження норми («, до якої
+    застосовується коригувальний коефіцієнт…»), повертаємо порожнє: краще
+    порожня клітинка, ніж обрізаний службовий текст, який виглядає як підпис,
+    але нічого не пояснює. Саме через таке «пояснення» половина рядків читалася
+    як «…до якої застосовуються такі коригувальні кое».
     """
     right = text[match.end():next_start]
     right = re.split(r"(?<=[.;])\s+(?=[А-ЯІЇЄҐ])", right)[0]
-    right = re.sub(r"^\s*[-–—,:]\s*", "", right).strip(" ;,.")
-    right = re.sub(r"^(за|для|на)\s+", "", right, flags=re.IGNORECASE).strip()
-    if len(right) >= 8:
-        return clean(right)[:220]
+    right = re.sub(r"^\s*[-–—:]\s*", "", right).strip(" ;,.")
+    if not PURPOSE_RE.match(right):
+        return ""
+    # Обриваємо там, де призначення переходить у наступну умову норми: «на одну
+    # особу на рік, із застосуванням таких коригувальних коефіцієнтів…».
+    right = CLAUSE_TAIL_RE.split(right)[0]
+    return clean(right).strip(" ;,.")[:220]
+
+
+def match_context(text, match, next_start):
+    """Текст навколо суми — лише для зіставлення років, не для показу.
+
+    Дисплейний підпис часто порожній, а зіставляти пари сум усередині глави все
+    одно треба, і робиться це саме за схожістю оточення.
+    """
     left = clean(text[:match.start()]).rstrip(" ,;:-–—")
-    left = re.split(r"(?<=[.;])\s+", left)[-1]
-    if len(left) > 200:
-        # Обрізаємо по межі слова: «…аціонарна допомога» замість половини слова.
-        left = "… " + left[-200:].split(" ", 1)[-1]
-    return clean(f"{left} {right}".strip())[:220]
+    left = re.split(r"(?<=[.;])\s+", left)[-1][-180:]
+    right = clean(text[match.end():next_start])[:180]
+    return clean(f"{left} {right}")
 
 
 def tariff_item_of(chapter):
@@ -282,6 +301,7 @@ def extract_rates(resolution):
                     "value": value,
                     "kind": rate_kind(before),
                     "qualifier": qualifier_for(text, match, next_start),
+                    "context": match_context(text, match, next_start),
                     "point": item["number"],
                     "page": item["page"],
                     "is_base": bool(is_base),
@@ -309,7 +329,7 @@ def pair_rates(left, right):
     candidates = []
     for i, a in enumerate(left):
         for j, b in enumerate(right):
-            score = similar(a["qualifier"], b["qualifier"])
+            score = similar(a["context"], b["context"])
             if a["kind"] == b["kind"]:
                 score = min(1.0, score + 0.12)
             if a["value"] == b["value"]:
