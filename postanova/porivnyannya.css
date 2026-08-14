@@ -330,6 +330,8 @@ table.cmp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .cmp-down { color: var(--cmp-down); font-weight: 700; }
 .cmp-same { color: var(--p-faint); }
 .cmp-absent { color: var(--p-faint); }
+/* Коефіцієнт без числа — відсилання до додатка чи алгоритмів НСЗУ. */
+.cmp-refval { color: var(--p-muted); font-size: 11.5px; font-style: italic; white-space: normal; }
 
 .cmp-tag {
   display: inline-block;

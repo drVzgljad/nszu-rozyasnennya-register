@@ -363,30 +363,48 @@ def pair_rates(left, right):
 
 
 # ── Коефіцієнти, названі прозою ─────────────────────────────────────────────
-# Гірський, сільський, вікові та подібні живуть не в таблицях, а в тексті пунктів,
-# і трьома різними формами запису — тому три вирази, а не один.
+# Гірський, сільський, вікові — лише верхівка. Глава 3 перелічує коефіцієнти
+# нумерованими підпунктами: у 2026 році п.36 має 13 підпунктів, п.38 — 18, і
+# всередині трапляються всі форми одразу: «який становить 0,45», ланцюжок
+# «1,3 (за умови надання допомоги дітям) та 1,2 (за умови надання допомоги
+# дорослим)», ступінчасте «становить: коефіцієнт 0,6, коли …; коефіцієнт 0,4,
+# коли …», голе «коефіцієнт 0,8 - для пролікованих випадків…», «коефіцієнт 2
+# від базової ставки на добу», а також підпункти взагалі без числа — відсилання
+# до додатків 1–3 чи алгоритмів НСЗУ. Тому розбір іде за підпунктами, а не
+# трьома регулярками по всьому тексту (перша версія робила саме так і губила
+# три чверті глави 3).
 
-# «гірський коефіцієнт, який становить 1,2»
-# «…, який становить 1,2» — саме значення. Мітку шукаємо назад від цього місця
-# власним кодом, а не регуляркою: заборонити в мітці кому означало б загубити
-# «коефіцієнт за готовність надавати медичну допомогу дітям або дорослим за
-# умови відповідності додатковим умовам, визначеним в умовах закупівлі», а
-# дозволити — притягнути пів речення про ставку в гривнях.
-COEFF_VALUE_RE = re.compile(r"(?:який|яка|яке|що)\s+становить\s+(\d+(?:,\d+)?)", re.IGNORECASE)
-# Межі підпункту: «;», «:», «3)» і кінець речення.
-SEGMENT_SPLIT_RE = re.compile(r"[;:]|\s\d{1,2}\)\s|(?<=\.)\s+(?=[А-ЯІЇЄҐ])")
-# Хвіст після згадки грошей до мітки не належить.
-MONEY_CUT_RE = re.compile(r"^.*гривн\w*\s*,?\s*", re.IGNORECASE | re.DOTALL)
+NUM_PAT = r"\d+(?:,\d+)?"
+# Маркер підпункту «5)» або «9-1)». Приймається лише за порядком номерів —
+# інакше «(додаток 1)» посеред тексту відкривав би фальшивий підпункт.
+SUBPOINT_MARK_RE = re.compile(r"\s(\d{1,2})(?:\s*-\s*(\d))?\s*\)\s")
+SUBPOINT_BADWORD_RE = re.compile(r"(?:додат\w+|пункт\w*|підпункт\w*)\s*$", re.IGNORECASE)
+APPENDIX_REF_RE = re.compile(r"додат\w+\s+(\d)")
+# Після числа ці слова означають «це не коефіцієнт»: відсотки, строки, гроші.
+NOT_COEFF_AFTER_RE = re.compile(
+    r"^\s*(?:відсотк|процент|рок(?:у|ів)?|доб|дні|днів|годин|гривень|гривні|гривня|гривню|грн|бал|місяц)")
+VALUE_AT_RE = re.compile(r"(?:коефіцієнт\w*\s+)?(" + NUM_PAT + r")")
+CHAIN_SEP_RE = re.compile(r"\s*(?:та|,|;)\s*(?=(?:коефіцієнт\w*\s+)?\d)")
+BARE_COEFF_RE = re.compile(r"коефіцієнт(?:ом|а|у)?\s+(" + NUM_PAT + r")", re.IGNORECASE)
+STANOV_RE = re.compile(r"станов(?:ить|лять)\s*:?\s*", re.IGNORECASE)
+HEAD_CUT_RE = re.compile(r",\s+(?:який|яка|яке|що)\b|\sстанов(?:ить|лять)\b")
+# «коефіцієнт» у хвості необов'язковий: коли значення стоїть одразу за словом
+# «коефіцієнт», у зрізаній частині лишається висячий «…застосовується коригувальний».
+TRAIL_ANCHOR_RE = re.compile(
+    r"(?:застосовується\s+|застосовуються\s+)?"
+    r"(?:коригувальн\w+\s*|коригуюч\w+\s*|додатков\w+\s*)*(?:коефіцієнт\w*)?\s*$", re.IGNORECASE)
+GENERIC_HEAD_RE = re.compile(
+    r"^(?:додатков\w+\s+)?(?:коригувальн\w+\s+|коригуюч\w+\s+)*коефіцієнт\w*$", re.IGNORECASE)
 # «від 0 до 5 років - 2,465;»
-LABEL_VALUE_RE = re.compile(r"(?:^|[;:]\s*|\d\)\s*)([^;:()]{4,90}?)\s+[-–—]\s+(\d+(?:,\d+)?)(?=\s*[;.,]|\s*$)")
-# «0,9 - у разі здійснення від 10 до 14 …» і «: - 5 - за готовність …» (глава 21
-# за 2026 рік перелічує коефіцієнти саме з початковим тире).
+LABEL_VALUE_RE = re.compile(r"(?:^|[;:]\s*|\d\)\s*)([^;:()]{4,90}?)\s+[-–—]\s+(" + NUM_PAT + r")(?=\s*[;.,]|\s*$)")
+# «- 5 - за готовність …» (глава 21 за 2026 рік перелічує коефіцієнти з тире);
+# кома в розділювачах дозволена лише після нецифри: інакше «11,27 - 5-гідрокси…»
+# з плоскої лабораторної таблиці розколюється на значення «27».
 VALUE_LABEL_RE = re.compile(
-    r"(?:^|[;:]\s*)[-–—]?\s*(\d+(?:,\d+)?)\s+[-–—]\s+([^;:()]{4,110}?)(?=\s*[;.]|\s*$)")
-# «застосовується коригувальний коефіцієнт 0, якщо …» — беремо лише з умовою:
-# без неї в тексті лишаються голі числа, зокрема витягнуті з плоских таблиць.
+    r"(?:^|[;:]\s*|(?<=\D),\s*)[-–—]?\s*(" + NUM_PAT + r")\s+[-–—]\s+([^;:()]{4,180}?)(?=\s*[;.,(]|\s*$)")
+# «застосовується коригувальний коефіцієнт 0, якщо …»
 CONDITION_COEFF_RE = re.compile(
-    r"коригувальн\w+\s+коефіцієнт\w*\s+(\d+(?:,\d+)?)\s*,\s*(якщо[^;.]{5,160})", re.IGNORECASE)
+    r"коригувальн\w+\s+коефіцієнт\w*\s+(" + NUM_PAT + r")\s*,\s*(якщо[^;.]{5,160})", re.IGNORECASE)
 LEADING_FILLER_RE = re.compile(
     r"^(?:та|і|й|або|з|із|при|до|для|якої|якого|який|яка|яких|цього|кожного"
     r"|застосовується|застосовуються|застосовується також)\s+", re.IGNORECASE)
@@ -415,52 +433,238 @@ def coefficient_row(left, right):
     return row
 
 
-COEFF_WORD_RE = re.compile(r"(?:[А-Яа-яІіЇїЄєҐґ'’-]+\s+)?коефіцієнт[а-яіїєґ]*", re.IGNORECASE)
-
-
-def tidy_label(raw):
-    label = clean(raw).strip(" ,;:.-–—")
-    # Мітка має починатися самим коефіцієнтом, а не серединою речення про нього:
-    # «Розмір доплати розраховується як добуток ставки…, кількості послуг та
-    # коригувального коефіцієнта за готовність…» → «коригувального коефіцієнта за…».
-    starts = [m.start() for m in COEFF_WORD_RE.finditer(label)]
-    if starts and starts[-1] > 0:
-        label = label[starts[-1]:]
+def tidy_lead(label):
+    label = clean(label).strip(" ,;:.-–—")
     for _ in range(3):
         label = LEADING_FILLER_RE.sub("", label).strip(" ,;:.-–—")
-    return label[:150]
+    return label
+
+
+def split_subpoints(text):
+    """[(маркер, текст підпункту)] — лише справжні маркери, за порядком номерів.
+
+    «9-1)» після «9)» — легітимна вставка зміною постанови; «(додаток 1)» чи
+    «підпункті 7)» посеред тексту маркером не є.
+    """
+    accepted, expected = [], 1
+    for match in SUBPOINT_MARK_RE.finditer(text):
+        if SUBPOINT_BADWORD_RE.search(text[:match.start()][-16:]):
+            continue
+        base = int(match.group(1))
+        if base == expected:
+            accepted.append(match)
+            expected = base + 1
+        elif match.group(2) and base == expected - 1:
+            accepted.append(match)
+    segments = []
+    for index, match in enumerate(accepted):
+        end = accepted[index + 1].start() if index + 1 < len(accepted) else len(text)
+        marker = match.group(1) + ("-" + match.group(2) if match.group(2) else "")
+        segments.append((marker, text[match.end():end].strip()))
+    return segments
+
+
+def grab_cond(segment, pos):
+    """Умова застосування одразу після числа: дужки, тире, «коли», «від базової ставки».
+
+    Повертає (повний текст умови, скільки символів сегмента вона займає).
+    Межі по «;» широкі — у ступінчастих коефіцієнтів глави 3 умова тягнеться
+    на кілька сотень символів, і якщо її не проковтнути цілком, ланцюжок не
+    добереться до наступного значення.
+    """
+    tail = segment[pos:]
+    match = re.match(r"\s*\(([^()]{3,200})\)", tail)
+    if match:
+        return clean(match.group(1)), match.end()
+    match = re.match(r"\s*(від\s+базової\s+ставки[^();]{0,80})", tail)
+    if match:
+        cond, end = clean(match.group(1)), match.end()
+        skip = re.match(r"\s*\([^()]{3,200}\)", tail[end:])
+        if skip:
+            end += skip.end()
+        more = re.match(r"\s*[-–—]\s*([^;]{3,160})", tail[end:])
+        if more:
+            cond, end = cond + " — " + clean(more.group(1)), end + more.end()
+        return cond, end
+    # Умова після тире тягнеться до «;», але не проковтує наступне значення
+    # переліку «…, 1 - за …» — інакше реабілітаційний список з чотирьох
+    # коефіцієнтів давав один рядок.
+    stop = r"(?:(?!,\s*\d+(?:,\d+)?\s+[-–—]\s)[^;]){3,700}"
+    match = re.match(r"\s*[-–—]\s*(" + stop + r")", tail)
+    if match:
+        return clean(match.group(1)), match.end()
+    match = re.match(r"\s*,\s*(?:коли|якщо)\s+(" + stop + r")", tail)
+    if match:
+        return "коли " + clean(match.group(1)), match.end()
+    match = re.match(r"\s*,\s*(що\s+застосовується[^;]{3,400})", tail)
+    if match:
+        return clean(match.group(1)), match.end()
+    return "", 0
+
+
+def is_consumed(consumed, pos):
+    return any(start <= pos < end for start, end in consumed)
+
+
+def chain_values(segment, start, consumed):
+    """Ланцюжок значень після якоря: «1,3 (…) та 1,2 (…)», «0,6, коли …; 0,4, коли …»."""
+    rows, pos = [], start
+    while True:
+        match = VALUE_AT_RE.match(segment, pos)
+        if not match:
+            break
+        after = segment[match.end():]
+        if after.lstrip().startswith(")") or NOT_COEFF_AFTER_RE.match(after):
+            break
+        cond, cond_len = grab_cond(segment, match.end())
+        rows.append((match.group(1), cond, match.start(1)))
+        consumed.append((pos, match.end() + cond_len))
+        separator = CHAIN_SEP_RE.match(segment, match.end() + cond_len)
+        if not separator:
+            break
+        pos = separator.end()
+    return rows
+
+
+def subpoint_head(segment):
+    head = HEAD_CUT_RE.split(segment, 1)[0]
+    return tidy_lead(head)[:140]
+
+
+def head_label(segment, value_pos, fallback):
+    part = re.split(r"[;:.]", segment[:value_pos])[-1]
+    part = TRAIL_ANCHOR_RE.sub("", clean(part))
+    part = re.sub(r",\s*(?:який|яка|яке|що)\s*$", "", part)
+    part = re.sub(r"(?:застосовується|застосовуються|множиться\s+на|помножується\s+на)\s*$", "", part)
+    part = tidy_lead(part.strip(" ,(«“"))
+    # Уривок, що починається цифрою, — це хвіст цитати («2021 р., № 82, ст. 5250)»)
+    # або сусідня сума, а не назва коефіцієнта.
+    if len(part) < 6 or part[0].isdigit():
+        return fallback
+    return part[:150]
+
+
+# «коефіцієнт 0,5» без жодного слова опису — не назва, а саме значення.
+BARE_VALUE_HEAD_RE = re.compile(
+    r"^(?:додатков\w+\s+)?(?:коригувальн\w+\s+|коригуюч\w+\s+)*коефіцієнт\w*\s+\d+(?:,\d+)?$",
+    re.IGNORECASE)
+
+
+def make_label(head, cond, multi):
+    """Назва рядка: заголовок підпункту, а коли він порожній чи спільний для
+    кількох значень — з умовою застосування."""
+    base = "" if not head or GENERIC_HEAD_RE.match(head) or BARE_VALUE_HEAD_RE.match(head) else head
+    cond_short = (cond or "")[:110]
+    if multi and cond_short:
+        prefix = base[:70].rstrip(" ,") if base else ""
+        return ((prefix + " — " if prefix else "") + cond_short)[:190]
+    if base and cond_short and len(base) < 12:
+        return (base + " — " + cond_short)[:190]
+    if base:
+        return base
+    return (cond_short or head or "")[:190]
+
+
+def segment_rows(segment):
+    """Усі коефіцієнти одного підпункту (або цілого пункту без підпунктів)."""
+    consumed, rows = [], []
+    fallback = subpoint_head(segment)
+    # Розплющена таблиця всередині пункту («Клас медичних послуг Коригувальний
+    # коефіцієнт Геріатрія 1,29 …») — не проза: пари «значення-мітка» там стоять
+    # у зворотному порядку, і переліковий прохід читає їх зі зсувом на один.
+    # Самі таблиці й так порівнюються окремим табличним сімейством.
+    flat_table = "клас медичних послуг" in segment.casefold()
+
+    for anchor in STANOV_RE.finditer(segment):
+        chain = chain_values(segment, anchor.end(), consumed)
+        head = head_label(segment, anchor.start(), fallback)
+        for value, cond, _ in chain:
+            rows.append((make_label(head, cond, len(chain) > 1), value))
+
+    for match in BARE_COEFF_RE.finditer(segment):
+        if is_consumed(consumed, match.start(1)):
+            continue
+        cond, cond_len = grab_cond(segment, match.end())
+        consumed.append((match.start(), match.end() + cond_len))
+        head = head_label(segment, match.start(), fallback)
+        # Заголовок не знайшовся (повернувся запасний) — умова описує краще.
+        if head == fallback and cond:
+            head = ""
+        rows.append((make_label(head, cond, False), match.group(1)))
+
+    if not flat_table:
+        for match in LABEL_VALUE_RE.finditer(segment):
+            if is_consumed(consumed, match.start(2)):
+                continue
+            label = tidy_lead(match.group(1))
+            if len(label) >= 4 and "коефіцієнт" not in label.casefold() and not label[0].isdigit():
+                rows.append((label[:150], match.group(2)))
+
+        for match in VALUE_LABEL_RE.finditer(segment):
+            if is_consumed(consumed, match.start(1)):
+                continue
+            rows.append((tidy_lead(match.group(2))[:150], match.group(1)))
+
+    return rows, flat_table
+
+
+def reference_value(segment):
+    """Підпункт-коефіцієнт без числа: куди він відсилає."""
+    if re.search(r"100\s+відсотків", segment) and re.search(r"75\s+відсотків", segment):
+        return "100 % + 75 % + 60 % вагового коефіцієнта"
+    appendix = APPENDIX_REF_RE.search(segment)
+    if appendix:
+        return f"за додатком {appendix.group(1)}"
+    if "алгоритм" in segment.casefold():
+        return "за алгоритмами і правилами НСЗУ"
+    return "без окремого числа"
 
 
 def text_coefficients(resolution):
-    """{chapter_id: [{label, value, point, page}]} — коефіцієнти з тексту пунктів."""
+    """{chapter_id: [{label, value, number, point, page}]} — коефіцієнти з тексту пунктів."""
     out = {}
     for chapter in resolution["chapters"]:
         rows, seen = [], set()
+
+        def push(label, value, item):
+            key = (norm_key(label), value)
+            if not label or key in seen:
+                return
+            # Переказ уже названого коефіцієнта у формулі вартості («…визначених
+            # пунктом 30 цього Порядку…», «Запланована вартість … розраховується
+            # як добуток … коефіцієнта 1,22») — не нова норма, а посилання на неї.
+            if label.casefold().startswith(("визначених пункт", "зазначених у пункт", "передбачених пункт",
+                                            "запланована вартість", "фактична вартість")):
+                return
+            seen.add(key)
+            rows.append({"label": label, "value": value, "number": to_number(value),
+                         "point": item["number"], "page": item["page"]})
+
         for item in chapter["items"]:
             if "coefficient" not in item["types"]:
                 continue
             text = clean(AMEND_RE.sub(" ", item["text"]))
-            found = []
-            for match in COEFF_VALUE_RE.finditer(text):
-                label = SEGMENT_SPLIT_RE.split(text[:match.start()][-260:])[-1]
-                label = tidy_label(MONEY_CUT_RE.sub("", label))
-                if "коефіцієнт" in label.casefold():
-                    found.append((label, match.group(1)))
-            for match in LABEL_VALUE_RE.finditer(text):
-                label = tidy_label(match.group(1))
-                if len(label) >= 4 and "коефіцієнт" not in label.casefold():
-                    found.append((label, match.group(2)))
-            for match in VALUE_LABEL_RE.finditer(text):
-                found.append((tidy_label(match.group(2)), match.group(1)))
+            segments = split_subpoints(text)
+            enumerated = len(segments) >= 2
+            if not segments:
+                segments = [("", re.sub(r"^\d{1,3}\.\s+", "", text))]
+            for _, segment in segments:
+                found, flat_table = segment_rows(segment)
+                for label, value in found:
+                    push(label, value, item)
+                # Підпункт про коефіцієнт без жодного числа — відсилання:
+                # рядок потрібен, інакше перелік виглядає коротшим, ніж він є.
+                if enumerated and not found and not flat_table and "коефіцієнт" in segment.casefold():
+                    head = subpoint_head(segment)
+                    if head:
+                        key = (norm_key(head), "ref")
+                        if key not in seen:
+                            seen.add(key)
+                            rows.append({"label": head, "value": reference_value(segment),
+                                         "number": None, "point": item["number"],
+                                         "page": item["page"]})
             for match in CONDITION_COEFF_RE.finditer(text):
-                found.append((tidy_label(match.group(2)), match.group(1)))
-            for label, value in found:
-                key = (norm_key(label), value)
-                if not label or key in seen:
-                    continue
-                seen.add(key)
-                rows.append({"label": label, "value": value, "number": to_number(value),
-                             "point": item["number"], "page": item["page"]})
+                push(tidy_lead(match.group(2))[:150], match.group(1), item)
         if rows:
             out[chapter["id"]] = rows
     return out
@@ -875,21 +1079,34 @@ def main():
             "status": "both" if rows_2025 and rows_2026 else ("only-2025" if rows_2025 else "only-2026"),
             "rows": [],
         }
-        taken = set()
-        for right in rows_2026:
-            best, score = None, 0.0
-            for index, left in enumerate(rows_2025):
-                if index in taken:
-                    continue
+        # Пари — глобально за найкращою схожістю, а не «першому-ліпшому»:
+        # жадібний прохід віддавав частку 0,55 рядку «коефіцієнт 0,5» лише тому,
+        # що той стояв у списку раніше за справжню пару.
+        # Поріг подвійний: однакові значення паруються охоче (0,62 — це
+        # перейменування тієї самої норми), різні — лише при майже тотожних
+        # мітках (0,9 — справжня зміна числа). Інакше переписана глава 21, де
+        # вікові коефіцієнти замінили коефіцієнтами за видом послуги, давала
+        # фальшиві пари на кшталт «0,7 → 2,5».
+        scored = []
+        for j, right in enumerate(rows_2026):
+            for i, left in enumerate(rows_2025):
                 value = label_similar(norm_key(right["label"]), norm_key(left["label"]))
-                if value > score:
-                    best, score = index, value
-            left = rows_2025[best] if best is not None and score >= 0.62 else None
-            if left is not None:
-                taken.add(best)
+                same_value = (left["number"] == right["number"] if left["number"] is not None
+                              else left["value"] == right["value"])
+                if value >= (0.62 if same_value else 0.9):
+                    scored.append((value, i, j))
+        scored.sort(key=lambda t: (-t[0], t[1], t[2]))
+        left_taken, right_match = set(), {}
+        for value, i, j in scored:
+            if i in left_taken or j in right_match:
+                continue
+            left_taken.add(i)
+            right_match[j] = i
+        for j, right in enumerate(rows_2026):
+            left = rows_2025[right_match[j]] if j in right_match else None
             group["rows"].append(coefficient_row(left, right))
-        for index, left in enumerate(rows_2025):
-            if index not in taken:
+        for i, left in enumerate(rows_2025):
+            if i not in left_taken:
                 group["rows"].append(coefficient_row(left, None))
         coefficients.append(group)
 

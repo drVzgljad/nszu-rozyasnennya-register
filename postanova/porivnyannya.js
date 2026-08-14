@@ -47,6 +47,15 @@ function deltaCell(row, digits) {
   return `<span class="${cls}">${sign}${fmt(Math.abs(row.delta), digits ?? 2)}</span>`;
 }
 
+/** Клітинка коефіцієнта. Значення буває не числом, а відсиланням: «за додатком 1»,
+    «за алгоритмами і правилами НСЗУ» — такий коефіцієнт існує, але його величина
+    живе в іншому місці, і ховати це за «—» означало б збрехати про склад переліку. */
+function coeffCell(value, raw) {
+  if (value !== null && value !== undefined) return fmt(value, 4);
+  if (raw && !/^\d/.test(raw)) return `<span class="cmp-refval">${esc(raw)}</span>`;
+  return '<span class="cmp-absent">—</span>';
+}
+
 function statusTag(status) {
   if (status === 'only-2026') return '<span class="cmp-tag cmp-tag-new">нове у 2026</span>';
   if (status === 'only-2025') return '<span class="cmp-tag cmp-tag-gone">було у 2025</span>';
@@ -287,8 +296,8 @@ function renderCoefficients() {
           ${statusTag(row.status)}
           ${row.label2025 ? `<span class="cmp-renamed">у 2025 звучало: ${esc(row.label2025)}</span>` : ''}
         </td>
-        <td class="cmp-num">${row.v2025 === null ? '<span class="cmp-absent">—</span>' : fmt(row.v2025, 4)}</td>
-        <td class="cmp-num">${row.v2026 === null ? '<span class="cmp-absent">—</span>' : fmt(row.v2026, 4)}</td>
+        <td class="cmp-num">${coeffCell(row.v2025, row.raw2025)}</td>
+        <td class="cmp-num">${coeffCell(row.v2026, row.raw2026)}</td>
         <td class="cmp-num">${deltaCell(row, 4)}</td>
         <td class="cmp-num">${pct(row)}</td>
         ${withSource ? `<td>${sourceLink('2025', group.chapter2025, row.point2025, row.page2025)}</td>
@@ -580,7 +589,8 @@ function exportRows() {
     group.source === 'text' ? 'текст пункту' : 'таблиця глави',
     group.source === 'text' ? '' : group.caption,
     row.section, row.label, row.label2025,
-    row.v2025, row.v2026, row.delta ?? null, row.delta_pct ?? null,
+    row.v2025 ?? (row.raw2025 || null), row.v2026 ?? (row.raw2026 || null),
+    row.delta ?? null, row.delta_pct ?? null,
     row.point2025 || '', row.point2026 || '',
     row.status === 'both' ? 'в обох роках' : (row.status === 'only-2025' ? 'лише 2025' : 'лише 2026')
   ])));
