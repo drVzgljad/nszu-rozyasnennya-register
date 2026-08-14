@@ -11,6 +11,16 @@
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const nf = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   const CODE_RE = /^\d{1,5}(-\d{0,2})?$/;   // повний або частковий код (39721, 39721-0, 39721-00)
+  // Друга родина кодів того самого видання — перелік послуг ЕСОЗ (A38003).
+  // Без цього патерну запит «A38003» не вважався кодом і не знаходився зовсім.
+  const ESOZ_RE = /^[A-Z]\d{1,5}$/;
+  // У самих даних два коди набрані кириличною «А» (А67007, А67008), тож
+  // нормалізуємо і сховище, і запит — інакше їх не знайти жодним набором.
+  const HOMOGLYPH = { "А": "A", "В": "B", "С": "C", "Е": "E", "Н": "H", "І": "I",
+                      "К": "K", "М": "M", "О": "O", "Р": "P", "Т": "T", "Х": "X" };
+  const normEsozCode = (s) => String(s || "").trim().toUpperCase()
+    .split("").map((ch) => HOMOGLYPH[ch] || ch).join("");
+  const isCodeQuery = (q) => CODE_RE.test(q) || ESOZ_RE.test(q);
   const BACK_PAGE = "/classifiers/nk026.html";
   /** Хвіст для перехресних посилань: щоб на чужій сторінці була кнопка «Назад». */
   function backTail(code) {
@@ -57,9 +67,23 @@
 
     fetch("data/nk026_index.json")
       .then((r) => r.json())
+      .then((idx) => Promise.resolve(loadEsozServices()).then((extra) => idx.concat(extra)))
       .then((idx) => { INDEX = idx; buildMaps(); ready = true; onReady(); })
       .catch(() => { el.count.textContent = "Індекс пошуку недоступний."; })
       .then(loadServices);
+  }
+
+  /** Перелік послуг ЕСОЗ із того самого видання НК 026 — коди виду A38003.
+      Документи НСЗУ посилаються на них як «код за НК_26», але в
+      nk026_index.json їх немає: білдер відсипає їх окремо в esoz_names.json.
+      Тому пошук за таким кодом не давав нічого. Підмішуємо їх в індекс
+      із ch: 0 (поза розділами) і прапорцем es. */
+  function loadEsozServices() {
+    return fetch("data/esoz_names.json")
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((map) => Object.entries(map || {}).map(([c, n]) =>
+        ({ c: normEsozCode(c), n: String(n), ch: 0, es: 1 })))
+      .catch(() => []);
   }
 
   /** Назви медичних послуг для паспорта — вантажимо після основного індексу. */
@@ -77,6 +101,9 @@
   function buildMaps() {
     for (const e of INDEX) {
       byCode.set(e.c, e);
+      // Послуги ЕСОЗ не мають ні розділу, ні родини «корінь-**» — у каскад
+      // і в перелік споріднених кодів вони не потрапляють.
+      if (e.es) continue;
       const ch = byChapter.get(e.ch);
       if (ch) ch.push(e); else byChapter.set(e.ch, [e]);
       const root = e.c.split("-")[0];
@@ -91,7 +118,7 @@
     const q = new URLSearchParams(location.search);
     const raw = (q.get("code") || q.get("q") || "").trim();
     if (!raw) return;
-    const code = raw.toUpperCase().replace(/\s+/g, "");
+    const code = normEsozCode(raw.replace(/\s+/g, ""));
     if (byCode.has(code)) { openCode(code); syncCascade(code); }
     else { el.search.value = raw; runSearch(); }
   }
@@ -274,8 +301,8 @@
     el.batchCopy.hidden = true; lastBatchFound = [];
 
     const q = raw.toLowerCase();
-    const qCode = raw.toUpperCase().replace(/\s+/g, "");
-    const looksCode = CODE_RE.test(qCode);
+    const qCode = normEsozCode(raw.replace(/\s+/g, ""));
+    const looksCode = isCodeQuery(qCode);
     const out = [];
     for (const e of applyFilters(INDEX)) {
       let score = 0;
@@ -307,10 +334,14 @@
 
   function resultRow(e) {
     const ch = chapterByNo.get(e.ch);
+    // Послуги ЕСОЗ розділу не мають — інакше в рядку світився б «Розділ 0».
+    const meta = e.es
+      ? "Перелік послуг ЕСОЗ"
+      : `Розділ ${e.ch}${ch ? " · " + esc(trim(ch.title, 46)) : ""}`;
     return `<button class="rrow" type="button" data-code="${e.c}">
       <span class="tcode code">${e.c}</span>
       <span class="rmain"><span class="tname">${esc(e.n)}</span>
-        <span class="rmeta">Розділ ${e.ch}${ch ? " · " + esc(trim(ch.title, 46)) : ""}</span></span>
+        <span class="rmeta">${meta}</span></span>
       ${e.pk ? `<span class="pk-dot" title="Код у переліках пакетів ПМГ (${e.pk.length})">ПМГ</span>` : ""}
       ${e.o3 ? `<span class="pk-dot o377" title="Код згадано в наказі № 377">377</span>` : ""}
     </button>`;
@@ -322,16 +353,16 @@
     const out = [];
     for (const p of parts) {
       const toks = p.split(/\s+/);
-      const allCode = toks.length > 1 && toks.every((t) => CODE_RE.test(t));
+      const allCode = toks.length > 1 && toks.every((t) => isCodeQuery(normEsozCode(t)));
       if (allCode) out.push(...toks); else out.push(p);
     }
     return out;
   }
 
   function matchTerm(term) {
-    const qCode = term.toUpperCase().replace(/\s+/g, "");
+    const qCode = normEsozCode(term.replace(/\s+/g, ""));
     let matches;
-    if (CODE_RE.test(qCode)) {
+    if (isCodeQuery(qCode)) {
       const exact = byCode.get(qCode);
       matches = exact ? [exact] : INDEX.filter((e) => e.c.startsWith(qCode));
     } else {
@@ -375,6 +406,30 @@
     const e = byCode.get(code);
     if (!e) return;
     openedCode = code;
+
+    // Послуга ЕСОЗ: ні розділу, ні родини — свій, простіший паспорт.
+    if (e.es) {
+      el.reader.classList.remove("reader-empty");
+      el.reader.innerHTML = `
+        <div class="reader-head">
+          <div class="reader-code">${esc(e.c)}</div>
+          <div class="reader-level">Послуга ЕСОЗ</div>
+          <button class="copy-btn" type="button" data-copy="${escAttr(e.c + " — " + e.n)}" title="Скопіювати код і назву">⧉ Копіювати</button>
+        </div>
+        <h2 class="reader-name">${esc(e.n)}</h2>
+        <div class="reader-block">
+          <p class="muted">Код із переліку послуг ЕСОЗ, наведеного в тому самому виданні
+             НК 026:2021. Документи НСЗУ посилаються на такі коди як «код за НК_26».
+             Це не код медичної інтервенції: розділу, родини та прив'язки до наказу № 377
+             він не має.</p>
+          <p><a class="xlink" href="esoz.html?code=${encodeURIComponent(e.c)}">
+             Відкрити картку у довіднику кодів ЕСОЗ →</a></p>
+        </div>
+        <div class="reader-foot">НК 026:2021 · перелік послуг ЕСОЗ</div>`;
+      setTab("reader");
+      return;
+    }
+
     const ch = chapterByNo.get(e.ch);
     const root = e.c.split("-")[0];
     const sibs = familyCodes(root, e.ch).filter((s) => s.c !== e.c);
