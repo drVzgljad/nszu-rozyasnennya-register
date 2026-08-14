@@ -362,6 +362,110 @@ def pair_rates(left, right):
     return out
 
 
+# ── Коефіцієнти, названі прозою ─────────────────────────────────────────────
+# Гірський, сільський, вікові та подібні живуть не в таблицях, а в тексті пунктів,
+# і трьома різними формами запису — тому три вирази, а не один.
+
+# «гірський коефіцієнт, який становить 1,2»
+# «…, який становить 1,2» — саме значення. Мітку шукаємо назад від цього місця
+# власним кодом, а не регуляркою: заборонити в мітці кому означало б загубити
+# «коефіцієнт за готовність надавати медичну допомогу дітям або дорослим за
+# умови відповідності додатковим умовам, визначеним в умовах закупівлі», а
+# дозволити — притягнути пів речення про ставку в гривнях.
+COEFF_VALUE_RE = re.compile(r"(?:який|яка|яке|що)\s+становить\s+(\d+(?:,\d+)?)", re.IGNORECASE)
+# Межі підпункту: «;», «:», «3)» і кінець речення.
+SEGMENT_SPLIT_RE = re.compile(r"[;:]|\s\d{1,2}\)\s|(?<=\.)\s+(?=[А-ЯІЇЄҐ])")
+# Хвіст після згадки грошей до мітки не належить.
+MONEY_CUT_RE = re.compile(r"^.*гривн\w*\s*,?\s*", re.IGNORECASE | re.DOTALL)
+# «від 0 до 5 років - 2,465;»
+LABEL_VALUE_RE = re.compile(r"(?:^|[;:]\s*|\d\)\s*)([^;:()]{4,90}?)\s+[-–—]\s+(\d+(?:,\d+)?)(?=\s*[;.,]|\s*$)")
+# «0,9 - у разі здійснення від 10 до 14 …» і «: - 5 - за готовність …» (глава 21
+# за 2026 рік перелічує коефіцієнти саме з початковим тире).
+VALUE_LABEL_RE = re.compile(
+    r"(?:^|[;:]\s*)[-–—]?\s*(\d+(?:,\d+)?)\s+[-–—]\s+([^;:()]{4,110}?)(?=\s*[;.]|\s*$)")
+# «застосовується коригувальний коефіцієнт 0, якщо …» — беремо лише з умовою:
+# без неї в тексті лишаються голі числа, зокрема витягнуті з плоских таблиць.
+CONDITION_COEFF_RE = re.compile(
+    r"коригувальн\w+\s+коефіцієнт\w*\s+(\d+(?:,\d+)?)\s*,\s*(якщо[^;.]{5,160})", re.IGNORECASE)
+LEADING_FILLER_RE = re.compile(
+    r"^(?:та|і|й|або|з|із|при|до|для|якої|якого|який|яка|яких|цього|кожного"
+    r"|застосовується|застосовуються|застосовується також)\s+", re.IGNORECASE)
+
+
+def coefficient_row(left, right):
+    """Рядок порівняння коефіцієнта з тексту — з посиланням на пункт кожного року."""
+    row = {
+        "label": (right or left)["label"],
+        "section": "",
+        "label2025": left["label"] if left and right and left["label"] != right["label"] else "",
+        "v2025": left["number"] if left else None,
+        "v2026": right["number"] if right else None,
+        "raw2025": left["value"] if left else "",
+        "raw2026": right["value"] if right else "",
+        "extra": [],
+        "point2025": left["point"] if left else "",
+        "page2025": left["page"] if left else None,
+        "point2026": right["point"] if right else "",
+        "page2026": right["page"] if right else None,
+        "status": "both" if left and right else ("only-2025" if left else "only-2026"),
+    }
+    if row["v2025"] is not None and row["v2026"] is not None:
+        row["delta"] = round(row["v2026"] - row["v2025"], 4)
+        row["delta_pct"] = round((row["v2026"] / row["v2025"] - 1) * 100, 2) if row["v2025"] else None
+    return row
+
+
+COEFF_WORD_RE = re.compile(r"(?:[А-Яа-яІіЇїЄєҐґ'’-]+\s+)?коефіцієнт[а-яіїєґ]*", re.IGNORECASE)
+
+
+def tidy_label(raw):
+    label = clean(raw).strip(" ,;:.-–—")
+    # Мітка має починатися самим коефіцієнтом, а не серединою речення про нього:
+    # «Розмір доплати розраховується як добуток ставки…, кількості послуг та
+    # коригувального коефіцієнта за готовність…» → «коригувального коефіцієнта за…».
+    starts = [m.start() for m in COEFF_WORD_RE.finditer(label)]
+    if starts and starts[-1] > 0:
+        label = label[starts[-1]:]
+    for _ in range(3):
+        label = LEADING_FILLER_RE.sub("", label).strip(" ,;:.-–—")
+    return label[:150]
+
+
+def text_coefficients(resolution):
+    """{chapter_id: [{label, value, point, page}]} — коефіцієнти з тексту пунктів."""
+    out = {}
+    for chapter in resolution["chapters"]:
+        rows, seen = [], set()
+        for item in chapter["items"]:
+            if "coefficient" not in item["types"]:
+                continue
+            text = clean(AMEND_RE.sub(" ", item["text"]))
+            found = []
+            for match in COEFF_VALUE_RE.finditer(text):
+                label = SEGMENT_SPLIT_RE.split(text[:match.start()][-260:])[-1]
+                label = tidy_label(MONEY_CUT_RE.sub("", label))
+                if "коефіцієнт" in label.casefold():
+                    found.append((label, match.group(1)))
+            for match in LABEL_VALUE_RE.finditer(text):
+                label = tidy_label(match.group(1))
+                if len(label) >= 4 and "коефіцієнт" not in label.casefold():
+                    found.append((label, match.group(2)))
+            for match in VALUE_LABEL_RE.finditer(text):
+                found.append((tidy_label(match.group(2)), match.group(1)))
+            for match in CONDITION_COEFF_RE.finditer(text):
+                found.append((tidy_label(match.group(2)), match.group(1)))
+            for label, value in found:
+                key = (norm_key(label), value)
+                if not label or key in seen:
+                    continue
+                seen.add(key)
+                rows.append({"label": label, "value": value, "number": to_number(value),
+                             "point": item["number"], "page": item["page"]})
+        if rows:
+            out[chapter["id"]] = rows
+    return out
+
+
 # ── Таблиці коефіцієнтів ────────────────────────────────────────────────────
 
 def coefficient_tables(stream):
@@ -692,6 +796,8 @@ def main():
             "columns2025": a["columns"] if a else [],
             "columns2026": b["columns"] if b else [],
             "chapter2025": chapter_number_2025.get(norm_key((a or {}).get("context", "")), ""),
+            "chapter2026": chapter_2026["id"].split("-")[1] if chapter_2026 else "",
+            "source": "table",
             "status": "both" if a and b else ("only-2025" if a else "only-2026"),
             "rows": [],
         }
@@ -750,6 +856,45 @@ def main():
                 row["delta_pct"] = round((row["v2026"] / row["v2025"] - 1) * 100, 2) if row["v2025"] else None
             group["rows"].append(row)
         coefficients.append(group)
+
+    # ── коефіцієнти з тексту пунктів (гірський, сільський, вікові тощо)
+    text_2025, text_2026 = text_coefficients(resolutions["2025"]), text_coefficients(resolutions["2026"])
+    for chapter_id_2025, chapter_id_2026 in sorted(matched.items(), key=lambda kv: int(kv[1].split("-")[1])):
+        rows_2025, rows_2026 = text_2025.get(chapter_id_2025, []), text_2026.get(chapter_id_2026, [])
+        if not rows_2025 and not rows_2026:
+            continue
+        chapter = chapters_2026[chapter_id_2026]
+        group = {
+            "packages": chapter["package_numbers"],
+            "chapter_title": chapter["title"],
+            "caption": "Коефіцієнти, названі в тексті пунктів",
+            "source": "text",
+            "columns2025": ["Коефіцієнт"], "columns2026": ["Коефіцієнт"],
+            "chapter2025": chapter_id_2025.split("-")[1],
+            "chapter2026": chapter_id_2026.split("-")[1],
+            "status": "both" if rows_2025 and rows_2026 else ("only-2025" if rows_2025 else "only-2026"),
+            "rows": [],
+        }
+        taken = set()
+        for right in rows_2026:
+            best, score = None, 0.0
+            for index, left in enumerate(rows_2025):
+                if index in taken:
+                    continue
+                value = label_similar(norm_key(right["label"]), norm_key(left["label"]))
+                if value > score:
+                    best, score = index, value
+            left = rows_2025[best] if best is not None and score >= 0.62 else None
+            if left is not None:
+                taken.add(best)
+            group["rows"].append(coefficient_row(left, right))
+        for index, left in enumerate(rows_2025):
+            if index not in taken:
+                group["rows"].append(coefficient_row(left, None))
+        coefficients.append(group)
+
+    # Таблиця й текст однієї глави мають стояти поруч, а не двома блоками.
+    coefficients.sort(key=lambda g: (int(g.get("chapter2026") or 999), g.get("source") == "text"))
 
     # ── ДСГ
     appendix_packages = next((a["package_numbers"] for a in resolutions["2026"]["appendices"]

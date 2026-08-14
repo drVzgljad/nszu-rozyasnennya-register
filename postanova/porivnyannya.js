@@ -277,6 +277,9 @@ function renderCoefficients() {
   const groups = visibleCoefficients();
   if (!groups.length) return emptyState();
   return groups.map(({ group, rows }) => {
+    // Коефіцієнти з тексту несуть номер пункту, тож для них додаємо джерела:
+    // у таблиць посилатися нема на що, вони самі є частиною глави.
+    const withSource = group.source === 'text';
     const body = rows.map((row) => `
       <tr>
         <td class="cmp-title">
@@ -288,9 +291,12 @@ function renderCoefficients() {
         <td class="cmp-num">${row.v2026 === null ? '<span class="cmp-absent">—</span>' : fmt(row.v2026, 4)}</td>
         <td class="cmp-num">${deltaCell(row, 4)}</td>
         <td class="cmp-num">${pct(row)}</td>
+        ${withSource ? `<td>${sourceLink('2025', group.chapter2025, row.point2025, row.page2025)}</td>
+        <td>${sourceLink('2026', group.chapter2026, row.point2026, row.page2026)}</td>` : ''}
       </tr>`).join('');
     const head = ['Показник', { label: 'Коефіцієнт 2025', num: 1 }, { label: 'Коефіцієнт 2026', num: 1 },
       { label: 'Різниця', num: 1 }, { label: 'Різниця, %', num: 1 }];
+    if (withSource) head.push('Де в постанові 1503', 'Де в постанові 1808');
     return `<div class="cmp-group">
         <div class="cmp-group-head">
           <h2>${group.packages.map((p) => `<span class="cmp-chip">№ ${esc(p)}</span>`).join('')}${esc(group.chapter_title.replace(/^Глава\s+\d+\.\s*/, ''))}</h2>
@@ -566,12 +572,16 @@ function exportRows() {
     r.status === 'both' ? 'в обох роках' : (r.status === 'only-2025' ? 'лише 2025' : 'лише 2026')
   ]));
 
-  const coefficients = [['Пакет', 'Глава', 'Таблиця коефіцієнтів', 'Група в таблиці', 'Показник',
-    'Як показник звався у 2025', 'Коефіцієнт 2025', 'Коефіцієнт 2026', 'Різниця', 'Різниця, %', 'Стан']];
+  const coefficients = [['Пакет', 'Глава', 'Звідки', 'Таблиця коефіцієнтів', 'Група в таблиці', 'Показник',
+    'Як показник звався у 2025', 'Коефіцієнт 2025', 'Коефіцієнт 2026', 'Різниця', 'Різниця, %',
+    'Постанова 1503: пункт', 'Постанова 1808: пункт', 'Стан']];
   visibleCoefficients().forEach(({ group, rows }) => rows.forEach((row) => coefficients.push([
-    group.packages.join(', '), group.chapter_title.replace(/^Глава\s+\d+\.\s*/, ''), group.caption,
+    group.packages.join(', '), group.chapter_title.replace(/^Глава\s+\d+\.\s*/, ''),
+    group.source === 'text' ? 'текст пункту' : 'таблиця глави',
+    group.source === 'text' ? '' : group.caption,
     row.section, row.label, row.label2025,
     row.v2025, row.v2026, row.delta ?? null, row.delta_pct ?? null,
+    row.point2025 || '', row.point2026 || '',
     row.status === 'both' ? 'в обох роках' : (row.status === 'only-2025' ? 'лише 2025' : 'лише 2026')
   ])));
 
