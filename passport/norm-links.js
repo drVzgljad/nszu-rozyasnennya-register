@@ -61,6 +61,19 @@
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   }
 
+  // Підсвітка в тексті норми слів, спільних із пунктом пакета.
+  // hl — основи слів пункта (6 символів, як у зіставлювачі), пораховані білдером.
+  function markHtml(text, hl) {
+    if (!hl || !hl.length) return esc(text);
+    const set = new Set(hl);
+    return String(text).split(/([А-Яа-яІіЇїЄєҐґA-Za-z’']+)/).map(tok => {
+      if (!/^[А-Яа-яІіЇїЄєҐґA-Za-z’']/.test(tok)) return esc(tok);
+      const clean = tok.toLowerCase().replace(/[^а-яіїєґa-z0-9]/g, '');
+      return clean.length >= 4 && set.has(clean.slice(0, 6))
+        ? `<mark class="norm-hl">${esc(tok)}</mark>` : esc(tok);
+    }).join('');
+  }
+
   async function load(pkgNum) {
     if (CACHE.has(pkgNum)) return CACHE.get(pkgNum);
     let data = null;
@@ -103,7 +116,7 @@
               <span class="norm-path">${esc(c.p)}</span>
               <span class="norm-score">збіг ${esc(c.s)}</span>
             </div>
-            <p class="norm-text">${esc(c.t)}</p>
+            <p class="norm-text">${markHtml(c.t, e.hl)}</p>
           </li>`).join('')}</ol>`
       : '<p class="norm-none">Норми-кандидата в корпусі немає.</p>';
     return `<div class="norm-panel" hidden><p class="norm-note">${esc(e.note)}</p>${cands}</div>`;

@@ -1500,3 +1500,8 @@ header.top {
   box-shadow: 0 4px 14px rgba(31, 51, 71, .18);
   white-space: normal;
 }
+
+/* Підсвітка збігів із пунктом пакета в тексті норми */
+:root { --norm-hl-bg: #fdefb8; }
+:root.dark-theme { --norm-hl-bg: #4a3d12; }
+mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px; padding: 0 1px; }
