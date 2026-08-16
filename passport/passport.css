@@ -1392,3 +1392,86 @@ header.top {
   vertical-align: 1px;
   cursor: help;
 }
+
+/* ── Шар нормативного підкріплення (norm-links.js) ─────────── */
+:root {
+  --norm-a: #16704f; --norm-a-bg: #e0f1ea;
+  --norm-b: #8a5b12; --norm-b-bg: #f8eeda;
+  --norm-c: #4c5c6e; --norm-c-bg: #e8edf3;
+  --norm-d: #9d2f26; --norm-d-bg: #fae6e4;
+  --norm-q: #6d7480; --norm-q-bg: #eceef1;
+}
+:root.dark-theme {
+  --norm-a: #5cc79b; --norm-a-bg: #123026;
+  --norm-b: #e0b167; --norm-b-bg: #33270f;
+  --norm-c: #9fb2c6; --norm-c-bg: #1c2733;
+  --norm-d: #f08a80; --norm-d-bg: #371916;
+  --norm-q: #8f98a5; --norm-q-bg: #1f252d;
+}
+
+.norm-legend {
+  border: 1px solid var(--line, #dde6ee);
+  background: var(--soft, #f5fafb);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 0 0 14px;
+}
+.norm-legend-t {
+  margin: 0 0 9px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted, #647688);
+}
+.norm-legend-t b { color: var(--ink, #1f3347); font-variant-numeric: tabular-nums; }
+.norm-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.norm-chip {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  font-size: 11.5px; font-weight: 700; letter-spacing: .03em;
+  padding: 3px 9px; border-radius: 4px;
+}
+.norm-chip b { font-size: 13px; font-variant-numeric: tabular-nums; }
+
+.spec-item.has-norm { position: relative; }
+.norm-badge {
+  font: inherit; font-size: 10.5px; font-weight: 800; letter-spacing: .04em;
+  padding: 1px 6px; margin-right: 7px; border: 0; border-radius: 4px;
+  cursor: pointer; vertical-align: 1px; white-space: nowrap;
+}
+.norm-badge:hover { filter: brightness(0.94); }
+:root.dark-theme .norm-badge:hover { filter: brightness(1.15); }
+.norm-badge:focus-visible { outline: 2px solid var(--accent, #2f6b9e); outline-offset: 2px; }
+
+.norm-a, .norm-badge.norm-a { color: var(--norm-a); background: var(--norm-a-bg); }
+.norm-b, .norm-badge.norm-b { color: var(--norm-b); background: var(--norm-b-bg); }
+.norm-c, .norm-badge.norm-c { color: var(--norm-c); background: var(--norm-c-bg); }
+.norm-d, .norm-badge.norm-d { color: var(--norm-d); background: var(--norm-d-bg); }
+.norm-q, .norm-badge.norm-q { color: var(--norm-q); background: var(--norm-q-bg); }
+
+.norm-panel {
+  margin: 8px 0 4px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--line, #dde6ee);
+  background: var(--soft, #f5fafb);
+  border-radius: 0 6px 6px 0;
+}
+.norm-note {
+  margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--muted, #647688);
+}
+.norm-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.norm-item {
+  background: var(--surface, #fff);
+  border: 1px solid var(--line, #dde6ee);
+  border-radius: 6px; padding: 9px 11px;
+}
+.norm-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; margin-bottom: 4px; }
+.norm-act { font-size: 12px; font-weight: 700; color: var(--accent, #2f6b9e); }
+.norm-path {
+  font-size: 11.5px; color: var(--muted, #647688);
+  background: var(--accent-soft, #eaf3f9); padding: 1px 6px; border-radius: 3px;
+}
+.norm-score {
+  margin-left: auto; font-size: 11px; color: var(--muted, #647688);
+  font-variant-numeric: tabular-nums;
+}
+.norm-text { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--ink, #1f3347); }
+.norm-none { margin: 10px 0 0; font-size: 12.5px; font-style: italic; color: var(--muted, #647688); }

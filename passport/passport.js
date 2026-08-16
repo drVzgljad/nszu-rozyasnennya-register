@@ -671,10 +671,13 @@ function renderRequirements() {
         const linked = window.SpecLinks && window.SpecLinks.KINDS.includes(section.key)
           && window.SpecLinks.has(pkg.number, section.key);
 
-        section.items.forEach(item => {
+        section.items.forEach((item, iIdx) => {
           const itemDiv = document.createElement("div");
           const level = Math.min(item.level || 0, 3);
           itemDiv.className = `spec-item level-${level}`;
+          // координати пункту для шару нормативного підкріплення (norm-links.js)
+          itemDiv.dataset.sec = section.key;
+          itemDiv.dataset.ord = String(iIdx + 1);
 
           const marker = item.marker ? `<span class="spec-item-marker">${escapeHtml(item.marker)}</span>` : "";
           const body = linked
@@ -693,6 +696,37 @@ function renderRequirements() {
       container.appendChild(group);
     });
   });
+
+  decorateNorms(pkg.number, container);
+}
+
+// ── Шар нормативного підкріплення ─────────────────────────────
+// Дорисовує до кожного пункту рівень A/B/C/D і норму, на якій він стоїть.
+// Працює після рендера: якщо даних для пакета немає, вкладка лишається як була.
+async function decorateNorms(pkgNum, container) {
+  if (!window.NormLinks) return;
+  const data = await window.NormLinks.load(pkgNum);
+  if (!data || container.dataset.normsDone === pkgNum) return;
+  container.dataset.normsDone = pkgNum;
+
+  const legend = document.createElement("div");
+  legend.innerHTML = window.NormLinks.legend(data);
+  container.prepend(legend.firstElementChild);
+
+  let shown = 0, skipped = 0;
+  container.querySelectorAll(".spec-item[data-sec]").forEach(div => {
+    const text = div.querySelector("span:last-child")?.textContent || "";
+    const e = window.NormLinks.entry(data, div.dataset.sec, Number(div.dataset.ord), text);
+    if (!e) { skipped++; return; }
+    div.insertAdjacentHTML("afterbegin", window.NormLinks.badge(e));
+    div.insertAdjacentHTML("beforeend", window.NormLinks.panel(e));
+    div.classList.add("has-norm");
+    shown++;
+  });
+  if (skipped) {
+    console.info(`NormLinks: пакет ${pkgNum} — прив'язано ${shown}, пропущено ${skipped} ` +
+                 `(текст пункту не збігся з відбитком — дані треба перезібрати).`);
+  }
 }
 
 // ── Tab 3: Tariffs (Resolution 1808) ──────────────────────────
