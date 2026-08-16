@@ -675,9 +675,12 @@ function renderRequirements() {
           const itemDiv = document.createElement("div");
           const level = Math.min(item.level || 0, 3);
           itemDiv.className = `spec-item level-${level}`;
-          // координати пункту для шару нормативного підкріплення (norm-links.js)
+          // координати пункту для шару нормативного підкріплення (norm-links.js);
+          // відбиток тексту знімаємо тут, з чистого item.text — ДО SpecLinks,
+          // який домальовує в DOM мітки кодів ЕСОЗ і ламає звірку по тексту
           itemDiv.dataset.sec = section.key;
           itemDiv.dataset.ord = String(iIdx + 1);
+          if (window.NormLinks) itemDiv.dataset.nk = window.NormLinks.key(item.text);
 
           const marker = item.marker ? `<span class="spec-item-marker">${escapeHtml(item.marker)}</span>` : "";
           const body = linked
@@ -716,7 +719,7 @@ async function decorateNorms(pkgNum, container) {
   let shown = 0, skipped = 0;
   container.querySelectorAll(".spec-item[data-sec]").forEach(div => {
     const text = div.querySelector("span:last-child")?.textContent || "";
-    const e = window.NormLinks.entry(data, div.dataset.sec, Number(div.dataset.ord), text);
+    const e = window.NormLinks.entry(data, div.dataset.sec, Number(div.dataset.ord), text, div.dataset.nk);
     if (!e) { skipped++; return; }
     div.insertAdjacentHTML("afterbegin", window.NormLinks.badge(e));
     div.insertAdjacentHTML("beforeend", window.NormLinks.panel(e));

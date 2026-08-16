@@ -15,13 +15,18 @@
   'use strict';
 
   const CACHE = new Map();          // номер пакета → дані або null
+  // word — видимий підпис на значку: абревіатура сама по собі змушувала
+  // чекати тултіп, тому рівень підписаний словами прямо в рядку
   const LEVELS = {
-    'A?': { cls: 'a', title: 'Пряма норма — кандидат на вичитку' },
-    'B?': { cls: 'b', title: 'Галузевий стандарт — кандидат на вичитку' },
-    'C?': { cls: 'c', title: 'Загальна норма — кандидат на вичитку' },
-    'C':  { cls: 'c', title: 'Загальна норма (висновок за правилом)' },
-    'D':  { cls: 'd', title: 'Підстави немає (висновок за правилом)' },
-    '?':  { cls: 'q', title: 'Заголовок або надто короткий пункт' },
+    'A':  { cls: 'a', word: 'пряма норма', title: 'Пряма норма: імперативний акт встановлює вимогу' },
+    'B':  { cls: 'b', word: 'галузевий стандарт', title: 'Норма є в галузевому стандарті, пакет реквізиту не назвав' },
+    'C':  { cls: 'c', word: 'загальна норма', title: 'Лише загальна норма (ліцумови тощо)' },
+    'D':  { cls: 'd', word: 'без підстави', title: 'Профільної норми немає — вимога НСЗУ без наказу' },
+    '?':  { cls: 'q', word: 'заголовок', title: 'Заголовок або уламок тексту, не вимога' },
+    // рівні зі знаком питання — невичитані кандидати (якщо трапляться в даних)
+    'A?': { cls: 'a', word: 'пряма норма?', title: 'Пряма норма — кандидат на вичитку' },
+    'B?': { cls: 'b', word: 'галузевий стандарт?', title: 'Галузевий стандарт — кандидат на вичитку' },
+    'C?': { cls: 'c', word: 'загальна норма?', title: 'Загальна норма — кандидат на вичитку' },
   };
 
   function key(t) {
@@ -46,13 +51,16 @@
     return data;
   }
 
-  function entry(data, sectionKey, ord, text) {
+  function entry(data, sectionKey, ord, text, precomputedKey) {
     if (!data) return null;
     const list = data.sections && data.sections[sectionKey];
     if (!list) return null;
     const e = list.find(x => x.o === ord);
     if (!e) return null;
-    return e.k === key(text) ? e : null;   // текст роз'їхався — мовчимо
+    // precomputedKey — відбиток чистого тексту пакета, знятий ДО того, як
+    // SpecLinks домалює в DOM свої мітки (інакше «аналізаторЕСОЗ 8 кодів»
+    // не збігається і значок зникає)
+    return e.k === (precomputedKey || key(text)) ? e : null;
   }
 
   function badge(e) {
@@ -60,7 +68,7 @@
     const n = e.c.length;
     return `<button type="button" class="norm-badge norm-${meta.cls}"
       data-norm="1" title="${esc(meta.title)}${n ? ` · норм: ${n}` : ''}"
-      aria-expanded="false">${esc(e.lv)}</button>`;
+      aria-expanded="false">${esc(e.lv)}<span class="norm-bw"> ${esc(meta.word)}</span></button>`;
   }
 
   function panel(e) {
@@ -80,10 +88,10 @@
 
   function legend(data) {
     const s = data.stats || {};
-    const order = ['A?', 'B?', 'C?', 'C', 'D', '?'];
+    const order = ['A', 'B', 'C', 'D', '?', 'A?', 'B?', 'C?'];
     const chips = order.filter(k => s[k]).map(k =>
       `<span class="norm-chip norm-${LEVELS[k].cls}" title="${esc(LEVELS[k].title)}">
-         ${esc(k)}<b>${s[k]}</b></span>`).join('');
+         ${esc(k)} ${esc(LEVELS[k].word)} <b>${s[k]}</b></span>`).join('');
     return `<div class="norm-legend">
       <p class="norm-legend-t">Нормативне підкріплення: зіставлено з
         <b>${data.nodes}</b> пунктами <b>${data.acts}</b> актів.
@@ -104,5 +112,5 @@
     b.setAttribute('aria-expanded', String(open));
   });
 
-  window.NormLinks = { load, entry, badge, panel, legend };
+  window.NormLinks = { load, entry, badge, panel, legend, key };
 })();

@@ -1475,3 +1475,6 @@ header.top {
 }
 .norm-text { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--ink, #1f3347); }
 .norm-none { margin: 10px 0 0; font-size: 12.5px; font-style: italic; color: var(--muted, #647688); }
+
+/* Підпис рівня словами на значку — щоб не чекати тултіп */
+.norm-bw { font-weight: 600; letter-spacing: 0; text-transform: none; }
