@@ -1478,3 +1478,25 @@ header.top {
 
 /* Підпис рівня словами на значку — щоб не чекати тултіп */
 .norm-bw { font-weight: 600; letter-spacing: 0; text-transform: none; }
+
+/* Повна назва акта — миттєва легенда при наведенні на реквізит */
+.norm-act[data-t] { cursor: help; border-bottom: 1px dotted currentColor; }
+.norm-head { position: relative; }
+.norm-act[data-t]:hover::after,
+.norm-act[data-t]:focus::after {
+  content: attr(data-t);
+  position: absolute;
+  left: 0; top: 100%;
+  z-index: 30;
+  margin-top: 4px;
+  width: max-content;
+  max-width: min(460px, 90%);
+  padding: 7px 10px;
+  font-size: 12px; font-weight: 400; line-height: 1.45;
+  color: var(--ink, #1f3347);
+  background: var(--surface, #fff);
+  border: 1px solid var(--line, #dde6ee);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(31, 51, 71, .18);
+  white-space: normal;
+}
