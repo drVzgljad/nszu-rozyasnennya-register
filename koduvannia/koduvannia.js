@@ -17,7 +17,7 @@
 (() => {
   'use strict';
 
-  const V = 'v=6';
+  const V = 'v=7';
 
   // Кириличні гомогліфи → латиниця (та сама пастка, що в ДСГ і ЕСОЗ)
   const HOMO = { 'А':'A','В':'B','С':'C','Е':'E','Н':'H','І':'I','К':'K',
@@ -603,16 +603,28 @@
     } catch (e) { return null; }
   }
 
-  async function sbGet(path) {
+  /* PostgREST віддає щонайбільше 1000 рядків за запит, і параметр limit цієї
+     стелі не піднімає — його ріже налаштування сервера. Перелік діагнозів до
+     однієї умови буває на 3 376 кодів, тож ходимо сторінками через заголовок
+     Range, поки сторінка не виявиться неповною. */
+  const PAGE = 1000;
+
+  async function sbGet(path, paged = false) {
     const token = sbToken();
     if (!token) throw new Error('немає сесії');
-    const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
-      headers: { apikey: SB_KEY, Authorization: `Bearer ${token}` },
-    });
-    if (r.status === 401 || r.status === 403)
-      throw new Error('сесія застаріла — увійдіть у портал ще раз');
-    if (!r.ok) throw new Error(`Supabase ${r.status}`);
-    return r.json();
+    const out = [];
+    for (let from = 0; ; from += PAGE) {
+      const headers = { apikey: SB_KEY, Authorization: `Bearer ${token}` };
+      if (paged) headers.Range = `${from}-${from + PAGE - 1}`;
+      const r = await fetch(`${SB_URL}/rest/v1/${path}`, { headers });
+      if (r.status === 401 || r.status === 403)
+        throw new Error('сесія застаріла — увійдіть у портал ще раз');
+      if (!r.ok && r.status !== 206) throw new Error(`Supabase ${r.status}`);
+      const chunk = await r.json();
+      if (!paged) return chunk;
+      out.push(...chunk);
+      if (chunk.length < PAGE || out.length > 40000) return out;
+    }
   }
 
   let RULES = null, pkgMode = 'byPkg';
@@ -626,7 +638,8 @@
     const key = `${dict}|${tab}`;
     if (!dictCache.has(key)) {
       dictCache.set(key, sbGet(`pmg_rule_dicts?select=code,name,min_bound,max_bound` +
-        `&dict=eq.${encodeURIComponent(dict)}&tab=eq.${encodeURIComponent(tab)}&limit=9000`));
+        `&dict=eq.${encodeURIComponent(dict)}&tab=eq.${encodeURIComponent(tab)}` +
+        `&order=code`, true));
     }
     return dictCache.get(key);
   }
@@ -666,7 +679,7 @@
     if (!code) { out.innerHTML = ''; return; }
     out.innerHTML = '<div class="kd-card kd-card-empty">Шукаю…</div>';
     const hits = await sbGet('pmg_rule_dicts?select=dict,tab,name' +
-      `&code=eq.${encodeURIComponent(code)}&limit=500`);
+      `&code=eq.${encodeURIComponent(code)}`, true);
     if (!hits.length) {
       out.innerHTML = `<div class="kd-card"><p class="kd-flag kd-flag-warn">Коду
         <b>${esc(code)}</b> немає в жодному переліку алгоритму. Це не означає, що
