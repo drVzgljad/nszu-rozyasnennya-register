@@ -486,17 +486,25 @@ function applyAccess() {
           { text: 'Довідник характеристик ДКХП-78', path: 'classifiers/posady.html' }
         ]
       },
-      { text: '🔗 Таблиця співставлення', path: 'mapping/index.html' },
-      // «Інструменти ДСГ» стоять поруч із Таблицею співставлення, а не в
-      // гнізді «Інструменти» вкладки «Сервіси»: там усі пункти для expert, а
-      // паспорт коду й розрахунок випадку — публічні, як і решта довідників.
-      { text: '🧮 Інструменти ДСГ', path: 'drg/index.html' },
-      // Кодування: ланцюг «основний стан → ОДК → ДСГ → тариф», перевірка
-      // коректності випадку, настанови ВООЗ і аудит Таблиці співставлення.
-      { text: '🧭 Кодування випадку', path: 'koduvannia/index.html' },
-      // Пілот: інтервенція + основний діагноз → допустимість за правилом
-      // «хрестик — зірочка», досяжні ДСГ через ОДК і тариф кожної гілки.
-      { text: '🧷 Перевірка кодування · пілот', path: 'classifiers/pilot-koduvannia.html' }
+      {
+        // Четверте гніздо — за аудитом 17.08.2026 (Аудит_Довідники_кодування.md).
+        // Раніше тут висіли чотири пункти розсипом, а правила кодування (377,
+        // 182, амбулаторка) жили в «Документах» — тобто тема була розкладена
+        // по трьох місцях меню, амбулаторка ж не мала входу взагалі. Тепер
+        // усе кодування збирається за задачею; 377 і 182 навмисно продубльовані
+        // з «Документами»: там вони як документи, тут — як задача.
+        // Назви — з поясненням після «·», щоб не вгадувати межі розділів.
+        // Пілот з меню знято: він повністю поглинутий «Кодуванням випадку»,
+        // сторінка лишається живою за прямим посиланням.
+        text: '🧭 Кодування', items: [
+          { text: 'Кодування випадку · від коду до тарифу', path: 'koduvannia/index.html' },
+          { text: 'Інструменти ДСГ · тарифи й аномалії', path: 'drg/index.html' },
+          { text: 'Таблиця співставлення · код ↔ пакет', path: 'mapping/index.html' },
+          { text: 'Правила: наказ 377', path: 'algorithms/index.html' },
+          { text: 'Кодування реабілітації · наказ 182', path: 'algorithms/rehab.html' },
+          { text: 'Кодування амбулаторки · пакет 9', path: 'algorithms/ambulatory.html' }
+        ]
+      }
     ];
 
     // Довідково-нормативні розділи — згруповані в дропдаун «Документи».
@@ -2461,10 +2469,14 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '🩻', label: 'Обладнання у вимогах', path: 'classifiers/obladnannia.html' },
     { icon: '🧪', label: 'LOINC (лаб. коди)', path: 'classifiers/loinc.html' },
     { icon: '👥', label: 'Посади · ДКХП-78', path: 'classifiers/posady.html' },
+    { icon: '⛓️', label: 'Кадровий ланцюжок', path: 'classifiers/kadry.html' },
+    { icon: '🪪', label: 'Спеціальності та посади', path: 'classifiers/specialnosti.html' },
     { icon: '🔗', label: 'Таблиця співставлення', path: 'mapping/index.html' },
     { icon: '🧮', label: 'Інструменти ДСГ', path: 'drg/index.html' },
     { icon: '🧭', label: 'Кодування випадку', path: 'koduvannia/index.html' },
-    { icon: '🧷', label: 'Перевірка кодування · пілот', path: 'classifiers/pilot-koduvannia.html' },
+    { icon: '🦼', label: 'Наказ 182 · Кодування реабілітації', path: 'algorithms/rehab.html' },
+    { icon: '🏥', label: 'Кодування амбулаторки · пакет 9', path: 'algorithms/ambulatory.html' },
+    { icon: '🗄️', label: 'Коди ЕСОЗ · внутрішній', path: 'classifiers/esoz.html', role: 'expert' },
     { icon: '📑', label: 'Договори ЗОЗ', path: 'zoz-dogovr/index.html' },
     { icon: '🏥', label: 'Хто це лікує', path: 'zoz-poshuk/index.html' },
     { icon: '👤', label: 'Кабінет', path: 'cabinet/index.html', role: 'expert' },
