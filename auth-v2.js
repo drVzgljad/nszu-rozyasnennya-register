@@ -489,7 +489,10 @@ function applyAccess() {
       // «Інструменти ДСГ» стоять поруч із Таблицею співставлення, а не в
       // гнізді «Інструменти» вкладки «Сервіси»: там усі пункти для expert, а
       // паспорт коду й розрахунок випадку — публічні, як і решта довідників.
-      { text: '🧮 Інструменти ДСГ', path: 'drg/index.html' }
+      { text: '🧮 Інструменти ДСГ', path: 'drg/index.html' },
+      // Пілот: інтервенція + основний діагноз → допустимість за правилом
+      // «хрестик — зірочка», досяжні ДСГ через ОДК і тариф кожної гілки.
+      { text: '🧷 Перевірка кодування · пілот', path: 'classifiers/pilot-koduvannia.html' }
     ];
 
     // Довідково-нормативні розділи — згруповані в дропдаун «Документи».
@@ -2456,6 +2459,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '👥', label: 'Посади · ДКХП-78', path: 'classifiers/posady.html' },
     { icon: '🔗', label: 'Таблиця співставлення', path: 'mapping/index.html' },
     { icon: '🧮', label: 'Інструменти ДСГ', path: 'drg/index.html' },
+    { icon: '🧷', label: 'Перевірка кодування · пілот', path: 'classifiers/pilot-koduvannia.html' },
     { icon: '📑', label: 'Договори ЗОЗ', path: 'zoz-dogovr/index.html' },
     { icon: '🏥', label: 'Хто це лікує', path: 'zoz-poshuk/index.html' },
     { icon: '👤', label: 'Кабінет', path: 'cabinet/index.html', role: 'expert' },
