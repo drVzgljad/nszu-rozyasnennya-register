@@ -11,7 +11,7 @@
   <title>НавігаторПМГ26 | Кодування</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
   <link rel="stylesheet" href="../classifiers/classifiers.css?v=20260809d">
-  <link rel="stylesheet" href="koduvannia.css?v=20260817a">
+  <link rel="stylesheet" href="koduvannia.css?v=20260817b">
   <link rel="stylesheet" href="../auth-v2.css?v=20260806a">
   <script type="module" src="../auth-v2.js?v=20260817k"></script>
 </head>
@@ -52,6 +52,8 @@
             aria-selected="false">📖 Настанови з кодування</button>
     <button class="kd-tab" type="button" role="tab" data-mod="audit"
             aria-selected="false">🔍 Аудит Таблиці співставлення</button>
+    <button class="kd-tab" type="button" role="tab" data-mod="pkg"
+            aria-selected="false">🔒 Належність до пакета</button>
   </nav>
 
   <main class="kd-main">
@@ -309,6 +311,52 @@
       </div>
       <div id="aOut" class="kd-results"></div>
     </section>
+
+    <!-- ═══════════ 5. Належність до пакета (за логіном) ═══════════ -->
+    <section class="kd-mod" id="mod-pkg" role="tabpanel" aria-label="Належність до пакета" hidden>
+      <div class="kd-lock" id="pkgLock">
+        <div class="kd-lock-ico" aria-hidden="true">🔒</div>
+        <h2>Алгоритм належності — за логіном</h2>
+        <p>Матриця умов, за якими послуга визнається такою, що належить пакету:
+          тип випадку й звернення, основний діагноз, втручання, ДСГ, джерело
+          госпіталізації, посада, вік і стать. Це внутрішній робочий документ,
+          тому дані живуть у Supabase під політиками доступу, а не у файлах
+          сайту, і видаються лише авторизованим користувачам порталу.</p>
+        <p class="muted">Увійдіть через кнопку в шапці сторінки.</p>
+      </div>
+      <div id="pkgBody" hidden>
+        <div class="kd-note" role="note">
+          <b>Джерело — «Алгоритм дій щодо визначення належності медичних послуг
+          до пакетів», Додаток 2 зі змінами.</b> Рядок таблиці — одна допустима
+          комбінація умов. Порожня умова означає, що поле не перевіряється;
+          число в умові — це посилання на перелік значень, який розкривається
+          за кліком.
+        </div>
+        <nav class="kd-subtabs" role="tablist" aria-label="Режими">
+          <button class="kd-subtab active" type="button" data-pkgmode="byPkg">За пакетом</button>
+          <button class="kd-subtab" type="button" data-pkgmode="byCode">За кодом</button>
+        </nav>
+
+        <div class="search-panel kd-panel" id="pkgByPkgPanel">
+          <div class="kd-actions">
+            <label class="kd-param"><span>Пакет</span>
+              <select id="pkgSel"><option value="">—</option></select></label>
+            <span class="kd-count" id="pkgCount"></span>
+          </div>
+        </div>
+        <div class="search-panel nk-search kd-panel" id="pkgByCodePanel" hidden>
+          <label class="search">
+            <span>Код діагнозу, інтервенції або ДСГ — у які пакети він заходить</span>
+            <input id="pkgQ" type="search" autocomplete="off" spellcheck="false"
+                   placeholder="M51.1 · 40303-00 · I10">
+          </label>
+          <div class="kd-actions">
+            <button id="pkgFind" class="kd-btn kd-btn-main" type="button">Знайти</button>
+          </div>
+        </div>
+        <div id="pkgOut" class="kd-results"></div>
+      </div>
+    </section>
   </main>
 
   <footer class="kd-footer">
@@ -320,6 +368,6 @@
 
   <!-- версію бампити при КОЖНІЙ правці js: інакше HTTP-кеш браузера і
        сервіс-воркер віддають стару копію, а сторінка мовчки не працює -->
-  <script src="koduvannia.js?v=5"></script>
+  <script src="koduvannia.js?v=6"></script>
 </body>
 </html>

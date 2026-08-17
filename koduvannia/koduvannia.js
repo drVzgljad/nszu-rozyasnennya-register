@@ -17,7 +17,7 @@
 (() => {
   'use strict';
 
-  const V = 'v=5';
+  const V = 'v=6';
 
   // Кириличні гомогліфи → латиниця (та сама пастка, що в ДСГ і ЕСОЗ)
   const HOMO = { 'А':'A','В':'B','С':'C','Е':'E','Н':'H','І':'I','К':'K',
@@ -583,6 +583,143 @@
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   }
 
+  // ═══════════════ 4. Належність до пакета (Supabase, RLS) ═════════════════
+  /* Свого клієнта Supabase НЕ заводимо — з тієї ж причини, що в drg.js: другий
+     GoTrueClient на той самий ключ сховища дає два паралельні оновлення токена.
+     Беремо готовий токен сесії, яку поклав auth-v2.js, і ходимо звичайним
+     fetch. На відміну від замка в drg, цей — справжній: дані лежать не у
+     файлах сайту, а в таблицях під політиками RLS, тож без токена сервер
+     просто не віддасть рядків. */
+  const SB_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
+  const SB_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
+  const SB_TOKEN_KEY = 'sb-qdqtkvyvhtjgxpxnvblk-auth-token';
+
+  function sbToken() {
+    try {
+      const raw = localStorage.getItem(SB_TOKEN_KEY);
+      if (!raw) return null;
+      const s = JSON.parse(raw);
+      return (s && (s.access_token || (s.currentSession && s.currentSession.access_token))) || null;
+    } catch (e) { return null; }
+  }
+
+  async function sbGet(path) {
+    const token = sbToken();
+    if (!token) throw new Error('немає сесії');
+    const r = await fetch(`${SB_URL}/rest/v1/${path}`, {
+      headers: { apikey: SB_KEY, Authorization: `Bearer ${token}` },
+    });
+    if (r.status === 401 || r.status === 403)
+      throw new Error('сесія застаріла — увійдіть у портал ще раз');
+    if (!r.ok) throw new Error(`Supabase ${r.status}`);
+    return r.json();
+  }
+
+  let RULES = null, pkgMode = 'byPkg';
+  const dictCache = new Map();
+
+  async function needRules() {
+    if (!RULES) RULES = await sbGet('pmg_rules?select=*&order=pkg,sort_order&limit=2000');
+  }
+
+  async function dictOf(dict, tab) {
+    const key = `${dict}|${tab}`;
+    if (!dictCache.has(key)) {
+      dictCache.set(key, sbGet(`pmg_rule_dicts?select=code,name,min_bound,max_bound` +
+        `&dict=eq.${encodeURIComponent(dict)}&tab=eq.${encodeURIComponent(tab)}&limit=9000`));
+    }
+    return dictCache.get(key);
+  }
+
+  /* Умова або пряме значення («так»), або номер вкладки словника. */
+  const looksLikeTab = (v) => /^[0-9]+(-[0-9]+)?$/.test(String(v));
+
+  function condHtml(rule) {
+    const out = [];
+    for (const [k, v] of Object.entries(rule.cond || {})) {
+      out.push(looksLikeTab(v)
+        ? `<span class="kd-cond"><b>${esc(k)}</b>:
+             <button class="kd-dict-btn" data-dict="${esc(k)}" data-tab="${esc(v)}"
+                     type="button">перелік ${esc(v)}</button></span>`
+        : `<span class="kd-cond"><b>${esc(k)}</b>: ${esc(v)}</span>`);
+    }
+    return out.join(' ') || '<span class="muted">умов немає</span>';
+  }
+
+  function renderByPkg() {
+    const pkg = $('pkgSel').value;
+    const rows = RULES.filter((r) => !pkg || r.pkg === pkg);
+    $('pkgCount').textContent = `${rows.length} правил`;
+    $('pkgOut').innerHTML = rows.length ? rows.map((r) => `
+      <div class="kd-card">
+        <div class="kd-step-t">пакет ${esc(r.pkg)}${r.service_code ? ' · послуга ' + esc(r.service_code) : ''}
+          ${r.class ? ' · ' + esc(r.class) : ''}</div>
+        <div style="margin:2px 0 8px">${esc(r.service_name || '')}</div>
+        <div>${condHtml(r)}</div>
+      </div>`).join('')
+      : '<div class="kd-card kd-card-empty">Для цього пакета правил немає.</div>';
+  }
+
+  async function renderByCode() {
+    const code = norm($('pkgQ').value);
+    const out = $('pkgOut');
+    if (!code) { out.innerHTML = ''; return; }
+    out.innerHTML = '<div class="kd-card kd-card-empty">Шукаю…</div>';
+    const hits = await sbGet('pmg_rule_dicts?select=dict,tab,name' +
+      `&code=eq.${encodeURIComponent(code)}&limit=500`);
+    if (!hits.length) {
+      out.innerHTML = `<div class="kd-card"><p class="kd-flag kd-flag-warn">Коду
+        <b>${esc(code)}</b> немає в жодному переліку алгоритму. Це не означає, що
+        послуга не належить пакету: умова могла бути задана не переліком кодів,
+        а іншим полем.</p></div>`;
+      return;
+    }
+    const where = new Set(hits.map((h) => `${h.dict}|${h.tab}`));
+    const rows = RULES.filter((r) => Object.entries(r.cond || {})
+      .some(([k, v]) => where.has(`${k}|${v}`)));
+    const byPkg = new Map();
+    for (const r of rows) {
+      if (!byPkg.has(r.pkg)) byPkg.set(r.pkg, []);
+      byPkg.get(r.pkg).push(r);
+    }
+    out.innerHTML = `
+      <div class="kd-card">
+        <p><b>${esc(code)}</b> ${esc(hits[0].name || '')}</p>
+        <p class="kd-hint">Стоїть у переліках: ${[...where].map((w) =>
+          `<span class="kd-chip">${esc(w.replace('|', ' · вкладка '))}</span>`).join(' ')}</p>
+        <p>Пакети, чиї правила на ці переліки посилаються:
+          ${byPkg.size ? [...byPkg.keys()].map((p) =>
+            `<span class="kd-chip kd-chip-hit">пакет ${esc(p)}</span>`).join(' ')
+          : '<span class="muted">жодного</span>'}</p>
+      </div>
+      ${[...byPkg.entries()].map(([p, rs]) => `
+        <div class="kd-card"><div class="kd-step-t">пакет ${esc(p)} — ${rs.length} правил</div>
+          ${rs.map((r) => `<div style="margin-top:8px">${esc(r.service_name || '')}
+            <div>${condHtml(r)}</div></div>`).join('')}
+        </div>`).join('')}`;
+  }
+
+  async function runPkg() {
+    const locked = !sbToken();
+    $('pkgLock').hidden = !locked;
+    $('pkgBody').hidden = locked;
+    if (locked) return;
+    try {
+      await needRules();
+      if (!$('pkgSel').options.length || $('pkgSel').options.length === 1) {
+        const pkgs = [...new Set(RULES.map((r) => r.pkg))]
+          .sort((a, b) => (parseInt(a, 10) || 0) - (parseInt(b, 10) || 0));
+        $('pkgSel').innerHTML = '<option value="">усі пакети</option>' +
+          pkgs.map((p) => `<option value="${esc(p)}">пакет ${esc(p)}</option>`).join('');
+      }
+      pkgMode === 'byPkg' ? renderByPkg() : await renderByCode();
+    } catch (e) {
+      $('pkgOut').innerHTML = `<div class="kd-card"><p class="kd-flag kd-flag-no">
+        ${esc(e.message)}${/сесія|немає сесії/.test(e.message) ? '' :
+        '. Якщо таблиць ще немає — застосуйте міграцію migration_2026-08-17b_pmg_rules.sql і залийте дані завантажувачем.'}</p></div>`;
+    }
+  }
+
   // ═══════════════════ каркас ══════════════════════════════════════════════
   async function stats() {
     await coreP();
@@ -605,6 +742,7 @@
     for (const s of document.querySelectorAll('.kd-mod'))
       s.hidden = s.id !== `mod-${mod}`;
     if (mod === 'audit' && !AUD) runAudit();
+    if (mod === 'pkg') runPkg();
     location.hash = mod;
   }
 
@@ -644,19 +782,60 @@
     let rt;
     $('rQ').addEventListener('input', () => { clearTimeout(rt); rt = setTimeout(runRuleLookup, 220); });
 
-    document.querySelector('.kd-subtabs').addEventListener('click', (e) => {
+    // Підвкладок тепер два набори (аудит і належність), тому слухаємо кожен
+    // у своїй секції: один спільний querySelector чіпляв би лише перший.
+    document.querySelector('#mod-audit .kd-subtabs').addEventListener('click', (e) => {
       const b = e.target.closest('.kd-subtab');
       if (!b) return;
       slice = b.dataset.slice;
-      for (const x of document.querySelectorAll('.kd-subtab')) x.classList.toggle('active', x === b);
+      for (const x of document.querySelectorAll('#mod-audit .kd-subtab'))
+        x.classList.toggle('active', x === b);
       runAudit();
     });
     let at;
     $('aQ').addEventListener('input', () => { clearTimeout(at); at = setTimeout(runAudit, 250); });
     $('aCsv').addEventListener('click', auditCsv);
 
+    // ── вкладка «Належність до пакета» ──
+    document.querySelector('#mod-pkg .kd-subtabs').addEventListener('click', (e) => {
+      const b = e.target.closest('.kd-subtab');
+      if (!b) return;
+      pkgMode = b.dataset.pkgmode;
+      for (const x of document.querySelectorAll('#mod-pkg .kd-subtab'))
+        x.classList.toggle('active', x === b);
+      $('pkgByPkgPanel').hidden = pkgMode !== 'byPkg';
+      $('pkgByCodePanel').hidden = pkgMode !== 'byCode';
+      $('pkgOut').innerHTML = '';
+      if (pkgMode === 'byPkg') runPkg();
+    });
+    $('pkgSel').addEventListener('change', () => runPkg());
+    $('pkgFind').addEventListener('click', () => runPkg());
+    $('pkgQ').addEventListener('keydown', (e) => { if (e.key === 'Enter') runPkg(); });
+
+    // розкриття переліку значень умови
+    $('pkgOut').addEventListener('click', async (e) => {
+      const b = e.target.closest('.kd-dict-btn');
+      if (!b) return;
+      const box = b.parentElement.querySelector('.kd-dict-box');
+      if (box) { box.remove(); return; }
+      const holder = document.createElement('div');
+      holder.className = 'kd-dict-box';
+      holder.textContent = 'читаю перелік…';
+      b.parentElement.appendChild(holder);
+      try {
+        const rows = await dictOf(b.dataset.dict, b.dataset.tab);
+        holder.innerHTML = rows.length
+          ? `<div class="kd-hint">${rows.length} значень</div>` + rows.map((x) =>
+              `<div><b>${esc(x.code || '')}</b> ${esc(x.name || '')}` +
+              `${x.min_bound || x.max_bound ? ` <span class="kd-src">${esc(x.min_bound || '')}–${esc(x.max_bound || '')}</span>` : ''}</div>`).join('')
+          : '<span class="muted">перелік порожній</span>';
+      } catch (err) {
+        holder.innerHTML = `<span class="kd-flag kd-flag-no">${esc(err.message)}</span>`;
+      }
+    });
+
     const h = (location.hash || '').replace('#', '');
-    if (['grouper', 'check', 'rules', 'audit'].includes(h)) switchTab(h);
+    if (['grouper', 'check', 'rules', 'audit', 'pkg'].includes(h)) switchTab(h);
   }
 
   if (document.readyState === 'loading')
