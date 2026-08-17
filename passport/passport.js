@@ -730,6 +730,8 @@ async function decorateNorms(pkgNum, container) {
     console.info(`NormLinks: пакет ${pkgNum} — прив'язано ${shown}, пропущено ${skipped} ` +
                  `(текст пункту не збігся з відбитком — дані треба перезібрати).`);
   }
+  // валідація прив'язок експертами (✓/✗ + пропозиції норм, Supabase)
+  if (window.NormLinks.votes) window.NormLinks.votes.init(pkgNum, container);
 }
 
 // ── Tab 3: Tariffs (Resolution 1808) ──────────────────────────

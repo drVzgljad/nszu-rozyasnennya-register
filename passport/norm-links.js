@@ -125,7 +125,9 @@
     // precomputedKey — відбиток чистого тексту пакета, знятий ДО того, як
     // SpecLinks домалює в DOM свої мітки (інакше «аналізаторЕСОЗ 8 кодів»
     // не збігається і значок зникає)
-    return e.k === (precomputedKey || key(text)) ? e : null;
+    if (e.k !== (precomputedKey || key(text))) return null;
+    e.vk = sectionKey + '|' + e.k;   // ключ пункту для валідації експертами
+    return e;
   }
 
   function badge(e) {
@@ -137,6 +139,21 @@
   }
 
   function panel(e) {
+    const voteBar = `<div class="norm-vote" data-vk="${esc(e.vk || '')}" hidden>
+      <span class="norm-vote-lbl">Валідація:</span>
+      <button type="button" class="norm-vote-btn norm-vote-up" data-v="1" title="Підтверджую прив'язку">✓</button>
+      <span class="norm-vote-n norm-vote-nup">0</span>
+      <button type="button" class="norm-vote-btn norm-vote-down" data-v="-1" title="Не згоден із прив'язкою">✗</button>
+      <span class="norm-vote-n norm-vote-ndown">0</span>
+      <span class="norm-vote-pctline"></span>
+      <button type="button" class="norm-sugg-toggle" title="Запропонувати нормативний акт/пункт під цей пункт пакета">➕ норма</button>
+      <div class="norm-sugg-form" hidden>
+        <textarea class="norm-sugg-text" rows="2" maxlength="1000"
+          placeholder="Реквізит акта, пункт і чому він сюди пасує (напр.: наказ МОЗ від … № …, п. 5 розділу II — встановлює …)"></textarea>
+        <button type="button" class="norm-sugg-send">Надіслати</button>
+      </div>
+      <ul class="norm-sugg-list" hidden></ul>
+    </div>`;
     const cands = e.c.length
       ? `<ol class="norm-list">${e.c.map(c => `
           <li class="norm-item">
@@ -148,7 +165,7 @@
             <p class="norm-text">${markHtml(c.t, e.hl)}</p>
           </li>`).join('')}</ol>`
       : '<p class="norm-none">Норми-кандидата в корпусі немає.</p>';
-    return `<div class="norm-panel" hidden><p class="norm-note">${esc(e.note)}</p>${cands}</div>`;
+    return `<div class="norm-panel" hidden><p class="norm-note">${esc(e.note)}</p>${cands}${voteBar}</div>`;
   }
 
   function legend(data) {
@@ -177,5 +194,180 @@
     b.setAttribute('aria-expanded', String(open));
   });
 
-  window.NormLinks = { load, entry, badge, panel, legend, key };
+  window.NormLinks = { load, entry, badge, panel, legend, key, votes: null };
+
+  // ── Валідація прив'язок і пропозиції норм (Supabase) ────────
+  // Голос ✓/✗ на пункт від експерта, відсоток підтримки біля значка,
+  // «➕ норма» — пропозиція акта/пункту в norm_suggestions (обробляється
+  // офлайн конвеєром 18_нормативне_підкріплення).
+  const SB_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
+  const SB_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
+
+  const V = {
+    sb: null, user: null, pkg: null,
+    votes: new Map(),        // vk → {up, down, mine}
+    suggs: new Map(),        // vk → [{id, suggestion, user_name, status, mine}]
+
+    async init(pkg, container) {
+      this.pkg = String(pkg);
+      try {
+        const mod = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+        this.sb = mod.createClient(SB_URL, SB_KEY);
+        const { data: { session } } = await this.sb.auth.getSession();
+        this.user = session?.user || null;
+        const [vr, sr] = await Promise.all([
+          this.sb.from('norm_validations').select('item_k, verdict, user_id').eq('pkg', this.pkg),
+          this.sb.from('norm_suggestions').select('id, item_k, suggestion, user_name, status, user_id').eq('pkg', this.pkg),
+        ]);
+        if (vr.error) throw vr.error;          // таблиці ще немає → тихо виходимо
+        this.votes.clear();
+        for (const r of vr.data) {
+          const v = this.votes.get(r.item_k) || { up: 0, down: 0, mine: 0 };
+          if (r.verdict > 0) v.up++; else v.down++;
+          if (this.user && r.user_id === this.user.id) v.mine = r.verdict;
+          this.votes.set(r.item_k, v);
+        }
+        this.suggs.clear();
+        for (const r of (sr.data || [])) {
+          const list = this.suggs.get(r.item_k) || [];
+          list.push({ id: r.id, suggestion: r.suggestion, user_name: r.user_name,
+                      status: r.status, mine: this.user && r.user_id === this.user.id });
+          this.suggs.set(r.item_k, list);
+        }
+        container.querySelectorAll('.norm-vote[data-vk]').forEach(el => {
+          el.hidden = false;
+          this.paint(el);
+        });
+        this.wire(container);
+        this.summary(container);
+      } catch (err) {
+        console.info('NormLinks: валідація вимкнена —', err.message || err);
+      }
+    },
+
+    paint(el) {
+      const vk = el.dataset.vk;
+      const v = this.votes.get(vk) || { up: 0, down: 0, mine: 0 };
+      el.querySelector('.norm-vote-nup').textContent = v.up;
+      el.querySelector('.norm-vote-ndown').textContent = v.down;
+      el.querySelector('.norm-vote-up').classList.toggle('is-mine', v.mine === 1);
+      el.querySelector('.norm-vote-down').classList.toggle('is-mine', v.mine === -1);
+      const total = v.up + v.down;
+      const pct = total ? Math.round(v.up / total * 100) : null;
+      el.querySelector('.norm-vote-pctline').textContent =
+        total ? `${pct}% підтримки (${total} ${total === 1 ? 'голос' : total < 5 ? 'голоси' : 'голосів'})` : 'ще ніхто не голосував';
+      // відсоток біля значка рівня
+      const item = el.closest('.spec-item');
+      const badge = item?.querySelector('.norm-badge');
+      if (badge) {
+        let chip = badge.querySelector('.norm-vote-pct');
+        if (total) {
+          if (!chip) { chip = document.createElement('span'); chip.className = 'norm-vote-pct'; badge.appendChild(chip); }
+          chip.textContent = ` ${pct}%`;
+          chip.classList.toggle('is-low', pct < 50);
+        } else if (chip) chip.remove();
+      }
+      // пропозиції
+      const list = this.suggs.get(vk) || [];
+      const ul = el.querySelector('.norm-sugg-list');
+      ul.hidden = !list.length;
+      ul.innerHTML = list.map(s =>
+        `<li class="norm-sugg-item${s.status !== 'new' ? ' is-' + s.status : ''}">
+           <span class="norm-sugg-body">${esc(s.suggestion)}</span>
+           <span class="norm-sugg-meta">${esc(s.user_name || '')}${s.status === 'accepted' ? ' · враховано' : s.status === 'rejected' ? ' · відхилено' : ''}</span>
+         </li>`).join('');
+    },
+
+    wire(container) {
+      if (container.dataset.normVotesWired) return;
+      container.dataset.normVotesWired = '1';
+      container.addEventListener('click', async ev => {
+        const bar = ev.target.closest('.norm-vote[data-vk]');
+        if (!bar) return;
+        const vk = bar.dataset.vk;
+
+        const vb = ev.target.closest('.norm-vote-btn');
+        if (vb) {
+          ev.stopPropagation();
+          if (!this.user) { alert('Щоб голосувати, увійдіть у портал.'); return; }
+          const verdict = Number(vb.dataset.v);
+          const cur = this.votes.get(vk) || { up: 0, down: 0, mine: 0 };
+          try {
+            if (cur.mine === verdict) {
+              await this.sb.from('norm_validations').delete()
+                .match({ pkg: this.pkg, item_k: vk, user_id: this.user.id });
+              if (verdict > 0) cur.up--; else cur.down--;
+              cur.mine = 0;
+            } else {
+              const { error } = await this.sb.from('norm_validations').upsert({
+                pkg: this.pkg, item_k: vk, verdict,
+                user_id: this.user.id,
+                user_name: this.user.user_metadata?.full_name || this.user.email || '',
+              }, { onConflict: 'pkg,item_k,user_id' });
+              if (error) throw error;
+              if (cur.mine === 1) cur.up--; if (cur.mine === -1) cur.down--;
+              if (verdict > 0) cur.up++; else cur.down++;
+              cur.mine = verdict;
+            }
+            this.votes.set(vk, cur);
+            this.paint(bar);
+            this.summary(container);
+          } catch (err) { alert('Не вдалося зберегти голос: ' + (err.message || err)); }
+          return;
+        }
+
+        if (ev.target.closest('.norm-sugg-toggle')) {
+          ev.stopPropagation();
+          if (!this.user) { alert('Щоб запропонувати норму, увійдіть у портал.'); return; }
+          const form = bar.querySelector('.norm-sugg-form');
+          form.hidden = !form.hidden;
+          if (!form.hidden) form.querySelector('.norm-sugg-text').focus();
+          return;
+        }
+
+        if (ev.target.closest('.norm-sugg-send')) {
+          ev.stopPropagation();
+          const form = bar.querySelector('.norm-sugg-form');
+          const ta = form.querySelector('.norm-sugg-text');
+          const text = ta.value.trim();
+          if (text.length < 5) { ta.focus(); return; }
+          try {
+            const { error } = await this.sb.from('norm_suggestions').insert({
+              pkg: this.pkg, item_k: vk, suggestion: text,
+              user_id: this.user.id,
+              user_name: this.user.user_metadata?.full_name || this.user.email || '',
+            });
+            if (error) throw error;
+            const list = this.suggs.get(vk) || [];
+            list.push({ suggestion: text, user_name: 'ви', status: 'new', mine: true });
+            this.suggs.set(vk, list);
+            ta.value = ''; form.hidden = true;
+            this.paint(bar);
+          } catch (err) { alert('Не вдалося надіслати пропозицію: ' + (err.message || err)); }
+        }
+      });
+    },
+
+    summary(container) {
+      const legend = container.querySelector('.norm-legend');
+      if (!legend) return;
+      let voted = 0, sumPct = 0, total = 0;
+      for (const v of this.votes.values()) {
+        const t = v.up + v.down;
+        if (!t) continue;
+        voted++; total += t; sumPct += v.up / t * 100;
+      }
+      let line = legend.querySelector('.norm-valid-summary');
+      if (!line) {
+        line = document.createElement('p');
+        line.className = 'norm-valid-summary';
+        legend.appendChild(line);
+      }
+      line.textContent = voted
+        ? `Валідація експертів: оцінено ${voted} прив'язок, середня підтримка ${Math.round(sumPct / voted)}% (${total} голосів).`
+        : 'Валідація експертів: голосів ще немає — розкрийте пункт і поставте ✓ або ✗.';
+    },
+  };
+
+  window.NormLinks.votes = V;
 })();
