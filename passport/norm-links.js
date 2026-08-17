@@ -141,14 +141,16 @@
   }
 
   function panel(e) {
-    const voteBar = `<div class="norm-vote" data-vk="${esc(e.vk || '')}" hidden>
-      <span class="norm-vote-lbl">Валідація:</span>
-      <button type="button" class="norm-vote-btn norm-vote-up" data-v="1" title="Підтверджую прив'язку">✓</button>
+    // голосування — під КОЖНОЮ нормою окремо: ключ = пункт + акт + шлях норми
+    const voteRow = (c, i) => `<div class="norm-vote" data-vk="${esc((e.vk || '') + '|' + key(c.a + '~' + c.p))}"${i === 0 ? ' data-anchor="1"' : ''} hidden>
+      <button type="button" class="norm-vote-btn norm-vote-up" data-v="1" title="Підтверджую цю норму">✓</button>
       <span class="norm-vote-n norm-vote-nup">0</span>
-      <button type="button" class="norm-vote-btn norm-vote-down" data-v="-1" title="Не згоден із прив'язкою">✗</button>
+      <button type="button" class="norm-vote-btn norm-vote-down" data-v="-1" title="Не згоден із цією нормою">✗</button>
       <span class="norm-vote-n norm-vote-ndown">0</span>
       <span class="norm-vote-pctline"></span>
-      <button type="button" class="norm-sugg-toggle" title="Запропонувати нормативний акт/пункт під цей пункт пакета">➕ норма</button>
+    </div>`;
+    const suggBlock = `<div class="norm-sugg" data-vk="${esc(e.vk || '')}" hidden>
+      <button type="button" class="norm-sugg-toggle" title="Запропонувати нормативний акт/пункт під цей пункт пакета">➕ запропонувати норму</button>
       <div class="norm-sugg-form" hidden>
         <textarea class="norm-sugg-text" rows="2" maxlength="1000"
           placeholder="Реквізит акта, пункт і чому він сюди пасує (напр.: наказ МОЗ від … № …, п. 5 розділу II — встановлює …)"></textarea>
@@ -157,7 +159,7 @@
       <ul class="norm-sugg-list" hidden></ul>
     </div>`;
     const cands = e.c.length
-      ? `<ol class="norm-list">${e.c.map(c => `
+      ? `<ol class="norm-list">${e.c.map((c, i) => `
           <li class="norm-item">
             <div class="norm-head">
               <span class="norm-act"${actTitle(c.a) ? ` data-t="${esc(actTitle(c.a))}" tabindex="0"` : ''}>${esc(c.a)}</span>
@@ -165,9 +167,10 @@
               <span class="norm-score">збіг ${esc(c.s)}</span>
             </div>
             <p class="norm-text">${markHtml(c.t, e.hl)}</p>
+            ${voteRow(c, i)}
           </li>`).join('')}</ol>`
       : '<p class="norm-none">Норми-кандидата в корпусі немає.</p>';
-    return `<div class="norm-panel" hidden><p class="norm-note">${esc(e.note)}</p>${cands}${voteBar}</div>`;
+    return `<div class="norm-panel" hidden><p class="norm-note">${esc(e.note)}</p>${cands}${suggBlock}</div>`;
   }
 
   function legend(data) {
@@ -240,6 +243,10 @@
           el.hidden = false;
           this.paint(el);
         });
+        container.querySelectorAll('.norm-sugg[data-vk]').forEach(el => {
+          el.hidden = false;
+          this.paintSugg(el);
+        });
         this.wire(container);
         this.summary(container);
       } catch (err) {
@@ -258,18 +265,22 @@
       const pct = total ? Math.round(v.up / total * 100) : null;
       el.querySelector('.norm-vote-pctline').textContent =
         total ? `${pct}% підтримки (${total} ${total === 1 ? 'голос' : total < 5 ? 'голоси' : 'голосів'})` : 'ще ніхто не голосував';
-      // відсоток біля значка рівня
-      const item = el.closest('.spec-item');
-      const badge = item?.querySelector('.norm-badge');
-      if (badge) {
-        let chip = badge.querySelector('.norm-vote-pct');
-        if (total) {
-          if (!chip) { chip = document.createElement('span'); chip.className = 'norm-vote-pct'; badge.appendChild(chip); }
-          chip.textContent = ` ${pct}%`;
-          chip.classList.toggle('is-low', pct < 50);
-        } else if (chip) chip.remove();
+      // відсоток біля значка рівня — від ЯКІРНОЇ норми (першої в списку)
+      if (el.dataset.anchor) {
+        const badge = el.closest('.spec-item')?.querySelector('.norm-badge');
+        if (badge) {
+          let chip = badge.querySelector('.norm-vote-pct');
+          if (total) {
+            if (!chip) { chip = document.createElement('span'); chip.className = 'norm-vote-pct'; badge.appendChild(chip); }
+            chip.textContent = ` ${pct}%`;
+            chip.classList.toggle('is-low', pct < 50);
+          } else if (chip) chip.remove();
+        }
       }
-      // пропозиції
+    },
+
+    paintSugg(el) {
+      const vk = el.dataset.vk;
       const list = this.suggs.get(vk) || [];
       const ul = el.querySelector('.norm-sugg-list');
       ul.hidden = !list.length;
@@ -284,7 +295,7 @@
       if (container.dataset.normVotesWired) return;
       container.dataset.normVotesWired = '1';
       container.addEventListener('click', async ev => {
-        const bar = ev.target.closest('.norm-vote[data-vk]');
+        const bar = ev.target.closest('.norm-vote[data-vk], .norm-sugg[data-vk]');
         if (!bar) return;
         const vk = bar.dataset.vk;
 
@@ -344,7 +355,7 @@
             list.push({ suggestion: text, user_name: 'ви', status: 'new', mine: true });
             this.suggs.set(vk, list);
             ta.value = ''; form.hidden = true;
-            this.paint(bar);
+            this.paintSugg(bar);
           } catch (err) { alert('Не вдалося надіслати пропозицію: ' + (err.message || err)); }
         }
       });
