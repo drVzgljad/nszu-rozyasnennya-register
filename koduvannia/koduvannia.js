@@ -17,7 +17,7 @@
 (() => {
   'use strict';
 
-  const V = 'v=7';
+  const V = 'v=8';
 
   // Кириличні гомогліфи → латиниця (та сама пастка, що в ДСГ і ЕСОЗ)
   const HOMO = { 'А':'A','В':'B','С':'C','Е':'E','Н':'H','І':'I','К':'K',
@@ -592,14 +592,41 @@
      просто не віддасть рядків. */
   const SB_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
   const SB_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
-  const SB_TOKEN_KEY = 'sb-qdqtkvyvhtjgxpxnvblk-auth-token';
+  const BOOT_KEY = 'portal-boot-v1';
 
+  /* Чи користувач узагалі увійшов — беремо зі знімка, який кладе auth-v2.js.
+     Це той самий спосіб, що в drg.js, і він не залежить від того, у якому
+     форматі бібліотека тримає сесію. */
+  function portalUser() {
+    try {
+      const s = JSON.parse(localStorage.getItem(BOOT_KEY) || 'null');
+      return s && s.uid ? s : null;
+    } catch (e) { return null; }
+  }
+
+  /* А ось токен доводиться діставати зі сховища бібліотеки, і формат там
+     плаває від версії до версії: один ключ; той самий ключ, розрізаний на
+     «.0», «.1» (довгі сесії); значення, загорнуте в «base64-». Тому не
+     припускаємо формат, а перебираємо всі варіанти — саме на цьому замок
+     не відкривався в залогіненого користувача. */
   function sbToken() {
     try {
-      const raw = localStorage.getItem(SB_TOKEN_KEY);
-      if (!raw) return null;
+      const keys = Object.keys(localStorage)
+        .filter((k) => /^sb-.+-auth-token(\.\d+)?$/.test(k))
+        .sort((a, b) => {
+          const n = (k) => { const m = k.match(/\.(\d+)$/); return m ? +m[1] : -1; };
+          return n(a) - n(b);
+        });
+      if (!keys.length) return null;
+      let raw = keys.map((k) => localStorage.getItem(k) || '').join('');
+      if (raw.startsWith('base64-')) {
+        const bin = atob(raw.slice(7));
+        const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+        raw = new TextDecoder('utf-8').decode(bytes);
+      }
       const s = JSON.parse(raw);
-      return (s && (s.access_token || (s.currentSession && s.currentSession.access_token))) || null;
+      return (s && (s.access_token ||
+                    (s.currentSession && s.currentSession.access_token))) || null;
     } catch (e) { return null; }
   }
 
@@ -644,19 +671,132 @@
     return dictCache.get(key);
   }
 
-  /* Умова або пряме значення («так»), або номер вкладки словника. */
-  const looksLikeTab = (v) => /^[0-9]+(-[0-9]+)?$/.test(String(v));
+  /* Документ написаний назвами полів ЕСОЗ. Читати «encounter_type: 4» людині
+     неможливо, тому тримаємо тут підписи українською, а технічну назву
+     лишаємо дрібним сірим — вона потрібна, коли звіряєшся з самою системою. */
+  const FIELD_UA = {
+    class: 'Умови надання',
+    service_code: 'Код послуги',
+    requester_position: 'Посада того, хто направив',
+    episode_type: 'Тип епізоду',
+    encounter_type: 'Тип взаємодії',
+    performer_position: 'Посада виконавця',
+    performer_position_copy: 'Посада виконавця (додатковий перелік)',
+    sr_id: 'Електронне направлення',
+    paper_referral_edrpou: 'Паперове направлення',
+    priority_code: 'Код пріоритетності',
+    principal_diagnosis: 'Основний діагноз',
+    principal_diagnosis_copy: 'Основний діагноз (додатковий перелік)',
+    pdx_clinical_status: 'Клінічний статус основного діагнозу',
+    add_diagnoses: 'Супутні діагнози',
+    declaration_employee_id: 'Декларація з лікарем',
+    action_references: 'Втручання',
+    action_references_2: 'Втручання, друга умова',
+    action_references_3: 'Втручання, третя умова',
+    adrg: 'Діагностично-споріднена група',
+    admission_source: 'Джерело госпіталізації',
+    admission_weight: 'Вага при народженні',
+    person_gender: 'Стать',
+    age_years: 'Вік, років',
+    age_days: 'Вік, днів',
+    add_req: 'Додаткові вимоги',
+    has_contract: 'Чинний договір за пакетом',
+    has_narco: 'Ліцензія на обіг наркотичних засобів',
+  };
+
+  const VALUE_UA = {
+    INPATIENT: 'стаціонар', AMB: 'амбулаторно', PHC: 'первинна медична допомога',
+    TREATMENT: 'лікування', PREVENTION: 'профілактика', DG: 'діагностика',
+    PALLIATIVE_CARE: 'паліативна допомога', REHAB: 'реабілітація',
+    discharge: 'виписка', service_delivery_location: 'за місцем надання послуг',
+    virtual: 'дистанційно', home: 'удома', field: 'виїзд',
+    system_referral: 'електронне направлення', blank_referral: 'паперове направлення',
+    transfer: 'переведення з іншого закладу', transfer_in_LE: 'переведення в межах закладу',
+    born_in_LE: 'народжений у закладі', third_party: 'третя сторона',
+    'self_сonvers': 'самозвернення', emergency: 'екстрено',
+    FEMALE: 'жіноча', MALE: 'чоловіча',
+    active: 'активний', remission: 'ремісія', recurrence: 'рецидив', resolved: 'вирішений',
+  };
+
+  const fieldUa = (k) => FIELD_UA[k] || k;
+  const valueUa = (v) => VALUE_UA[v] || v;
+
+  /* Поля, у яких значення умови — номер вкладки словника. Решта несе значення
+     прямо («так», INPATIENT, номер пакета), і кнопку переліку їм малювати не
+     треба: словника під ними немає, і вона відкривала б порожнечу. */
+  const DICT_FIELDS = {
+    requester_position: 'requester_position', episode_type: 'episode_type',
+    encounter_type: 'encounter_type', performer_position: 'performer_position',
+    performer_position_copy: 'performer_position_copy',
+    principal_diagnosis: 'principal_diagnosis',
+    principal_diagnosis_copy: 'principal_diagnosis_copy',
+    pdx_clinical_status: 'pdx_clinical_status',
+    action_references: 'action_references',
+    // друга й третя умови на втручання посилаються на той самий словник
+    action_references_2: 'action_references', action_references_3: 'action_references',
+    adrg: 'adrg', admission_source: 'admission_source',
+    admission_weight: 'admission_weight', person_gender: 'person_gender',
+    age_years: 'age_years', age_days: 'age_days',
+  };
+
+  /* Дрібні переліки (вік, стать, тип епізоду…) показуємо одразу текстом —
+     це кілька значень, ховати їх за кнопкою немає сенсу. Великі (діагнози,
+     втручання, ДСГ) лишаються під кнопкою: там тисячі кодів. */
+  const SMALL = ['episode_type', 'encounter_type', 'admission_source', 'person_gender',
+                 'pdx_clinical_status', 'age_years', 'age_days', 'admission_weight'];
+  let SMALLVALS = null;
+
+  async function loadSmall() {
+    if (SMALLVALS) return;
+    const rows = await sbGet('pmg_rule_dicts?select=dict,tab,code,min_bound,max_bound' +
+      `&dict=in.(${SMALL.join(',')})`, true);
+    SMALLVALS = new Map();
+    for (const r of rows) {
+      const k = `${r.dict}|${r.tab}`;
+      if (!SMALLVALS.has(k)) SMALLVALS.set(k, []);
+      SMALLVALS.get(k).push(r);
+    }
+  }
+
+  function rangeUa(r, unit) {
+    const lo = r.min_bound, hi = r.max_bound;
+    if (hi === 'inf' || hi === null || hi === undefined || hi === '')
+      return `від ${lo} ${unit}`;
+    if (lo === '0' || lo === 0) return `до ${hi} ${unit}`;
+    return `${lo}–${hi} ${unit}`;
+  }
+
+  function smallHtml(field, tab) {
+    const dict = DICT_FIELDS[field];
+    const rows = (SMALLVALS && SMALLVALS.get(`${dict}|${tab}`)) || [];
+    if (!rows.length) return null;
+    const unit = field === 'age_years' ? 'р.' : field === 'age_days' ? 'дн.' : 'г';
+    const parts = rows.map((r) => r.code ? valueUa(r.code) : rangeUa(r, unit));
+    return [...new Set(parts)].join(' · ');
+  }
 
   function condHtml(rule) {
     const out = [];
     for (const [k, v] of Object.entries(rule.cond || {})) {
-      out.push(looksLikeTab(v)
-        ? `<span class="kd-cond"><b>${esc(k)}</b>:
-             <button class="kd-dict-btn" data-dict="${esc(k)}" data-tab="${esc(v)}"
-                     type="button">перелік ${esc(v)}</button></span>`
-        : `<span class="kd-cond"><b>${esc(k)}</b>: ${esc(v)}</span>`);
+      const label = `<b>${esc(fieldUa(k))}</b>` +
+        (FIELD_UA[k] ? ` <span class="kd-src">${esc(k)}</span>` : '');
+      let val;
+      if (v === 'так') {
+        val = 'потрібне';
+      } else if (k === 'has_contract') {
+        val = `пакет ${esc(v)}`;
+      } else if (!DICT_FIELDS[k]) {
+        val = esc(valueUa(v));
+      } else {
+        const inline = SMALL.includes(k) ? smallHtml(k, v) : null;
+        val = inline !== null && inline !== undefined
+          ? esc(inline)
+          : `<button class="kd-dict-btn" data-dict="${esc(DICT_FIELDS[k])}"
+                     data-tab="${esc(v)}" type="button">показати перелік</button>`;
+      }
+      out.push(`<div class="kd-cond">${label}: ${val}</div>`);
     }
-    return out.join(' ') || '<span class="muted">умов немає</span>';
+    return out.join('') || '<span class="muted">додаткових умов немає</span>';
   }
 
   function renderByPkg() {
@@ -713,11 +853,24 @@
   }
 
   async function runPkg() {
-    const locked = !sbToken();
+    const user = portalUser();
+    const token = sbToken();
+    // Замок показуємо лише тому, хто справді не увійшов. Якщо вхід є, а токен
+    // не читається — це наша біда, і сказати треба саме так, а не вдавати замок.
+    const locked = !user && !token;
     $('pkgLock').hidden = !locked;
     $('pkgBody').hidden = locked;
     if (locked) return;
+    if (!token) {
+      $('pkgOut').innerHTML = `<div class="kd-card"><p class="kd-flag kd-flag-warn">
+        Ви увійшли як <b>${esc(user.name || user.email || user.uid)}</b>, але сторінка
+        не змогла прочитати ключ сесії зі сховища браузера. Найпростіше лікування —
+        вийти з порталу і зайти знову. Якщо не допоможе, скажіть мені — це вже
+        питання формату, у якому бібліотека тримає сесію.</p></div>`;
+      return;
+    }
     try {
+      await loadSmall();
       await needRules();
       if (!$('pkgSel').options.length || $('pkgSel').options.length === 1) {
         const pkgs = [...new Set(RULES.map((r) => r.pkg))]
