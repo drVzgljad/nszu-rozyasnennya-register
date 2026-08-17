@@ -11,7 +11,7 @@
   <title>НавігаторПМГ26 | Кодування</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
   <link rel="stylesheet" href="../classifiers/classifiers.css?v=20260809d">
-  <link rel="stylesheet" href="koduvannia.css?v=20260817c">
+  <link rel="stylesheet" href="koduvannia.css?v=20260818a">
   <link rel="stylesheet" href="../auth-v2.css?v=20260806a">
   <script type="module" src="../auth-v2.js?v=20260817l"></script>
 </head>
@@ -43,147 +43,61 @@
     <div class="stats" id="kdStats" aria-label="Статистика розділу"></div>
   </header>
 
-  <nav class="kd-tabs" role="tablist" aria-label="Інструменти кодування">
-    <button class="kd-tab active" type="button" role="tab" data-mod="grouper"
-            aria-selected="true">🧭 Групування випадку</button>
-    <button class="kd-tab" type="button" role="tab" data-mod="check"
-            aria-selected="false">🧪 Перевірка коректності</button>
-    <button class="kd-tab" type="button" role="tab" data-mod="rules"
-            aria-selected="false">📖 Настанови з кодування</button>
-    <button class="kd-tab" type="button" role="tab" data-mod="audit"
-            aria-selected="false">🔍 Аудит Таблиці співставлення</button>
-    <button class="kd-tab" type="button" role="tab" data-mod="pkg"
-            aria-selected="false">🔒 Належність до пакета</button>
-    <!-- Розрахунок з усіма коефіцієнтами і пошук аномалій живуть на сусідній
-         сторінці: це важкий дослідницький інструмент із власними трьома
-         режимами. Формула й дані в обох спільні, тому це один розділ у двох
-         сторінках, а не два розділи. -->
-    <a class="kd-tab kd-tab-link" href="../drg/index.html">🧮 Тарифи й аномалії →</a>
-  </nav>
-
   <main class="kd-main">
+  <div class="kd-bar-wrap">
+    <div class="kd-bar">
+      <span class="kd-bar-ico" aria-hidden="true">🔍</span>
+      <input id="kdQ" type="search" autocomplete="off" spellcheck="false"
+             aria-label="Код або випадок"
+             placeholder="Код діагнозу, втручання, групи — або кілька разом">
+      <button id="kdGo" class="kd-btn kd-btn-main" type="button">Показати</button>
+    </div>
+    <div class="kd-bar-hint">
+      Тип коду визначається сам: <b>M51.1</b> — діагноз, <b>40303-00</b> — втручання,
+      <b>I10</b> — група. Два коди разом — це вже випадок.
+      <span class="kd-ex" data-q="M51.1 40303-00">спробувати випадок</span>
+      <span class="kd-ex" data-q="G55.1 40303-00">кейс із листа</span>
+      <span class="kd-ex" data-q="I10">збіг кодів</span>
+    </div>
 
-    <!-- ═══════════ 1. Групування випадку ═══════════ -->
-    <section class="kd-mod" id="mod-grouper" role="tabpanel" aria-label="Групування випадку">
-      <div class="kd-note" role="note">
-        <b>Групує не цей інструмент, а групер ЕСОЗ.</b> Тут показано ланцюг, за яким
-        випадок приходить у групу: основний діагноз задає основний діагностичний клас,
-        а втручання в межах цього класу — саму діагностично-споріднену групу.
-        Ланцюг відтворено за додатками A, B і E Definitions Manual AR-DRG 10.0 —
-        документа, з якого зроблено нашу Таблицю співставлення. Рівні складності
-        всередині групи (суфікси A, B, C) тут не рахуються: значень, за якими
-        австралійська модель ділить групу на рівні, у відкритих джерелах немає.
-      </div>
-
-      <div class="kd-grid">
-        <div class="kd-col-in">
-          <div class="search-panel nk-search kd-panel">
-            <label class="search">
-              <span>Основний діагноз — код НК 025</span>
-              <input id="gDx" type="search" autocomplete="off" spellcheck="false"
-                     placeholder="G55.1 · M51.1 · J18.9">
-            </label>
-            <div class="kd-hint" id="gDxHint"></div>
-          </div>
-          <div class="search-panel nk-search kd-panel">
-            <label class="search">
-              <span>Втручання — коди НК 026 через кому (можна не вказувати)</span>
-              <input id="gIv" type="search" autocomplete="off" spellcheck="false"
-                     placeholder="40303-00, 92514-19">
-            </label>
-            <div class="kd-hint" id="gIvHint"></div>
-          </div>
-          <div class="search-panel kd-panel">
-            <div class="kd-params">
-              <label class="kd-param"><span>Вік, повних років</span>
-                <input id="gAge" type="number" min="0" max="120" step="1" placeholder="—"></label>
-              <label class="kd-param"><span>Стать</span>
-                <select id="gSex">
-                  <option value="">не вказано</option>
-                  <option value="F">жіноча</option>
-                  <option value="M">чоловіча</option>
-                </select></label>
-              <label class="kd-param"><span>Готовність, пп. 4 п. 38</span>
-                <select id="gReady">
-                  <option value="1">не застосовувати</option>
-                  <option value="1.2" selected>1,2 — дорослим</option>
-                  <option value="1.3">1,3 — дітям</option>
-                </select></label>
-            </div>
-            <div class="kd-actions">
-              <button id="gRun" class="kd-btn kd-btn-main" type="button">Побудувати ланцюг</button>
-              <button class="kd-btn kd-demo" type="button"
-                      data-case="G55.1|40303-00">Кейс: G55.1 + дискектомія</button>
-              <button class="kd-btn kd-demo" type="button"
-                      data-case="M51.1|40303-00">Кейс: M51.1 + дискектомія</button>
-              <button class="kd-btn kd-demo" type="button"
-                      data-case="I10|40303-00">Кейс: група 801</button>
-            </div>
-          </div>
+    <div class="kd-params">
+      <label class="kd-param"><span>Вік, років</span>
+        <input id="kdAge" type="number" min="0" max="120" step="1" placeholder="—"></label>
+      <label class="kd-param"><span>Стать</span>
+        <select id="kdSex">
+          <option value="">не вказано</option>
+          <option value="F">жіноча</option>
+          <option value="M">чоловіча</option>
+        </select></label>
+      <label class="kd-param"><span>Готовність, пп. 4</span>
+        <select id="kdReady">
+          <option value="1">не застосовувати</option>
+          <option value="1.2" selected>1,2 — дорослим</option>
+          <option value="1.3">1,3 — дітям</option>
+        </select></label>
+      <details class="kd-more">
+        <summary>ще коефіцієнти</summary>
+        <div class="kd-more-body">
+          <label class="kd-check"><input type="checkbox" id="kdChild">
+            додатковий за допомогу дітям <span class="kd-src">пп. 6</span></label>
+          <label class="kd-check"><input type="checkbox" id="kdTrauma">
+            додатковий за лікування травм <span class="kd-src">пп. 7</span></label>
+          <label class="kd-check"><input type="checkbox" id="kdMountain">
+            гірський коефіцієнт <span class="kd-src">пп. 5</span></label>
         </div>
-        <div class="kd-col-out" id="gOut">
-          <div class="kd-card kd-card-empty">
-            <p class="muted">Уведіть основний діагноз — покажемо основний діагностичний
-              клас, досяжні групи, тариф кожної гілки та де наша Таблиця співставлення
-              розходиться з першоджерелом.</p>
-          </div>
-        </div>
-      </div>
-    </section>
+      </details>
+    </div>
+  </div>
 
-    <!-- ═══════════ 2. Перевірка коректності ═══════════ -->
-    <section class="kd-mod" id="mod-check" role="tabpanel" aria-label="Перевірка коректності" hidden>
-      <div class="kd-note" role="note">
-        <b>Це правила редагування австралійської моделі, а не норма українського права.</b>
-        Вони показують, які поєднання коду з віком, статтю та іншими кодами модель
-        вважає суперечливими. Українських аналогів цих таблиць немає в жодному
-        чинному акті, тому знахідка тут — привід перевірити випадок, а не підстава
-        для висновку про порушення. Ще одна межа: правила ключовані на кодах
-        МКХ-10-АМ, які подекуди на знак довші за НК 025 — з 2 034 вікових правил
-        1 983 лягають на наші коди точно, 15 підтягуються за підкодами, а 36
-        стосуються кодів, яких у НК 025 немає взагалі.
-      </div>
-      <div class="search-panel nk-search kd-panel">
-        <label class="search">
-          <span>Коди випадку — діагнози НК 025 та інтервенції НК 026 через кому</span>
-          <input id="cQ" type="search" autocomplete="off" spellcheck="false"
-                 placeholder="M51.1, 40303-00">
-        </label>
-        <div class="kd-params">
-          <label class="kd-param"><span>Вік, повних років</span>
-            <input id="cAge" type="number" min="0" max="120" step="1" placeholder="—"></label>
-          <label class="kd-param"><span>Вік, днів (для новонароджених)</span>
-            <input id="cDays" type="number" min="0" max="400" step="1" placeholder="—"></label>
-          <label class="kd-param"><span>Стать</span>
-            <select id="cSex">
-              <option value="">не вказано</option>
-              <option value="F">жіноча</option>
-              <option value="M">чоловіча</option>
-            </select></label>
-        </div>
-        <div class="kd-actions">
-          <button id="cRun" class="kd-btn kd-btn-main" type="button">Перевірити випадок</button>
-          <button class="kd-btn kd-demo" type="button" data-check="O80|30|M">Приклад: пологи в пацієнта чоловічої статі</button>
-          <button class="kd-btn kd-demo" type="button" data-check="P07.3|45|">Приклад: стан новонародженого у дорослого</button>
-          <button class="kd-btn kd-demo" type="button" data-check="C61|20|F">Приклад: рак простати, 20 років, жіноча стать</button>
-        </div>
-      </div>
-      <div id="cOut" class="kd-results"></div>
+  <div id="kdAnswer" class="kd-answer"></div>
 
-      <div class="search-panel kd-panel">
-        <h2 class="kd-h2">Довідка правил</h2>
-        <div class="kd-hint">Пошук у самих таблицях: за кодом видно, які обмеження на нього накладено.</div>
-        <label class="search">
-          <span>Код у правилах</span>
-          <input id="rQ" type="search" autocomplete="off" spellcheck="false" placeholder="P07.3">
-        </label>
-        <div id="rOut" class="kd-results"></div>
-      </div>
-    </section>
+  <div class="kd-drawer">
+    <div class="kd-drawer-t">Довідка та звіти</div>
 
-    <!-- ═══════════ 3. Настанови з кодування ═══════════ -->
-    <section class="kd-mod" id="mod-rules" role="tabpanel" aria-label="Настанови з кодування" hidden>
-      <div class="kd-note" role="note">
+    <details class="kd-dr" id="dr-rules">
+      <summary><b>📖 Настанови з кодування</b>
+        <span>правила ВООЗ: основний стан, MB1–MB5, хрестик і зірочка</span></summary>
+      <div class="kd-dr-body"><div class="kd-note" role="note">
         Джерело — <b>МКХ-10, том 2 «Instruction manual», 5-те видання</b> (ВООЗ):
         розділ 3.1.3 про подвійне кодування і розділ 4.5 про морбідність. Це
         міжнародні настанови, на яких стоїть уся система: НК 025:2021 —
@@ -286,12 +200,13 @@
           <li><b>Таблиця співставлення медичних послуг з кодами НК 025:2021 та/або
             НК 026:2021</b> — чинна підстава групування в Україні.</li>
         </ul>
-      </article>
-    </section>
+      </article></div>
+    </details>
 
-    <!-- ═══════════ 4. Аудит Таблиці співставлення ═══════════ -->
-    <section class="kd-mod" id="mod-audit" role="tabpanel" aria-label="Аудит Таблиці співставлення" hidden>
-      <div class="kd-note" role="note">
+    <details class="kd-dr" id="dr-audit">
+      <summary><b>🔍 Аудит Таблиці співставлення</b>
+        <span>де ми розійшлися з першоджерелом AR-DRG</span></summary>
+      <div class="kd-dr-body"><div class="kd-note" role="note">
         <b>Розбіжність — не помилка за замовчуванням.</b> Таблиця співставлення могла
         свідомо відійти від австралійського першоджерела: інша редакція класифікаторів,
         рішення робочої групи, українські класи 23А і 24, яких у моделі немає взагалі.
@@ -314,12 +229,13 @@
           <span class="kd-count" id="aCount"></span>
         </div>
       </div>
-      <div id="aOut" class="kd-results"></div>
-    </section>
+      <div id="aOut" class="kd-results"></div></div>
+    </details>
 
-    <!-- ═══════════ 5. Належність до пакета (за логіном) ═══════════ -->
-    <section class="kd-mod" id="mod-pkg" role="tabpanel" aria-label="Належність до пакета" hidden>
-      <div class="kd-lock" id="pkgLock">
+    <details class="kd-dr" id="dr-pkg">
+      <summary><b>🔒 Належність до пакета</b>
+        <span>внутрішня матриця умов ЕСОЗ — за логіном</span></summary>
+      <div class="kd-dr-body"><div class="kd-lock" id="pkgLock">
         <div class="kd-lock-ico" aria-hidden="true">🔒</div>
         <h2>Алгоритм належності — за логіном</h2>
         <p>Матриця умов, за якими послуга визнається такою, що належить пакету:
@@ -360,9 +276,16 @@
           </div>
         </div>
         <div id="pkgOut" class="kd-results"></div>
-      </div>
-    </section>
-  </main>
+      </div></div>
+    </details>
+
+    <a class="kd-dr kd-dr-link" href="../drg/index.html">
+      <b>🧮 Тарифи й аномалії</b>
+      <span>розрахунок з усіма коефіцієнтами і пошук аномалій — сусідня сторінка</span>
+    </a>
+  </div>
+
+</main>
 
   <footer class="kd-footer">
     <p>Розділ не замінює групер ЕСОЗ і не є підставою для оплати. Підстава —
@@ -375,6 +298,6 @@
        сервіс-воркер віддають стару копію, а сторінка мовчки не працює -->
   <!-- спільна формула пункту 38 — одна на портал, підключати ДО koduvannia.js -->
 <script src="../pmg-tariff.js?v=1"></script>
-<script src="koduvannia.js?v=10"></script>
+<script src="koduvannia.js?v=15"></script>
 </body>
 </html>

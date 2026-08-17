@@ -17,7 +17,7 @@
 (() => {
   'use strict';
 
-  const V = 'v=10';
+  const V = 'v=15';
 
   // Кириличні гомогліфи → латиниця (та сама пастка, що в ДСГ і ЕСОЗ)
   const HOMO = { 'А':'A','В':'B','С':'C','Е':'E','Н':'H','І':'I','К':'K',
@@ -159,164 +159,420 @@
 
   const formula = (t) => window.PMG_TARIFF.formulaText(t.res);
 
+  // ═══════════════ Стрічка: що нам дали і що з цим робити ═════════════════
+  /* Замість п'яти вкладок з власними полями — одне поле. Тип коду визначаємо
+     за довідниками, а не за формою запису: інакше не спіймати збіги на кшталт
+     I10, який є і діагнозом (гіпертензія), і групою (операції на шиї та спині).
+     Таких збігів у нас 30+, і мовчки вибрати за нас — найгірше, що можна
+     зробити: користувач отримає впевнену відповідь не на своє питання. */
+  function classify(token) {
+    const kinds = [];
+    if (DX[token]) kinds.push('dx');
+    if (IV[token]) kinds.push('iv');
+    if (CORE.groups.some((g) => g.c === token)) kinds.push('drg');
+    return kinds;
+  }
+
+  function parseQuery(raw) {
+    // Спершу ділимо, і лише потім нормалізуємо кожен код окремо: norm() зрізає
+    // ВСІ пробіли, тож на цілому рядку він склеїв би «M51.1 40303-00» в один
+    // неіснуючий код.
+    const tokens = String(raw).split(/[,;]+|\s+/)
+      .map((t) => norm(t)).filter(Boolean);
+    const out = { dx: [], iv: [], drg: [], unknown: [], ambiguous: [] };
+    const force = forced ? forced.split(':') : null;
+    forced = null;
+    for (const t of tokens) {
+      const k = classify(t);
+      if (!k.length) { out.unknown.push(t); continue; }
+      if (force && force[1] === t && k.includes(force[0])) { out[force[0]].push(t); continue; }
+      if (k.length > 1) out.ambiguous.push({ code: t, kinds: k });
+      // За замовчуванням тлумачимо перше за пріоритетом, але про збіг скажемо
+      if (k.includes('iv')) out.iv.push(t);
+      else if (k.includes('dx')) out.dx.push(t);
+      else out.drg.push(t);
+    }
+    return out;
+  }
+
+  /** Стан коефіцієнтів зі смужки параметрів. */
+  function paramState() {
+    const ready = parseFloat($('kdReady').value) || 1;
+    const st = { share: true, balance: true };
+    if (ready !== 1) st.readiness = ready;
+    if ($('kdChild').checked) st.child_add = true;
+    if ($('kdTrauma').checked) st.trauma_add = true;
+    if ($('kdMountain').checked) st.mountain = true;
+    return st;
+  }
+
+  function sumOf(group, state) {
+    if (!group.k || !group.k[0]) return null;
+    return window.PMG_TARIFF.calcCase(group, {
+      rate: CORE.rate, factors: CORE.factors, fmtK: window.PMG_TARIFF.fmtK,
+      appendixLabel: CORE.appendixLabel, appendixCols: CORE.appendixCols,
+    }, state);
+  }
+
   // ═══════════════════ 1. Групування випадку ═══════════════════════════════
-  async function runGrouper() {
-    const out = $('gOut');
+  // ═══════════════ Маршрут: один вхід, одна відповідь ═════════════════════
+  async function route() {
+    const out = $('kdAnswer');
+    const raw = $('kdQ').value.trim();
+    if (!raw) { out.innerHTML = welcome(); return; }
     out.innerHTML = '<div class="kd-card kd-card-empty">Читаю довідники…</div>';
     await needCase();
     await needDual();
+    await needVal();
     startNames();
-    redrawOnNames = () => { if ($('gDx').value) runGrouper().catch(() => {}); };
+    redrawOnNames = () => { if ($('kdQ').value.trim()) route().catch(() => {}); };
 
-    const dxCode = norm($('gDx').value);
-    const ivCodes = norm($('gIv').value).split(',').map((s) => s.trim()).filter(Boolean);
-    const ready = parseFloat($('gReady').value) || 1;
-    const age = $('gAge').value === '' ? null : Number($('gAge').value);
-    const sex = $('gSex').value || null;
-
-    if (!dxCode) {
-      out.innerHTML = '<div class="kd-card kd-card-empty">Уведіть основний діагноз.</div>';
-      return;
-    }
-    const rec = DX[dxCode];
-    if (!rec) {
-      const near = Object.keys(DX).filter((c) => c.startsWith(dxCode)).slice(0, 8);
-      out.innerHTML = `<div class="kd-card"><p class="kd-flag kd-flag-no">Коду
-        <b>${esc(dxCode)}</b> немає ні в Таблиці співставлення, ні в переліках
-        основних діагностичних класів. Випадок із таким основним діагнозом у ДСГ
-        не групується.</p>${near.length ? `<p class="kd-hint">Схожі коди:
-        ${near.map((c) => `<span class="kd-chip" data-dx="${esc(c)}">${esc(c)}</span>`).join(' ')}</p>` : ''}</div>`;
-      return;
-    }
-
-    const [ourOdk, arMdc, arG, ourGraw, kind] = rec;
-    const ourG = ourGraw === 0 ? arG : ourGraw;
-    const mdcSet = mdcIdxOf(ourOdk);
+    const q = parseQuery(raw);
     const parts = [];
-    let sn = 0;
 
-    // крок 1 — діагноз
-    parts.push(step(++sn, 'Основний стан', `
-      <div class="kd-code">${esc(dxCode)}</div>
-      <div>${esc(nameDx(dxCode))}</div>
-      ${namesHint()}
-      ${dualFlag(dxCode)}`));
+    if (q.ambiguous.length) parts.push(ambiguityNote(q));
 
-    // крок 2 — основний діагностичний клас
-    const odkHtml = ourOdk.length
-      ? ourOdk.map((i) => `<span class="kd-chip kd-chip-hit">${esc(odkById(i).id)}
-          <span class="kd-src">${esc(odkById(i).name)}</span></span>`).join(' ')
-      : '<span class="kd-chip">не входить у жоден клас</span>';
-    const arM = arMdc == null ? null : CORE.mdc[arMdc];
-    const arNote = arM && !ourOdk.some((i) => odkById(i).mdc === arM)
-      ? `<div class="kd-flag kd-flag-warn">За першоджерелом цей код належить до
-         класу <b>${esc(arM)}</b> (${esc(mdcName(arM))}), а наша Таблиця відносить
-         його інакше. Групування піде за нашою Таблицею — вона й є чинною
-         підставою, — але розбіжність варто перевірити.</div>`
-      : '';
-    parts.push(step(++sn, 'Основний діагностичний клас', odkHtml + arNote));
+    if (q.dx.length && q.iv.length) parts.push(await renderCase(q));
+    else if (q.dx.length) parts.push(await renderDx(q.dx[0], q));
+    else if (q.iv.length) parts.push(renderIv(q.iv[0]));
+    else if (q.drg.length) parts.push(renderDrg(q.drg[0]));
+    else parts.push(renderUnknown(q));
 
-    // крок 3 — втручання
-    const reachable = new Map();          // код групи → {ref, why}
-    if (!ivCodes.length) {
-      for (const ref of ourG) reachable.set(gCode(ref), { ref, why: 'медична група діагнозу' });
-      parts.push(step(++sn, 'Втручання', `<p class="muted">Втручань не вказано — випадок
-        іде «медичною» гілкою: група береться з переліку самого діагнозу.</p>`));
-    } else {
-      const rows = [];
-      for (const code of ivCodes) {
-        const r = IV[code];
-        if (!r) {
-          rows.push(`<div><b>${esc(code)}</b> — коду немає ні в Таблиці
-            співставлення, ні в додатку B першоджерела.</div>`);
-          continue;
-        }
-        const [arRows, ourIvG, gi] = r;
-        const arHit = [];
-        for (const [m, gl] of arRows) if (mdcSet.has(m)) arHit.push(...gl);
-        const ourHit = ourIvG.filter((ref) => {
-          const g = gAt(ref);
-          return g.mdc && g.mdc.some((m) => mdcSet.has(m));
-        });
-        for (const ref of ourHit) reachable.set(gCode(ref), { ref, why: `втручання ${code}` });
-        for (const ref of arHit) {
-          if (!reachable.has(gCode(ref)))
-            reachable.set(gCode(ref), { ref, why: `втручання ${code} (лише за AR-DRG)`, arOnly: true });
-        }
-        const chips = (list) => list.length
-          ? list.map((ref) => chip(ref, true)).join(' ')
-          : '<span class="kd-chip kd-chip-off">жодної в цьому класі</span>';
-        rows.push(`<div style="margin-bottom:10px">
-          <div><b>${esc(code)}</b> ${esc(nameIv(code))}
-            ${gi ? '<span class="kd-chip">загальне втручання</span>' : ''}</div>
-          <div class="kd-step-t" style="margin-top:4px">у межах класу діагнозу</div>
-          <div>${chips(ourHit)}</div>
-          <div class="kd-step-t" style="margin-top:4px">усі групи цього втручання</div>
-          <div>${ourIvG.map((ref) => chip(ref, ourHit.includes(ref))).join(' ')}</div>
-        </div>`);
+    out.innerHTML = parts.join('');
+  }
+
+  const welcome = () => `<div class="kd-card kd-card-empty">
+    <p>Уведіть код — покажемо все, що про нього відомо. Два коди разом
+      (діагноз і втручання) читаються як випадок: клас, група, тариф і
+      попередження.</p></div>`;
+
+  /* Збіг кодів між довідниками. Мовчки вибрати — означає впевнено відповісти
+     не на те питання, тому показуємо обидва тлумачення й даємо перемкнути. */
+  function ambiguityNote(q) {
+    const label = { dx: 'діагноз', iv: 'втручання', drg: 'група ДСГ' };
+    return q.ambiguous.map((a) => `<div class="kd-flag kd-flag-warn">
+      <b>${esc(a.code)}</b> є одночасно як ${a.kinds.map((k) => label[k]).join(' і як ')}.
+      Показую як ${esc(label[a.kinds.includes('iv') ? 'iv' : a.kinds[0]])};
+      ${a.kinds.filter((k) => k !== (a.kinds.includes('iv') ? 'iv' : a.kinds[0]))
+        .map((k) => `<span class="kd-ex" data-force="${esc(k)}:${esc(a.code)}">показати як ${label[k]}</span>`).join(' ')}
+    </div>`).join('');
+  }
+
+  function renderUnknown(q) {
+    const near = Object.keys(DX).filter((c) => c.startsWith(q.unknown[0] || '')).slice(0, 10);
+    return `<div class="kd-card"><p class="kd-flag kd-flag-no">
+      ${q.unknown.length ? `Коду <b>${esc(q.unknown.join(', '))}</b> немає в наших довідниках.`
+        : 'Не впізнав жодного коду.'}</p>
+      ${near.length ? `<p class="kd-hint">Схожі: ${near.map((c) =>
+        `<span class="kd-ex" data-q="${esc(c)}">${esc(c)}</span>`).join(' ')}</p>` : ''}</div>`;
+  }
+
+  // ── випадок: діагноз + втручання ────────────────────────────────────────
+  async function renderCase(q) {
+    const dxCode = q.dx[0];
+    const rec = DX[dxCode];
+    const [ourOdk, arMdc, arG, ourGraw] = rec;
+    const mdcSet = mdcIdxOf(ourOdk);
+    const state = paramState();
+
+    // групи, досяжні в межах класу основного діагнозу
+    const hits = new Map();
+    let anyGi = false;
+    for (const code of q.iv) {
+      const r = IV[code];
+      if (!r) continue;
+      const [arRows, ourIvG, gi] = r;
+      if (gi) anyGi = true;
+      for (const ref of ourIvG) {
+        const g = gAt(ref);
+        if (g.mdc && g.mdc.some((m) => mdcSet.has(m))) hits.set(g.c, { g, ref, why: code });
       }
-      parts.push(step(++sn, 'Втручання епізоду', rows.join('')));
-
-      // 801 — загальне втручання не з того класу
-      if (!reachable.size) {
-        const anyGi = ivCodes.some((c) => IV[c] && IV[c][2]);
-        if (anyGi) {
-          const g801 = CORE.groups.findIndex((g) => g.c === '801');
-          if (g801 >= 0) reachable.set('801', { ref: g801, why: 'загальне втручання не з класу діагнозу' });
-          parts.push(step(++sn, 'Група 801', `<p>Жодне з втручань не пов'язане з класом
-            основного діагнозу, і принаймні одне з них є загальним. Такий випадок
-            моделлю відноситься до групи <b>801</b> «Загальні втручання, не пов'язані
-            з основним діагнозом».</p>`));
-        } else {
-          for (const ref of ourG) reachable.set(gCode(ref), { ref, why: 'медична група діагнозу' });
-          parts.push(step(++sn, 'Гілка', `<p class="muted">Втручання не веде в групу в
-            межах цього класу і не є загальним — лишається «медична» гілка діагнозу.</p>`));
-        }
+      for (const [m, gl] of arRows) {
+        if (!mdcSet.has(m)) continue;
+        for (const ref of gl) if (!hits.has(gCode(ref))) hits.set(gCode(ref), { g: gAt(ref), ref, why: code + ' · за AR-DRG' });
       }
     }
+    let branch = 'втручання в межах класу діагнозу';
+    if (!hits.size && anyGi) {
+      const i801 = CORE.groups.findIndex((g) => g.c === '801');
+      if (i801 >= 0) hits.set('801', { g: CORE.groups[i801], ref: i801, why: 'загальне втручання не з класу діагнозу' });
+      branch = 'група 801 — загальне втручання, не пов’язане з основним діагнозом';
+    }
 
-    // крок 5 — досяжні групи і тариф
-    const list = [...reachable.values()]
-      .map((x) => ({ ...x, g: gAt(x.ref), t: tariff(gAt(x.ref), ready) }))
-      .sort((a, b) => (b.t ? b.t.sum : -1) - (a.t ? a.t.sum : -1));
-    if (list.length) {
-      const rows = list.map((x, i) => `<tr class="${i === 0 && x.t ? 'win' : ''}">
-        <td><b>${esc(x.g.c)}</b>${isCond(x.ref) ? ' <span class="kd-src">умовно</span>' : ''}</td>
-        <td>${esc(x.g.t || '—')}</td>
-        <td>${esc(CORE.appendixLabel[x.g.a] || (x.g.a === 'ar-only' ? 'немає в постанові' : x.g.a))}</td>
-        <td>${x.g.p.length ? esc(x.g.p.join(', ')) : '—'}</td>
-        <td class="num">${x.t ? String(x.t.w).replace('.', ',') : '—'}</td>
-        <td class="num">${x.t ? money(x.t.sum) : '—'}</td>
-        <td class="kd-src">${esc(x.why)}</td></tr>`).join('');
-      const top = list.find((x) => x.t);
-      const diff = list.filter((x) => x.t).length > 1
-        ? list.filter((x) => x.t)[0].t.sum - list.filter((x) => x.t).slice(-1)[0].t.sum : 0;
-      parts.push(step(++sn, 'Досяжні групи і тариф', `
+    const list = [...hits.values()].map((x) => ({ ...x, t: sumOf(x.g, state) }))
+      .sort((a, b) => (b.t ? b.t.total : -1) - (a.t ? a.t.total : -1));
+    const top = list.find((x) => x.t);
+
+    const flags = await caseFlags(q.dx, q.iv, numOrNull($('kdAge').value), null, $('kdSex').value || null);
+    const alt = altBranches(dxCode, q.iv, mdcSet, state, top);
+
+    return `<div class="kd-card">
+      ${headline(top, dxCode, q.iv)}
+      <div class="kd-chain">
+        <span>${esc(dxCode)}</span><i>→</i>
+        <span>${ourOdk.map((i) => esc(odkById(i).id)).join(', ') || '—'}</span><i>→</i>
+        <span>${q.iv.map(esc).join(', ')}</span><i>→</i>
+        <b>${top ? esc(top.g.c) : '—'}</b>
+      </div>
+      <p class="kd-hint">${esc(branch)}</p>
+      ${alt}
+      ${dualFlag(dxCode)}
+      ${flags.join('')}
+      ${drill(list, top, dxCode, q.iv)}
+    </div>`;
+  }
+
+  const numOrNull = (v) => (v === '' || v === null || v === undefined ? null : Number(v));
+
+  function headline(top, dxCode, ivCodes) {
+    if (!top) {
+      return `<p class="kd-flag kd-flag-no">Для цієї пари жодної групи не знайдено.
+        Найчастіша причина — втручання не пов'язане з класом основного діагнозу.</p>`;
+    }
+    return `<div class="kd-head">
+      <div class="kd-head-code">${esc(top.g.c)}</div>
+      <div class="kd-head-name">${esc(top.g.t || '')}</div>
+      <div class="kd-head-sum">${money(top.t.total)} <span>грн</span></div>
+      <div class="kd-head-formula">${esc(window.PMG_TARIFF.formulaText(top.t))}</div>
+      ${top.g.p && top.g.p.length ? `<div class="kd-hint">пакети ${esc(top.g.p.join(', '))} ·
+        ${esc(CORE.appendixLabel[top.g.a] || '')}</div>` : ''}
+    </div>`;
+  }
+
+  /* Головна причина, через яку це не «панель приладів», а машина: сама показує
+     те, що користувач мав би помітити. Якщо з іншим основним діагнозом те саме
+     втручання веде в дорожчу групу — кажемо про це, не чекаючи запитання.
+     Саме на цій різниці стояв лист Кіровоградської лікарні. */
+  function altBranches(dxCode, ivCodes, mdcSet, state, top) {
+    if (!top) return '';
+    const partners = dualPartners(dxCode);
+    if (!partners.length) return '';
+
+    const rows = [];
+    for (const p of partners) {
+      const best = bestGroupFor(p, ivCodes, state);
+      if (!best || best.g.c === top.g.c) continue;
+      rows.push({ code: p, ...best, diff: best.t.total - top.t.total });
+    }
+    if (!rows.length) return '';
+    rows.sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff));
+    const r = rows[0];
+    const more = r.diff > 0;
+
+    /* Партнерів звичайно кілька, і всі ведуть в ту саму групу: G55.1 паруються
+       з усіма підкодами M50 і M51. Називати один із них (M50.0 — шийний відділ)
+       для поперекової операції було б просто неправильно, тому коли група й
+       сума збігаються, називаємо рубрики, а не довільний підкод. */
+    const same = rows.filter((x) => x.g.c === r.g.c);
+    const rubrics = [...new Set(same.map((x) => x.code.split('.')[0]))];
+    const who = same.length > 1
+      ? `код із рубрик ${rubrics.map(esc).join(', ')}`
+      : `<b>${esc(r.code)}</b>`;
+
+    return `<div class="kd-flag kd-flag-warn">
+      <b>Той самий випадок із парним діагнозом дав би іншу групу.</b>
+      Код <b>${esc(dxCode)}</b> і ${who} — пара за правилом
+      хрестика і зірочки: одне й те саме захворювання, записане з боку основної
+      хвороби і з боку її прояву. З основним ${same.length > 1 ? 'таким кодом'
+        : `<b>${esc(r.code)}</b>`} той самий
+      випадок пішов би в <b>${esc(r.g.c)}</b> — ${money(r.t.total)} грн,
+      тобто на <b>${money(Math.abs(r.diff))} грн</b> ${more ? 'більше' : 'менше'}.
+      Саме на цій різниці й будуються спори про «примусову заміну діагнозу»:
+      вибирати треба не за сумою, а за тим, який стан насправді зумовив
+      потребу в лікуванні.</div>`;
+  }
+
+  /* Партнери за хрестиком і зірочкою — в обидва боки. У даних це два різні
+     поля: `manif` (цей код — прояв, ось його основні) і `mainFor` (цей код —
+     основний, ось його прояви). Позначки успадковуються від рубрики, тому
+     M51.1 знаходить своїх партнерів через M51. */
+  function dualPartners(code) {
+    const d = dualOf(code);
+    if (!d) return [];
+    const raw = [
+      ...(d.manif || []).flatMap((m) => m.codes || []),
+      ...(d.mainFor || []),
+      ...(d.mainOf || []).flatMap((m) => m.codes || []),
+      ...(d.manifOf || []),
+    ];
+    const out = new Set();
+    for (const p of raw) {
+      if (p === code) continue;
+      if (DX[p]) { out.add(p); continue; }
+      // рубрика (M51) сама в переліках не стоїть — беремо її підкоди
+      for (const c of Object.keys(DX)) {
+        if (c.startsWith(p + '.')) { out.add(c); if (out.size > 12) break; }
+      }
+    }
+    return [...out].slice(0, 12);
+  }
+
+  /** Найдорожча група, досяжна для пари «діагноз + втручання». */
+  function bestGroupFor(dxCode, ivCodes, state) {
+    const rec = DX[dxCode];
+    if (!rec) return null;
+    const mdcSet = mdcIdxOf(rec[0]);
+    let best = null;
+    for (const code of ivCodes) {
+      const r = IV[code];
+      if (!r) continue;
+      for (const ref of r[1]) {
+        const g = gAt(ref);
+        if (!g.mdc || !g.mdc.some((m) => mdcSet.has(m))) continue;
+        const t = sumOf(g, state);
+        if (t && (!best || t.total > best.t.total)) best = { g, t };
+      }
+    }
+    return best;
+  }
+
+  /* Чипи-питання замість вкладок: розділ показує те, по що прийшли, а решта
+     розкривається на місці й лише коли спитали. */
+  function drill(list, top, dxCode, ivCodes) {
+    const rows = list.map((x, i) => `<tr class="${i === 0 && x.t ? 'win' : ''}">
+      <td><b>${esc(x.g.c)}</b></td><td>${esc(x.g.t || '—')}</td>
+      <td>${esc(CORE.appendixLabel[x.g.a] || (x.g.a === 'ar-only' ? 'немає в постанові' : ''))}</td>
+      <td>${x.g.p && x.g.p.length ? esc(x.g.p.join(', ')) : '—'}</td>
+      <td class="num">${x.t ? String(x.t.weight).replace('.', ',') : '—'}</td>
+      <td class="num">${x.t ? money(x.t.total) : '—'}</td></tr>`).join('');
+    const steps = top ? top.t.steps.map((s) =>
+      `<tr><td>${esc(s.label)}${s.sub ? ` <span class="kd-src">п. 38.${esc(s.sub)}</span>` : ''}</td>
+       <td class="num">${esc(s.op)} ${esc(String(s.value).replace('.', ','))}</td></tr>`).join('') : '';
+    return `<div class="kd-drill">
+      <details><summary>чому саме ця група</summary>
+        <p>Основний діагноз задає клас, клас відсікає всі групи втручання, крім
+          «своїх». Групування виконує групер ЕСОЗ — тут показано, які групи
+          для цієї пари досяжні за Таблицею співставлення.</p>
         <div class="kd-scroll"><table class="kd-tbl">
           <thead><tr><th>Група</th><th>Назва</th><th>Джерело ваги</th><th>Пакети</th>
-            <th>Вага</th><th>Сума, грн</th><th>Звідки</th></tr></thead>
-          <tbody>${rows}</tbody></table></div>
-        ${top ? `<div class="kd-formula">${esc(formula(top.t))}</div>` : ''}
-        ${diff > 0 ? `<div class="kd-flag kd-flag-warn">Різниця між найдорожчою і
-          найдешевшою досяжною групою — <b>${money(diff)} грн</b> на випадок. Саме
-          вона й стає предметом спорів про «примусову заміну діагнозу».</div>` : ''}
-        <p class="kd-hint">Рівні складності всередині групи (суфікси A, B, C) тут не
-          рахуються: значень, за якими модель ділить групу на рівні, у відкритих
-          джерелах немає. Остаточну групу визначає групер ЕСОЗ.</p>`));
-    } else {
-      parts.push(step(++sn, 'Досяжні групи', `<p class="kd-flag kd-flag-no">Жодної групи
-        не знайдено. Найчастіша причина — втручання не пов'язане з класом основного
-        діагнозу.</p>`));
+            <th>Вага</th><th>Сума</th></tr></thead><tbody>${rows}</tbody></table></div>
+      </details>
+      ${top ? `<details><summary>розрахунок покроково</summary>
+        <div class="kd-scroll"><table class="kd-tbl"><tbody>
+          <tr><td>Базова ставка на пролікований випадок <span class="kd-src">п. 34</span></td>
+              <td class="num">${money(top.t.rate)}</td></tr>
+          ${steps}
+          <tr class="win"><td><b>Сума за випадок</b></td>
+              <td class="num"><b>${money(top.t.total)}</b></td></tr>
+        </tbody></table></div>
+        ${top.t.unknown.length ? `<p class="kd-hint">Не враховано: ${top.t.unknown
+          .map((u) => esc(u.f.label) + ' — ' + esc(u.why)).join('; ')}.</p>` : ''}
+      </details>` : ''}
+      <details><summary>у який пакет це впаде</summary>
+        <p class="kd-hint">Умови належності до пакета — у шухляді нижче,
+          розділ «Належність до пакета» (за логіном).</p>
+        ${top && top.g.p && top.g.p.length
+          ? `<p>За додатком постанови ця група оплачується в пакетах
+             <b>${esc(top.g.p.join(', '))}</b>.</p>` : ''}
+      </details>
+    </div>`;
+  }
+
+  // ── діагноз сам по собі ─────────────────────────────────────────────────
+  async function renderDx(code, q) {
+    const rec = DX[code];
+    const [ourOdk, arMdc, arG, ourGraw] = rec;
+    const ourG = ourGraw === 0 ? arG : ourGraw;
+    const state = paramState();
+    const med = ourG.map((ref) => ({ g: gAt(ref), t: sumOf(gAt(ref), state) }))
+      .sort((a, b) => (b.t ? b.t.total : -1) - (a.t ? a.t.total : -1));
+    const flags = await caseFlags([code], [], numOrNull($('kdAge').value), null, $('kdSex').value || null);
+    const arM = arMdc == null ? null : CORE.mdc[arMdc];
+
+    return `<div class="kd-card">
+      <div class="kd-head">
+        <div class="kd-head-code">${esc(code)}</div>
+        <div class="kd-head-name">${esc(nameDx(code))}</div>
+      </div>
+      ${namesHint()}
+      <div class="kd-chain"><span>клас</span><i>→</i>
+        <b>${ourOdk.map((i) => esc(odkById(i).id)).join(', ') || 'не входить у жоден'}</b>
+        <span class="kd-src">${ourOdk.length ? esc(odkById(ourOdk[0]).name) : ''}</span></div>
+      ${arM && !ourOdk.some((i) => odkById(i).mdc === arM)
+        ? `<div class="kd-flag kd-flag-warn">За першоджерелом цей код належить до
+           класу ${esc(arM)}, а наша Таблиця відносить інакше. Групує Таблиця —
+           вона чинна, — але розбіжність варто перевірити.</div>` : ''}
+      ${dualFlag(code)}
+      ${flags.join('')}
+      <div class="kd-drill">
+        <details open><summary>куди веде без втручання</summary>
+          ${med.length ? `<div class="kd-scroll"><table class="kd-tbl">
+            <thead><tr><th>Група</th><th>Назва</th><th>Вага</th><th>Сума</th></tr></thead>
+            <tbody>${med.map((x) => `<tr><td><b>${esc(x.g.c)}</b></td>
+              <td>${esc(x.g.t || '—')}</td>
+              <td class="num">${x.t ? String(x.t.weight).replace('.', ',') : '—'}</td>
+              <td class="num">${x.t ? money(x.t.total) : '—'}</td></tr>`).join('')}
+            </tbody></table></div>`
+            : '<p class="kd-hint">Цей код сам по собі в жодну групу не веде.</p>'}
+        </details>
+        <details><summary>додати втручання</summary>
+          <p class="kd-hint">Допишіть код втручання в стрічку через пробіл —
+            і замість довідки про код побачите розрахунок випадку.</p>
+          <p><span class="kd-ex" data-q="${esc(code)} 40303-00">${esc(code)} 40303-00</span></p>
+        </details>
+      </div>
+    </div>`;
+  }
+
+  // ── втручання саме по собі ──────────────────────────────────────────────
+  function renderIv(code) {
+    const [arRows, ourIvG, gi] = IV[code];
+    const state = paramState();
+    const byOdk = arRows.map(([m, gl]) => ({
+      mdc: CORE.mdc[m], name: mdcName(CORE.mdc[m]),
+      groups: gl.map((ref) => ({ g: gAt(ref), t: sumOf(gAt(ref), state) })),
+    }));
+    return `<div class="kd-card">
+      <div class="kd-head">
+        <div class="kd-head-code">${esc(code)}</div>
+        <div class="kd-head-name">${esc(nameIv(code))}</div>
+      </div>
+      ${namesHint()}
+      <p>${gi ? 'Це <b>загальне втручання</b>: якщо воно не пов’язане з класом основного діагнозу, випадок піде в групу 801.' : 'Це специфічне втручання.'}</p>
+      <div class="kd-flag kd-flag-warn">Саме по собі втручання групу не визначає —
+        її обирає основний діагноз через клас. Допишіть діагноз у стрічку, щоб
+        побачити конкретну групу й суму.</div>
+      <div class="kd-drill"><details open><summary>куди веде залежно від класу діагнозу</summary>
+        <div class="kd-scroll"><table class="kd-tbl">
+          <thead><tr><th>Клас</th><th>Групи</th><th>Найбільша сума</th></tr></thead>
+          <tbody>${byOdk.map((r) => {
+            const best = r.groups.filter((x) => x.t).sort((a, b) => b.t.total - a.t.total)[0];
+            return `<tr><td><b>${esc(r.mdc)}</b> <span class="kd-src">${esc(r.name)}</span></td>
+              <td>${r.groups.map((x) => `<span class="kd-chip">${esc(x.g.c)}</span>`).join(' ')}</td>
+              <td class="num">${best ? money(best.t.total) : '—'}</td></tr>`;
+          }).join('')}</tbody></table></div>
+      </details></div>
+    </div>`;
+  }
+
+  // ── група ДСГ ───────────────────────────────────────────────────────────
+  function renderDrg(code) {
+    const g = CORE.groups.find((x) => x.c === code);
+    const state = paramState();
+    const t = sumOf(g, state);
+    const dxFrom = [];
+    for (const [c, rec] of Object.entries(DX)) {
+      const gl = rec[3] === 0 ? rec[2] : rec[3];
+      if (gl.some((ref) => gCode(ref) === code)) dxFrom.push(c);
+      if (dxFrom.length > 400) break;
     }
-
-    // прапорці перевірки
-    const flags = await caseFlags([dxCode], ivCodes, age, null, sex);
-    parts.push(flags.length
-      ? step(++sn, 'Перевірка коректності', flags.join(''))
-      : step(++sn, 'Перевірка коректності',
-             '<div class="kd-flag kd-flag-ok">Конфліктів віку, статі та виключень не знайдено.</div>'));
-
-    out.innerHTML = `<div class="kd-card">${parts.join('')}</div>`;
+    return `<div class="kd-card">
+      <div class="kd-head">
+        <div class="kd-head-code">${esc(g.c)}</div>
+        <div class="kd-head-name">${esc(g.t || '')}</div>
+        ${t ? `<div class="kd-head-sum">${money(t.total)} <span>грн</span></div>
+        <div class="kd-head-formula">${esc(window.PMG_TARIFF.formulaText(t))}</div>` : ''}
+      </div>
+      <div class="kd-chain">
+        <span>${esc(CORE.appendixLabel[g.a] || (g.a === 'ar-only' ? 'немає в постанові' : ''))}</span><i>·</i>
+        <span>клас ${g.mdc && g.mdc.length ? g.mdc.map((m) => esc(CORE.mdc[m])).join(', ') : '—'}</span><i>·</i>
+        <span>пакети ${g.p && g.p.length ? esc(g.p.join(', ')) : '—'}</span>
+      </div>
+      <div class="kd-drill"><details><summary>з яких діагнозів досяжна без втручання</summary>
+        <p class="kd-hint">${dxFrom.length > 400 ? 'перші 400' : dxFrom.length + ' кодів'}</p>
+        <p>${dxFrom.slice(0, 400).map((c) => `<span class="kd-ex" data-q="${esc(c)}">${esc(c)}</span>`).join(' ')}</p>
+      </details></div>
+    </div>`;
   }
 
   const step = (n, title, body) => `<div class="kd-step"><div class="kd-step-n">${n}</div>
@@ -436,62 +692,7 @@
     return true;
   }
 
-  async function runCheck() {
-    const out = $('cOut');
-    out.innerHTML = '<div class="kd-card kd-card-empty">Читаю правила…</div>';
-    await needCase(); await needVal(); await needDual();
-    startNames();
-    const codes = norm($('cQ').value).split(',').map((s) => s.trim()).filter(Boolean);
-    const age = $('cAge').value === '' ? null : Number($('cAge').value);
-    const days = $('cDays').value === '' ? null : Number($('cDays').value);
-    const sex = $('cSex').value || null;
-    if (!codes.length) { out.innerHTML = '<div class="kd-card kd-card-empty">Уведіть коди випадку.</div>'; return; }
 
-    // тип коду визначаємо за формою (втручання ACHI — 5 цифр, дефіс, 2 цифри),
-    // бо довідник назв може ще не приїхати
-    const isIv = (c) => /^\d{5}-\d{2}$/.test(c) || !!IV[c];
-    const dxCodes = codes.filter((c) => !isIv(c));
-    const ivCodes = codes.filter(isIv);
-    const unknown = codes.filter((c) => !DX[c] && !IV[c]);
-    const flags = await caseFlags(dxCodes, ivCodes, age, days, sex);
-
-    out.innerHTML = `<div class="kd-card">
-      <p class="kd-hint">Розібрано: діагнози ${dxCodes.map((c) => `<b>${esc(c)}</b>`).join(', ') || '—'};
-        втручання ${ivCodes.map((c) => `<b>${esc(c)}</b>`).join(', ') || '—'}
-        ${unknown.length ? `; немає в Таблиці співставлення: ${unknown.map(esc).join(', ')}` : ''}</p>
-      ${flags.length ? flags.join('')
-        : '<div class="kd-flag kd-flag-ok">За таблицями конфліктів віку, статі та виключень зауважень немає.</div>'}
-      ${dxCodes.map((c) => dualFlag(c)).join('')}
-    </div>`;
-  }
-
-  async function runRuleLookup() {
-    const box = $('rOut');
-    const code = norm($('rQ').value);
-    if (!code) { box.innerHTML = ''; return; }
-    await needVal();
-    const hits = [];
-    const cat = lookupRule(new Map(VAL.ageDx), code);
-    if (cat) {
-      const [ua, range] = (VAL.ageUa && VAL.ageUa[cat.v]) || [cat.v, ''];
-      hits.push(`<li>вікова категорія <b>${esc(ua)}</b>${range ? ` — ${esc(range)}` : ''}${viaNote(cat)}</li>`);
-    }
-    const sd = lookupRule(new Map(VAL.sexDx), code);
-    if (sd) hits.push(`<li>лише для статі <b>${sexUa(sd.v)}</b> (діагноз)${viaNote(sd)}</li>`);
-    const si = lookupRule(new Map(VAL.sexIv), code);
-    if (si) hits.push(`<li>лише для статі <b>${sexUa(si.v)}</b> (втручання)${viaNote(si)}</li>`);
-    if (VAL.obstIv.includes(code)) hits.push('<li>акушерське втручання</li>');
-    if (VAL.exclUncond.includes(code)) hits.push('<li>беззастережно виключений з моделі клінічної складності</li>');
-    const cond = VAL.exclCond.filter(([a, m]) => a === code || m === code);
-    for (const [a, m] of cond.slice(0, 12)) {
-      hits.push(a === code
-        ? `<li>не отримує рівня складності, якщо у випадку є <b>${esc(m)}</b></li>`
-        : `<li>своєю присутністю знімає рівень складності з <b>${esc(a)}</b></li>`);
-    }
-    box.innerHTML = hits.length
-      ? `<div class="kd-card"><b>${esc(code)}</b><ul>${hits.join('')}</ul></div>`
-      : `<div class="kd-card kd-card-empty">Для ${esc(code)} обмежень у таблицях немає.</div>`;
-  }
 
   // ═══════════════════ 3. Аудит ════════════════════════════════════════════
   let slice = 'odk';
@@ -656,6 +857,9 @@
   }
 
   let RULES = null, pkgMode = 'byPkg';
+  /* Тлумачення, нав'язане користувачем при збігу кодів («показати як групу»).
+     Живе рівно один прогін: далі стрічка знову вирішує сама. */
+  let forced = null;
   const dictCache = new Map();
 
   async function needRules() {
@@ -900,75 +1104,75 @@
     ].map(([n, t]) => `<div class="stat"><b>${n}</b><span>${t}</span></div>`).join('');
   }
 
-  function switchTab(mod) {
-    for (const b of document.querySelectorAll('.kd-tab')) {
-      const on = b.dataset.mod === mod;
-      b.classList.toggle('active', on);
-      b.setAttribute('aria-selected', on ? 'true' : 'false');
-    }
-    for (const s of document.querySelectorAll('.kd-mod'))
-      s.hidden = s.id !== `mod-${mod}`;
-    if (mod === 'audit' && !AUD) runAudit();
-    if (mod === 'pkg') runPkg();
-    location.hash = mod;
+  /* Вкладок більше немає. Старі посилання з #grouper, #check, #rules, #audit,
+     #pkg мають далі працювати, тому хеш тепер відкриває відповідну шухляду
+     (а #grouper і #check просто ставлять фокус у стрічку). */
+  function openDrawer(name) {
+    const map = { rules: 'dr-rules', audit: 'dr-audit', pkg: 'dr-pkg' };
+    if (name === 'grouper' || name === 'check') { $('kdQ').focus(); return; }
+    const el = $(map[name]);
+    if (!el) return;
+    el.open = true;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (name === 'audit' && !AUD) runAudit();
+    if (name === 'pkg') runPkg();
+  }
+
+  /* Кожен блок прив'язок — окремо. Один відсутній вузол (а розмітка тут
+     перебудовувалася) не повинен обривати реєстрацію решти обробників:
+     саме так після переходу на стрічку мовчки помер аудит. */
+  function wire(name, fn) {
+    try { fn(); } catch (e) { console.warn(`[кодування] не підключено: ${name}`, e); }
   }
 
   function init() {
     stats().catch(() => {});
 
-    document.querySelector('.kd-tabs').addEventListener('click', (e) => {
-      const b = e.target.closest('.kd-tab');
-      if (b) switchTab(b.dataset.mod);
-    });
 
-    $('gRun').addEventListener('click', () => runGrouper().catch(err =>
-      $('gOut').innerHTML = `<div class="kd-card"><p class="kd-flag kd-flag-no">${esc(err.message)}</p></div>`));
-    for (const el of ['gDx', 'gIv'])
-      $(el).addEventListener('keydown', (e) => { if (e.key === 'Enter') $('gRun').click(); });
+    const go = () => route().catch((err) =>
+      $('kdAnswer').innerHTML = `<div class="kd-card"><p class="kd-flag kd-flag-no">${esc(err.message)}</p></div>`);
+    $('kdGo').addEventListener('click', go);
+    $('kdQ').addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+    // параметри міняють лише суму — перемальовуємо мовчки, без кнопки
+    for (const id of ['kdAge', 'kdSex', 'kdReady', 'kdChild', 'kdTrauma', 'kdMountain'])
+      $(id).addEventListener('change', () => { if ($('kdQ').value.trim()) go(); });
     document.addEventListener('click', (e) => {
-      const d = e.target.closest('[data-case]');
-      if (d) {
-        const [dx, iv] = d.dataset.case.split('|');
-        $('gDx').value = dx; $('gIv').value = iv || '';
-        $('gRun').click();
-        return;
-      }
-      const c = e.target.closest('[data-dx]');
-      if (c) { $('gDx').value = c.dataset.dx; $('gRun').click(); }
-      const ch = e.target.closest('[data-check]');
-      if (ch) {
-        const [codes, age, sex] = ch.dataset.check.split('|');
-        $('cQ').value = codes; $('cAge').value = age || ''; $('cSex').value = sex || '';
-        $('cRun').click();
-      }
+      const ex = e.target.closest('[data-q]');
+      if (ex) { $('kdQ').value = ex.dataset.q; $('kdGo').click(); return; }
+      const f = e.target.closest('[data-force]');
+      if (f) { forced = f.dataset.force; $('kdGo').click(); }
     });
 
-    $('cRun').addEventListener('click', () => runCheck().catch(err =>
-      $('cOut').innerHTML = `<div class="kd-card"><p class="kd-flag kd-flag-no">${esc(err.message)}</p></div>`));
-    $('cQ').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('cRun').click(); });
-    let rt;
-    $('rQ').addEventListener('input', () => { clearTimeout(rt); rt = setTimeout(runRuleLookup, 220); });
 
-    // Підвкладок тепер два набори (аудит і належність), тому слухаємо кожен
-    // у своїй секції: один спільний querySelector чіпляв би лише перший.
-    document.querySelector('#mod-audit .kd-subtabs').addEventListener('click', (e) => {
+    // Шухляди рахують себе самі, коли їх відкривають. Реєструємо це РАНО:
+    // якщо нижче щось відвалиться, читанка і звіти все одно працюватимуть.
+    wire('шухляди', () => {
+      $('dr-audit').addEventListener('toggle', function () { if (this.open && !AUD) runAudit(); });
+      $('dr-pkg').addEventListener('toggle', function () { if (this.open) runPkg(); });
+    });
+
+    // Підвкладок два набори (аудит і належність), тому слухаємо кожен
+    // у своїй шухляді: один спільний querySelector чіпляв би лише перший.
+    wire('підвкладки аудиту', () => {
+    document.querySelector('#dr-audit .kd-subtabs').addEventListener('click', (e) => {
       const b = e.target.closest('.kd-subtab');
       if (!b) return;
       slice = b.dataset.slice;
-      for (const x of document.querySelectorAll('#mod-audit .kd-subtab'))
+      for (const x of document.querySelectorAll('#dr-audit .kd-subtab'))
         x.classList.toggle('active', x === b);
       runAudit();
     });
     let at;
     $('aQ').addEventListener('input', () => { clearTimeout(at); at = setTimeout(runAudit, 250); });
     $('aCsv').addEventListener('click', auditCsv);
+    });
 
-    // ── вкладка «Належність до пакета» ──
-    document.querySelector('#mod-pkg .kd-subtabs').addEventListener('click', (e) => {
+    wire('належність до пакета', () => {
+    document.querySelector('#dr-pkg .kd-subtabs').addEventListener('click', (e) => {
       const b = e.target.closest('.kd-subtab');
       if (!b) return;
       pkgMode = b.dataset.pkgmode;
-      for (const x of document.querySelectorAll('#mod-pkg .kd-subtab'))
+      for (const x of document.querySelectorAll('#dr-pkg .kd-subtab'))
         x.classList.toggle('active', x === b);
       $('pkgByPkgPanel').hidden = pkgMode !== 'byPkg';
       $('pkgByCodePanel').hidden = pkgMode !== 'byCode';
@@ -1000,9 +1204,10 @@
         holder.innerHTML = `<span class="kd-flag kd-flag-no">${esc(err.message)}</span>`;
       }
     });
+    });
 
     const h = (location.hash || '').replace('#', '');
-    if (['grouper', 'check', 'rules', 'audit', 'pkg'].includes(h)) switchTab(h);
+    if (['grouper', 'check', 'rules', 'audit', 'pkg'].includes(h)) openDrawer(h);
 
     /* Прихід із паспорта НК 025/026 з уже підставленим кодом: ?dx=M51.1&iv=…
        Саме заради цього переходу місток у паспорті має сенс — інакше довелося б
@@ -1011,10 +1216,10 @@
     const dx = q.get('dx') || q.get('code');
     const iv = q.get('iv');
     if (dx || iv) {
-      if (dx) $('gDx').value = dx;
-      if (iv) $('gIv').value = iv;
-      switchTab('grouper');
-      if (dx) $('gRun').click();
+      $('kdQ').value = [dx, iv].filter(Boolean).join(' ');
+      go();
+    } else {
+      $('kdAnswer').innerHTML = welcome();
     }
   }
 
