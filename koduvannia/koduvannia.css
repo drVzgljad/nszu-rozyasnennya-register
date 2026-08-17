@@ -182,3 +182,10 @@
   font-size: 13px; color: var(--faint);
 }
 .kd-footer p { max-width: 88ch; }
+
+/* Вкладка-місток на сусідню сторінку розділу: виглядає як вкладка, поводиться
+   як посилання. Пунктир відрізняє «перехід» від «перемкнути тут». */
+.kd-tab-link {
+  text-decoration: none; display: inline-flex; align-items: center;
+  border-style: dashed; color: var(--accent-dark);
+}

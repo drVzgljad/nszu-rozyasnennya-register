@@ -12,8 +12,10 @@
   <link rel="stylesheet" href="../styles.css?v=20260808b">
   <!-- пошукова панель і блоки паспорта — спільні з класифікаторами -->
   <link rel="stylesheet" href="../classifiers/classifiers.css?v=20260809d">
-  <link rel="stylesheet" href="drg.css?v=20260810a">
+  <link rel="stylesheet" href="drg.css?v=20260817a">
   <link rel="stylesheet" href="../auth-v2.css?v=20260806a">
+  <!-- спільна формула пункту 38 — одна на портал, підключати ДО drg.js -->
+  <script src="../pmg-tariff.js?v=1"></script>
   <script type="module" src="../auth-v2.js?v=20260817l"></script>
 </head>
 <body id="top">
@@ -52,6 +54,8 @@
             aria-selected="false">🧮 Розрахунок випадку</button>
     <button class="drg-tab" type="button" role="tab" data-mod="audit"
             aria-selected="false">🔍 Пошук аномалій</button>
+    <!-- Клінічний бік кодування — сусідня сторінка того самого розділу -->
+    <a class="drg-tab drg-tab-link" href="../koduvannia/index.html">🧭 Кодування випадку →</a>
   </nav>
 
   <main class="drg-main">
@@ -231,6 +235,6 @@
   </footer>
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
-  <script type="module" src="drg.js?v=20260810a"></script>
+  <script type="module" src="drg.js?v=20260817a"></script>
 </body>
 </html>

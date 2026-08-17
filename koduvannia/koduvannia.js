@@ -17,7 +17,7 @@
 (() => {
   'use strict';
 
-  const V = 'v=8';
+  const V = 'v=10';
 
   // Кириличні гомогліфи → латиниця (та сама пастка, що в ДСГ і ЕСОЗ)
   const HOMO = { 'А':'A','В':'B','С':'C','Е':'E','Н':'H','І':'I','К':'K',
@@ -142,21 +142,22 @@
     return s;
   }
 
-  // ── тариф за пунктом 38 ─────────────────────────────────────────────────
+  /* Тариф за пунктом 38. Формула — у спільному модулі ../pmg-tariff.js: раніше
+     тут був її спрощений двійник, який не знав ні додаткових коефіцієнтів за
+     підпунктами 6 і 7, ні оплати від базової ставки на добу. Тепер розділ
+     рахує тим самим кодом, що й «Інструменти ДСГ». */
   function tariff(group, ready) {
-    const w = group.k && group.k[0];
-    if (!w) return null;
-    const share = (CORE.factors.find((f) => f.id === 'share') || { value: 0.55 }).value;
-    const bal = (CORE.factors.find((f) => f.id === 'balance') || { value: 1 }).value;
-    const base = CORE.rate.case;
-    const sum = base * w * share * bal * ready;
-    return { base, w, share, bal, ready, sum };
+    if (!group.k || !group.k[0]) return null;
+    const state = { share: true, balance: true };
+    if (ready && ready !== 1) state.readiness = ready;
+    const res = window.PMG_TARIFF.calcCase(group, {
+      rate: CORE.rate, factors: CORE.factors, fmtK: window.PMG_TARIFF.fmtK,
+      appendixLabel: CORE.appendixLabel, appendixCols: CORE.appendixCols,
+    }, state);
+    return { w: group.k[0], sum: res.total, res };
   }
 
-  const formula = (t) => `${t.base} × ${String(t.w).replace('.', ',')} × ` +
-    `${String(t.share).replace('.', ',')} × ${String(t.bal).replace('.', ',')}` +
-    (t.ready !== 1 ? ` × ${String(t.ready).replace('.', ',')}` : '') +
-    ` = ${money(t.sum)} грн`;
+  const formula = (t) => window.PMG_TARIFF.formulaText(t.res);
 
   // ═══════════════════ 1. Групування випадку ═══════════════════════════════
   async function runGrouper() {
@@ -1002,6 +1003,19 @@
 
     const h = (location.hash || '').replace('#', '');
     if (['grouper', 'check', 'rules', 'audit', 'pkg'].includes(h)) switchTab(h);
+
+    /* Прихід із паспорта НК 025/026 з уже підставленим кодом: ?dx=M51.1&iv=…
+       Саме заради цього переходу місток у паспорті має сенс — інакше довелося б
+       уводити код удруге. */
+    const q = new URLSearchParams(location.search);
+    const dx = q.get('dx') || q.get('code');
+    const iv = q.get('iv');
+    if (dx || iv) {
+      if (dx) $('gDx').value = dx;
+      if (iv) $('gIv').value = iv;
+      switchTab('grouper');
+      if (dx) $('gRun').click();
+    }
   }
 
   if (document.readyState === 'loading')

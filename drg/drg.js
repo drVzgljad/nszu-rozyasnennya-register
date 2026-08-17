@@ -42,6 +42,8 @@ let DB = null;            // drg.json
 let SERVICES = null;      // mapping/data/services_lite.json
 let ODK = null;           // mapping/data/odk.json
 let odkMembers = null;    // «ОДК 8» → Set кодів НК 025
+let groupOdk = null;      // індекс групи → Set ОДК, у яких вона стоїть
+let idx801 = -1;          // індекс ДСГ 801 у додатку 1 (кошик-залишок)
 
 const el = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
@@ -68,6 +70,18 @@ async function boot() {
   SERVICES = services;
   ODK = odk;
   odkMembers = new Map(odk.map((o) => [o.id, new Set(o.codes)]));
+
+  // Зворотний бік byOdk: до якої ОДК належить кожна хірургічна послуга. Саме
+  // це поле в Таблиці співставлення стоїть у колонці діагнозів («ОДК 5»), тож
+  // без нього не можна сказати, чи досяжна група за конкретного діагнозу.
+  groupOdk = new Map();
+  for (const [id, list] of Object.entries(DB.byOdk)) {
+    for (const i of list) {
+      if (!groupOdk.has(i)) groupOdk.set(i, new Set());
+      groupOdk.get(i).add(id);
+    }
+  }
+  idx801 = DB.groups.findIndex((g) => g.c === '801' && g.a === 'appendix-1');
 
   renderStats();
   renderFactors();
@@ -193,81 +207,23 @@ function factorById(id) {
 }
 
 /**
- * Сума за випадок. Повертає кроки, щоб інтерфейс показував не «магічне число»,
- * а той самий ланцюжок, який експерт перевірить очима по тексту постанови.
- *
- * Порядок: ваговий коефіцієнт (+ додаткові, які постанова ДОДАЄ до ваги) ×
- * коригувальні множники (+ добавка за добу у ВІТ) × частка застосування ×
- * коефіцієнт збалансованості. Окремо — оплата від базової ставки на добу
- * (підпункти 17 і 18), яка йде поверх випадку й без частки застосування.
+ * Сума за випадок. Сама формула живе в спільному модулі `../pmg-tariff.js` —
+ * до 17.08.2026 вона була переписана тут, у koduvannia.js і в пілоті окремо,
+ * причому в різній повноті. Тут лишилася тільки прив'язка до drg.json:
+ * розділ працює індексами груп, а модуль — самими групами.
  */
+function tariffCtx() {
+  return { rate: DB.rate, factors: DB.factors, fmtK,
+           appendixLabel: DB.appendixLabel, appendixCols: DB.appendixCols };
+}
+
 function calcCase(groupIndex, state = calcState) {
-  const g = DB.groups[groupIndex];
-  const rate = DB.rate.case;
-  const steps = [];
-  const unknown = [];
-
-  let weight = g.k[0];
-  steps.push({ label: `Ваговий коефіцієнт ДСГ ${g.c}`, op: '', value: weight,
-    src: DB.appendixLabel[g.a], sub: '3' });
-
-  for (const f of DB.factors.filter((x) => x.kind === 'addw')) {
-    if (!state[f.id]) continue;
-    const add = g.k[f.column];
-    if (add === null || add === undefined) {
-      unknown.push({ f, why: `у ${DB.appendixLabel[g.a]} для ${g.c} ця колонка порожня` });
-      continue;
-    }
-    weight += add;
-    steps.push({ label: f.label, op: '+', value: add, sub: f.sub,
-      src: `${DB.appendixLabel[g.a]}, колонка «${DB.appendixCols[g.a][f.column]}»` });
-  }
-
-  let adjust = 1;
-  for (const f of DB.factors) {
-    if (f.stage === 'final' || !state[f.id]) continue;
-    if (f.kind === 'mul') {
-      const value = f.options ? Number(state[f.id]) : f.value;
-      if (!value) continue;
-      adjust *= value;
-      steps.push({ label: f.label, op: '×', value, sub: f.sub });
-    } else if (f.kind === 'addk') {
-      const days = Math.max(0, Math.min(Number(state[f.id]) || 0, f.max_days));
-      if (!days) continue;
-      adjust += f.value * days;
-      steps.push({ label: `${f.label} — ${days} діб × ${fmtK(f.value)}`,
-        op: '+к', value: f.value * days, sub: f.sub });
-    } else if (f.kind === 'unknown') {
-      unknown.push({ f, why: 'величину визначають алгоритми і правила НСЗУ' });
-    }
-  }
-
-  let total = rate * weight * adjust;
-  for (const f of DB.factors.filter((x) => x.stage === 'final')) {
-    const value = f.editable && state[f.id] !== undefined
-      ? Number(state[f.id]) : f.value;
-    if (!Number.isFinite(value)) continue;
-    total *= value;
-    steps.push({ label: f.label, op: '×', value, sub: f.sub });
-  }
-
-  // Оплата від базової ставки на добу — поверх випадку, без частки застосування.
-  const perDay = [];
-  for (const f of DB.factors.filter((x) => x.kind === 'rateday')) {
-    const days = Number(state[f.id]) || 0;
-    if (!days) continue;
-    if (f.drg && !f.drg.includes(g.c)) continue;
-    perDay.push({ f, days, sum: rate * f.value * days });
-  }
-
-  return { g, rate, weight, adjust, total, steps, unknown, perDay,
-    grand: total + perDay.reduce((s, p) => s + p.sum, 0) };
+  return window.PMG_TARIFF.calcCase(DB.groups[groupIndex], tariffCtx(), state);
 }
 
 /** Той самий розрахунок, але без кроків — для масових прогонів режимів A і C. */
 function quickSum(groupIndex, extra = {}) {
-  const state = { share: true, balance: true, ...extra };
-  return calcCase(groupIndex, state).total;
+  return window.PMG_TARIFF.quickSum(DB.groups[groupIndex], tariffCtx(), extra);
 }
 
 // ── Модуль 1. Паспорт ───────────────────────────────────────────────────────
@@ -1083,6 +1039,38 @@ function rowHtml(r) {
 }
 
 // Режим B — перевірка конкретної комбінації.
+/**
+ * Роль коду в маршруті випадку. Таблиця співставлення асиметрична: хірургічна
+ * послуга = умова за ОДК основного діагнозу × перелік кодів інтервенцій. Тому
+ * діагноз і втручання не можна складати в один мішок і перетинати множини —
+ * діагноз задає ОДК, втручання задає перелік груп-кандидатів.
+ */
+function splitCombo(parts) {
+  const dx = [];
+  const ix = [];
+  const drg = [];
+  const missing = [];
+  for (const code of parts) {
+    const roles = lookup(code);
+    if (!roles.length) { missing.push(code); continue; }
+    let used = false;
+    if (roles.some((r) => r.kind === 'drg')) {
+      drg.push({ code, hits: roles.find((r) => r.kind === 'drg').hits });
+      used = true;
+    }
+    if (DB.byIcd[code] || [...odkMembers.values()].some((s) => s.has(code))) {
+      const odks = [...odkMembers].filter(([, s]) => s.has(code)).map(([id]) => id);
+      dx.push({ code, odks, med: DB.byIcd[code] || [] });
+      used = true;
+    }
+    if (DB.byAchi[code]) { ix.push({ code, hits: DB.byAchi[code] }); used = true; }
+    if (!used) missing.push(code);
+  }
+  return { dx, ix, drg, missing };
+}
+
+const odkName = (id) => (ODK.find((o) => o.id === id) || {}).name || '';
+
 function runCombo() {
   const parts = el('bQ').value.split(/[,;]+/).map(normCode).filter(Boolean);
   const out = el('bOut');
@@ -1090,31 +1078,44 @@ function runCombo() {
     out.innerHTML = '<div class="drg-card drg-card-empty"><p class="muted">Введіть коди через кому.</p></div>';
     return;
   }
-  const found = [];
-  const missing = [];
-  for (const code of parts) {
-    const roles = lookup(code);
-    if (!roles.length) { missing.push(code); continue; }
-    found.push({ code, roles, hits: [...new Set(roles.flatMap((r) => r.hits))] });
-  }
-  if (!found.length) {
+  const { dx, ix, drg, missing } = splitCombo(parts);
+  if (!dx.length && !ix.length && !drg.length) {
     out.innerHTML = `<div class="drg-card drg-card-none"><h2>Даних у довіднику немає</h2>
       <p>Жоден із кодів (${missing.map(esc).join(', ')}) не веде до груп ДСГ.</p></div>`;
     return;
   }
 
-  // Спільні групи — ті, до яких ведуть ВСІ введені коди. Це не результат
-  // групування: перетин лише звужує перелік можливих груп.
-  const sets = found.map((f) => new Set(f.hits));
-  const common = [...sets[0]].filter((i) => sets.every((s) => s.has(i)));
-  const union = [...new Set(found.flatMap((f) => f.hits))];
   const th = thresholds();
-  const scope = common.length ? common : union;
+  const myOdk = new Set(dx.flatMap((d) => d.odks));
+  const medical = [...new Set(dx.flatMap((d) => d.med))];
+
+  // Кандидати від втручань і перевірка кожного на сумісність за ОДК.
+  const cand = new Map();
+  for (const { code, hits } of ix) {
+    for (const i of hits) {
+      if (!cand.has(i)) cand.set(i, []);
+      cand.get(i).push(code);
+    }
+  }
+  const reachable = [];
+  const blocked = [];
+  for (const [i, codes] of cand) {
+    const need = groupOdk.get(i) || new Set();
+    const ok = !dx.length || [...need].some((id) => myOdk.has(id));
+    (ok ? reachable : blocked).push({ i, codes, need: [...need] });
+  }
+
+  // Кошик-залишок спрацьовує лише коли є і діагноз, і втручання, а жодна
+  // хірургічна послуга своєї ОДК-умови не виконала.
+  const knownOdk = dx.length && myOdk.size;
+  const falls801 = Boolean(knownOdk && ix.length && !reachable.length && idx801 >= 0);
+  const outcome = falls801 ? [idx801] : reachable.map((r) => r.i);
+  const scope = outcome.length ? outcome : [...cand.keys(), ...medical];
 
   // Правило «розкид за інтервенцією» фільтруємо за самим кодом, а не за групою:
   // інакше в перелік лізли сусідні інтервенції, які лише ведуть до тієї самої
   // групи, і пояснення говорило про код, якого користувач не вводив.
-  const entered = new Set(found.map((f) => f.code));
+  const entered = new Set([...dx, ...ix, ...drg].map((f) => f.code));
   const flags = [];
   for (const rule of RULES) {
     if (rule.id === 'gaps') continue;
@@ -1124,27 +1125,87 @@ function runCombo() {
     for (const h of hits) flags.push({ rule, h });
   }
 
-  const rows = scope
-    .map((i) => ({ i, g: DB.groups[i], sum: quickSum(i) }))
-    .sort((a, b) => b.sum - a.sum);
+  const row = (i, note) => {
+    const g = DB.groups[i];
+    return `<button class="drg-cmp-row" type="button" data-open="${i}">
+      <b>${esc(g.c)}</b><span>${esc(g.t || '—')}${note ? ` <em class="muted">${esc(note)}</em>` : ''}</span>
+      <em class="drg-app drg-app-${g.a.slice(-1)}">${esc(DB.appendixLabel[g.a])}</em>
+      <span class="drg-cmp-sum">${fmtMoney(quickSum(i))} грн</span></button>`;
+  };
+  const bySum = (list) => [...list].sort((a, b) => quickSum(b) - quickSum(a));
+
+  // Інверсія: операція оплачується дешевше, ніж той самий діагноз без неї.
+  const medBest = medical.length ? bySum(medical)[0] : null;
+  const outBest = outcome.length ? bySum(outcome)[0] : null;
+  const inversion = medBest !== null && outBest !== null
+    && quickSum(outBest) < quickSum(medBest);
+
+  const routeBits = [];
+  if (dx.length) {
+    routeBits.push(`Основний діагноз: ${dx.map((d) => `<b>${esc(d.code)}</b> — ${
+      d.odks.length ? d.odks.map((id) => `${esc(id)} «${esc(odkName(id))}»`).join(', ')
+        : '<span class="muted">немає в жодній ОДК Таблиці співставлення</span>'}`).join('; ')}`);
+  }
+  if (ix.length) routeBits.push(`Втручання: ${ix.map((x) => `<b>${esc(x.code)}</b>`).join(', ')}`);
+
+  let verdict;
+  if (drg.length && !dx.length && !ix.length) {
+    verdict = `<p class="muted">Введено код групи — маршрут не перевіряємо, показано саму групу.</p>
+      <div class="drg-cmp">${bySum(drg.flatMap((d) => d.hits)).map((i) => row(i)).join('')}</div>`;
+  } else if (!dx.length && ix.length) {
+    verdict = `<div class="drg-note" role="note"><b>Діагноз не введено — маршрут визначити не можна.</b>
+      Кожна хірургічна послуга Таблиці співставлення має умову за ОДК основного діагнозу,
+      тому нижче показано всі групи, у переліки яких входять ці коди, а не досяжні групи.</div>
+      <div class="drg-cmp">${bySum([...cand.keys()]).slice(0, 12).map((i) => row(i)).join('')}</div>`;
+  } else if (dx.length && !myOdk.size) {
+    verdict = `<div class="drg-note drg-note-warn" role="note"><b>ОДК діагнозу невідома.</b>
+      Коду ${dx.map((d) => esc(d.code)).join(', ')} немає в жодній ОДК Таблиці співставлення,
+      тому перевірити умову хірургічних послуг нема з чим. Це не означає, що випадок піде в 801.</div>`;
+  } else if (falls801) {
+    verdict = `<div class="drg-verdict drg-verdict-801">
+      <h4>Випадок падає у ДСГ 801 — ${fmtMoney(quickSum(idx801))} грн</h4>
+      <p>Жодна хірургічна послуга не виконала умову за ОДК: діагноз належить до
+      ${[...myOdk].map(esc).join(', ')}, а всі групи, у переліки яких входять введені
+      інтервенції, вимагають іншої ОДК. Рядок 801 у Таблиці співставлення не має ані
+      діагнозів, ані інтервенцій і супроводжується приміткою «В разі невіднесення до
+      інших послуг пакету через невідповідність основному діагнозу».</p>
+      <div class="drg-cmp">${row(idx801)}</div></div>`;
+  } else if (reachable.length) {
+    verdict = `<div class="drg-cmp">${bySum(reachable.map((r) => r.i)).map((i) =>
+      row(i, `за кодом ${(cand.get(i) || []).join(', ')}`)).join('')}</div>`;
+  } else {
+    verdict = `<p class="muted">Введено лише діагноз — хірургічної партиції немає.</p>`;
+  }
 
   out.innerHTML = `
     <article class="drg-card">
-      <h2 class="drg-card-title">Комбінація: ${found.map((f) => `<b>${esc(f.code)}</b>`).join(' + ')}</h2>
-      <p class="drg-fnote">${found.map((f) =>
-        `${esc(f.code)} — ${f.roles.map((r) => KIND_LABEL[r.kind]).join(', ')}`).join(' · ')}
+      <h2 class="drg-card-title">Комбінація: ${[...dx, ...ix, ...drg].map((f) =>
+        `<b>${esc(f.code)}</b>`).join(' + ')}</h2>
+      <p class="drg-fnote">${routeBits.join(' · ')}
         ${missing.length ? `<br>Немає в довіднику: ${missing.map(esc).join(', ')}.` : ''}</p>
       <div class="reader-block">
-        <h3>${common.length ? `Групи, до яких ведуть усі коди (${common.length})`
-          : `Спільних груп немає — показано всі можливі (${union.length})`}
-          <span class="src">перетин звужує перелік, але не групує випадок</span></h3>
-        <div class="drg-cmp">${rows.slice(0, 12).map(({ i, g, sum }) => `
-          <button class="drg-cmp-row" type="button" data-open="${i}">
-            <b>${esc(g.c)}</b><span>${esc(g.t || '—')}</span>
-            <em class="drg-app drg-app-${g.a.slice(-1)}">${esc(DB.appendixLabel[g.a])}</em>
-            <span class="drg-cmp-sum">${fmtMoney(sum)} грн</span>
-          </button>`).join('')}</div>
+        <h3>Куди веде комбінація
+          <span class="src">умова за ОДК — колонка діагнозів Таблиці співставлення</span></h3>
+        ${verdict}
       </div>
+      ${blocked.length ? `<div class="reader-block">
+        <h3>Відсічено за ОДК (${blocked.length})
+          <span class="src">код у переліку є, але умова за діагнозом не виконана</span></h3>
+        <ul class="drg-flags">${bySum(blocked.map((b) => b.i)).slice(0, 15).map((i) => {
+          const b = blocked.find((x) => x.i === i);
+          const g = DB.groups[i];
+          return `<li><b>${esc(g.c)}</b> ${esc(g.t || '')} — потребує ${
+            b.need.length ? b.need.map(esc).join(' або ') : 'ОДК, якої немає в даних'}</li>`;
+        }).join('')}</ul></div>` : ''}
+      ${medical.length ? `<div class="reader-block">
+        <h3>Той самий діагноз без операції
+          <span class="src">медична партиція, пакет без хірургічних операцій</span></h3>
+        <div class="drg-cmp">${bySum(medical).map((i) => row(i)).join('')}</div>
+        ${inversion ? `<div class="drg-note drg-note-warn" role="note"><b>Інверсія.</b>
+          Хірургічний результат оплачується дешевше, ніж той самий діагноз без втручання:
+          ${esc(DB.groups[outBest].c)} — ${fmtMoney(quickSum(outBest))} грн проти
+          ${esc(DB.groups[medBest].c)} — ${fmtMoney(quickSum(medBest))} грн.</div>` : ''}
+      </div>` : ''}
       <div class="reader-block">
         <h3>Чи виглядає комбінація аномальною</h3>
         ${flags.length ? `<ul class="drg-flags">${flags.map(({ rule, h }) =>

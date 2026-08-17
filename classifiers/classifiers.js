@@ -445,10 +445,30 @@
       <div class="reader-crumbs">${crumbs.join('<span class="sep">›</span>')}</div>
       ${renderPmg(e)}
       ${renderServices(e)}
+      ${renderCoding(e)}
       ${renderLinks(e)}
       ${kidsHtml}
       <div class="reader-foot">НК 025:2021 · ICD-10-AM · ${LEVEL_LABEL[e.l].toLowerCase()}</div>`;
     setTab("reader");
+  }
+
+  /* Місток у тарифний бік. Аудит 17.08.2026 (дефект В3): паспорт коду знав про
+     пакети й нормативку, але мовчав про те, у які діагностично-споріднені
+     групи код веде і скільки це коштує, — а саме це питають найчастіше.
+     Рахувати тут не беремося: для цього потрібні дані двох інших розділів.
+     Даємо перехід із уже підставленим кодом, щоб відповідь була в один клік. */
+  function renderCoding(e) {
+    return `<div class="reader-block">
+      <h3>Куди веде цей код</h3>
+      <div class="chip-list">
+        <a class="subchip" href="../koduvannia/index.html?dx=${encodeURIComponent(e.c)}#grouper"
+           title="Основний діагностичний клас, досяжні групи, тариф і перевірка коректності"
+           ><b>🧭 Кодування випадку</b> клас, групи, тариф</a>
+        <a class="subchip" href="../drg/index.html?code=${encodeURIComponent(e.c)}&amp;mod=passport"
+           title="Паспорт коду в тарифній моделі: перелік груп із вагами й сумами"
+           ><b>🧮 Інструменти ДСГ</b> ваги й суми</a>
+      </div>
+    </div>`;
   }
 
   function renderPmg(e) {
