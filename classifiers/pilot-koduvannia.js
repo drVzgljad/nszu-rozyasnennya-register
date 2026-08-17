@@ -24,6 +24,8 @@
   let META = null;
   let ODK = [];             // [{id, name, set}]
   let GROUPS = new Map();   // код ДСГ -> {name, odk:[ids], w, pkgs, main}
+  let ACHI = new Map();     // код НК 026 -> {c, n, pk, sv}
+  let SVC_BY_I = new Map(); // індекс послуги -> запис services_lite
 
   /* Предки за префіксом: M90.60 -> M90.6 -> M90 (не залежить від поля p). */
   function ancestors(code) {
@@ -184,6 +186,159 @@
     box.innerHTML = html;
   }
 
+  // ── Розрахунок випадку ───────────────────────────────────────────────────
+  /* Ланцюг за Порядком-2026:
+   *   базова ставка 8735 грн (п.34, пакети 3/4/47)
+   *   x ваговий коефіцієнт ДСГ (додаток 1, кол. 3)
+   *   x частка застосування 0,55 (п.38 пп.1)
+   *   x коефіцієнт збалансованості бюджету 1 (п.38 пп.2, станом на 01.01.2026)
+   *   x коефіцієнт готовності 1,2 дорослим / 1,3 дітям (п.38 пп.4) — за вибором
+   * Додаткові коефіцієнти за дітей (пп.6) і за травми (пп.7) за текстом Порядку
+   * ДОДАЮТЬСЯ до вагового, а не множаться.
+   * Звірено 17.08.2026: 8735 x 5,299 x 0,55 x 1,2 = 30 549,2649 — точний збіг
+   * із «Ціна, грн» Довідника ДСГ у МІС (лист вх. 15577-13-26). */
+  const BASE = 8735, SHARE = 0.55, BALANCE = 1;
+
+  const num = (s) => {
+    const v = parseFloat(String(s || '').replace(',', '.').replace(/\s/g, ''));
+    return Number.isFinite(v) ? v : null;
+  };
+  const money = (v) => v.toLocaleString('uk-UA',
+    { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const dec = (v) => String(v).replace('.', ',');
+
+  function renderCase(ivRaw, dxRaw) {
+    const box = document.getElementById('caseOut');
+    const icode = norm(ivRaw).replace(/[^\dA-Z-]/g, '');
+    const dcode = norm(dxRaw);
+    if (!icode && !dcode) { box.innerHTML = ''; return; }
+    const iv = ACHI.get(icode);
+    if (!iv) { box.innerHTML = `<p class="err">Інтервенції ${esc(icode)} немає в НК 026.</p>`; return; }
+    const e = dcode ? IDX.get(dcode) : null;
+    if (dcode && !e) { box.innerHTML = `<p class="err">Коду ${esc(dcode)} немає в НК 025.</p>`; return; }
+
+    const ready = parseFloat(document.getElementById('readySel').value) || 1;
+    const useKids = document.getElementById('addKids').checked;
+    const useTrauma = document.getElementById('addTrauma').checked;
+    const d = e ? dualOf(dcode) : null;
+    const o = e ? odkOf(dcode) : { ids: [] };
+
+    let html = `<p style="margin:14px 0 2px"><span class="codebig">${esc(iv.c)}</span>
+      &nbsp;${esc(iv.n)}</p>
+      <p class="small mut" style="margin:0 0 4px">Пакети: ${esc((iv.pk || []).join(', ') || '—')}</p>`;
+    if (e) {
+      html += `<p style="margin:6px 0 0"><b>${esc(e.c)}</b> ${esc(e.n)}</p>`;
+      if (d.manif.length) {
+        html += `<div style="margin-top:5px"><span class="badge b-red">Основним діагнозом не зазначається</span>
+          <span class="small">основний обирати з: ${d.manif.map((r) => esc(r.raw)).join('; ')}</span></div>`;
+      }
+      if (o.ids.length) {
+        html += `<p class="small" style="margin:5px 0 0">${o.ids.map((id) =>
+          `<span class="badge b-amb">${esc(id)}</span> ${esc(odkName(id))}`).join(' ')}</p>`;
+      }
+    }
+
+    // Досяжні ДСГ інтервенції
+    const rows = (iv.sv || []).map((i) => SVC_BY_I.get(i)).filter(Boolean)
+      .filter((s) => s.c)
+      .map((s) => {
+        const k = (s.k && s.k[0] && s.k[0].k) || [];
+        const w = num(k[0]);
+        const addK = num(k[1]), addT = num(k[2]);
+        let eff = w;
+        const parts = [];
+        if (w !== null) parts.push(dec(w));
+        if (useKids && addK !== null) { eff += addK; parts.push(`+ ${dec(addK)}`); }
+        if (useTrauma && addT !== null) { eff += addT; parts.push(`+ ${dec(addT)}`); }
+        const fit = e ? s.odk.some((id) => o.ids.includes(id)) : null;
+        return { s, w, addK, addT, eff, parts, fit,
+                 sum: eff === null ? null : BASE * eff * SHARE * BALANCE * ready };
+      });
+    if (!rows.length) {
+      box.innerHTML = html + `<p class="mut">Ця інтервенція не веде до жодної ДСГ пакетів 3/47.</p>`;
+      return;
+    }
+    rows.sort((a, b) => (b.sum || 0) - (a.sum || 0));
+
+    html += `<table class="calc"><tr><th>ДСГ</th><th>Назва</th><th>ОДК</th>
+      <th>Вага</th><th>Тариф, грн</th>${e ? '<th>Діагноз</th>' : ''}</tr>` +
+      rows.map((r) => `<tr class="${r.fit === true ? 'yes' : r.fit === false ? 'no' : ''}">
+        <td><b>${esc(r.s.c)}</b></td><td>${esc(r.s.n)}</td>
+        <td class="small">${esc(r.s.odk.join(', ') || '—')}</td>
+        <td class="num">${esc(r.parts.join(' ') || '—')}</td>
+        <td class="num">${r.sum === null ? '—' : esc(money(r.sum))}</td>
+        ${e ? `<td class="small">${r.fit ? 'сумісний' : 'несумісний'}</td>` : ''}
+      </tr>`).join('') + `</table>`;
+
+    if (e) {
+      const ok = rows.filter((r) => r.fit && r.sum !== null);
+      if (!ok.length) {
+        html += `<div class="verdict v-no">Жодна з груп цієї інтервенції не сумісна з
+          ${esc(dcode)} за ОДК — перевірте основний діагноз.</div>`;
+      } else if (d.manif.length) {
+        /* Головне порівняння: код прояву як основний (так закодував заклад)
+         * проти коректного основного з хрестикового боку. Саме ця різниця і є
+         * «ціною питання» у спорах про автоматичний моніторинг. */
+        const alt = new Map();
+        for (const ref of d.manif)
+          for (const t of ref.codes) {
+            const ao = odkOf(t);
+            const hit = rows.filter((r) => r.sum !== null &&
+              r.s.odk.some((id) => ao.ids.includes(id)));
+            if (hit.length) alt.set(t, hit.sort((x, y) => y.sum - x.sum)[0]);
+          }
+        const best = ok[0];
+        if (alt.size) {
+          // M50 і M51 ведуть до тієї самої групи — зводимо в один рядок
+          const merged = new Map();
+          for (const [code, r] of alt) {
+            const key = `${r.s.c}|${r.sum}`;
+            if (!merged.has(key)) merged.set(key, { codes: [], r });
+            merged.get(key).codes.push(code);
+          }
+          const lines = [...merged.values()].map(({ codes, r }) => {
+            const diff = best.sum - r.sum;
+            return `<li><b>${esc(codes.join(', '))}</b> → ${esc(r.s.c)} «${esc(r.s.n)}»:
+              <b>${esc(money(r.sum))} грн</b>
+              <span class="mut">(різниця ${diff >= 0 ? '−' : '+'}${esc(money(Math.abs(diff)))} грн)</span></li>`;
+          }).join('');
+          html += `<div class="verdict v-warn">
+            <b>${esc(dcode)} як основний діагноз дає ${esc(best.s.c)} — ${esc(money(best.sum))} грн</b>,
+            але за правилами МКХ-10 основним він бути не може. З коректним основним:
+            <ul style="margin:6px 0 0">${lines}</ul></div>`;
+        } else {
+          html += `<div class="verdict v-warn">
+            ${esc(dcode)} веде до ${esc(best.s.c)} — ${esc(money(best.sum))} грн, проте
+            основним діагнозом не зазначається. Коректний основний
+            (${d.manif.map((r) => esc(r.raw)).join('; ')}) до груп цієї інтервенції не веде.</div>`;
+        }
+      } else {
+        html += `<div class="verdict v-ok">З основним діагнозом <b>${esc(dcode)}</b>
+          досяжні: ${ok.map((r) => `<b>${esc(r.s.c)}</b> — ${esc(money(r.sum))} грн`).join(', ')}.</div>`;
+      }
+    }
+
+    const sample = rows.find((r) => r.fit && r.sum !== null) ||
+                   rows.find((r) => r.sum !== null);
+    if (sample) {
+      // при додаткових коефіцієнтах суму ваг обов'язково в дужки,
+      // інакше «8735 × 3,114 + 1,5413 × 0,55» читається двозначно
+      const wTxt = sample.parts.length > 1
+        ? `(${sample.parts.join(' ')})` : sample.parts.join(' ');
+      html += `<div class="formula">${esc(dec(BASE))} (ставка, п.34)
+        × ${esc(wTxt)} (вага ДСГ ${esc(sample.s.c)}, дод. 1)
+        × ${esc(dec(SHARE))} (частка, п.38 пп.1)
+        × ${esc(dec(BALANCE))} (збалансованість, пп.2)${ready !== 1
+          ? ` × ${esc(dec(ready))} (готовність, пп.4)` : ''}
+        = ${esc(money(sample.sum))} грн</div>
+        <p class="small mut" style="margin:7px 0 0">Розрахунок базовий: інші коефіцієнти
+        п.38 залежать від обставин випадку (гірський, інтенсивна терапія, тривалість
+        поза референтними значеннями, амбулаторно-асоційовані стани) і тут не враховані.
+        Додаткові коефіцієнти за дітей і травми за текстом Порядку додаються до вагового.</p>`;
+    }
+    box.innerHTML = html;
+  }
+
   // ── Статистика ───────────────────────────────────────────────────────────
   function renderStats() {
     const m = META;
@@ -220,11 +375,13 @@
 
   async function boot() {
     const idx = await fetchJson('data/nk025_index.json');
+    const nk026 = await fetchJson('data/nk026_index.json');
     const [dual, odk, sl] = await Promise.all([
       fetchJson('data/pilot_koduvannia.json'),
       fetchJson('../mapping/data/odk.json'),
       fetchJson('../mapping/data/services_lite.json'),
     ]);
+    for (const a of nk026) ACHI.set(a.c, a);
     for (const e of idx) {
       IDX.set(e.c, e);
       if (e.c.includes('.')) {
@@ -236,6 +393,7 @@
     DUAL = dual.byCode; META = dual.meta;
     ODK = odk.map((o) => ({ id: o.id, name: o.name, set: new Set(o.codes) }));
     for (const s of sl) {
+      SVC_BY_I.set(s.i, s);
       if (!s.c) continue;
       const w = s.k && s.k[0] && s.k[0].k ? s.k[0].k[0] : '';
       GROUPS.set(s.c, { name: s.n, odk: s.odk || [], w, pkgs: s.p, main: true });
@@ -254,11 +412,22 @@
     const dx = document.getElementById('dxInput');
     const gr = document.getElementById('grInput');
     const pd = document.getElementById('pdInput');
+    const iv = document.getElementById('ivInput');
+    const cd = document.getElementById('cdInput');
+    const recalc = () => renderCase(iv.value, cd.value);
     document.getElementById('dxBtn').onclick = () => renderDx(dx.value);
     document.getElementById('pairBtn').onclick = () => renderPair(gr.value, pd.value);
+    document.getElementById('caseBtn').onclick = recalc;
     dx.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') renderDx(dx.value); });
     for (const el of [gr, pd])
       el.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') renderPair(gr.value, pd.value); });
+    for (const el of [iv, cd])
+      el.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') recalc(); });
+    // перемикачі коефіцієнтів перераховують уже показаний випадок
+    for (const id of ['readySel', 'addKids', 'addTrauma'])
+      document.getElementById(id).addEventListener('change', () => {
+        if (iv.value) recalc();
+      });
 
     document.body.addEventListener('click', (ev) => {
       const t = ev.target.closest('[data-dx],[data-gr],[data-demo],[data-demo-pair]');
@@ -270,11 +439,31 @@
         const [g, d] = t.dataset.demoPair.split('|');
         gr.value = g; pd.value = d; renderPair(g, d);
       }
+      if (t.dataset.demoCase) {
+        const [a, d] = t.dataset.demoCase.split('|');
+        iv.value = a; cd.value = d; renderCase(a, d);
+      }
     });
   }
 
-  boot().catch((err) => {
+  /* Кнопки замкнені, поки не приїхали довідники: НК 025 і НК 026 разом ~4 МБ,
+   * і клік по недовантажених даних інакше мовчки нічого не робив. */
+  const BTNS = ['dxBtn', 'pairBtn', 'caseBtn'];
+  for (const id of BTNS) {
+    const b = document.getElementById(id);
+    if (b) { b.disabled = true; b.dataset.label = b.textContent; b.textContent = 'Завантаження…'; }
+  }
+  boot().then(() => {
+    for (const id of BTNS) {
+      const b = document.getElementById(id);
+      if (b) { b.disabled = false; b.textContent = b.dataset.label; }
+    }
+  }).catch((err) => {
     document.getElementById('statsOut').innerHTML =
       `<span class="err">Не вдалося завантажити дані: ${esc(err.message)}</span>`;
+    for (const id of BTNS) {
+      const b = document.getElementById(id);
+      if (b) b.textContent = 'Дані не завантажились';
+    }
   });
 })();
