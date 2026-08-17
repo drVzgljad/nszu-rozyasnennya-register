@@ -220,6 +220,7 @@
         this.sb = mod.createClient(SB_URL, SB_KEY);
         const { data: { session } } = await this.sb.auth.getSession();
         this.user = session?.user || null;
+        this.name = await this.resolveName();
         const [vr, sr] = await Promise.all([
           this.sb.from('norm_validations').select('item_k, verdict, user_id').eq('pkg', this.pkg),
           this.sb.from('norm_suggestions').select('id, item_k, suggestion, user_name, status, user_id').eq('pkg', this.pkg),
@@ -252,6 +253,20 @@
       } catch (err) {
         console.info('NormLinks: валідація вимкнена —', err.message || err);
       }
+    },
+
+    // ПІБ за конвенцією порталу (як у cabinet/rozpodil.js): спершу метадані
+    // сесії, потім таблиця profiles. На email НЕ відкочуємося — у спільному
+    // списку пропозицій колеги мають бачити прізвище, а не пошту.
+    async resolveName() {
+      if (!this.user) return '';
+      const meta = this.user.user_metadata || {};
+      if (meta.full_name || meta.name) return meta.full_name || meta.name;
+      try {
+        const { data } = await this.sb.from('profiles').select('full_name').eq('id', this.user.id).single();
+        if (data?.full_name) return data.full_name;
+      } catch (e) { /* профілю немає — лишаємо порожнім */ }
+      return '';
     },
 
     paint(el) {
@@ -315,7 +330,7 @@
               const { error } = await this.sb.from('norm_validations').upsert({
                 pkg: this.pkg, item_k: vk, verdict,
                 user_id: this.user.id,
-                user_name: this.user.user_metadata?.full_name || this.user.email || '',
+                user_name: this.name || '',
               }, { onConflict: 'pkg,item_k,user_id' });
               if (error) throw error;
               if (cur.mine === 1) cur.up--; if (cur.mine === -1) cur.down--;
@@ -348,7 +363,7 @@
             const { error } = await this.sb.from('norm_suggestions').insert({
               pkg: this.pkg, item_k: vk, suggestion: text,
               user_id: this.user.id,
-              user_name: this.user.user_metadata?.full_name || this.user.email || '',
+              user_name: this.name || '',
             });
             if (error) throw error;
             const list = this.suggs.get(vk) || [];
