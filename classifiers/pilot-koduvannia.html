@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Подвійне кодування — пілот</title>
+<style>
+  :root{
+    --bg:#f4f6f8; --card:#ffffff; --line:#dfe4ea; --ink:#1c2733; --mut:#5b6774;
+    --acc:#0e6e64; --red-i:#8f2016; --red-b:#fdecea; --red-l:#f3c1bb;
+    --grn-i:#14532d; --grn-b:#e8f5ec; --grn-l:#bfe3cc;
+    --amb-i:#7c3f00; --amb-b:#fdf1de; --amb-l:#f0d9ae;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:15px/1.5 system-ui,'Segoe UI',Roboto,sans-serif;padding:0 16px 60px}
+  main{max-width:920px;margin:0 auto}
+  header{padding:26px 0 4px}
+  h1{font-size:24px;margin:0 0 6px}
+  h2{font-size:17px;margin:0 0 10px}
+  .pill{display:inline-block;vertical-align:middle;margin-left:10px;padding:2px 10px;
+        border-radius:999px;background:var(--amb-b);border:1px solid var(--amb-l);
+        color:var(--amb-i);font-size:12px;font-weight:700;letter-spacing:.06em}
+  .sub{color:var(--mut);margin:0 0 18px;max-width:70ch}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;
+          padding:18px 20px;margin:0 0 16px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  input[type=text]{font:inherit;padding:8px 12px;border:1px solid var(--line);
+        border-radius:9px;min-width:150px;background:#fff}
+  input:focus{outline:2px solid var(--acc);outline-offset:-1px}
+  button{font:inherit;font-weight:600;padding:8px 16px;border-radius:9px;
+         border:1px solid var(--acc);background:var(--acc);color:#fff;cursor:pointer}
+  button.ghost{background:#fff;color:var(--acc)}
+  button:hover{filter:brightness(1.07)}
+  .demo button{font-weight:500;font-size:13.5px;padding:6px 12px}
+  .badge{display:inline-block;padding:3px 10px;border-radius:8px;font-size:13px;
+         font-weight:600;margin:2px 6px 2px 0;border:1px solid}
+  .b-red{background:var(--red-b);color:var(--red-i);border-color:var(--red-l)}
+  .b-grn{background:var(--grn-b);color:var(--grn-i);border-color:var(--grn-l)}
+  .b-amb{background:var(--amb-b);color:var(--amb-i);border-color:var(--amb-l)}
+  .b-gray{background:#eef1f4;color:#414c58;border-color:#d7dde3}
+  .verdict{border-radius:11px;padding:13px 16px;margin-top:12px;border:1px solid}
+  .v-ok{background:var(--grn-b);border-color:var(--grn-l)}
+  .v-no{background:var(--red-b);border-color:var(--red-l)}
+  .v-warn{background:var(--amb-b);border-color:var(--amb-l)}
+  .verdict b{font-size:15.5px}
+  .chip{display:inline-block;margin:3px 5px 3px 0;padding:3px 9px;border-radius:8px;
+        background:#eef1f4;border:1px solid #d7dde3;font-size:13px;cursor:pointer}
+  .chip:hover{background:#e2e8ee}
+  .chip .w{color:var(--mut)}
+  .codebig{font-size:21px;font-weight:700;letter-spacing:.02em}
+  .mut{color:var(--mut)}
+  .small{font-size:13px}
+  dl{margin:10px 0 0}
+  dt{font-weight:600;margin-top:10px}
+  dd{margin:2px 0 0}
+  details{margin-top:10px}
+  summary{cursor:pointer;font-weight:600}
+  table{border-collapse:collapse;margin-top:8px;font-size:13.5px}
+  td,th{border:1px solid var(--line);padding:4px 10px;text-align:left}
+  .err{color:var(--red-i);font-weight:600}
+  footer{color:var(--mut);font-size:13px;max-width:76ch}
+  a{color:var(--acc)}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>Подвійне кодування МКХ-10 <span class="pill">ПІЛОТ</span></h1>
+  <p class="sub">Шар «хрестик † — зірочка *» поверх НК 025:2021 і перевірка
+  сумісності діагнозу з ДСГ через основний діагностичний клас (ОДК).
+  Сторінка автономна: основні розділи порталу не змінено, дані читаються
+  з наявних довідників.</p>
+</header>
+
+<section class="demo">
+  <h2>Кейс для проби <span class="mut small">(лист вх. № 15577-13-26: дискектомія 40303-00)</span></h2>
+  <div class="row">
+    <button class="ghost" data-demo="G55.1">Паспорт G55.1</button>
+    <button class="ghost" data-demo-pair="B03|G55.1">B03 × G55.1</button>
+    <button class="ghost" data-demo-pair="B03|M51.1">B03 × M51.1 — «нічого не знайдено»</button>
+    <button class="ghost" data-demo-pair="I10|M51.1">I10 × M51.1 — де тариф насправді</button>
+  </div>
+</section>
+
+<section>
+  <h2>Паспорт коду діагнозу</h2>
+  <div class="row">
+    <input type="text" id="dxInput" placeholder="Код НК 025, напр. G55.1" spellcheck="false">
+    <button id="dxBtn">Перевірити</button>
+  </div>
+  <div id="dxOut"></div>
+</section>
+
+<section>
+  <h2>Сумісність пари ДСГ × основний діагноз</h2>
+  <p class="mut small" style="margin:0 0 10px">Те, що робить фільтр Довідника ДСГ у МІС:
+  група досяжна лише з діагнозів своєї ОДК. Несумісна пара і дає
+  «Нічого не знайдено за вашими параметрами пошуку».</p>
+  <div class="row">
+    <input type="text" id="grInput" list="grList" placeholder="ДСГ, напр. B03" spellcheck="false">
+    <datalist id="grList"></datalist>
+    <span class="mut">×</span>
+    <input type="text" id="pdInput" placeholder="Основний діагноз, напр. M51.1" spellcheck="false">
+    <button id="pairBtn">Перевірити пару</button>
+  </div>
+  <div id="pairOut"></div>
+</section>
+
+<section>
+  <h2>Що всередині</h2>
+  <div id="statsOut" class="small mut">Завантаження…</div>
+</section>
+
+<footer>
+  Пілот не відтворює групер ЕСОЗ і не бачить правил вибору між групами одного
+  кореня (CC/MCC) — цих правил немає в жодному відкритому джерелі. Він
+  відповідає на два вужчі питання: чи може код бути основним діагнозом і чи
+  сумісна пара «ДСГ × діагноз» за ОДК Таблиці співставлення.
+</footer>
+</main>
+<script src="pilot-koduvannia.js"></script>
+</body>
+</html>
