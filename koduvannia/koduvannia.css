@@ -1,0 +1,162 @@
+/* Розділ «Кодування». Спирається на styles.css і classifiers.css:
+   звідти беруться .hero, .stats, .search-panel, .search, .muted.
+   Власні класи — з префіксом kd-.
+
+   Кольори беремо лише з ролей порталу (--ink/--muted/--faint/--line/--surface/
+   --soft/--accent*/--teal*/--warning-*). Своєї ролі «помилка» в порталі немає,
+   тому три токени --kd-err-* оголошені тут з окремим блоком для темної теми —
+   рівно так, як це зроблено для --warning-* в auth-v2.css. */
+
+:root {
+  --kd-ok-bg:   #eaf7f0;
+  --kd-ok-line: #bfe3cc;
+  --kd-ok-ink:  #14532d;
+  --kd-err-bg:  #fdecea;
+  --kd-err-line:#f3c1bb;
+  --kd-err-ink: #8f2016;
+}
+:root.dark-theme {
+  --kd-ok-bg:   #0f2a1c;
+  --kd-ok-line: #276749;
+  --kd-ok-ink:  #86efac;
+  --kd-err-bg:  #3a1512;
+  --kd-err-line:#7f2d24;
+  --kd-err-ink: #fca5a5;
+}
+
+.kd-main { max-width: 1280px; margin: 0 auto; padding: 0 16px 56px; }
+
+/* ── вкладки ─────────────────────────────────────────────────────── */
+.kd-tabs {
+  max-width: 1280px; margin: 18px auto 14px; padding: 0 16px;
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.kd-tab {
+  font: inherit; font-weight: 600; font-size: 14.5px; cursor: pointer;
+  padding: 9px 16px; border-radius: 11px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+}
+.kd-tab:hover { border-color: var(--accent); }
+.kd-tab.active { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
+.kd-subtabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 12px; }
+.kd-subtab {
+  font: inherit; font-size: 13.5px; cursor: pointer; padding: 6px 13px;
+  border-radius: 9px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--muted);
+}
+.kd-subtab:hover { border-color: var(--accent); }
+.kd-subtab.active {
+  background: var(--accent-soft); border-color: var(--accent);
+  color: var(--accent-dark); font-weight: 600;
+}
+
+/* ── розкладка ───────────────────────────────────────────────────── */
+.kd-grid { display: grid; grid-template-columns: minmax(300px, 400px) 1fr; gap: 16px; align-items: start; }
+@media (max-width: 900px) { .kd-grid { grid-template-columns: 1fr; } }
+.kd-col-in, .kd-col-out { display: flex; flex-direction: column; gap: 12px; }
+
+.kd-panel { margin: 0; }
+.kd-h2 { font-size: 16px; margin: 0 0 6px; }
+.kd-hint { font-size: 13px; color: var(--faint); margin-top: 6px; min-height: 1.2em; }
+.kd-params { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 4px; }
+.kd-param { display: flex; flex-direction: column; gap: 4px; font-size: 12.5px; color: var(--faint); }
+.kd-param input, .kd-param select {
+  font: inherit; font-size: 14px; padding: 6px 10px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  min-width: 118px;
+}
+.kd-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+.kd-search-inline { flex: 1 1 260px; }
+
+.kd-btn {
+  font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+  padding: 8px 15px; border-radius: 9px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+}
+.kd-btn:hover { border-color: var(--accent); }
+.kd-btn-main { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
+.kd-btn.kd-demo { font-weight: 500; font-size: 13px; color: var(--muted); }
+.kd-count { font-size: 13px; color: var(--faint); }
+
+/* ── картки і повідомлення ───────────────────────────────────────── */
+.kd-card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 14px; padding: 16px 18px;
+}
+.kd-card + .kd-card { margin-top: 12px; }
+.kd-card-empty { color: var(--faint); }
+.kd-note {
+  background: var(--soft); border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: 10px; padding: 12px 15px; margin: 0 0 14px;
+  font-size: 13.5px; line-height: 1.55; color: var(--muted);
+}
+.kd-callout {
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 12px 15px; margin: 12px 0; font-size: 14px; line-height: 1.55;
+}
+.kd-callout-warn {
+  background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning-text);
+}
+
+/* ── результат групування ────────────────────────────────────────── */
+.kd-step { display: flex; gap: 12px; align-items: flex-start; padding: 11px 0; }
+.kd-step + .kd-step { border-top: 1px solid var(--line); }
+.kd-step-n {
+  flex: 0 0 26px; height: 26px; border-radius: 50%;
+  background: var(--accent-soft); color: var(--accent-dark);
+  display: grid; place-items: center; font-size: 13px; font-weight: 700;
+}
+.kd-step-b { flex: 1; min-width: 0; }
+.kd-step-t { font-size: 12.5px; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+.kd-code { font-weight: 700; font-size: 17px; letter-spacing: .02em; }
+
+.kd-chip {
+  display: inline-block; margin: 3px 5px 3px 0; padding: 3px 10px;
+  border-radius: 8px; font-size: 13px;
+  background: var(--soft); border: 1px solid var(--line); color: var(--ink);
+}
+.kd-chip-hit { background: var(--kd-ok-bg); border-color: var(--kd-ok-line); color: var(--kd-ok-ink); font-weight: 600; }
+.kd-chip-cond { background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning-text); }
+.kd-chip-off { opacity: .62; }
+
+.kd-tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; margin-top: 8px; }
+.kd-tbl th, .kd-tbl td { border: 1px solid var(--line); padding: 5px 9px; text-align: left; vertical-align: top; }
+.kd-tbl th { background: var(--soft); font-size: 12.5px; font-weight: 600; }
+.kd-tbl td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kd-tbl tr.win td { background: var(--kd-ok-bg); }
+.kd-scroll { overflow-x: auto; }
+
+.kd-formula {
+  font-family: ui-monospace, Consolas, monospace; font-size: 12.5px;
+  background: var(--soft); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 11px; margin-top: 9px; overflow-x: auto; white-space: nowrap;
+}
+.kd-src { font-size: 12px; color: var(--faint); font-weight: 400; }
+.kd-flag { border-radius: 9px; padding: 10px 13px; margin-top: 10px; border: 1px solid; font-size: 13.5px; }
+.kd-flag-no { background: var(--kd-err-bg); border-color: var(--kd-err-line); color: var(--kd-err-ink); }
+.kd-flag-warn { background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning-text); }
+.kd-flag-ok { background: var(--kd-ok-bg); border-color: var(--kd-ok-line); color: var(--kd-ok-ink); }
+
+/* ── настанови ───────────────────────────────────────────────────── */
+.kd-doc {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 14px; padding: 20px 26px 26px; max-width: 82ch;
+}
+.kd-doc h2 { font-size: 18px; margin: 26px 0 8px; }
+.kd-doc h2:first-child { margin-top: 4px; }
+.kd-doc p { line-height: 1.62; margin: 0 0 10px; }
+.kd-bridge { border-left: 3px solid var(--accent); padding-left: 12px; color: var(--muted); }
+.kd-rules dt { font-weight: 700; margin-top: 14px; }
+.kd-rules dd { margin: 4px 0 0; line-height: 1.6; color: var(--muted); }
+.kd-chain { line-height: 1.66; padding-left: 22px; }
+.kd-chain li { margin-bottom: 6px; }
+.kd-srclist { line-height: 1.6; padding-left: 20px; }
+.kd-srclist li { margin-bottom: 6px; }
+
+.kd-results { margin-top: 12px; }
+.kd-footer {
+  max-width: 1280px; margin: 0 auto; padding: 0 16px 40px;
+  font-size: 13px; color: var(--faint);
+}
+.kd-footer p { max-width: 88ch; }

@@ -102,8 +102,9 @@ let bootPaint = false;
 // кеш. Спіймано 09.08.2026 на розділі «Інструменти ДСГ» (drg), який тут забули.
 const PORTAL_SUBDIRS = [
   'algorithms', 'cabinet', 'chat', 'classifiers', 'dec', 'drg', 'expert-proposals', 'infocenter',
-  'map', 'mapping', 'news', 'pakety', 'passport', 'pilots', 'pmg-proposals', 'postanova', 'regulatory',
-  'relax', 'reminders', 'rentgen', 'rozjasnennya', 'skod', 'zoz-dogovr', 'zoz-poshuk', 'zoz-questions'
+  'koduvannia', 'map', 'mapping', 'news', 'pakety', 'passport', 'pilots', 'pmg-proposals', 'postanova',
+  'regulatory', 'relax', 'reminders', 'rentgen', 'rozjasnennya', 'skod', 'zoz-dogovr', 'zoz-poshuk',
+  'zoz-questions'
 ];
 
 function isInPortalSubdir() {
@@ -490,6 +491,9 @@ function applyAccess() {
       // гнізді «Інструменти» вкладки «Сервіси»: там усі пункти для expert, а
       // паспорт коду й розрахунок випадку — публічні, як і решта довідників.
       { text: '🧮 Інструменти ДСГ', path: 'drg/index.html' },
+      // Кодування: ланцюг «основний стан → ОДК → ДСГ → тариф», перевірка
+      // коректності випадку, настанови ВООЗ і аудит Таблиці співставлення.
+      { text: '🧭 Кодування випадку', path: 'koduvannia/index.html' },
       // Пілот: інтервенція + основний діагноз → допустимість за правилом
       // «хрестик — зірочка», досяжні ДСГ через ОДК і тариф кожної гілки.
       { text: '🧷 Перевірка кодування · пілот', path: 'classifiers/pilot-koduvannia.html' }
@@ -2459,6 +2463,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '👥', label: 'Посади · ДКХП-78', path: 'classifiers/posady.html' },
     { icon: '🔗', label: 'Таблиця співставлення', path: 'mapping/index.html' },
     { icon: '🧮', label: 'Інструменти ДСГ', path: 'drg/index.html' },
+    { icon: '🧭', label: 'Кодування випадку', path: 'koduvannia/index.html' },
     { icon: '🧷', label: 'Перевірка кодування · пілот', path: 'classifiers/pilot-koduvannia.html' },
     { icon: '📑', label: 'Договори ЗОЗ', path: 'zoz-dogovr/index.html' },
     { icon: '🏥', label: 'Хто це лікує', path: 'zoz-poshuk/index.html' },

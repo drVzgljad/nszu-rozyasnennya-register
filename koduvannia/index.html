@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>НавігаторПМГ26 | Кодування</title>
+  <link rel="stylesheet" href="../styles.css?v=20260808b">
+  <link rel="stylesheet" href="../classifiers/classifiers.css?v=20260809d">
+  <link rel="stylesheet" href="koduvannia.css?v=20260817a">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260806a">
+  <script type="module" src="../auth-v2.js?v=20260817k"></script>
+</head>
+<body id="top">
+  <header class="hero classifiers-hero">
+    <div class="hero-copy">
+      <div class="overline">Кодування · випадок → група → сума ·
+        <a class="xnav" href="../classifiers/index.html">↔ Хвороби НК 025</a>
+        <a class="xnav" href="../classifiers/nk026.html">↔ Інтервенції НК 026</a>
+        <a class="xnav" href="../mapping/index.html">↔ Таблиця співставлення</a>
+        <a class="xnav" href="../drg/index.html">↔ Інструменти ДСГ</a></div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів, постанови та правил</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Кодування випадку</h1>
+    </div>
+    <div class="stats" id="kdStats" aria-label="Статистика розділу"></div>
+  </header>
+
+  <nav class="kd-tabs" role="tablist" aria-label="Інструменти кодування">
+    <button class="kd-tab active" type="button" role="tab" data-mod="grouper"
+            aria-selected="true">🧭 Групування випадку</button>
+    <button class="kd-tab" type="button" role="tab" data-mod="check"
+            aria-selected="false">🧪 Перевірка коректності</button>
+    <button class="kd-tab" type="button" role="tab" data-mod="rules"
+            aria-selected="false">📖 Настанови з кодування</button>
+    <button class="kd-tab" type="button" role="tab" data-mod="audit"
+            aria-selected="false">🔍 Аудит Таблиці співставлення</button>
+  </nav>
+
+  <main class="kd-main">
+
+    <!-- ═══════════ 1. Групування випадку ═══════════ -->
+    <section class="kd-mod" id="mod-grouper" role="tabpanel" aria-label="Групування випадку">
+      <div class="kd-note" role="note">
+        <b>Групує не цей інструмент, а групер ЕСОЗ.</b> Тут показано ланцюг, за яким
+        випадок приходить у групу: основний діагноз задає основний діагностичний клас,
+        а втручання в межах цього класу — саму діагностично-споріднену групу.
+        Ланцюг відтворено за додатками A, B і E Definitions Manual AR-DRG 10.0 —
+        документа, з якого зроблено нашу Таблицю співставлення. Рівні складності
+        всередині групи (суфікси A, B, C) тут не рахуються: значень, за якими
+        австралійська модель ділить групу на рівні, у відкритих джерелах немає.
+      </div>
+
+      <div class="kd-grid">
+        <div class="kd-col-in">
+          <div class="search-panel nk-search kd-panel">
+            <label class="search">
+              <span>Основний діагноз — код НК 025</span>
+              <input id="gDx" type="search" autocomplete="off" spellcheck="false"
+                     placeholder="G55.1 · M51.1 · J18.9">
+            </label>
+            <div class="kd-hint" id="gDxHint"></div>
+          </div>
+          <div class="search-panel nk-search kd-panel">
+            <label class="search">
+              <span>Втручання — коди НК 026 через кому (можна не вказувати)</span>
+              <input id="gIv" type="search" autocomplete="off" spellcheck="false"
+                     placeholder="40303-00, 92514-19">
+            </label>
+            <div class="kd-hint" id="gIvHint"></div>
+          </div>
+          <div class="search-panel kd-panel">
+            <div class="kd-params">
+              <label class="kd-param"><span>Вік, повних років</span>
+                <input id="gAge" type="number" min="0" max="120" step="1" placeholder="—"></label>
+              <label class="kd-param"><span>Стать</span>
+                <select id="gSex">
+                  <option value="">не вказано</option>
+                  <option value="F">жіноча</option>
+                  <option value="M">чоловіча</option>
+                </select></label>
+              <label class="kd-param"><span>Готовність, пп. 4 п. 38</span>
+                <select id="gReady">
+                  <option value="1">не застосовувати</option>
+                  <option value="1.2" selected>1,2 — дорослим</option>
+                  <option value="1.3">1,3 — дітям</option>
+                </select></label>
+            </div>
+            <div class="kd-actions">
+              <button id="gRun" class="kd-btn kd-btn-main" type="button">Побудувати ланцюг</button>
+              <button class="kd-btn kd-demo" type="button"
+                      data-case="G55.1|40303-00">Кейс: G55.1 + дискектомія</button>
+              <button class="kd-btn kd-demo" type="button"
+                      data-case="M51.1|40303-00">Кейс: M51.1 + дискектомія</button>
+              <button class="kd-btn kd-demo" type="button"
+                      data-case="I10|40303-00">Кейс: група 801</button>
+            </div>
+          </div>
+        </div>
+        <div class="kd-col-out" id="gOut">
+          <div class="kd-card kd-card-empty">
+            <p class="muted">Уведіть основний діагноз — покажемо основний діагностичний
+              клас, досяжні групи, тариф кожної гілки та де наша Таблиця співставлення
+              розходиться з першоджерелом.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ 2. Перевірка коректності ═══════════ -->
+    <section class="kd-mod" id="mod-check" role="tabpanel" aria-label="Перевірка коректності" hidden>
+      <div class="kd-note" role="note">
+        <b>Це правила редагування австралійської моделі, а не норма українського права.</b>
+        Вони показують, які поєднання коду з віком, статтю та іншими кодами модель
+        вважає суперечливими. Українських аналогів цих таблиць немає в жодному
+        чинному акті, тому знахідка тут — привід перевірити випадок, а не підстава
+        для висновку про порушення. Ще одна межа: правила ключовані на кодах
+        МКХ-10-АМ, які подекуди на знак довші за НК 025 — з 2 034 вікових правил
+        1 983 лягають на наші коди точно, 15 підтягуються за підкодами, а 36
+        стосуються кодів, яких у НК 025 немає взагалі.
+      </div>
+      <div class="search-panel nk-search kd-panel">
+        <label class="search">
+          <span>Коди випадку — діагнози НК 025 та інтервенції НК 026 через кому</span>
+          <input id="cQ" type="search" autocomplete="off" spellcheck="false"
+                 placeholder="M51.1, 40303-00">
+        </label>
+        <div class="kd-params">
+          <label class="kd-param"><span>Вік, повних років</span>
+            <input id="cAge" type="number" min="0" max="120" step="1" placeholder="—"></label>
+          <label class="kd-param"><span>Вік, днів (для новонароджених)</span>
+            <input id="cDays" type="number" min="0" max="400" step="1" placeholder="—"></label>
+          <label class="kd-param"><span>Стать</span>
+            <select id="cSex">
+              <option value="">не вказано</option>
+              <option value="F">жіноча</option>
+              <option value="M">чоловіча</option>
+            </select></label>
+        </div>
+        <div class="kd-actions">
+          <button id="cRun" class="kd-btn kd-btn-main" type="button">Перевірити випадок</button>
+          <button class="kd-btn kd-demo" type="button" data-check="O80|30|M">Приклад: пологи в пацієнта чоловічої статі</button>
+          <button class="kd-btn kd-demo" type="button" data-check="P07.3|45|">Приклад: стан новонародженого у дорослого</button>
+          <button class="kd-btn kd-demo" type="button" data-check="C61|20|F">Приклад: рак простати, 20 років, жіноча стать</button>
+        </div>
+      </div>
+      <div id="cOut" class="kd-results"></div>
+
+      <div class="search-panel kd-panel">
+        <h2 class="kd-h2">Довідка правил</h2>
+        <div class="kd-hint">Пошук у самих таблицях: за кодом видно, які обмеження на нього накладено.</div>
+        <label class="search">
+          <span>Код у правилах</span>
+          <input id="rQ" type="search" autocomplete="off" spellcheck="false" placeholder="P07.3">
+        </label>
+        <div id="rOut" class="kd-results"></div>
+      </div>
+    </section>
+
+    <!-- ═══════════ 3. Настанови з кодування ═══════════ -->
+    <section class="kd-mod" id="mod-rules" role="tabpanel" aria-label="Настанови з кодування" hidden>
+      <div class="kd-note" role="note">
+        Джерело — <b>МКХ-10, том 2 «Instruction manual», 5-те видання</b> (ВООЗ):
+        розділ 3.1.3 про подвійне кодування і розділ 4.5 про морбідність. Це
+        міжнародні настанови, на яких стоїть уся система: НК 025:2021 —
+        національне впровадження МКХ-10, а Таблиця співставлення і ДСГ працюють
+        уже з тим основним діагнозом, який обрано за цими правилами. Формулювання
+        нижче — переказ українською з посиланням на пункт першоджерела.
+      </div>
+
+      <article class="kd-doc">
+        <h2 id="r-main">1. Що таке основний стан</h2>
+        <p><b>Основний стан</b> — це стан, діагностований <em>наприкінці</em> епізоду
+          медичної допомоги, який головно зумовив потребу пацієнта в лікуванні або
+          обстеженні. Якщо таких станів кілька, обирають той, на який пішло найбільше
+          ресурсів. Якщо діагноз так і не встановлено, основним стає головний симптом,
+          відхилення або проблема. <span class="kd-src">том 2, п. 4.5</span></p>
+        <p><b>Інші стани</b> — ті, що співіснують або виникли протягом епізоду і
+          <em>впливають на ведення пацієнта</em>. Стани з попереднього епізоду, які на
+          поточний не впливають, у запис не потрапляють. <span class="kd-src">том 2, п. 4.5</span></p>
+        <p class="kd-bridge">Чому це важливо для грошей: саме основний стан задає
+          основний діагностичний клас, а клас — гілку, якою випадок піде в
+          діагностично-споріднену групу. Заміна основного діагнозу змінює не
+          «формальність», а тариф.</p>
+
+        <h2 id="r-dagger">2. Правило хрестика і зірочки</h2>
+        <p>Для діагнозів, у яких є і загальне захворювання, і його прояв в окремому
+          органі, МКХ передбачає <b>два коди</b>: код основного захворювання позначено
+          <b>хрестиком (†)</b>, необов'язковий додатковий код прояву —
+          <b>зірочкою (*)</b>. Первинним є код з хрестиком, і він має вживатися завжди;
+          код із зірочкою <b>ніколи не вживається сам по собі</b>.
+          <span class="kd-src">том 2, п. 3.1.3</span></p>
+        <div class="kd-callout kd-callout-warn">
+          <b>Нюанс, який вирішує спори.</b> Той самий пункт 3.1.3 прямо допускає, що
+          <b>для кодування захворюваності послідовність хрестика і зірочки може бути
+          зворотною</b> — коли саме прояви хвороби є головним предметом допомоги.
+          Тобто заборона стосується вживання зірочкового коду <em>наодинці</em>, а не
+          його ролі основного стану в епізоді, де лікували саме прояв. Це слід
+          враховувати, перш ніж кваліфікувати вибір закладу як помилку кодування.
+        </div>
+        <p class="kd-bridge">У наших даних це видно предметно: у Таблиці співставлення
+          <b>313 із 341 коду прояву</b> присутні в переліках основного діагностичного
+          класу, тобто групер їх як основні приймає й помилки не показує.</p>
+
+        <h2 id="r-mb">3. Правила перевибору основного стану (MB1–MB5)</h2>
+        <p>Основний стан визначає лікар, і його вибір за замовчуванням приймається.
+          Але якщо з запису видно, що процедуру не дотримано, а уточнити в лікаря
+          неможливо, застосовується одне з п'яти правил перевибору.
+          <span class="kd-src">том 2, п. 4.5.3</span></p>
+        <dl class="kd-rules">
+          <dt>MB1 — дрібний стан записано основним, а значніший — серед інших</dt>
+          <dd>Якщо основним записано незначний, застарілий або випадковий стан, а
+            серед інших станів є значніший, який відповідає наданому лікуванню або
+            профілю відділення, основним переобирають останній.</dd>
+          <dt>MB2 — кілька станів записано як основний</dt>
+          <dd>Якщо основними записано кілька станів, які не кодуються разом, і з
+            решти запису видно, з приводу якого саме лікували, обирають його. Якщо
+            ні — перший названий.</dd>
+          <dt>MB3 — основним записано симптом уже діагностованого стану</dt>
+          <dd>Якщо основним записано симптом, ознаку чи проблему (розділи XVIII або
+            XXI), яка очевидно є проявом діагностованого стану, зазначеного далі, і
+            допомогу надавали саме з приводу цього стану, основним переобирають його.</dd>
+          <dt>MB4 — специфічність</dt>
+          <dd>Якщо основним записано загальне формулювання, а деінде в записі є
+            уточнення локалізації чи природи стану, основним переобирають уточнений.</dd>
+          <dt>MB5 — альтернативні діагнози</dt>
+          <dd>Якщо основним записано симптом із поміткою, що він може бути зумовлений
+            одним або іншим станом, основним лишається симптом. Якщо ж як варіанти
+            основного названо два і більше станів, обирають перший записаний.</dd>
+        </dl>
+        <p class="kd-bridge">Автоматичний моніторинг НСЗУ, який заклади описують як
+          «примусову заміну основного діагнозу», за своєю природою і є перевибором
+          основного стану. Правила MB1–MB5 — це та рамка, у якій така заміна має
+          пояснюватися: не «система так вирішила», а конкретне правило і його підстава.</p>
+
+        <h2 id="r-chain">4. Від коду до групи: як влаштований ланцюг</h2>
+        <ol class="kd-chain">
+          <li><b>Основний стан</b> обирає лікар за правилами розділу 4.5.</li>
+          <li>Код основного стану визначає <b>основний діагностичний клас</b> (ОДК).
+            У першоджерелі це Major Diagnostic Category; ОДК і MDC збігаються
+            один в один для класів 1–22.</li>
+          <li>Втручання епізоду шукають <b>у межах цього класу</b>: одне й те саме
+            втручання в різних класах веде в різні групи. Дискектомія 40303-00 у
+            класі 1 дає B03, у класі 8 — I10.</li>
+          <li>Якщо релевантного втручання немає, група береться з переліку
+            «медичних» груп самого діагнозу.</li>
+          <li>Якщо втручання загальне і <b>не пов'язане</b> з класом основного
+            діагнозу, випадок іде в групу <b>801</b>.</li>
+          <li>Вага групи з додатка 1 або 2 постанови множиться на базову ставку
+            за пунктом 38 — і виходить тариф.</li>
+        </ol>
+
+        <h2 id="r-sources">5. Джерела</h2>
+        <ul class="kd-srclist">
+          <li><b>МКХ-10, том 2 «Instruction manual», 5-те вид.</b> — правила вибору
+            основного стану, MB1–MB5, хрестик і зірочка.</li>
+          <li><b>AR-DRG Version 10.0 Definitions Manual, додатки A–E</b> — індекси
+            «діагноз → клас → група» і «втручання → клас → група», перелік загальних
+            втручань, таблиці конфліктів віку і статі, виключення моделі складності.</li>
+          <li><b>Постанова КМУ від 31.12.2025 № 1808</b>, додатки 1 і 2, пункти 34 і 38 —
+            ваги груп і формула тарифу.</li>
+          <li><b>Таблиця співставлення медичних послуг з кодами НК 025:2021 та/або
+            НК 026:2021</b> — чинна підстава групування в Україні.</li>
+        </ul>
+      </article>
+    </section>
+
+    <!-- ═══════════ 4. Аудит Таблиці співставлення ═══════════ -->
+    <section class="kd-mod" id="mod-audit" role="tabpanel" aria-label="Аудит Таблиці співставлення" hidden>
+      <div class="kd-note" role="note">
+        <b>Розбіжність — не помилка за замовчуванням.</b> Таблиця співставлення могла
+        свідомо відійти від австралійського першоджерела: інша редакція класифікаторів,
+        рішення робочої групи, українські класи 23А і 24, яких у моделі немає взагалі.
+        Перелік нижче — матеріал для експертного перегляду, а не список дефектів.
+      </div>
+      <nav class="kd-subtabs" role="tablist" aria-label="Зрізи аудиту">
+        <button class="kd-subtab active" type="button" data-slice="odk">Класи</button>
+        <button class="kd-subtab" type="button" data-slice="dxDiff">Діагнози: інший набір груп</button>
+        <button class="kd-subtab" type="button" data-slice="dxMissing">Діагнози: немає в нас</button>
+        <button class="kd-subtab" type="button" data-slice="ivDiff">Втручання: інший набір</button>
+        <button class="kd-subtab" type="button" data-slice="groups">Групи</button>
+      </nav>
+      <div class="search-panel kd-panel">
+        <div class="kd-actions">
+          <label class="search kd-search-inline">
+            <span>Фільтр за кодом або групою</span>
+            <input id="aQ" type="search" autocomplete="off" spellcheck="false" placeholder="M51 · I10">
+          </label>
+          <button id="aCsv" class="kd-btn" type="button">⤓ Експорт зрізу у CSV</button>
+          <span class="kd-count" id="aCount"></span>
+        </div>
+      </div>
+      <div id="aOut" class="kd-results"></div>
+    </section>
+  </main>
+
+  <footer class="kd-footer">
+    <p>Розділ не замінює групер ЕСОЗ і не є підставою для оплати. Підстава —
+      Таблиця співставлення, постанова № 1808 і договір із НСЗУ. Австралійські
+      додатки використано як пояснювальне джерело механізму, з якого ця Таблиця
+      зроблена.</p>
+  </footer>
+
+  <!-- версію бампити при КОЖНІЙ правці js: інакше HTTP-кеш браузера і
+       сервіс-воркер віддають стару копію, а сторінка мовчки не працює -->
+  <script src="koduvannia.js?v=5"></script>
+</body>
+</html>
