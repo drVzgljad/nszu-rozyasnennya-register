@@ -6,6 +6,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let proposalsList = [];
 let selectedProposal = null;
+let editingProposal = null; // пропозиція, відкрита у формі на редагування
 let packagesMap = {}; // mapping number -> title
 
 const LETTERS_BUCKET = 'proposal-letters';
@@ -44,6 +45,7 @@ async function init() {
   byId("packageFilter").addEventListener("change", filterAndRender);
   byId("topicFilter").addEventListener("change", filterAndRender);
   byId("addProposalBtn").addEventListener("click", showProposalForm);
+  byId("editProposalBtn").addEventListener("click", showEditForm);
   byId("cancelProposalBtn").addEventListener("click", showDefaultState);
   byId("newProposalForm").addEventListener("submit", handleProposalSubmit);
   byId("upvoteBtn").addEventListener("click", () => {
@@ -261,14 +263,55 @@ async function selectProposal(p) {
     const { data: profile } = await sb.from('profiles').select('role').eq('id', session.user.id).single();
     const isDirector = (profile?.role === 'director' || profile?.role === 'admin');
     byId("resolutionActions").style.display = isDirector ? "flex" : "none";
+    const isAuthor = session.user.id === p.user_id;
+    byId("editProposalBtn").style.display = (isAuthor || isDirector) ? "inline-flex" : "none";
   } else {
     byId("resolutionActions").style.display = "none";
+    byId("editProposalBtn").style.display = "none";
   }
 
   // Fetch and render voters names
   await renderVoters(p);
 
   // Smooth scroll for mobile layout
+  if (window.innerWidth <= 1040) {
+    byId("proposalPanelSide").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
+function resetFormMode() {
+  editingProposal = null;
+  byId("proposalFormTitle").textContent = "Подати нову пропозицію";
+  byId("submitProposalBtn").textContent = "Опублікувати пропозицію";
+  byId("pLetterFileHint").textContent = "PDF, Word або скан (JPG/PNG), до 20 МБ. Необов'язково.";
+}
+
+function showEditForm() {
+  const p = selectedProposal;
+  if (!p) return;
+  hideDescriptionModal();
+  editingProposal = p;
+
+  byId("panelEmptyState").style.display = "none";
+  byId("proposalDetailViewer").style.display = "none";
+  byId("proposalFormContainer").style.display = "block";
+  byId("formStatus").textContent = "";
+
+  byId("proposalFormTitle").textContent = "Редагувати пропозицію";
+  byId("submitProposalBtn").textContent = "Зберегти зміни";
+
+  byId("pTopic").value = p.topic || "";
+  byId("pPackage").value = p.package_id || "";
+  byId("pSubmitter").value = p.submitter || "";
+  byId("pLetterNumber").value = p.letter_number || "";
+  byId("pLetterDate").value = (p.letter_date || "").slice(0, 10);
+  byId("pTitle").value = p.title || "";
+  byId("pDesc").value = p.description || "";
+  byId("pLetterFile").value = "";
+  byId("pLetterFileHint").textContent = p.letter_url
+    ? "Прикріплений лист збережеться. Оберіть новий файл лише щоб замінити його."
+    : "PDF, Word або скан (JPG/PNG), до 20 МБ. Необов'язково.";
+
   if (window.innerWidth <= 1040) {
     byId("proposalPanelSide").scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -282,6 +325,7 @@ function showProposalForm() {
   byId("panelEmptyState").style.display = "none";
   byId("proposalDetailViewer").style.display = "none";
   
+  resetFormMode();
   byId("proposalFormContainer").style.display = "block";
   byId("formStatus").textContent = "";
   byId("newProposalForm").reset();
@@ -295,6 +339,7 @@ function showDefaultState() {
   hideDescriptionModal();
   selectedProposal = null;
   renderCards(proposalsList);
+  resetFormMode();
   
   byId("proposalFormContainer").style.display = "none";
   byId("proposalDetailViewer").style.display = "none";
@@ -313,12 +358,14 @@ async function handleProposalSubmit(e) {
   const description = byId("pDesc").value.trim();
   const statusEl = byId("formStatus");
   const submitBtn = byId("submitProposalBtn");
+  const isEdit = !!editingProposal;
+  const idleLabel = isEdit ? 'Зберегти зміни' : 'Опублікувати пропозицію';
 
   const fail = (msg) => {
     statusEl.style.color = '#c0392b';
     statusEl.textContent = msg;
     submitBtn.disabled = false;
-    submitBtn.textContent = 'Опублікувати пропозицію';
+    submitBtn.textContent = idleLabel;
   };
 
   if (!title || !description || !topic) return;
@@ -334,7 +381,7 @@ async function handleProposalSubmit(e) {
   }
 
   submitBtn.disabled = true;
-  submitBtn.textContent = 'Опублікування...';
+  submitBtn.textContent = isEdit ? 'Збереження...' : 'Опублікування...';
   statusEl.textContent = '';
 
   const { data: { session } } = await sb.auth.getSession();
@@ -359,10 +406,45 @@ async function handleProposalSubmit(e) {
     }
     const { data: pub } = sb.storage.from(LETTERS_BUCKET).getPublicUrl(path);
     letterUrl = pub?.publicUrl || null;
-    submitBtn.textContent = 'Опублікування...';
+    submitBtn.textContent = isEdit ? 'Збереження...' : 'Опублікування...';
   }
 
   const profileName = session.user.user_metadata?.full_name || session.user.email.split('@')[0];
+
+  if (isEdit) {
+    const updatePayload = {
+      package_id: pkgId || null,
+      title: title,
+      description: description,
+      topic: topic,
+      submitter: submitter || null,
+      letter_number: letterNumber || null,
+      letter_date: letterDate || null
+    };
+    if (letterUrl) updatePayload.letter_url = letterUrl; // новий файл замінює старий; без нового — лишається як було
+
+    const editedId = editingProposal.id;
+    const { error: updError } = await sb.from('proposals').update(updatePayload).eq('id', editedId);
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = idleLabel;
+
+    if (updError) {
+      statusEl.style.color = '#c0392b';
+      statusEl.textContent = updError.message;
+    } else {
+      statusEl.style.color = 'var(--teal, #08705e)';
+      statusEl.textContent = 'Зміни збережено!';
+      byId("newProposalForm").reset();
+      setTimeout(async () => {
+        showDefaultState();
+        await loadProposals();
+        const updated = proposalsList.find(x => x.id === editedId);
+        if (updated) selectProposal(updated);
+      }, 1200);
+    }
+    return;
+  }
 
   const payload = {
     user_id: session.user.id,
