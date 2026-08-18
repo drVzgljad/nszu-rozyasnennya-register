@@ -25,6 +25,7 @@ async function init() {
   byId("expertSearch").addEventListener("input", filterAndRender);
   byId("packageSelector").addEventListener("change", filterAndRender);
   byId("statusFilter").addEventListener("change", filterAndRender);
+  byId("topicFilter").addEventListener("change", filterAndRender);
   byId("toggleMeetingModeBtn").addEventListener("click", toggleMeetingMode);
   
   byId("resetTimerBtn").addEventListener("click", resetTimer);
@@ -238,12 +239,25 @@ function populateFilters() {
     opt.textContent = `Пакет ${num}: ${uniquePackages[num].substring(0, 50)}...`;
     selector.appendChild(opt);
   });
+
+  const topicSelect = byId("topicFilter");
+  if (topicSelect) {
+    const topics = [...new Set(proposalsList.map(p => p.topic).filter(Boolean))].sort();
+    topicSelect.innerHTML = '<option value="">Усі теми</option>';
+    topics.forEach(t => {
+      const opt = document.createElement("option");
+      opt.value = t;
+      opt.textContent = t.charAt(0).toUpperCase() + t.slice(1);
+      topicSelect.appendChild(opt);
+    });
+  }
 }
 
 function filterAndRender() {
   const searchVal = byId("expertSearch").value.toLowerCase().trim();
   const pkgVal = byId("packageSelector").value;
   const statusVal = byId("statusFilter").value;
+  const topicVal = byId("topicFilter") ? byId("topicFilter").value : "";
 
   filteredList = proposalsList.filter(p => {
     const matchesSearch = !searchVal || 
@@ -254,14 +268,15 @@ function filterAndRender() {
     
     const matchesPkg = !pkgVal || p.package_number == pkgVal;
     const matchesStatus = !statusVal || p.director_status === statusVal;
+    const matchesTopic = !topicVal || p.topic === topicVal;
     
-    return matchesSearch && matchesPkg && matchesStatus;
+    return matchesSearch && matchesPkg && matchesStatus && matchesTopic;
   });
 
   renderCards();
   
   const totalInPkg = proposalsList.filter(p => !pkgVal || p.package_number == pkgVal).length;
-  if (!pkgVal && !searchVal) {
+  if (!pkgVal && !searchVal && !topicVal) {
     byId("packagesSummaryText").textContent = `Всього пропозицій у базі: ${proposalsList.length}`;
   } else {
     byId("packagesSummaryText").textContent = pkgVal 
@@ -276,8 +291,9 @@ function renderCards() {
 
   const searchVal = byId("expertSearch").value.toLowerCase().trim();
   const pkgVal = byId("packageSelector").value;
+  const topicVal = byId("topicFilter") ? byId("topicFilter").value : "";
 
-  if (!pkgVal && !searchVal) {
+  if (!pkgVal && !searchVal && !topicVal) {
     container.innerHTML = `
       <div class="empty-state-list" style="padding: 40px 15px; text-align: center; color: var(--ink-muted); font-size: 0.9rem;">
         <div style="font-size: 2.5rem; margin-bottom: 12px; opacity: 0.7;">📋</div>
