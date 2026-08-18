@@ -15,7 +15,9 @@ const TOPIC_LABELS = {
   'zahalne': 'ПМГ — загальні питання',
   'zmina-paketu': 'Зміна пакета',
   'novyi-paket': 'Новий пакет',
-  'taryfy': 'Тарифи'
+  'taryfy': 'Тарифи',
+  'koduvannia': 'Кодування',
+  'specialisty': 'Спеціалісти'
 };
 
 const RESPONSE_LABELS = {
