@@ -77,12 +77,53 @@
 
 /* ── Розкривні блоки паспорта ──────────────────────────────────
    Текст Довідника і довгі умови вимог ховаються за <details>: практичні
-   блоки (пакети, Перелік, код) читаються без прокрутки, а хвіст — на клік. */
-.po-fold > summary { cursor: pointer; list-style: none; }
+   блоки (пакети, Перелік, код) читаються без прокрутки, а хвіст — на клік.
+
+   Заголовок був таким самим сірим, як нерухомі підписи інших блоків,
+   і нічим не показував, що на нього можна натиснути. Тепер сама назва
+   йде основним кольором тексту, сірим лишається лише хвіст-підсумок
+   після тире, а на наведення заголовок і трикутник беруть акцент
+   і підсвічується підкладка. */
+.po-fold > summary {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  /* Від'ємні поля гасять власні відступи: підкладка виступає
+     за текст, але сам заголовок лишається на одній вертикалі
+     з тілом блока. У .nk-reader відступ 22px — є куди виступати. */
+  margin: 0 -8px;
+  padding: 4px 8px;
+  border-radius: 9px;
+  cursor: pointer;
+  list-style: none;
+  transition: background-color .12s ease;
+}
 .po-fold > summary::-webkit-details-marker { display: none; }
-.po-fold > summary h3 { display: inline-block; margin: 0; }
-.po-fold > summary::before { content: "▸ "; color: var(--muted); font-size: .8rem; }
-.po-fold[open] > summary::before { content: "▾ "; }
+.po-fold > summary h3 { margin: 0; color: var(--ink); transition: color .12s ease; }
+.po-fold > summary::before {
+  content: "▸";
+  /* ▸ і ▾ різної ширини — фіксована колонка, щоб заголовок
+     не сіпався на кожному кліку. */
+  flex: 0 0 .75em;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: color .12s ease;
+}
+.po-fold[open] > summary::before { content: "▾"; }
+/* Підкладка — прозорий акцент, а не --accent-soft: у темній темі той
+   токен дорівнює --surface один в один, і підсвітка була б невидима.
+   Перший рядок — запасний для браузерів без color-mix. */
+.po-fold > summary:hover { background: var(--accent-soft); }
+.po-fold > summary:hover {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.po-fold > summary:hover h3,
+.po-fold > summary:hover::before { color: var(--accent-dark); }
+.po-fold > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
 .po-fold[open] > summary { margin-bottom: 8px; }
 
 /* Довга умова вимоги: заголовок — початок тексту, повний текст — усередині. */
@@ -123,5 +164,7 @@
 /* ── Темна тема ────────────────────────────────────────────────
    Портал перемикає тему класом :root.dark-theme (не prefers-color-scheme),
    і всі токени, використані вище (--surface, --soft, --line, --warm,
-   --teal-dark, --accent-soft), у ньому вже перевизначені — власних правил
-   на темну тему цій сторінці не потрібно. */
+   --teal-dark), у ньому вже перевизначені — власних правил на темну тему
+   цій сторінці не потрібно. Пастка: --accent-soft у темній темі дорівнює
+   --surface, тож як підсвітку поверх картки його брати не можна — див.
+   наведення на .po-fold > summary. */

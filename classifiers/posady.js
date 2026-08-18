@@ -774,9 +774,9 @@
     const years = (info.bpr || {}).period_max_years || 5;
     const ladder = Object.entries(b.transition || {})
       .map(([y, v]) => `${v} — у ${y}`).join(", ");
-    return `<div class="reader-block">
-      <h3>Атестація і БПР <span class="muted">— ${esc(title)}${
-        act.revision ? ", ред. " + esc(String(act.revision).split(" ")[0]) : ""}</span></h3>
+    return `<details class="reader-block po-fold" open>
+      <summary><h3>Атестація і БПР <span class="muted">— ${esc(title)}${
+        act.revision ? ", ред. " + esc(String(act.revision).split(" ")[0]) : ""}</span></h3></summary>
       ${spec.length ? `<p class="po-atest-line">Атестується за ${spec.length > 1
         ? "спеціальностями" : "спеціальністю"} Номенклатури (додаток 1 до Порядку):
         <b>${spec.map((r) => esc(r.name)).join("</b>, <b>")}</b>.</p>` : ""}
@@ -789,7 +789,7 @@
       <p class="muted po-atest-note">${esc(act.note_war || "")}. Зіставлення
          «посада ↔ Номенклатура» обчислене за професійними кваліфікаціями двох
          актів МОЗ.</p>
-    </div>`;
+    </details>`;
   }
 
   /** Кадрові вимоги пакетів, які називають цю характеристику.
