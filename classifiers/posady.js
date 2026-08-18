@@ -215,6 +215,7 @@
     const view = (q.get("view") || "").trim();
     if (view === "codes") {
       codesMode = true;
+      syncViewTabs();
       showCodes();
     } else {
       const viewBox = { pkg: el.onlyPkg, gap: el.onlyGap }[view];
@@ -248,6 +249,9 @@
       ["Кодів НСЗУ для ЕСОЗ", c.code || 0],
       ["Посад з вимог поза Переліком МОЗ", c.orphan_names || 0],
     ];
+    const tD = $("#cntD"), tC = $("#cntC");
+    if (tD) tD.textContent = nf(DKHP.length);
+    if (tC) tC.textContent = nf(CODES.length);
     el.stats.innerHTML = cards.map(([k, v]) =>
       `<div class="stat"><span class="stat-num">${nf(v)}</span><span class="stat-key">${k}</span></div>`
     ).join("");
@@ -412,6 +416,32 @@
     });
     $$("#mobileTabs .mobile-tab").forEach((b) =>
       b.addEventListener("click", () => setTab(b.dataset.tab)));
+    $$(".po-tab").forEach((b) =>
+      b.addEventListener("click", () => setView(b.dataset.view)));
+  }
+
+  /** Вкладки реєстрів. codesMode міняють ще й refilter/resetForm (дотик до
+   *  каскаду чи чекбоксів — це вже робота зі списком характеристик), тож
+   *  вигляд вкладок зводимо в одному місці й кличемо звідусіль. */
+  function syncViewTabs() {
+    $$(".po-tab").forEach((b) => {
+      const on = (b.dataset.view === "codes") === codesMode;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-selected", on ? "true" : "false");
+    });
+  }
+
+  function setView(mode) {
+    if (mode === "codes") {
+      if (codesMode) return;
+      codesMode = true;
+      el.onlyGap.checked = false;
+      syncViewTabs();
+      showCodes();
+    } else {
+      if (!codesMode) return;
+      refilter();          // сам скидає codesMode і синхронізує вкладки
+    }
   }
 
   function applyFilters(list) {
@@ -426,6 +456,7 @@
     // Дотик до каскаду чи чекбоксів — це вже робота зі списком характеристик:
     // режим реєстру кодів на цьому закінчується.
     codesMode = false;
+    syncViewTabs();
     if (el.onlyGap.checked) { showGaps(); return; }
     if (el.search.value.trim() || el.batch.value.trim()) { runSearch(); return; }
     const list = applyFilters(currentList());
@@ -949,6 +980,7 @@
   // ══════════════════════════════════════════════════════════
   function resetForm() {
     codesMode = false;
+    syncViewTabs();
     el.search.value = "";
     el.onlyPkg.checked = false; el.onlyCode.checked = false; el.onlyGap.checked = false;
     el.batch.value = ""; lastBatchFound = []; el.batchCopy.hidden = true;

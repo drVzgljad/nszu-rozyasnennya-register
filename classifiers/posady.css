@@ -75,6 +75,27 @@
   background: none; margin: 0 0 9px;
 }
 
+/* ── Перемикач реєстрів ────────────────────────────────────────
+   Той самий вигляд, що вкладки реєстрів у «Спеціальностях та посадах»
+   (.spec-toggle), щоб дві сусідні сторінки перемикалися однаково.
+   Підсвітка на наведенні — прозорий акцент, а не --accent-soft: кнопка
+   лежить на картці --surface, а в темній темі --accent-soft дорівнює
+   --surface, і наведення не було б видно. */
+.po-toggle { display: flex; gap: 6px; margin-bottom: 12px; }
+.po-tab {
+  flex: 1 1 0; padding: 9px 10px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--soft); color: var(--muted);
+  font: inherit; font-size: .87rem; font-weight: 700; line-height: 1.2;
+  transition: background-color .12s ease, color .12s ease;
+}
+.po-tab:hover { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.po-tab:hover { color: var(--accent-dark); }
+.po-tab.active {
+  background: var(--accent-fill); color: #fff; border-color: transparent;
+}
+.po-tab.active:hover { color: #fff; }
+.po-tab .tag { display: block; font-size: .7rem; font-weight: 600; opacity: .8; }
+
 /* ── Розкривні блоки паспорта ──────────────────────────────────
    Текст Довідника і довгі умови вимог ховаються за <details>: практичні
    блоки (пакети, Перелік, код) читаються без прокрутки, а хвіст — на клік.
