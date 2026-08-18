@@ -821,11 +821,15 @@
       if (b) b.push(r); else byPkg.set(r.pkg, [r]);
     });
     const crit = rows.filter((r) => r.critical).length;
-    return `<div class="reader-block po-pkgblock">
-      <h3>Кадрова вимога пакетів ПМГ-2026
+    // Розкривачка (як у блоків Довідника): у ходових посад тут по півтора
+    // десятка пакетів, і решта паспорта — код НСЗУ, Перелік № 1065,
+    // кваліфікаційна характеристика — їде за нижній край екрана. Відкрито
+    // за замовчуванням: підсумок у заголовку читають найчастіше.
+    return `<details class="reader-block po-pkgblock po-fold" open>
+      <summary><h3>Кадрова вимога пакетів ПМГ-2026
         <span class="muted">— ${byPkg.size} ${plural(byPkg.size, "пакет", "пакети", "пакетів")}, ${
           rows.length} ${plural(rows.length, "вимога", "вимоги", "вимог")}${
-          crit ? " (критичних: " + crit + ")" : ""}</span></h3>
+          crit ? " (критичних: " + crit + ")" : ""}</span></h3></summary>
       <div class="po-pkglist">${Array.from(byPkg.entries()).map(([num, list]) => `
         <div class="po-pkgrow">
           <a class="pk-pkg" href="../passport/index.html?package=${encodeURIComponent(num)}${
@@ -841,7 +845,7 @@
             </div>`).join("")}
           </div>
         </div>`).join("")}</div>
-    </div>`;
+    </details>`;
   }
 
   /** Умова вимоги. Короткі — як були, у рядок; довгі (умови на пів сотні
