@@ -774,7 +774,7 @@
     const years = (info.bpr || {}).period_max_years || 5;
     const ladder = Object.entries(b.transition || {})
       .map(([y, v]) => `${v} — у ${y}`).join(", ");
-    return `<details class="reader-block po-fold" open>
+    return `<details class="reader-block po-fold">
       <summary><h3>Атестація і БПР <span class="muted">— ${esc(title)}${
         act.revision ? ", ред. " + esc(String(act.revision).split(" ")[0]) : ""}</span></h3></summary>
       ${spec.length ? `<p class="po-atest-line">Атестується за ${spec.length > 1
@@ -823,9 +823,8 @@
     const crit = rows.filter((r) => r.critical).length;
     // Розкривачка (як у блоків Довідника): у ходових посад тут по півтора
     // десятка пакетів, і решта паспорта — код НСЗУ, Перелік № 1065,
-    // кваліфікаційна характеристика — їде за нижній край екрана. Відкрито
-    // за замовчуванням: підсумок у заголовку читають найчастіше.
-    return `<details class="reader-block po-pkgblock po-fold" open>
+    // кваліфікаційна характеристика — їде за нижній край екрана.
+    return `<details class="reader-block po-pkgblock po-fold">
       <summary><h3>Кадрова вимога пакетів ПМГ-2026
         <span class="muted">— ${byPkg.size} ${plural(byPkg.size, "пакет", "пакети", "пакетів")}, ${
           rows.length} ${plural(rows.length, "вимога", "вимоги", "вимог")}${
@@ -874,12 +873,11 @@
       }
       return `<p>${esc(t)}</p>`;
     }).join("");
-    // Текст Довідника — довідковий хвіст паспорта, практичні блоки стоять
-    // вище. «Кваліфікаційні вимоги» лишаються розгорнутими — їх дивляться
-    // найчастіше; «Завдання» і «Повинен знати» по півтори-дві тисячі знаків
-    // ховаються за розкривачкою, і паспорт вміщається в екран.
-    const open = name === "req" || name === "intro";
-    return `<details class="reader-block po-block po-fold"${open ? " open" : ""}>
+    // Усі блоки паспорта згорнуті за замовчуванням, і текст Довідника теж:
+    // у ходової посади розгорнутий паспорт — це кілька екранів, а потрібен
+    // зазвичай один блок. Підсумки в заголовках (скільки пакетів, який
+    // наказ) видно й згорнутими, тож обирати є з чого не розкриваючи.
+    return `<details class="reader-block po-block po-fold">
       <summary><h3>${esc(BLOCK_TITLE[name] || name)}</h3></summary>
       ${body}
     </details>`;
