@@ -47,6 +47,8 @@
     batchCopy: $("#ivBatchCopy"), batchClear: $("#ivBatchClear"),
   };
   let lastBatchFound = [];
+  let lastShown = [];   // поточний вид результатів: [{t: термін|null, e: запис}] — для експорту
+  let exportWhat = "";  // підпис поточного виду (запит/розділ/родина) — йде в імʼя файлу
   let readerEmptyHTML = "";
 
   // ══════════════════════════════════════════════════════════
@@ -259,7 +261,7 @@
       if ((ev.ctrlKey || ev.metaKey) && ev.key === "Enter") { ev.preventDefault(); el.batchRun.click(); }
     });
     el.batchClear.addEventListener("click", () => {
-      el.batch.value = ""; el.batchCopy.hidden = true; lastBatchFound = [];
+      el.batch.value = ""; el.batchCopy.hidden = true; lastBatchFound = []; lastShown = [];
       el.results.hidden = true; el.results.innerHTML = "";
       el.count.textContent = ready ? nf(INDEX.length) + " кодів · оберіть розділ або введіть запит" : "Завантаження…";
     });
@@ -290,7 +292,7 @@
     const raw = el.search.value.trim();
     const filtering = el.onlyPmg.checked || el.only377.checked;
     if (!raw && !filtering) {
-      el.results.hidden = true; el.batchCopy.hidden = true; lastBatchFound = [];
+      el.results.hidden = true; el.batchCopy.hidden = true; lastBatchFound = []; lastShown = [];
       if (ready) el.count.textContent = nf(INDEX.length) + " кодів · оберіть розділ або введіть запит";
       return;
     }
@@ -325,11 +327,203 @@
 
   const CAP = 500;
   function showResults(list, what) {
+    lastShown = list.map((e) => ({ t: null, e }));
+    exportWhat = what || "";
     el.count.textContent = list.length
       ? `Знайдено ${nf(list.length)}${list.length > CAP ? " · показано " + CAP : ""}${what ? " · " + what : ""}`
       : "Нічого не знайдено" + (what ? " · " + what : "");
-    el.results.innerHTML = list.slice(0, CAP).map(resultRow).join("");
+    el.results.innerHTML = (list.length ? exportBar(list.length) : "") +
+      list.slice(0, CAP).map(resultRow).join("");
     el.results.hidden = false;
+  }
+
+  /* ── Експорт поточних результатів ─────────────────────────
+     Панель над списком: копіювання всіх знайдених кодів (не лише
+     показаних CAP/PER) і вивантаження таблиці Excel (.xlsx). */
+  function exportBar(n) {
+    return `<div class="nk-export" role="toolbar" aria-label="Експорт результатів пошуку">
+      <span class="exp-note">Експорт ${nf(n)} знайдених:</span>
+      <button type="button" class="nk-exp" data-exp="codes" title="Скопіювати всі знайдені коди — по одному в рядку">⧉ Коди</button>
+      <button type="button" class="nk-exp" data-exp="full" title="Скопіювати всі знайдені коди з назвами — код, табуляція, назва">⧉ Коди + назви</button>
+      <button type="button" class="nk-exp" data-exp="xlsx" title="Сформувати і скачати таблицю Excel (.xlsx)">⬇ Excel</button>
+    </div>`;
+  }
+
+  function runExport(btn) {
+    if (!lastShown.length) return;
+    if (btn.dataset.exp === "xlsx") { downloadXlsx(); return; }
+    const codesOnly = btn.dataset.exp === "codes";
+    const seen = new Set(), lines = [];
+    for (const { e } of lastShown) {
+      if (seen.has(e.c)) continue;
+      seen.add(e.c);
+      lines.push(codesOnly ? e.c : e.c + "\t" + e.n);
+    }
+    copyText(lines.join("\n"), btn, `✓ Скопійовано ${nf(lines.length)}`);
+  }
+
+  function copyText(text, btn, okLabel) {
+    const done = () => {
+      if (!btn) return;
+      const old = btn.textContent;
+      btn.textContent = okLabel || "✓";
+      setTimeout(() => (btn.textContent = old), 1600);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText)
+      navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
+    else fallbackCopy(text, done);
+  }
+  function fallbackCopy(text, done) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.cssText = "position:fixed;opacity:0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) { /* ignore */ }
+    ta.remove();
+    done();
+  }
+
+  // ── Excel (.xlsx): мінімальний OOXML + zip без стиснення ──
+  function downloadXlsx() {
+    const hasTerms = lastShown.some((r) => r.t);
+    const head = (hasTerms ? ["Запит"] : []).concat(
+      ["Код", "Назва інтервенції", "Розділ", "Назва розділу", "Пакети ПМГ", "Наказ № 377"]);
+    const widths = (hasTerms ? [22] : []).concat([12, 72, 8, 42, 14, 12]);
+    const rows = lastShown.map(({ t, e }) => {
+      const ch = chapterByNo.get(e.ch);
+      return (hasTerms ? [t || ""] : []).concat([
+        e.c, e.n,
+        e.es ? "" : String(e.ch || ""),
+        e.es ? "Перелік послуг ЕСОЗ" : (ch ? ch.title : ""),
+        e.pk ? e.pk.join(", ") : "",
+        e.o3 ? "так" : ""]);
+    });
+    const blob = new Blob(zipStore(xlsxParts(head, rows, widths)),
+      { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const slug = exportWhat.replace(/[^0-9A-Za-z\u0400-\u04FF]+/g, "_")
+      .replace(/^_+|_+$/g, "").slice(0, 40) || "eksport";
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "nk026_" + slug + "_" + new Date().toISOString().slice(0, 10) + ".xlsx";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  }
+
+  function xEsc(s) {
+    return String(s == null ? "" : s)
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function xlsxParts(head, rows, widths) {
+    const cols = widths.map((w, i) =>
+      `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join("");
+    const cell = (v, s) =>
+      `<c t="inlineStr"${s ? ' s="1"' : ""}><is><t xml:space="preserve">${xEsc(v)}</t></is></c>`;
+    const row = (vals, s) => `<row>${vals.map((v) => cell(v, s)).join("")}</row>`;
+    const sheet =
+      '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+      '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+      '<sheetViews><sheetView workbookViewId="0">' +
+      '<pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/>' +
+      '</sheetView></sheetViews>' +
+      `<cols>${cols}</cols><sheetData>${row(head, true)}${rows.map((r) => row(r)).join("")}</sheetData></worksheet>`;
+    return [
+      { name: "[Content_Types].xml", text:
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+        '<Default Extension="xml" ContentType="application/xml"/>' +
+        '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+        '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+        '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+        '</Types>' },
+      { name: "_rels/.rels", text:
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+        '</Relationships>' },
+      { name: "xl/workbook.xml", text:
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
+        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+        '<sheets><sheet name="НК 026" sheetId="1" r:id="rId1"/></sheets></workbook>' },
+      { name: "xl/_rels/workbook.xml.rels", text:
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+        '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+        '</Relationships>' },
+      { name: "xl/styles.xml", text:
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+        '<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font>' +
+        '<font><b/><sz val="11"/><name val="Calibri"/></font></fonts>' +
+        '<fills count="2"><fill><patternFill patternType="none"/></fill>' +
+        '<fill><patternFill patternType="gray125"/></fill></fills>' +
+        '<borders count="1"><border/></borders>' +
+        '<cellStyleXfs count="1"><xf/></cellStyleXfs>' +
+        '<cellXfs count="2"><xf xfId="0"/><xf xfId="0" fontId="1" applyFont="1"/></cellXfs>' +
+        '</styleSheet>' },
+      { name: "xl/worksheets/sheet1.xml", text: sheet },
+    ];
+  }
+
+  /** ZIP без стиснення (method 0): достатньо для .xlsx, нуль залежностей. */
+  function zipStore(files) {
+    const enc = new TextEncoder();
+    const parts = [], cdir = [];
+    let offset = 0, count = 0;
+    const now = new Date();
+    const dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+    const dosDate = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+    for (const f of files) {
+      const name = enc.encode(f.name), data = enc.encode(f.text);
+      const crc = crc32(data);
+      const lh = new DataView(new ArrayBuffer(30));
+      lh.setUint32(0, 0x04034b50, true);
+      lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 0, true);
+      lh.setUint16(10, dosTime, true); lh.setUint16(12, dosDate, true);
+      lh.setUint32(14, crc, true); lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true);
+      lh.setUint16(26, name.length, true); lh.setUint16(28, 0, true);
+      parts.push(new Uint8Array(lh.buffer), name, data);
+      const cd = new DataView(new ArrayBuffer(46));
+      cd.setUint32(0, 0x02014b50, true);
+      cd.setUint16(4, 20, true); cd.setUint16(6, 20, true); cd.setUint16(8, 0x0800, true); cd.setUint16(10, 0, true);
+      cd.setUint16(12, dosTime, true); cd.setUint16(14, dosDate, true);
+      cd.setUint32(16, crc, true); cd.setUint32(20, data.length, true); cd.setUint32(24, data.length, true);
+      cd.setUint16(28, name.length, true);
+      cd.setUint32(42, offset, true);
+      cdir.push(new Uint8Array(cd.buffer), name);
+      offset += 30 + name.length + data.length;
+      count++;
+    }
+    let cdSize = 0;
+    for (const u of cdir) cdSize += u.length;
+    const end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true);
+    end.setUint16(8, count, true); end.setUint16(10, count, true);
+    end.setUint32(12, cdSize, true); end.setUint32(16, offset, true);
+    return parts.concat(cdir, [new Uint8Array(end.buffer)]);
+  }
+
+  let CRC_T = null;
+  function crc32(u8) {
+    if (!CRC_T) {
+      CRC_T = new Int32Array(256);
+      for (let n = 0; n < 256; n++) {
+        let c = n;
+        for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+        CRC_T[n] = c;
+      }
+    }
+    let c = -1;
+    for (let i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ -1) >>> 0;
   }
 
   function resultRow(e) {
@@ -375,12 +569,13 @@
   function runBatch(terms) {
     if (!ready) { el.count.textContent = "Індекс ще вантажиться…"; return; }
     lastBatchFound = [];
+    lastShown = [];
     let foundTerms = 0, total = 0;
     const PER = 25;
     const blocks = terms.map((term) => {
       const m = matchTerm(term);
       if (m.length) { foundTerms++; total += m.length; }
-      m.forEach((e) => lastBatchFound.push({ code: e.c, name: e.n }));
+      m.forEach((e) => { lastBatchFound.push({ code: e.c, name: e.n }); lastShown.push({ t: term, e }); });
       const head = `<div class="batch-head ${m.length ? "" : "nomatch"}">
           <span>${m.length ? "🔹" : "❌"} ${esc(term)}</span>
           <span class="batch-badge">${m.length ? nf(m.length) + (m.length > PER ? " · показано " + PER : "") : "не знайдено"}</span>
@@ -388,12 +583,15 @@
       return `<div class="batch-group">${head}${m.slice(0, PER).map(resultRow).join("")}</div>`;
     });
     el.count.textContent = `Пакетно: ${terms.length} запит(ів) · збіги у ${foundTerms}/${terms.length} · усього ${nf(total)}`;
-    el.results.innerHTML = blocks.join("");
+    exportWhat = "пакетний_пошук";
+    el.results.innerHTML = (lastShown.length ? exportBar(lastShown.length) : "") + blocks.join("");
     el.results.hidden = false;
     el.batchCopy.hidden = lastBatchFound.length === 0;
   }
 
   el.results.addEventListener("click", (ev) => {
+    const x = ev.target.closest(".nk-exp");
+    if (x) { runExport(x); return; }
     const b = ev.target.closest(".rrow");
     if (!b) return;
     openCode(b.dataset.code); syncCascade(b.dataset.code); markActive(b);
@@ -554,7 +752,7 @@
   // ══════════════════════════════════════════════════════════
   function resetForm() {
     el.search.value = ""; el.onlyPmg.checked = false; el.only377.checked = false;
-    el.batch.value = ""; lastBatchFound = []; el.batchCopy.hidden = true;
+    el.batch.value = ""; lastBatchFound = []; lastShown = []; el.batchCopy.hidden = true;
     el.selChapter.value = "";
     resetSel(el.selFamily, "оберіть розділ");
     resetSel(el.selCode, "оберіть родину");
