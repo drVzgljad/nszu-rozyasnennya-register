@@ -17,7 +17,7 @@
 (() => {
   'use strict';
 
-  const V = 'v=25';
+  const V = 'v=26';
 
   // Кириличні гомогліфи → латиниця (та сама пастка, що в ДСГ і ЕСОЗ)
   const HOMO = { 'А':'A','В':'B','С':'C','Е':'E','Н':'H','І':'I','К':'K',
@@ -562,7 +562,7 @@
       ${procNote(order, top, q.iv)}
       ${alt}
       ${dualFlag(dxCode)}
-      ${addDxNote(addDx)}
+      ${addDxNote(dxCode, addDx)}
       ${flags.join('')}
       ${drill(order, top, state)}
     </div>`;
@@ -661,25 +661,62 @@
 
   /* Додаткові діагнози. Питання «чому вони ні на що не впливають» виникає
      першим, тому відповідаємо на нього до того, як його поставлять. */
-  function addDxNote(addDx) {
-    if (!addDx.length) return '';
+  /* Додаткові діагнози. Половина моделі складності в нас є — та, що каже, хто
+     НЕ підвищує тяжкість: 2 779 беззастережних виключень і 214 умовних пар
+     етіологія/прояв. Бракує лише числових DCL, які лишилися в платному
+     Definitions Manual. Тому показуємо не «нічого не впливає», а точний статус
+     кожного коду: що з них рахувалося б, що ні і чому саме. */
+  function dxStatus(all) {
     const uncond = VAL ? new Set(VAL.exclUncond) : new Set();
-    const inScope = addDx.filter((c) => !uncond.has(c));
+    const set = new Set(all);
+    const pairs = new Map();          // етіологія → прояви, наявні в цьому ж випадку
+    for (const [aet, man] of (VAL ? VAL.exclCond : [])) {
+      if (set.has(aet) && set.has(man)) {
+        if (!pairs.has(aet)) pairs.set(aet, []);
+        pairs.get(aet).push(man);
+      }
+    }
+    return all.map((c, i) => {
+      if (uncond.has(c)) {
+        return { c, i, kind: 'no', label: 'не рахується',
+          why: 'беззастережно виключений з моделі складності' };
+      }
+      if (pairs.has(c)) {
+        return { c, i, kind: 'cond', label: 'не рахується тут',
+          why: `виключений умовно: у випадку є прояв ${pairs.get(c).join(', ')}` };
+      }
+      return { c, i, kind: 'yes', label: 'рахувався б',
+        why: 'код у межах моделі складності' };
+    });
+  }
+
+  function addDxNote(dxCode, addDx) {
+    if (!addDx.length) return '';
+    const rows = dxStatus([dxCode, ...addDx]);
+    const yes = rows.filter((r) => r.kind === 'yes');
+    const badge = { yes: 'kd-ok', no: 'kd-no', cond: 'kd-warn' };
     return `<details class="kd-drill"><summary>додаткові діагнози:
-      ${esc(addDx.join(', '))} — чому вони не змінюють групу</summary>
+      ${esc(addDx.join(', '))} — що вони змінюють</summary>
       <p>Основним у стрічці читається перший код, решта — додаткові. На вибір
         групи й на тариф вони не впливають, і це не спрощення розділу:
         в ПМГ-2026 моделі клінічної складності немає. В AR-DRG супутні стани
         визначають рівень DRG усередині ADRG через оцінку складності епізоду,
         але в постанову 1808 перенесено рівень ADRG (додаток 1), а 38 груп
         додатка 2 розводяться обсягом втручань закладу, а не тяжкістю пацієнта.</p>
-      <p class="kd-hint">${inScope.length
-        ? `У моделі складності AR-DRG рівень складності могли б отримати:
-           <b>${inScope.map(esc).join(', ')}</b>.`
-        : 'Жоден із цих кодів не отримав би рівня складності навіть в AR-DRG.'}
-        ${addDx.length - inScope.length
-          ? ` Беззастережно виключені з моделі: ${addDx.filter((c) => uncond.has(c))
-              .map(esc).join(', ')}.` : ''}</p>
+      <div class="kd-scroll"><table class="kd-tbl">
+        <thead><tr><th>Код</th><th>Роль</th><th>У моделі складності</th>
+          <th>Підстава</th></tr></thead>
+        <tbody>${rows.map((r) => `<tr>
+          <td><b>${esc(r.c)}</b> <span class="kd-src">${esc(nameDx(r.c) || '')}</span></td>
+          <td>${r.i ? 'додатковий' : 'основний'}</td>
+          <td><span class="kd-badge ${badge[r.kind]}">${esc(r.label)}</span></td>
+          <td>${esc(r.why)}</td></tr>`).join('')}</tbody></table></div>
+      <p class="kd-hint">Рівень складності отримали б ${yes.length} з
+        ${rows.length} ${rows.length < 5 ? 'кодів' : 'кодів'} епізоду. В AR-DRG
+        далі з них рахують ECCS — суму рівнів із загасанням 0,86 на кожен
+        наступний код, — і саме ECCS обирає рівень DRG усередині ADRG. Числових
+        рівнів у відкритому доступі немає: вони в платному Definitions Manual,
+        і в українську модель не перенесені взагалі.</p>
     </details>`;
   }
 
@@ -1055,7 +1092,7 @@
          тож на основному діагнозі цей прапорець лише збиває: там код і не мав
          би підвищувати тяжкість власного ж випадку. Показуємо його додатковим
          діагнозам, а для одинокого коду лишаємо як довідку про сам код. */
-      if (uncond.has(c) && (dxCodes.length === 1 || ci > 0)) {
+      if (uncond.has(c) && dxCodes.length === 1) {
         out.push(`<div class="kd-flag kd-flag-warn"><b>${esc(c)}</b> — код беззастережно
           виключений з моделі клінічної складності: супутнім станом він тяжкість
           випадку не підвищує.</div>`);
@@ -1072,15 +1109,9 @@
           втручання при чоловічій статі пацієнта.</div>`);
       }
     }
-    // умовні виключення: етіологія не рахується, якщо в випадку є її прояв
-    const set = new Set(dxCodes);
-    for (const [aet, man] of VAL.exclCond) {
-      if (set.has(aet) && set.has(man)) {
-        out.push(`<div class="kd-flag kd-flag-warn">Пара <b>${esc(aet)}</b> і
-          <b>${esc(man)}</b>: за наявності коду прояву код основного захворювання
-          не отримує рівня складності.</div>`);
-      }
-    }
+    /* Умовні виключення (етіологія не рахується за наявності її прояву) і
+       беззастережні при кількох діагнозах не дублюємо прапорцями: вони вже
+       розписані по кодах у таблиці «додаткові діагнози». */
     return out;
   }
 
