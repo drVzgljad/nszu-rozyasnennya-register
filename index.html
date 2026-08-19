@@ -607,23 +607,26 @@
       .bday-chip { font-size: 11px; }
     }
 
-    /* ── Плашка пілотного режиму: видно і гостям, і залогіненим ── */
-    .pilot-note {
-      background: var(--warning-bg, #fff3cd);
-      border-bottom: 1px solid var(--warning-border, #ffc107);
+
+    /* ── Пілотний режим: жирний рядок у футері з тихою лампочкою ── */
+    .pilot-foot {
+      display: flex; align-items: baseline; gap: 10px;
+      margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, .14);
+      font-size: 13px; line-height: 1.55;
     }
-    .pilot-note-inner {
-      display: flex; align-items: baseline; gap: 12px;
-      padding: 9px 0; flex-wrap: wrap;
+    .pilot-foot b { font-weight: 700; }
+    .pilot-dot {
+      flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%;
+      background: #ef4444; align-self: center;
+      box-shadow: 0 0 6px rgba(239, 68, 68, .55);
+      animation: pilot-breathe 3.6s ease-in-out infinite;
     }
-    .pilot-note-badge {
-      flex: 0 0 auto; font-size: 12px; font-weight: 800; letter-spacing: .04em;
-      text-transform: uppercase; color: var(--warning-text, #7a5000);
-      border: 1px solid var(--warning-border, #ffc107); border-radius: 20px; padding: 2px 10px;
-      white-space: nowrap;
+    @keyframes pilot-breathe {
+      0%, 100% { opacity: 1; box-shadow: 0 0 7px rgba(239, 68, 68, .6); }
+      50%      { opacity: .35; box-shadow: 0 0 1px rgba(239, 68, 68, .15); }
     }
-    .pilot-note-text {
-      margin: 0; font-size: 13px; line-height: 1.5; color: var(--warning-text, #7a5000);
+    @media (prefers-reduced-motion: reduce) {
+      .pilot-dot { animation: none; }
     }
   </style>
 </head>
@@ -655,15 +658,6 @@
 
   <div class="home-dashboard-shell">
 
-  <!-- ── Пілотний режим: статус порталу і межі використання ── -->
-  <div class="pilot-note" role="note" aria-label="Статус порталу">
-    <div class="wrap pilot-note-inner">
-      <span class="pilot-note-badge">🧪 Пілотний режим</span>
-      <p class="pilot-note-text">Портал працює в пілотному режимі — розділи та дані можуть
-        змінюватися. Вся інформація походить з відкритих офіційних джерел. Розрахунки тарифів
-        мають ознайомчу мету й не можуть використовуватися як офіційне джерело.</p>
-    </div>
-  </div>
   <!-- Дні народження: наповнюється з Supabase, для гостей лишається прихованим -->
   <div id="birthday-strip" hidden></div>
 
@@ -816,6 +810,12 @@
           <a href="dept-tree.html">НСЗУ</a>
           <a href="#top">Про портал</a>
         </div>
+      </div>
+      <div class="pilot-foot" role="note" aria-label="Статус порталу">
+        <span class="pilot-dot" aria-hidden="true"></span>
+        <b>Портал працює в пілотному режимі — розділи та дані можуть змінюватися.
+        Вся інформація походить з відкритих офіційних джерел. Розрахунки тарифів мають
+        ознайомчу мету й не можуть використовуватися як офіційне джерело.</b>
       </div>
       <div class="p-foot-base">
         <span>© 2026 НСЗУ · Департамент стратегії універсального охоплення населення медичними послугами</span>
