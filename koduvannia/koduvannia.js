@@ -17,7 +17,7 @@
 (() => {
   'use strict';
 
-  const V = 'v=15';
+  const V = 'v=19';
 
   // Кириличні гомогліфи → латиниця (та сама пастка, що в ДСГ і ЕСОЗ)
   const HOMO = { 'А':'A','В':'B','С':'C','Е':'E','Н':'H','І':'I','К':'K',
@@ -267,17 +267,100 @@
         `<span class="kd-ex" data-q="${esc(c)}">${esc(c)}</span>`).join(' ')}</p>` : ''}</div>`;
   }
 
+  // ── ADRG і рівні всередині нього ────────────────────────────────────────
+  /* Ієрархія втручань AR-DRG (Technical Specifications V10.0, розділ 5) сортує
+     ADRG за вартістю від високої до низької — тому вибір найдорожчого КОРЕНЯ
+     методологічно виправданий. А от рівень УСЕРЕДИНІ кореня вартістю не
+     визначається ніколи: там вирішує або конкретне втручання, або обсяг
+     закладу, або тривалість. Раніше ми міряли грішми обидва рівні відразу й
+     тому завжди показували найдорожчий рівень — при тому, що 3 525 із 4 283
+     втручань ведуть більш ніж в один рівень одного кореня. */
+
+  const wOf = (g) => (g.k && g.k[0]) || 0;
+  /* Умову рівня автори записали в дужках у самій назві: «Висока складність
+     (встановлення штучного кришталика)». */
+  const parenOf = (t) => { const m = /\(([^)]{6,})\)/.exec(t || ''); return m ? m[1] : null; };
+  const HOURS = /(\d+\s*годин|до\s*24|доб[аи])/i;
+
+  /** Що саме розводить рівні всередині кореня. */
+  function splitKind(gs) {
+    if (gs.length < 2) return { kind: 'single' };
+    if (new Set(gs.map((x) => wOf(x.g))).size === 1) return { kind: 'same' };
+    /* Порядок перевірок — за силою впливу на суму: обсяг закладу міняє набір
+       коефіцієнтів цілком, втручання множить вагу втричі, тривалість зазвичай
+       не міняє нічого. Корінь C16 має ознаки і другого, і третього типу
+       (C16A «встановлення штучного кришталика» і C16-01 «до 24 годин»), і
+       називати його розвилку тривалістю було б неправдою. */
+    if (gs.some((x) => x.g.a === 'appendix-2')) {
+      return { kind: 'volume', q: 'обсяг втручань самого закладу',
+        note: `Рівень усередині цього кореня визначає не випадок, а надавач.
+          Коефіцієнти додатка 2 застосовуються, якщо заклад <b>з 1 квітня по
+          30 вересня 2025 р.</b> провів 50 і більше втручань за ДСГ F03, F04,
+          F05, F06, F07, F09, F10, F19, F24 <b>та/або</b> 30 і більше втручань
+          з відновлення кровотоку в коронарних артеріях. Період фіксований і
+          історичний — поточні обсяги на це не впливають. Хто порогу не досяг,
+          рахується за додатком 1. <span class="kd-src">підпункт 15 пункту 38</span>` };
+    }
+    const cond = gs.map((x) => parenOf(x.g.t)).find(Boolean);
+    if (cond) {
+      return { kind: 'intervention', q: 'наявність конкретного втручання', cond,
+        note: `Вищий рівень цього кореня — це не тяжчий пацієнт, а інше
+          втручання: ${esc(cond)}.` };
+    }
+    if (gs.some((x) => HOURS.test(x.g.t || ''))) {
+      return { kind: 'duration', q: 'тривалість випадку',
+        note: `Рівні цього кореня розведені тривалістю, а не складністю.
+          З кодів вона не видна — її беруть з даних про випадок.` };
+    }
+    return { kind: 'unknown', q: 'ознака, якої немає ні в кодах, ні в назвах груп',
+      note: `Чим саме розведені рівні цього кореня, ні постанова, ні Таблиця
+        співставлення не кажуть. Вибрати за нас — означало б вигадати правило.` };
+  }
+
+  /* Базовий рівень кореня — той, що представляє ADRG у додатку 1. Саме його
+     вартістю коректно міряти ієрархію: інакше корінь із дорогим «А»-рівнем
+     обійшов би в черзі корінь, який насправді дорожчий по суті. */
+  function baseOf(gs) {
+    return gs.find((x) => !x.g.sfx)
+        || gs.find((x) => !/[A-ZА-Я]$/.test(x.g.sfx || ''))
+        || gs.slice().sort((a, b) => wOf(a.g) - wOf(b.g))[0];
+  }
+
+  /* Рівень, доказовий з кодів епізоду. Доказ рахуємо строго: серед уведених
+     втручань має бути таке, що веде у вищий рівень і при цьому не веде в
+     жоден нижчий. Код, який веде в обидва (42701-00 дає і C16, і C16A),
+     доказом не є — інакше ми б знову вгадували на користь дорожчого. */
+  function levelByCodes(gs) {
+    const marked = gs.filter((x) => x.via && x.via.size);
+    if (marked.length < 2) return null;
+    const hi = marked.reduce((a, b) => (wOf(b.g) > wOf(a.g) ? b : a));
+    const lower = marked.filter((x) => wOf(x.g) < wOf(hi.g));
+    if (!lower.length) return null;
+    const only = [...hi.via].filter((c) => lower.every((x) => !x.via.has(c)));
+    return only.length ? { g: hi, by: only } : null;
+  }
+
   // ── випадок: діагноз + втручання ────────────────────────────────────────
   async function renderCase(q) {
     const dxCode = q.dx[0];
+    const addDx = q.dx.slice(1);
     const rec = DX[dxCode];
-    const [ourOdk, arMdc, arG, ourGraw] = rec;
+    const [ourOdk] = rec;
     const mdcSet = mdcIdxOf(ourOdk);
     const state = paramState();
 
-    // групи, досяжні в межах класу основного діагнозу
+    /* 1. Кандидати. Один код групи приходить від кількох втручань — збираємо
+       всі, бо саме перелік «через що досяжна» потім і доводить, яке втручання
+       вмикає вищий рівень кореня. */
     const hits = new Map();
     let anyGi = false;
+    const add = (g, code, cond, src) => {
+      if (!hits.has(g.c)) hits.set(g.c, { g, via: new Set(), cond: true, ours: false });
+      const h = hits.get(g.c);
+      h.via.add(code);
+      if (!cond) h.cond = false;          // безумовною група стає від першого ж
+      if (src === 'our') h.ours = true;
+    };
     for (const code of q.iv) {
       const r = IV[code];
       if (!r) continue;
@@ -285,57 +368,189 @@
       if (gi) anyGi = true;
       for (const ref of ourIvG) {
         const g = gAt(ref);
-        if (g.mdc && g.mdc.some((m) => mdcSet.has(m))) hits.set(g.c, { g, ref, why: code });
+        if (g.mdc && g.mdc.some((m) => mdcSet.has(m))) add(g, code, isCond(ref), 'our');
       }
       for (const [m, gl] of arRows) {
         if (!mdcSet.has(m)) continue;
-        for (const ref of gl) if (!hits.has(gCode(ref))) hits.set(gCode(ref), { g: gAt(ref), ref, why: code + ' · за AR-DRG' });
+        for (const ref of gl) add(gAt(ref), code, isCond(ref), 'ar');
       }
     }
     let branch = 'втручання в межах класу діагнозу';
     if (!hits.size && anyGi) {
-      const i801 = CORE.groups.findIndex((g) => g.c === '801');
-      if (i801 >= 0) hits.set('801', { g: CORE.groups[i801], ref: i801, why: 'загальне втручання не з класу діагнозу' });
+      const g801 = CORE.groups.find((g) => g.c === '801');
+      if (g801) hits.set('801', { g: g801, via: new Set(q.iv), cond: false, ours: true });
       branch = 'група 801 — загальне втручання, не пов’язане з основним діагнозом';
     }
+    for (const h of hits.values()) h.t = sumOf(h.g, state);
 
-    const list = [...hits.values()].map((x) => ({ ...x, t: sumOf(x.g, state) }))
-      .sort((a, b) => (b.t ? b.t.total : -1) - (a.t ? a.t.total : -1));
-    const top = list.find((x) => x.t);
+    /* 2. Корені (ADRG). Рівні всередині кореня — не конкуренти між собою,
+       а розвилка: вони описують той самий випадок з різною ознакою. */
+    const roots = new Map();
+    for (const h of hits.values()) {
+      const r = h.g.root || h.g.c;
+      if (!roots.has(r)) roots.set(r, { root: r, gs: [] });
+      roots.get(r).gs.push(h);
+    }
+    /* Рівні кореня — властивість класифікації, а не досяжності через код:
+       групи додатка 2 (F05A, F05B…) у Таблиці співставлення до втручань не
+       прив'язані взагалі, тому з самих кандидатів розвилку не було б видно
+       ніколи. Добудовуємо корінь із класифікації, лишаючи `via` порожнім —
+       саме порожнеча й означає «цей рівень кодами не доводиться». */
+    for (const R of roots.values()) {
+      for (const g of CORE.groups) {
+        if ((g.root || g.c) !== R.root || R.gs.some((x) => x.g.c === g.c)) continue;
+        R.gs.push({ g, via: new Set(), cond: false, ours: false, t: sumOf(g, state) });
+      }
+    }
+    for (const R of roots.values()) {
+      R.gs.sort((a, b) => wOf(a.g) - wOf(b.g));
+      /* Рівень бере участь у розвилці, якщо він досяжний уведеними кодами або
+         якщо це додаток 2: там рівень вмикає обсяг закладу, і в Таблиці
+         співставлення таких прив'язок до втручань немає взагалі. Решта
+         добудованих рівнів лишається в таблиці як довідка — інакше діапазон
+         роздувала б, наприклад, кератопластика C01A у випадку, де жоден код
+         на неї не вказує. */
+      for (const x of R.gs) x.reach = x.via.size > 0 || x.g.a === 'appendix-2';
+      R.lv = R.gs.filter((x) => x.reach);
+      if (!R.lv.length) R.lv = R.gs.slice();
+      R.base = baseOf(R.lv);
+      R.cond = R.lv.filter((x) => x.via.size).every((x) => x.cond);
+      R.split = splitKind(R.lv);
+      R.pick = levelByCodes(R.lv);
+      R.one = R.lv.length === 1 || R.split.kind === 'same' || !!R.pick;
+      R.win = R.pick ? R.pick.g : (R.lv.length === 1 ? R.lv[0] : R.base);
+      R.t = R.win.t;
+    }
+
+    /* 3. Вибір ADRG — ієрархія за вартістю базового рівня (Technical
+       Specifications V10.0, розділ 5, критерій 1). Умовні кандидати
+       поступаються безумовним незалежно від суми. */
+    const order = [...roots.values()].sort((a, b) =>
+      (a.cond ? 1 : 0) - (b.cond ? 1 : 0)
+      || (b.base.t ? b.base.t.total : -1) - (a.base.t ? a.base.t.total : -1));
+    const top = order.find((R) => R.t) || null;
 
     const flags = await caseFlags(q.dx, q.iv, numOrNull($('kdAge').value), null, $('kdSex').value || null);
-    const alt = altBranches(dxCode, q.iv, mdcSet, state, top);
+    const alt = altBranches(dxCode, q.iv, mdcSet, state, top ? top.win : null);
 
     return `<div class="kd-card">
-      ${headline(top, dxCode, q.iv)}
+      ${headline(top, state)}
       <div class="kd-chain">
         <span>${esc(dxCode)}</span><i>→</i>
         <span>${ourOdk.map((i) => esc(odkById(i).id)).join(', ') || '—'}</span><i>→</i>
         <span>${q.iv.map(esc).join(', ')}</span><i>→</i>
-        <b>${top ? esc(top.g.c) : '—'}</b>
+        <b>${top ? esc(top.root) : '—'}</b>
       </div>
       <p class="kd-hint">${esc(branch)}</p>
+      ${hierarchyNote(order, top)}
+      ${top ? levelNote(top) : ''}
       ${alt}
       ${dualFlag(dxCode)}
+      ${addDxNote(addDx)}
       ${flags.join('')}
-      ${drill(list, top, dxCode, q.iv)}
+      ${drill(order, top, state)}
     </div>`;
+  }
+
+  /* Коли одне втручання задовольняє критерії кількох ADRG, епізод забирає той,
+     що стоїть вище в ієрархії втручань свого ОДК. Ієрархія — фіксований
+     перелік у тілі мануала, якого в нас немає; вартість базового рівня лише
+     перший із чотирьох критеріїв, за якими той перелік складали, і
+     специфічність його перекриває. Тому порядок нижче — апроксимація, і
+     мовчати про це не можна: у MDC 02 самі автори переставили C01 з першої
+     позиції на третю, тобто вартість там програла. */
+  function hierarchyNote(order, top) {
+    const rivals = order.filter((R) => R.t && R !== top);
+    if (!top || !rivals.length) return '';
+    return `<div class="kd-flag kd-flag-warn">
+      <b>Критеріям цього випадку відповідає ${order.length} ${
+        order.length < 5 ? 'корені' : 'коренів'} — вибрано ${esc(top.root)} за
+      вартістю базового рівня.</b> Це апроксимація: справжній порядок усередині
+      ОДК заданий фіксованою ієрархією втручань, якої немає ні в постанові, ні
+      в Таблиці співставлення. Інші кандидати:
+      ${rivals.slice(0, 4).map((R) => `<b>${esc(R.root)}</b> (${esc(R.base.g.t
+        ? R.base.g.t.slice(0, 46) : '')}${(R.base.g.t || '').length > 46 ? '…' : ''},
+        ${money(R.base.t.total)} грн)`).join('; ')}. Якщо клінічно випадок — це
+      інший корінь, беріть його: черга за сумою тут нічого не доводить.</div>`;
+  }
+
+  /* Розвилка рівнів усередині кореня — головна зміна проти попередньої версії:
+     раніше тут мовчки перемагала найдорожча гілка. */
+  function levelNote(R) {
+    if (R.lv.length < 2) return '';
+    if (R.split.kind === 'same') {
+      return `<p class="kd-hint">Корінь ${esc(R.root)} має кілька записів
+        (${R.lv.map((x) => esc(x.g.c)).join(', ')}) з однаковою вагою —
+        на суму вибір між ними не впливає.</p>`;
+    }
+    if (R.pick) {
+      return `<div class="kd-flag kd-flag-ok"><b>Рівень ${esc(R.pick.g.g.c)}
+        визначений кодами випадку.</b> Усередині кореня ${esc(R.root)} рівні
+        розводить ${esc(R.split.q)}, і в наших даних вищий рівень досяжний лише
+        через <b>${R.pick.by.map(esc).join(', ')}</b> — саме це втручання його
+        й вмикає. ${R.split.cond ? `Умова рівня: ${esc(R.split.cond)}.` : ''}</div>`;
+    }
+    const lo = R.lv[0], hi = R.lv[R.lv.length - 1];
+    return `<div class="kd-flag kd-flag-warn">
+      <b>Рівень усередині кореня ${esc(R.root)} з кодів не визначається.</b>
+      ${R.split.note}
+      ${lo.t && hi.t ? `Залежно від рівня випадок коштує від
+        <b>${money(lo.t.total)}</b> (${esc(lo.g.c)}) до
+        <b>${money(hi.t.total)}</b> (${esc(hi.g.c)}) грн. Показуємо базовий
+        рівень ${esc(R.base.g.c)} — не найдорожчий, бо вибір рівня вирішується
+        не сумою.` : ''}</div>`;
+  }
+
+  /* Додаткові діагнози. Питання «чому вони ні на що не впливають» виникає
+     першим, тому відповідаємо на нього до того, як його поставлять. */
+  function addDxNote(addDx) {
+    if (!addDx.length) return '';
+    const uncond = VAL ? new Set(VAL.exclUncond) : new Set();
+    const inScope = addDx.filter((c) => !uncond.has(c));
+    return `<details class="kd-drill"><summary>додаткові діагнози:
+      ${esc(addDx.join(', '))} — чому вони не змінюють групу</summary>
+      <p>Основним у стрічці читається перший код, решта — додаткові. На вибір
+        групи й на тариф вони не впливають, і це не спрощення розділу:
+        в ПМГ-2026 моделі клінічної складності немає. В AR-DRG супутні стани
+        визначають рівень DRG усередині ADRG через оцінку складності епізоду,
+        але в постанову 1808 перенесено рівень ADRG (додаток 1), а 38 груп
+        додатка 2 розводяться обсягом втручань закладу, а не тяжкістю пацієнта.</p>
+      <p class="kd-hint">${inScope.length
+        ? `У моделі складності AR-DRG рівень складності могли б отримати:
+           <b>${inScope.map(esc).join(', ')}</b>.`
+        : 'Жоден із цих кодів не отримав би рівня складності навіть в AR-DRG.'}
+        ${addDx.length - inScope.length
+          ? ` Беззастережно виключені з моделі: ${addDx.filter((c) => uncond.has(c))
+              .map(esc).join(', ')}.` : ''}</p>
+    </details>`;
   }
 
   const numOrNull = (v) => (v === '' || v === null || v === undefined ? null : Number(v));
 
-  function headline(top, dxCode, ivCodes) {
-    if (!top) {
+  function headline(R, state) {
+    if (!R) {
       return `<p class="kd-flag kd-flag-no">Для цієї пари жодної групи не знайдено.
         Найчастіша причина — втручання не пов'язане з класом основного діагнозу.</p>`;
     }
+    const g = R.win.g, t = R.t;
+    const lo = R.lv[0], hi = R.lv[R.lv.length - 1];
+    /* Коли рівень з кодів не визначається, показувати одну суму як остаточну
+       було б тим самим обманом, тільки тихішим: даємо діапазон і базовий рівень. */
+    const sum = R.one
+      ? `${money(t.total)} <span>грн</span>`
+      : `${money(lo.t.total)} – ${money(hi.t.total)} <span>грн</span>`;
     return `<div class="kd-head">
-      <div class="kd-head-code">${esc(top.g.c)}</div>
-      <div class="kd-head-name">${esc(top.g.t || '')}</div>
-      <div class="kd-head-sum">${money(top.t.total)} <span>грн</span></div>
-      <div class="kd-head-formula">${esc(window.PMG_TARIFF.formulaText(top.t))}</div>
-      ${top.g.p && top.g.p.length ? `<div class="kd-hint">пакети ${esc(top.g.p.join(', '))} ·
-        ${esc(CORE.appendixLabel[top.g.a] || '')}</div>` : ''}
+      <div class="kd-head-code">${esc(R.one ? g.c : R.root)}</div>
+      <div class="kd-head-name">${esc(g.t || '')}</div>
+      <div class="kd-head-sum${R.one ? '' : ' kd-head-sum-range'}">${sum}</div>
+      <div class="kd-head-formula">${R.one
+        ? esc(window.PMG_TARIFF.formulaText(t))
+        : `рівень визначає ${esc(R.split.q)}; базовий рівень ${esc(R.base.g.c)} — ${
+            money(R.base.t.total)} грн`}</div>
+      ${g.p && g.p.length ? `<div class="kd-hint">пакети ${esc(g.p.join(', '))} ·
+        ${esc(CORE.appendixLabel[g.a] || '')}</div>` : ''}
+      ${R.cond ? `<div class="kd-hint">кандидат умовний: у першоджерелі цей
+        ADRG позначений тильдою, тобто досяжний не за самим кодом</div>` : ''}
     </div>`;
   }
 
@@ -428,26 +643,52 @@
 
   /* Чипи-питання замість вкладок: розділ показує те, по що прийшли, а решта
      розкривається на місці й лише коли спитали. */
-  function drill(list, top, dxCode, ivCodes) {
-    const rows = list.map((x, i) => `<tr class="${i === 0 && x.t ? 'win' : ''}">
-      <td><b>${esc(x.g.c)}</b></td><td>${esc(x.g.t || '—')}</td>
-      <td>${esc(CORE.appendixLabel[x.g.a] || (x.g.a === 'ar-only' ? 'немає в постанові' : ''))}</td>
-      <td>${x.g.p && x.g.p.length ? esc(x.g.p.join(', ')) : '—'}</td>
-      <td class="num">${x.t ? String(x.t.weight).replace('.', ',') : '—'}</td>
-      <td class="num">${x.t ? money(x.t.total) : '—'}</td></tr>`).join('');
+  function drill(order, top, state) {
+    /* Таблиця тепер двоярусна: спершу корені в порядку ієрархії, під кожним —
+       його рівні. Плоский список ставив рівні одного кореня в чергу поруч із
+       чужими ADRG, наче вони конкуренти, — вони не конкуренти. */
+    const rows = order.map((R) => {
+      const head = `<tr class="${R === top ? 'win' : ''}">
+        <td><b>${esc(R.root)}</b>${R.cond ? ' <span class="kd-src">умовний</span>' : ''}</td>
+        <td>${esc(R.base.g.t || '—')}</td>
+        <td>${esc(CORE.appendixLabel[R.base.g.a] || (R.base.g.a === 'ar-only' ? 'немає в постанові' : ''))}</td>
+        <td>${R.base.g.p && R.base.g.p.length ? esc(R.base.g.p.join(', ')) : '—'}</td>
+        <td class="num">${R.base.t ? String(R.base.t.weight).replace('.', ',') : '—'}</td>
+        <td class="num">${R.base.t ? money(R.base.t.total) : '—'}</td></tr>`;
+      if (R.gs.length < 2) return head;
+      const lv = R.gs.filter((x) => x !== R.base).map((x) => `<tr class="kd-lvl">
+        <td>└ ${esc(x.g.c)}${R.pick && R.pick.g === x ? ' <span class="kd-src">за кодами</span>' : ''}</td>
+        <td>${esc(x.g.t || '—')}</td>
+        <td>${esc(CORE.appendixLabel[x.g.a] || '')}</td>
+        <td>${x.via.size ? 'через ' + [...x.via].map(esc).join(', ')
+          : (x.g.a === 'appendix-2' ? 'за обсягом закладу'
+             : '<span class="kd-src">є в класифікації, вашими кодами не досяжний</span>')}</td>
+        <td class="num">${x.t ? String(x.t.weight).replace('.', ',') : '—'}</td>
+        <td class="num">${x.t ? money(x.t.total) : '—'}</td></tr>`).join('');
+      return head + lv;
+    }).join('');
     const steps = top ? top.t.steps.map((s) =>
       `<tr><td>${esc(s.label)}${s.sub ? ` <span class="kd-src">п. 38.${esc(s.sub)}</span>` : ''}</td>
        <td class="num">${esc(s.op)} ${esc(String(s.value).replace('.', ','))}</td></tr>`).join('') : '';
     return `<div class="kd-drill">
       <details><summary>чому саме ця група</summary>
         <p>Основний діагноз задає клас, клас відсікає всі групи втручання, крім
-          «своїх». Групування виконує групер ЕСОЗ — тут показано, які групи
-          для цієї пари досяжні за Таблицею співставлення.</p>
+          «своїх». Далі корені (ADRG) шикуються за вартістю базового рівня —
+          так само, як в ієрархії втручань AR-DRG, де перший критерій — вартість
+          від високої до низької. Рівні всередині кореня в цю чергу не
+          потрапляють: між ними вирішує ознака випадку або надавача, а не сума.
+          Саме групування виконує групер ЕСОЗ — тут показано, що для цієї пари
+          досяжне за Таблицею співставлення.</p>
         <div class="kd-scroll"><table class="kd-tbl">
-          <thead><tr><th>Група</th><th>Назва</th><th>Джерело ваги</th><th>Пакети</th>
-            <th>Вага</th><th>Сума</th></tr></thead><tbody>${rows}</tbody></table></div>
+          <thead><tr><th>Корінь і рівні</th><th>Назва</th><th>Джерело ваги</th>
+            <th>Пакети / через що</th><th>Вага</th><th>Сума</th></tr></thead>
+          <tbody>${rows}</tbody></table></div>
       </details>
-      ${top ? `<details><summary>розрахунок покроково</summary>
+      ${top ? `<details><summary>розрахунок покроково${
+          top.one ? '' : ` — рівень ${esc(top.win.g.c)}`}</summary>
+        ${top.one ? '' : `<p class="kd-hint">Рівень усередині кореня з кодів не
+          визначається, тож рахуємо базовий. Для іншого рівня зміниться лише
+          ваговий коефіцієнт у першому рядку.</p>`}
         <div class="kd-scroll"><table class="kd-tbl"><tbody>
           <tr><td>Базова ставка на пролікований випадок <span class="kd-src">п. 34</span></td>
               <td class="num">${money(top.t.rate)}</td></tr>
@@ -461,9 +702,9 @@
       <details><summary>у який пакет це впаде</summary>
         <p class="kd-hint">Умови належності до пакета — у шухляді нижче,
           розділ «Належність до пакета» (за логіном).</p>
-        ${top && top.g.p && top.g.p.length
+        ${top && top.win.g.p && top.win.g.p.length
           ? `<p>За додатком постанови ця група оплачується в пакетах
-             <b>${esc(top.g.p.join(', '))}</b>.</p>` : ''}
+             <b>${esc(top.win.g.p.join(', '))}</b>.</p>` : ''}
       </details>
     </div>`;
   }
@@ -632,7 +873,7 @@
     const uncond = new Set(VAL.exclUncond);
     const catUa = (lb) => (VAL.ageUa && VAL.ageUa[lb]) || [lb, ''];
 
-    for (const c of dxCodes) {
+    dxCodes.forEach((c, ci) => {
       const ar = lookupRule(ageMap, c);
       if (ar && (age != null || days != null)) {
         const [ua, range] = catUa(ar.v);
@@ -648,12 +889,16 @@
         out.push(`<div class="kd-flag kd-flag-no"><b>${esc(c)}</b> — конфлікт статі:
           код застосовний лише для статі ${sexUa(sr.v)}.${viaNote(sr)}</div>`);
       }
-      if (uncond.has(c)) {
+      /* Виключення з моделі складності — це про роль коду як СУПУТНЬОГО стану,
+         тож на основному діагнозі цей прапорець лише збиває: там код і не мав
+         би підвищувати тяжкість власного ж випадку. Показуємо його додатковим
+         діагнозам, а для одинокого коду лишаємо як довідку про сам код. */
+      if (uncond.has(c) && (dxCodes.length === 1 || ci > 0)) {
         out.push(`<div class="kd-flag kd-flag-warn"><b>${esc(c)}</b> — код беззастережно
           виключений з моделі клінічної складності: супутнім станом він тяжкість
           випадку не підвищує.</div>`);
       }
-    }
+    });
     for (const c of ivCodes) {
       const s = sexIv.get(c);
       if (s && want && s !== want) {
