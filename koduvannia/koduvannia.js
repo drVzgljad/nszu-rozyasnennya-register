@@ -17,7 +17,7 @@
 (() => {
   'use strict';
 
-  const V = 'v=28';
+  const V = 'v=30';
 
   // Кириличні гомогліфи → латиниця (та сама пастка, що в ДСГ і ЕСОЗ)
   const HOMO = { 'А':'A','В':'B','С':'C','Е':'E','Н':'H','І':'I','К':'K',
@@ -77,10 +77,15 @@
      залежить: вантажимо у фоні й лише перемальовуємо, коли приїхали. Так
      групер не стоїть через довідник, потрібний тільки для підпису коду. */
   let namesReady = false, redrawOnNames = null;
-  function startNames() {
-    if (NDX || startNames.busy) return;
-    startNames.busy = true;
-    Promise.all([
+  /* Повні індекси НК 025 (19 495 кодів) і НК 026 (6 226) ширші за наші дані
+     групування (13 845 і 4 283). Тому вони потрібні не лише для підписів: без
+     них розділ каже «коду немає в наших довідниках» там, де код чинний, просто
+     не бере участі в групуванні. Проміс віддаємо назовні, щоб цю відповідь
+     можна було дочекатися. */
+  let namesPromise = null;
+  function namesP() {
+    if (namesPromise) return namesPromise;
+    namesPromise = Promise.all([
       load('../classifiers/data/nk025_index.json'),
       load('../classifiers/data/nk026_index.json'),
     ]).then(([a, b]) => {
@@ -88,9 +93,10 @@
       NIV = new Map(b.map((e) => [e.c, e.n]));
       namesReady = true;
       if (redrawOnNames) redrawOnNames();
-    }).catch(() => { /* без назв розділ лишається робочим */ })
-      .finally(() => { startNames.busy = false; });
+    }).catch(() => { /* без назв розділ лишається робочим */ });
+    return namesPromise;
   }
+  function startNames() { namesP(); }
 
   const nameDx = (c) => (NDX && NDX.get(c)) || '';
   const nameIv = (c) => (NIV && NIV.get(c)) || '';
@@ -124,6 +130,32 @@
     }
     return null;
   }
+
+  /* Коди у відповіді — це вхід у довідники, а не просто підпис. Паспорт коду
+     живе в НК 025 (діагнози), НК 026 (втручання) і в «Інструментах ДСГ»
+     (групи). Хвіст ?back= — той самий механізм, яким довідники посилаються
+     один на одного: його розбирає auth-v2.js і малює кнопку повернення, тож
+     користувач не втрачає набраний випадок. */
+  function backTail() {
+    const el = $('kdQ');
+    const q = el ? el.value.trim() : '';
+    if (!q) return '';
+    return '&back=' + encodeURIComponent('/koduvannia/index.html?q=' + q)
+         + '&backLabel=' + encodeURIComponent('до випадку ' + q);
+  }
+  const codeLink = (c, href, title) =>
+    `<a class="kd-codelink" href="${href}${backTail()}" title="${esc(title)}">${esc(c)}</a>`;
+  const dxLink = (c) => (DX[c]
+    ? codeLink(c, `../classifiers/index.html?code=${encodeURIComponent(c)}`,
+        'Паспорт коду в класифікаторі хвороб НК 025')
+    : esc(c));
+  const ivLink = (c) => (IV[c]
+    ? codeLink(c, `../classifiers/nk026.html?code=${encodeURIComponent(c)}`,
+        'Паспорт коду в класифікаторі інтервенцій НК 026')
+    : esc(c));
+  const drgLink = (c) => codeLink(c,
+    `../drg/index.html?code=${encodeURIComponent(c)}&mod=passport`,
+    'Паспорт групи в тарифній моделі ДСГ');
 
   const odkById = (i) => CORE.odk[i];
   const mdcName = (m) => {
@@ -231,12 +263,18 @@
     const parts = [];
 
     if (q.ambiguous.length) parts.push(ambiguityNote(q));
+    /* Нерозпізнані коди раніше зникали мовчки, щойно в стрічці був хоч один
+       відомий: користувач уводив три коди, бачив відповідь по двох і не знав,
+       що третій випав. */
+    if (q.unknown.length && (q.dx.length || q.iv.length || q.drg.length)) {
+      parts.push(`<div class="kd-card">${await unknownNote(q)}</div>`);
+    }
 
     if (q.dx.length && q.iv.length) parts.push(await renderCase(q));
     else if (q.dx.length) parts.push(await renderDx(q.dx[0], q));
     else if (q.iv.length) parts.push(renderIv(q.iv[0]));
     else if (q.drg.length) parts.push(renderDrg(q.drg[0]));
-    else parts.push(renderUnknown(q));
+    else parts.push(await renderUnknown(q));
 
     out.innerHTML = parts.join('');
   }
@@ -258,13 +296,46 @@
     </div>`).join('');
   }
 
-  function renderUnknown(q) {
-    const near = Object.keys(DX).filter((c) => c.startsWith(q.unknown[0] || '')).slice(0, 10);
-    return `<div class="kd-card"><p class="kd-flag kd-flag-no">
-      ${q.unknown.length ? `Коду <b>${esc(q.unknown.join(', '))}</b> немає в наших довідниках.`
-        : 'Не впізнав жодного коду.'}</p>
-      ${near.length ? `<p class="kd-hint">Схожі: ${near.map((c) =>
-        `<span class="kd-ex" data-q="${esc(c)}">${esc(c)}</span>`).join(' ')}</p>` : ''}</div>`;
+  /* Код, який є в НК 025 або НК 026, але не бере участі в групуванні, — це не
+     помилка набору, і казати «немає в довідниках» тут неправда: код чинний,
+     просто Таблиця співставлення його не згадує. Різниця для користувача
+     принципова — у першому випадку він шукає одруківку, у другому розуміє, що
+     групування цього коду не бачить. */
+  async function unknownNote(q) {
+    if (!q.unknown.length) return '';
+    await namesP();
+    const rows = q.unknown.map((c) => ({
+      c, dx: (NDX && NDX.get(c)) || '', iv: (NIV && NIV.get(c)) || '' }));
+    const inRef = rows.filter((r) => r.dx || r.iv);
+    const nowhere = rows.filter((r) => !r.dx && !r.iv);
+    const parts = [];
+    for (const r of inRef) {
+      const isIv = !!r.iv;
+      const href = isIv
+        ? `../classifiers/nk026.html?code=${encodeURIComponent(r.c)}`
+        : `../classifiers/index.html?code=${encodeURIComponent(r.c)}`;
+      parts.push(`<div class="kd-flag kd-flag-warn">
+        <b>${esc(r.c)}</b> — ${esc(r.dx || r.iv)}. Код чинний
+        ${isIv ? 'у класифікаторі інтервенцій НК 026' : 'у класифікаторі хвороб НК 025'},
+        але в групуванні не бере участі: Таблиця співставлення його не згадує,
+        тож ані класу, ані групи він не задає.
+        <a class="kd-codelink" href="${href}${backTail()}">паспорт коду</a></div>`);
+    }
+    if (nowhere.length) {
+      const near = Object.keys(DX).filter((c) => c.startsWith(nowhere[0].c)).slice(0, 8);
+      parts.push(`<div class="kd-flag kd-flag-no">
+        <b>${nowhere.map((r) => esc(r.c)).join(', ')}</b> —
+        такого коду немає ні в наших даних, ні в НК 025 і НК 026.
+        ${near.length ? `Схожі: ${near.map((c) =>
+          `<span class="kd-ex" data-q="${esc(c)}">${esc(c)}</span>`).join(' ')}` : ''}</div>`);
+    }
+    return parts.join('');
+  }
+
+  async function renderUnknown(q) {
+    return `<div class="kd-card">${q.unknown.length
+      ? await unknownNote(q)
+      : '<p class="kd-flag kd-flag-no">Не впізнав жодного коду.</p>'}</div>`;
   }
 
   // ── ADRG і рівні всередині нього ────────────────────────────────────────
@@ -650,10 +721,10 @@
     return `<div class="kd-card">
       ${headline(top, state)}
       <div class="kd-chain">
-        <span>${esc(dxCode)}</span><i>→</i>
+        <span>${dxLink(dxCode)}</span><i>→</i>
         <span>${ourOdk.map((i) => esc(odkById(i).id)).join(', ') || '—'}</span><i>→</i>
-        <span>${q.iv.map(esc).join(', ')}</span><i>→</i>
-        <b>${top ? esc(top.root) : '—'}</b>
+        <span>${q.iv.map(ivLink).join(', ')}</span><i>→</i>
+        <b>${top ? drgLink(top.root) : '—'}</b>
       </div>
       <p class="kd-hint">${esc(branch)}</p>
       ${comboNotes.join('')}
@@ -718,10 +789,10 @@
 
     return `<div class="kd-drill"><details><summary>операцій у випадку
       ${ivCodes.length} — яка дала групу</summary>
-      <p>Групу <b>${esc(top.root)}</b> дало ${main.length
-        ? `втручання <b>${main.map(esc).join(', ')}</b>` : 'жодне з уведених окремо'}.</p>
+      <p>Групу <b>${drgLink(top.root)}</b> дало ${main.length
+        ? `втручання <b>${main.map(ivLink).join(', ')}</b>` : 'жодне з уведених окремо'}.</p>
       ${asMark.length ? `<p class="kd-hint">
-        <b>${asMark.map(esc).join(', ')}</b> враховано як ознаку епізоду, а не як
+        <b>${asMark.map(ivLink).join(', ')}</b> враховано як ознаку епізоду, а не як
         самостійну операцію: ці коди лише перемикають ADRG між «з обстеженням» і
         «без», у власну групу вони випадок не ведуть.</p>` : ''}
       ${wentTo.length ? `<p class="kd-hint">Решта втручань веде в інші корені:
@@ -808,7 +879,7 @@
         <thead><tr><th>Код</th><th>Роль</th><th>У моделі складності</th>
           <th>Підстава</th></tr></thead>
         <tbody>${rows.map((r) => `<tr>
-          <td><b>${esc(r.c)}</b> <span class="kd-src">${esc(nameDx(r.c) || '')}</span></td>
+          <td><b>${dxLink(r.c)}</b> <span class="kd-src">${esc(nameDx(r.c) || '')}</span></td>
           <td>${r.i ? 'додатковий' : 'основний'}</td>
           <td><span class="kd-badge ${badge[r.kind]}">${esc(r.label)}</span></td>
           <td>${esc(r.why)}</td></tr>`).join('')}</tbody></table></div>
@@ -945,7 +1016,7 @@
        чужими ADRG, наче вони конкуренти, — вони не конкуренти. */
     const rows = order.map((R) => {
       const head = `<tr class="${R === top ? 'win' : (R.beaten || R.markerOnly ? 'kd-out' : '')}">
-        <td><b>${esc(R.root)}</b>${R.cond ? ' <span class="kd-src">умовний</span>' : ''}${
+        <td><b>${drgLink(R.root)}</b>${R.cond ? ' <span class="kd-src">умовний</span>' : ''}${
           R.beaten ? ` <span class="kd-src">відпав: ${esc(R.beaten.label)} → ${
             esc(R.beaten.by)}</span>` : (R.markerOnly ? ` <span class="kd-src">відкритий лише кодом ${
             esc(R.markerOnly.codes.join(', '))} — це ознака, а не операція</span>` : '')}</td>
@@ -956,10 +1027,10 @@
         <td class="num">${R.base.t ? money(R.base.t.total) : '—'}</td></tr>`;
       if (R.gs.length < 2) return head;
       const lv = R.gs.filter((x) => x !== R.base).map((x) => `<tr class="kd-lvl">
-        <td>└ ${esc(x.g.c)}${R.pick && R.pick.g === x ? ' <span class="kd-src">за кодами</span>' : ''}</td>
+        <td>└ ${drgLink(x.g.c)}${R.pick && R.pick.g === x ? ' <span class="kd-src">за кодами</span>' : ''}</td>
         <td>${esc(x.g.t || '—')}</td>
         <td>${esc(CORE.appendixLabel[x.g.a] || '')}</td>
-        <td>${x.via.size ? 'через ' + [...x.via].map(esc).join(', ')
+        <td>${x.via.size ? 'через ' + [...x.via].map(ivLink).join(', ')
           : (x.g.a === 'appendix-2' ? 'за обсягом закладу'
              : '<span class="kd-src">є в класифікації, вашими кодами не досяжний</span>')}</td>
         <td class="num">${x.t ? String(x.t.weight).replace('.', ',') : '—'}</td>
@@ -1022,7 +1093,7 @@
 
     return `<div class="kd-card">
       <div class="kd-head">
-        <div class="kd-head-code">${esc(code)}</div>
+        <div class="kd-head-code">${dxLink(code)}</div>
         <div class="kd-head-name">${esc(nameDx(code))}</div>
       </div>
       ${namesHint()}
@@ -1065,7 +1136,7 @@
     }));
     return `<div class="kd-card">
       <div class="kd-head">
-        <div class="kd-head-code">${esc(code)}</div>
+        <div class="kd-head-code">${ivLink(code)}</div>
         <div class="kd-head-name">${esc(nameIv(code))}</div>
       </div>
       ${namesHint()}
@@ -1754,8 +1825,12 @@
     const q = new URLSearchParams(location.search);
     const dx = q.get('dx') || q.get('code');
     const iv = q.get('iv');
-    if (dx || iv) {
-      $('kdQ').value = [dx, iv].filter(Boolean).join(' ');
+    /* ?q= — цілий випадок одним рядком. Саме його підставляє кнопка повернення
+       з паспорта коду: інакше з довідника користувач вертався б на порожню
+       стрічку й набирав усі коди заново. */
+    const whole = q.get('q');
+    if (whole || dx || iv) {
+      $('kdQ').value = whole || [dx, iv].filter(Boolean).join(' ');
       go();
     } else {
       $('kdAnswer').innerHTML = welcome();
