@@ -17,7 +17,7 @@
 (() => {
   'use strict';
 
-  const V = 'v=26';
+  const V = 'v=28';
 
   // Кириличні гомогліфи → латиниця (та сама пастка, що в ДСГ і ЕСОЗ)
   const HOMO = { 'А':'A','В':'B','С':'C','Е':'E','Н':'H','І':'I','К':'K',
@@ -434,13 +434,13 @@
   }
 
   // ── випадок: діагноз + втручання ────────────────────────────────────────
-  async function renderCase(q) {
-    const dxCode = q.dx[0];
-    const addDx = q.dx.slice(1);
+  /* Ядро групування без жодного HTML. Винесене окремо, бо той самий випадок
+     доводиться перераховувати з іншим основним діагнозом — саме цього
+     вимагають правила перевибору основного стану MB1–MB5. */
+  function buildCase(dxCode, ivCodes, state) {
     const rec = DX[dxCode];
-    const [ourOdk] = rec;
-    const mdcSet = mdcIdxOf(ourOdk);
-    const state = paramState();
+    if (!rec) return null;
+    const mdcSet = mdcIdxOf(rec[0]);
 
     /* 1. Кандидати. Один код групи приходить від кількох втручань — збираємо
        всі, бо саме перелік «через що досяжна» потім і доводить, яке втручання
@@ -454,7 +454,7 @@
       if (!cond) h.cond = false;          // безумовною група стає від першого ж
       if (src === 'our') h.ours = true;
     };
-    for (const code of q.iv) {
+    for (const code of ivCodes) {
       const r = IV[code];
       if (!r) continue;
       const [arRows, ourIvG, gi] = r;
@@ -471,7 +471,7 @@
     let branch = 'втручання в межах класу діагнозу';
     if (!hits.size && anyGi) {
       const g801 = CORE.groups.find((g) => g.c === '801');
-      if (g801) hits.set('801', { g: g801, via: new Set(q.iv), cond: false, ours: true });
+      if (g801) hits.set('801', { g: g801, via: new Set(ivCodes), cond: false, ours: true });
       branch = 'група 801 — загальне втручання, не пов’язане з основним діагнозом';
     }
     for (const h of hits.values()) h.t = sumOf(h.g, state);
@@ -520,7 +520,7 @@
        Решту шикуємо за вартістю базового рівня (Technical Specifications
        V10.0, розділ 5, критерій 1). Умовні кандидати поступаються безумовним
        незалежно від суми, а відкинуті правилом — усім іншим. */
-    const comboNotes = applyCombo(roots, q.iv);
+    const comboNotes = applyCombo(roots, ivCodes);
     /* Специфічність перед вартістю — це другий критерій ієрархії IHACPA, і він
        прямо названий таким, що може перекривати перший. Міряємо його шириною
        ADRG: скільки різних втручань у нього ведуть. У MDC 02 це вирішує все —
@@ -543,6 +543,106 @@
       || bucket(a) - bucket(b)
       || (b.base.t ? b.base.t.total : -1) - (a.base.t ? a.base.t.total : -1));
     const top = order.find((R) => R.t) || null;
+    return { roots, order, top, comboNotes, branch, mdcSet };
+  }
+
+  /* Правила перевибору основного стану — МКХ-10, том 2, розділ 4.5.3 (MB1–MB5).
+     Це нормативна підстава для того, що автомоніторинг НСЗУ називає
+     «примусовою заміною основного діагнозу», тож розділ має вміти сказати не
+     лише «замінили», а й за яким саме правилом.
+
+     Три з п'яти правил перевіряються нашими даними. MB2 (кілька станів
+     записано як основний) і MB5 (альтернативні діагнози) стосуються того, як
+     стани записані в документації, а не самих кодів, тож автоматично їх не
+     перевірити — про них сказано в настановах. */
+  const isSymptom = (c) => /^R/.test(c);            // розділ XVIII — симптоми і ознаки
+  const isFactor = (c) => /^Z/.test(c);             // розділ XXI — фактори звернення
+  const isVague = (c) => /\.(8|9)$/.test(c) || !c.includes('.');
+  const rubric = (c) => c.split('.')[0];
+
+  function mbNotes(dxCode, addDx, ivCodes, state, top) {
+    if (!addDx.length || !DX[dxCode]) return '';
+    const out = [];
+    const sum = (c) => {
+      const b = buildCase(c, ivCodes, state);
+      return b && b.top ? b : null;
+    };
+    /* Правило перевибору стосується правильності кодування, а не грошей, тож
+       воно варте показу й тоді, коли сума не змінюється. А ось фраза «на 0,00
+       грн менше» — просто сміття, і саме вона вилазила найчастіше: коди однієї
+       рубрики зазвичай ведуть в один клас. */
+    const diff = (b) => {
+      if (!b || !top) return '';
+      if (b.top.root === top.root) {
+        return ` Група від цього не зміниться — обидва коди ведуть в
+          <b>${esc(top.root)}</b>, тож ідеться про правильність запису, не про суму.`;
+      }
+      const d = b.top.t.total - top.t.total;
+      if (!d) {
+        return ` Випадок пішов би в <b>${esc(b.top.root)}</b> — сума та сама,
+          ${money(b.top.t.total)} грн.`;
+      }
+      return ` Випадок пішов би в <b>${esc(b.top.root)}</b> — ${money(b.top.t.total)} грн,
+        тобто на ${money(Math.abs(d))} грн ${d > 0 ? 'більше' : 'менше'}.`;
+    };
+
+    // MB1: основний стан не пов'язаний із лікуванням, а додатковий — пов'язаний
+    if (top && top.root === '801') {
+      const better = addDx.filter((c) => {
+        const b = sum(c);
+        return b && b.top.root !== '801';
+      });
+      if (better.length) {
+        const b = sum(better[0]);
+        out.push(`<div class="kd-flag kd-flag-warn">
+          <b>Правило MB1: основним записано стан, якого не лікували.</b>
+          Втручання не пов'язане з класом коду <b>${esc(dxCode)}</b>, тому випадок
+          падає в 801. А ${better.length > 1 ? 'коди' : 'код'}
+          <b>${better.map(esc).join(', ')}</b> із додаткових веде саме в той клас,
+          до якого належить виконане втручання. Якщо лікували саме цей стан,
+          основним має бути він.${diff(b)}
+          <span class="kd-src">МКХ-10, том 2, п. 4.5.3, правило MB1</span></div>`);
+      }
+    }
+
+    // MB3: основним записано симптом або фактор звернення
+    if (isSymptom(dxCode) || isFactor(dxCode)) {
+      const dxs = addDx.filter((c) => !isSymptom(c) && !isFactor(c));
+      if (dxs.length) {
+        const b = sum(dxs[0]);
+        out.push(`<div class="kd-flag kd-flag-warn">
+          <b>Правило MB3: основним записано ${isSymptom(dxCode) ? 'симптом' : 'фактор звернення'},
+          а не діагноз.</b> Код <b>${esc(dxCode)}</b> належить до
+          ${isSymptom(dxCode) ? 'розділу XVIII (симптоми, ознаки)' : 'розділу XXI (фактори звернення)'},
+          а серед додаткових є діагностований стан
+          <b>${dxs.map(esc).join(', ')}</b>. Якщо допомогу надавали з приводу
+          нього, основним має бути він.${diff(b)}
+          <span class="kd-src">МКХ-10, том 2, п. 4.5.3, правило MB3</span></div>`);
+      }
+    }
+
+    // MB4: основний записано загально, додатковий уточнює той самий стан
+    if (isVague(dxCode)) {
+      const finer = addDx.filter((c) => rubric(c) === rubric(dxCode) && !isVague(c));
+      if (finer.length) {
+        const b = sum(finer[0]);
+        out.push(`<div class="kd-flag kd-flag-warn">
+          <b>Правило MB4: основний діагноз записано загальніше, ніж додатковий.</b>
+          <b>${esc(dxCode)}</b> і <b>${finer.map(esc).join(', ')}</b> — одна рубрика
+          ${esc(rubric(dxCode))}, але додатковий код уточнює локалізацію або
+          природу стану. Уточнений код і має бути основним.${diff(b)}
+          <span class="kd-src">МКХ-10, том 2, п. 4.5.3, правило MB4</span></div>`);
+      }
+    }
+    return out.join('');
+  }
+
+  async function renderCase(q) {
+    const dxCode = q.dx[0];
+    const addDx = q.dx.slice(1);
+    const ourOdk = DX[dxCode][0];
+    const state = paramState();
+    const { roots, order, top, comboNotes, branch, mdcSet } = buildCase(dxCode, q.iv, state);
 
     const flags = await caseFlags(q.dx, q.iv, numOrNull($('kdAge').value), null, $('kdSex').value || null);
     const alt = altBranches(dxCode, q.iv, mdcSet, state, top ? top.win : null);
@@ -560,6 +660,7 @@
       ${hierarchyNote(order, top)}
       ${top ? levelNote(top) : ''}
       ${procNote(order, top, q.iv)}
+      ${mbNotes(dxCode, addDx, q.iv, state, top)}
       ${alt}
       ${dualFlag(dxCode)}
       ${addDxNote(dxCode, addDx)}
