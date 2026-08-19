@@ -17,7 +17,7 @@
 (() => {
   'use strict';
 
-  const V = 'v=35';
+  const V = 'v=37';
 
   // Кириличні гомогліфи → латиниця (та сама пастка, що в ДСГ і ЕСОЗ)
   const HOMO = { 'А':'A','В':'B','С':'C','Е':'E','Н':'H','І':'I','К':'K',
@@ -642,6 +642,13 @@
       if (!cond) h.cond = false;          // безумовною група стає від першого ж
       if (src === 'our') h.ours = true;
     };
+    /* Pre-MDC — тривала інвазивна вентиляція, трахеостомія, ЕКМО — в AR-DRG
+       визначається ДО класу основного діагнозу. У наших даних ці групи лежать
+       в ОДК 0, якого не буває в жодного діагнозу, тож фільтр за класом зрізав
+       їх завжди: випадок із трахеостомією і ШВЛ понад 96 годин рахувався як
+       звичайна краніотомія. Тому для них клас не перевіряємо взагалі. */
+    const PRE = new Set(CORE.preMdc || []);
+    const preIdx = CORE.mdc.indexOf('00');
     for (const code of ivCodes) {
       const r = IV[code];
       if (!r) continue;
@@ -649,11 +656,17 @@
       if (gi) anyGi = true;
       for (const ref of ourIvG) {
         const g = gAt(ref);
-        if (g.mdc && g.mdc.some((m) => mdcSet.has(m))) add(g, code, isCond(ref), 'our');
+        if (PRE.has(g.c) || (g.mdc && g.mdc.some((m) => mdcSet.has(m)))) add(g, code, isCond(ref), 'our');
       }
       for (const [m, gl] of arRows) {
-        if (!mdcSet.has(m)) continue;
-        for (const ref of gl) add(gAt(ref), code, isCond(ref), 'ar');
+        const isPreRow = m === preIdx;
+        if (!mdcSet.has(m) && !isPreRow) continue;
+        for (const ref of gl) {
+          const g = gAt(ref);
+          // у рядку Pre-MDC є ще й «помилкові» 961/963 — вони не група оплати
+          if (isPreRow && !PRE.has(g.c)) continue;
+          add(g, code, isCond(ref), 'ar');
+        }
       }
     }
     let branch = 'втручання в межах класу діагнозу';
@@ -724,14 +737,18 @@
       return n ? Math.round(Math.log2(n)) : 98;
     };
     const out = (R) => (R.beaten || R.markerOnly ? 1 : 0);
+    /* Pre-MDC іде поперед усього: у моделі AR-DRG це окремий крок ДО ієрархії
+       втручань, а не найдорожчий кандидат у ній. */
+    const pre = (R) => (PRE.has(R.root) ? 0 : 1);
     const order = [...roots.values()].sort((a, b) =>
       out(a) - out(b)
+      || pre(a) - pre(b)
       || (a.cond ? 1 : 0) - (b.cond ? 1 : 0)
       || (a.countWin ? 0 : 1) - (b.countWin ? 0 : 1)
       || bucket(a) - bucket(b)
       || (b.base.t ? b.base.t.total : -1) - (a.base.t ? a.base.t.total : -1));
     const top = order.find((R) => R.t) || null;
-    return { roots, order, top, comboNotes, branch, mdcSet };
+    return { roots, order, top, comboNotes, branch, mdcSet, PRE };
   }
 
   /* Правила перевибору основного стану — МКХ-10, том 2, розділ 4.5.3 (MB1–MB5).
@@ -830,7 +847,7 @@
     const addDx = q.dx.slice(1);
     const ourOdk = DX[dxCode][0];
     const state = paramState();
-    const { roots, order, top, comboNotes, branch, mdcSet } = buildCase(dxCode, q.iv, state);
+    const { roots, order, top, comboNotes, branch, mdcSet, PRE } = buildCase(dxCode, q.iv, state);
 
     const flags = await caseFlags(q.dx, q.iv, numOrNull($('kdAge').value), null, $('kdSex').value || null);
     const alt = altBranches(dxCode, q.iv, mdcSet, state, top ? top.win : null);
@@ -845,7 +862,8 @@
       </div>
       <p class="kd-hint">${esc(branch)}</p>
       ${comboNotes.join('')}
-      ${hierarchyNote(order, top)}
+      ${preNote(order, top, PRE)}
+      ${top && PRE.has(top.root) ? '' : hierarchyNote(order, top)}
       ${top ? levelNote(top) : ''}
       ${procNote(order, top, q.iv)}
       ${mbNotes(dxCode, addDx, q.iv, state, top)}
@@ -864,6 +882,38 @@
      специфічність його перекриває. Тому порядок нижче — апроксимація, і
      мовчати про це не можна: у MDC 02 самі автори переставили C01 з першої
      позиції на третю, тобто вартість там програла. */
+  /* Pre-MDC виграв — це не «найдорожчий кандидат переміг», а окремий крок
+     класифікації, і сказати про це треба прямо: інакше виглядає, ніби група
+     взагалі не з того класу, що діагноз. */
+  function preNote(order, top, PRE) {
+    if (!top || !PRE.has(top.root)) return '';
+    const others = order.filter((R) => R !== top && R.t && PRE.has(R.root));
+    const beaten = order.filter((R) => R !== top && R.t && !PRE.has(R.root)).slice(0, 3);
+    const all = [top, ...others].filter((R) => R.t)
+      .sort((a, b) => a.t.total - b.t.total);
+    /* Кілька підстав Pre-MDC у одному епізоді — звичайна річ: трахеостомія і
+       тривала вентиляція йдуть разом. Яка з них старша, вирішує групер ЕСОЗ;
+       правил пріоритету всередині Pre-MDC у наших джерелах немає, тож
+       вигадувати їх не будемо — називаємо всі підстави з сумами. */
+    const range = all.length > 1
+      ? ` У випадку є ${all.length} підстави з цього кроку:
+          ${all.map((R) => `<b>${esc(R.root)}</b> ${esc(R.win.g.t || '')} — ${
+            money(R.t.total)} грн`).join('; ')}.
+          Яка з них старша, визначає групер ЕСОЗ: правил пріоритету всередині
+          цього кроку немає ні в постанові, ні в Таблиці співставлення. Показано
+          <b>${esc(top.root)}</b> — далі в черзі за вузькістю охоплення.`
+      : '';
+    return `<div class="kd-flag kd-flag-ok">
+      <b>${esc(top.root)} — група, яка визначається до класу діагнозу.</b>
+      Тривала інвазивна вентиляція, трахеостомія та ЕКМО в моделі AR-DRG
+      обробляються окремим кроком перед ієрархією втручань: клас основного
+      діагнозу на них не впливає — тому випадок групується сюди, а не за класом
+      основного діагнозу.${range}
+      ${beaten.length ? `Інакше випадок пішов би в
+        ${beaten.map((R) => `<b>${esc(R.root)}</b> (${money(R.t.total)} грн)`).join(' або ')}.` : ''}
+    </div>`;
+  }
+
   function hierarchyNote(order, top) {
     /* Корені, відкинуті правилом комбінації, у цю чергу не входять: там вибір
        уже зроблено за кодами епізоду, і називати їх «іншими кандидатами»
