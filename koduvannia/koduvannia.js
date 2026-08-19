@@ -17,7 +17,7 @@
 (() => {
   'use strict';
 
-  const V = 'v=23';
+  const V = 'v=25';
 
   // Кириличні гомогліфи → латиниця (та сама пастка, що в ДСГ і ЕСОЗ)
   const HOMO = { 'А':'A','В':'B','С':'C','Е':'E','Н':'H','І':'I','К':'K',
@@ -363,7 +363,13 @@
        операції. Відсунуті вони лише тоді, коли є кандидат, відкритий справжнім
        втручанням: якщо в епізоді сама діагностика, F41 — правильна відповідь,
        і черга лишається за ним. */
-    const markers = new Set(Object.values(cb.sets || {}).flat());
+    /* Маркерні набори — лише ті, що позначають ознаку епізоду (invcard, cpb).
+       Набір кратності (multijoint) сюди не входить: артропластика — це
+       справжня операція, і оголосивши її маркером, ми відсунули б корінь,
+       який вона законно відкриває. */
+    const markerSets = new Set(cb.rules.filter((r) => r.kind !== 'count').map((r) => r.set));
+    const markers = new Set(Object.entries(cb.sets || {})
+      .filter(([k]) => markerSets.has(k)).flatMap(([, v]) => v));
     for (const R of roots.values()) {
       const via = new Set();
       for (const x of R.gs) for (const c of x.via) via.add(c);
@@ -375,7 +381,37 @@
       for (const R of roots.values()) R.markerOnly = null;
     }
 
-    for (const r of cb.rules) {
+    /* Кратність: «кілька значущих процедур» AR-DRG. I01 «Двосторонні та
+       множинні операції на великих суглобах нижньої кінцівки» правильний, коли
+       або є код, що вмикає його поодинці (двостороння чи ревізійна
+       артропластика), або в епізоді два різні втручання з набору. Одна
+       одностороння операція в I01 не потрапляє — і без цього правила туди б
+       ішла, бо I01 удвічі дорожча за I03 і I04. */
+    for (const r of cb.rules.filter((x) => x.kind === 'count')) {
+      const R = roots.get(r.with);
+      if (!R) continue;
+      const set = new Set(cb.sets[r.set] || []);
+      const solo = new Set(r.solo || []);
+      const hit = ivCodes.filter((c) => set.has(c));
+      const alone = hit.filter((c) => solo.has(c));
+      if (alone.length || hit.length >= (r.min || 2)) {
+        R.countWin = { label: r.label, hit, alone };
+        notes.push(`<div class="kd-flag kd-flag-ok">
+          <b>${esc(r.with)} — це ${esc(r.label)}.</b>
+          ${alone.length
+            ? `Код <b>${alone.map(esc).join(', ')}</b> вмикає цю групу сам:
+               ${esc(r.why)}.`
+            : `У випадку ${hit.length} таких втручання — <b>${hit.map(esc).join(', ')}</b>.`}</div>`);
+      } else if (hit.length) {
+        R.beaten = { by: 'одиничне втручання', label: r.label, hit };
+        notes.push(`<div class="kd-flag kd-flag-ok">
+          <b>${esc(r.with)} відкинуто: втручання одне.</b> Ця група призначена
+          для випадків, де є ${esc(r.why)}. Одна одностороння операція в неї не
+          потрапляє, хоча за Таблицею співставлення код туди й веде.</div>`);
+      }
+    }
+
+    for (const r of cb.rules.filter((x) => x.kind !== 'count')) {
       const yes = roots.get(r.with), no = roots.get(r.without);
       if (!yes || !no) continue;              // розвилки немає — нічого вирішувати
       if (yes.markerOnly && no.markerOnly) continue;   // операції з цієї пари в епізоді немає
@@ -503,6 +539,7 @@
     const order = [...roots.values()].sort((a, b) =>
       out(a) - out(b)
       || (a.cond ? 1 : 0) - (b.cond ? 1 : 0)
+      || (a.countWin ? 0 : 1) - (b.countWin ? 0 : 1)
       || bucket(a) - bucket(b)
       || (b.base.t ? b.base.t.total : -1) - (a.base.t ? a.base.t.total : -1));
     const top = order.find((R) => R.t) || null;
@@ -522,6 +559,7 @@
       ${comboNotes.join('')}
       ${hierarchyNote(order, top)}
       ${top ? levelNote(top) : ''}
+      ${procNote(order, top, q.iv)}
       ${alt}
       ${dualFlag(dxCode)}
       ${addDxNote(addDx)}
@@ -554,6 +592,41 @@
         ? R.base.g.t.slice(0, 46) : '')}${(R.base.g.t || '').length > 46 ? '…' : ''},
         ${money(R.base.t.total)} грн)`).join('; ')}. Якщо клінічно випадок — це
       інший корінь, беріть його: черга за сумою тут нічого не доводить.</div>`;
+  }
+
+  /* Коли втручань кілька, з відповіді має бути видно, яке з них дало групу і що
+     сталося з рештою. Раніше всі коди просто перелічувалися в ланцюжку, і
+     випадок із трьома втручаннями виглядав так само, як з одним. */
+  function procNote(order, top, ivCodes) {
+    if (!top || ivCodes.length < 2) return '';
+    const cb = CORE.combo || {};
+    const markerSets = new Set((cb.rules || []).filter((r) => r.kind !== 'count').map((r) => r.set));
+    const markers = new Set(Object.entries(cb.sets || {})
+      .filter(([k]) => markerSets.has(k)).flatMap(([, v]) => v));
+
+    const via = new Set();
+    for (const x of top.gs) for (const c of x.via) via.add(c);
+    const main = ivCodes.filter((c) => via.has(c) && !markers.has(c));
+    const asMark = ivCodes.filter((c) => markers.has(c));
+    const rest = ivCodes.filter((c) => !via.has(c) && !markers.has(c));
+
+    const wentTo = rest.map((c) => {
+      const R = order.find((x) => x !== top && x.gs.some((y) => y.via.has(c)));
+      return R ? `<b>${esc(c)}</b> → ${esc(R.root)}` : `<b>${esc(c)}</b> → нікуди в цьому класі`;
+    });
+
+    return `<div class="kd-drill"><details><summary>операцій у випадку
+      ${ivCodes.length} — яка дала групу</summary>
+      <p>Групу <b>${esc(top.root)}</b> дало ${main.length
+        ? `втручання <b>${main.map(esc).join(', ')}</b>` : 'жодне з уведених окремо'}.</p>
+      ${asMark.length ? `<p class="kd-hint">
+        <b>${asMark.map(esc).join(', ')}</b> враховано як ознаку епізоду, а не як
+        самостійну операцію: ці коди лише перемикають ADRG між «з обстеженням» і
+        «без», у власну групу вони випадок не ведуть.</p>` : ''}
+      ${wentTo.length ? `<p class="kd-hint">Решта втручань веде в інші корені:
+        ${wentTo.join('; ')}. Епізод дістає один ADRG — той, що вищий за
+        ієрархією, а не суму всіх.</p>` : ''}
+    </details></div>`;
   }
 
   /* Розвилка рівнів усередині кореня — головна зміна проти попередньої версії:
@@ -761,12 +834,13 @@
     return `<div class="kd-drill">
       <details><summary>чому саме ця група</summary>
         <p>Основний діагноз задає клас, клас відсікає всі групи втручання, крім
-          «своїх». Далі корені (ADRG) шикуються за вартістю базового рівня —
-          так само, як в ієрархії втручань AR-DRG, де перший критерій — вартість
-          від високої до низької. Рівні всередині кореня в цю чергу не
-          потрапляють: між ними вирішує ознака випадку або надавача, а не сума.
-          Саме групування виконує групер ЕСОЗ — тут показано, що для цієї пари
-          досяжне за Таблицею співставлення.</p>
+          «своїх». Далі корені (ADRG) шикуються так, як їх шикує ієрархія
+          втручань AR-DRG: спершу правила комбінацій, якщо вони є для цієї пари,
+          потім вужчі ADRG перед ширшими, і лише між рівними за охопленням —
+          вартість. Рівні всередині кореня в цю чергу не потрапляють: між ними
+          вирішує ознака випадку або надавача, а не сума. Саме групування
+          виконує групер ЕСОЗ — тут показано, що для цієї пари досяжне за
+          Таблицею співставлення.</p>
         <div class="kd-scroll"><table class="kd-tbl">
           <thead><tr><th>Корінь і рівні</th><th>Назва</th><th>Джерело ваги</th>
             <th>Пакети / через що</th><th>Вага</th><th>Сума</th></tr></thead>
