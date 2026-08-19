@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <title>НавігаторПМГ26 | Групер ДСГ</title>
+  <link rel="stylesheet" href="../styles.css?v=20260808b">
+  <link rel="stylesheet" href="../classifiers/classifiers.css?v=20260809d">
+  <link rel="stylesheet" href="koduvannia.css?v=20260819e">
+  <link rel="stylesheet" href="grouper.css?v=20260819c">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260806a">
+  <script type="module" src="../auth-v2.js?v=20260819c"></script>
+</head>
+<body id="top" data-required-role="expert">
+  <header class="hero classifiers-hero">
+    <div class="hero-copy">
+      <div class="overline">Кодування · випадок → група ·
+        <a class="xnav" href="index.html">↔ Кодування випадку</a>
+        <a class="xnav" href="../drg/index.html">↔ Інструменти ДСГ</a>
+        <a class="xnav" href="../mapping/index.html">↔ Таблиця співставлення</a></div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів, постанови та правил</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Групер ДСГ <span class="gr-pill">реконструкція</span></h1>
+    </div>
+    <div class="stats" id="grStats" aria-label="Показники групера"></div>
+  </header>
+
+  <main class="kd-main gr-main">
+
+    <div class="gr-warn" role="note">
+      <b>Для службового користування.</b> Це наша реконструкція логіки групування,
+      зібрана з відкритих додатків AR-DRG і перевірена на фактично згрупованих
+      випадках. <b>Це не офіційний групер НСЗУ</b> і не підстава для рішень щодо
+      оплати. Результат показує, як логіка <i>мала б</i> спрацювати, і слугує
+      для перевірки кодування та розбору спірних випадків.
+    </div>
+
+    <section class="gr-form" aria-label="Дані випадку">
+      <div class="gr-field">
+        <label for="grMain">Основний діагноз <span class="gr-req">обов'язково</span></label>
+        <input id="grMain" type="text" autocomplete="off" spellcheck="false"
+               placeholder="I63.3">
+        <div class="gr-hint">Код МКХ-10. Саме він задає ОДК.</div>
+      </div>
+      <div class="gr-field">
+        <label for="grAdd">Супутні діагнози</label>
+        <input id="grAdd" type="text" autocomplete="off" spellcheck="false"
+               placeholder="G81.1, R47.1, Z50.9">
+        <div class="gr-hint">Через кому. Часто саме вони вирішують групу.</div>
+      </div>
+      <div class="gr-field">
+        <label for="grIv">Інтервенції</label>
+        <input id="grIv" type="text" autocomplete="off" spellcheck="false"
+               placeholder="96162-00, 96021-00">
+        <div class="gr-hint">Коди НК 026 (ACHI) через кому.</div>
+      </div>
+      <div class="gr-actions">
+        <button id="grGo" class="kd-btn kd-btn-main" type="button">Згрупувати</button>
+        <span class="gr-ex" data-main="I63.3" data-add="G81.1, R47.1, Z50.9"
+              data-iv="96162-00, 96021-00">інсульт</span>
+        <span class="gr-ex" data-main="G80.00" data-add="G82.4" data-iv="">ДЦП + тетраплегія</span>
+        <span class="gr-ex" data-main="G55.1" data-add="M51.1" data-iv="40303-00">дискектомія</span>
+        <span class="gr-ex" data-main="T06.8" data-add="S06.20, S72.11, S27.0"
+              data-iv="">множинна травма</span>
+      </div>
+    </section>
+
+    <section id="grResult" class="gr-result" hidden aria-live="polite"></section>
+
+    <section class="gr-about">
+      <h2>Звідки це взялось</h2>
+      <div id="grMeta" class="gr-meta"></div>
+      <details class="gr-details">
+        <summary>Як приймається рішення</summary>
+        <ol>
+          <li><b>ОДК за основним діагнозом.</b> Додаток A класифікації дає для коду
+            одну або кілька основних діагностичних категорій.</li>
+          <li><b>Кандидати.</b> Групи, у які веде основний діагноз, плюс ті, у які
+            ведуть супутні діагнози та інтервенції — але лише в межах того самого ОДК.</li>
+          <li><b>Комбінаційне правило.</b> Якщо для цього діагнозу здобуте дерево
+            рішень і воно певне (чистота ≥ 85%) — застосовуємо його.</li>
+          <li><b>Модальна група.</b> Інакше беремо групу, яка для цього діагнозу
+            найчастіше зустрічалась у фактично згрупованих випадках.</li>
+          <li><b>Ранг.</b> Якщо діагноз не траплявся — обираємо кандидата з найвищим
+            рангом у попарній ієрархії.</li>
+        </ol>
+      </details>
+      <details class="gr-details">
+        <summary>Чого цей групер не вміє</summary>
+        <ul id="grLimits"></ul>
+      </details>
+    </section>
+  </main>
+
+  <script type="module" src="grouper.js?v=20260819d"></script>
+</body>
+</html>
