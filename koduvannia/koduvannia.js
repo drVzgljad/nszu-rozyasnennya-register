@@ -17,7 +17,7 @@
 (() => {
   'use strict';
 
-  const V = 'v=19';
+  const V = 'v=23';
 
   // Кириличні гомогліфи → латиниця (та сама пастка, що в ДСГ і ЕСОЗ)
   const HOMO = { 'А':'A','В':'B','С':'C','Е':'E','Н':'H','І':'I','К':'K',
@@ -326,18 +326,75 @@
         || gs.slice().sort((a, b) => wOf(a.g) - wOf(b.g))[0];
   }
 
-  /* Рівень, доказовий з кодів епізоду. Доказ рахуємо строго: серед уведених
-     втручань має бути таке, що веде у вищий рівень і при цьому не веде в
-     жоден нижчий. Код, який веде в обидва (42701-00 дає і C16, і C16A),
-     доказом не є — інакше ми б знову вгадували на користь дорожчого. */
-  function levelByCodes(gs) {
+  /* Рівень, доказовий з кодів епізоду — тільки для розвилок, які вмикає саме
+     втручання. Перелік груп коду в Таблиці співставлення і є переліком того,
+     куди цей код може потрапити: 42563-00 (просте видалення кришталика) веде
+     в C16 і не веде в C16A, а 42701-00 (введення інтраокулярної лінзи) веде
+     в обидва — бо саме він і є «встановленням штучного кришталика» з назви
+     рівня. Тому доказ — це наявність серед уведених кодів такого, що досяжний
+     у дорожчому рівні; вимагати ще й недосяжності в базовому було б надто
+     строго, і тоді жодна з 71 розвилки не розв'язалася б ніколи. */
+  function levelByCodes(gs, kind) {
+    if (kind !== 'intervention') return null;
     const marked = gs.filter((x) => x.via && x.via.size);
     if (marked.length < 2) return null;
     const hi = marked.reduce((a, b) => (wOf(b.g) > wOf(a.g) ? b : a));
-    const lower = marked.filter((x) => wOf(x.g) < wOf(hi.g));
-    if (!lower.length) return null;
-    const only = [...hi.via].filter((c) => lower.every((x) => !x.via.has(c)));
-    return only.length ? { g: hi, by: only } : null;
+    const lo = marked.reduce((a, b) => (wOf(b.g) < wOf(a.g) ? b : a));
+    if (wOf(hi.g) <= wOf(lo.g)) return null;
+    return { g: hi, by: [...hi.via] };
+  }
+
+  /* Комбінації втручань: пари ADRG, які розводить не окремий код, а набір
+     кодів епізоду. F05 від F06 відрізняє лише те, чи є у випадку катетеризація
+     або коронарографія, — і в Таблиці співставлення ця різниця не відображена
+     взагалі: усі 65 втручань шунтування ведуть в обидва ADRG. Набори кодів
+     рахує білдер і кладе в core.combo. */
+  function applyCombo(roots, ivCodes) {
+    const cb = CORE.combo;
+    if (!cb || !cb.rules) return [];
+    const notes = [];
+
+    /* Спершу відсуваємо корені, відкриті ТІЛЬКИ кодом-маркером. Катетеризація
+       веде і в F03, і в F04, і в F05, і в F06, і в F41 — але не як операція, а
+       як ознака «з інвазивним обстеженням». Без цього кроку коронарографія при
+       шунтуванні відкривала б F03 «операції на клапанах серця» й вигравала за
+       вартістю, а F41 «захворювання з інвазивним обстеженням» — за вузькістю:
+       епізоду приписали б або операцію, якої не було, або взагалі відсутність
+       операції. Відсунуті вони лише тоді, коли є кандидат, відкритий справжнім
+       втручанням: якщо в епізоді сама діагностика, F41 — правильна відповідь,
+       і черга лишається за ним. */
+    const markers = new Set(Object.values(cb.sets || {}).flat());
+    for (const R of roots.values()) {
+      const via = new Set();
+      for (const x of R.gs) for (const c of x.via) via.add(c);
+      if (via.size && [...via].every((c) => markers.has(c))) {
+        R.markerOnly = { codes: [...via] };
+      }
+    }
+    if ([...roots.values()].every((R) => R.markerOnly)) {
+      for (const R of roots.values()) R.markerOnly = null;
+    }
+
+    for (const r of cb.rules) {
+      const yes = roots.get(r.with), no = roots.get(r.without);
+      if (!yes || !no) continue;              // розвилки немає — нічого вирішувати
+      if (yes.markerOnly && no.markerOnly) continue;   // операції з цієї пари в епізоді немає
+      const set = new Set(cb.sets[r.set] || []);
+      const hit = ivCodes.filter((c) => set.has(c));
+      const win = hit.length ? yes : no;
+      const lose = hit.length ? no : yes;
+      lose.beaten = { by: win.root, label: r.label, hit };
+      win.comboBy = { label: r.label, why: r.why, hit, other: lose.root };
+      notes.push(`<div class="kd-flag kd-flag-ok">
+        <b>Розвилку ${esc(r.with)} / ${esc(r.without)} вирішено комбінацією кодів.</b>
+        Ці два ADRG розрізняє ${esc(r.label)}: ${esc(r.why)}.
+        ${hit.length
+          ? `У випадку є <b>${hit.map(esc).join(', ')}</b> — отже <b>${esc(r.with)}</b>.`
+          : `Жодного такого коду у випадку немає — отже <b>${esc(r.without)}</b>.`}
+        За Таблицею співставлення обидва ADRG досяжні з тих самих втручань, тож
+        без цього правила вибір робився б за сумою.</div>`);
+    }
+    return notes;
   }
 
   // ── випадок: діагноз + втручання ────────────────────────────────────────
@@ -416,17 +473,37 @@
       R.base = baseOf(R.lv);
       R.cond = R.lv.filter((x) => x.via.size).every((x) => x.cond);
       R.split = splitKind(R.lv);
-      R.pick = levelByCodes(R.lv);
+      R.pick = levelByCodes(R.lv, R.split.kind);
       R.one = R.lv.length === 1 || R.split.kind === 'same' || !!R.pick;
       R.win = R.pick ? R.pick.g : (R.lv.length === 1 ? R.lv[0] : R.base);
       R.t = R.win.t;
     }
 
-    /* 3. Вибір ADRG — ієрархія за вартістю базового рівня (Technical
-       Specifications V10.0, розділ 5, критерій 1). Умовні кандидати
-       поступаються безумовним незалежно від суми. */
+    /* 3. Вибір ADRG. Спершу — комбінації: там, де пара ADRG розрізняється
+       набором кодів епізоду, вибір робить правило, а не черга за сумою.
+       Решту шикуємо за вартістю базового рівня (Technical Specifications
+       V10.0, розділ 5, критерій 1). Умовні кандидати поступаються безумовним
+       незалежно від суми, а відкинуті правилом — усім іншим. */
+    const comboNotes = applyCombo(roots, q.iv);
+    /* Специфічність перед вартістю — це другий критерій ієрархії IHACPA, і він
+       прямо названий таким, що може перекривати перший. Міряємо його шириною
+       ADRG: скільки різних втручань у нього ведуть. У MDC 02 це вирішує все —
+       C01 «проникаюча травма ока» зібрала 274 втручання, C16 «операції на
+       кришталику» 15, тож катаракта з видаленням кришталика більше не тікає
+       в травму лише тому, що та дорожча. Корзина логарифмічна: близькі за
+       шириною ADRG (F05 і F03 — 65 і 63) лишаються рівними, і між ними, як і
+       раніше, вирішує вартість. */
+    const breadthOf = (R) => Math.max(0, ...R.gs.map((x) => x.g.ni || 0));
+    const bucket = (R) => {
+      if (R.root === '801') return 99;      // 801 стоїть у кінці партиції втручань
+      const n = breadthOf(R);
+      return n ? Math.round(Math.log2(n)) : 98;
+    };
+    const out = (R) => (R.beaten || R.markerOnly ? 1 : 0);
     const order = [...roots.values()].sort((a, b) =>
-      (a.cond ? 1 : 0) - (b.cond ? 1 : 0)
+      out(a) - out(b)
+      || (a.cond ? 1 : 0) - (b.cond ? 1 : 0)
+      || bucket(a) - bucket(b)
       || (b.base.t ? b.base.t.total : -1) - (a.base.t ? a.base.t.total : -1));
     const top = order.find((R) => R.t) || null;
 
@@ -442,6 +519,7 @@
         <b>${top ? esc(top.root) : '—'}</b>
       </div>
       <p class="kd-hint">${esc(branch)}</p>
+      ${comboNotes.join('')}
       ${hierarchyNote(order, top)}
       ${top ? levelNote(top) : ''}
       ${alt}
@@ -460,13 +538,17 @@
      мовчати про це не можна: у MDC 02 самі автори переставили C01 з першої
      позиції на третю, тобто вартість там програла. */
   function hierarchyNote(order, top) {
-    const rivals = order.filter((R) => R.t && R !== top);
+    /* Корені, відкинуті правилом комбінації, у цю чергу не входять: там вибір
+       уже зроблено за кодами епізоду, і називати їх «іншими кандидатами»
+       означало б відкликати щойно дане пояснення. */
+    const rivals = order.filter((R) => R.t && R !== top && !R.beaten && !R.markerOnly);
     if (!top || !rivals.length) return '';
     return `<div class="kd-flag kd-flag-warn">
-      <b>Критеріям цього випадку відповідає ${order.length} ${
-        order.length < 5 ? 'корені' : 'коренів'} — вибрано ${esc(top.root)} за
-      вартістю базового рівня.</b> Це апроксимація: справжній порядок усередині
-      ОДК заданий фіксованою ієрархією втручань, якої немає ні в постанові, ні
+      <b>Критеріям цього випадку відповідає ${rivals.length + 1} ${
+        rivals.length < 4 ? 'корені' : 'коренів'} — вибрано ${esc(top.root)}
+      як вужчий за охопленням, а серед рівних за шириною — за вартістю.</b>
+      Це апроксимація двох перших критеріїв ієрархії втручань AR-DRG;
+      самої ієрархії — фіксованого переліку — немає ні в постанові, ні
       в Таблиці співставлення. Інші кандидати:
       ${rivals.slice(0, 4).map((R) => `<b>${esc(R.root)}</b> (${esc(R.base.g.t
         ? R.base.g.t.slice(0, 46) : '')}${(R.base.g.t || '').length > 46 ? '…' : ''},
@@ -484,11 +566,14 @@
         на суму вибір між ними не впливає.</p>`;
     }
     if (R.pick) {
+      const base = R.lv.find((x) => x !== R.pick.g && x.via.size);
       return `<div class="kd-flag kd-flag-ok"><b>Рівень ${esc(R.pick.g.g.c)}
         визначений кодами випадку.</b> Усередині кореня ${esc(R.root)} рівні
-        розводить ${esc(R.split.q)}, і в наших даних вищий рівень досяжний лише
-        через <b>${R.pick.by.map(esc).join(', ')}</b> — саме це втручання його
-        й вмикає. ${R.split.cond ? `Умова рівня: ${esc(R.split.cond)}.` : ''}</div>`;
+        розводить ${esc(R.split.q)}${R.split.cond ? ` — ${esc(R.split.cond)}` : ''},
+        і за Таблицею співставлення код <b>${R.pick.by.map(esc).join(', ')}</b>
+        досяжний саме в цьому рівні: він і є тим втручанням, що його вмикає.
+        ${base && base.t ? `Без нього випадок лишився б у ${esc(base.g.c)} —
+        ${money(base.t.total)} грн замість ${money(R.pick.g.t.total)}.` : ''}</div>`;
     }
     const lo = R.lv[0], hi = R.lv[R.lv.length - 1];
     return `<div class="kd-flag kd-flag-warn">
@@ -648,8 +733,11 @@
        його рівні. Плоский список ставив рівні одного кореня в чергу поруч із
        чужими ADRG, наче вони конкуренти, — вони не конкуренти. */
     const rows = order.map((R) => {
-      const head = `<tr class="${R === top ? 'win' : ''}">
-        <td><b>${esc(R.root)}</b>${R.cond ? ' <span class="kd-src">умовний</span>' : ''}</td>
+      const head = `<tr class="${R === top ? 'win' : (R.beaten || R.markerOnly ? 'kd-out' : '')}">
+        <td><b>${esc(R.root)}</b>${R.cond ? ' <span class="kd-src">умовний</span>' : ''}${
+          R.beaten ? ` <span class="kd-src">відпав: ${esc(R.beaten.label)} → ${
+            esc(R.beaten.by)}</span>` : (R.markerOnly ? ` <span class="kd-src">відкритий лише кодом ${
+            esc(R.markerOnly.codes.join(', '))} — це ознака, а не операція</span>` : '')}</td>
         <td>${esc(R.base.g.t || '—')}</td>
         <td>${esc(CORE.appendixLabel[R.base.g.a] || (R.base.g.a === 'ar-only' ? 'немає в постанові' : ''))}</td>
         <td>${R.base.g.p && R.base.g.p.length ? esc(R.base.g.p.join(', ')) : '—'}</td>

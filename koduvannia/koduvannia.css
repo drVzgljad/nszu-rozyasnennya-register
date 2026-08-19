@@ -127,6 +127,11 @@
 .kd-tbl tr.win td { background: var(--kd-ok-bg); }
 /* Рівні всередині кореня — підпорядковані рядки, а не сусіди в черзі ADRG. */
 .kd-tbl tr.kd-lvl td { color: var(--muted); background: var(--soft); }
+/* Корінь, відкинутий правилом комбінації: лишається видимим, але не
+   змагається за увагу з обраним. */
+.kd-tbl tr.kd-out td { opacity: .55; text-decoration: line-through; }
+.kd-tbl tr.kd-out td .kd-src { text-decoration: none; opacity: 1; }
+
 .kd-tbl tr.kd-lvl td:first-child { font-family: ui-monospace, Consolas, monospace; }
 .kd-scroll { overflow-x: auto; }
 
