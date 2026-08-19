@@ -17,7 +17,7 @@
 (() => {
   'use strict';
 
-  const V = 'v=33';
+  const V = 'v=34';
 
   // Кириличні гомогліфи → латиниця (та сама пастка, що в ДСГ і ЕСОЗ)
   const HOMO = { 'А':'A','В':'B','С':'C','Е':'E','Н':'H','І':'I','К':'K',
@@ -1210,7 +1210,10 @@
 
     return `<div class="kd-card">
       <div class="kd-head">
-        <div class="kd-head-code">${dxLink(code)}</div>
+        <div class="kd-head-code">${dxLink(code)}
+          <button class="cbask-add" type="button" data-basket-add
+                  data-code="${esc(code)}" data-kind="dx"
+                  data-name="${esc(nameDx(code))}">＋ у кошик</button></div>
         <div class="kd-head-name">${esc(nameDx(code))}</div>
       </div>
       ${namesHint()}
@@ -1253,7 +1256,10 @@
     }));
     return `<div class="kd-card">
       <div class="kd-head">
-        <div class="kd-head-code">${ivLink(code)}</div>
+        <div class="kd-head-code">${ivLink(code)}
+          <button class="cbask-add" type="button" data-basket-add
+                  data-code="${esc(code)}" data-kind="iv"
+                  data-name="${esc(nameIv(code))}">＋ у кошик</button></div>
         <div class="kd-head-name">${esc(nameIv(code))}</div>
       </div>
       ${namesHint()}

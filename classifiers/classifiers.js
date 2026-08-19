@@ -627,6 +627,11 @@
       <div class="reader-head">
         <div class="reader-code">${e.c}</div>
         <div class="reader-level lvl-${e.l}">${LEVEL_LABEL[e.l]}</div>
+        <!-- Кошик кодів (code-basket.js): відкласти діагноз, щоб потім зібрати
+             випадок у групері, не переписуючи коди руками. -->
+        <button class="cbask-add" type="button" data-basket-add
+                data-code="${escAttr(e.c)}" data-kind="dx"
+                data-name="${escAttr(e.n)}">＋ у кошик</button>
         <div class="copy-wrap">
           <button class="copy-btn" type="button" data-copy-menu
                   aria-haspopup="true" aria-expanded="false">⧉ Копіювати ▾</button>

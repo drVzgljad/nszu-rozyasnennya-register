@@ -612,6 +612,9 @@
         <div class="reader-head">
           <div class="reader-code">${esc(e.c)}</div>
           <div class="reader-level">Послуга ЕСОЗ</div>
+          <button class="cbask-add" type="button" data-basket-add
+                  data-code="${escAttr(e.c)}" data-kind="svc"
+                  data-name="${escAttr(e.n)}">＋ у кошик</button>
           <button class="copy-btn" type="button" data-copy="${escAttr(e.c + " — " + e.n)}" title="Скопіювати код і назву">⧉ Копіювати</button>
         </div>
         <h2 class="reader-name">${esc(e.n)}</h2>
@@ -647,6 +650,10 @@
       <div class="reader-head">
         <div class="reader-code">${e.c}</div>
         <div class="reader-level">Медична інтервенція</div>
+        <!-- Кошик кодів (code-basket.js) — див. коментар у classifiers.js -->
+        <button class="cbask-add" type="button" data-basket-add
+                data-code="${escAttr(e.c)}" data-kind="iv"
+                data-name="${escAttr(e.n)}">＋ у кошик</button>
         <button class="copy-btn" type="button" data-copy="${escAttr(e.c + " — " + e.n)}" title="Скопіювати код і назву">⧉ Копіювати</button>
       </div>
       <h2 class="reader-name">${esc(e.n)}</h2>

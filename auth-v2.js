@@ -2756,3 +2756,4 @@ document.addEventListener('DOMContentLoaded', init);
 // Шлях розв'язується відносно auth-v2.js (корінь сайту), тож працює
 // з будь-якої вкладеної сторінки. Помилка завантаження не критична.
 import('./nav-trail.js?v=20260805a').catch(() => {});
+import('./code-basket.js?v=20260819b').catch(() => {});
