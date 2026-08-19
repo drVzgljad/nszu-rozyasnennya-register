@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="cabinet.css?v=20260805b">
   <link rel="stylesheet" href="workspace.css?v=20260722f">
   <script type="module" src="../auth-v2.js?v=20260818a"></script>
-  <script type="module" src="cabinet.js?v=20260729c"></script>
+  <script type="module" src="cabinet.js?v=20260819a"></script>
   <script type="module" src="workspace.js?v=20260729b"></script>
 </head>
 <body data-required-role="expert">
@@ -235,9 +235,19 @@
 
             <div class="form-row">
               <div class="form-group">
+                <label for="work_date">Дата роботи *</label>
+                <input type="date" id="work_date" required>
+                <div class="field-hint" style="margin-top: 4px; font-size: 11.5px; color: var(--p-muted, #64748b);">
+                  Типово сьогодні. Оберіть минулу дату, щоб довнести роботу заднім числом.
+                </div>
+              </div>
+              <div class="form-group">
                 <label for="start_time">Час початку *</label>
                 <input type="time" id="start_time" required>
               </div>
+            </div>
+
+            <div class="form-row">
               <div class="form-group">
                 <label for="duration_preset">Тривалість *</label>
                 <select id="duration_preset" required>
@@ -610,6 +620,10 @@
       <div class="modal-body-scroll">
         <form id="log-edit-form" autocomplete="off" novalidate>
           <div class="form-row">
+            <div class="form-group">
+              <label for="edit_log_date">Дата роботи *</label>
+              <input type="date" id="edit_log_date" required>
+            </div>
             <div class="form-group">
               <label for="edit_start_time">Час початку *</label>
               <input type="time" id="edit_start_time" required>

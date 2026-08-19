@@ -151,6 +151,9 @@ async function init() {
   const mm = String(now.getMinutes()).padStart(2, '0');
   document.getElementById('start_time').value = `${hh}:${mm}`;
   document.getElementById('event_date').value = now.toISOString().split('T')[0];
+  const wd = document.getElementById('work_date');
+  wd.value = localTodayISO();
+  wd.max = localTodayISO();   // майбутнє заборонено — довносити можна лише минуле
 
   // Auth State Change listener
   sb.auth.onAuthStateChange(async (event, session) => {
@@ -206,6 +209,12 @@ function renderProfileHeader() {
     const MANAGER_ROLES = ['manager', 'deputy_director', 'director', 'admin'];
     assignBtn.style.display = MANAGER_ROLES.includes(userProfile.role) ? '' : 'none';
   }
+}
+
+/** Сьогодні у форматі YYYY-MM-DD за локальним часом (ISO від UTC вночі бреше). */
+function localTodayISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 async function loadDatabaseData() {
@@ -909,6 +918,9 @@ function openLogEditModal(log) {
   editingLog = log;
 
   document.getElementById('edit_start_time').value = log.start_time ? log.start_time.slice(0, 5) : '';
+  const eld = document.getElementById('edit_log_date');
+  eld.value = log.log_date || localTodayISO();
+  eld.max = localTodayISO();
   document.getElementById('edit_duration').value = log.duration_minutes || 60;
   document.getElementById('edit_severity').value = log.severity_level || 'medium';
   document.getElementById('edit_askod_number').value = log.askod_reg_number || '';
@@ -932,6 +944,7 @@ async function saveLogEdit() {
   if (!editingLog) return;
 
   const startVal = document.getElementById('edit_start_time').value;
+  const editDate = document.getElementById('edit_log_date').value;
   const duration = parseInt(document.getElementById('edit_duration').value, 10);
   const severity = document.getElementById('edit_severity').value;
   const askodNum = document.getElementById('edit_askod_number').value.trim();
@@ -940,6 +953,14 @@ async function saveLogEdit() {
 
   if (!desc) {
     alert("Вкажіть короткий опис виконаної роботи.");
+    return;
+  }
+  if (!editDate) {
+    alert("Вкажіть дату роботи.");
+    return;
+  }
+  if (editDate > localTodayISO()) {
+    alert("Дата роботи не може бути в майбутньому.");
     return;
   }
   if (!duration || duration < 5) {
@@ -959,6 +980,7 @@ async function saveLogEdit() {
   btn.textContent = 'Збереження...';
 
   const updateData = {
+    log_date: editDate,
     start_time: startVal ? startVal + ':00' : editingLog.start_time,
     duration_minutes: duration,
     severity_level: severity,
@@ -1015,6 +1037,22 @@ async function handleLogFormSubmit(e) {
       return;
     }
 
+    // Дата роботи: типово сьогодні, можна довнести заднім числом; майбутнє — ні
+    const workDate = document.getElementById('work_date').value;
+    const todayISO = localTodayISO();
+    if (!workDate) {
+      alert("Вкажіть дату роботи.");
+      btn.disabled = false;
+      btn.textContent = '💾 Зберегти виконану роботу';
+      return;
+    }
+    if (workDate > todayISO) {
+      alert("Дата роботи не може бути в майбутньому.");
+      btn.disabled = false;
+      btn.textContent = '💾 Зберегти виконану роботу';
+      return;
+    }
+
     const coef = COEFFICIENTS[severity] || 1.0;
     const score = parseFloat(((duration / 60) * coef).toFixed(2));
 
@@ -1066,7 +1104,7 @@ async function handleLogFormSubmit(e) {
       user_id: currentUser.id,
       user_name: userProfile.full_name,
       department: userProfile.Section || userProfile.department || 'Департамент стратегії НСЗУ',
-      log_date: new Date().toISOString().split('T')[0],
+      log_date: workDate,
       start_time: startVal + ':00',
       duration_minutes: duration,
       branch: branch,
@@ -1187,11 +1225,18 @@ async function handleLogFormSubmit(e) {
     const mm = String(now.getMinutes()).padStart(2, '0');
     document.getElementById('start_time').value = `${hh}:${mm}`;
     document.getElementById('event_date').value = now.toISOString().split('T')[0];
+    document.getElementById('work_date').value = localTodayISO();
+    document.getElementById('work_date').max = localTodayISO();
 
     // Reload databases
     await loadDatabaseData();
     activeTaskForLog = null;
-    alert("Роботу успішно збережено в СКО-Д!");
+    if (workDate !== todayISO) {
+      const [y, m, dd] = workDate.split('-');
+      alert(`Роботу збережено в СКО-Д за ${dd}.${m}.${y}.\nУ списку «Виконана робота» показуються записи лише за сьогодні, тому цей запис там не зʼявиться.`);
+    } else {
+      alert("Роботу успішно збережено в СКО-Д!");
+    }
 
   } catch(err) {
     console.error("Save log error:", err);
