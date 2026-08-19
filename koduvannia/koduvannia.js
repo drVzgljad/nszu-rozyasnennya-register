@@ -17,7 +17,7 @@
 (() => {
   'use strict';
 
-  const V = 'v=34';
+  const V = 'v=35';
 
   // Кириличні гомогліфи → латиниця (та сама пастка, що в ДСГ і ЕСОЗ)
   const HOMO = { 'А':'A','В':'B','С':'C','Е':'E','Н':'H','І':'I','К':'K',
@@ -1127,6 +1127,83 @@
 
   /* Чипи-питання замість вкладок: розділ показує те, по що прийшли, а решта
      розкривається на місці й лише коли спитали. */
+  /* Повний перелік коефіцієнтів пункту 38. Розрахунок показує лише спрацьовані
+     рядки, і через це модель виглядає бідніше, ніж є: у типовому випадку їх
+     чотири з вісімнадцяти. Тут видно всі — і головне, чого саме бракує, щоб
+     решта порахувалася: ознаки випадку, даних про заклад чи значення, якого
+     немає в самій постанові. */
+  function factorsTable(res, g) {
+    const used = new Map(res.steps.filter((s) => s.sub).map((s) => [s.sub, s]));
+    const perDay = new Map(res.perDay.map((p) => [p.f.sub, p]));
+    const pkgs = new Set(g.p || []);
+    const rows = CORE.factors.map((f) => {
+      const step = used.get(f.sub), pd = perDay.get(f.sub);
+      let kind = 'off', val = '', why = f.note || '';
+      if (step) {
+        kind = 'on';
+        val = (step.op ? step.op + ' ' : '') + String(step.value).replace('.', ',');
+      } else if (pd) {
+        kind = 'on';
+        val = `${pd.days} діб × ${String(pd.f.value).replace('.', ',')} ставки`;
+      } else if (f.kind === 'unknown' || f.kind === 'special') {
+        kind = 'na';
+        val = '—';
+        why = f.kind === 'special'
+          ? 'Частки за кожну наступну операцію задані, але який саме коефіцієнт '
+            + 'ділиться — визначають алгоритми НСЗУ.'
+          : 'Величину визначають алгоритми і правила НСЗУ — у постанові числа немає.';
+      } else if (f.packages && f.packages.length && pkgs.size
+                 && !f.packages.some((p) => pkgs.has(p))) {
+        kind = 'nop';
+        val = fmtFactor(f);
+        why = `Стосується лише ${f.packages.length > 1 ? 'пакетів' : 'пакета'} `
+            + f.packages.join(', ') + ', а ця група оплачується в ' + [...pkgs].join(', ') + '.';
+      } else {
+        val = fmtFactor(f);
+      }
+      return { f, kind, val, why };
+    });
+    const on = rows.filter((r) => r.kind === 'on').length;
+    const na = rows.filter((r) => r.kind === 'na').length;
+    const badge = { on: 'kd-ok', off: '', nop: '', na: 'kd-warn' };
+    const label = { on: 'застосовано', off: 'не застосовано', nop: 'інший пакет',
+                    na: 'немає значення' };
+    return `<details><summary>усі коефіцієнти пункту 38 — ${on} з
+        ${CORE.factors.length} застосовано</summary>
+      <p class="kd-hint">У розрахунку вище видно лише те, що спрацювало.
+        Решту вмикають ознаки випадку, яких у стрічці немає: вік, травма,
+        гірський заклад, доба в інтенсивній терапії, пріоритет звернення тощо.
+        ${na ? `А ${na} коефіцієнти порахувати не може ніхто, крім ЕСОЗ:
+        постанова не наводить їхніх значень.` : ''}</p>
+      <div class="kd-scroll"><table class="kd-tbl">
+        <thead><tr><th>пп.</th><th>Коефіцієнт</th><th>Стан</th><th>Значення</th>
+          <th>Умова застосування</th></tr></thead>
+        <tbody>${rows.map((r) => `<tr class="${r.kind === 'on' ? 'win' : ''}">
+          <td>38.${esc(r.f.sub)}</td>
+          <td>${esc(r.f.label)}</td>
+          <td><span class="kd-badge ${badge[r.kind]}">${label[r.kind]}</span></td>
+          <td class="num">${esc(r.val)}</td>
+          <td>${esc(r.why)}</td></tr>`).join('')}</tbody></table></div>
+      <p class="kd-hint">Це коефіцієнти оплати <b>за пролікований випадок</b>.
+        Для тих самих пакетів постанова має ще один режим — глобальну ставку
+        за пунктом 36 (частка 0,45, коефіцієнти 0,6 і 0,4 за частку повторних
+        госпіталізацій та інші), — але вона рахується на заклад за період, а не
+        на випадок, і в цьому розділі не застосовується.</p>
+    </details>`;
+  }
+
+  /* Значення коефіцієнта, коли він не спрацював: постійне число, вибір із
+     варіантів, колонка додатка або заміна вагового. */
+  function fmtFactor(f) {
+    if (f.options) return f.options.map((o) => String(o.value).replace('.', ',')
+      + ' — ' + o.label).join(' / ');
+    if (f.kind === 'addw') return 'з додатка 1';
+    if (f.kind === 'alt') return 'додаток 2';
+    if (f.kind === 'weight') return 'з додатка 1';
+    if (f.value !== undefined) return String(f.value).replace('.', ',');
+    return '—';
+  }
+
   function drill(order, top, state) {
     /* Таблиця тепер двоярусна: спершу корені в порядку ієрархії, під кожним —
        його рівні. Плоский список ставив рівні одного кореня в чергу поруч із
@@ -1186,7 +1263,8 @@
         </tbody></table></div>
         ${top.t.unknown.length ? `<p class="kd-hint">Не враховано: ${top.t.unknown
           .map((u) => esc(u.f.label) + ' — ' + esc(u.why)).join('; ')}.</p>` : ''}
-      </details>` : ''}
+      </details>
+      ${factorsTable(top.t, top.win.g)}` : ''}
       <details><summary>у який пакет це впаде</summary>
         <p class="kd-hint">Умови належності до пакета — у шухляді нижче,
           розділ «Належність до пакета» (за логіном).</p>
