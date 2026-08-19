@@ -642,9 +642,9 @@
       </div>
       <h2 class="reader-name">${esc(e.n)}</h2>
       <div class="reader-crumbs">${crumbs.join('<span class="sep">›</span>')}</div>
+      ${renderCoding(e)}
       ${renderPmg(e)}
       ${renderServices(e)}
-      ${renderCoding(e)}
       ${renderLinks(e)}
       ${kidsHtml}
       <div class="reader-foot">НК 025:2021 · ICD-10-AM · ${LEVEL_LABEL[e.l].toLowerCase()}</div>`;
@@ -659,7 +659,7 @@
   function renderCoding(e) {
     // Заголовок навмисно предметний: нижче вже є блок «Переходи до пов'язаних
     // розділів», і два сусідні блоки з навігаційними назвами читалися б як одне.
-    return `<div class="reader-block">
+    return `<div class="reader-block coding-bridge">
       <h3>Група і тариф</h3>
       <div class="chip-list">
         <a class="subchip" href="../koduvannia/index.html?dx=${encodeURIComponent(e.c)}#grouper"
@@ -667,7 +667,7 @@
            ><b>🧭 Кодування випадку</b> клас, групи, тариф</a>
         <a class="subchip" href="../drg/index.html?code=${encodeURIComponent(e.c)}&amp;mod=passport"
            title="Паспорт коду в тарифній моделі: перелік груп із вагами й сумами"
-           ><b>🧮 Інструменти ДСГ</b> ваги й суми</a>
+           ><b>🧮 Тарифікація ДСГ</b> ваги й суми</a>
       </div>
     </div>`;
   }

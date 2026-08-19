@@ -316,6 +316,17 @@
 .subchip:hover { background: var(--accent-soft); border-color: var(--accent); }
 .subchip b { font-family: ui-monospace, monospace; color: var(--accent-dark); }
 
+/* ── Місток «Група і тариф» у паспорті: перший блок, помітні написи ── */
+.coding-bridge { border-left: 3px solid var(--accent); padding-left: 12px; }
+.coding-bridge .chip-list { gap: 10px; }
+.coding-bridge .subchip {
+  font-size: .98rem; padding: 10px 14px; border-radius: 11px;
+  display: inline-flex; align-items: baseline; gap: 8px;
+}
+.coding-bridge .subchip b {
+  font-family: inherit; font-size: 1.06rem; font-weight: 800; letter-spacing: .01em;
+}
+
 .reader-foot { margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--line); font-size: .74rem; color: var(--muted); }
 
 /* ── Мобільні вкладки ──────────────────────────────────────── */

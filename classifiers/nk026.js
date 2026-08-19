@@ -651,6 +651,7 @@
       </div>
       <h2 class="reader-name">${esc(e.n)}</h2>
       <div class="reader-crumbs">${crumbs.join('<span class="sep">›</span>')}</div>
+      ${renderCoding(e)}
       ${renderPmg(e)}
       ${renderServices(e)}
       ${render377(e)}
@@ -658,6 +659,23 @@
       ${renderLinks(e)}
       <div class="reader-foot">НК 026:2021 · ACHI · розділ ${e.ch}${ch ? " · " + esc(ch.title) : ""}</div>`;
     setTab("reader");
+  }
+
+  /* Місток у тарифний бік — дзеркало renderCoding з НК 025 (аудит 17.08.2026,
+     дефект В3): паспорт інтервенції веде в «Кодування випадку» (?iv=) і в
+     тарифну модель ДСГ (?code=…&mod=passport), код уже підставлено. */
+  function renderCoding(e) {
+    return `<div class="reader-block coding-bridge">
+      <h3>Група і тариф</h3>
+      <div class="chip-list">
+        <a class="subchip" href="../koduvannia/index.html?iv=${encodeURIComponent(e.c)}#grouper"
+           title="Досяжні групи і тариф для випадку з цією інтервенцією"
+           ><b>🧭 Кодування випадку</b> клас, групи, тариф</a>
+        <a class="subchip" href="../drg/index.html?code=${encodeURIComponent(e.c)}&amp;mod=passport"
+           title="Паспорт коду в тарифній моделі: перелік груп із вагами й сумами"
+           ><b>🧮 Тарифікація ДСГ</b> ваги й суми</a>
+      </div>
+    </div>`;
   }
 
   function renderPmg(e) {
