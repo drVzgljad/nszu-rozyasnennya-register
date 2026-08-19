@@ -11,7 +11,7 @@
   <title>НавігаторПМГ26 | Кодування</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
   <link rel="stylesheet" href="../classifiers/classifiers.css?v=20260809d">
-  <link rel="stylesheet" href="koduvannia.css?v=20260819d">
+  <link rel="stylesheet" href="koduvannia.css?v=20260819e">
   <link rel="stylesheet" href="../auth-v2.css?v=20260806a">
   <script type="module" src="../auth-v2.js?v=20260818a"></script>
 </head>
@@ -49,12 +49,14 @@
       <span class="kd-bar-ico" aria-hidden="true">🔍</span>
       <input id="kdQ" type="search" autocomplete="off" spellcheck="false"
              aria-label="Код або випадок"
-             placeholder="Код діагнозу, втручання, групи — або кілька разом">
+             placeholder="Код або назва: M51.1, дискектомія, катаракта…">
       <button id="kdGo" class="kd-btn kd-btn-main" type="button">Показати</button>
     </div>
+    <div id="kdSug" class="kd-sug" role="listbox" hidden></div>
     <div class="kd-bar-hint">
       Тип коду визначається сам: <b>M51.1</b> — діагноз, <b>40303-00</b> — втручання,
       <b>I10</b> — група. Два коди разом — це вже випадок.
+      Коду не знаєте — пишіть назву: «катаракта», «дискектомія» — підкаже з НК 025 і НК 026.
       <span class="kd-ex" data-q="M51.1 40303-00">спробувати випадок</span>
       <span class="kd-ex" data-q="G55.1 40303-00">кейс із листа</span>
       <span class="kd-ex" data-q="I10">збіг кодів</span>
@@ -298,6 +300,6 @@
        сервіс-воркер віддають стару копію, а сторінка мовчки не працює -->
   <!-- спільна формула пункту 38 — одна на портал, підключати ДО koduvannia.js -->
 <script src="../pmg-tariff.js?v=1"></script>
-<script src="koduvannia.js?v=30"></script>
+<script src="koduvannia.js?v=33"></script>
 </body>
 </html>

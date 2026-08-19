@@ -17,7 +17,7 @@
 (() => {
   'use strict';
 
-  const V = 'v=30';
+  const V = 'v=33';
 
   // Кириличні гомогліфи → латиниця (та сама пастка, що в ДСГ і ЕСОЗ)
   const HOMO = { 'А':'A','В':'B','С':'C','Е':'E','Н':'H','І':'I','К':'K',
@@ -103,6 +103,123 @@
   const namesHint = () => namesReady ? ''
     : '<p class="kd-hint">Назви кодів ще вантажаться з довідників НК 025 і НК 026 — ' +
       'щойно приїдуть, підписи зʼявляться самі.</p>';
+
+  // ══════════ Пошук за назвою просто в стрічці ═══════════════════════════
+  /* Досі розділ вимагав знати код: «катаракта» не давала нічого, хоча обидва
+     довідники вже завантажені заради підписів. Індекс будуємо один раз —
+     25 721 запис, і перебирати їх на кожен натиск дорожче за саму відповідь. */
+  let SUG = null;
+  function buildSug() {
+    if (SUG || !NDX || !NIV) return SUG;
+    SUG = [];
+    for (const [c, n] of NDX) SUG.push([c, n.toLowerCase(), 'dx']);
+    for (const [c, n] of NIV) SUG.push([c, n.toLowerCase(), 'iv']);
+    return SUG;
+  }
+  /* Участь коду в групуванні рахуємо на льоту, а не кладемо в індекс: індекс
+     будується з назв, які приїжджають раніше за dx.json та iv.json, і
+     збережений там прапорець на першому ж наборі виявився б хибним — усі
+     підказки, включно з H25.1, підписалися б «поза групуванням». null означає
+     «дані ще їдуть», і тоді мітки просто немає замість неправди. */
+  const inGroup = (row) => (row[2] === 'dx' ? (DX ? !!DX[row[0]] : null)
+                                            : (IV ? !!IV[row[0]] : null));
+
+  /* Апостроф у назвах набраний по-різному («м’яз» і «м'яз»), тож обидва
+     зводимо до одного, інакше половина запитів не знаходить нічого. */
+  const sugNorm = (s) => String(s || '').toLowerCase().replace(/[’`]/g, "'");
+  const isCodeish = (t) => /^[a-zа-я]?\d/i.test(t);
+
+  function suggest(term) {
+    const t = sugNorm(term);
+    const list = buildSug();
+    if (!list || t.length < (isCodeish(t) ? 2 : 3)) return [];
+    const head = [], tail = [];
+    if (isCodeish(t)) {
+      const up = norm(term);
+      for (const row of list) {
+        if (row[0].startsWith(up)) head.push(row);
+        if (head.length > 40) break;
+      }
+    } else {
+      for (const row of list) {
+        const i = row[1].indexOf(t);
+        if (i < 0) continue;
+        // початок слова важить більше за випадкове входження всередині
+        (i === 0 || /[\s(«,\-/]/.test(row[1][i - 1]) ? head : tail).push(row);
+        if (head.length > 80) break;
+      }
+    }
+    /* Спершу коди, які справді беруть участь у групуванні: підказка, що веде в
+       «код у групуванні не бере участі», технічно правильна й марна. */
+    const w = (r) => (inGroup(r) === false ? 0 : 1);
+    const rank = (a, b) => (w(b) - w(a)) || (a[1].length - b[1].length)
+      || a[0].localeCompare(b[0]);
+    return [...head.sort(rank), ...tail.sort(rank)].slice(0, 9);
+  }
+
+  let sugRows = [], sugAt = -1;
+
+  function sugHide() {
+    const box = $('kdSug');
+    if (box) { box.hidden = true; box.innerHTML = ''; }
+    sugRows = []; sugAt = -1;
+  }
+
+  /* Пошук за назвою — це кілька слів («стареча ядерна катаракта»), а не один
+     токен. Тому хвостом для підказки вважаємо все після останнього
+     РОЗПІЗНАНОГО коду: інакше підстановка з'їдала лише останнє слово й лишала
+     в полі «стареча», яке потім бралося за невідомий код. */
+  function tailQuery(v) {
+    const parts = String(v).split(/([\s,;]+)/);
+    let cut = 0;
+    for (let i = 0; i < parts.length; i++) {
+      const t = norm(parts[i]);
+      if (t && DX && IV && CORE && classify(t).length) cut = i + 1;
+    }
+    return { head: parts.slice(0, cut).join(''), tail: parts.slice(cut).join('') };
+  }
+
+  function sugShow(term) {
+    const box = $('kdSug');
+    if (!box) return;
+    const rows = suggest(term);
+    sugRows = rows; sugAt = -1;
+    if (!rows.length) { sugHide(); return; }
+    const t = sugNorm(term);
+    const mark = (name) => {
+      const i = sugNorm(name).indexOf(t);
+      if (i < 0 || isCodeish(t)) return esc(name);
+      return esc(name.slice(0, i)) + '<b>' + esc(name.slice(i, i + t.length)) + '</b>'
+        + esc(name.slice(i + t.length));
+    };
+    box.innerHTML = rows.map((r, i) => `<button type="button" class="kd-sug-row"
+      role="option" data-i="${i}">
+      <span class="kd-sug-code">${esc(r[0])}</span>
+      <span class="kd-sug-name">${mark(r[2] === 'dx' ? nameDx(r[0]) : nameIv(r[0]))}</span>
+      <span class="kd-sug-tag${inGroup(r) === false ? ' off' : ''}">${
+        r[2] === 'dx' ? 'НК 025' : 'НК 026'}${
+        inGroup(r) === false ? ' · поза групуванням' : ''}</span></button>`).join('')
+      + `<div class="kd-sug-foot">↑↓ вибір · Enter підставити · Esc сховати</div>`;
+    box.hidden = false;
+  }
+
+  function sugPick(i) {
+    const row = sugRows[i];
+    const el = $('kdQ');
+    if (!row || !el) return;
+    el.value = tailQuery(el.value).head.replace(/\s*$/, ' ').replace(/^\s+/, '') + row[0] + ' ';
+    sugHide();
+    el.focus();
+    route().catch(() => {});
+  }
+
+  function sugMove(d) {
+    if (!sugRows.length) return;
+    sugAt = (sugAt + d + sugRows.length) % sugRows.length;
+    const box = $('kdSug');
+    [...box.querySelectorAll('.kd-sug-row')].forEach((el, i) =>
+      el.classList.toggle('on', i === sugAt));
+  }
 
   // ── дрібні помічники предметної області ─────────────────────────────────
   const gAt = (ref) => CORE.groups[ref < 0 ? -ref - 1 : ref];
@@ -1741,8 +1858,39 @@
 
     const go = () => route().catch((err) =>
       $('kdAnswer').innerHTML = `<div class="kd-card"><p class="kd-flag kd-flag-no">${esc(err.message)}</p></div>`);
-    $('kdGo').addEventListener('click', go);
-    $('kdQ').addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+    $('kdGo').addEventListener('click', () => { sugHide(); go(); });
+
+    /* Підказки живуть тільки поки в полі щось набирають: після go() і після
+       вибору зі списку вони зайві, бо відповідь уже на екрані. Індекси
+       вантажаться у фоні, тож перший набір може пройти без підказок — це
+       нормально, вони підхопляться самі. */
+    let sugTimer = null;
+    $('kdQ').addEventListener('input', () => {
+      startNames();
+      needCase().catch(() => {});
+      clearTimeout(sugTimer);
+      sugTimer = setTimeout(() => {
+        const tok = tailQuery($('kdQ').value).tail.trim();
+        if (!tok) { sugHide(); return; }
+        sugShow(tok);
+      }, 110);
+    });
+    $('kdQ').addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown' && sugRows.length) { e.preventDefault(); sugMove(1); return; }
+      if (e.key === 'ArrowUp' && sugRows.length) { e.preventDefault(); sugMove(-1); return; }
+      if (e.key === 'Escape') { sugHide(); return; }
+      if (e.key === 'Enter') {
+        if (sugAt >= 0) { e.preventDefault(); sugPick(sugAt); return; }
+        sugHide(); go();
+      }
+    });
+    $('kdSug').addEventListener('mousedown', (e) => {
+      const row = e.target.closest('.kd-sug-row');
+      if (row) { e.preventDefault(); sugPick(+row.dataset.i); }
+    });
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.kd-bar-wrap')) sugHide();
+    });
     // параметри міняють лише суму — перемальовуємо мовчки, без кнопки
     for (const id of ['kdAge', 'kdSex', 'kdReady', 'kdChild', 'kdTrauma', 'kdMountain'])
       $(id).addEventListener('change', () => { if ($('kdQ').value.trim()) go(); });
