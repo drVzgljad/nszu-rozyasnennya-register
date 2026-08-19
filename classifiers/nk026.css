@@ -11,22 +11,6 @@
   padding-left: 10px; border-left: 3px solid var(--line);
 }
 
-/* ── Панель експорту над результатами пошуку ───────────────── */
-.nk-export {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
-  padding: 7px 9px; margin: 4px 4px 8px; border-radius: 10px;
-  background: var(--soft); border: 1px solid var(--line);
-}
-.nk-export .exp-note { font-size: .76rem; font-weight: 600; color: var(--muted); margin-right: 2px; }
-.nk-export .nk-exp {
-  font: inherit; font-size: .78rem; padding: 4px 10px; cursor: pointer;
-  border: 1px solid var(--line); border-radius: 8px;
-  background: var(--surface); color: var(--ink);
-  transition: border-color .15s ease, background .15s ease, transform .15s ease;
-}
-.nk-export .nk-exp:hover { border-color: var(--accent); background: var(--warm); transform: translateY(-1px); }
-.nk-export .nk-exp:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
 /* ── Бейдж «377» у рядку результату ────────────────────────── */
 .pk-dot.o377 { background: var(--accent-dark); }
 
