@@ -53,6 +53,27 @@
 .outline-label { color: var(--accent-dark); font-size: 12px; font-weight: 700; letter-spacing: .08em; }
 .resolution-outline h2 { margin: 8px 0 10px; font-size: 19px; line-height: 1.4; }
 .source-pages { margin: 0 0 15px; color: var(--muted); font-size: 12px; }
+
+/* Кнопка вивантаження додатка в Excel. Стоїть під лічильником рядків,
+   тобто там, де людина щойно прочитала, скільки рядків знайдено. */
+.appendix-export { margin: -8px 0 14px; }
+.appendix-export-btn {
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--accent-dark);
+  background: var(--surface);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.appendix-export-btn:hover,
+.appendix-export-btn:focus {
+  border-color: rgba(0,111,201,.42);
+  background: var(--soft);
+  outline: none;
+}
 .norm-tags, .law-package-links { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
 .norm-tag {
   padding: 5px 8px;

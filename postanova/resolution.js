@@ -420,10 +420,12 @@ function renderAppendixOutline(node, container, pages) {
     <div class="outline-label">${escapeHtml(sourceLabel(node))} · ${kindLabel(node)}</div>
     <h2>${escapeHtml(node.title)}</h2>
     ${appendixNote}
+    ${appendixExportBar(node, matchedRows.length, rows.length, Boolean(query))}
     <div class="norm-tags">${typeLabels(node).map((label) => `<span class="norm-tag">${escapeHtml(label)}</span>`).join("")}</div>
     ${rowHtml || "<p>У цьому додатку немає табличних рядків для навігації.</p>"}
     ${matchedRows.length > rowLimit ? `<p class="source-pages">Показано перші ${rowLimit} рядків. Уточніть пошук, щоб звузити перелік.</p>` : ""}
   `;
+  wireAppendixExport(container, node, matchedRows);
   container.querySelectorAll("[data-appendix-row]").forEach((button) => {
     button.addEventListener("click", () => {
       resolutionState.selectedParagraph = button.dataset.appendixRow;
@@ -440,6 +442,50 @@ function renderAppendixOutline(node, container, pages) {
       const row = rows.find((entry) => entry.id === button.dataset.copyAppendixRow);
       if (row) copyFragment([row.code, row.title, ...row.coeffs].filter(Boolean).join(" | "), button);
     });
+  });
+}
+
+/* ── Вивантаження додатка в Excel ────────────────────────────────────────
+   Таблиці додатків 1 і 2 — це 443 і 38 рядків коефіцієнтів, які найчастіше
+   й потрібні поза порталом: звірити з власним розрахунком, підкласти до
+   службової записки. Тому окрема кнопка поруч із лічильником рядків.
+
+   Вивантажується те, що зараз у переліку: коли активний пошук — знайдені
+   рядки, інакше вся таблиця. Обмеження показу в 60 рядків на експорт НЕ
+   поширюється, інакше кнопка тихо віддавала б обрізаний файл.
+
+   У додатка 3 таблиці немає (це формула), тому там кнопки не буде. */
+function appendixExportBar(node, matched, total, filtered) {
+  if (!total) return "";
+  const label = filtered ? `знайдені рядки (${matched})` : `всю таблицю (${total})`;
+  return `<div class="appendix-export">
+    <button class="appendix-export-btn" type="button" data-export-appendix="${node.id}"
+      title="Зберегти ${escapeHtml(label)} у файл Excel (.xlsx)">⬇ Excel — ${escapeHtml(label)}</button>
+  </div>`;
+}
+
+function wireAppendixExport(container, node, exportRows) {
+  const button = container.querySelector("[data-export-appendix]");
+  if (!button) return;
+  button.addEventListener("click", () => {
+    if (!window.PMG_XLSX) return;
+    // Заголовки колонок беремо з самої постанови, а не з нашої скороченої
+    // підказки: у файлі має стояти те саме формулювання, що й у документі.
+    const columns = (node.table && node.table.columns) || [];
+    const head = ["Код ДСГ", "Назва діагностично-спорідненої групи", ...columns];
+    const widths = [12, 78, ...columns.map(() => 22)];
+    const rows = exportRows.map((row) => [
+      row.code, row.title,
+      ...columns.map((_, i) => (row.coeffs && row.coeffs[i]) || ""),
+    ]);
+    const name = window.PMG_XLSX.download({
+      filename: node.id.replace("appendix-", "postanova_1808_dodatok_"),
+      name: node.title.split(".")[0] || "Додаток",
+      head, rows, widths, freeze: true,
+    });
+    const old = button.textContent;
+    button.textContent = `✓ ${name}`;
+    setTimeout(() => (button.textContent = old), 2600);
   });
 }
 

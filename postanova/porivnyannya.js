@@ -409,159 +409,11 @@ function render() {
   renderSummary();
 }
 
-// ── Вивантаження у справжній .xlsx ───────────────────────────────────────────
-/* Готового пакувальника в порталі немає, а CSV не вміє трьох аркушів і губить
-   тип числа. Тому нижче — мінімальний ZIP без стиснення (метод store) і
-   SpreadsheetML з рядками просто в клітинках (inlineStr), без таблиці
-   спільних рядків: файли в нас маленькі, а код лишається читабельним. */
-
-let crcTable = null;
-function crc32(bytes) {
-  if (!crcTable) {
-    crcTable = new Uint32Array(256);
-    for (let i = 0; i < 256; i++) {
-      let c = i;
-      for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
-      crcTable[i] = c >>> 0;
-    }
-  }
-  let crc = 0xFFFFFFFF;
-  for (let i = 0; i < bytes.length; i++) crc = crcTable[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
-  return (crc ^ 0xFFFFFFFF) >>> 0;
-}
-
-function zipStore(files) {
-  const encoder = new TextEncoder();
-  const parts = [];
-  const central = [];
-  let offset = 0;
-  for (const file of files) {
-    const name = encoder.encode(file.name);
-    const data = encoder.encode(file.text);
-    const crc = crc32(data);
-    const local = new Uint8Array(30 + name.length);
-    const view = new DataView(local.buffer);
-    view.setUint32(0, 0x04034b50, true);
-    view.setUint16(4, 20, true);
-    view.setUint16(6, 0x0800, true);          // прапорець UTF-8 для імен
-    view.setUint16(8, 0, true);               // без стиснення
-    view.setUint16(12, 0x0021, true);         // дата 01.01.1980
-    view.setUint32(14, crc, true);
-    view.setUint32(18, data.length, true);
-    view.setUint32(22, data.length, true);
-    view.setUint16(26, name.length, true);
-    local.set(name, 30);
-    parts.push(local, data);
-
-    const entry = new Uint8Array(46 + name.length);
-    const entryView = new DataView(entry.buffer);
-    entryView.setUint32(0, 0x02014b50, true);
-    entryView.setUint16(4, 20, true);
-    entryView.setUint16(6, 20, true);
-    entryView.setUint16(8, 0x0800, true);
-    entryView.setUint16(10, 0, true);
-    entryView.setUint16(14, 0x0021, true);
-    entryView.setUint32(16, crc, true);
-    entryView.setUint32(20, data.length, true);
-    entryView.setUint32(24, data.length, true);
-    entryView.setUint16(28, name.length, true);
-    entryView.setUint32(42, offset, true);
-    entry.set(name, 46);
-    central.push(entry);
-    offset += local.length + data.length;
-  }
-  const directory = central.reduce((sum, entry) => sum + entry.length, 0);
-  const end = new Uint8Array(22);
-  const endView = new DataView(end.buffer);
-  endView.setUint32(0, 0x06054b50, true);
-  endView.setUint16(8, central.length, true);
-  endView.setUint16(10, central.length, true);
-  endView.setUint32(12, directory, true);
-  endView.setUint32(16, offset, true);
-  return new Blob([...parts, ...central, end], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-}
-
-const xmlEsc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-function columnName(index) {
-  let name = '';
-  for (let n = index + 1; n > 0; n = Math.floor((n - 1) / 26)) {
-    name = String.fromCharCode(65 + ((n - 1) % 26)) + name;
-  }
-  return name;
-}
-
-function sheetXml(rows) {
-  const body = rows.map((cells, rowIndex) => {
-    const inner = cells.map((value, columnIndex) => {
-      const ref = `${columnName(columnIndex)}${rowIndex + 1}`;
-      const style = rowIndex === 0 ? ' s="1"' : '';
-      if (typeof value === 'number' && Number.isFinite(value)) return `<c r="${ref}"${style}><v>${value}</v></c>`;
-      if (value === null || value === undefined || value === '') return `<c r="${ref}"${style}/>`;
-      return `<c r="${ref}"${style} t="inlineStr"><is><t xml:space="preserve">${xmlEsc(value)}</t></is></c>`;
-    }).join('');
-    return `<row r="${rowIndex + 1}">${inner}</row>`;
-  }).join('');
-  const width = rows.reduce((max, cells) => Math.max(max, cells.length), 1);
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-<sheetPr><outlinePr summaryBelow="1" summaryRight="1"/></sheetPr>
-<cols><col min="1" max="${width}" width="26" customWidth="1"/></cols>
-<sheetData>${body}</sheetData></worksheet>`;
-}
-
-function buildWorkbook(sheets) {
-  const rel = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
-  const files = [
-    {
-      name: '[Content_Types].xml',
-      text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-<Default Extension="xml" ContentType="application/xml"/>
-<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
-<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
-${sheets.map((s, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}
-</Types>`
-    },
-    {
-      name: '_rels/.rels',
-      text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-<Relationship Id="rId1" Type="${rel}/officeDocument" Target="xl/workbook.xml"/></Relationships>`
-    },
-    {
-      name: 'xl/workbook.xml',
-      text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="${rel}">
-<sheets>${sheets.map((s, i) => `<sheet name="${xmlEsc(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('')}</sheets></workbook>`
-    },
-    {
-      name: 'xl/_rels/workbook.xml.rels',
-      text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-${sheets.map((s, i) => `<Relationship Id="rId${i + 1}" Type="${rel}/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('')}
-<Relationship Id="rId${sheets.length + 1}" Type="${rel}/styles" Target="styles.xml"/></Relationships>`
-    },
-    {
-      name: 'xl/styles.xml',
-      text: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts>
-<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>
-<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
-<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-<cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
-<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs>
-<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
-</styleSheet>`
-    }
-  ];
-  sheets.forEach((sheet, index) => {
-    files.push({ name: `xl/worksheets/sheet${index + 1}.xml`, text: sheetXml(sheet.rows) });
-  });
-  return zipStore(files);
-}
+// ── Вивантаження у справжній .xlsx ───────────────────────────────
+/* Пакувальник переїхав у спільний pmg-xlsx.js (21.08.2026). Саме звідси його
+   й забрали: ця реалізація була найповнішою з трьох копій у порталі — кілька
+   аркушів і справжні числа замість тексту, — тому модуль зібрано за нею.
+   Тут лишився тільки склад аркушів. */
 
 function exportRows() {
   const rates = [[
@@ -634,12 +486,17 @@ function exportRows() {
 }
 
 function download() {
-  const blob = buildWorkbook(exportRows());
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = `taryfy-2025-2026-${DB.meta.generated}.xlsx`;
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(link.href), 2000);
+  // exportRows() віддає аркуші, де перший рядок — шапка; модуль хоче її окремо,
+  // щоб зробити жирною. Дата в назві своя (редакція даних), тому stamp: false.
+  window.PMG_XLSX.download({
+    filename: `taryfy-2025-2026-${DB.meta.generated}`,
+    stamp: false,
+    sheets: exportRows().map((s) => ({
+      name: s.name,
+      head: s.rows[0],
+      rows: s.rows.slice(1),
+    })),
+  });
 }
 
 // ── Запуск ───────────────────────────────────────────────────────────────────

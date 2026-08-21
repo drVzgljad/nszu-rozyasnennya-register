@@ -37,21 +37,51 @@
     const unknown = [];
 
     let weight = g.k[0];
-    steps.push({ label: `Ваговий коефіцієнт ДСГ ${g.c}`, op: '', value: weight,
-      src: label(g.a), sub: '3' });
 
-    // Додаткові коефіцієнти за підпунктами 6 і 7 ДОДАЮТЬСЯ до вагового,
-    // а не множаться на нього — це різні гроші, і плутати не можна.
-    for (const f of factors.filter((x) => x.kind === 'addw')) {
-      if (!state[f.id]) continue;
-      const add = g.k[f.column];
-      if (add === null || add === undefined) {
-        unknown.push({ f, why: `у ${label(g.a)} для ${g.c} ця колонка порожня` });
-        continue;
+    // Коротке лікування (підпункти 9 і 10) не множник, а ЗАМІНА ваги:
+    // коефіцієнт за втручання + коефіцієнт за добу × дні. Так це рахує ЕСОЗ,
+    // і так сходяться фактичні оплати. Тому блок іде перед усім іншим.
+    const ssF = factors.find((x) => x.kind === 'altw_days');
+    const ssDays = ssF
+      ? Math.max(0, Math.min(Number(state[ssF.id]) || 0, ssF.max_days || 30)) : 0;
+    const ssRow = ssDays && ctx.shortStay
+      ? ctx.shortStay[g.root || g.c] : null;
+
+    if (ssDays && !ssRow) {
+      unknown.push({ f: ssF,
+        why: `для ДСГ ${g.c} значення не відновлено — цієї групи не було у вигрузці` });
+    }
+
+    if (ssRow) {
+      weight = ssRow.a + ssRow.b * ssDays;
+      steps.push({ label: `${ssF.label} — ${fmt(ssRow.a)} + ${fmt(ssRow.b)} × ${ssDays} діб`,
+        op: '', value: weight, sub: ssF.sub,
+        src: 'відновлено з фактичних оплат ЕСОЗ' });
+      // Дитяча надбавка при короткому лікуванні має власне значення
+      // (less_min_bound_child), якого ми не знаємо, тому мовчати про неї не можна.
+      for (const f of factors.filter((x) => x.kind === 'addw')) {
+        if (state[f.id]) {
+          unknown.push({ f, why: 'при короткому лікуванні надбавка має власне '
+            + 'значення, а воно у вигрузці не відокремлене' });
+        }
       }
-      weight += add;
-      steps.push({ label: f.label, op: '+', value: add, sub: f.sub,
-        src: `${label(g.a)}, колонка «${cols(g.a)[f.column] || ''}»` });
+    } else {
+      steps.push({ label: `Ваговий коефіцієнт ДСГ ${g.c}`, op: '', value: weight,
+        src: label(g.a), sub: '3' });
+
+      // Додаткові коефіцієнти за підпунктами 6 і 7 ДОДАЮТЬСЯ до вагового,
+      // а не множаться на нього — це різні гроші, і плутати не можна.
+      for (const f of factors.filter((x) => x.kind === 'addw')) {
+        if (!state[f.id]) continue;
+        const add = g.k[f.column];
+        if (add === null || add === undefined) {
+          unknown.push({ f, why: `у ${label(g.a)} для ${g.c} ця колонка порожня` });
+          continue;
+        }
+        weight += add;
+        steps.push({ label: f.label, op: '+', value: add, sub: f.sub,
+          src: `${label(g.a)}, колонка «${cols(g.a)[f.column] || ''}»` });
+      }
     }
 
     let adjust = 1;
@@ -82,11 +112,16 @@
       steps.push({ label: f.label, op: '×', value, sub: f.sub });
     }
 
-    // Оплата від базової ставки на добу (підпункти 17 і 18) йде ПОВЕРХ випадку
-    // і без частки застосування — тому рахується окремо від total.
+    // Оплата від базової ставки на добу (підпункти 16, 17 і 18) йде ПОВЕРХ
+    // випадку і без частки застосування — тому рахується окремо від total.
+    // Підпункт 16 (ВІТ) опинився тут не з тексту постанови, а з фактичних
+    // оплат: за формулюванням «додається до коригувального коефіцієнта» його
+    // 0,1 за добу мали б потрапити під частку 0,55, але у вигрузці ЕСОЗ
+    // сума сходиться лише тоді, коли добова оплата йде повз неї.
     const perDay = [];
     for (const f of factors.filter((x) => x.kind === 'rateday')) {
-      const days = Number(state[f.id]) || 0;
+      const days = Math.max(0, Math.min(Number(state[f.id]) || 0,
+        f.max_days || Infinity));
       if (!days) continue;
       if (f.drg && !f.drg.includes(g.c)) continue;
       perDay.push({ f, days, sum: rate * f.value * days });

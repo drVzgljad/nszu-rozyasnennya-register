@@ -214,7 +214,8 @@ function factorById(id) {
  */
 function tariffCtx() {
   return { rate: DB.rate, factors: DB.factors, fmtK,
-           appendixLabel: DB.appendixLabel, appendixCols: DB.appendixCols };
+           appendixLabel: DB.appendixLabel, appendixCols: DB.appendixCols,
+           shortStay: DB.shortStay };
 }
 
 function calcCase(groupIndex, state = calcState) {
@@ -415,6 +416,17 @@ function renderFactors() {
         <select data-fv="${f.id}" disabled>${f.options.map((o) =>
           `<option value="${o.value}">${esc(o.label)} — ${fmtK(o.value)}</option>`).join('')}</select>
       </div>${note}</div>`;
+    }
+    if (f.kind === 'altw_days') {
+      // Значення пари a/b залежать від групи, тому число тут не показуємо —
+      // воно з'явиться кроком у розрахунку, коли групу вже обрано.
+      const known = Object.keys(DB.shortStay || {}).length;
+      return `<div class="drg-f is-alt"><div class="drg-frow">
+        <span class="drg-fico" aria-hidden="true">⇄</span>
+        <label>${esc(f.label)}</label>${ref}${packages}
+        <span class="drg-days"><input type="number" min="0" max="${f.max_days || 30}"
+          step="1" value="0" data-fd="${f.id}"> діб</span>
+      </div>${note}<div class="drg-fnote">Значення відомі для ${known} ДСГ.</div></div>`;
     }
     if (f.kind === 'addk' || f.kind === 'rateday') {
       const max = f.max_days || 60;

@@ -302,6 +302,7 @@
     const res = window.PMG_TARIFF.calcCase(group, {
       rate: CORE.rate, factors: CORE.factors, fmtK: window.PMG_TARIFF.fmtK,
       appendixLabel: CORE.appendixLabel, appendixCols: CORE.appendixCols,
+      shortStay: CORE.shortStay,
     }, state);
     return { w: group.k[0], sum: res.total, res };
   }
@@ -360,6 +361,7 @@
     return window.PMG_TARIFF.calcCase(group, {
       rate: CORE.rate, factors: CORE.factors, fmtK: window.PMG_TARIFF.fmtK,
       appendixLabel: CORE.appendixLabel, appendixCols: CORE.appendixCols,
+      shortStay: CORE.shortStay,
     }, state);
   }
 
@@ -1278,11 +1280,11 @@
       } else if (f.packages && f.packages.length && pkgs.size
                  && !f.packages.some((p) => pkgs.has(p))) {
         kind = 'nop';
-        val = fmtFactor(f);
+        val = fmtFactor(f, g);
         why = `Стосується лише ${f.packages.length > 1 ? 'пакетів' : 'пакета'} `
             + f.packages.join(', ') + ', а ця група оплачується в ' + [...pkgs].join(', ') + '.';
       } else {
-        val = fmtFactor(f);
+        val = fmtFactor(f, g);
       }
       return { f, kind, val, why };
     });
@@ -1317,12 +1319,19 @@
 
   /* Значення коефіцієнта, коли він не спрацював: постійне число, вибір із
      варіантів, колонка додатка або заміна вагового. */
-  function fmtFactor(f) {
+  function fmtFactor(f, g) {
     if (f.options) return f.options.map((o) => String(o.value).replace('.', ',')
       + ' — ' + o.label).join(' / ');
     if (f.kind === 'addw') return 'з додатка 1';
     if (f.kind === 'alt') return 'додаток 2';
     if (f.kind === 'weight') return 'з додатка 1';
+    // Коротке лікування: пара значень своя для кожної ДСГ, одного числа немає.
+    if (f.kind === 'altw_days') {
+      const row = (CORE.shortStay || {})[(g && (g.root || g.c)) || ''];
+      return row
+        ? `${String(row.a).replace('.', ',')} + ${String(row.b).replace('.', ',')} × дні`
+        : 'значення для цієї ДСГ не відновлено';
+    }
     if (f.value !== undefined) return String(f.value).replace('.', ',');
     return '—';
   }
