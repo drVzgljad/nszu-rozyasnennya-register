@@ -620,10 +620,15 @@ const SECTION_LABELS = {
   "other": "Інші вимоги закупівлі",
 };
 
+// Лічильник рендерів вимог: мітка для шару норм (див. decorateNorms).
+let requirementsRenderSeq = 0;
+
 function renderRequirements() {
   const pkg = passportState.selectedPackage;
   const container = el("specAccordion");
   container.innerHTML = "";
+  container.dataset.renderToken = `${pkg && pkg.number}#${++requirementsRenderSeq}`;
+  delete container.dataset.normsDone;
 
   if (!pkg.units || pkg.units.length === 0) {
     container.innerHTML = `<div class="no-results">Вимоги закупівлі відсутні або знаходяться в процесі обробки.</div>`;
@@ -706,11 +711,23 @@ function renderRequirements() {
 // ── Шар нормативного підкріплення ─────────────────────────────
 // Дорисовує до кожного пункту рівень A/B/C/D і норму, на якій він стоїть.
 // Працює після рендера: якщо даних для пакета немає, вкладка лишається як була.
+//
+// ⚠ Мітка «вже намальовано» — НЕ номер пакета, а номер рендера (renderToken).
+// Номер пакета тут не годиться: `container.innerHTML = ""` стирає пункти, але
+// не dataset самого контейнера, тож при повторному відкритті ТОГО САМОГО
+// пакета мітка лишалася, шар мовчки не малювався, і людина бачила вимоги без
+// значків A/B/C/D. Токен ставить renderRequirements на кожному рендері, тому:
+//   * новий рендер → нова мітка → шар малюється знову;
+//   * поки вантажилися дані, встиг перемалюватися інший пакет → токен уже
+//     чужий, і ми не садимо на нову розмітку норми старого пакета.
 async function decorateNorms(pkgNum, container) {
   if (!window.NormLinks) return;
+  const token = container.dataset.renderToken || "";
   const data = await window.NormLinks.load(pkgNum);
-  if (!data || container.dataset.normsDone === pkgNum) return;
-  container.dataset.normsDone = pkgNum;
+  if (!data) return;
+  if (container.dataset.renderToken !== token) return;
+  if (container.dataset.normsDone === token) return;
+  container.dataset.normsDone = token;
 
   const legend = document.createElement("div");
   legend.innerHTML = window.NormLinks.legend(data);
