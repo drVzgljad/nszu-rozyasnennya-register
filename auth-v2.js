@@ -961,6 +961,11 @@ function inject() {
       <span class="status-icon">❓</span>
       <span class="status-lbl">Вкажіть статус</span>
       <div class="status-dropdown" id="portal-status-dropdown">
+        <div class="status-nag-head">
+          <div class="nag-eyebrow">Щоденна відмітка</div>
+          <div class="nag-title">Ви ще не вказали статус на сьогодні</div>
+          <div class="nag-sub">Оберіть, звідки працюєте — це одна секунда, і табель зійдеться.</div>
+        </div>
         <div class="dropdown-title">Мій статус на сьогодні:</div>
         <div class="status-options-grid">
           <button class="status-opt-btn" data-status="office">🏢 Офіс</button>
@@ -985,6 +990,9 @@ function inject() {
         </ul>
         <div class="dropdown-divider"></div>
         <a href="#" id="view-status-stats-link" class="status-stats-link">📊 Детальна статистика статусів</a>
+        <div class="status-nag-foot">
+          <button type="button" class="status-nag-later" id="status-nag-later">Пізніше — нагадати за годину</button>
+        </div>
       </div>
     `;
     container.appendChild(statusChip);
@@ -992,7 +1000,9 @@ function inject() {
     // перемикачем теми, сповіщеннями та бейджем ролі у верхній панелі.
     container.insertBefore(statusChip, themeBtn);
 
-    statusChip.addEventListener('click', (e) => {
+    // Той самий обробник вішається і на саме вікно: у режимі нагадування
+    // воно живе в <body>, поза чіпом, і кліки до чіпа вже не спливають.
+    const onStatusClick = (e) => {
       const optBtn = e.target.closest('.status-opt-btn');
       if (optBtn) {
         e.stopPropagation();
@@ -1030,29 +1040,44 @@ function inject() {
         return;
       }
 
+      if (e.target.closest('#status-nag-later')) {
+        e.stopPropagation();
+        snoozeStatusNag();
+        closeStatusDropdown();
+        return;
+      }
+
       const dropdown = document.getElementById('portal-status-dropdown');
       if (dropdown) {
         e.stopPropagation();
-        const willShow = !dropdown.classList.contains('show');
-
-        // Close other dropdowns if any
-        document.querySelectorAll('.status-dropdown').forEach(d => d.classList.remove('show'));
-
-        if (willShow) {
-          dropdown.classList.add('show');
-          loadTeamPresence();
-        } else {
-          hideStatusUntilPicker();
-        }
+        // Кліки в тілі великого вікна його не закривають — лише в шапці-чіпі
+        if (dropdown.classList.contains('nag-mode') && dropdown.contains(e.target)) return;
+        if (dropdown.classList.contains('show')) closeStatusDropdown();
+        else openStatusDropdown();
       }
-    });
+    };
+
+    statusChip.addEventListener('click', onStatusClick);
+    statusChip.querySelector('#portal-status-dropdown')
+      ?.addEventListener('click', onStatusClick);
 
     document.addEventListener('click', (e) => {
       const dropdown = document.getElementById('portal-status-dropdown');
       const chip = document.getElementById('portal-status-chip');
-      if (dropdown && dropdown.classList.contains('show') && chip && !chip.contains(e.target)) {
-        dropdown.classList.remove('show');
+      if (dropdown && dropdown.classList.contains('show') && chip &&
+          !chip.contains(e.target) && !dropdown.contains(e.target)) {
+        // Клік поза вікном: у режимі нагадування це відкладення, а не просто закриття
+        if (dropdown.classList.contains('nag-mode')) snoozeStatusNag();
+        closeStatusDropdown();
       }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      const dropdown = document.getElementById('portal-status-dropdown');
+      if (!dropdown || !dropdown.classList.contains('show')) return;
+      if (dropdown.classList.contains('nag-mode')) snoozeStatusNag();
+      closeStatusDropdown();
     });
 
     // Standalone Chat button in top nav
@@ -2140,6 +2165,95 @@ function hideStatusUntilPicker() {
   if (row) row.style.display = 'none';
 }
 
+/* ── Велике вікно статусу посеред екрана ───────────────────────────
+   Поки статус на сьогодні не проставлений, вибір показується не
+   маленьким дропдауном у кутку шапки, а вікном по центру екрана з
+   підкладкою і втричі більшими кнопками: маленький чіп просто не
+   помічають, і табель наприкінці місяця не сходиться.
+   «Пізніше» відкладає нагадування на годину, потім воно повертається. */
+const STATUS_NAG_SNOOZE_MS = 60 * 60 * 1000;
+const STATUS_NAG_RECHECK_MS = 5 * 60 * 1000;
+let statusNagTimer = null;
+let statusDropdownHome = null; // куди повернути вікно після закриття
+
+function isStatusNagNeeded() {
+  return !!user && role !== 'guest' && !todayStatus && !isTodayWeekend();
+}
+
+function isStatusNagSnoozed() {
+  try {
+    const ts = Number(localStorage.getItem('status_nag_snooze') || 0);
+    return Date.now() - ts < STATUS_NAG_SNOOZE_MS;
+  } catch (e) {
+    return false;
+  }
+}
+
+function snoozeStatusNag() {
+  try { localStorage.setItem('status_nag_snooze', String(Date.now())); } catch (e) {}
+}
+
+function getStatusNagBackdrop() {
+  let bd = document.getElementById('status-nag-backdrop');
+  if (!bd) {
+    bd = document.createElement('div');
+    bd.id = 'status-nag-backdrop';
+    bd.className = 'status-nag-backdrop';
+    document.body.appendChild(bd);
+  }
+  return bd;
+}
+
+function openStatusDropdown() {
+  const dropdown = document.getElementById('portal-status-dropdown');
+  const chip = document.getElementById('portal-status-chip');
+  if (!dropdown || !chip || chip.style.display === 'none') return;
+
+  document.querySelectorAll('.status-dropdown').forEach(d => d.classList.remove('show'));
+
+  // Без статусу — вікно по центру; зі статусом — звичний дропдаун у шапці
+  const nag = isStatusNagNeeded();
+  if (nag && dropdown.parentElement !== document.body) {
+    // Шапка .top має backdrop-filter, а він робить її системою координат для
+    // position: fixed — усередині неї вікно центрувалося б по шапці, не по екрану
+    statusDropdownHome = dropdown.parentElement;
+    document.body.appendChild(dropdown);
+  }
+  dropdown.classList.toggle('nag-mode', nag);
+  getStatusNagBackdrop().classList.toggle('show', nag);
+  document.body.classList.toggle('status-nag-open', nag);
+
+  dropdown.classList.add('show');
+  loadTeamPresence();
+}
+
+function closeStatusDropdown() {
+  const dropdown = document.getElementById('portal-status-dropdown');
+  if (dropdown) {
+    dropdown.classList.remove('show', 'nag-mode');
+    if (statusDropdownHome && dropdown.parentElement === document.body) {
+      statusDropdownHome.appendChild(dropdown);
+    }
+  }
+  hideStatusUntilPicker();
+  const bd = document.getElementById('status-nag-backdrop');
+  if (bd) bd.classList.remove('show');
+  document.body.classList.remove('status-nag-open');
+}
+
+// Саме відкриття: статусу немає, не вихідний і година відкладення минула.
+function maybeOpenStatusNag() {
+  if (!isStatusNagNeeded() || isStatusNagSnoozed()) return;
+  const dropdown = document.getElementById('portal-status-dropdown');
+  if (!dropdown || dropdown.classList.contains('show')) return;
+  openStatusDropdown();
+}
+
+function startStatusNagWatch() {
+  if (statusNagTimer) return;
+  statusNagTimer = setInterval(maybeOpenStatusNag, STATUS_NAG_RECHECK_MS);
+}
+
 function getLocalDateString() {
   const d = new Date();
   const year = d.getFullYear();
@@ -2163,7 +2277,8 @@ async function loadUserDailyStatus() {
     if (error) {
       console.warn("Failed to load user daily status:", error);
       const cached = localStorage.getItem(`daily_status_${user.id}_${todayStr}`);
-      updateStatusUI(cached || null);
+      todayStatus = cached || null;
+      updateStatusUI(todayStatus);
       return;
     }
 
@@ -2177,6 +2292,8 @@ async function loadUserDailyStatus() {
       todayStatus = null;
       todayStatusUntil = null;
       updateStatusUI(null);
+      maybeOpenStatusNag();
+      startStatusNagWatch();
     }
   } catch (err) {
     console.error("Error in loadUserDailyStatus:", err);
@@ -2190,6 +2307,11 @@ function updateStatusUI(status, until) {
   chip.className = 'portal-status-chip';
   const iconEl = chip.querySelector('.status-icon');
   const lblEl = chip.querySelector('.status-lbl');
+
+  // Статус зʼявився (хай навіть з іншого пристрою) — велике вікно прибираємо
+  if (status && document.body.classList.contains('status-nag-open')) {
+    closeStatusDropdown();
+  }
 
   const statusConfig = {
     office: { icon: '🏢', text: 'Офіс', className: 'status-office' },
@@ -2297,10 +2419,7 @@ async function saveUserDailyStatus(status, untilDate) {
     localStorage.setItem(`daily_status_${user.id}_${todayStr}`, status);
     updateStatusUI(todayStatus, todayStatusUntil);
 
-    setTimeout(() => {
-      const dropdown = document.getElementById('portal-status-dropdown');
-      if (dropdown) dropdown.classList.remove('show');
-    }, 300);
+    setTimeout(closeStatusDropdown, 300);
   } catch (err) {
     console.error("Error in saveUserDailyStatus:", err);
   }

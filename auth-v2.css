@@ -3183,3 +3183,158 @@
   border-color: rgba(74, 181, 145, .3);
   color: #cbd5e1;
 }
+
+/* ── Велике вікно статусу посеред екрана ───────────────────────────
+   Поки статус на сьогодні не проставлений, вибір показується не
+   дропдауном у кутку шапки, а вікном по центру екрана: підкладка,
+   утричі більші кнопки. Маленький чіп у кутку просто не помічають. */
+.status-nag-backdrop {
+  position: fixed;
+  inset: 0;
+  display: none;
+  z-index: 1400;
+  background: rgba(8, 20, 35, 0.55);
+  backdrop-filter: blur(3px);
+  animation: onlineDropdownFade 0.2s ease;
+}
+.status-nag-backdrop.show { display: block; }
+body.status-nag-open { overflow: hidden; }
+
+@keyframes statusNagFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.status-dropdown.nag-mode,
+#mobile-status-row .status-dropdown.nag-mode {
+  /* Центруємо через inset+margin:auto, а не translate(-50%,-50%):
+     базова анімація дропдауна має власний transform і перебила б зсув */
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  z-index: 1401;
+  width: min(720px, 94vw);
+  min-width: 0;
+  max-width: none;
+  height: fit-content;
+  max-height: 92vh;
+  overflow-y: auto;
+  animation: statusNagFade 0.18s ease;
+  padding: clamp(20px, 3.4vw, 44px) clamp(18px, 3.4vw, 46px) clamp(16px, 2.6vw, 32px);
+  border-width: 2px;
+  border-radius: clamp(16px, 2.2vw, 26px);
+  box-shadow: 0 30px 90px rgba(8, 20, 35, 0.45);
+}
+
+/* Шапка з поясненням — тільки у великому режимі */
+.status-nag-head { display: none; }
+.nag-mode .status-nag-head {
+  display: block;
+  margin-bottom: clamp(14px, 2vw, 24px);
+}
+.nag-mode .nag-eyebrow {
+  font-size: clamp(11px, 1.15vw, 15px);
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #dc2626;
+  margin-bottom: 6px;
+}
+.nag-mode .nag-title {
+  font-size: clamp(20px, 2.9vw, 36px);
+  font-weight: 800;
+  line-height: 1.18;
+  color: var(--p-ink, #1e293b);
+}
+.nag-mode .nag-sub {
+  margin-top: 8px;
+  font-size: clamp(13px, 1.5vw, 19px);
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--muted, #647688);
+}
+
+/* Заголовок «Мій статус на сьогодні» у великому режимі не потрібен —
+   те саме вже сказано у шапці вікна */
+.nag-mode .status-nag-head + .dropdown-title { display: none; }
+
+/* Кнопки — утричі більші за чіпові */
+.nag-mode .status-options-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: clamp(8px, 1.1vw, 14px);
+  margin: 0 0 clamp(12px, 1.8vw, 20px);
+}
+.nag-mode .status-opt-btn {
+  justify-content: center;
+  gap: 10px;
+  padding: clamp(14px, 2.1vw, 26px) clamp(12px, 1.8vw, 22px);
+  font-size: clamp(17px, 2.3vw, 30px);
+  font-weight: 800;
+  border-width: 2px;
+  border-radius: clamp(10px, 1.3vw, 16px);
+}
+.nag-mode .status-opt-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(47, 107, 158, 0.18);
+}
+
+/* Вибір дати «до якої» — теж у масштабі вікна */
+.nag-mode .status-until-row { font-size: clamp(14px, 1.6vw, 20px); }
+.nag-mode .until-title { font-size: clamp(15px, 1.8vw, 22px); font-weight: 800; }
+.nag-mode #status-until-input {
+  font-size: clamp(15px, 1.8vw, 22px);
+  padding: 10px 14px;
+  width: 100%;
+}
+.nag-mode .until-hint { font-size: clamp(12px, 1.3vw, 16px); }
+.nag-mode .until-confirm,
+.nag-mode .until-cancel {
+  font-size: clamp(14px, 1.6vw, 20px);
+  padding: 10px 18px;
+}
+
+/* Присутність колег лишається, але не перетягує увагу */
+.nag-mode .dropdown-title { font-size: clamp(13px, 1.4vw, 17px); }
+.nag-mode .colleagues-status-list { font-size: clamp(13px, 1.4vw, 17px); }
+.nag-mode .status-stats-link { font-size: clamp(13px, 1.4vw, 17px); }
+
+/* «Пізніше» — тільки у великому режимі */
+.status-nag-foot { display: none; }
+.nag-mode .status-nag-foot {
+  display: block;
+  margin-top: clamp(12px, 1.8vw, 20px);
+  text-align: center;
+}
+.status-nag-later {
+  padding: 10px 20px;
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted, #647688);
+  font-size: clamp(13px, 1.4vw, 17px);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.status-nag-later:hover {
+  background: var(--soft, #f1f5f9);
+  color: var(--p-ink, #1e293b);
+}
+
+:root.dark-theme .nag-mode .nag-title { color: #f1f5f9; }
+:root.dark-theme .nag-mode .nag-sub { color: #a9c8d5; }
+:root.dark-theme .nag-mode .nag-eyebrow { color: #fca5a5; }
+:root.dark-theme .status-nag-later {
+  border-color: #475569;
+  color: #cbd5e1;
+}
+:root.dark-theme .status-nag-later:hover { background: #334155; color: #f8fafc; }
+
+/* На телефоні вікно стає майже на всю ширину, кнопки — в одну колонку */
+@media (max-width: 560px) {
+  .status-dropdown.nag-mode,
+  #mobile-status-row .status-dropdown.nag-mode {
+    width: 94vw;
+  }
+  .nag-mode .status-options-grid { grid-template-columns: 1fr; }
+}
