@@ -11,6 +11,7 @@ const state = {
   data: null,
   visible: [],
   selected: null,
+  odk: "",
 };
 
 const byId = (id) => document.getElementById(id);
@@ -168,6 +169,7 @@ function apply() {
   const flag = byId("ambFlag").value;
 
   state.visible = state.data.records.filter((record) => {
+    if (state.odk && !(record.odk || []).includes(state.odk)) return false;
     if (service && record.sv !== service) return false;
     if (klass && (record.class || "—") !== klass) return false;
     if (flag) {
@@ -177,11 +179,104 @@ function apply() {
     return !query || haystack(record).includes(query);
   });
 
+  // Фільтр за ОДК ставиться з бічної панелі, а не з випадайки, тому його
+  // видно тільки тут: без цього «Знайдено 96» виглядає як збій пошуку.
+  const odkTag = state.odk ? ` · ОДК ${state.odk}` : "";
   byId("ambCount").textContent = state.visible.length
-    ? `Знайдено ${state.visible.length}`
-    : "Нічого не знайдено";
+    ? `Знайдено ${state.visible.length}${odkTag}`
+    : `Нічого не знайдено${odkTag}`;
+  document.querySelectorAll("#ambOdk details.amb-odk").forEach((item) => {
+    item.classList.toggle("amb-odk--active", item.dataset.odk === state.odk);
+  });
   byId("mobileCount").textContent = state.visible.length ? `(${state.visible.length})` : "";
   renderCards(query);
+}
+
+/* ── ОДК і посади: голий код нічого не каже ─────────────────────────
+   У додатку ОДК стоїть номером («9»), а посада — кодом («P157»). Щоб
+   зрозуміти рядок, доводилося тримати два довідники в іншій вкладці.
+   Назви тепер приходять у даних, а переліки діагнозів довантажуються
+   з mapping/data/odk.json лише тоді, коли ОДК справді розкрили. */
+
+const odkInfo = (value) => (state.data.odk_names || {})[value] || null;
+const posName = (code) => (state.data.pos_names || {})[code] || "";
+
+function odkBadge(value) {
+  const info = odkInfo(value);
+  const title = info ? `${info.id} — ${info.name}` : "У довіднику ОДК такого номера немає";
+  return `<span class="code-badge${info ? " code-badge--known" : ""}" title="${esc(title)}">${esc(value)}</span>`;
+}
+
+let odkCodesCache = null;
+async function loadOdkCodes() {
+  if (!odkCodesCache) {
+    const response = await fetch("../mapping/data/odk.json");
+    const list = await response.json();
+    odkCodesCache = {};
+    list.forEach((entry) => { odkCodesCache[entry.id] = entry.codes || []; });
+  }
+  return odkCodesCache;
+}
+
+function renderOdkPanel() {
+  const host = byId("ambOdk");
+  if (!host) return;
+  const names = state.data.odk_names || {};
+  const counts = {};
+  state.data.records.forEach((record) => {
+    (record.odk || []).forEach((value) => { counts[value] = (counts[value] || 0) + 1; });
+  });
+  const listed = Object.keys(names).sort((a, b) => Number(a) - Number(b));
+  if (!listed.length) { host.innerHTML = ""; return; }
+
+  host.innerHTML = listed.map((value) => {
+    const info = names[value];
+    return `<details class="amb-odk" data-odk="${esc(value)}">
+      <summary>
+        <span class="code-badge code-badge--known">${esc(value)}</span>
+        <span class="amb-odk-name">${esc(info.name)}</span>
+        <em>${counts[value] || 0} рядків</em>
+      </summary>
+      <div class="amb-odk-body">
+        <p class="amb-dim">${esc(info.id)} · ${info.codes} діагнозів у довіднику</p>
+        <div class="amb-odk-codes">Завантажую…</div>
+        <button class="action" type="button" data-odk-filter="${esc(value)}">Показати рядки з цим ОДК</button>
+      </div>
+    </details>`;
+  }).join("");
+
+  host.querySelectorAll("details.amb-odk").forEach((details) => {
+    details.addEventListener("toggle", async () => {
+      if (!details.open || details.dataset.loaded) return;
+      details.dataset.loaded = "1";
+      const info = names[details.dataset.odk];
+      const box = details.querySelector(".amb-odk-codes");
+      try {
+        const all = await loadOdkCodes();
+        const ids = info.ids || [info.id];
+        const codes = ids.flatMap((id) => all[id] || []);
+        box.innerHTML = codes.length
+          ? codes.map((code) => `<a class="code-badge" href="../classifiers/index.html?q=${encodeURIComponent(code)}"
+              target="_blank" rel="noopener">${esc(code)}</a>`).join(" ")
+          : '<span class="amb-dim">Перелік діагнозів для цього ОДК у довіднику відсутній.</span>';
+      } catch (error) {
+        box.innerHTML = '<span class="amb-dim">Не вдалося завантажити перелік діагнозів.</span>';
+        console.error(error);
+      }
+    });
+  });
+
+  host.querySelectorAll("[data-odk-filter]").forEach((button) => {
+    button.addEventListener("click", () => {
+      byId("ambSearch").value = "";
+      byId("ambService").value = "";
+      byId("ambFlag").value = "";
+      fillClasses();
+      state.odk = button.dataset.odkFilter;
+      apply();
+      if (window.matchMedia("(max-width: 1180px)").matches) setTab("results");
+    });
+  });
 }
 
 /* ── скільки послуга важить в оплаті (пункт 62 Порядку) ─────
@@ -472,10 +567,13 @@ function select(index) {
       ? `${codeBadge(record.report_code)} ${esc(record.report_name || "")}` : "")}
     ${row("Коди спостереження", (record.obs || []).length
       ? `${(record.obs || []).map((c) => codeBadge(c)).join(" ")} <span class="amb-dim">${esc(record.obs_name || "")}</span>` : "")}
-    ${row("ОДК", (record.odk || []).map((c) => `<span class="code-badge">${esc(c)}</span>`).join(" "))}
+    ${row("ОДК", (record.odk || []).map((c) => odkBadge(c)).join(" "))}
     ${row("Діагнози", diagnoses)}
-    ${row("Посади", (record.pos || []).map((c) => `<span class="code-badge">${esc(c)}</span>`).join(" ")
-      + (record.pos_name ? ` <span class="amb-dim">${esc(record.pos_name)}</span>` : ""))}
+    ${row("Посади", (record.pos || []).map((c) => {
+      const name = posName(c);
+      return `<span class="code-badge${name ? " code-badge--known" : ""}"
+        title="${esc(name || "Назви посади в довіднику немає")}">${esc(c)}</span>`;
+    }).join(" ") + (record.pos_name ? ` <span class="amb-dim">${esc(record.pos_name)}</span>` : ""))}
     ${row("Направлення від сімейного лікаря", record.referral ? esc(record.referral) : "")}
     ${row("Анестезія", record.anesthesia ? esc(record.anesthesia) : "")}
     ${row("Група пацієнтів", record.group && record.sv !== "lab" ? esc(record.group) : "")}
@@ -552,6 +650,7 @@ async function init() {
   renderLegend();
   renderRules();
   renderTariffPanel();
+  renderOdkPanel();
   fillFilters();
 
   byId("ambSearch").addEventListener("input", apply);
@@ -562,6 +661,7 @@ async function init() {
     byId("ambSearch").value = "";
     byId("ambService").value = "";
     byId("ambFlag").value = "";
+    state.odk = "";
     fillClasses();
     apply();
   });

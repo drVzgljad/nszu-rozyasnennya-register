@@ -612,6 +612,37 @@ function applyAccess() {
     };
 
     /**
+     * Пільгова секунда перед закриттям меню.
+     *
+     * Меню відкривається наведенням, а закривалося чистим CSS - миттєво, щойно
+     * курсор виходив за межі елемента. На шляху до потрібного пункту курсор
+     * майже завжди зрізає кут (а в гніздо другого рівня йде по діагоналі),
+     * на мить втрачає зону - і меню зникає просто під рукою. Тому вихід лише
+     * запускає таймер: клас hover-open тримає меню відкритим ще секунду, і
+     * повернення курсора цей таймер скасовує.
+     *
+     * CSS-правило :hover лишається на місці - воно й далі відкриває меню;
+     * hover-open тільки не дає йому закритися одразу.
+     */
+    const NAV_HOVER_GRACE = 1000;
+
+    const navCloseNow = (el) => {
+      clearTimeout(el._navCloseTimer);
+      el._navCloseTimer = null;
+      el.classList.remove('hover-open');
+      if (typeof el._navClose === 'function') el._navClose();
+    };
+    const navHold = (el) => {
+      clearTimeout(el._navCloseTimer);
+      el._navCloseTimer = null;
+      el.classList.add('hover-open');
+    };
+    const navReleaseLater = (el) => {
+      clearTimeout(el._navCloseTimer);
+      el._navCloseTimer = setTimeout(() => navCloseNow(el), NAV_HOVER_GRACE);
+    };
+
+    /**
      * Гніздо другого рівня: заголовок у меню + випадайка збоку.
      * Наведення відкриває саме так, як увесь дропдаун вище, а клік
      * лишає меню відкритим — інакше на тач-екранах у гніздо не зайти.
@@ -638,6 +669,9 @@ function applyAccess() {
         const open = submenu.classList.toggle('show');
         btn.setAttribute('aria-expanded', String(open));
       });
+
+      wrap.addEventListener('mouseenter', () => navHold(wrap));
+      wrap.addEventListener('mouseleave', () => navReleaseLater(wrap));
 
       wrap.appendChild(btn);
       wrap.appendChild(submenu);
@@ -675,18 +709,39 @@ function applyAccess() {
 
       // Гніздо, відкрите кліком, не має лишатися відкритим після того, як
       // курсор пішов із меню: інакше наступне наведення на вкладку одразу
-      // вивалює чуже підменю.
-      dropdownDiv.addEventListener('mouseleave', () => {
+      // вивалює чуже підменю. Тепер це робиться після пільгової секунди.
+      dropdownDiv._navClose = () => {
+        menuDiv.querySelectorAll('.nav-subgroup').forEach(sub => navCloseNow(sub));
         menuDiv.querySelectorAll('.nav-submenu.show').forEach(sub => {
           sub.classList.remove('show');
           sub.previousElementSibling?.setAttribute('aria-expanded', 'false');
         });
+      };
+
+      dropdownDiv.addEventListener('mouseenter', () => {
+        // Сусідні вкладки гасимо негайно: під час пільгової секунди інакше
+        // висіли б два розгорнуті меню одночасно.
+        navContainer.querySelectorAll('.nav-dropdown.hover-open').forEach(other => {
+          if (other !== dropdownDiv) navCloseNow(other);
+        });
+        navHold(dropdownDiv);
       });
+      dropdownDiv.addEventListener('mouseleave', () => navReleaseLater(dropdownDiv));
 
       dropdownDiv.appendChild(btn);
       dropdownDiv.appendChild(menuDiv);
       navContainer.appendChild(dropdownDiv);
     };
+
+    // Клік повз меню закриває його одразу: чекати секунду там, де намір
+    // очевидний, було б навпаки незручно. Вішається один раз на документ.
+    if (!document._navGraceBound) {
+      document._navGraceBound = true;
+      document.addEventListener('pointerdown', (e) => {
+        document.querySelectorAll('.nav-dropdown.hover-open, .nav-subgroup.hover-open')
+          .forEach(el => { if (!el.contains(e.target)) navCloseNow(el); });
+      }, true);
+    }
 
     // Головна · Пакети ▼ · Довідники ▼ · Документи ▼ · Сервіси ▼ · Інфоцентр ·
     // Структура Департаменту · Робочий чат.

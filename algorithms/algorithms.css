@@ -440,6 +440,35 @@ mark { padding: 0 2px; border-radius: 3px; color: inherit; background: #ffe69a; 
   .amb-row { flex-direction: column; gap: 3px; }
   .amb-row-label { flex: none; }
 }
+/* ── ОДК у лівій колонці ───────────────────────────────────────────────
+   Розкривається на вимогу: переліки діагнозів довантажуються з довідника
+   mapping, а не лежать у даних розділу. */
+.amb-odk-list { display: grid; gap: 6px; }
+.amb-odk {
+  border: 1px solid var(--line); border-radius: 12px;
+  background: var(--surface); font-size: 13px;
+}
+.amb-odk summary {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 8px 10px; cursor: pointer; line-height: 1.4;
+}
+.amb-odk summary::-webkit-details-marker { display: none; }
+.amb-odk-name { flex: 1; min-width: 120px; font-weight: 600; }
+.amb-odk summary em { color: var(--muted); font-size: 11.5px; font-style: normal; }
+.amb-odk[open] { background: var(--warm); }
+.amb-odk--active { border-color: var(--accent-dark); }
+.amb-odk--active > summary { color: var(--accent-dark); }
+.amb-odk-body { padding: 0 10px 10px; }
+.amb-odk-body p { margin: 0 0 6px; }
+.amb-odk-codes {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  max-height: 190px; overflow-y: auto;
+  padding: 6px; margin-bottom: 8px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+}
+.amb-odk-codes a { text-decoration: none; }
+.code-badge--known { border-style: solid; cursor: help; }
+
 /* ── Скільки послуга важить в оплаті (пункт 62 Порядку) ────────────────
    Пакет 9 платиться глобальною ставкою, тому сума подається як внесок
    однієї послуги, а не як тариф. Застереження навмисно не приглушене:

@@ -288,6 +288,9 @@
 }
 
 /* ── Navigation dropdown menu ────────────────────── */
+/* Клас hover-open ставить auth-v2.js: він тримає меню відкритим ще секунду
+   після того, як курсор пішов. Правила :hover лишаються — вони відкривають,
+   hover-open лише не дає закритися одразу. Міняти обидва місця разом. */
 .nav-dropdown {
   position: relative;
   display: inline-block;
@@ -333,7 +336,8 @@
   transition: transform .2s ease;
   display: inline-block;
 }
-.nav-dropdown:hover .nav-dropdown-arrow {
+.nav-dropdown:hover .nav-dropdown-arrow,
+.nav-dropdown.hover-open .nav-dropdown-arrow {
   transform: rotate(180deg);
 }
 
@@ -356,6 +360,7 @@
   animation: navDropdownFade .2s ease;
 }
 .nav-dropdown:hover .nav-dropdown-menu,
+.nav-dropdown.hover-open .nav-dropdown-menu,
 .nav-dropdown-menu.show {
   display: block;
 }
@@ -428,6 +433,7 @@
   transition: background .15s, color .15s;
 }
 .nav-subgroup:hover > .nav-subgroup-btn,
+.nav-subgroup.hover-open > .nav-subgroup-btn,
 .nav-subgroup:focus-within > .nav-subgroup-btn {
   background: var(--soft, #f2f8fb);
   color: var(--accent-dark, #2f6b9e);
@@ -442,6 +448,7 @@
   transition: transform .2s ease, opacity .15s;
 }
 .nav-subgroup:hover .nav-subgroup-arrow,
+.nav-subgroup.hover-open .nav-subgroup-arrow,
 .nav-subgroup:focus-within .nav-subgroup-arrow {
   opacity: 1;
   transform: translateX(2px);
@@ -474,6 +481,7 @@
   background: transparent;
 }
 .nav-subgroup:hover > .nav-submenu,
+.nav-subgroup.hover-open > .nav-submenu,
 .nav-subgroup:focus-within > .nav-submenu,
 .nav-submenu.show {
   display: block;
