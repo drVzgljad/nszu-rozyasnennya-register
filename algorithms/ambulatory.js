@@ -184,6 +184,173 @@ function apply() {
   renderCards(query);
 }
 
+/* ── скільки послуга важить в оплаті (пункт 62 Порядку) ─────
+   Пакет 9 не має ціни за інтервенцію: тариф — глобальна ставка на місяць.
+   Тому рахуємо чесно: ставка × коефіцієнт класу — це внесок ОДНІЄЇ послуги
+   у річний розрахунок ставки, і 1/12 від нього — у ставку на місяць.
+   Ніде не пишемо «тариф за послугу», бо такого в пакеті 9 не існує. */
+
+/* Дзеркало norm_key() з tariff_p62.py. Міняти треба обидві разом. */
+function normKey(value) {
+  return String(value || "").toLowerCase()
+    .replace(/[\u2019\u02bc`]/g, "'")
+    .replace(/\s*,\s*/g, ",")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const money = (value) => value.toLocaleString("uk-UA",
+  { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const coefText = (value) => String(value).replace(".", ",");
+
+/* → {kind, coef|options, amount, basis, note} або null, якщо блоку тарифу немає */
+function tariffFor(record) {
+  const t = state.data.tariff;
+  if (!t) return null;
+  const cls = normKey(record.class);
+
+  const ambiguous = t.ambiguous && t.ambiguous[cls];
+  if (ambiguous) {
+    return {
+      kind: "ambiguous",
+      options: ambiguous.options.map((pair) => ({
+        label: pair[0], coef: pair[1], amount: t.rate * pair[1],
+      })),
+      basis: (t.by_service[record.sv] || {}).caption || "",
+      note: ambiguous.note,
+    };
+  }
+
+  if (record.sv === "lab") {
+    const lab = t.by_service.lab || {};
+    const raw = normKey(record.category);
+    const category = (lab.alias || {})[raw] || raw;
+    const special = (lab.special || {})[category];
+    if (special) return { kind: "special", basis: lab.caption, note: special };
+
+    const coef = ((lab.matrix || {})[cls] || {})[category];
+    if (coef === undefined) {
+      return {
+        kind: "unknown",
+        basis: lab.caption,
+        note: record.category
+          ? "Для напряму «" + record.class + "» пункт 62 не називає коефіцієнта за категорією «"
+            + record.category + "»."
+          : "Додаток 2 не зазначає категорії дослідження, тому коефіцієнт пункту 62 "
+            + "не визначається однозначно.",
+      };
+    }
+    const exception = (lab.exceptions || {})[cls];
+    let note = "";
+    if (exception && category === "високоспецифічний") {
+      note = "Пункт 62 виводить із цієї категорії " + exception.count
+        + " окремих досліджень з коефіцієнтами від " + coefText(exception.min)
+        + " до " + coefText(exception.max)
+        + ". У Порядку вони названі текстом дослідження, а не кодом, тому звіряйте за переліком.";
+    } else if (lab.note && cls === "інші") {
+      note = lab.note;
+    }
+    return {
+      kind: "value",
+      coef,
+      amount: t.rate * coef,
+      /* показуємо категорію, за якою реально взято коефіцієнт: у додатку 2
+         трапляється написання «Високоспецифчний», і воно виглядало б як наша описка */
+      basis: lab.caption + " · " + record.class + " · " + category,
+      note,
+    };
+  }
+
+  const entry = t.by_service[record.sv];
+  const coef = entry && entry.classes ? entry.classes[cls] : undefined;
+  if (coef === undefined) {
+    return {
+      kind: "unknown",
+      basis: (entry || {}).caption || "",
+      note: record.class
+        ? "Класу «" + record.class + "» у таблицях пункту 62 немає."
+        : "Додаток 1 не зазначає класу, тому коефіцієнт пункту 62 не визначається.",
+    };
+  }
+  return {
+    kind: "value",
+    coef,
+    amount: t.rate * coef,
+    basis: entry.caption + " · " + record.class,
+    note: "",
+  };
+}
+
+function tariffSource(t) {
+  return '<p class="amb-tariff-source"><a href="' + t.source.href + '">Пункт '
+    + esc(t.source.point) + ' Порядку</a> · ставка на медичну послугу ' + money(t.rate)
+    + ' грн · <a href="' + t.source.compare_href + '">коефіцієнти 2025 ↔ 2026</a></p>';
+}
+
+function tariffBlock(record) {
+  const t = state.data.tariff;
+  const calc = tariffFor(record);
+  if (!t || !calc) return "";
+  const head = '<div class="amb-section-title">Скільки це важить в оплаті</div>';
+
+  if (calc.kind === "value") {
+    return head + '<div class="amb-tariff">'
+      + '<div class="amb-tariff-sum"><b>' + money(calc.amount) + ' грн</b>'
+      + '<span>= ' + money(t.rate) + ' × ' + coefText(calc.coef) + '</span></div>'
+      + '<div class="amb-tariff-grid">'
+      + row("Коефіцієнт класу", '<b>' + coefText(calc.coef) + '</b> <span class="amb-dim">'
+          + esc(calc.basis) + '</span>')
+      + row("Внесок у річний розрахунок", money(calc.amount) + ' грн за одну послугу '
+          + esc(t.base_year) + ' року')
+      + row("У ставці на місяць", money(calc.amount / 12) + ' грн')
+      + '</div>'
+      + (calc.note ? '<p class="amb-tariff-note">' + esc(calc.note) + '</p>' : "")
+      + '<p class="amb-tariff-caveat">' + esc(t.caveat) + '</p>'
+      + tariffSource(t) + '</div>';
+  }
+
+  if (calc.kind === "ambiguous") {
+    const options = calc.options.map((option) =>
+      '<div class="amb-tariff-sum amb-tariff-sum--alt"><b>' + money(option.amount) + ' грн</b>'
+      + '<span>' + esc(option.label) + ' · = ' + money(t.rate) + ' × '
+      + coefText(option.coef) + '</span></div>').join("");
+    return head + '<div class="amb-tariff">' + options
+      + '<p class="amb-tariff-note">' + esc(calc.note) + '</p>'
+      + '<p class="amb-tariff-caveat">' + esc(t.caveat) + '</p>'
+      + tariffSource(t) + '</div>';
+  }
+
+  return head + '<div class="amb-tariff amb-tariff--muted">'
+    + '<p class="amb-tariff-note">' + esc(calc.note) + '</p>'
+    + tariffSource(t) + '</div>';
+}
+
+/* Коротка мітка для картки списку: «×3,8 · 589,00 ₴» */
+function tariffPill(record) {
+  const calc = tariffFor(record);
+  if (!calc || calc.kind !== "value") return "";
+  const hint = money(state.data.tariff.rate) + " грн × " + coefText(calc.coef)
+    + " — внесок однієї послуги у річний розрахунок глобальної ставки";
+  return '<span class="amb-tariff-pill" title="' + esc(hint) + '">×'
+    + coefText(calc.coef) + ' · ' + money(calc.amount) + ' ₴</span>';
+}
+
+function renderTariffPanel() {
+  const t = state.data.tariff;
+  const host = byId("ambTariff");
+  if (!host) return;
+  if (!t) { host.innerHTML = ""; return; }
+  host.innerHTML = '<p class="amb-tariff-formula">' + esc(t.formula) + '</p>'
+    + '<div class="amb-tariff-grid">'
+    + row("Ставка на медичну послугу", '<b>' + money(t.rate) + ' грн</b>')
+    + row("База розрахунку", 'обсяги ' + esc(t.base_year) + ' року за даними ЕСОЗ')
+    + '</div>'
+    + '<p class="amb-tariff-caveat">' + esc(t.caveat) + '</p>'
+    + '<p class="amb-tariff-source"><a href="' + t.source.href + '">'
+    + esc(t.source.chapter) + ', пункт ' + esc(t.source.point) + '</a> · '
+    + '<a href="' + t.source.compare_href + '">коефіцієнти 2025 ↔ 2026</a></p>';
+}
+
 /* ── список ─────────────────────────────────────────────────── */
 const SERVICE_NAME = {};
 
@@ -202,7 +369,7 @@ function renderCards(query) {
       </div>
       <div class="algorithm-card-main">
         <strong>${highlight(record.name || record.dx_name || "—", query)}</strong>
-        ${pills ? `<div class="amb-pill-row">${pills}</div>` : ""}
+        ${pills || tariffPill(record) ? `<div class="amb-pill-row">${pills}${tariffPill(record)}</div>` : ""}
       </div>
     </button>`;
   }).join("");
@@ -315,6 +482,7 @@ function select(index) {
     ${row("Додаткові інтервенції", record.extra ? esc(record.extra) : "")}
     ${row("Примітка листа", record.note ? esc(record.note) : "")}
     ${flagBlock}
+    ${tariffBlock(record)}
     <div class="amb-section-title">Звідки це</div>
     <div class="amb-source">
       <a class="action" href="${docHref(record.src.doc)}">
@@ -331,6 +499,16 @@ function select(index) {
   if (window.matchMedia("(max-width: 1180px)").matches) setTab("reader");
 }
 
+/* Рядок про коефіцієнт для «Скопіювати висновок». */
+function tariffLine(record) {
+  const calc = tariffFor(record);
+  if (!calc || calc.kind !== "value") return "";
+  return "Коефіцієнт класу (пункт 62): " + coefText(calc.coef)
+    + " — внесок однієї послуги у річний розрахунок глобальної ставки "
+    + money(calc.amount) + " грн (" + money(state.data.tariff.rate) + " × "
+    + coefText(calc.coef) + "). Це не ціна за випадок.";
+}
+
 function copySummary(record, own) {
   const letter = state.data.basis.letter;
   const lines = [
@@ -340,6 +518,7 @@ function copySummary(record, own) {
     (record.obs || []).length ? `Коди спостереження: ${record.obs.join(", ")}` : "",
     (record.odk || []).length ? `ОДК: ${record.odk.join(", ")}` : "",
     record.referral ? `Направлення від сімейного лікаря: ${record.referral}` : "",
+    tariffLine(record),
     own.length ? `Застереження: ${own.map((f) => {
       const meta = state.data.flag_catalogue.find((c) => c.key === f.key) || {};
       return `${meta.title || f.key}${f.detail ? ` (${f.detail})` : ""}`;
@@ -372,6 +551,7 @@ async function init() {
   renderBasis();
   renderLegend();
   renderRules();
+  renderTariffPanel();
   fillFilters();
 
   byId("ambSearch").addEventListener("input", apply);
