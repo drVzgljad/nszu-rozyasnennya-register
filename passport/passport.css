@@ -1804,8 +1804,9 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
 .ua-obl {
   --heat: 0;
   fill: color-mix(in srgb, var(--accent, #4a8fc7) calc(var(--heat) * 85%), var(--soft, #f2f8fb));
-  stroke: var(--surface, #fff);
-  stroke-width: 1.4;
+  /* Контури областей завжди білі — на заливці читаються як акуратна сітка меж */
+  stroke: #fff;
+  stroke-width: 2;
   stroke-linejoin: round;
   cursor: pointer;
   transition: fill .15s ease, stroke .15s ease;
@@ -1819,7 +1820,7 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
 }
 .ua-obl.no-data {
   fill: var(--soft, #f2f8fb);
-  stroke: var(--line, #dde6ee);
+  stroke: #fff;
   cursor: default;
   opacity: .75;
 }
@@ -2020,8 +2021,8 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
   border-color: color-mix(in srgb, var(--accent, #4a8fc7) calc(var(--heat) * 70%), #334155);
   background: color-mix(in srgb, var(--accent, #4a8fc7) calc(var(--heat) * 62%), #0f172a);
 }
-.dark-theme .ua-obl { stroke: #1e293b; }
-.dark-theme .ua-obl.no-data { fill: #263346; stroke: #334155; }
+.dark-theme .ua-obl { stroke: #fff; }
+.dark-theme .ua-obl.no-data { fill: #263346; stroke: #fff; }
 .dark-theme .ua-num { fill: #e2e8f0; stroke: #1e293b; }
 .dark-theme .ua-num.heat-high { fill: #fff; stroke: #0f2136; }
 .dark-theme .ua-name { fill: #e2e8f0; stroke: #1e293b; }
