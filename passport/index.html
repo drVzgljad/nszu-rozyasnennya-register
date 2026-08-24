@@ -11,7 +11,7 @@
   <title>Паспорт пакета ПМГ 2026 — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260808c">
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="passport.css?v=20260824m">
+  <link rel="stylesheet" href="passport.css?v=20260824n">
   <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script type="module" src="../auth-v2.js?v=20260824d"></script>
@@ -177,12 +177,12 @@
                   <div class="donut-wrap" id="networkDonut"></div>
                 </div>
               </div>
-              <div class="chart-card span-2" id="topProvidersCard">
+              <div class="chart-card span-2 collapsed" id="topProvidersCard">
                 <h3>🏆 Надавачі за фінансуванням
                   <small class="card-hint" id="topProvidersHead"></small>
                   <button type="button" class="card-toggle" id="topProvidersToggle"
-                          aria-expanded="true" aria-controls="topProvidersBody"
-                          title="Згорнути перелік"><span class="ct-chevron" aria-hidden="true"></span></button>
+                          aria-expanded="false" aria-controls="topProvidersBody"
+                          title="Розгорнути перелік"><span class="ct-chevron" aria-hidden="true"></span></button>
                 </h3>
                 <div class="card-body" id="topProvidersBody">
                   <div class="chart-bar-list" id="topProviders"></div>
@@ -192,12 +192,17 @@
             </div>
 
             <!-- Перетин мереж: які ще пакети мають ті самі заклади -->
-            <section class="overlap-card" id="overlapCard">
+            <section class="overlap-card collapsed" id="overlapCard">
               <div class="overlap-head">
-                <h3>🔗 Перетин мереж <small class="card-hint">які ще пакети мають ті самі заклади</small></h3>
+                <h3>🔗 Перетин мереж <small class="card-hint">які ще пакети мають ті самі заклади</small>
+                  <button type="button" class="card-toggle" id="overlapToggle"
+                          aria-expanded="false" aria-controls="overlapBody"
+                          title="Розгорнути"><span class="ct-chevron" aria-hidden="true"></span></button>
+                </h3>
                 <p class="overlap-sub" id="overlapSub">—</p>
               </div>
 
+              <div class="card-body" id="overlapBody">
               <div class="overlap-compare">
                 <div class="oc-picker">
                   <span class="oc-picker-label">Порівняти з пакетами:</span>
@@ -223,6 +228,7 @@
               </div>
 
               <p class="overlap-foot" id="overlapFoot"></p>
+              </div>
             </section>
 
             <!-- Contracted Hospitals Table (collapsed by default) -->
@@ -309,6 +315,6 @@
 </div>
 <script src="../spec-links.js?v=20260804c" defer></script>
 <script src="norm-links.js?v=20260824b" defer></script>
-<script src="passport.js?v=20260824q" defer></script>
+<script src="passport.js?v=20260824r" defer></script>
 </body>
 </html>

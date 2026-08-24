@@ -706,6 +706,17 @@ function wireTopProviders() {
       toggle.title = open ? "Згорнути перелік" : "Розгорнути перелік";
     });
   }
+  // Той самий механізм — для «Перетину мереж»
+  const ovToggle = el("overlapToggle");
+  if (ovToggle && !ovToggle.dataset.wired) {
+    ovToggle.dataset.wired = "1";
+    ovToggle.addEventListener("click", () => {
+      const card = el("overlapCard");
+      const open = !card.classList.toggle("collapsed");
+      ovToggle.setAttribute("aria-expanded", String(open));
+      ovToggle.title = open ? "Згорнути" : "Розгорнути";
+    });
+  }
 }
 
 function kpiTileHtml(icon, label, valueHtml, sub, id = "") {

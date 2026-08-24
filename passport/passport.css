@@ -1929,8 +1929,12 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
   transform: rotate(45deg) translate(-2px, -2px);
   transition: transform .18s ease;
 }
-.chart-card.collapsed .ct-chevron { transform: rotate(-135deg) translate(-2px, -2px); }
-.chart-card.collapsed .card-body { display: none; }
+.chart-card.collapsed .ct-chevron,
+.overlap-card.collapsed .ct-chevron { transform: rotate(-135deg) translate(-2px, -2px); }
+.chart-card.collapsed .card-body,
+.overlap-card.collapsed .card-body { display: none; }
+/* Кнопка згортання в шапці «Перетину мереж» */
+.overlap-head h3 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .chart-bar-list.scrollable {
   max-height: 58vh;
   overflow-y: auto;
