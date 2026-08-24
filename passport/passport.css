@@ -2032,3 +2032,11 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
   .or-val { text-align: left; }
   .oc-legcta { display: none; }
 }
+
+/* розбивка перетину: «в одному договорі / через окремий договір» */
+.oc-split { display: block; font-style: normal; font-size: 12.5px; color: var(--warning-text); margin-top: 2px; }
+.or-cross {
+  font-size: 11px; font-weight: 700; white-space: nowrap; cursor: help;
+  color: var(--warning-text); background: var(--warning-bg);
+  border: 1px solid var(--warning-border); border-radius: 999px; padding: 1px 7px;
+}

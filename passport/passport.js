@@ -723,22 +723,32 @@ function renderAnalytics() {
    інакше «має пакет 9» загубиться, якщо 9-й лежить в іншому договорі.
    ─────────────────────────────────────────────────── */
 
-/** ЄДРПОУ → Set пакетів надавача; і номер пакета → Set ЄДРПОУ. Рахується раз. */
+/** ЄДРПОУ → Set пакетів надавача; номер пакета → Set ЄДРПОУ; і пакетний склад
+ *  кожного ДОГОВОРУ окремо. Рахується раз.
+ *
+ *  Дворівневість принципова: пакет 1 (ПМД) завжди йде окремим договором, тому
+ *  перетин «35 і 1» на рівні юрособи = 205, а в межах одного договору = 0.
+ *  Показувати перше число без розбивки — вводити в оману тих, хто звик
+ *  рахувати договорами (виміряно 24.08.2026). */
 function getProviderIndex() {
   if (passportState._provIdx) return passportState._provIdx;
   const byProvider = new Map();
   const byPackage = new Map();
+  const contractRows = [];   // { e, set } — пакети одного договору
   passportState.contractsData.contracts.forEach(c => {
     let set = byProvider.get(c.edrpou);
     if (!set) byProvider.set(c.edrpou, (set = new Set()));
+    const own = new Set();
     c.packages.forEach(p => {
       set.add(p.package_num);
+      own.add(p.package_num);
       let list = byPackage.get(p.package_num);
       if (!list) byPackage.set(p.package_num, (list = new Set()));
       list.add(c.edrpou);
     });
+    contractRows.push({ e: c.edrpou, set: own });
   });
-  passportState._provIdx = { byProvider, byPackage };
+  passportState._provIdx = { byProvider, byPackage, contractRows };
   return passportState._provIdx;
 }
 
@@ -774,8 +784,21 @@ const zakladiv = (n) => plural(n, "заклад", "заклади", "закла�
 /** Перетини поточного пакета з усіма іншими, від найбільшого. */
 function getOverlaps() {
   const pkg = passportState.selectedPackage;
-  const { byPackage } = getProviderIndex();
+  const { byPackage, contractRows } = getProviderIndex();
   const mine = byPackage.get(pkg.number) || new Set();
+
+  // скільки ЄДРПОУ мають наш пакет і пакет num В ОДНОМУ договорі
+  const sameByPkg = new Map();
+  contractRows.forEach(r => {
+    if (!r.set.has(pkg.number)) return;
+    r.set.forEach(num => {
+      if (num === pkg.number) return;
+      let s = sameByPkg.get(num);
+      if (!s) sameByPkg.set(num, (s = new Set()));
+      s.add(r.e);
+    });
+  });
+
   const rows = [];
   byPackage.forEach((set, num) => {
     if (num === pkg.number) return;
@@ -789,6 +812,7 @@ function getOverlaps() {
       title: pkgTitle(num),
       kind: pkgKind(num),
       n,
+      same: (sameByPkg.get(num) || new Set()).size,       // з них — в одному договорі
       shareMine: mine.size ? (n / mine.size) * 100 : 0,   // частка НАШОЇ мережі
       shareTheirs: set.size ? (n / set.size) * 100 : 0,   // частка мережі того пакета
       theirTotal: set.size,
@@ -861,12 +885,22 @@ function renderOverlap() {
     el("overlapAnswer").innerHTML = picks.map((num, i) => {
       const r = rows.find(x => x.num === num);
       const n = r ? r.n : 0;
+      const same = r ? r.same : 0;
+      const cross = n - same;
+      // «в одному договорі / через окремий договір» — без цієї розбивки число
+      // для пар із ПМД (завжди окремий договір) читається як помилка
+      let split = "";
+      if (n && cross > 0) {
+        split = same === 0
+          ? ` <em class="oc-split">Усі ${cross.toLocaleString("uk-UA")} — через окремий договір: в одному договорі ці пакети не поєднуються.</em>`
+          : ` <em class="oc-split">З них в одному договорі — ${same.toLocaleString("uk-UA")}, через окремий договір — ${cross.toLocaleString("uk-UA")}.</em>`;
+      }
       return `<div class="oc-line">
         <span class="oc-dot" style="background:${OVERLAP_COLORS[i % OVERLAP_COLORS.length]}"></span>
-        З <strong>${mine.size.toLocaleString("uk-UA")}</strong> закладів пакета ${escapeHtml(pkg.number)}
-        договір за пакетом <strong>${escapeHtml(num)}</strong> мають
+        <span>З <strong>${mine.size.toLocaleString("uk-UA")}</strong> надавачів (ЄДРПОУ) пакета ${escapeHtml(pkg.number)}
+        пакет <strong>${escapeHtml(num)}</strong> мають
         <strong>${n.toLocaleString("uk-UA")}</strong> — це ${pctUk(r ? r.shareMine : 0)} мережі пакета ${escapeHtml(pkg.number)}
-        і ${pctUk(r ? r.shareTheirs : 0)} мережі пакета ${escapeHtml(num)}.
+        і ${pctUk(r ? r.shareTheirs : 0)} мережі пакета ${escapeHtml(num)}.${split}</span>
       </div>`;
     }).join("");
 
@@ -918,7 +952,10 @@ function renderOverlap() {
         </button>
         <span class="or-back" title="Ті самі ${r.n.toLocaleString("uk-UA")} ${zakladiv(r.n)} — це ${pctUk(r.shareTheirs)} мережі пакета ${escapeHtml(r.num)} (${r.theirTotal.toLocaleString("uk-UA")} ${zakladiv(r.theirTotal)})">
           ↩ ${pctUk(r.shareTheirs)}
-        </span>
+        </span>${r.n - r.same > 0 ? `
+        <span class="or-cross" title="${r.same === 0
+          ? `Усі ${r.n.toLocaleString("uk-UA")} — через окремий договір тієї самої юрособи: в одному договорі пакети ${escapeHtml(pkg.number)} і ${escapeHtml(r.num)} не поєднуються`
+          : `${(r.n - r.same).toLocaleString("uk-UA")} з ${r.n.toLocaleString("uk-UA")} — через окремий договір тієї самої юрособи (в одному договорі — ${r.same.toLocaleString("uk-UA")})`}">⧉ ${(r.n - r.same).toLocaleString("uk-UA")}</span>` : ""}
         <a class="or-open" href="index.html?package=${encodeURIComponent(r.num)}" title="Відкрити паспорт пакета ${escapeHtml(r.num)}">↗</a>
       </div>`).join("")
     : `<div class="no-results">За цим запитом пакетів немає</div>`;
@@ -934,9 +971,14 @@ function renderOverlap() {
   }
 
   el("overlapFoot").textContent =
-    `Смуга ділить мережу пакета ${pkg.number} на комбінації: заклад потрапляє рівно в один сегмент. ` +
-    `У рейтингу основне число — частка мережі ЦЬОГО пакета, а «↩» — частка мережі того, з яким порівнюємо: ` +
-    `ці два відсотки різні, і плутати їх не можна. Реімбурсація та пілотні проєкти позначені міткою.`;
+    `Надавач тут — юрособа за ЄДРПОУ: ТМО з кількома лікарнями рахується один раз, ФОП — окремо. ` +
+    `Перетин враховує ВСІ договори юрособи; позначка «⧉» показує, скільки збігів існує лише через окремий ` +
+    `договір (класика — ПМД: пакет 1 завжди йде окремим договором, тому в одному договорі з ` +
+    `лікарняними пакетами він не трапляється ніколи). ` +
+    `Смуга ділить мережу пакета ${pkg.number} на комбінації: надавач потрапляє рівно в один сегмент. ` +
+    `У рейтингу основне число — частка мережі ЦЬОГО пакета, а «↩» — частка мережі того, з яким порівнюємо. ` +
+    `⚠ Вивантажка не містить строків дії окремих пакетів: пакет, законтрактований на частину року, ` +
+    `лишається в числах до кінця дії договору, тому проти звітності «чинних на дату» числа тут можуть бути більші.`;
 }
 
 function popcount(n) {
