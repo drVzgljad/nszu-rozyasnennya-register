@@ -119,14 +119,19 @@ async function init() {
     passportState.explanations = docsRes.documents || [];
     passportState.resolution = resolutionRes;
 
-    // Дата вивантажки договорів — поруч із заголовком переліку закладів.
-    // У старих contracts_slim.json поля немає, тоді бейдж лишається схованим.
+    // Дата вивантажки договорів — у шапці термометра. З серпня 2026 вивантажка
+    // складу мережі йде без сум, тому суми беруться зі старішої вивантажки і
+    // мають власну дату (sums_date) — показуємо обидві, щоб не брехати.
     const zozFreshEl = el("zozFreshness");
     if (zozFreshEl && contractsRes.source_date) {
-      zozFreshEl.textContent = `станом на ${contractsRes.source_date}`;
-      zozFreshEl.title = contractsRes.built_at
-        ? `Вивантажка договорів від ${contractsRes.source_date}, перезібрано ${contractsRes.built_at}`
-        : `Вивантажка договорів від ${contractsRes.source_date}`;
+      const sumsPart = contractsRes.sums_date && contractsRes.sums_date !== contractsRes.source_date
+        ? ` · суми — ${contractsRes.sums_date}` : "";
+      zozFreshEl.textContent = `мережа станом на ${contractsRes.source_date}${sumsPart}`;
+      zozFreshEl.title = contractsRes.sums_source
+        ? `Склад мережі — вивантажка від ${contractsRes.source_date} (без сум); суми договорів — з вивантажки від ${contractsRes.sums_date}`
+        : (contractsRes.built_at
+            ? `Вивантажка договорів від ${contractsRes.source_date}, перезібрано ${contractsRes.built_at}`
+            : `Вивантажка договорів від ${contractsRes.source_date}`);
       zozFreshEl.hidden = false;
     }
 
@@ -234,6 +239,10 @@ function selectPackage(pkgNum) {
   passportState.hospitalCurrentPage = 1;
   el("hospitalSearchInput").value = "";
   el("hospitalOblastFilter").value = "";
+  // Перелік ЗОЗ схлопнутий за замовчуванням — розгортається кнопкою або
+  // кліком по регіону в теплокарті
+  const hospitalsBox = el("hospitalsCollapse");
+  if (hospitalsBox) hospitalsBox.open = false;
 
   // Render passport sections
   renderHeaderAndMetrics();
@@ -351,10 +360,136 @@ function renderHeaderAndMetrics() {
   el("indDecCount").textContent = decDocs.length;
 }
 
-// ── Tab 1: Analytics & Hospital Table ─────────────────────────
+// ── Tab 1: Analytics — «Термометр роботи пакету» ──────────────
+// Зведення по ВСІХ пакетах для перцентилів термометра. Рахується один раз
+// після завантаження договорів і кешується.
+function getPkgBenchmarks() {
+  if (passportState._bench) return passportState._bench;
+  const perPkg = new Map();
+  const oblasts = new Set();
+  passportState.contractsData.contracts.forEach(c => {
+    if (c.oblast) oblasts.add(c.oblast);
+    c.packages.forEach(p => {
+      if (!p.package_num) return;
+      let s = perPkg.get(p.package_num);
+      if (!s) { s = { n: 0, sum: 0, obl: new Set() }; perPkg.set(p.package_num, s); }
+      s.n++;
+      s.sum += p.sum;
+      if (c.oblast) s.obl.add(c.oblast);
+    });
+  });
+  const counts = [...perPkg.values()].map(s => s.n).sort((a, b) => a - b);
+  const sums = [...perPkg.values()].map(s => s.sum).filter(v => v > 0).sort((a, b) => a - b);
+  const totalPMG = sums.reduce((a, b) => a + b, 0);
+  passportState._bench = {
+    perPkg,
+    counts,
+    sums,
+    totalPMG,
+    pkgCount: perPkg.size,
+    allOblasts: [...oblasts].sort((a, b) => a.localeCompare(b, "uk")),
+  };
+  return passportState._bench;
+}
+
+// Частка значень вибірки, що не перевищують v (перцентиль, 0–100)
+function percentileOf(sortedArr, v) {
+  if (!sortedArr.length) return 0;
+  let i = 0;
+  while (i < sortedArr.length && sortedArr[i] <= v) i++;
+  return (i / sortedArr.length) * 100;
+}
+
+function formatMoneyShort(v) {
+  if (!v) return "—";
+  const fmt = (x, d) => x.toLocaleString("uk-UA", { minimumFractionDigits: 0, maximumFractionDigits: d });
+  if (v >= 1e9) return `${fmt(v / 1e9, 2)} млрд ₴`;
+  if (v >= 1e6) return `${fmt(v / 1e6, 1)} млн ₴`;
+  if (v >= 1e3) return `${fmt(v / 1e3, 0)} тис ₴`;
+  return formatCurrency(v);
+}
+
+// «ІВАНО-ФРАНКІВСЬКА» → «Івано-Франківська», «М.КИЇВ» → «м. Київ»
+function oblastDisplay(o) {
+  if (o === "М.КИЇВ") return "м. Київ";
+  return o.toLowerCase().replace(/(^|[-\s])(\S)/gu, (m, p, ch) => p + ch.toUpperCase());
+}
+
+// Плавний «набіг» числа в лічильнику. На прихованій вкладці rAF не тікає,
+// тому там одразу ставимо фінальне значення — інакше лишається «0».
+function animateCount(node, target, formatter) {
+  const dur = 900;
+  const t0 = performance.now();
+  const fmt = formatter || (v => Math.round(v).toLocaleString("uk-UA"));
+  if (document.hidden) { node.textContent = fmt(target); return; }
+  function step(t) {
+    const k = Math.min(1, (t - t0) / dur);
+    const eased = 1 - Math.pow(1 - k, 3);
+    node.textContent = fmt(target * eased);
+    if (k < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// Відсоток у нашій типографіці: десяткова кома, один знак після неї
+function pctUk(v) {
+  return v.toFixed(1).replace(".", ",") + "%";
+}
+
+const THERMO_BANDS = [
+  { min: 75, icon: "🔥", label: "Гарячий", desc: "флагманський пакет ПМГ", color: "#e0532f" },
+  { min: 50, icon: "☀️", label: "Теплий", desc: "активний пакет із широкою мережею", color: "#f0a03c" },
+  { min: 25, icon: "🌤️", label: "Помірний", desc: "стабільна цільова робота", color: "#54ad84" },
+  { min: 0,  icon: "❄️", label: "Прохолодний", desc: "вузькоспеціалізований пакет", color: "#4a8fc7" },
+];
+
+const DONUT_PALETTE = ["#4a8fc7", "#54ad84", "#f0a03c", "#e0532f", "#8b6cc7", "#c75c8f", "#64748b"];
+const NETWORK_COLORS = {
+  "Надкластерний": "#8b6cc7",
+  "Кластерний": "#4a8fc7",
+  "Загальний": "#54ad84",
+  "Не входить в спроможну мережу": "#94a3b8",
+};
+
+function renderDonut(container, entries) {
+  const total = entries.reduce((s, e) => s + e.value, 0);
+  if (!total) {
+    container.innerHTML = `<div class="no-results">Немає даних</div>`;
+    return;
+  }
+  let acc = 0;
+  const stops = entries.map(e => {
+    const from = (acc / total) * 360;
+    acc += e.value;
+    return `${e.color} ${from}deg ${(acc / total) * 360}deg`;
+  }).join(", ");
+  container.innerHTML = `
+    <div class="donut" style="background: conic-gradient(${stops})">
+      <div class="donut-hole"><strong>${total.toLocaleString("uk-UA")}</strong><span>ЗОЗ</span></div>
+    </div>
+    <div class="donut-legend">
+      ${entries.map(e => `
+        <div class="dl-row">
+          <span class="dl-chip" style="background:${e.color}"></span>
+          <span class="dl-label" title="${escapeHtml(e.label)}">${escapeHtml(e.label)}</span>
+          <span class="dl-val">${e.value.toLocaleString("uk-UA")} · ${pctUk(e.value / total * 100)}</span>
+        </div>`).join("")}
+    </div>`;
+}
+
+function kpiTileHtml(icon, label, valueHtml, sub, id = "") {
+  return `
+    <div class="kpi-tile">
+      <div class="kpi-head"><span class="kpi-icon">${icon}</span><span class="kpi-label">${escapeHtml(label)}</span></div>
+      <div class="kpi-value"${id ? ` id="${id}"` : ""}>${valueHtml}</div>
+      <div class="kpi-sub">${escapeHtml(sub)}</div>
+    </div>`;
+}
+
 function renderAnalytics() {
   const pkg = passportState.selectedPackage;
-  const pContracts = passportState.contractsData.contracts.filter(c => 
+  const bench = getPkgBenchmarks();
+  const pContracts = passportState.contractsData.contracts.filter(c =>
     c.packages.some(p => p.package_num === pkg.number)
   );
 
@@ -364,79 +499,167 @@ function renderAnalytics() {
   };
 
   const totalSum = pContracts.reduce((sum, c) => sum + getPkgSum(c), 0);
+  const noSums = totalSum === 0;
 
-  // 1. Ownership distribution
-  const ownershipMap = {};
+  // ── Складові температури ──
+  const oblMap = {};
+  pContracts.forEach(c => {
+    const o = c.oblast || "";
+    if (!oblMap[o]) oblMap[o] = { count: 0, sum: 0 };
+    oblMap[o].count++;
+    oblMap[o].sum += getPkgSum(c);
+  });
+  const oblCovered = Object.keys(oblMap).filter(Boolean).length;
+  const oblTotal = bench.allOblasts.length;
+
+  const coverage = oblTotal ? (oblCovered / oblTotal) * 100 : 0;
+  const netPct = percentileOf(bench.counts, pContracts.length);
+  const budPct = noSums ? null : percentileOf(bench.sums, totalSum);
+  const temp = Math.round(budPct === null
+    ? coverage * 0.55 + netPct * 0.45
+    : coverage * 0.40 + netPct * 0.35 + budPct * 0.25);
+  const band = THERMO_BANDS.find(b => temp >= b.min) || THERMO_BANDS[3];
+
+  const hero = el("thermoHero");
+  hero.style.setProperty("--thermo-color", band.color);
+
+  // Ртутний стовпчик: висота = температура (перезапуск анімації через reflow)
+  const mercury = el("thermoMercury");
+  mercury.style.transition = "none";
+  mercury.style.height = "0%";
+  void mercury.offsetHeight;
+  mercury.style.transition = "";
+  mercury.style.height = `${Math.max(temp, 3)}%`;
+
+  animateCount(el("thermoTemp"), temp, v => `${Math.round(v)}°`);
+  el("thermoVerdict").innerHTML =
+    `<span class="verdict-badge">${band.icon} ${band.label}</span><span class="verdict-desc">${escapeHtml(band.desc)}</span>`;
+
+  // Три складові індексу
+  const compRow = (icon, label, pct, valText) => `
+    <div class="comp-row">
+      <span class="comp-label">${icon} ${escapeHtml(label)}</span>
+      <div class="comp-track"><div class="comp-fill" style="width:${Math.max(pct, 1.5)}%"></div></div>
+      <span class="comp-val">${escapeHtml(valText)}</span>
+    </div>`;
+  const rank = 1 + [...bench.perPkg.values()].filter(s => s.n > pContracts.length).length;
+  const sharePMG = bench.totalPMG > 0 ? (totalSum / bench.totalPMG) * 100 : 0;
+  el("thermoComponents").innerHTML =
+    compRow("🗺️", "Покриття регіонів", coverage, `${oblCovered} з ${oblTotal}`) +
+    compRow("🏥", "Розмір мережі", netPct, `#${rank} з ${bench.pkgCount}`) +
+    compRow("💰", "Фінансова вага", budPct ?? 0,
+      noSums ? "немає даних" : `${sharePMG < 0.1 ? "<0,1" : sharePMG.toFixed(1).replace(".", ",")}% ПМГ`);
+
+  // ── KPI-плитки ──
+  const sums = pContracts.map(getPkgSum).filter(v => v > 0).sort((a, b) => a - b);
+  const median = sums.length
+    ? (sums.length % 2 ? sums[(sums.length - 1) / 2] : (sums[sums.length / 2 - 1] + sums[sums.length / 2]) / 2)
+    : 0;
+  const top5 = sums.slice(-5).reduce((a, b) => a + b, 0);
+  const top5Share = totalSum > 0 ? (top5 / totalSum) * 100 : 0;
+
+  el("thermoKpis").innerHTML =
+    kpiTileHtml("🏥", "ЗОЗ у мережі", "0", `#${rank} з ${bench.pkgCount} пакетів за розміром мережі`, "kpiProviders") +
+    kpiTileHtml("💰", "Бюджет пакета", escapeHtml(formatMoneyShort(totalSum)),
+      noSums ? "у вивантажці суми за пакетом відсутні" : `${sharePMG < 0.1 ? "менш як 0,1" : sharePMG.toFixed(1).replace(".", ",")} % усієї ПМГ`) +
+    kpiTileHtml("🗺️", "Покриття регіонів", `${oblCovered} <small>з ${oblTotal}</small>`,
+      oblCovered === oblTotal ? "заклади в усіх регіонах" : `немає закладів у ${oblTotal - oblCovered} регіонах`) +
+    kpiTileHtml("⚖️", "Медіанний договір", escapeHtml(formatMoneyShort(median)),
+      noSums ? "у вивантажці суми за пакетом відсутні" : "типова сума на один заклад") +
+    kpiTileHtml("🎯", "Концентрація топ-5", noSums ? "—" : `${Math.round(top5Share)}<small>%</small>`,
+      noSums ? "у вивантажці суми за пакетом відсутні" : "бюджету пакета — у пʼяти найбільших ЗОЗ");
+  animateCount(el("kpiProviders"), pContracts.length);
+
+  // ── Примітка про формулу ──
+  el("thermoFootnote").textContent =
+    `Температура — зведений індекс роботи пакета: покриття регіонів (40 %), розмір мережі (35 %) і фінансова вага (25 %); ` +
+    `дві останні складові — перцентилі серед ${bench.pkgCount} пакетів вивантажки.` +
+    (noSums ? " Для цього пакета вивантажка не передає сум (реімбурсація або новий пакет), тому індекс пораховано з двох складових (55/45)." : "");
+
+  // ── Теплокарта регіонів ──
+  const maxObl = Math.max(1, ...Object.values(oblMap).map(v => v.count));
+  const heat = el("regionHeatmap");
+  heat.innerHTML = bench.allOblasts.map(o => {
+    const d = oblMap[o];
+    const count = d ? d.count : 0;
+    const ratio = count / maxObl;
+    const tip = d
+      ? `${oblastDisplay(o)} — ${count} ЗОЗ${d.sum > 0 ? ` · ${formatMoneyShort(d.sum)}` : ""}`
+      : `${oblastDisplay(o)} — закладів немає`;
+    return `
+      <button type="button" class="region-tile${count ? "" : " empty"}${ratio > 0.55 ? " heat-high" : ""}"
+              style="--heat:${ratio.toFixed(3)}" data-oblast="${escapeHtml(o)}" title="${escapeHtml(tip)}" ${count ? "" : "disabled"}>
+        <span class="rt-name">${escapeHtml(oblastDisplay(o))}</span>
+        <span class="rt-count">${count}</span>
+      </button>`;
+  }).join("");
+  heat.querySelectorAll(".region-tile:not(.empty)").forEach(tile => {
+    tile.addEventListener("click", () => {
+      const o = tile.dataset.oblast;
+      passportState.hospitalOblast = o;
+      passportState.hospitalCurrentPage = 1;
+      el("hospitalOblastFilter").value = o;
+      const box = el("hospitalsCollapse");
+      box.open = true;
+      renderHospitalsTable();
+      box.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
+
+  // ── Донати: власність і спроможна мережа ──
+  const ownMap = {};
   pContracts.forEach(c => {
     const own = c.ownership || "Інші форми";
-    if (!ownershipMap[own]) ownershipMap[own] = { count: 0, sum: 0 };
-    ownershipMap[own].count++;
-    ownershipMap[own].sum += getPkgSum(c);
+    ownMap[own] = (ownMap[own] || 0) + 1;
   });
+  renderDonut(el("ownershipDonut"),
+    Object.keys(ownMap).sort((a, b) => ownMap[b] - ownMap[a])
+      .map((own, i) => ({ label: own, value: ownMap[own], color: DONUT_PALETTE[i % DONUT_PALETTE.length] })));
 
-  const ownershipContainer = el("ownershipChart");
-  ownershipContainer.innerHTML = "";
-  Object.keys(ownershipMap)
-    .sort((a,b) => ownershipMap[b].sum - ownershipMap[a].sum)
-    .forEach(own => {
-      const data = ownershipMap[own];
-      const pct = totalSum > 0 ? (data.sum / totalSum) * 100 : 0;
-      ownershipContainer.innerHTML += createChartBarHtml(own, formatCurrency(data.sum), pct, `${data.count} закл.`);
-    });
-
-  // 2. Network distribution
-  const networkMap = {};
+  const netMap = {};
   pContracts.forEach(c => {
-    const net = c.network_type || "Не входить в мережу";
-    if (!networkMap[net]) networkMap[net] = { count: 0, sum: 0 };
-    networkMap[net].count++;
-    networkMap[net].sum += getPkgSum(c);
+    const net = c.network_type || "Не входить в спроможну мережу";
+    netMap[net] = (netMap[net] || 0) + 1;
   });
+  const netOrder = ["Надкластерний", "Кластерний", "Загальний", "Не входить в спроможну мережу"];
+  renderDonut(el("networkDonut"),
+    netOrder.filter(net => netMap[net])
+      .map(net => ({
+        label: net === "Не входить в спроможну мережу" ? "Поза спроможною мережею" : net,
+        value: netMap[net],
+        color: NETWORK_COLORS[net] || "#64748b",
+      })));
 
-  const networkContainer = el("networkChart");
-  networkContainer.innerHTML = "";
-  const orderNetwork = ["Надкластерний", "Кластерний", "Загальний", "Не входить в спроможну мережу"];
-  orderNetwork.forEach(net => {
-    const data = networkMap[net] || { count: 0, sum: 0 };
-    if (data.count === 0) return;
-    const label = net === "Не входить в спроможну мережу" ? "Поза спроможною мережею" : net;
-    const pct = totalSum > 0 ? (data.sum / totalSum) * 100 : 0;
-    networkContainer.innerHTML += createChartBarHtml(label, formatCurrency(data.sum), pct, `${data.count} закл.`);
-  });
+  // ── Топ-10 надавачів ──
+  const topCard = el("topProvidersCard");
+  const topBox = el("topProviders");
+  if (noSums) {
+    topCard.style.display = "none";
+  } else {
+    topCard.style.display = "";
+    const ranked = [...pContracts].sort((a, b) => getPkgSum(b) - getPkgSum(a)).slice(0, 10);
+    const maxSum = getPkgSum(ranked[0]) || 1;
+    const medals = ["🥇", "🥈", "🥉"];
+    topBox.innerHTML = ranked.map((c, i) => {
+      const s = getPkgSum(c);
+      return `
+        <div class="top-provider-row">
+          <span class="tp-rank">${medals[i] || (i + 1)}</span>
+          <div class="tp-body">
+            <div class="bar-labels">
+              <span class="bar-name" title="${escapeHtml(c.provider_name_full || c.provider_name)}">${escapeHtml(c.provider_name)}
+                <small class="tp-place">📍 ${escapeHtml(c.settlement)}</small></span>
+              <span class="bar-val">${formatCurrency(s)} · ${pctUk(s / totalSum * 100)}</span>
+            </div>
+            <div class="bar-track"><div class="bar-fill tp-fill" style="width:${(s / maxSum * 100).toFixed(1)}%"></div></div>
+          </div>
+        </div>`;
+    }).join("");
+  }
 
-  // 3. Top 5 Regions
-  const regionsMap = {};
-  pContracts.forEach(c => {
-    const reg = c.oblast || "Невідома область";
-    if (!regionsMap[reg]) regionsMap[reg] = { count: 0, sum: 0 };
-    regionsMap[reg].count++;
-    regionsMap[reg].sum += getPkgSum(c);
-  });
-
-  const regionsContainer = el("regionsChart");
-  regionsContainer.innerHTML = "";
-  Object.keys(regionsMap)
-    .sort((a,b) => regionsMap[b].sum - regionsMap[a].sum)
-    .slice(0, 5)
-    .forEach(reg => {
-      const data = regionsMap[reg];
-      const pct = totalSum > 0 ? (data.sum / totalSum) * 100 : 0;
-      regionsContainer.innerHTML += createChartBarHtml(reg, formatCurrency(data.sum), pct, `${data.count} закл.`);
-    });
-}
-
-function createChartBarHtml(name, valText, pct, badgeText = "") {
-  return `
-    <div class="chart-bar-item">
-      <div class="bar-labels">
-        <span class="bar-name">${escapeHtml(name)} ${badgeText ? `<small style="font-weight:normal;color:var(--muted)">(${badgeText})</small>` : ''}</span>
-        <span class="bar-val">${valText} (${pct.toFixed(1)}%)</span>
-      </div>
-      <div class="bar-track">
-        <div class="bar-fill" style="width: ${pct}%"></div>
-      </div>
-    </div>
-  `;
+  // Лічильник у схлопнутому переліку ЗОЗ
+  const cnt = el("hospitalsCount");
+  if (cnt) cnt.textContent = pContracts.length.toLocaleString("uk-UA");
 }
 
 // Hospitals List Filters & Sort

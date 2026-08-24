@@ -11,7 +11,7 @@
   <title>Паспорт пакета ПМГ 2026 — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260808c">
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="passport.css?v=20260817d">
+  <link rel="stylesheet" href="passport.css?v=20260824a">
   <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script type="module" src="../auth-v2.js?v=20260824a"></script>
@@ -133,63 +133,90 @@
           
           <!-- Tab 1: Analytics and ZOZ -->
           <div class="tab-pane active" id="tab-analytics">
-            <div class="analytics-split">
-              <!-- Analytical charts & statistics -->
-              <div class="analytics-charts">
-                <div class="chart-card">
-                  <h3>🏥 Розподіл за формою власності</h3>
-                  <div class="chart-bar-list" id="ownershipChart">
-                    <!-- Dynamic ownership bars -->
+
+            <!-- Термометр роботи пакету -->
+            <section class="thermo-hero" id="thermoHero">
+              <div class="thermo-hero-head">
+                <h3>🌡️ Термометр роботи пакету</h3>
+                <span id="zozFreshness" class="zoz-freshness" hidden></span>
+              </div>
+              <div class="thermo-hero-body">
+                <div class="thermo-gauge-wrap">
+                  <div class="thermo-gauge" aria-hidden="true">
+                    <div class="thermo-ticks"><span>100°</span><span>75°</span><span>50°</span><span>25°</span><span>0°</span></div>
+                    <div class="thermo-tube"><div class="thermo-mercury" id="thermoMercury"></div></div>
+                    <div class="thermo-bulb"></div>
+                  </div>
+                  <div class="thermo-readout">
+                    <div class="thermo-temp" id="thermoTemp">—</div>
+                    <div class="thermo-verdict" id="thermoVerdict">—</div>
+                    <div class="thermo-components" id="thermoComponents"></div>
                   </div>
                 </div>
-                <div class="chart-card">
-                  <h3>🕸️ Розподіл за спроможною мережею</h3>
-                  <div class="chart-bar-list" id="networkChart">
-                    <!-- Dynamic network bars -->
-                  </div>
-                </div>
-                <div class="chart-card span-2">
-                  <h3>📍 Топ-5 регіонів за фінансуванням</h3>
-                  <div class="chart-bar-list" id="regionsChart">
-                    <!-- Dynamic regions bars -->
-                  </div>
-                </div>
+                <div class="thermo-kpis" id="thermoKpis"></div>
+              </div>
+              <div class="thermo-footnote" id="thermoFootnote"></div>
+            </section>
+
+            <!-- Аналітичні картки -->
+            <div class="analytics-charts thermo-grid">
+              <div class="chart-card span-2">
+                <h3>🗺️ Покриття регіонів <small class="card-hint">клік по регіону відфільтрує перелік ЗОЗ</small></h3>
+                <div class="region-heatmap" id="regionHeatmap"></div>
+              </div>
+              <div class="chart-card">
+                <h3>🏛️ Форма власності</h3>
+                <div class="donut-wrap" id="ownershipDonut"></div>
+              </div>
+              <div class="chart-card">
+                <h3>🕸️ Спроможна мережа</h3>
+                <div class="donut-wrap" id="networkDonut"></div>
+              </div>
+              <div class="chart-card span-2" id="topProvidersCard">
+                <h3>🏆 Топ-10 надавачів за фінансуванням</h3>
+                <div class="chart-bar-list" id="topProviders"></div>
               </div>
             </div>
 
-            <!-- Contracted Hospitals Table -->
-            <div class="hospitals-section">
-              <div class="hospitals-header">
-                <h3>Перелік законтрактованих медичних закладів <span id="zozFreshness" class="zoz-freshness" hidden></span></h3>
-                <div class="hospitals-filter-row">
-                  <input type="search" id="hospitalSearchInput" placeholder="Шукати за назвою, ЄДРПОУ чи областю..." autocomplete="off">
-                  <select id="hospitalOblastFilter">
-                    <option value="">Усі області</option>
-                  </select>
+            <!-- Contracted Hospitals Table (collapsed by default) -->
+            <details class="hospitals-collapse" id="hospitalsCollapse">
+              <summary class="hospitals-summary">
+                <span class="hs-icon">🏥</span>
+                <span class="hs-text">Перелік законтрактованих закладів <strong id="hospitalsCount">0</strong></span>
+                <span class="hs-chevron" aria-hidden="true">▾</span>
+              </summary>
+              <div class="hospitals-section">
+                <div class="hospitals-header">
+                  <div class="hospitals-filter-row">
+                    <input type="search" id="hospitalSearchInput" placeholder="Шукати за назвою, ЄДРПОУ чи областю..." autocomplete="off">
+                    <select id="hospitalOblastFilter">
+                      <option value="">Усі області</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="table-wrap">
+                  <table class="hospitals-table">
+                    <thead>
+                      <tr>
+                        <th data-sort="edrpou" class="sortable">ЄДРПОУ</th>
+                        <th data-sort="name" class="sortable">Назва закладу</th>
+                        <th data-sort="oblast" class="sortable">Область</th>
+                        <th data-sort="network" class="sortable">Мережа</th>
+                        <th data-sort="ownership" class="sortable">Власність</th>
+                        <th data-sort="sum" class="sortable number active desc">Сума договору (₴)</th>
+                        <th>Контакти</th>
+                      </tr>
+                    </thead>
+                    <tbody id="hospitalsTableBody">
+                      <!-- Dynamic hospital rows -->
+                    </tbody>
+                  </table>
+                </div>
+                <div class="table-pagination" id="tablePagination">
+                  <!-- Pagination buttons -->
                 </div>
               </div>
-              <div class="table-wrap">
-                <table class="hospitals-table">
-                  <thead>
-                    <tr>
-                      <th data-sort="edrpou" class="sortable">ЄДРПОУ</th>
-                      <th data-sort="name" class="sortable">Назва закладу</th>
-                      <th data-sort="oblast" class="sortable">Область</th>
-                      <th data-sort="network" class="sortable">Мережа</th>
-                      <th data-sort="ownership" class="sortable">Власність</th>
-                      <th data-sort="sum" class="sortable number active desc">Сума договору (₴)</th>
-                      <th>Контакти</th>
-                    </tr>
-                  </thead>
-                  <tbody id="hospitalsTableBody">
-                    <!-- Dynamic hospital rows -->
-                  </tbody>
-                </table>
-              </div>
-              <div class="table-pagination" id="tablePagination">
-                <!-- Pagination buttons -->
-              </div>
-            </div>
+            </details>
           </div>
 
           <!-- Tab 2: Requirements (Specification) -->
@@ -233,6 +260,6 @@
 </div>
 <script src="../spec-links.js?v=20260804c" defer></script>
 <script src="norm-links.js?v=20260821b" defer></script>
-<script src="passport.js?v=20260821a" defer></script>
+<script src="passport.js?v=20260824a" defer></script>
 </body>
 </html>
