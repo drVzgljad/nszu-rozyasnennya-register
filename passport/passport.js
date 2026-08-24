@@ -534,18 +534,21 @@ function renderDonut(container, entries) {
 // кеглі 13): підпис виноситься назовні, до області веде поводок. Координати —
 // в одиницях viewBox карти (1000×673).
 const MAP_CALLOUTS = {
-  "М.КИЇВ":            { line: [468, 164, 447, 133], tx: 452, ty: 128, anchor: "start" },
-  "ТЕРНОПІЛЬСЬКА":     { line: [197, 222, 187, 162], tx: 187, ty: 150, anchor: "middle" },
+  "М.КИЇВ":            { line: [468, 164, 445, 124], tx: 440, ty: 118, anchor: "end" },
+  "ТЕРНОПІЛЬСЬКА":     { line: [197, 220, 178, 172], tx: 172, ty: 163, anchor: "middle" },
   "ІВАНО-ФРАНКІВСЬКА": { line: [141, 318, 150, 384], tx: 150, ty: 398, anchor: "middle" },
   "М.СЕВАСТОПОЛЬ":     { line: [652, 658, 600, 648], tx: 595, ty: 645, anchor: "end" },
+  "ХМЕЛЬНИЦЬКА":       { line: [285, 318, 322, 388], tx: 326, ty: 401, anchor: "middle" },
 };
 // Ручні зсуви внутрішніх підписів, щоб сусідні написи не злипалися
 // (Київська — щоб звільнити місце під виноску м. Києва)
 const MAP_LABEL_NUDGE = {
   "КИЇВСЬКА": [25, 18],
   "ЖИТОМИРСЬКА": [-5, 20],
+  "ВОЛИНСЬКА": [-14, -6],
+  "РІВНЕНСЬКА": [12, 10],
 };
-const MAP_NAME_FONT = 13;   // кегль назви; з ним звірено, кому потрібна виноска
+const MAP_NAME_FONT = 16.5; // кегль назви; з ним звірено, кому потрібна виноска
 
 function regionMapSvg(oblMap, maxObl) {
   const map = passportState.uaMap;
@@ -571,7 +574,7 @@ function regionMapSvg(oblMap, maxObl) {
          aria-label="${escapeHtml(tip)}"><title>${escapeHtml(tip)}</title></path>`);
 
     const co = MAP_CALLOUTS[name];
-    const nameFits = !co && (geo.label.length * MAP_NAME_FONT * 0.6 <= (geo.bw || 0) - 10);
+    const nameFits = !co && (geo.label.length * MAP_NAME_FONT * 0.58 <= (geo.bw || 0) + 8);
 
     if (!count) {
       // Регіон без договорів: тиха назва, щоб карта читалась як карта
@@ -597,10 +600,10 @@ function regionMapSvg(oblMap, maxObl) {
     const ty = geo.cy + nd[1];
     if (nameFits) {
       labels.push(
-        `<text class="ua-name${hot ? " heat-high" : ""}" x="${tx}" y="${ty - 8}"
+        `<text class="ua-name${hot ? " heat-high" : ""}" x="${tx}" y="${ty - 12}"
            text-anchor="middle" pointer-events="none">${escapeHtml(geo.label)}</text>`);
       labels.push(
-        `<text class="ua-num${hot ? " heat-high" : ""}" x="${tx}" y="${ty + 12}"
+        `<text class="ua-num${hot ? " heat-high" : ""}" x="${tx}" y="${ty + 15}"
            text-anchor="middle" pointer-events="none">${count}</text>`);
     } else {
       labels.push(

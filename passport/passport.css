@@ -427,6 +427,28 @@ header.top {
   gap: 16px;
 }
 
+/* Базова розкладка: карта на всю ширину, донати поруч під нею.
+   На широких екранах (нижче) донати переїжджають у праву колонку. */
+.map-card { grid-column: 1 / -1; }
+.side-cards {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  min-width: 0;
+}
+.side-cards .chart-card { flex: 1 1 0; min-width: 0; }
+
+/* Широкий екран: карта вужчою карткою ліворуч, донати стовпчиком праворуч.
+   Поріг 1400px — щоб карта в лівій колонці не падала нижче ~630px і назви
+   областей (кегль 16,5 у viewBox 1000) лишалися читабельними. */
+@media (min-width: 1400px) {
+  .analytics-charts { grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); }
+  .map-card { grid-column: auto; }
+  .side-cards { grid-column: auto; flex-direction: column; }
+  .side-cards .chart-card { flex: 1 1 auto; }
+}
+
 .chart-card {
   background: var(--surface, #fff);
   border: 1px solid var(--line, #dde6ee);
@@ -1772,11 +1794,10 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
   .region-heatmap.as-map .region-tiles { display: grid; }
 }
 .ua-map {
-  /* Пропорції задає viewBox; height:auto тримає карту без полів з боків.
-     max-width — «мінус третина» від ширини картки, карта по центру. */
+  /* Пропорції задає viewBox; height:auto тримає карту без полів з боків. */
   display: block;
   width: 100%; height: auto;
-  max-width: 560px;
+  max-width: 672px;
   margin: 2px auto 0;
   overflow: visible;
 }
@@ -1803,7 +1824,7 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
   opacity: .75;
 }
 .ua-num {
-  font-size: 19px; font-weight: 800;
+  font-size: 22px; font-weight: 800;
   font-variant-numeric: tabular-nums;
   fill: var(--ink, #1f3347);
   stroke: var(--surface, #fff); stroke-width: 3.5; paint-order: stroke;
@@ -1811,7 +1832,7 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
 }
 .ua-num.heat-high { fill: #fff; stroke: color-mix(in srgb, var(--accent-dark, #2f6b9e) 75%, #000); }
 .ua-name {
-  font-size: 13px; font-weight: 650; letter-spacing: .01em;
+  font-size: 16.5px; font-weight: 650; letter-spacing: .01em;
   fill: var(--ink, #1f3347);
   stroke: var(--surface, #fff); stroke-width: 3; paint-order: stroke;
   dominant-baseline: middle;
@@ -1820,12 +1841,12 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
 .ua-name.muted { fill: var(--muted, #6b7f92); font-weight: 600; }
 /* Виноска: назва з числом за межами контуру, завжди в кольорі тексту картки */
 .ua-callout {
-  font-size: 13px; font-weight: 650; letter-spacing: .01em;
+  font-size: 16.5px; font-weight: 650; letter-spacing: .01em;
   fill: var(--ink, #1f3347);
   stroke: var(--surface, #fff); stroke-width: 3; paint-order: stroke;
 }
 .ua-callout .ua-co-num { font-weight: 800; fill: var(--accent-dark, #2f6b9e); font-variant-numeric: tabular-nums; }
-.ua-leader { stroke: var(--muted, #6b7f92); stroke-width: 1.2; opacity: .7; }
+.ua-leader { stroke: var(--muted, #6b7f92); stroke-width: 1.4; opacity: .7; }
 
 .map-legend {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
@@ -1970,6 +1991,8 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
   .thermo-kpis { grid-template-columns: repeat(2, 1fr); }
   .region-heatmap { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
   .donut-wrap { flex-direction: column; align-items: flex-start; }
+  /* На телефоні донатам поруч затісно — назад у стовпчик */
+  .side-cards { flex-direction: column; }
 }
 
 /* Темна тема */

@@ -11,7 +11,7 @@
   <title>Паспорт пакета ПМГ 2026 — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260808c">
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="passport.css?v=20260824h">
+  <link rel="stylesheet" href="passport.css?v=20260824j">
   <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script type="module" src="../auth-v2.js?v=20260824d"></script>
@@ -162,18 +162,20 @@
 
             <!-- Аналітичні картки -->
             <div class="analytics-charts thermo-grid">
-              <div class="chart-card span-2">
+              <div class="chart-card map-card">
                 <h3>🗺️ Покриття регіонів <small class="card-hint">клік по області відфільтрує перелік ЗОЗ</small></h3>
                 <div class="region-heatmap" id="regionHeatmap"></div>
                 <div class="map-legend" id="mapLegend" hidden></div>
               </div>
-              <div class="chart-card">
-                <h3>🏛️ Форма власності</h3>
-                <div class="donut-wrap" id="ownershipDonut"></div>
-              </div>
-              <div class="chart-card">
-                <h3>🕸️ Спроможна мережа</h3>
-                <div class="donut-wrap" id="networkDonut"></div>
+              <div class="side-cards">
+                <div class="chart-card">
+                  <h3>🏛️ Форма власності</h3>
+                  <div class="donut-wrap" id="ownershipDonut"></div>
+                </div>
+                <div class="chart-card">
+                  <h3>🕸️ Спроможна мережа</h3>
+                  <div class="donut-wrap" id="networkDonut"></div>
+                </div>
               </div>
               <div class="chart-card span-2" id="topProvidersCard">
                 <h3>🏆 Надавачі за фінансуванням
@@ -307,6 +309,6 @@
 </div>
 <script src="../spec-links.js?v=20260804c" defer></script>
 <script src="norm-links.js?v=20260824b" defer></script>
-<script src="passport.js?v=20260824n" defer></script>
+<script src="passport.js?v=20260824p" defer></script>
 </body>
 </html>
