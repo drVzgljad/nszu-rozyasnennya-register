@@ -357,31 +357,16 @@ function renderHeaderAndMetrics() {
   el("passportHelpType").textContent = meta.help_type || "Не визначено";
   el("passportProgram").textContent = meta.financing_program || "ПМГ";
 
-  // Filtered contracts for metrics
-  const pContracts = passportState.contractsData.contracts.filter(c => 
-    c.packages.some(p => p.package_num === pkg.number)
-  );
-
-  const totalSum = pContracts.reduce((sum, c) => {
-    const pInfo = c.packages.find(p => p.package_num === pkg.number);
-    return sum + (pInfo ? pInfo.sum : 0);
-  }, 0);
-
-  // Indicators
-  el("indTotalSum").textContent = formatCurrency(totalSum);
-  el("indProvidersCount").textContent = pContracts.length;
-
-  // Linked Clarifications Count
+  // Лічильники в закладках. Бюджет пакета і кількість ЗОЗ звідси прибрані:
+  // ті самі числа стоять на плитках «Термометра» просто нижче.
   const groupCodes = PACKAGE_GROUPS[pkg.number.padStart(2, '0')] || [];
-  const linkedDocs = passportState.explanations.filter(doc => 
+  const linkedDocs = passportState.explanations.filter(doc =>
     pkg.related_document_ids.includes(doc.id) || groupCodes.includes(doc.package)
   );
-  el("indExplanationsCount").textContent = linkedDocs.length;
-
-  // Clinical Protocols Count
   const linkedCategories = getLinkedCategoriesForPackage(pkg.number);
   const decDocs = passportState.decDocuments.filter(doc => linkedCategories.includes(doc.category));
-  el("indDecCount").textContent = decDocs.length;
+  el("tabCountExplanations").textContent = linkedDocs.length;
+  el("tabCountDec").textContent = decDocs.length;
 }
 
 // ── Tab 1: Analytics — «Термометр роботи пакету» ──────────────

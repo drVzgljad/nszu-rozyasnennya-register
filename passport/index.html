@@ -11,7 +11,7 @@
   <title>Паспорт пакета ПМГ 2026 — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260808c">
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="passport.css?v=20260824p">
+  <link rel="stylesheet" href="passport.css?v=20260824s">
   <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script type="module" src="../auth-v2.js?v=20260824d"></script>
@@ -97,26 +97,6 @@
               </button>
             </div>
           </div>
-          
-          <!-- Key Indicators Grid -->
-          <div class="indicators-grid">
-            <div class="indicator-card">
-              <span class="ind-label">Загальний бюджет пакета</span>
-              <strong class="ind-value value-sum" id="indTotalSum">0,00 ₴</strong>
-            </div>
-            <div class="indicator-card">
-              <span class="ind-label">Кількість надавачів (ЗОЗ)</span>
-              <strong class="ind-value" id="indProvidersCount">0</strong>
-            </div>
-            <div class="indicator-card">
-              <span class="ind-label">Пов'язані роз'яснення</span>
-              <strong class="ind-value" id="indExplanationsCount">0</strong>
-            </div>
-            <div class="indicator-card">
-              <span class="ind-label">Клінічні стандарти ДЕЦ</span>
-              <strong class="ind-value" id="indDecCount">0</strong>
-            </div>
-          </div>
         </div>
 
         <!-- Passport Navigation Tabs -->
@@ -124,8 +104,8 @@
           <button class="tab-link active" data-tab="analytics" type="button">📊 Аналітика та ЗОЗ</button>
           <button class="tab-link" data-tab="requirements" type="button">📋 Вимоги закупівлі</button>
           <button class="tab-link" data-tab="tariffs" type="button">💳 Оплата (Постанова 1808)</button>
-          <button class="tab-link" data-tab="explanations" type="button">✉️ Роз'яснення НСЗУ</button>
-          <button class="tab-link" data-tab="dec" type="button">🩺 Протоколи ДЕЦ</button>
+          <button class="tab-link" data-tab="explanations" type="button">✉️ Роз'яснення НСЗУ<span class="tab-badge" id="tabCountExplanations"></span></button>
+          <button class="tab-link" data-tab="dec" type="button">🩺 Протоколи ДЕЦ<span class="tab-badge" id="tabCountDec"></span></button>
         </div>
 
         <!-- Tab Contents -->
@@ -176,12 +156,33 @@
                   <h3>🕸️ Спроможна мережа</h3>
                   <div class="donut-wrap" id="networkDonut"></div>
                 </div>
-                <div class="chart-card scale-card" id="scaleCard">
-                  <h3>📏 Медіанний договір по областях
-                    <small class="card-hint">проти медіани країни</small>
-                  </h3>
-                  <div class="scale-body" id="scaleBody"></div>
-                </div>
+              </div>
+              <div class="chart-card scale-card" id="scaleCard">
+                <h3>📏 Медіанний договір по областях
+                  <small class="card-hint">проти медіани країни</small>
+                </h3>
+                <details class="sc-why">
+                  <summary>Що це показує</summary>
+                  <div class="why-body">
+                    <p>Медіанний договір області — сума, яку за цим пакетом отримує
+                      <b>типовий</b> заклад області. Ділимо її на медіану по країні:
+                      <b>×0,5</b> — договори вдвічі дрібніші за загальноукраїнські,
+                      <b>×2</b> — вдвічі більші.</p>
+                    <p>Ліворуч від центру — гроші пакета розсипані тонким шаром: закладів
+                      багато, кожен робить мало. Праворуч — зібрані в кількох центрах.
+                      Це масштаб типового надавача, а не оцінка якості: дрібні договори
+                      бувають і від розмазаної мережі, і від того, що область тільки
+                      почала працювати за пакетом.</p>
+                    <p>Медіана, а не «сума ÷ кількість»: одна обласна лікарня поряд із
+                      двадцятьма дрібними дає таке саме середнє, як двадцять один середній
+                      заклад, — тобто саме те, що ми хочемо побачити, середнє й ховає.</p>
+                    <p>Чого показник не каже: ЗОЗ тут — юридична особа, а не місце надання
+                      (один київський заклад може мати десятки підрозділів); великі центри
+                      лікують пацієнтів з усієї країни; порівнювати можна лише в межах
+                      одного пакета. Сірим — області, де закладів з оплатами менше трьох.</p>
+                  </div>
+                </details>
+                <div class="scale-body" id="scaleBody"></div>
               </div>
               <div class="chart-card span-2 collapsed" id="topProvidersCard">
                 <h3>🏆 Надавачі за фінансуванням
@@ -314,6 +315,21 @@
 
       </div>
 
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div class="footer-copy">
+          <div class="footer-agency">НСЗУ</div>
+          <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
+          <p>Джерела: постанова Кабінету Міністрів України від 31.12.2025 № 1808 зі
+             специфікаціями пакетів медичних послуг, вивантажка договорів НСЗУ,
+             реєстр роз'яснень НСЗУ та перелік клінічних настанов і стандартів ДЕЦ.
+             Довідковий інструмент; переважну силу мають офіційний текст постанови
+             і чинний договір із НСЗУ. Суми за договорами наведені станом на дату
+             вивантажки і не є підставою для розрахунків.</p>
+        </div>
+      </div>
+    </footer>
+
     </section>
 
   </main>
@@ -321,6 +337,6 @@
 </div>
 <script src="../spec-links.js?v=20260804c" defer></script>
 <script src="norm-links.js?v=20260824b" defer></script>
-<script src="passport.js?v=20260824u" defer></script>
+<script src="passport.js?v=20260824v" defer></script>
 </body>
 </html>

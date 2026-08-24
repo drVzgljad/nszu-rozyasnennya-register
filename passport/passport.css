@@ -200,6 +200,11 @@ header.top {
   height: 100vh;
 }
 
+/* Прокручується сама панель, а не сторінка, тому стандартний футер живе
+   всередині неї — від'ємні поля гасять падінги панелі, щоб темна смуга
+   лягла від краю до краю, як на решті розділів. */
+.passport-main > .site-footer { margin: 28px -32px -48px; }
+
 
 /* Welcome Empty State */
 .passport-welcome {
@@ -324,46 +329,6 @@ header.top {
   box-shadow: 0 6px 16px rgba(58, 132, 98, 0.25);
 }
 
-/* Indicators */
-.indicators-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-}
-
-.indicator-card {
-  background: var(--surface, #fff);
-  border: 1px solid var(--line, #dde6ee);
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: var(--shadow, 0 10px 24px rgba(38,78,112,.05));
-  transition: background-color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
-}
-
-.indicator-card:hover {
-  transform: translateY(-1px);
-}
-
-.ind-label {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted, #647688);
-  margin-bottom: 6px;
-}
-
-.ind-value {
-  display: block;
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--ink, #1f3347);
-  letter-spacing: -0.02em;
-}
-
-.ind-value.value-sum {
-  color: #3a8462; /* Teal-dark */
-}
-
 /* ── Tabs Navigation ───────────────────────────────────────── */
 .passport-tabs-nav {
   display: flex;
@@ -391,6 +356,26 @@ header.top {
 .tab-link:hover {
   color: var(--accent-dark, #2f6b9e);
 }
+
+/* Лічильник у закладці: скільки роз'яснень і протоколів має пакет — видно,
+   не відкриваючи вкладку. Числа переїхали сюди з плиток під назвою пакета. */
+.tab-badge {
+  display: inline-block;
+  min-width: 17px;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent, #4a8fc7) 14%, transparent);
+  color: var(--accent-dark, #2f6b9e);
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  vertical-align: 1px;
+}
+.tab-badge:empty { display: none; }
+.tab-link.active .tab-badge { background: color-mix(in srgb, var(--accent, #4a8fc7) 22%, transparent); }
+.dark-theme .tab-badge { background: rgba(148, 163, 184, .2); color: #93c5fd; }
 
 .tab-link.active {
   color: var(--accent-dark, #2f6b9e);
@@ -427,8 +412,7 @@ header.top {
   gap: 16px;
 }
 
-/* Базова розкладка: карта на всю ширину, донати поруч під нею.
-   На широких екранах (нижче) донати переїжджають у праву колонку. */
+/* Базова розкладка: усе стовпчиком на всю ширину, донати — рядком поруч. */
 .map-card { grid-column: 1 / -1; }
 .side-cards {
   grid-column: 1 / -1;
@@ -438,28 +422,63 @@ header.top {
   min-width: 0;
 }
 .side-cards .chart-card { flex: 1 1 0; min-width: 0; }
+.scale-card { grid-column: 1 / -1; }
 
-/* Широкий екран: карта вужчою карткою ліворуч, донати стовпчиком праворуч.
-   Поріг 1400px — щоб карта в лівій колонці не падала нижче ~630px і назви
-   областей (кегль 16,5 у viewBox 1000) лишалися читабельними. */
+/* Широкий екран: ліворуч стовпчиком карта і два донати під нею, праворуч —
+   медіанний договір на всю висоту обох рядів, щоб усі 25 областей були видні
+   без прокрутки. Поріг 1400px — щоб карта в лівій колонці не падала нижче
+   ~630px і назви областей (кегль 16,5 у viewBox 1000) лишалися читабельними. */
 @media (min-width: 1400px) {
   .analytics-charts { grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); }
-  .map-card { grid-column: auto; }
-  .side-cards { grid-column: auto; flex-direction: column; }
-  /* Картки праворуч розтягнуті на пів висоти карти, тому донат центруємо
-     по вертикалі, а не притискаємо до заголовка */
-  .side-cards .chart-card { flex: 1 1 auto; display: flex; flex-direction: column; }
+  .map-card   { grid-column: 1; grid-row: 1; }
+  .side-cards { grid-column: 1; grid-row: 2; }
+  .scale-card { grid-column: 2; grid-row: 1 / span 2; }
+  .chart-card.span-2 { grid-column: 1 / -1; grid-row: 3; }
+  /* Донати можуть бути різної висоти — центруємо по вертикалі, а не
+     притискаємо до заголовка */
+  .side-cards .chart-card { display: flex; flex-direction: column; }
   .side-cards .donut-wrap { flex: 1; align-items: center; }
 }
 
-/* ── Третя картка правої колонки: медіанний договір по областях ──────
+/* ── Медіанний договір по областях ──────────────────────────────────
    Розхідна діаграма: центр — медіана країни, ліворуч дрібніші договори,
-   праворуч більші. На широкому екрані картка стає третім вікном у
-   стовпчику праворуч; нижче 1400, де донати стоять рядком, вона йде на
-   власний рядок — у третину ширини перелік із 25 областей нечитний. */
-.side-cards { flex-wrap: wrap; }
+   праворуч більші. */
 .scale-card { display: flex; flex-direction: column; }
-.side-cards .scale-card { flex: 1 1 100%; }
+
+/* Випадаюче пояснення показника */
+.sc-why {
+  border: 1px dashed var(--line, #dde6ee);
+  border-radius: 10px;
+  padding: 5px 10px;
+  margin-bottom: 10px;
+  background: color-mix(in srgb, var(--soft, #f2f8fb) 55%, transparent);
+}
+.sc-why > summary {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 800;
+  color: var(--accent-dark, #2f6b9e);
+  cursor: pointer;
+  list-style: none;
+  padding: 2px 0;
+}
+.sc-why > summary::-webkit-details-marker { display: none; }
+.sc-why > summary::after {
+  content: "";
+  width: 6px; height: 6px;
+  margin-left: auto;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform .2s ease;
+}
+.sc-why[open] > summary::after { transform: translateY(1px) rotate(-135deg); }
+.why-body {
+  display: flex; flex-direction: column; gap: 7px;
+  margin-top: 7px; padding-top: 7px;
+  border-top: 1px dashed var(--line, #dde6ee);
+}
+.why-body p { margin: 0; font-size: 11.5px; line-height: 1.45; color: var(--muted, #6b7f92); }
+.why-body b { color: var(--ink, #1f3347); font-weight: 800; }
 
 .scale-body { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
 
@@ -568,13 +587,12 @@ header.top {
 .dark-theme .sc-row:hover,
 .dark-theme .sc-row:focus-visible { background: rgba(148, 163, 184, .14); }
 
-/* У стовпчику праворуч картка стає третім вікном. Три картки вищі за карту
-   (553 px), тому колонки більше не розтягуються одна під одну: інакше картка
-   карти роздувається вдвічі й під картинкою лишається пів екрана порожнечі.
-   Перелік областей натомість має власну стелю і прокрутку. */
+/* Праворуч перелік заповнює всю висоту картки. flex-basis: 0 принципова —
+   інакше власна висота переліку братиме участь у розрахунку рядів сітки і
+   розтягне карту з донатами під себе. */
 @media (min-width: 1400px) {
-  .analytics-charts { align-items: start; }
-  .side-cards .scale-card { flex: 1 1 auto; }
+  .scale-card .scale-body { flex: 1 1 0; min-height: 0; }
+  .scale-card .sc-list { flex: 1 1 0; min-height: 0; max-height: none; }
 }
 
 .chart-card {
@@ -1294,19 +1312,6 @@ header.top {
   color: #e2e8f0;
 }
 
-.dark-theme .indicator-card {
-  background: #1e293b;
-  border-color: #334155;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
-}
-
-.dark-theme .ind-value {
-  color: #e2e8f0;
-}
-
-.dark-theme .ind-value.value-sum {
-  color: #54ad84; /* Teal lighter for dark theme readability */
-}
 
 .dark-theme .passport-tabs-nav {
   border-color: #334155;
@@ -1511,6 +1516,8 @@ header.top {
     height: auto;
     padding: 20px 16px;
   }
+
+  .passport-main > .site-footer { margin: 24px -16px -20px; }
   
   .analytics-charts {
     grid-template-columns: minmax(0, 1fr);
@@ -1527,6 +1534,8 @@ header.top {
     padding: 16px 12px 40px;
   }
 
+  .passport-main > .site-footer { margin: 24px -12px -40px; }
+
   .header-main-row {
     flex-wrap: wrap;
     gap: 12px;
@@ -1534,11 +1543,6 @@ header.top {
 
   .header-title-box h1 {
     font-size: 21px;
-  }
-
-  .indicators-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
   }
 
   .hospitals-filter-row {
@@ -1811,6 +1815,10 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
 }
 .thermo-bulb {
   align-self: flex-end;
+  /* Трубка позиціонована (position: relative), тому непозиціонована куля
+     малювалась ПІД нею. Власне позиціонування піднімає кулю на передній план. */
+  position: relative;
+  z-index: 1;
   width: 36px; height: 36px;
   /* Куля не займає місця в рядку (від'ємне поле) і стоїть рівно під трубкою:
      -36 повертає її на ширину кулі, а 7 px проміжка + 22 px трубки дають
