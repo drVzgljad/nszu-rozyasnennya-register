@@ -1868,3 +1868,14 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
 .dark-theme .hospitals-summary { background: #1e293b; border-color: #334155; }
 .dark-theme .hospitals-summary:hover { background: #26334a; }
 .dark-theme .hs-text strong { background: #0f172a; border-color: #334155; }
+
+/* Підзаголовок термометра: пояснення, що це масштаб, а не оцінка */
+.thermo-sub {
+  margin: -8px 0 14px;
+  font-size: 12.5px; line-height: 1.5;
+  color: var(--muted, #6b7f92);
+  max-width: 760px;
+}
+.thermo-sub strong { color: var(--ink, #1f3347); }
+.dark-theme .thermo-sub { color: #94a3b8; }
+.dark-theme .thermo-sub strong { color: #e2e8f0; }

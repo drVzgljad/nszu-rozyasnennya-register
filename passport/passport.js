@@ -437,10 +437,10 @@ function pctUk(v) {
 }
 
 const THERMO_BANDS = [
-  { min: 75, icon: "🔥", label: "Гарячий", desc: "флагманський пакет ПМГ", color: "#e0532f" },
-  { min: 50, icon: "☀️", label: "Теплий", desc: "активний пакет із широкою мережею", color: "#f0a03c" },
-  { min: 25, icon: "🌤️", label: "Помірний", desc: "стабільна цільова робота", color: "#54ad84" },
-  { min: 0,  icon: "❄️", label: "Прохолодний", desc: "вузькоспеціалізований пакет", color: "#4a8fc7" },
+  { min: 75, icon: "🔥", label: "Гарячий", desc: "пакет-гігант: працює масово по всій країні", color: "#e0532f" },
+  { min: 50, icon: "☀️", label: "Теплий", desc: "великий пакет із широкою мережею закладів", color: "#f0a03c" },
+  { min: 25, icon: "🌤️", label: "Помірний", desc: "середній масштаб: працює стабільно, але не всюди", color: "#54ad84" },
+  { min: 0,  icon: "❄️", label: "Прохолодний", desc: "вузькоспеціалізований: мала мережа — так і задумано", color: "#4a8fc7" },
 ];
 
 const DONUT_PALETTE = ["#4a8fc7", "#54ad84", "#f0a03c", "#e0532f", "#8b6cc7", "#c75c8f", "#64748b"];
@@ -535,9 +535,9 @@ function renderAnalytics() {
   el("thermoVerdict").innerHTML =
     `<span class="verdict-badge">${band.icon} ${band.label}</span><span class="verdict-desc">${escapeHtml(band.desc)}</span>`;
 
-  // Три складові індексу
-  const compRow = (icon, label, pct, valText) => `
-    <div class="comp-row">
+  // Три складові індексу; title — пояснення людською мовою
+  const compRow = (icon, label, pct, valText, tip) => `
+    <div class="comp-row" title="${escapeHtml(tip)}">
       <span class="comp-label">${icon} ${escapeHtml(label)}</span>
       <div class="comp-track"><div class="comp-fill" style="width:${Math.max(pct, 1.5)}%"></div></div>
       <span class="comp-val">${escapeHtml(valText)}</span>
@@ -545,10 +545,17 @@ function renderAnalytics() {
   const rank = 1 + [...bench.perPkg.values()].filter(s => s.n > pContracts.length).length;
   const sharePMG = bench.totalPMG > 0 ? (totalSum / bench.totalPMG) * 100 : 0;
   el("thermoComponents").innerHTML =
-    compRow("🗺️", "Покриття регіонів", coverage, `${oblCovered} з ${oblTotal}`) +
-    compRow("🏥", "Розмір мережі", netPct, `#${rank} з ${bench.pkgCount}`) +
+    compRow("🗺️", "Покриття регіонів", coverage, `${oblCovered} з ${oblTotal}`,
+      `У скількох із ${oblTotal} регіонів є хоча б один заклад із договором за цим пакетом. ` +
+      `${oblCovered} з ${oblTotal}: ${oblCovered === oblTotal ? "пакет доступний по всій країні" : `у ${oblTotal - oblCovered} регіонах закладів немає`}.`) +
+    compRow("🏥", "Мережа закладів", netPct, `#${rank} з ${bench.pkgCount}`,
+      `Скільки ЗОЗ мають договір за цим пакетом (${pContracts.length}). ` +
+      (rank === 1 ? "Це найбільша мережа серед усіх пакетів."
+                  : `Більша мережа — у ${rank - 1} з ${bench.pkgCount} пакетів, менша — у ${bench.pkgCount - rank}.`)) +
     compRow("💰", "Фінансова вага", budPct ?? 0,
-      noSums ? "немає даних" : `${sharePMG < 0.1 ? "<0,1" : sharePMG.toFixed(1).replace(".", ",")}% ПМГ`);
+      noSums ? "немає даних" : `${sharePMG < 0.1 ? "<0,1" : sharePMG.toFixed(1).replace(".", ",")}% ПМГ`,
+      noSums ? "У вивантажці за цим пакетом сум немає, складова не рахується."
+             : `Яка частка всіх грошей ПМГ іде через цей пакет — тут ${sharePMG < 0.1 ? "менш як 0,1" : sharePMG.toFixed(1).replace(".", ",")} %.`);
 
   // ── KPI-плитки ──
   const sums = pContracts.map(getPkgSum).filter(v => v > 0).sort((a, b) => a - b);
@@ -559,7 +566,7 @@ function renderAnalytics() {
   const top5Share = totalSum > 0 ? (top5 / totalSum) * 100 : 0;
 
   el("thermoKpis").innerHTML =
-    kpiTileHtml("🏥", "ЗОЗ у мережі", "0", `#${rank} з ${bench.pkgCount} пакетів за розміром мережі`, "kpiProviders") +
+    kpiTileHtml("🏥", "ЗОЗ у мережі", "0", `#${rank} з ${bench.pkgCount} пакетів за кількістю закладів`, "kpiProviders") +
     kpiTileHtml("💰", "Бюджет пакета", escapeHtml(formatMoneyShort(totalSum)),
       noSums ? "у вивантажці суми за пакетом відсутні" : `${sharePMG < 0.1 ? "менш як 0,1" : sharePMG.toFixed(1).replace(".", ",")} % усієї ПМГ`) +
     kpiTileHtml("🗺️", "Покриття регіонів", `${oblCovered} <small>з ${oblTotal}</small>`,
@@ -572,8 +579,9 @@ function renderAnalytics() {
 
   // ── Примітка про формулу ──
   el("thermoFootnote").textContent =
-    `Температура — зведений індекс роботи пакета: покриття регіонів (40 %), розмір мережі (35 %) і фінансова вага (25 %); ` +
-    `дві останні складові — перцентилі серед ${bench.pkgCount} пакетів вивантажки.` +
+    `Температура вимірює масштаб роботи пакета, а не його якість: покриття регіонів (40 %), мережа закладів (35 %) і фінансова вага (25 %); ` +
+    `дві останні складові — місце пакета серед ${bench.pkgCount} пакетів вивантажки. ` +
+    `100° набирав би пакет, який працює в усіх регіонах і є найбільшим за мережею та грошима; вузький пакет із кількома центрами буде «прохолодним» — і це його нормальний режим.` +
     (noSums ? " Для цього пакета вивантажка не передає сум (реімбурсація або новий пакет), тому індекс пораховано з двох складових (55/45)." : "");
 
   // ── Теплокарта регіонів ──
