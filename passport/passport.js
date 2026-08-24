@@ -98,6 +98,8 @@ async function init() {
       decLinksRes,
       docsRes,
       resolutionRes,
+      _specLinks,
+      uaMapRes,
     ] = await Promise.all([
       fetch("../pakety/data/packages_2026.json").then(r => r.json()),
       // Полегшена версія договорів (4.5 МБ замість 19); якщо її немає — повна
@@ -115,7 +117,10 @@ async function init() {
       // Карта посад для лінкування вимог до спеціалістів. Вантажимо разом з
       // рештою, щоб посилання були вже на першому малюванні вкладки «Вимоги»;
       // load() не кидає — без карти сторінка просто покаже чистий текст.
-      window.SpecLinks ? window.SpecLinks.load() : Promise.resolve(null)
+      window.SpecLinks ? window.SpecLinks.load() : Promise.resolve(null),
+      // Контури областей для карти покриття. Немає — карта тихо падає назад
+      // на список плиток, сторінка від цього не ламається.
+      fetch("../assets/ua-oblasts.json").then(r => r.json()).catch(() => null)
     ]);
 
     // Populate State
@@ -123,6 +128,7 @@ async function init() {
     passportState.contractsData = contractsRes;
     passportState.decDocuments = decDocsRes.documents || [];
     passportState.decLinks = decLinksRes || {};
+    passportState.uaMap = uaMapRes;
     passportState.explanations = docsRes.documents || [];
     passportState.resolution = resolutionRes;
 
@@ -517,6 +523,150 @@ function renderDonut(container, entries) {
     </div>`;
 }
 
+/* ══════════════════ КАРТА ПОКРИТТЯ РЕГІОНІВ ══════════════════
+   Контури областей — assets/ua-oblasts.json (Natural Earth, public domain,
+   проєкція Ламберта). Одиниці відібрані за ISO 3166-2 «UA-*», тому Крим і
+   Севастополь є на карті у складі України, хоча договорів за ними немає.
+   Якщо файл контурів не завантажився, малюємо старий список плиток.
+   ─────────────────────────────────────────────────────────── */
+
+// Крихітні одиниці: підпис не влазить у контур, виносимо збоку з поводком
+const MAP_LABEL_OFFSET = {
+  "М.КИЇВ": { dx: -58, dy: -26 },
+  "М.СЕВАСТОПОЛЬ": { dx: -62, dy: 16 },
+};
+
+function regionMapSvg(oblMap, maxObl) {
+  const map = passportState.uaMap;
+  if (!map || !map.oblasts) return "";
+
+  const vb = (map.meta && map.meta.viewBox) || "0 0 1000 673";
+  const shapes = [];
+  const labels = [];
+
+  Object.entries(map.oblasts).forEach(([name, geo]) => {
+    const d = oblMap[name];
+    const count = d ? d.count : 0;
+    const ratio = maxObl ? count / maxObl : 0;
+    const hot = ratio > 0.55;
+    const tip = count
+      ? `${oblastDisplay(name)} — ${count} ЗОЗ${d.sum > 0 ? ` · ${formatMoneyShort(d.sum)}` : ""}`
+      : `${geo.label} — договорів немає`;
+
+    shapes.push(
+      `<path class="ua-obl${count ? "" : " no-data"}" style="--heat:${ratio.toFixed(3)}"
+         d="${geo.d}" data-oblast="${escapeHtml(name)}"
+         ${count ? 'tabindex="0" role="button"' : ""}
+         aria-label="${escapeHtml(tip)}"><title>${escapeHtml(tip)}</title></path>`);
+
+    if (!count) return;
+    const off = MAP_LABEL_OFFSET[name];
+    const tx = geo.cx + (off ? off.dx : 0);
+    const ty = geo.cy + (off ? off.dy : 0);
+    if (off) {
+      labels.push(`<line class="ua-leader" x1="${geo.cx}" y1="${geo.cy}" x2="${tx + 11}" y2="${ty - 3}"/>`);
+    }
+    labels.push(
+      `<text class="ua-num${hot ? " heat-high" : ""}" x="${tx}" y="${ty}"
+         text-anchor="middle" pointer-events="none">${count}</text>`);
+  });
+
+  return `<svg class="ua-map" viewBox="${vb}" role="img"
+        aria-label="Карта покриття регіонів закладами з договором за цим пакетом">
+       <g class="ua-shapes">${shapes.join("")}</g>
+       <g class="ua-labels">${labels.join("")}</g>
+     </svg>`;
+}
+
+/* ══════════════════ НАДАВАЧІ ЗА ФІНАНСУВАННЯМ ══════════════════
+   Перелік згортається цілком (кнопка в шапці картки) і розгортається вглиб
+   по 10 позицій аж до повного списку. Дані готує renderAnalytics і кладе в
+   passportState.topRows, щоб «показати ще» перемальовував без перерахунку.
+   ────────────────────────────────────────────────────────────── */
+const TOP_STEP = 10;
+// Сходинки розгортання: у великих пакетах тисячі закладів, тому крок росте,
+// інакше до кінця переліку довелося б клікати сотні разів
+const TOP_STEPS = [10, 50, 200, Infinity];
+
+function topNextLimit(current, total) {
+  const next = TOP_STEPS.find(s => s > current);
+  return next === undefined ? total : Math.min(next, total);
+}
+
+function renderTopProviders() {
+  const box = el("topProviders");
+  const more = el("topProvidersMore");
+  const rows = passportState.topRows || [];
+  const total = passportState.topTotal || 0;
+  const limit = Math.min(passportState.topLimit || TOP_STEP, rows.length);
+  const shown = rows.slice(0, limit);
+  const maxSum = rows.length ? rows[0].sum : 1;
+  const medals = ["🥇", "🥈", "🥉"];
+
+  box.innerHTML = shown.map((r, i) => `
+        <div class="top-provider-row">
+          <span class="tp-rank">${medals[i] || (i + 1)}</span>
+          <div class="tp-body">
+            <div class="bar-labels">
+              <span class="bar-name" title="${escapeHtml(r.full)}">${escapeHtml(r.name)}
+                <small class="tp-place">📍 ${escapeHtml(r.settlement)}</small></span>
+              <span class="bar-val">${formatCurrency(r.sum)} · ${pctUk(total ? r.sum / total * 100 : 0)}</span>
+            </div>
+            <div class="bar-track"><div class="bar-fill tp-fill" style="width:${(r.sum / maxSum * 100).toFixed(1)}%"></div></div>
+          </div>
+        </div>`).join("") || `<div class="no-results">Немає даних</div>`;
+
+  // Довгий перелік ховаємо у власну прокрутку, щоб сторінка не розтягувалась
+  box.classList.toggle("scrollable", limit > 50);
+
+  if (more) {
+    const rest = rows.length - limit;
+    more.hidden = rows.length <= TOP_STEP;
+    if (rest > 0) {
+      const next = topNextLimit(limit, rows.length);
+      more.textContent = next >= rows.length
+        ? `Показати всі ${rows.length.toLocaleString("uk-UA")}`
+        : `Показати ще ${(next - limit).toLocaleString("uk-UA")}`;
+      more.dataset.mode = "more";
+    } else {
+      more.textContent = `Згорнути до ${TOP_STEP}`;
+      more.dataset.mode = "less";
+    }
+  }
+  const head = el("topProvidersHead");
+  if (head) {
+    head.textContent = rows.length > limit
+      ? `${limit} з ${rows.length.toLocaleString("uk-UA")} закладів`
+      : `усі ${rows.length.toLocaleString("uk-UA")} закладів`;
+  }
+}
+
+function wireTopProviders() {
+  const more = el("topProvidersMore");
+  if (more && !more.dataset.wired) {
+    more.dataset.wired = "1";
+    more.addEventListener("click", () => {
+      const rows = passportState.topRows || [];
+      const collapsing = more.dataset.mode === "less";
+      passportState.topLimit = collapsing
+        ? TOP_STEP
+        : topNextLimit(passportState.topLimit || TOP_STEP, rows.length);
+      renderTopProviders();
+      if (collapsing) el("topProvidersCard").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  }
+  const toggle = el("topProvidersToggle");
+  if (toggle && !toggle.dataset.wired) {
+    toggle.dataset.wired = "1";
+    toggle.addEventListener("click", () => {
+      const card = el("topProvidersCard");
+      const open = !card.classList.toggle("collapsed");
+      toggle.setAttribute("aria-expanded", String(open));
+      toggle.title = open ? "Згорнути перелік" : "Розгорнути перелік";
+    });
+  }
+}
+
 function kpiTileHtml(icon, label, valueHtml, sub, id = "") {
   return `
     <div class="kpi-tile">
@@ -607,6 +757,20 @@ function renderAnalytics() {
   const top5 = sums.slice(-5).reduce((a, b) => a + b, 0);
   const top5Share = totalSum > 0 ? (top5 / totalSum) * 100 : 0;
 
+  // Ядро мережі: скільки найбільших закладів забирають 80 % бюджету пакета.
+  // Рахуємо від найбільшого вниз, поки накопичена сума не перетне 4/5 усієї.
+  // Це чесніша характеристика пакета, ніж «топ-5»: у великому пакеті пʼятірка
+  // нічого не вирішує, а тут одразу видно, тримається пакет на кількох центрах
+  // чи на широкій мережі.
+  const descSums = [...sums].reverse();
+  let acc80 = 0, core80 = 0;
+  for (const s of descSums) {
+    acc80 += s;
+    core80++;
+    if (acc80 >= totalSum * 0.8) break;
+  }
+  const core80Share = sums.length ? (core80 / sums.length) * 100 : 0;
+
   el("thermoKpis").innerHTML =
     kpiTileHtml("🏥", "ЗОЗ у мережі", "0", `місце ${rank} із ${bench.pkgCount} пакетів постанови 1808 за кількістю закладів`, "kpiProviders") +
     kpiTileHtml("💰", "Бюджет пакета", escapeHtml(formatMoneyShort(totalSum)),
@@ -615,8 +779,9 @@ function renderAnalytics() {
       oblCovered === oblTotal ? "заклади в усіх регіонах" : `немає закладів у ${oblTotal - oblCovered} регіонах`) +
     kpiTileHtml("⚖️", "Медіанний договір", escapeHtml(formatMoneyShort(median)),
       noSums ? "у вивантажці суми за пакетом відсутні" : "типова сума на один заклад") +
-    kpiTileHtml("🎯", "Концентрація топ-5", noSums ? "—" : `${Math.round(top5Share)}<small>%</small>`,
-      noSums ? "у вивантажці суми за пакетом відсутні" : "бюджету пакета — у пʼяти найбільших ЗОЗ");
+    kpiTileHtml("🎯", "Ядро: 80 % бюджету", noSums ? "—" : `${core80} <small>ЗОЗ</small>`,
+      noSums ? "у вивантажці суми за пакетом відсутні"
+             : `${pctUk(core80Share)} мережі забирає 4/5 грошей пакета · топ-5 ЗОЗ — ${Math.round(top5Share)} %`);
   animateCount(el("kpiProviders"), pContracts.length);
 
   // ── Примітка про формулу ──
@@ -629,10 +794,28 @@ function renderAnalytics() {
     `100° набирав би пакет, який працює в усіх регіонах і є найбільшим за мережею та грошима; вузький пакет із кількома центрами буде «прохолодним» — і це його нормальний режим.` +
     (noSums ? " Для цього пакета вивантажка не передає сум (реімбурсація або новий пакет), тому індекс пораховано з двох складових (55/45)." : "");
 
-  // ── Теплокарта регіонів ──
+  // ── Карта покриття регіонів ──
   const maxObl = Math.max(1, ...Object.values(oblMap).map(v => v.count));
   const heat = el("regionHeatmap");
-  heat.innerHTML = bench.allOblasts.map(o => {
+
+  // Клік по регіону — фільтр переліку ЗОЗ; поведінка однакова і для карти,
+  // і для запасного списку плиток
+  const pickOblast = (o) => {
+    passportState.hospitalOblast = o;
+    passportState.hospitalCurrentPage = 1;
+    el("hospitalOblastFilter").value = o;
+    const box = el("hospitalsCollapse");
+    box.open = true;
+    renderHospitalsTable();
+    box.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // Малюємо і карту, і список плиток: на широкому екрані видно карту, на
+  // телефоні — плитки (числа в контурах областей на 320 px нечитні).
+  // Перемикає CSS, тож ніякого стеження за зміною розміру вікна не треба.
+  const svg = regionMapSvg(oblMap, maxObl);
+  const drawn = Boolean(svg);
+  const tiles = bench.allOblasts.map(o => {
     const d = oblMap[o];
     const count = d ? d.count : 0;
     const ratio = count / maxObl;
@@ -646,18 +829,35 @@ function renderAnalytics() {
         <span class="rt-count">${count}</span>
       </button>`;
   }).join("");
+
+  heat.innerHTML = svg + `<div class="region-tiles">${tiles}</div>`;
+  heat.classList.toggle("as-map", drawn);
+
   heat.querySelectorAll(".region-tile:not(.empty)").forEach(tile => {
-    tile.addEventListener("click", () => {
-      const o = tile.dataset.oblast;
-      passportState.hospitalOblast = o;
-      passportState.hospitalCurrentPage = 1;
-      el("hospitalOblastFilter").value = o;
-      const box = el("hospitalsCollapse");
-      box.open = true;
-      renderHospitalsTable();
-      box.scrollIntoView({ behavior: "smooth", block: "start" });
+    tile.addEventListener("click", () => pickOblast(tile.dataset.oblast));
+  });
+  heat.querySelectorAll(".ua-obl:not(.no-data)").forEach(node => {
+    const go = () => pickOblast(node.dataset.oblast);
+    node.addEventListener("click", go);
+    node.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); }
     });
   });
+
+  const legend = el("mapLegend");
+  if (legend) {
+    legend.hidden = !drawn;
+    if (drawn) {
+      const missing = bench.allOblasts.filter(o => !oblMap[o]).length;
+      legend.innerHTML =
+        `<span class="ml-scale"><i class="ml-swatch ml-lo"></i>1 ЗОЗ` +
+        `<i class="ml-ramp"></i>${maxObl} ЗОЗ<i class="ml-swatch ml-hi"></i></span>` +
+        `<span class="ml-note">Число в області — скільки закладів мають договір за цим пакетом. ` +
+        (missing ? `У ${missing} ${missing === 1 ? "регіоні" : "регіонах"} закладів немає. ` : "") +
+        `<span class="ml-map-only">АР Крим і м. Севастополь показані у складі України; ` +
+        `договорів за ними у вивантажці немає.</span></span>`;
+    }
+  }
 
   // ── Донати: власність і спроможна мережа ──
   const ownMap = {};
@@ -683,31 +883,24 @@ function renderAnalytics() {
         color: NETWORK_COLORS[net] || "#64748b",
       })));
 
-  // ── Топ-10 надавачів ──
+  // ── Надавачі за фінансуванням ──
   const topCard = el("topProvidersCard");
-  const topBox = el("topProviders");
   if (noSums) {
     topCard.style.display = "none";
   } else {
     topCard.style.display = "";
-    const ranked = [...pContracts].sort((a, b) => getPkgSum(b) - getPkgSum(a)).slice(0, 10);
-    const maxSum = getPkgSum(ranked[0]) || 1;
-    const medals = ["🥇", "🥈", "🥉"];
-    topBox.innerHTML = ranked.map((c, i) => {
-      const s = getPkgSum(c);
-      return `
-        <div class="top-provider-row">
-          <span class="tp-rank">${medals[i] || (i + 1)}</span>
-          <div class="tp-body">
-            <div class="bar-labels">
-              <span class="bar-name" title="${escapeHtml(c.provider_name_full || c.provider_name)}">${escapeHtml(c.provider_name)}
-                <small class="tp-place">📍 ${escapeHtml(c.settlement)}</small></span>
-              <span class="bar-val">${formatCurrency(s)} · ${pctUk(s / totalSum * 100)}</span>
-            </div>
-            <div class="bar-track"><div class="bar-fill tp-fill" style="width:${(s / maxSum * 100).toFixed(1)}%"></div></div>
-          </div>
-        </div>`;
-    }).join("");
+    passportState.topRows = pContracts
+      .map(c => ({
+        name: c.provider_name,
+        full: c.provider_name_full || c.provider_name,
+        settlement: c.settlement,
+        sum: getPkgSum(c),
+      }))
+      .filter(r => r.sum > 0)
+      .sort((a, b) => b.sum - a.sum);
+    passportState.topTotal = totalSum;
+    passportState.topLimit = TOP_STEP;   // при зміні пакета перелік згортається назад
+    renderTopProviders();
   }
 
   // Лічильник у схлопнутому переліку ЗОЗ
@@ -1759,6 +1952,9 @@ function setupListeners() {
   el("sidebarSearchInput").addEventListener("input", (e) => {
     renderSidebar(e.target.value);
   });
+
+  // Згортання і поглиблення переліку надавачів
+  wireTopProviders();
 
   // Tab switching
   document.querySelectorAll(".tab-link").forEach(btn => {
