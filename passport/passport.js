@@ -534,19 +534,23 @@ function renderDonut(container, entries) {
 // кеглі 13): підпис виноситься назовні, до області веде поводок. Координати —
 // в одиницях viewBox карти (1000×673).
 const MAP_CALLOUTS = {
-  "М.КИЇВ":            { line: [468, 164, 445, 124], tx: 440, ty: 118, anchor: "end" },
-  "ТЕРНОПІЛЬСЬКА":     { line: [197, 220, 178, 172], tx: 172, ty: 163, anchor: "middle" },
-  "ІВАНО-ФРАНКІВСЬКА": { line: [141, 318, 150, 384], tx: 150, ty: 398, anchor: "middle" },
-  "М.СЕВАСТОПОЛЬ":     { line: [652, 658, 600, 648], tx: 595, ty: 645, anchor: "end" },
-  "ХМЕЛЬНИЦЬКА":       { line: [285, 318, 322, 388], tx: 326, ty: 401, anchor: "middle" },
+  "М.КИЇВ":            { line: [468, 164, 430, 124], cx: 398, cy: 112 },
+  "ТЕРНОПІЛЬСЬКА":     { line: [197, 220, 178, 172], cx: 170, cy: 155 },
+  "ІВАНО-ФРАНКІВСЬКА": { line: [141, 318, 150, 388], cx: 150, cy: 402 },
+  "М.СЕВАСТОПОЛЬ":     { line: [652, 658, 610, 645], cx: 595, cy: 640 },
 };
+// Області, яким назву малюємо всередині попри тісний контур: Хмельницька
+// ширша за назву лише на кілька пікселів, з ореолом це виглядає нормально
+const MAP_FORCE_INNER = { "ХМЕЛЬНИЦЬКА": true };
 // Ручні зсуви внутрішніх підписів, щоб сусідні написи не злипалися
 // (Київська — щоб звільнити місце під виноску м. Києва)
 const MAP_LABEL_NUDGE = {
   "КИЇВСЬКА": [25, 18],
-  "ЖИТОМИРСЬКА": [-5, 20],
+  "ЖИТОМИРСЬКА": [-5, 24],
   "ВОЛИНСЬКА": [-14, -6],
   "РІВНЕНСЬКА": [12, 10],
+  "ЛЬВІВСЬКА": [0, 10],
+  "ХМЕЛЬНИЦЬКА": [-16, 44],  // у південну частину області, вище Чернівецької
 };
 const MAP_NAME_FONT = 16.5; // кегль назви; з ним звірено, кому потрібна виноска
 
@@ -574,7 +578,8 @@ function regionMapSvg(oblMap, maxObl) {
          aria-label="${escapeHtml(tip)}"><title>${escapeHtml(tip)}</title></path>`);
 
     const co = MAP_CALLOUTS[name];
-    const nameFits = !co && (geo.label.length * MAP_NAME_FONT * 0.58 <= (geo.bw || 0) + 8);
+    const nameFits = !co && (MAP_FORCE_INNER[name] ||
+      geo.label.length * MAP_NAME_FONT * 0.58 <= (geo.bw || 0) + 8);
 
     if (!count) {
       // Регіон без договорів: тиха назва, щоб карта читалась як карта
@@ -586,12 +591,16 @@ function regionMapSvg(oblMap, maxObl) {
     }
 
     if (co) {
-      // Виноска: поводок + «Назва N» одним рядком за межами контуру.
-      // Завжди в кольорі тексту — виноска лежить не на своїй області.
+      // Виноска: поводок + такий самий підпис, як у всіх (назва + число),
+      // лише винесений за межі контуру. Без heat-high — текст лежить не на
+      // своїй заливці, тож завжди в базовому кольорі.
       labels.push(`<line class="ua-leader" x1="${co.line[0]}" y1="${co.line[1]}" x2="${co.line[2]}" y2="${co.line[3]}"/>`);
       labels.push(
-        `<text class="ua-callout" x="${co.tx}" y="${co.ty}" text-anchor="${co.anchor}"
-           pointer-events="none">${escapeHtml(geo.label)} <tspan class="ua-co-num">${count}</tspan></text>`);
+        `<text class="ua-name" x="${co.cx}" y="${co.cy - 12}"
+           text-anchor="middle" pointer-events="none">${escapeHtml(geo.label)}</text>`);
+      labels.push(
+        `<text class="ua-num" x="${co.cx}" y="${co.cy + 15}"
+           text-anchor="middle" pointer-events="none">${count}</text>`);
       return;
     }
 
