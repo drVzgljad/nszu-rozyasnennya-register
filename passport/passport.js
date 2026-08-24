@@ -895,12 +895,20 @@ function renderOverlap() {
           ? ` <em class="oc-split">Усі ${cross.toLocaleString("uk-UA")} — через окремий договір: в одному договорі ці пакети не поєднуються.</em>`
           : ` <em class="oc-split">З них в одному договорі — ${same.toLocaleString("uk-UA")}, через окремий договір — ${cross.toLocaleString("uk-UA")}.</em>`;
       }
+      // головне робоче питання — ХТО НЕ МАЄ: із прямим виходом на поіменний перелік
+      const miss = mine.size - n;
+      const missLine = miss > 0
+        ? `<span class="oc-missline"><strong>НЕ мають</strong> пакета ${escapeHtml(num)} —
+             <strong>${miss.toLocaleString("uk-UA")}</strong> (${pctUk(miss / mine.size * 100)}).
+             <button type="button" class="oc-missbtn" data-miss="${escapeHtml(num)}">показати ці заклади ↓</button></span>`
+        : `<span class="oc-missline">Пакет ${escapeHtml(num)} мають усі заклади пакета ${escapeHtml(pkg.number)} без винятку.</span>`;
       return `<div class="oc-line">
         <span class="oc-dot" style="background:${OVERLAP_COLORS[i % OVERLAP_COLORS.length]}"></span>
         <span>З <strong>${mine.size.toLocaleString("uk-UA")}</strong> надавачів (ЄДРПОУ) пакета ${escapeHtml(pkg.number)}
         пакет <strong>${escapeHtml(num)}</strong> мають
         <strong>${n.toLocaleString("uk-UA")}</strong> — це ${pctUk(r ? r.shareMine : 0)} мережі пакета ${escapeHtml(pkg.number)}
-        і ${pctUk(r ? r.shareTheirs : 0)} мережі пакета ${escapeHtml(num)}.${split}</span>
+        і ${pctUk(r ? r.shareTheirs : 0)} мережі пакета ${escapeHtml(num)}.${split}
+        ${missLine}</span>
       </div>`;
     }).join("");
 
@@ -956,6 +964,9 @@ function renderOverlap() {
         <span class="or-cross" title="${r.same === 0
           ? `Усі ${r.n.toLocaleString("uk-UA")} — через окремий договір тієї самої юрособи: в одному договорі пакети ${escapeHtml(pkg.number)} і ${escapeHtml(r.num)} не поєднуються`
           : `${(r.n - r.same).toLocaleString("uk-UA")} з ${r.n.toLocaleString("uk-UA")} — через окремий договір тієї самої юрособи (в одному договорі — ${r.same.toLocaleString("uk-UA")})`}">⧉ ${(r.n - r.same).toLocaleString("uk-UA")}</span>` : ""}
+        <button type="button" class="or-miss" data-miss="${escapeHtml(r.num)}"
+          title="${(mine.size - r.n).toLocaleString("uk-UA")} ${zakladiv(mine.size - r.n)} пакета ${escapeHtml(pkg.number)} НЕ ${mine.size - r.n === 1 ? "має" : "мають"} пакета ${escapeHtml(r.num)} — показати перелік">
+          ∅ ${(mine.size - r.n).toLocaleString("uk-UA")}</button>
         <a class="or-open" href="index.html?package=${encodeURIComponent(r.num)}" title="Відкрити паспорт пакета ${escapeHtml(r.num)}">↗</a>
       </div>`).join("")
     : `<div class="no-results">За цим запитом пакетів немає</div>`;
@@ -997,6 +1008,21 @@ function comboColor(mask, picks) {
   return OVERLAP_COLORS[(idx.reduce((a, b) => a + b, 0) + picks.length) % OVERLAP_COLORS.length];
 }
 
+/** «Хто НЕ має»: фільтр переліку ЗОЗ — має поточний пакет, не має num. */
+function applyMissingFilter(num) {
+  const pkg = passportState.selectedPackage;
+  passportState.hospitalCombo = {
+    req: [], excl: [num],
+    label: `пакет ${pkg.number} БЕЗ пакета ${num}`,
+  };
+  passportState.hospitalCurrentPage = 1;
+  renderComboFilterChip();
+  renderHospitalsTable();
+  const box = el("hospitalsCollapse");
+  box.open = true;
+  box.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 /** Клік по сегменту/легенді → фільтр переліку ЗОЗ саме за цією комбінацією. */
 function applyComboFilter(mask) {
   const pkg = passportState.selectedPackage;
@@ -1019,7 +1045,7 @@ function renderComboFilterChip() {
   if (!f) { box.hidden = true; box.innerHTML = ""; return; }
   box.hidden = false;
   box.innerHTML = `
-    <span class="cf-label">Перетин пакетів:</span>
+    <span class="cf-label">Фільтр за пакетами:</span>
     <span class="cf-value">${escapeHtml(f.label)}</span>
     <button type="button" class="cf-clear" id="comboClear">скинути</button>`;
   el("comboClear").addEventListener("click", () => {
@@ -1036,6 +1062,11 @@ function wireOverlap() {
   if (!card) return;
 
   card.addEventListener("click", (e) => {
+    const miss = e.target.closest("[data-miss]");
+    if (miss) {
+      applyMissingFilter(miss.dataset.miss);
+      return;
+    }
     const drop = e.target.closest("[data-drop]");
     if (drop) {
       passportState.overlapPicked = passportState.overlapPicked.filter(n => n !== drop.dataset.drop);
