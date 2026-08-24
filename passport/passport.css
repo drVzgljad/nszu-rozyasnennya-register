@@ -446,7 +446,10 @@ header.top {
   .analytics-charts { grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr); }
   .map-card { grid-column: auto; }
   .side-cards { grid-column: auto; flex-direction: column; }
-  .side-cards .chart-card { flex: 1 1 auto; }
+  /* Картки праворуч розтягнуті на пів висоти карти, тому донат центруємо
+     по вертикалі, а не притискаємо до заголовка */
+  .side-cards .chart-card { flex: 1 1 auto; display: flex; flex-direction: column; }
+  .side-cards .donut-wrap { flex: 1; align-items: center; }
 }
 
 .chart-card {
