@@ -446,6 +446,14 @@ function percentileOf(sortedArr, v) {
   return (i / sortedArr.length) * 100;
 }
 
+// Медіана числового масиву; вхідний масив не мутується
+function medianOf(arr) {
+  if (!arr || !arr.length) return 0;
+  const a = [...arr].sort((x, y) => x - y);
+  const m = a.length >> 1;
+  return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
+}
+
 function formatMoneyShort(v) {
   if (!v) return "—";
   const fmt = (x, d) => x.toLocaleString("uk-UA", { minimumFractionDigits: 0, maximumFractionDigits: d });
@@ -756,9 +764,11 @@ function renderAnalytics() {
   const oblMap = {};
   pContracts.forEach(c => {
     const o = c.oblast || "";
-    if (!oblMap[o]) oblMap[o] = { count: 0, sum: 0 };
+    if (!oblMap[o]) oblMap[o] = { count: 0, sum: 0, sums: [] };
     oblMap[o].count++;
-    oblMap[o].sum += getPkgSum(c);
+    const oblSum = getPkgSum(c);
+    oblMap[o].sum += oblSum;
+    if (oblSum > 0) oblMap[o].sums.push(oblSum);   // база медіани області
   });
   const oblCovered = Object.keys(oblMap).filter(Boolean).length;
   const oblTotal = bench.allOblasts.length;
@@ -815,9 +825,7 @@ function renderAnalytics() {
 
   // ── KPI-плитки ──
   const sums = pContracts.map(getPkgSum).filter(v => v > 0).sort((a, b) => a - b);
-  const median = sums.length
-    ? (sums.length % 2 ? sums[(sums.length - 1) / 2] : (sums[sums.length / 2 - 1] + sums[sums.length / 2]) / 2)
-    : 0;
+  const median = medianOf(sums);
   const top5 = sums.slice(-5).reduce((a, b) => a + b, 0);
   const top5Share = totalSum > 0 ? (top5 / totalSum) * 100 : 0;
 
@@ -947,6 +955,9 @@ function renderAnalytics() {
         color: NETWORK_COLORS[net] || "#64748b",
       })));
 
+  // ── Медіанний договір по областях ──
+  renderScaleCard(oblMap, median, pickOblast);
+
   // ── Надавачі за фінансуванням ──
   const topCard = el("topProvidersCard");
   if (noSums) {
@@ -970,6 +981,82 @@ function renderAnalytics() {
   // Лічильник у схлопнутому переліку ЗОЗ
   const cnt = el("hospitalsCount");
   if (cnt) cnt.textContent = pContracts.length.toLocaleString("uk-UA");
+}
+
+/* ═══════ МЕДІАННИЙ ДОГОВІР ПО ОБЛАСТЯХ ═══════
+   Питання, заради якого блок існує: у цій області гроші пакета розсипані
+   тонким шаром по багатьох закладах — чи зібрані в кількох центрах.
+   Відповідь — медіанний договір області, поділений на медіанний по країні
+   (той самий, що на плитці «Медіанний договір»).
+
+   Чому медіана, а не «сума ÷ кількість»: одна обласна лікарня поряд із
+   двадцятьма дрібними дає таке саме середнє, як двадцять один середній
+   заклад, — тобто саме те, що ми хочемо розрізнити, середнє й ховає.
+   Чому не «ЗОЗ на гривню»: у знаменнику бувають нулі (договір є, оплат
+   немає), і показник вибухає.
+
+   Шкала логарифмічна: ×2 і ×0,5 однаково далеко від центру, край смуги —
+   ×4. Читати як масштаб типового надавача, а не як якість: дрібний договір
+   буває і від розмазаної мережі, і від того, що область тільки почала
+   працювати за пакетом.
+   ────────────────────────────── */
+const SCALE_EDGE = 2;      // log2-межа смуги: 2 → край дорівнює ×4 і ×0,25
+const SCALE_THIN = 3;      // менше стількох закладів з оплатами — медіана умовна
+
+function fmtScaleIndex(idx) {
+  // ×0,05 не можна округляти до ×0,1 — це вже інший порядок величини
+  const digits = idx >= 10 ? 0 : (idx < 0.1 ? 2 : 1);
+  return "×" + idx.toFixed(digits).replace(".", ",");
+}
+
+function renderScaleCard(oblMap, nationalMedian, pick) {
+  const card = el("scaleCard");
+  if (!card) return;
+
+  const rows = Object.entries(oblMap)
+    .filter(([o, d]) => o && d.sums.length)
+    .map(([o, d]) => ({ obl: o, n: d.count, paid: d.sums.length, med: medianOf(d.sums) }))
+    .sort((a, b) => a.med - b.med);
+
+  // Немає сум у вивантажці або порівнювати нема з чим — картки просто немає
+  if (!nationalMedian || rows.length < 2) { card.style.display = "none"; return; }
+  card.style.display = "";
+
+  let thin = 0;
+  const list = rows.map(r => {
+    const idx = r.med / nationalMedian;
+    const t = Math.max(-1, Math.min(1, Math.log2(idx) / SCALE_EDGE));
+    const isThin = r.paid < SCALE_THIN;
+    if (isThin) thin++;
+    const tip = `${oblastDisplay(r.obl)} — ${r.n} ЗОЗ, медіанний договір ` +
+      `${formatMoneyShort(r.med)}, ${fmtScaleIndex(idx)} від медіани країни` +
+      (isThin ? `. Закладів з оплатами лише ${r.paid} — медіана умовна` : "");
+    return `
+      <button type="button" class="sc-row${isThin ? " thin" : ""}" data-oblast="${escapeHtml(r.obl)}"
+              title="${escapeHtml(tip)}" aria-label="${escapeHtml(tip)}">
+        <span class="sc-name">${escapeHtml(oblastDisplay(r.obl))}</span>
+        <span class="sc-track"><i class="sc-bar sc-${t < 0 ? "lo" : "hi"}"
+              style="width:${(Math.abs(t) * 50).toFixed(1)}%"></i></span>
+        <span class="sc-val">${fmtScaleIndex(idx)}</span>
+      </button>`;
+  }).join("");
+
+  const body = el("scaleBody");
+  body.innerHTML =
+    `<div class="sc-head">Медіана країни — <b>${escapeHtml(formatMoneyShort(nationalMedian))}</b> на заклад</div>` +
+    `<div class="sc-legend"><span class="sc-legend-track">` +
+      `<i>← дрібніші</i><i>медіана</i><i>більші →</i></span></div>` +
+    `<div class="sc-list">${list}</div>` +
+    (thin ? `<div class="sc-foot">Сірим — області, де закладів з оплатами менше трьох: медіана там умовна.</div>` : "");
+
+  // Смуга прокрутки з'їдає ширину рядків, а легенда лежить поза переліком:
+  // без цієї поправки підписи осі стоять на 15 px правіше за самі смуги
+  const listEl = body.querySelector(".sc-list");
+  body.style.setProperty("--sc-sbw", (listEl.offsetWidth - listEl.clientWidth) + "px");
+
+  body.querySelectorAll(".sc-row").forEach(row => {
+    row.addEventListener("click", () => pick(row.dataset.oblast));
+  });
 }
 
 // Hospitals List Filters & Sort

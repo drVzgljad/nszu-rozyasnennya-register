@@ -452,6 +452,131 @@ header.top {
   .side-cards .donut-wrap { flex: 1; align-items: center; }
 }
 
+/* ── Третя картка правої колонки: медіанний договір по областях ──────
+   Розхідна діаграма: центр — медіана країни, ліворуч дрібніші договори,
+   праворуч більші. На широкому екрані картка стає третім вікном у
+   стовпчику праворуч; нижче 1400, де донати стоять рядком, вона йде на
+   власний рядок — у третину ширини перелік із 25 областей нечитний. */
+.side-cards { flex-wrap: wrap; }
+.scale-card { display: flex; flex-direction: column; }
+.side-cards .scale-card { flex: 1 1 100%; }
+
+.scale-body { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+
+.sc-head { font-size: 12.5px; color: var(--muted, #6b7f92); }
+.sc-head b { color: var(--ink, #1f3347); font-weight: 800; }
+
+/* Легенда лежить рівно над стовпчиком смуг, тому та сама сітка, що в рядку */
+.sc-legend {
+  display: grid;
+  grid-template-columns: 110px minmax(60px, 1fr) 48px;
+  gap: 8px;
+  padding: 0 calc(6px + var(--sc-sbw, 0px)) 0 6px;
+}
+.sc-legend-track {
+  grid-column: 2;
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  font-style: normal;
+  letter-spacing: .02em;
+  color: var(--muted, #6b7f92);
+}
+.sc-legend-track i { font-style: normal; }
+
+.sc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  /* стеля переліку: ~9 рядків, решта прокруткою — щоб картка лишалась
+     сумірною з донатами й не задирала висоту всього ряду */
+  max-height: 220px;
+}
+
+.sc-row {
+  display: grid;
+  grid-template-columns: 110px minmax(60px, 1fr) 48px;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color .15s ease;
+}
+.sc-row:hover,
+.sc-row:focus-visible { background: var(--accent-soft, #eef6fc); }
+
+.sc-name {
+  font-size: 11.5px;
+  color: var(--ink, #1f3347);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sc-track { position: relative; height: 14px; }
+/* вісь */
+.sc-track::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 50%;
+  height: 2px;
+  transform: translateY(-50%);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--line, #dde6ee) 75%, transparent);
+}
+/* зарубка медіани країни */
+.sc-track::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: 0; bottom: 0;
+  width: 1px;
+  background: var(--line, #dde6ee);
+  z-index: 1;
+}
+.sc-bar {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 8px;
+  z-index: 2;
+}
+.sc-lo { right: 50%; background: #f0a03c; border-radius: 4px 0 0 4px; }
+.sc-hi { left: 50%;  background: #4a8fc7; border-radius: 0 4px 4px 0; }
+
+.sc-val {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink, #1f3347);
+}
+
+/* Мало закладів з оплатами — медіана умовна, тому рядок приглушений */
+.sc-row.thin .sc-name,
+.sc-row.thin .sc-val { color: var(--muted, #6b7f92); }
+.sc-row.thin .sc-bar { opacity: .45; }
+
+.sc-foot { font-size: 10.5px; line-height: 1.35; color: var(--muted, #6b7f92); }
+
+.dark-theme .sc-row:hover,
+.dark-theme .sc-row:focus-visible { background: rgba(148, 163, 184, .14); }
+
+/* У стовпчику праворуч картка стає третім вікном. Три картки вищі за карту
+   (553 px), тому колонки більше не розтягуються одна під одну: інакше картка
+   карти роздувається вдвічі й під картинкою лишається пів екрана порожнечі.
+   Перелік областей натомість має власну стелю і прокрутку. */
+@media (min-width: 1400px) {
+  .analytics-charts { align-items: start; }
+  .side-cards .scale-card { flex: 1 1 auto; }
+}
+
 .chart-card {
   /* Той самий фон, що у «Термометра»: мʼякий градієнт + блік у колір
      температури пакета (--thermo-color виставляє renderAnalytics на вкладці) */
@@ -463,7 +588,26 @@ header.top {
   padding: 18px;
   box-shadow: var(--shadow, 0 10px 24px rgba(38,78,112,.05));
   transition: background-color 0.3s ease, border-color 0.3s ease;
+  position: relative;
 }
+
+/* Сітка «кубиків» — той самий шар, що на фоні «Термометра»: 26 px клітинка,
+   волосяні лінії в колір рамки, маска гасить сітку до правого нижнього кута.
+   border-radius: inherit замість overflow: hidden — інакше картка карти
+   обрізала б виноски підписів, які навмисно виходять за viewBox. */
+.chart-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--line, #dde6ee) 42%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--line, #dde6ee) 42%, transparent) 1px, transparent 1px);
+  background-size: 26px 26px;
+  mask-image: radial-gradient(130% 92% at 18% 0%, #000 0%, transparent 76%);
+  pointer-events: none;
+}
+.chart-card > * { position: relative; }
 
 .chart-card.span-2 {
   grid-column: span 2;
@@ -1668,8 +1812,10 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
 .thermo-bulb {
   align-self: flex-end;
   width: 36px; height: 36px;
+  /* Куля не займає місця в рядку (від'ємне поле) і стоїть рівно під трубкою:
+     -36 повертає її на ширину кулі, а 7 px проміжка + 22 px трубки дають
+     центр у центрі трубки. Будь-який transform тут з'їжджає з осі. */
   margin: 0 0 0 -36px;
-  transform: translateX(29px);
   border-radius: 50%;
   background: radial-gradient(circle at 34% 30%, color-mix(in srgb, var(--thermo-color) 55%, #fff), var(--thermo-color));
   border: 1px solid color-mix(in srgb, var(--thermo-color) 60%, var(--line, #dde6ee));
@@ -1796,11 +1942,45 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
 /* Карта покриття регіонів.
    Карта і список плиток малюються обидва, показується один: на широкому
    екрані — карта, на телефоні — плитки (числа в контурах на 320 px нечитні). */
-.region-heatmap.as-map { display: block; }
+.region-heatmap.as-map { display: block; position: relative; }
+
+/* Підсвітка позаду контуру країни — фірмове глибоке бірюзово-зелене світло
+   НСЗУ (токени --nszu-* з brand.css; на паспорті brand.css не підключений,
+   тому значення продубльовані у фолбеках). Заливки областей непрозорі, тож
+   світло видно саме навколо силуету України. */
+.region-heatmap.as-map::before {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  /* Строго в межах блоку карти: ширше — і світло вилазить за скруглений
+     край картки, бо ні картка, ні блок карти не обрізають вміст (їх не можна
+     обрізати: виноски підписів навмисно виходять за viewBox) */
+  width: 100%; height: 112%;
+  transform: translate(-50%, -50%);
+  background:
+    radial-gradient(52% 50% at 50% 46%,
+      color-mix(in srgb, var(--nszu-500, #027c91) 28%, transparent) 0%, transparent 74%),
+    radial-gradient(72% 68% at 50% 52%,
+      color-mix(in srgb, var(--nszu-700, #024e6e) 16%, transparent) 0%, transparent 82%);
+  pointer-events: none;
+  z-index: 0;
+}
+.region-heatmap.as-map .ua-map { position: relative; z-index: 1; }
+
+/* На темному тлі те саме світло має бути щільнішим, інакше тоне у фоні */
+.dark-theme .region-heatmap.as-map::before {
+  background:
+    radial-gradient(52% 50% at 50% 46%,
+      color-mix(in srgb, var(--nszu-glow, #39b9c4) 22%, transparent) 0%, transparent 74%),
+    radial-gradient(72% 68% at 50% 52%,
+      color-mix(in srgb, var(--nszu-500, #027c91) 26%, transparent) 0%, transparent 82%);
+}
 .region-heatmap.as-map .region-tiles { display: none; }
 @media (max-width: 700px) {
   .region-heatmap.as-map .ua-map { display: none; }
   .region-heatmap.as-map .region-tiles { display: grid; }
+  /* Карти немає — світло під нею теж ні до чого */
+  .region-heatmap.as-map::before { display: none; }
 }
 .ua-map {
   /* Пропорції задає viewBox; height:auto тримає карту без полів з боків. */
