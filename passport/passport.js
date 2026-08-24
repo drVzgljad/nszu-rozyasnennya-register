@@ -382,8 +382,17 @@ function getPkgBenchmarks() {
   // паспорт). У вивантажці є ще реімбурсація й пілотні проєкти — там
   // «закладами» є тисячі аптек, і вони нечесно виштовхують лікарняні пакети
   // вниз черги (хірургія була «місце 25 із 70», а серед своїх — 8 із 46).
+  // Поділ решти рахуємо з метадати вивантажки — для чесної примітки внизу.
   const valid = new Set(passportState.packages.map(p => p.number));
-  [...perPkg.keys()].forEach(num => { if (!valid.has(num)) perPkg.delete(num); });
+  const meta = passportState.contractsData.package_metadata || {};
+  let nReimb = 0, nOther = 0;
+  const totalDirections = perPkg.size;
+  [...perPkg.keys()].forEach(num => {
+    if (valid.has(num)) return;
+    const m = meta[num] || {};
+    if (/реімбурс/i.test(`${m.help_type || ""}${m.direction || ""}`)) nReimb++; else nOther++;
+    perPkg.delete(num);
+  });
   const counts = [...perPkg.values()].map(s => s.n).sort((a, b) => a - b);
   const sums = [...perPkg.values()].map(s => s.sum).filter(v => v > 0).sort((a, b) => a - b);
   const totalPMG = sums.reduce((a, b) => a + b, 0);
@@ -396,6 +405,9 @@ function getPkgBenchmarks() {
     sums,
     totalPMG,
     maxPkg,
+    nReimb,
+    nOther,
+    totalDirections,
     pkgCount: perPkg.size,
     allOblasts: [...oblasts].sort((a, b) => a.localeCompare(b, "uk")),
   };
@@ -592,7 +604,10 @@ function renderAnalytics() {
   // ── Примітка про формулу ──
   el("thermoFootnote").textContent =
     `Температура вимірює масштаб роботи пакета, а не його якість: покриття регіонів (40 %), мережа закладів (35 %) і фінансова вага (25 %); ` +
-    `дві останні складові — місце пакета серед ${bench.pkgCount} пакетів постанови № 1808 (реімбурсацію та пілотні проєкти в порівняння не беремо). ` +
+    `дві останні складові — місце пакета серед ${bench.pkgCount} пакетів ПМГ. ` +
+    `Усього у вивантажці договорів ${bench.totalDirections} напрямів контрактування: ${bench.pkgCount} пакетів ПМГ за постановою № 1808, ` +
+    `${bench.nReimb} — реімбурсація «Доступні ліки» (договори з аптеками) і ${bench.nOther} — пілотні проєкти за окремими постановами; ` +
+    `у порівнянні бере участь лише перша група, бо порівнювати мережу лікарень із мережею аптек некоректно. ` +
     `100° набирав би пакет, який працює в усіх регіонах і є найбільшим за мережею та грошима; вузький пакет із кількома центрами буде «прохолодним» — і це його нормальний режим.` +
     (noSums ? " Для цього пакета вивантажка не передає сум (реімбурсація або новий пакет), тому індекс пораховано з двох складових (55/45)." : "");
 
