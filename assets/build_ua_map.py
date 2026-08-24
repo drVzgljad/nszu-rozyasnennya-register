@@ -156,7 +156,13 @@ def main(src):
         src_f = next(f for f in feats if ISO2NAME[f['properties']['iso_3166_2']] == name)
         lx, ly = to_svg(lcc(float(src_f['properties']['longitude']),
                             float(src_f['properties']['latitude'])))
+        # Габарити контуру в одиницях viewBox — щоб сторінка знала, чи влазить
+        # назва всередину області, чи потрібна виноска
+        allp = [to_svg(p) for ring in rs for p in ring]
+        bx = [p[0] for p in allp]
+        by = [p[1] for p in allp]
         out[name] = {'d': ''.join(parts), 'cx': round(lx, 1), 'cy': round(ly, 1),
+                     'bw': round(max(bx) - min(bx), 1), 'bh': round(max(by) - min(by), 1),
                      'label': SHORT.get(name, name)}
 
     # Київ-місто крихітний: підпис виносимо збоку, щоб не наліз на область

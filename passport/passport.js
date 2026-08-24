@@ -530,11 +530,22 @@ function renderDonut(container, entries) {
    Якщо файл контурів не завантажився, малюємо старий список плиток.
    ─────────────────────────────────────────────────────────── */
 
-// Крихітні одиниці: підпис не влазить у контур, виносимо збоку з поводком
-const MAP_LABEL_OFFSET = {
-  "М.КИЇВ": { dx: -58, dy: -26 },
-  "М.СЕВАСТОПОЛЬ": { dx: -62, dy: 16 },
+// Області, де назва не влазить у контур (виміряно по bw з ua-oblasts.json при
+// кеглі 13): підпис виноситься назовні, до області веде поводок. Координати —
+// в одиницях viewBox карти (1000×673).
+const MAP_CALLOUTS = {
+  "М.КИЇВ":            { line: [468, 164, 447, 133], tx: 452, ty: 128, anchor: "start" },
+  "ТЕРНОПІЛЬСЬКА":     { line: [197, 222, 187, 162], tx: 187, ty: 150, anchor: "middle" },
+  "ІВАНО-ФРАНКІВСЬКА": { line: [141, 318, 150, 384], tx: 150, ty: 398, anchor: "middle" },
+  "М.СЕВАСТОПОЛЬ":     { line: [652, 658, 600, 648], tx: 595, ty: 645, anchor: "end" },
 };
+// Ручні зсуви внутрішніх підписів, щоб сусідні написи не злипалися
+// (Київська — щоб звільнити місце під виноску м. Києва)
+const MAP_LABEL_NUDGE = {
+  "КИЇВСЬКА": [25, 18],
+  "ЖИТОМИРСЬКА": [-5, 20],
+};
+const MAP_NAME_FONT = 13;   // кегль назви; з ним звірено, кому потрібна виноска
 
 function regionMapSvg(oblMap, maxObl) {
   const map = passportState.uaMap;
@@ -559,16 +570,43 @@ function regionMapSvg(oblMap, maxObl) {
          ${count ? 'tabindex="0" role="button"' : ""}
          aria-label="${escapeHtml(tip)}"><title>${escapeHtml(tip)}</title></path>`);
 
-    if (!count) return;
-    const off = MAP_LABEL_OFFSET[name];
-    const tx = geo.cx + (off ? off.dx : 0);
-    const ty = geo.cy + (off ? off.dy : 0);
-    if (off) {
-      labels.push(`<line class="ua-leader" x1="${geo.cx}" y1="${geo.cy}" x2="${tx + 11}" y2="${ty - 3}"/>`);
+    const co = MAP_CALLOUTS[name];
+    const nameFits = !co && (geo.label.length * MAP_NAME_FONT * 0.6 <= (geo.bw || 0) - 10);
+
+    if (!count) {
+      // Регіон без договорів: тиха назва, щоб карта читалась як карта
+      if (nameFits) {
+        labels.push(`<text class="ua-name muted" x="${geo.cx}" y="${geo.cy + 4}"
+           text-anchor="middle" pointer-events="none">${escapeHtml(geo.label)}</text>`);
+      }
+      return;
     }
-    labels.push(
-      `<text class="ua-num${hot ? " heat-high" : ""}" x="${tx}" y="${ty}"
-         text-anchor="middle" pointer-events="none">${count}</text>`);
+
+    if (co) {
+      // Виноска: поводок + «Назва N» одним рядком за межами контуру.
+      // Завжди в кольорі тексту — виноска лежить не на своїй області.
+      labels.push(`<line class="ua-leader" x1="${co.line[0]}" y1="${co.line[1]}" x2="${co.line[2]}" y2="${co.line[3]}"/>`);
+      labels.push(
+        `<text class="ua-callout" x="${co.tx}" y="${co.ty}" text-anchor="${co.anchor}"
+           pointer-events="none">${escapeHtml(geo.label)} <tspan class="ua-co-num">${count}</tspan></text>`);
+      return;
+    }
+
+    const nd = MAP_LABEL_NUDGE[name] || [0, 0];
+    const tx = geo.cx + nd[0];
+    const ty = geo.cy + nd[1];
+    if (nameFits) {
+      labels.push(
+        `<text class="ua-name${hot ? " heat-high" : ""}" x="${tx}" y="${ty - 8}"
+           text-anchor="middle" pointer-events="none">${escapeHtml(geo.label)}</text>`);
+      labels.push(
+        `<text class="ua-num${hot ? " heat-high" : ""}" x="${tx}" y="${ty + 12}"
+           text-anchor="middle" pointer-events="none">${count}</text>`);
+    } else {
+      labels.push(
+        `<text class="ua-num${hot ? " heat-high" : ""}" x="${tx}" y="${ty}"
+           text-anchor="middle" pointer-events="none">${count}</text>`);
+    }
   });
 
   return `<svg class="ua-map" viewBox="${vb}" role="img"

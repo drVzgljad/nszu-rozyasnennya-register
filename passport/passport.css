@@ -1773,10 +1773,10 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
 }
 .ua-map {
   /* Пропорції задає viewBox; height:auto тримає карту без полів з боків.
-     Обмеження по висоті свідомо немає — інакше карта «залипає» в рамці
-     і по краях зʼявляються порожні поля. */
+     max-width — «мінус третина» від ширини картки, карта по центру. */
   display: block;
   width: 100%; height: auto;
+  max-width: 560px;
   margin: 2px auto 0;
   overflow: visible;
 }
@@ -1810,6 +1810,21 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
   dominant-baseline: middle;
 }
 .ua-num.heat-high { fill: #fff; stroke: color-mix(in srgb, var(--accent-dark, #2f6b9e) 75%, #000); }
+.ua-name {
+  font-size: 13px; font-weight: 650; letter-spacing: .01em;
+  fill: var(--ink, #1f3347);
+  stroke: var(--surface, #fff); stroke-width: 3; paint-order: stroke;
+  dominant-baseline: middle;
+}
+.ua-name.heat-high { fill: #fff; stroke: color-mix(in srgb, var(--accent-dark, #2f6b9e) 75%, #000); }
+.ua-name.muted { fill: var(--muted, #6b7f92); font-weight: 600; }
+/* Виноска: назва з числом за межами контуру, завжди в кольорі тексту картки */
+.ua-callout {
+  font-size: 13px; font-weight: 650; letter-spacing: .01em;
+  fill: var(--ink, #1f3347);
+  stroke: var(--surface, #fff); stroke-width: 3; paint-order: stroke;
+}
+.ua-callout .ua-co-num { font-weight: 800; fill: var(--accent-dark, #2f6b9e); font-variant-numeric: tabular-nums; }
 .ua-leader { stroke: var(--muted, #6b7f92); stroke-width: 1.2; opacity: .7; }
 
 .map-legend {
@@ -1986,6 +2001,11 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
 .dark-theme .ua-obl.no-data { fill: #263346; stroke: #334155; }
 .dark-theme .ua-num { fill: #e2e8f0; stroke: #1e293b; }
 .dark-theme .ua-num.heat-high { fill: #fff; stroke: #0f2136; }
+.dark-theme .ua-name { fill: #e2e8f0; stroke: #1e293b; }
+.dark-theme .ua-name.heat-high { fill: #fff; stroke: #0f2136; }
+.dark-theme .ua-name.muted { fill: #94a3b8; }
+.dark-theme .ua-callout { fill: #e2e8f0; stroke: #1e293b; }
+.dark-theme .ua-callout .ua-co-num { fill: #93c5fd; }
 .dark-theme .ml-note, .dark-theme .ml-scale { color: #94a3b8; }
 .dark-theme .card-toggle { background: #263346; border-color: #334155; }
 .dark-theme .card-toggle:hover { background: #2f3f56; }
