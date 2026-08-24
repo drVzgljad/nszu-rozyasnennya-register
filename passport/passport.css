@@ -453,7 +453,11 @@ header.top {
 }
 
 .chart-card {
-  background: var(--surface, #fff);
+  /* Той самий фон, що у «Термометра»: мʼякий градієнт + блік у колір
+     температури пакета (--thermo-color виставляє renderAnalytics на вкладці) */
+  background:
+    radial-gradient(900px 260px at 85% -30%, color-mix(in srgb, var(--thermo-color, #4a8fc7) 12%, transparent), transparent 70%),
+    linear-gradient(160deg, var(--surface, #fff), var(--soft, #f2f8fb));
   border: 1px solid var(--line, #dde6ee);
   border-radius: 16px;
   padding: 18px;
@@ -1177,7 +1181,9 @@ header.top {
 }
 
 .dark-theme .chart-card {
-  background: #1e293b;
+  background:
+    radial-gradient(900px 260px at 85% -30%, color-mix(in srgb, var(--thermo-color, #4a8fc7) 18%, transparent), transparent 70%),
+    linear-gradient(160deg, #1e293b, #16202e);
   border-color: #334155;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
 }
@@ -2069,7 +2075,9 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
 .overlap-card {
   border: 1px solid var(--line);
   border-radius: 14px;
-  background: var(--surface);
+  background:
+    radial-gradient(900px 260px at 85% -30%, color-mix(in srgb, var(--thermo-color, #4a8fc7) 12%, transparent), transparent 70%),
+    linear-gradient(160deg, var(--surface, #fff), var(--soft, #f2f8fb));
   box-shadow: var(--shadow);
   padding: 18px 20px 16px;
   margin: 18px 0;
@@ -2238,3 +2246,10 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
   font-variant-numeric: tabular-nums;
 }
 .or-miss:hover { border-color: var(--warning-border); background: var(--warning-bg); color: var(--warning-text); }
+
+/* Блік у колір температури — і в картці перетину мереж (темна тема) */
+.dark-theme .overlap-card {
+  background:
+    radial-gradient(900px 260px at 85% -30%, color-mix(in srgb, var(--thermo-color, #4a8fc7) 18%, transparent), transparent 70%),
+    linear-gradient(160deg, #1e293b, #16202e);
+}

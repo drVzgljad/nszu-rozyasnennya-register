@@ -753,6 +753,9 @@ function renderAnalytics() {
 
   const hero = el("thermoHero");
   hero.style.setProperty("--thermo-color", band.color);
+  // Той самий колір — усім карткам вкладки: фони з бліком успадковують його
+  const pane = el("tab-analytics");
+  if (pane) pane.style.setProperty("--thermo-color", band.color);
 
   // Ртутний стовпчик: висота = температура (перезапуск анімації через reflow)
   const mercury = el("thermoMercury");
