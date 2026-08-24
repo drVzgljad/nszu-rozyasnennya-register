@@ -101,7 +101,7 @@ let bootPaint = false;
 // Після перезавантаження з кореня все знову працює, тож збій легко списати на
 // кеш. Спіймано 09.08.2026 на розділі «Інструменти ДСГ» (drg), який тут забули.
 const PORTAL_SUBDIRS = [
-  'algorithms', 'cabinet', 'chat', 'classifiers', 'dec', 'drg', 'expert-proposals', 'infocenter',
+  'algorithms', 'bloknot', 'cabinet', 'chat', 'classifiers', 'dec', 'drg', 'expert-proposals', 'infocenter',
   'koduvannia', 'map', 'mapping', 'news', 'pakety', 'passport', 'pilots', 'pmg-proposals', 'postanova',
   'regulatory', 'relax', 'reminders', 'rentgen', 'rozjasnennya', 'skod', 'zoz-dogovr', 'zoz-poshuk',
   'zoz-questions'
@@ -549,6 +549,9 @@ function applyAccess() {
     // що й кластери карти порталу: робота → взаємодія → інструменти.
     const servicesItems = [
       { text: '🗺️ Карта порталу', path: 'map/index.html' },
+      // Розбори кейсів: питання → з'ясоване → рішення → хвости, з посиланнями
+      // в розділи порталу. Заведено 24.08.2026 (перший кейс — 90724-00/31548-00).
+      { text: '🗒️ Робочий блокнот', path: 'bloknot/index.html', role: 'expert' },
       {
         text: '🧭 СКО-Д', items: [
           { text: 'Внесення роботи', path: 'cabinet/index.html', role: 'expert' },
@@ -2827,7 +2830,7 @@ if ('serviceWorker' in navigator &&
   // неї браузер до десяти хвилин не помічає, що воркер змінився, і продовжує
   // роздавати старі файли з кешу. Змінений URL змушує перевірити одразу.
   // ПРИ ЗМІНІ sw.js ПІДНІМАТИ ЦЮ ВЕРСІЮ РАЗОМ З CACHE усередині воркера.
-  navigator.serviceWorker.register('/sw.js?v=49').catch(() => {});
+  navigator.serviceWorker.register('/sw.js?v=50').catch(() => {});
 
   // Перезавантаження на controllerchange прибрано 30.07.2026 разом зі
   // skipWaiting() у воркері (див. коментар у sw.js). Новий воркер більше не

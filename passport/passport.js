@@ -19,7 +19,14 @@ const passportState = {
   hospitalSortField: "sum",
   hospitalSortDesc: true,
   hospitalCurrentPage: 1,
-  hospitalPageSize: 15
+  hospitalPageSize: 15,
+
+  // Перетин мереж: до трьох пакетів у порівнянні + фільтр переліку ЗОЗ за комбінацією
+  overlapPicked: [],
+  overlapSearch: "",
+  overlapShowAll: false,
+  hospitalCombo: null,   // { req: [...], excl: [...], label }
+  _provIdx: null         // індекс «надавач → пакети», рахується один раз
 };
 
 const el = (id) => document.getElementById(id);
@@ -143,6 +150,7 @@ async function init() {
 
     // Setup Event Listeners
     setupListeners();
+    wireOverlap();
 
     // Select initial package
     selectInitialPackage();
@@ -244,9 +252,19 @@ function selectPackage(pkgNum) {
   const hospitalsBox = el("hospitalsCollapse");
   if (hospitalsBox) hospitalsBox.open = false;
 
+  // Перетин мереж рахується від поточного пакета — при зміні пакета скидаємо
+  passportState.overlapPicked = [];
+  passportState.overlapSearch = "";
+  passportState.overlapShowAll = false;
+  passportState.hospitalCombo = null;
+  const overlapSearchEl = el("overlapSearch");
+  if (overlapSearchEl) overlapSearchEl.value = "";
+  renderComboFilterChip();
+
   // Render passport sections
   renderHeaderAndMetrics();
   renderAnalytics();
+  renderOverlap();
   renderHospitalsTable();
   renderRequirements();
   renderTariffs();
@@ -698,6 +716,324 @@ function renderAnalytics() {
 }
 
 // Hospitals List Filters & Sort
+/* ══════════════════ ПЕРЕТИН МЕРЕЖ ══════════════════
+   Питання, заради якого блок існує: скільки закладів пакета А мають ще й
+   пакет Б. Рахується на рівні НАДАВАЧА (ЄДРПОУ), а не договору: у вивантажці
+   один надавач може мати кілька договорів, і його пакети треба обʼєднати,
+   інакше «має пакет 9» загубиться, якщо 9-й лежить в іншому договорі.
+   ─────────────────────────────────────────────────── */
+
+/** ЄДРПОУ → Set пакетів надавача; і номер пакета → Set ЄДРПОУ. Рахується раз. */
+function getProviderIndex() {
+  if (passportState._provIdx) return passportState._provIdx;
+  const byProvider = new Map();
+  const byPackage = new Map();
+  passportState.contractsData.contracts.forEach(c => {
+    let set = byProvider.get(c.edrpou);
+    if (!set) byProvider.set(c.edrpou, (set = new Set()));
+    c.packages.forEach(p => {
+      set.add(p.package_num);
+      let list = byPackage.get(p.package_num);
+      if (!list) byPackage.set(p.package_num, (list = new Set()));
+      list.add(c.edrpou);
+    });
+  });
+  passportState._provIdx = { byProvider, byPackage };
+  return passportState._provIdx;
+}
+
+/** Назва пакета: спершу з паспортів, потім з метадати вивантажки. */
+function pkgTitle(num) {
+  const p = passportState.packages.find(x => x.number === num);
+  if (p) return p.title;
+  const m = passportState.contractsData.package_metadata[num];
+  return (m && m.package_name) || "Напрям без назви";
+}
+
+/** Пакет із постанови 1808 має паспорт; решта — реімбурсація або пілот. */
+function pkgKind(num) {
+  if (passportState.packages.some(x => x.number === num)) return null;
+  const m = passportState.contractsData.package_metadata[num] || {};
+  return /реімбурс/i.test(`${m.help_type || ""}${m.direction || ""}`) ? "реімб." : "пілот";
+}
+
+const OVERLAP_COLORS = ["#4a8fc7", "#54ad84", "#f0a03c", "#8b6cc7", "#c75c8f", "#e0532f", "#2f6b9e"];
+const OVERLAP_TOP = 12;
+
+/** Українське узгодження числівника: 1 заклад, 2 заклади, 5 закладів. */
+function plural(n, one, few, many) {
+  const a = Math.abs(n) % 100;
+  if (a >= 11 && a <= 14) return many;
+  const b = a % 10;
+  if (b === 1) return one;
+  if (b >= 2 && b <= 4) return few;
+  return many;
+}
+const zakladiv = (n) => plural(n, "заклад", "заклади", "закладів");
+
+/** Перетини поточного пакета з усіма іншими, від найбільшого. */
+function getOverlaps() {
+  const pkg = passportState.selectedPackage;
+  const { byPackage } = getProviderIndex();
+  const mine = byPackage.get(pkg.number) || new Set();
+  const rows = [];
+  byPackage.forEach((set, num) => {
+    if (num === pkg.number) return;
+    let n = 0;
+    // йдемо меншою множиною — на 6 287 надавачах це помітно дешевше
+    const [small, big] = mine.size <= set.size ? [mine, set] : [set, mine];
+    small.forEach(e => { if (big.has(e)) n++; });
+    if (!n) return;
+    rows.push({
+      num,
+      title: pkgTitle(num),
+      kind: pkgKind(num),
+      n,
+      shareMine: mine.size ? (n / mine.size) * 100 : 0,   // частка НАШОЇ мережі
+      shareTheirs: set.size ? (n / set.size) * 100 : 0,   // частка мережі того пакета
+      theirTotal: set.size,
+    });
+  });
+  rows.sort((a, b) => b.n - a.n);
+  return { mine, rows };
+}
+
+/**
+ * Розклад надавачів нашого пакета за комбінаціями обраних пакетів.
+ * Бітова маска: біт i = «має pick[i]». Маска 0 — «лише наш пакет».
+ */
+function comboBuckets(mine, picks) {
+  const { byProvider } = getProviderIndex();
+  const buckets = new Array(1 << picks.length).fill(0);
+  mine.forEach(e => {
+    const own = byProvider.get(e);
+    let mask = 0;
+    picks.forEach((num, i) => { if (own.has(num)) mask |= (1 << i); });
+    buckets[mask]++;
+  });
+  return buckets;
+}
+
+function comboLabel(mask, picks, ownNum) {
+  const has = picks.filter((_, i) => mask & (1 << i));
+  if (!has.length) return `лише пакет ${ownNum}`;
+  return `${ownNum} + ${has.join(" + ")}`;
+}
+
+function renderOverlap() {
+  const pkg = passportState.selectedPackage;
+  const { mine, rows } = getOverlaps();
+  const picks = passportState.overlapPicked.filter(n => n !== pkg.number);
+
+  el("overlapSub").innerHTML =
+    `Договір за пакетом ${escapeHtml(pkg.number)} мають <strong>${mine.size.toLocaleString("uk-UA")}</strong> ${zakladiv(mine.size)}. ` +
+    `Нижче — які ще пакети є в цих самих закладах. Заклади рахуються за ЄДРПОУ, ` +
+    `тому надавач із кількома договорами враховується один раз.`;
+
+  // ── випадний список для додавання ──
+  const add = el("overlapAdd");
+  add.innerHTML = `<option value="">+ додати пакет…</option>` +
+    rows.filter(r => !picks.includes(r.num))
+      .map(r => `<option value="${escapeHtml(r.num)}">Пакет ${escapeHtml(r.num)} · ${escapeHtml(r.title)}</option>`)
+      .join("");
+  add.disabled = picks.length >= 3;
+
+  // ── обрані чипи ──
+  el("overlapPicked").innerHTML = picks.length
+    ? picks.map((num, i) => `
+        <button type="button" class="oc-chip" data-drop="${escapeHtml(num)}"
+                style="--oc:${OVERLAP_COLORS[i % OVERLAP_COLORS.length]}"
+                title="Прибрати пакет ${escapeHtml(num)} з порівняння">
+          Пакет ${escapeHtml(num)}<span aria-hidden="true">✕</span>
+        </button>`).join("")
+    : `<span class="oc-empty">не обрано жодного</span>`;
+
+  if (!picks.length) {
+    const top = rows[0];
+    el("overlapAnswer").innerHTML = top
+      ? `<span class="oc-hint">Оберіть пакет — і побачите, скільки закладів пакета ${escapeHtml(pkg.number)} мають його теж.
+         Найбільший перетин зараз — пакет ${escapeHtml(top.num)}: ${top.n.toLocaleString("uk-UA")} ${zakladiv(top.n)} (${pctUk(top.shareMine)}).</span>`
+      : `<span class="oc-hint">Заклади цього пакета не мають договорів за іншими пакетами.</span>`;
+    el("overlapBar").innerHTML = "";
+    el("overlapLegend").innerHTML = "";
+  } else {
+    // ── пряма відповідь словами ──
+    el("overlapAnswer").innerHTML = picks.map((num, i) => {
+      const r = rows.find(x => x.num === num);
+      const n = r ? r.n : 0;
+      return `<div class="oc-line">
+        <span class="oc-dot" style="background:${OVERLAP_COLORS[i % OVERLAP_COLORS.length]}"></span>
+        З <strong>${mine.size.toLocaleString("uk-UA")}</strong> закладів пакета ${escapeHtml(pkg.number)}
+        договір за пакетом <strong>${escapeHtml(num)}</strong> мають
+        <strong>${n.toLocaleString("uk-UA")}</strong> — це ${pctUk(r ? r.shareMine : 0)} мережі пакета ${escapeHtml(pkg.number)}
+        і ${pctUk(r ? r.shareTheirs : 0)} мережі пакета ${escapeHtml(num)}.
+      </div>`;
+    }).join("");
+
+    // ── сегментована смуга за комбінаціями ──
+    const buckets = comboBuckets(mine, picks);
+    const order = buckets
+      .map((n, mask) => ({ mask, n }))
+      .filter(b => b.n > 0)
+      // спершу найповніші комбінації, «лише наш» — останнім
+      .sort((a, b) => popcount(b.mask) - popcount(a.mask) || b.n - a.n);
+
+    el("overlapBar").innerHTML = order.map(b => {
+      const pct = (b.n / mine.size) * 100;
+      return `<button type="button" class="oc-seg" data-mask="${b.mask}"
+                style="width:${pct.toFixed(2)}%;background:${comboColor(b.mask, picks)}"
+                title="${escapeHtml(comboLabel(b.mask, picks, pkg.number))} — ${b.n.toLocaleString("uk-UA")} ${zakladiv(b.n)} (${pctUk(pct)})"></button>`;
+    }).join("");
+
+    el("overlapLegend").innerHTML = order.map(b => {
+      const pct = (b.n / mine.size) * 100;
+      return `<button type="button" class="oc-legrow" data-mask="${b.mask}">
+        <span class="oc-dot" style="background:${comboColor(b.mask, picks)}"></span>
+        <span class="oc-legname">${escapeHtml(comboLabel(b.mask, picks, pkg.number))}</span>
+        <span class="oc-legval">${b.n.toLocaleString("uk-UA")} · ${pctUk(pct)}</span>
+        <span class="oc-legcta">показати заклади ↓</span>
+      </button>`;
+    }).join("");
+  }
+
+  // ── рейтинг перетинів ──
+  const q = (passportState.overlapSearch || "").trim().toLowerCase();
+  const filtered = q
+    ? rows.filter(r => r.num.includes(q) || r.title.toLowerCase().includes(q))
+    : rows;
+  const limit = passportState.overlapShowAll ? filtered.length : Math.min(OVERLAP_TOP, filtered.length);
+  const shown = filtered.slice(0, limit);
+
+  el("overlapRank").innerHTML = shown.length
+    ? shown.map(r => `
+      <div class="or-row${picks.includes(r.num) ? " is-picked" : ""}">
+        <button type="button" class="or-main" data-pick="${escapeHtml(r.num)}"
+                title="Додати пакет ${escapeHtml(r.num)} до порівняння">
+          <span class="or-name">
+            <b>Пакет ${escapeHtml(r.num)}</b>${r.kind ? `<em class="or-kind">${escapeHtml(r.kind)}</em>` : ""}
+            <span class="or-title">${escapeHtml(r.title)}</span>
+          </span>
+          <span class="or-track"><span class="or-fill" style="width:${Math.max(r.shareMine, 0.8).toFixed(1)}%"></span></span>
+          <span class="or-val">${r.n.toLocaleString("uk-UA")} <small>· ${pctUk(r.shareMine)}</small></span>
+        </button>
+        <span class="or-back" title="Ті самі ${r.n.toLocaleString("uk-UA")} ${zakladiv(r.n)} — це ${pctUk(r.shareTheirs)} мережі пакета ${escapeHtml(r.num)} (${r.theirTotal.toLocaleString("uk-UA")} ${zakladiv(r.theirTotal)})">
+          ↩ ${pctUk(r.shareTheirs)}
+        </span>
+        <a class="or-open" href="index.html?package=${encodeURIComponent(r.num)}" title="Відкрити паспорт пакета ${escapeHtml(r.num)}">↗</a>
+      </div>`).join("")
+    : `<div class="no-results">За цим запитом пакетів немає</div>`;
+
+  const more = el("overlapMore");
+  if (filtered.length > OVERLAP_TOP) {
+    more.hidden = false;
+    more.textContent = passportState.overlapShowAll
+      ? "Згорнути до 12"
+      : `Показати всі ${filtered.length} пакетів`;
+  } else {
+    more.hidden = true;
+  }
+
+  el("overlapFoot").textContent =
+    `Смуга ділить мережу пакета ${pkg.number} на комбінації: заклад потрапляє рівно в один сегмент. ` +
+    `У рейтингу основне число — частка мережі ЦЬОГО пакета, а «↩» — частка мережі того, з яким порівнюємо: ` +
+    `ці два відсотки різні, і плутати їх не можна. Реімбурсація та пілотні проєкти позначені міткою.`;
+}
+
+function popcount(n) {
+  let c = 0;
+  while (n) { c += n & 1; n >>= 1; }
+  return c;
+}
+
+/** Колір комбінації: одиночні — свій колір пакета, змішані — темніший, «лише наш» — сірий. */
+function comboColor(mask, picks) {
+  // «лише наш пакет» — нейтральний сірий через токен, щоб темна тема не світилася
+  if (!mask) return "var(--faint)";
+  const idx = [];
+  for (let i = 0; i < picks.length; i++) if (mask & (1 << i)) idx.push(i);
+  if (idx.length === 1) return OVERLAP_COLORS[idx[0] % OVERLAP_COLORS.length];
+  return OVERLAP_COLORS[(idx.reduce((a, b) => a + b, 0) + picks.length) % OVERLAP_COLORS.length];
+}
+
+/** Клік по сегменту/легенді → фільтр переліку ЗОЗ саме за цією комбінацією. */
+function applyComboFilter(mask) {
+  const pkg = passportState.selectedPackage;
+  const picks = passportState.overlapPicked.filter(n => n !== pkg.number);
+  const req = picks.filter((_, i) => mask & (1 << i));
+  const excl = picks.filter((_, i) => !(mask & (1 << i)));
+  passportState.hospitalCombo = { req, excl, label: comboLabel(mask, picks, pkg.number) };
+  passportState.hospitalCurrentPage = 1;
+  renderComboFilterChip();
+  renderHospitalsTable();
+  const box = el("hospitalsCollapse");
+  box.open = true;
+  box.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function renderComboFilterChip() {
+  const box = el("comboFilter");
+  if (!box) return;
+  const f = passportState.hospitalCombo;
+  if (!f) { box.hidden = true; box.innerHTML = ""; return; }
+  box.hidden = false;
+  box.innerHTML = `
+    <span class="cf-label">Перетин пакетів:</span>
+    <span class="cf-value">${escapeHtml(f.label)}</span>
+    <button type="button" class="cf-clear" id="comboClear">скинути</button>`;
+  el("comboClear").addEventListener("click", () => {
+    passportState.hospitalCombo = null;
+    passportState.hospitalCurrentPage = 1;
+    renderComboFilterChip();
+    renderHospitalsTable();
+  });
+}
+
+/** Делеговані обробники блоку — вішаються один раз при старті. */
+function wireOverlap() {
+  const card = el("overlapCard");
+  if (!card) return;
+
+  card.addEventListener("click", (e) => {
+    const drop = e.target.closest("[data-drop]");
+    if (drop) {
+      passportState.overlapPicked = passportState.overlapPicked.filter(n => n !== drop.dataset.drop);
+      renderOverlap();
+      return;
+    }
+    const pick = e.target.closest("[data-pick]");
+    if (pick) {
+      const num = pick.dataset.pick;
+      const picks = passportState.overlapPicked;
+      if (picks.includes(num)) passportState.overlapPicked = picks.filter(n => n !== num);
+      else if (picks.length < 3) picks.push(num);
+      renderOverlap();
+      return;
+    }
+    const seg = e.target.closest("[data-mask]");
+    if (seg) {
+      applyComboFilter(Number(seg.dataset.mask));
+    }
+  });
+
+  el("overlapAdd").addEventListener("change", (e) => {
+    const num = e.target.value;
+    if (num && passportState.overlapPicked.length < 3) passportState.overlapPicked.push(num);
+    e.target.value = "";
+    renderOverlap();
+  });
+
+  el("overlapSearch").addEventListener("input", (e) => {
+    passportState.overlapSearch = e.target.value;
+    passportState.overlapShowAll = false;
+    renderOverlap();
+  });
+
+  el("overlapMore").addEventListener("click", () => {
+    passportState.overlapShowAll = !passportState.overlapShowAll;
+    renderOverlap();
+  });
+}
+
 function getFilteredHospitals() {
   const pkg = passportState.selectedPackage;
   if (!pkg) return [];
@@ -714,6 +1050,17 @@ function getFilteredHospitals() {
   // Region Filter
   if (passportState.hospitalOblast) {
     list = list.filter(c => c.oblast === passportState.hospitalOblast);
+  }
+
+  // Фільтр за перетином пакетів: беремо пакети НАДАВАЧА (усі його договори),
+  // а не пакети цього рядка — інакше заклад із двома договорами випав би
+  const combo = passportState.hospitalCombo;
+  if (combo) {
+    const { byProvider } = getProviderIndex();
+    list = list.filter(c => {
+      const own = byProvider.get(c.edrpou) || new Set();
+      return combo.req.every(n => own.has(n)) && combo.excl.every(n => !own.has(n));
+    });
   }
 
   // Text Filter
@@ -760,6 +1107,18 @@ function renderHospitalsTable() {
   const pkg = passportState.selectedPackage;
   const tbody = el("hospitalsTableBody");
   tbody.innerHTML = "";
+
+  // Лічильник у схлопнутому заголовку має показувати те, що в таблиці. Раніше
+  // він завжди тримав повну мережу пакета, і після кліку по регіону чи фільтра
+  // за перетином підпис «653» стояв над двома десятками рядків.
+  const cnt = el("hospitalsCount");
+  if (cnt) {
+    const total = passportState.contractsData.contracts
+      .filter(c => c.packages.some(p => p.package_num === pkg.number)).length;
+    cnt.textContent = list.length === total
+      ? total.toLocaleString("uk-UA")
+      : `${list.length.toLocaleString("uk-UA")} з ${total.toLocaleString("uk-UA")}`;
+  }
 
   const getPkgSum = (c) => {
     const pInfo = c.packages.find(p => p.package_num === pkg.number);

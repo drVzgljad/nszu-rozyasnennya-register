@@ -11,10 +11,10 @@
   <title>Паспорт пакета ПМГ 2026 — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260808c">
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="passport.css?v=20260824b">
+  <link rel="stylesheet" href="passport.css?v=20260824c">
   <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script type="module" src="../auth-v2.js?v=20260824a"></script>
+  <script type="module" src="../auth-v2.js?v=20260824b"></script>
 </head>
 <body>
 <div class="portal">
@@ -180,6 +180,40 @@
               </div>
             </div>
 
+            <!-- Перетин мереж: які ще пакети мають ті самі заклади -->
+            <section class="overlap-card" id="overlapCard">
+              <div class="overlap-head">
+                <h3>🔗 Перетин мереж <small class="card-hint">які ще пакети мають ті самі заклади</small></h3>
+                <p class="overlap-sub" id="overlapSub">—</p>
+              </div>
+
+              <div class="overlap-compare">
+                <div class="oc-picker">
+                  <span class="oc-picker-label">Порівняти з пакетами:</span>
+                  <div class="oc-chips" id="overlapPicked"></div>
+                  <select class="oc-add" id="overlapAdd" aria-label="Додати пакет до порівняння">
+                    <option value="">+ додати пакет…</option>
+                  </select>
+                </div>
+                <div class="oc-answer" id="overlapAnswer"></div>
+                <div class="oc-bar" id="overlapBar"></div>
+                <div class="oc-legend" id="overlapLegend"></div>
+              </div>
+
+              <div class="overlap-rank">
+                <div class="or-head">
+                  <h4>Рейтинг перетинів</h4>
+                  <input type="search" class="or-search" id="overlapSearch"
+                         placeholder="Знайти пакет за номером або назвою…" autocomplete="off"
+                         aria-label="Пошук пакета в рейтингу перетинів">
+                </div>
+                <div class="or-list" id="overlapRank"></div>
+                <button class="or-more" id="overlapMore" type="button" hidden></button>
+              </div>
+
+              <p class="overlap-foot" id="overlapFoot"></p>
+            </section>
+
             <!-- Contracted Hospitals Table (collapsed by default) -->
             <details class="hospitals-collapse" id="hospitalsCollapse">
               <summary class="hospitals-summary">
@@ -195,6 +229,8 @@
                       <option value="">Усі області</option>
                     </select>
                   </div>
+                  <!-- активний фільтр за перетином пакетів; ставиться з блоку «Перетин мереж» -->
+                  <div class="combo-filter" id="comboFilter" hidden></div>
                 </div>
                 <div class="table-wrap">
                   <table class="hospitals-table">
@@ -262,6 +298,6 @@
 </div>
 <script src="../spec-links.js?v=20260804c" defer></script>
 <script src="norm-links.js?v=20260821b" defer></script>
-<script src="passport.js?v=20260824e" defer></script>
+<script src="passport.js?v=20260824i" defer></script>
 </body>
 </html>

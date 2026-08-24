@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>НавігаторПМГ26 | Робочий блокнот</title>
+  <link rel="stylesheet" href="../styles.css?v=20260808b">
+  <link rel="stylesheet" href="bloknot.css?v=20260824b">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
+  <script type="module" src="../auth-v2.js?v=20260824b"></script>
+</head>
+<body id="top" data-required-role="expert">
+  <header class="hero bl-hero">
+    <div class="hero-copy">
+      <div class="overline">Робота департаменту</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Робочий блокнот</h1>
+      <p>Кейс — це не лист і не довідка, а розбір: що спитали, що з'ясували,
+        що вирішили і що лишилося. Кожен код, пакет, посада й правило в розборі
+        ведуть у наш же розділ, а не в порожнечу.</p>
+    </div>
+    <div class="stats" aria-label="Обсяг розділу">
+      <div class="stat"><strong id="statCases">-</strong><span>кейсів</span></div>
+      <div class="stat"><strong id="statLinks">-</strong><span>звʼязків з екосистемою</span></div>
+      <div class="stat"><strong id="statMedia">-</strong><span>візуалізацій</span></div>
+      <div class="stat bl-stat-open"><strong id="statOpen">-</strong><span>відкритих хвостів</span></div>
+    </div>
+  </header>
+
+  <main class="layout bl-layout">
+    <div class="bl-tabs" role="tablist" aria-label="Режим перегляду">
+      <button class="bl-tab is-active" id="tabCases" role="tab" aria-selected="true" type="button">🗂️ Кейси</button>
+      <button class="bl-tab" id="tabLinks" role="tab" aria-selected="false" type="button">🔗 Звʼязки</button>
+    </div>
+
+    <div class="bl-navbar">
+      <button class="bl-back" id="backBtn" type="button" hidden>← До списку кейсів</button>
+      <nav class="bl-crumbs" id="crumbs" aria-label="Де я"></nav>
+    </div>
+
+    <!-- ============ РЕЖИМ: КЕЙСИ ============ -->
+    <section class="bl-view is-visible" id="viewCases">
+      <div class="bl-toolbar" id="listToolbar">
+        <input type="search" id="caseSearch" class="bl-search" placeholder="Пошук за назвою, міткою, кодом…"
+               aria-label="Пошук кейсів" autocomplete="off">
+        <div class="bl-chips" id="tagFilter" role="group" aria-label="Мітки"></div>
+      </div>
+      <div class="bl-cases" id="caseGrid"></div>
+      <article class="bl-detail" id="caseDetail" hidden tabindex="-1"></article>
+    </section>
+
+    <!-- ============ РЕЖИМ: ЗВʼЯЗКИ ============ -->
+    <section class="bl-view" id="viewLinks" hidden>
+      <p class="bl-lead">Зворотний покажчик: що з екосистеми вже проходило через розбір.
+        Побудований білдером — кожна позиція звірена з живими даними розділів,
+        інакше збірка падає.</p>
+      <div class="bl-linkgroups" id="linkGroups"></div>
+    </section>
+  </main>
+
+  <!-- лайтбокс для візуалізацій -->
+  <div class="bl-lightbox" id="lightbox" hidden role="dialog" aria-modal="true" aria-label="Перегляд візуалізації">
+    <button class="bl-lb-close" id="lbClose" type="button" aria-label="Закрити">✕</button>
+    <button class="bl-lb-nav bl-lb-prev" id="lbPrev" type="button" aria-label="Попередня">‹</button>
+    <figure class="bl-lb-figure">
+      <img id="lbImg" src="" alt="">
+      <figcaption id="lbCap"></figcaption>
+    </figure>
+    <button class="bl-lb-nav bl-lb-next" id="lbNext" type="button" aria-label="Наступна">›</button>
+  </div>
+
+  <script type="module" src="bloknot.js?v=20260824c"></script>
+</body>
+</html>

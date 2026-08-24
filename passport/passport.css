@@ -1879,3 +1879,156 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
 .thermo-sub strong { color: var(--ink, #1f3347); }
 .dark-theme .thermo-sub { color: #94a3b8; }
 .dark-theme .thermo-sub strong { color: #e2e8f0; }
+
+/* ══════════════════ ПЕРЕТИН МЕРЕЖ ══════════════════
+   Блок відповідає на питання «скільки закладів пакета А мають ще й пакет Б».
+   Кольори — лише через токени порталу, щоб темна тема працювала сама.
+   ─────────────────────────────────────────────────── */
+
+.overlap-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 18px 20px 16px;
+  margin: 18px 0;
+}
+.overlap-head h3 { margin: 0 0 6px; font-size: 17px; color: var(--ink); }
+.overlap-head .card-hint { font-weight: 400; font-size: 12.5px; color: var(--muted); margin-left: 8px; }
+.overlap-sub { margin: 0 0 16px; font-size: 13.5px; line-height: 1.55; color: var(--muted); max-width: 92ch; }
+.overlap-sub strong { color: var(--ink); }
+
+/* ---------- вибір пакетів ---------- */
+.overlap-compare {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--soft);
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+.oc-picker { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.oc-picker-label { font-size: 13px; font-weight: 700; color: var(--ink); }
+.oc-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.oc-empty { font-size: 12.5px; color: var(--faint); }
+.oc-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  border: 1px solid var(--oc, var(--accent)); border-radius: 999px;
+  background: var(--surface); color: var(--ink);
+  font: inherit; font-size: 12.5px; font-weight: 700;
+  padding: 4px 11px; cursor: pointer;
+  box-shadow: inset 3px 0 0 var(--oc, var(--accent));
+}
+.oc-chip span { color: var(--muted); font-weight: 400; }
+.oc-chip:hover { background: var(--soft-hover); }
+.oc-add {
+  border: 1px solid var(--line); border-radius: 999px;
+  background: var(--surface); color: var(--ink);
+  font: inherit; font-size: 12.5px; padding: 5px 10px; cursor: pointer; max-width: 340px;
+}
+.oc-add:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ---------- пряма відповідь ---------- */
+.oc-answer { margin-bottom: 12px; }
+.oc-hint { font-size: 13px; color: var(--muted); line-height: 1.55; }
+.oc-line {
+  display: flex; align-items: baseline; gap: 8px;
+  font-size: 14px; line-height: 1.55; color: var(--ink); margin-bottom: 6px;
+}
+.oc-line strong { color: var(--accent-dark); }
+.oc-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; align-self: center; }
+
+/* ---------- сегментована смуга ---------- */
+.oc-bar {
+  display: flex; width: 100%; height: 26px;
+  border-radius: 8px; overflow: hidden;
+  background: var(--line); margin-bottom: 10px;
+}
+.oc-bar:empty { display: none; }
+.oc-seg { border: none; padding: 0; cursor: pointer; transition: filter .12s; min-width: 2px; }
+.oc-seg:hover { filter: brightness(1.12); }
+
+.oc-legend { display: flex; flex-direction: column; gap: 2px; }
+.oc-legrow {
+  display: flex; align-items: center; gap: 9px;
+  border: none; background: none; padding: 5px 6px; border-radius: 8px;
+  font: inherit; font-size: 13px; color: var(--ink); cursor: pointer; text-align: left;
+}
+.oc-legrow:hover { background: var(--surface); }
+.oc-legname { flex: 1; min-width: 0; }
+.oc-legval { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.oc-legcta { font-size: 11.5px; color: var(--accent-dark); opacity: 0; white-space: nowrap; }
+.oc-legrow:hover .oc-legcta { opacity: 1; }
+
+/* ---------- рейтинг перетинів ---------- */
+.or-head { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px; }
+.or-head h4 { margin: 0; font-size: 14px; color: var(--ink); }
+.or-search {
+  flex: 1 1 240px; min-width: 200px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink);
+  font: inherit; font-size: 13px; padding: 7px 11px;
+}
+.or-list { display: flex; flex-direction: column; }
+.or-row {
+  display: flex; align-items: center; gap: 8px;
+  border-top: 1px solid var(--line); padding: 2px 0;
+}
+.or-row:first-child { border-top: none; }
+.or-row.is-picked { background: var(--accent-soft); border-radius: 8px; }
+.or-main {
+  flex: 1; min-width: 0;
+  display: grid; grid-template-columns: minmax(150px, 2fr) minmax(90px, 3fr) minmax(96px, auto);
+  align-items: center; gap: 10px;
+  border: none; background: none; font: inherit; color: inherit;
+  padding: 7px 6px; cursor: pointer; text-align: left; border-radius: 8px;
+}
+.or-main:hover { background: var(--soft); }
+.or-name { min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
+.or-name b { font-size: 13px; white-space: nowrap; }
+.or-kind {
+  font-style: normal; font-size: 10.5px; font-weight: 700;
+  color: var(--muted); background: var(--soft); border: 1px solid var(--line);
+  border-radius: 999px; padding: 1px 6px;
+}
+.or-title {
+  font-size: 12px; color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
+}
+.or-track { height: 9px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.or-fill { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+.or-val { font-size: 13px; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.or-val small { font-weight: 400; color: var(--muted); }
+.or-back {
+  font-size: 11.5px; color: var(--faint); white-space: nowrap;
+  font-variant-numeric: tabular-nums; cursor: help; padding: 0 2px;
+}
+.or-open { font-size: 14px; color: var(--accent-dark); text-decoration: none; padding: 0 4px; }
+.or-open:hover { color: var(--accent); }
+
+.or-more {
+  margin-top: 10px; border: 1px solid var(--line); border-radius: 999px;
+  background: var(--surface); color: var(--accent-dark);
+  font: inherit; font-size: 12.5px; font-weight: 600; padding: 6px 16px; cursor: pointer;
+}
+.or-more:hover { background: var(--soft); }
+
+.overlap-foot { margin: 14px 0 0; font-size: 12px; line-height: 1.5; color: var(--faint); max-width: 96ch; }
+
+/* ---------- чип активного фільтра над переліком ЗОЗ ---------- */
+.combo-filter {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin-top: 10px; padding: 7px 12px;
+  border: 1px solid var(--accent); border-radius: 999px; background: var(--accent-soft);
+}
+.combo-filter[hidden] { display: none; }
+.cf-label { font-size: 12px; color: var(--muted); }
+.cf-value { font-size: 13px; font-weight: 700; color: var(--accent-dark); }
+.cf-clear {
+  border: none; background: none; font: inherit; font-size: 12px;
+  color: var(--accent-dark); text-decoration: underline; cursor: pointer; padding: 0;
+}
+
+@media (max-width: 780px) {
+  .or-main { grid-template-columns: 1fr; gap: 4px; }
+  .or-val { text-align: left; }
+  .oc-legcta { display: none; }
+}

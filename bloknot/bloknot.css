@@ -1,0 +1,278 @@
+/* ============================================================
+   Розділ «Робочий блокнот»
+   Кольори — лише через токени порталу (--ink, --muted, --line,
+   --soft, --surface, --accent, --teal, --warning-*), щоб темна
+   тема працювала сама, без окремої гілки правил.
+   ============================================================ */
+
+.bl-hero h1 { margin-bottom: 6px; }
+.bl-stat-open strong { color: var(--warning-text); }
+
+.bl-layout {
+  /* портальний .layout — двоколонковий grid; розділ будує свою сітку сам */
+  display: block;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 16px 20px 48px;
+}
+
+/* ---------- перемикач режимів ---------- */
+.bl-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.bl-tab {
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  padding: 10px 18px;
+  border-radius: 10px 10px 0 0;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.bl-tab:hover { background: var(--soft); color: var(--ink); }
+.bl-tab.is-active {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--ink);
+  box-shadow: 0 -2px 0 var(--accent) inset;
+}
+
+.bl-navbar { display: flex; align-items: center; gap: 12px; min-height: 30px; margin-bottom: 12px; }
+.bl-back {
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  font: inherit; font-size: 13.5px; font-weight: 600;
+  padding: 6px 14px; border-radius: 999px; cursor: pointer;
+}
+.bl-back:hover { background: var(--soft); }
+.bl-crumbs { color: var(--muted); font-size: 13px; }
+
+.bl-view { display: none; }
+.bl-view.is-visible { display: block; }
+
+/* Атрибут hidden програє будь-якому класу з display: у UA-таблиці це правило
+   для тега, тобто специфічність 0,0,1. Списку кейсів задано display:grid,
+   панелі — display:flex, і при відкритті кейса вони лишалися на екрані
+   під розбором. Повертаємо hidden силу селектором з атрибутом. */
+.bl-view[hidden],
+.bl-toolbar[hidden],
+.bl-cases[hidden],
+.bl-detail[hidden] { display: none; }
+.bl-lead { color: var(--muted); font-size: 14px; max-width: 78ch; margin: 0 0 16px; }
+
+/* ---------- панель пошуку й міток ---------- */
+.bl-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px; }
+.bl-search {
+  flex: 1 1 280px; min-width: 220px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); color: var(--ink);
+  font: inherit; font-size: 14px; padding: 9px 13px;
+}
+.bl-search:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.bl-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.bl-chip {
+  border: 1px solid var(--line); background: var(--surface); color: var(--muted);
+  font: inherit; font-size: 12.5px; font-weight: 600;
+  padding: 5px 11px; border-radius: 999px; cursor: pointer;
+}
+.bl-chip:hover { background: var(--soft); color: var(--ink); }
+.bl-chip.is-on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* ---------- сітка кейсів ---------- */
+.bl-cases { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 16px; }
+.bl-card {
+  display: flex; flex-direction: column;
+  border: 1px solid var(--line); border-radius: 14px;
+  background: var(--surface); box-shadow: var(--shadow);
+  overflow: hidden; cursor: pointer; text-align: left;
+  font: inherit; color: inherit; padding: 0;
+  transition: transform .14s, box-shadow .14s;
+}
+.bl-card:hover { transform: translateY(-2px); box-shadow: 0 18px 40px rgba(38,78,112,.16); }
+.bl-card-cover { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: var(--soft); display: block; }
+.bl-card-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.bl-card h3 { margin: 0; font-size: 16px; line-height: 1.3; color: var(--ink); }
+.bl-card-sub { margin: 0; font-size: 13px; color: var(--muted); }
+.bl-card-teaser { margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.bl-card-foot { margin-top: auto; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding-top: 4px; }
+
+.bl-status {
+  font-size: 11.5px; font-weight: 700; letter-spacing: .02em;
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--line); background: var(--soft); color: var(--muted);
+}
+.bl-status[data-s="рішення ухвалено"] { background: var(--warm); border-color: var(--teal); color: var(--teal-dark); }
+.bl-status[data-s="у роботі"] { background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning-text); }
+.bl-status[data-s="закрито"] { background: var(--soft); border-color: var(--line); color: var(--muted); }
+.bl-status[data-s="ідея"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-dark); }
+
+.bl-tag {
+  font-size: 11.5px; color: var(--muted);
+  border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; background: var(--soft);
+}
+.bl-counts { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11.5px; color: var(--faint); }
+
+/* ---------- деталь кейса ---------- */
+.bl-detail { max-width: 1000px; }
+.bl-detail h2 { margin: 0 0 4px; font-size: 24px; line-height: 1.22; color: var(--ink); }
+.bl-detail-sub { margin: 0 0 12px; font-size: 15px; color: var(--muted); }
+.bl-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 22px; }
+.bl-meta-date { font-size: 12.5px; color: var(--faint); }
+
+.bl-block { margin: 0 0 26px; }
+.bl-block > h3 {
+  margin: 0 0 10px; font-size: 13px; font-weight: 800;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+}
+.bl-block p { margin: 0 0 10px; font-size: 14.5px; line-height: 1.62; color: var(--ink); }
+.bl-block p:last-child { margin-bottom: 0; }
+
+.bl-src { display: flex; flex-direction: column; gap: 6px; }
+.bl-src-row { font-size: 14px; color: var(--ink); }
+.bl-src-row b { font-weight: 700; }
+.bl-src-row span { color: var(--muted); }
+
+.bl-qlist { margin: 0; padding-left: 22px; }
+.bl-qlist li { font-size: 14.5px; line-height: 1.6; color: var(--ink); margin-bottom: 6px; }
+
+/* розбір: смуга зліва кодує рід твердження */
+.bl-sec {
+  border-left: 3px solid var(--line);
+  padding: 2px 0 2px 16px;
+  margin-bottom: 20px;
+}
+.bl-sec[data-k="finding"] { border-left-color: var(--accent); }
+.bl-sec[data-k="problem"] { border-left-color: var(--warning-border); }
+.bl-sec[data-k="money"]   { border-left-color: var(--teal); }
+.bl-sec h4 { margin: 0 0 8px; font-size: 16px; line-height: 1.35; color: var(--ink); }
+
+/* гроші */
+.bl-money { width: 100%; border-collapse: collapse; font-size: 14px; }
+.bl-money th, .bl-money td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.bl-money th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 700; }
+.bl-money td:nth-child(2), .bl-money td:nth-child(3) { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bl-money tr:last-child td { border-bottom: none; }
+.bl-money-wrap { overflow-x: auto; }
+
+/* рішення */
+.bl-decision {
+  border: 1px solid var(--teal); background: var(--warm);
+  border-radius: 12px; padding: 14px 18px;
+}
+.bl-decision ol { margin: 0; padding-left: 20px; }
+.bl-decision li { font-size: 14.5px; line-height: 1.6; color: var(--ink); margin-bottom: 6px; }
+.bl-decision li:last-child { margin-bottom: 0; }
+
+/* хвости */
+.bl-open { list-style: none; margin: 0; padding: 0; }
+.bl-open li {
+  position: relative; padding-left: 26px; margin-bottom: 9px;
+  font-size: 14.5px; line-height: 1.55; color: var(--ink);
+}
+.bl-open li::before {
+  content: '☐'; position: absolute; left: 0; top: -1px;
+  color: var(--warning-border); font-size: 16px;
+}
+
+/* ---------- візуалізації ---------- */
+.bl-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+.bl-shot {
+  border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+  background: var(--surface); cursor: zoom-in; padding: 0; font: inherit; text-align: left;
+  transition: transform .14s, box-shadow .14s;
+}
+.bl-shot:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.bl-shot img { width: 100%; display: block; aspect-ratio: 16 / 9; object-fit: cover; background: var(--soft); }
+.bl-shot-cap { display: block; padding: 7px 10px 9px; font-size: 12px; line-height: 1.35; color: var(--muted); }
+.bl-note { margin-top: 10px; font-size: 12.5px; color: var(--faint); }
+
+/* ---------- звʼязки з екосистемою ---------- */
+.bl-refgroup { margin-bottom: 18px; }
+.bl-refgroup > h4 {
+  margin: 0 0 8px; font-size: 12.5px; font-weight: 700;
+  color: var(--muted); letter-spacing: .03em;
+}
+.bl-reflist { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.bl-ref {
+  display: inline-flex; flex-direction: column; gap: 2px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); color: var(--ink);
+  padding: 7px 12px; text-decoration: none; max-width: 100%;
+  transition: border-color .14s, background .14s;
+}
+.bl-ref:hover { border-color: var(--accent); background: var(--accent-soft); }
+.bl-ref-code { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.bl-ref-name { font-size: 12px; color: var(--muted); line-height: 1.35; }
+.bl-ref-extra { font-size: 11.5px; color: var(--faint); }
+.bl-ref-extra b { color: var(--muted); font-weight: 700; }
+/* код, якого немає в жодному пакеті, — головна знахідка кейса, її видно одразу */
+.bl-ref[data-gap="1"] { border-color: var(--warning-border); background: var(--warning-bg); }
+.bl-ref[data-gap="1"] .bl-ref-name { color: var(--warning-text); }
+
+.bl-refplain {
+  border: 1px solid var(--line); border-radius: 10px; background: var(--soft);
+  padding: 7px 12px; font-size: 13px; color: var(--ink);
+}
+.bl-refplain span { color: var(--muted); font-size: 12px; }
+
+/* документи */
+.bl-docs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.bl-doc { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; font-size: 14px; }
+.bl-doc-kind {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--accent-dark); background: var(--accent-soft);
+  border: 1px solid var(--accent); border-radius: 999px; padding: 2px 8px;
+}
+.bl-doc-file { font-size: 12.5px; color: var(--faint); }
+
+/* ---------- зворотний покажчик ---------- */
+.bl-linkgroups { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+.bl-linkcol {
+  border: 1px solid var(--line); border-radius: 14px;
+  background: var(--surface); box-shadow: var(--shadow); padding: 16px 18px;
+}
+.bl-linkcol h3 { margin: 0 0 12px; font-size: 15px; color: var(--ink); }
+.bl-linkrow { padding: 8px 0; border-top: 1px solid var(--line); }
+.bl-linkrow:first-of-type { border-top: none; }
+.bl-linkrow a { font-size: 13.5px; font-weight: 700; color: var(--accent-dark); text-decoration: none; }
+.bl-linkrow a:hover { text-decoration: underline; }
+.bl-linkrow p { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.bl-linkrow .bl-linkcases { font-size: 12px; color: var(--faint); }
+.bl-linkrow .bl-linkcases button {
+  border: none; background: none; padding: 0; font: inherit; font-size: 12px;
+  color: var(--accent-dark); cursor: pointer; text-decoration: underline;
+}
+
+/* ---------- лайтбокс ---------- */
+.bl-lightbox {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(12, 22, 32, .92);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 24px;
+}
+.bl-lightbox[hidden] { display: none; }
+.bl-lb-figure { margin: 0; max-width: 92vw; max-height: 90vh; display: flex; flex-direction: column; gap: 10px; }
+.bl-lb-figure img { max-width: 92vw; max-height: 80vh; object-fit: contain; border-radius: 8px; background: #fff; }
+.bl-lb-figure figcaption { color: #dbe6ef; font-size: 13.5px; text-align: center; }
+.bl-lb-close, .bl-lb-nav {
+  border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.08);
+  color: #fff; font: inherit; cursor: pointer; border-radius: 50%;
+  width: 44px; height: 44px; font-size: 22px; line-height: 1; flex: none;
+}
+.bl-lb-close { position: absolute; top: 18px; right: 20px; font-size: 18px; }
+.bl-lb-close:hover, .bl-lb-nav:hover { background: rgba(255,255,255,.2); }
+
+.bl-empty { color: var(--muted); font-size: 14px; padding: 24px 0; }
+
+@media (max-width: 720px) {
+  .bl-layout { padding: 12px 14px 40px; }
+  .bl-detail h2 { font-size: 20px; }
+  .bl-lb-nav { width: 38px; height: 38px; font-size: 18px; }
+}
