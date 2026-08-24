@@ -378,6 +378,12 @@ function getPkgBenchmarks() {
       if (c.oblast) s.obl.add(c.oblast);
     });
   });
+  // У чергу порівняння беремо лише пакети постанови 1808 (ті, що мають
+  // паспорт). У вивантажці є ще реімбурсація й пілотні проєкти — там
+  // «закладами» є тисячі аптек, і вони нечесно виштовхують лікарняні пакети
+  // вниз черги (хірургія була «місце 25 із 70», а серед своїх — 8 із 46).
+  const valid = new Set(passportState.packages.map(p => p.number));
+  [...perPkg.keys()].forEach(num => { if (!valid.has(num)) perPkg.delete(num); });
   const counts = [...perPkg.values()].map(s => s.n).sort((a, b) => a - b);
   const sums = [...perPkg.values()].map(s => s.sum).filter(v => v > 0).sort((a, b) => a - b);
   const totalPMG = sums.reduce((a, b) => a + b, 0);
@@ -554,9 +560,10 @@ function renderAnalytics() {
       `${oblCovered} з ${oblTotal}: ${oblCovered === oblTotal ? "пакет доступний по всій країні" : `у ${oblTotal - oblCovered} регіонах закладів немає`}.`) +
     compRow("🏥", "Мережа закладів", netPct, `місце ${rank} із ${bench.pkgCount}`,
       `Договір за цим пакетом мають ${pContracts.length.toLocaleString("uk-UA")} закладів. ` +
-      `Якщо вишикувати всі ${bench.pkgCount} пакетів за кількістю закладів — від найбільшого до найменшого, ` +
+      `Якщо вишикувати всі ${bench.pkgCount} пакетів постанови № 1808 за кількістю закладів — від найбільшого до найменшого, ` +
       (rank === 1 ? "цей пакет стоїть першим: найширша мережа в усій ПМГ."
-                  : `цей пакет стоїть на ${rank}-му місці. Перший у черзі — пакет ${bench.maxPkg.num} (${bench.maxPkg.n.toLocaleString("uk-UA")} закладів).`)) +
+                  : `цей пакет стоїть на ${rank}-му місці. Перший у черзі — пакет ${bench.maxPkg.num} (${bench.maxPkg.n.toLocaleString("uk-UA")} закладів).`) +
+      ` Реімбурсація (аптеки) та пілотні проєкти в порівнянні участі не беруть.`) +
     compRow("💰", "Фінансова вага", budPct ?? 0,
       noSums ? "немає даних" : `${sharePMG < 0.1 ? "<0,1" : sharePMG.toFixed(1).replace(".", ",")}% ПМГ`,
       noSums ? "У вивантажці за цим пакетом сум немає, складова не рахується."
@@ -571,7 +578,7 @@ function renderAnalytics() {
   const top5Share = totalSum > 0 ? (top5 / totalSum) * 100 : 0;
 
   el("thermoKpis").innerHTML =
-    kpiTileHtml("🏥", "ЗОЗ у мережі", "0", `місце ${rank} із ${bench.pkgCount} пакетів за кількістю закладів`, "kpiProviders") +
+    kpiTileHtml("🏥", "ЗОЗ у мережі", "0", `місце ${rank} із ${bench.pkgCount} пакетів постанови 1808 за кількістю закладів`, "kpiProviders") +
     kpiTileHtml("💰", "Бюджет пакета", escapeHtml(formatMoneyShort(totalSum)),
       noSums ? "у вивантажці суми за пакетом відсутні" : `${sharePMG < 0.1 ? "менш як 0,1" : sharePMG.toFixed(1).replace(".", ",")} % усієї ПМГ`) +
     kpiTileHtml("🗺️", "Покриття регіонів", `${oblCovered} <small>з ${oblTotal}</small>`,
@@ -585,7 +592,7 @@ function renderAnalytics() {
   // ── Примітка про формулу ──
   el("thermoFootnote").textContent =
     `Температура вимірює масштаб роботи пакета, а не його якість: покриття регіонів (40 %), мережа закладів (35 %) і фінансова вага (25 %); ` +
-    `дві останні складові — місце пакета серед ${bench.pkgCount} пакетів вивантажки. ` +
+    `дві останні складові — місце пакета серед ${bench.pkgCount} пакетів постанови № 1808 (реімбурсацію та пілотні проєкти в порівняння не беремо). ` +
     `100° набирав би пакет, який працює в усіх регіонах і є найбільшим за мережею та грошима; вузький пакет із кількома центрами буде «прохолодним» — і це його нормальний режим.` +
     (noSums ? " Для цього пакета вивантажка не передає сум (реімбурсація або новий пакет), тому індекс пораховано з двох складових (55/45)." : "");
 
