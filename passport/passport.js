@@ -381,11 +381,15 @@ function getPkgBenchmarks() {
   const counts = [...perPkg.values()].map(s => s.n).sort((a, b) => a - b);
   const sums = [...perPkg.values()].map(s => s.sum).filter(v => v > 0).sort((a, b) => a - b);
   const totalPMG = sums.reduce((a, b) => a + b, 0);
+  // Лідер за кількістю закладів — для живого прикладу в підказці
+  let maxPkg = { num: "", n: 0 };
+  perPkg.forEach((s, num) => { if (s.n > maxPkg.n) maxPkg = { num, n: s.n }; });
   passportState._bench = {
     perPkg,
     counts,
     sums,
     totalPMG,
+    maxPkg,
     pkgCount: perPkg.size,
     allOblasts: [...oblasts].sort((a, b) => a.localeCompare(b, "uk")),
   };
@@ -548,10 +552,11 @@ function renderAnalytics() {
     compRow("🗺️", "Покриття регіонів", coverage, `${oblCovered} з ${oblTotal}`,
       `У скількох із ${oblTotal} регіонів є хоча б один заклад із договором за цим пакетом. ` +
       `${oblCovered} з ${oblTotal}: ${oblCovered === oblTotal ? "пакет доступний по всій країні" : `у ${oblTotal - oblCovered} регіонах закладів немає`}.`) +
-    compRow("🏥", "Мережа закладів", netPct, `#${rank} з ${bench.pkgCount}`,
-      `Скільки ЗОЗ мають договір за цим пакетом (${pContracts.length}). ` +
-      (rank === 1 ? "Це найбільша мережа серед усіх пакетів."
-                  : `Більша мережа — у ${rank - 1} з ${bench.pkgCount} пакетів, менша — у ${bench.pkgCount - rank}.`)) +
+    compRow("🏥", "Мережа закладів", netPct, `місце ${rank} із ${bench.pkgCount}`,
+      `Договір за цим пакетом мають ${pContracts.length.toLocaleString("uk-UA")} закладів. ` +
+      `Якщо вишикувати всі ${bench.pkgCount} пакетів за кількістю закладів — від найбільшого до найменшого, ` +
+      (rank === 1 ? "цей пакет стоїть першим: найширша мережа в усій ПМГ."
+                  : `цей пакет стоїть на ${rank}-му місці. Перший у черзі — пакет ${bench.maxPkg.num} (${bench.maxPkg.n.toLocaleString("uk-UA")} закладів).`)) +
     compRow("💰", "Фінансова вага", budPct ?? 0,
       noSums ? "немає даних" : `${sharePMG < 0.1 ? "<0,1" : sharePMG.toFixed(1).replace(".", ",")}% ПМГ`,
       noSums ? "У вивантажці за цим пакетом сум немає, складова не рахується."
@@ -566,7 +571,7 @@ function renderAnalytics() {
   const top5Share = totalSum > 0 ? (top5 / totalSum) * 100 : 0;
 
   el("thermoKpis").innerHTML =
-    kpiTileHtml("🏥", "ЗОЗ у мережі", "0", `#${rank} з ${bench.pkgCount} пакетів за кількістю закладів`, "kpiProviders") +
+    kpiTileHtml("🏥", "ЗОЗ у мережі", "0", `місце ${rank} із ${bench.pkgCount} пакетів за кількістю закладів`, "kpiProviders") +
     kpiTileHtml("💰", "Бюджет пакета", escapeHtml(formatMoneyShort(totalSum)),
       noSums ? "у вивантажці суми за пакетом відсутні" : `${sharePMG < 0.1 ? "менш як 0,1" : sharePMG.toFixed(1).replace(".", ",")} % усієї ПМГ`) +
     kpiTileHtml("🗺️", "Покриття регіонів", `${oblCovered} <small>з ${oblTotal}</small>`,
