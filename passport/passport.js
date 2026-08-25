@@ -1310,6 +1310,13 @@ function renderOverlap() {
     more.hidden = true;
   }
 
+  const exportHint = el("overlapExportHint");
+  if (exportHint) {
+    exportHint.textContent = picks.length
+      ? `аркуші: рейтинг перетинів + «Перетин» і «Без перетину» з пакет${picks.length === 1 ? "ом" : "ами"} ${picks.join(", ")}`
+      : "аркуш: рейтинг перетинів; оберіть пакети вище — додадуться аркуші «Перетин» і «Без перетину»";
+  }
+
   el("overlapFoot").textContent =
     `Надавач тут — юрособа за ЄДРПОУ: ТМО з кількома лікарнями рахується один раз, ФОП — окремо. ` +
     `Перетин враховує ВСІ договори юрособи; позначка «⧉» показує, скільки збігів існує лише через окремий ` +
@@ -1319,6 +1326,130 @@ function renderOverlap() {
     `У рейтингу основне число — частка мережі ЦЬОГО пакета, а «↩» — частка мережі того, з яким порівнюємо. ` +
     `⚠ Вивантажка не містить строків дії окремих пакетів: пакет, законтрактований на частину року, ` +
     `лишається в числах до кінця дії договору, тому проти звітності «чинних на дату» числа тут можуть бути більші.`;
+}
+
+/* ── Вивантаження блоку «Перетин мереж» в Excel ─────────────────────────────
+   Завжди: аркуш «Рейтинг перетинів» (усі рядки, не топ-12).
+   Якщо обрано пакети для порівняння: + аркуш «Перетин» (заклади поточного
+   пакета, які мають хоча б один з обраних) і «Без перетину» (не мають
+   жодного). Рахуємо на рівні ЄДРПОУ — так само, як увесь блок. */
+function exportOverlapToExcel() {
+  const pkg = passportState.selectedPackage;
+  if (!pkg) return;
+
+  const { byProvider } = getProviderIndex();
+  const { mine, rows } = getOverlaps();
+  const picks = passportState.overlapPicked.filter(n => n !== pkg.number);
+  const cd = passportState.contractsData;
+  const dateStr = new Date().toISOString().slice(0, 10);
+
+  const wb = XLSX.utils.book_new();
+
+  // ── 1. Рейтинг перетинів ──
+  const srcNote =
+    `Надавачів (ЄДРПОУ) з пакетом ${pkg.number}: ${mine.size}. ` +
+    `Склад мережі — вивантажка від ${cd.source_date || "?"}` +
+    (cd.sums_date && cd.sums_date !== cd.source_date ? `; суми договорів — від ${cd.sums_date} (для частини договорів відсутні)` : "") +
+    `. Вивантажка не містить строків дії окремих пакетів.`;
+  const rankData = [
+    [`Перетин мереж: пакет ${pkg.number} — ${pkg.title}`],
+    [srcNote],
+    [],
+    ["Пакет", "Назва", "Тип", "Спільних закладів (ЄДРПОУ)", "З них в одному договорі",
+     "Лише через окремий договір", `% мережі пакета ${pkg.number}`, "% мережі того пакета", "Закладів у того пакета"],
+  ];
+  rows.forEach(r => {
+    rankData.push([r.num, r.title, r.kind || "ПМГ", r.n, r.same, r.n - r.same,
+      Math.round(r.shareMine * 10) / 10, Math.round(r.shareTheirs * 10) / 10, r.theirTotal]);
+  });
+  const wsRank = XLSX.utils.aoa_to_sheet(rankData);
+  wsRank["!cols"] = [{ wch: 8 }, { wch: 58 }, { wch: 8 }, { wch: 24 }, { wch: 22 }, { wch: 24 }, { wch: 20 }, { wch: 20 }, { wch: 20 }];
+  XLSX.utils.book_append_sheet(wb, wsRank, "Рейтинг перетинів");
+
+  // ── 2-3. Перетин / Без перетину — лише коли є з чим порівнювати ──
+  if (picks.length) {
+    // реквізити надавача: з першого договору, де є поточний пакет; суми — за
+    // всіма договорами юрособи, окремо за кожним пакетом
+    const info = new Map();
+    cd.contracts.forEach(c => {
+      if (!mine.has(c.edrpou)) return;
+      let rec = info.get(c.edrpou);
+      if (!rec) info.set(c.edrpou, (rec = { name: "", oblast: "", settlement: "", network: "", ownership: "", sums: new Map() }));
+      const hasCur = c.packages.some(x => x.package_num === pkg.number);
+      if (hasCur && !rec.name) {
+        rec.name = c.provider_name;
+        rec.oblast = c.oblast;
+        rec.settlement = c.settlement;
+        rec.network = c.network_type || "Не входить в спроможну мережу";
+        rec.ownership = c.ownership;
+      }
+      c.packages.forEach(x => {
+        rec.sums.set(x.package_num, (rec.sums.get(x.package_num) || 0) + (x.sum || 0));
+      });
+    });
+
+    const withPicks = [];
+    const withoutPicks = [];
+    mine.forEach(e => {
+      const own = byProvider.get(e) || new Set();
+      let mask = 0;
+      picks.forEach((num, i) => { if (own.has(num)) mask |= (1 << i); });
+      (mask ? withPicks : withoutPicks).push({ e, mask });
+    });
+    const bySum = (a, b) =>
+      ((info.get(b.e)?.sums.get(pkg.number)) || 0) - ((info.get(a.e)?.sums.get(pkg.number)) || 0) ||
+      String((info.get(a.e) || {}).name || "").localeCompare(String((info.get(b.e) || {}).name || ""), "uk");
+    withPicks.sort(bySum);
+    withoutPicks.sort(bySum);
+
+    const baseHead = ["ЄДРПОУ", "Назва надавача", "Область", "Населений пункт", "Мережа", "Власність",
+      `Сума за пакетом ${pkg.number} (грн)`];
+    const baseRow = (e) => {
+      const r = info.get(e) || { sums: new Map() };
+      return [e, r.name || "", r.oblast || "", r.settlement || "", r.network || "", r.ownership || "",
+        r.sums.get(pkg.number) || 0];
+    };
+
+    // «Перетин»: + так/— і сума за кожним обраним пакетом + комбінація
+    const headWith = baseHead.slice();
+    picks.forEach(num => { headWith.push(`Пакет ${num}`, `Сума за пакетом ${num} (грн)`); });
+    headWith.push("Комбінація");
+    const withData = [
+      [`Заклади пакета ${pkg.number}, які МАЮТЬ перетин із пакет${picks.length === 1 ? "ом" : "ами"} ${picks.join(", ")}: ${withPicks.length} з ${mine.size}`],
+      [srcNote],
+      [],
+      headWith,
+    ];
+    withPicks.forEach(({ e, mask }) => {
+      const row = baseRow(e);
+      const rec = info.get(e) || { sums: new Map() };
+      picks.forEach((num, i) => {
+        const has = !!(mask & (1 << i));
+        row.push(has ? "так" : "—", has ? (rec.sums.get(num) || 0) : "");
+      });
+      row.push(comboLabel(mask, picks, pkg.number));
+      withData.push(row);
+    });
+    const wsWith = XLSX.utils.aoa_to_sheet(withData);
+    wsWith["!cols"] = [{ wch: 12 }, { wch: 48 }, { wch: 18 }, { wch: 20 }, { wch: 24 }, { wch: 18 }, { wch: 22 }]
+      .concat(picks.flatMap(() => [{ wch: 10 }, { wch: 22 }]), [{ wch: 22 }]);
+    XLSX.utils.book_append_sheet(wb, wsWith, "Перетин");
+
+    // «Без перетину»: базові колонки
+    const withoutData = [
+      [`Заклади пакета ${pkg.number} БЕЗ перетину з пакет${picks.length === 1 ? "ом" : "ами"} ${picks.join(", ")}: ${withoutPicks.length} з ${mine.size}`],
+      [srcNote],
+      [],
+      baseHead,
+    ];
+    withoutPicks.forEach(({ e }) => withoutData.push(baseRow(e)));
+    const wsWithout = XLSX.utils.aoa_to_sheet(withoutData);
+    wsWithout["!cols"] = [{ wch: 12 }, { wch: 48 }, { wch: 18 }, { wch: 20 }, { wch: 24 }, { wch: 18 }, { wch: 22 }];
+    XLSX.utils.book_append_sheet(wb, wsWithout, "Без перетину");
+  }
+
+  const suffix = picks.length ? `_vs_${picks.join("_")}` : "";
+  XLSX.writeFile(wb, `peretyn_merezh_paket_${pkg.number}${suffix}_${dateStr}.xlsx`);
 }
 
 function popcount(n) {
@@ -1434,6 +1565,9 @@ function wireOverlap() {
     passportState.overlapShowAll = !passportState.overlapShowAll;
     renderOverlap();
   });
+
+  const exp = el("overlapExport");
+  if (exp) exp.addEventListener("click", exportOverlapToExcel);
 }
 
 function getFilteredHospitals() {
