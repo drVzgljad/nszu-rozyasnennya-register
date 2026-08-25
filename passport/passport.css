@@ -2458,3 +2458,195 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
     radial-gradient(900px 260px at 85% -30%, color-mix(in srgb, var(--thermo-color, #4a8fc7) 18%, transparent), transparent 70%),
     linear-gradient(160deg, #1e293b, #16202e);
 }
+
+/* ═══════════════ ФАКТИЧНІ ОБСЯГИ НАДАНИХ ПОСЛУГ ═══════════════
+   Вивантажка ЕСОЗ + демографічний знаменник. Своя барва (зелень) проти
+   синього термометра: там договори й гроші, тут — що справді зроблено.
+   ────────────────────────────────────────────────────────────── */
+.vol-hero {
+  --vol-color: #2f9e6f;
+  position: relative;
+  background:
+    radial-gradient(1100px 320px at 12% -40%, color-mix(in srgb, var(--vol-color) 13%, transparent), transparent 70%),
+    linear-gradient(160deg, var(--surface, #fff), var(--soft, #f2f8fb));
+  border: 1px solid var(--line, #dde6ee);
+  border-radius: 18px;
+  padding: 20px 22px 16px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow, 0 10px 24px rgba(38,78,112,.05));
+  overflow: hidden;
+}
+.vol-hero > * { position: relative; }
+.vol-head h3 {
+  margin: 0 0 4px; font-size: 16px; font-weight: 800;
+  color: var(--ink, #1f3347); font-family: var(--p-display, inherit);
+}
+.vol-sub { margin: 0 0 16px; font-size: 12.5px; color: var(--muted, #6b7f92); line-height: 1.45; }
+.vol-hero .kpi-tile { border-left-color: var(--vol-color); }
+.vol-hero .kpi-tile:hover { box-shadow: 0 10px 22px color-mix(in srgb, var(--vol-color) 14%, transparent); }
+.vol-kpis { margin-bottom: 16px; }
+
+.vol-grid {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+@media (max-width: 900px) { .vol-grid { grid-template-columns: 1fr; } }
+
+/* ── Помісячні стовпчики ──
+   Висота задається інлайн у відсотках, тому контейнеру потрібна фіксована
+   висота: без неї відсотки нема від чого рахувати і всі стовпчики схлопуються. */
+.vol-months .vm-bars {
+  display: flex; align-items: flex-end; gap: 6px;
+  height: 148px; padding-top: 16px;
+}
+.vm-col {
+  flex: 1 1 0; min-width: 0; height: 100%;
+  display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
+  gap: 3px; position: relative;
+}
+.vm-val {
+  font-size: 9.5px; font-weight: 800; color: var(--muted, #6b7f92);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.vm-bar {
+  width: 100%; border-radius: 5px 5px 2px 2px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--vol-color) 68%, #fff), var(--vol-color));
+  transition: height .9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.vm-col.partial .vm-bar {
+  background-image: repeating-linear-gradient(45deg,
+    color-mix(in srgb, var(--vol-color) 40%, transparent) 0 4px,
+    transparent 4px 8px);
+  background-color: color-mix(in srgb, var(--vol-color) 16%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--vol-color) 45%, transparent);
+}
+.vm-lbl { font-size: 10px; font-weight: 700; color: var(--muted, #6b7f92); }
+.vm-note, .vd-note {
+  margin: 10px 0 0; font-size: 11px; color: var(--muted, #6b7f92); line-height: 1.4;
+}
+
+/* ── Піраміда «стать × вік» ── */
+.vol-demo { display: flex; flex-direction: column; gap: 5px; }
+.vd-head, .vd-row {
+  display: grid;
+  grid-template-columns: 46px 1fr 46px 1fr 46px;
+  gap: 6px; align-items: center;
+}
+.vd-head {
+  font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--muted, #6b7f92); margin-bottom: 2px;
+}
+.vd-head .vd-m { grid-column: 1 / 3; text-align: left; }
+.vd-head .vd-age { grid-column: 3; text-align: center; }
+.vd-head .vd-f { grid-column: 4 / 6; text-align: right; }
+.vd-track { height: 15px; display: flex; }
+.vd-track.left { justify-content: flex-end; }
+.vd-bar { height: 100%; border-radius: 4px; min-width: 2px; transition: width .8s cubic-bezier(0.16, 1, 0.3, 1); }
+.vd-bar.male { background: linear-gradient(90deg, var(--accent, #4a8fc7), color-mix(in srgb, var(--accent, #4a8fc7) 62%, #fff)); }
+.vd-bar.female { background: linear-gradient(90deg, color-mix(in srgb, #c2578f 62%, #fff), #c2578f); }
+.vd-age {
+  font-size: 11px; font-weight: 800; text-align: center;
+  color: var(--ink, #1f3347); font-variant-numeric: tabular-nums;
+}
+.vd-num {
+  font-size: 10.5px; font-weight: 700; color: var(--muted, #6b7f92);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.vd-num.left { text-align: left; }
+.vd-num.right { text-align: right; }
+
+/* ── Перелік послуг пакета ── */
+.vol-services-card { margin-bottom: 4px; }
+.vol-services { display: flex; flex-direction: column; gap: 4px; }
+.vs-row {
+  display: grid;
+  grid-template-columns: 70px minmax(0, 1fr) 110px 92px 66px;
+  gap: 10px; align-items: center;
+  padding: 5px 8px; border-radius: 8px;
+}
+.vs-row:hover { background: color-mix(in srgb, var(--vol-color) 7%, transparent); }
+.vs-code {
+  font-size: 11px; font-weight: 800; color: var(--accent-dark, #2f6b9e);
+  font-variant-numeric: tabular-nums;
+}
+.vs-name {
+  font-size: 11.5px; color: var(--ink, #1f3347);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.vs-track {
+  height: 8px; border-radius: 4px; overflow: hidden;
+  background: color-mix(in srgb, var(--line, #dde6ee) 55%, transparent);
+}
+.vs-bar {
+  height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--vol-color) 55%, #fff), var(--vol-color));
+}
+.vs-val {
+  font-size: 11.5px; font-weight: 800; color: var(--ink, #1f3347);
+  font-variant-numeric: tabular-nums; text-align: right;
+  display: flex; flex-direction: column; line-height: 1.2;
+}
+.vs-val small { font-size: 9.5px; font-weight: 700; color: var(--muted, #6b7f92); }
+.vs-z {
+  font-size: 11px; font-weight: 700; color: var(--muted, #6b7f92);
+  text-align: right; font-variant-numeric: tabular-nums;
+}
+.vs-z small { font-size: 9px; font-weight: 700; }
+@media (max-width: 760px) {
+  .vs-row { grid-template-columns: 60px minmax(0, 1fr) 78px; }
+  .vs-row .vs-track, .vs-row .vs-z { display: none; }
+}
+
+.vol-footnote {
+  margin-top: 14px; padding-top: 10px;
+  border-top: 1px dashed var(--line, #dde6ee);
+  font-size: 11.5px; color: var(--muted, #6b7f92); line-height: 1.45;
+}
+
+/* ── Перемикач режимів карти ── */
+.map-modes {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  margin: 0 0 10px;
+}
+.mm-btn {
+  font: inherit; font-size: 11.5px; font-weight: 700;
+  padding: 5px 11px; border-radius: 999px;
+  border: 1px solid var(--line, #dde6ee);
+  background: var(--surface, #fff);
+  color: var(--muted, #6b7f92);
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.mm-btn:hover { border-color: var(--accent, #4a8fc7); color: var(--accent-dark, #2f6b9e); }
+.mm-btn.active {
+  background: var(--accent, #4a8fc7);
+  border-color: var(--accent, #4a8fc7);
+  color: #fff;
+}
+.mm-unit {
+  font: inherit; font-size: 11px; font-weight: 600;
+  padding: 5px 8px; border-radius: 8px;
+  border: 1px solid var(--line, #dde6ee);
+  background: var(--surface, #fff); color: var(--ink, #1f3347);
+  margin-left: auto; cursor: pointer;
+}
+
+/* ── Темна тема ── */
+.dark-theme .vol-hero {
+  background:
+    radial-gradient(1100px 320px at 12% -40%, color-mix(in srgb, var(--vol-color) 20%, transparent), transparent 70%),
+    linear-gradient(160deg, #1e293b, #16202e);
+  border-color: #334155;
+}
+.dark-theme .vol-head h3,
+.dark-theme .vd-age,
+.dark-theme .vs-name,
+.dark-theme .vs-val { color: #e2e8f0; }
+.dark-theme .vol-footnote { border-top-color: #334155; }
+.dark-theme .vs-track { background: #0f172a; }
+.dark-theme .mm-btn,
+.dark-theme .mm-unit { background: rgba(30, 41, 59, .82); border-color: #334155; color: #94a3b8; }
+.dark-theme .mm-unit { color: #e2e8f0; }
+.dark-theme .mm-btn.active { background: var(--accent, #4a8fc7); border-color: var(--accent, #4a8fc7); color: #fff; }

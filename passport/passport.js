@@ -26,7 +26,14 @@ const passportState = {
   overlapSearch: "",
   overlapShowAll: false,
   hospitalCombo: null,   // { req: [...], excl: [...], label }
-  _provIdx: null         // індекс «надавач → пакети», рахується один раз
+  _provIdx: null,        // індекс «надавач → пакети», рахується один раз
+
+  // Що показує карта: zoz — кількість закладів з договором (базовий режим,
+  // працює завжди), vol — фактичний обсяг наданих послуг, rate — той самий
+  // обсяг на населення цільової групи. Два останні живуть на вивантажці
+  // обсягів; якщо її немає, перемикач не показується взагалі.
+  mapMode: "zoz",
+  hasVolumes: false
 };
 
 const el = (id) => document.getElementById(id);
@@ -100,6 +107,7 @@ async function init() {
       resolutionRes,
       _specLinks,
       uaMapRes,
+      hasVolumes,
     ] = await Promise.all([
       fetch("../pakety/data/packages_2026.json").then(r => r.json()),
       // Полегшена версія договорів (4.5 МБ замість 19); якщо її немає — повна
@@ -120,7 +128,11 @@ async function init() {
       window.SpecLinks ? window.SpecLinks.load() : Promise.resolve(null),
       // Контури областей для карти покриття. Немає — карта тихо падає назад
       // на список плиток, сторінка від цього не ламається.
-      fetch("../assets/ua-oblasts.json").then(r => r.json()).catch(() => null)
+      fetch("../assets/ua-oblasts.json").then(r => r.json()).catch(() => null),
+      // Фактичні обсяги наданих послуг + демографічний знаменник. Конвеєр
+      // 23_обсяги_демографія; boot() ніколи не кидає — без цих даних просто
+      // не буде блоку «Фактично надано» і двох режимів карти.
+      window.Volumes ? window.Volumes.boot() : Promise.resolve(false)
     ]);
 
     // Populate State
@@ -129,6 +141,7 @@ async function init() {
     passportState.decDocuments = decDocsRes.documents || [];
     passportState.decLinks = decLinksRes || {};
     passportState.uaMap = uaMapRes;
+    passportState.hasVolumes = Boolean(hasVolumes);
     passportState.explanations = docsRes.documents || [];
     passportState.resolution = resolutionRes;
 
@@ -270,6 +283,15 @@ function selectPackage(pkgNum) {
   // Render passport sections
   renderHeaderAndMetrics();
   renderAnalytics();
+  // Фактичні обсяги вантажаться окремим файлом на пакет, тому асинхронно:
+  // карта до їх приходу стоїть у базовому режимі «заклади», а щойно дані є —
+  // перемальовуємо її, щоб не загубився вибраний режим при зміні пакета.
+  if (window.Volumes && passportState.hasVolumes) {
+    window.Volumes.render(pkgNum).then(() => {
+      wireVolumeControls();
+      drawRegionMap();
+    });
+  }
   renderOverlap();
   renderHospitalsTable();
   renderRequirements();
@@ -547,22 +569,33 @@ const MAP_LABEL_NUDGE = {
 };
 const MAP_NAME_FONT = 16.5; // кегль назви; з ним звірено, кому потрібна виноска
 
-function regionMapSvg(oblMap, maxObl) {
+/* metric — необовʼязковий показник з Volumes.mapMetric(): { val, txt, tip }.
+   Без нього карта працює як і раніше, на кількості закладів з договором.
+   Заливку рахуємо від максимуму того самого показника, який підписуємо, —
+   інакше колір і число казали б різне. */
+function regionMapSvg(oblMap, maxObl, metric) {
   const map = passportState.uaMap;
   if (!map || !map.oblasts) return "";
 
   const vb = (map.meta && map.meta.viewBox) || "0 0 1000 673";
   const shapes = [];
   const labels = [];
+  const maxV = metric
+    ? Math.max(1, ...Object.keys(map.oblasts).map(n => metric.val(n)))
+    : maxObl;
 
   Object.entries(map.oblasts).forEach(([name, geo]) => {
     const d = oblMap[name];
-    const count = d ? d.count : 0;
-    const ratio = maxObl ? count / maxObl : 0;
+    const value = metric ? metric.val(name) : (d ? d.count : 0);
+    const count = value > 0 ? value : 0;
+    const ratio = maxV ? value / maxV : 0;
     const hot = ratio > 0.55;
-    const tip = count
-      ? `${oblastDisplay(name)} — ${count} ЗОЗ${d.sum > 0 ? ` · ${formatMoneyShort(d.sum)}` : ""}`
-      : `${geo.label} — договорів немає`;
+    const numText = metric ? metric.txt(name) : String(d ? d.count : 0);
+    const tip = metric
+      ? `${oblastDisplay(name)} — ${metric.tip(name)}`
+      : (count
+        ? `${oblastDisplay(name)} — ${count} ЗОЗ${d.sum > 0 ? ` · ${formatMoneyShort(d.sum)}` : ""}`
+        : `${geo.label} — договорів немає`);
 
     shapes.push(
       `<path class="ua-obl${count ? "" : " no-data"}" style="--heat:${ratio.toFixed(3)}"
@@ -593,7 +626,7 @@ function regionMapSvg(oblMap, maxObl) {
            text-anchor="middle" pointer-events="none">${escapeHtml(geo.label)}</text>`);
       labels.push(
         `<text class="ua-num" x="${co.cx}" y="${co.cy + 15}"
-           text-anchor="middle" pointer-events="none">${count}</text>`);
+           text-anchor="middle" pointer-events="none">${escapeHtml(numText)}</text>`);
       return;
     }
 
@@ -606,11 +639,11 @@ function regionMapSvg(oblMap, maxObl) {
            text-anchor="middle" pointer-events="none">${escapeHtml(geo.label)}</text>`);
       labels.push(
         `<text class="ua-num${hot ? " heat-high" : ""}" x="${tx}" y="${ty + 15}"
-           text-anchor="middle" pointer-events="none">${count}</text>`);
+           text-anchor="middle" pointer-events="none">${escapeHtml(numText)}</text>`);
     } else {
       labels.push(
         `<text class="ua-num${hot ? " heat-high" : ""}" x="${tx}" y="${ty}"
-           text-anchor="middle" pointer-events="none">${count}</text>`);
+           text-anchor="middle" pointer-events="none">${escapeHtml(numText)}</text>`);
     }
   });
 
@@ -619,6 +652,126 @@ function regionMapSvg(oblMap, maxObl) {
        <g class="ua-shapes">${shapes.join("")}</g>
        <g class="ua-labels">${labels.join("")}</g>
      </svg>`;
+}
+
+/* Малювання карти в поточному режимі (passportState.mapMode). Викликається
+   і з renderAnalytics при зміні пакета, і з перемикача режимів — тому нічого
+   не рахує наново, а бере готове зі стану. */
+function drawRegionMap() {
+  const oblMap = passportState._oblMap || {};
+  const maxObl = passportState._maxObl || 1;
+  const pickOblast = passportState._pickOblast || (() => {});
+  const bench = getPkgBenchmarks();
+  const heat = el("regionHeatmap");
+  if (!heat) return;
+
+  const mode = passportState.mapMode;
+  const metric = (mode !== "zoz" && window.Volumes && window.Volumes.hasData())
+    ? window.Volumes.mapMetric(mode) : null;
+  // Режим просили, а даних немає (пакет без обсягів) — тихо падаємо на заклади
+  const effMode = metric ? mode : "zoz";
+
+  const maxV = metric
+    ? Math.max(1, ...bench.allOblasts.map(o => metric.val(o)))
+    : maxObl;
+
+  const svg = regionMapSvg(oblMap, maxObl, metric);
+  const drawn = Boolean(svg);
+  const tiles = bench.allOblasts.map(o => {
+    const d = oblMap[o];
+    const value = metric ? metric.val(o) : (d ? d.count : 0);
+    const ratio = maxV ? value / maxV : 0;
+    const txt = metric ? (metric.txt(o) || "—") : String(d ? d.count : 0);
+    const tip = metric
+      ? `${oblastDisplay(o)} — ${metric.tip(o)}`
+      : (d
+        ? `${oblastDisplay(o)} — ${d.count} ЗОЗ${d.sum > 0 ? ` · ${formatMoneyShort(d.sum)}` : ""}`
+        : `${oblastDisplay(o)} — закладів немає`);
+    const empty = !value;
+    return `
+      <button type="button" class="region-tile${empty ? " empty" : ""}${ratio > 0.55 ? " heat-high" : ""}"
+              style="--heat:${ratio.toFixed(3)}" data-oblast="${escapeHtml(o)}" title="${escapeHtml(tip)}" ${empty ? "disabled" : ""}>
+        <span class="rt-name">${escapeHtml(oblastDisplay(o))}</span>
+        <span class="rt-count">${escapeHtml(txt)}</span>
+      </button>`;
+  }).join("");
+
+  heat.innerHTML = svg + `<div class="region-tiles">${tiles}</div>`;
+  heat.classList.toggle("as-map", drawn);
+
+  heat.querySelectorAll(".region-tile:not(.empty)").forEach(tile => {
+    tile.addEventListener("click", () => pickOblast(tile.dataset.oblast));
+  });
+  heat.querySelectorAll(".ua-obl:not(.no-data)").forEach(node => {
+    const go = () => pickOblast(node.dataset.oblast);
+    node.addEventListener("click", go);
+    node.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); }
+    });
+  });
+
+  // Перемикач режимів показуємо лише тоді, коли для пакета є обсяги
+  const modes = el("mapModes");
+  if (modes) {
+    const on = passportState.hasVolumes && window.Volumes && window.Volumes.hasData();
+    modes.hidden = !on;
+    modes.querySelectorAll(".mm-btn").forEach(b =>
+      b.classList.toggle("active", b.dataset.mode === effMode));
+    const unitSel = el("mapUnit");
+    if (unitSel) unitSel.hidden = effMode !== "rate";
+    if (!modes.dataset.wired) {
+      modes.dataset.wired = "1";
+      modes.querySelectorAll(".mm-btn").forEach(b => {
+        b.addEventListener("click", () => {
+          passportState.mapMode = b.dataset.mode;
+          drawRegionMap();
+        });
+      });
+      if (unitSel) {
+        unitSel.addEventListener("change", () => {
+          if (window.Volumes) window.Volumes.setUnit(unitSel.value);
+          drawRegionMap();
+        });
+      }
+    }
+  }
+
+  const legend = el("mapLegend");
+  if (legend) {
+    legend.hidden = !drawn;
+    if (drawn) {
+      const lo = metric ? (metric.txt(bestOblast(bench, metric, false)) || "мало") : "1 ЗОЗ";
+      const hi = metric ? (metric.txt(bestOblast(bench, metric, true)) || "багато") : `${maxObl} ЗОЗ`;
+      const missing = bench.allOblasts.filter(o =>
+        metric ? !metric.val(o) : !oblMap[o]).length;
+      const note = metric ? metric.legend
+        : "Число в області — скільки закладів мають договір за цим пакетом. ";
+      legend.innerHTML =
+        `<span class="ml-scale"><i class="ml-swatch ml-lo"></i>${escapeHtml(lo)}` +
+        `<i class="ml-ramp"></i>${escapeHtml(hi)}<i class="ml-swatch ml-hi"></i></span>` +
+        `<span class="ml-note">${escapeHtml(note)} ` +
+        (missing ? `У ${missing} ${plural(missing, "регіоні", "регіонах", "регіонах")} даних немає. ` : "") +
+        `<span class="ml-map-only">АР Крим і м. Севастополь показані у складі України; ` +
+        `даних за ними у вивантажці немає.</span></span>`;
+    }
+  }
+}
+
+/** Кнопка «показати ще» в переліку послуг пакета — вішається один раз. */
+function wireVolumeControls() {
+  const more = el("volServicesMore");
+  if (more && !more.dataset.wired) {
+    more.dataset.wired = "1";
+    more.addEventListener("click", () => window.Volumes.moreServices());
+  }
+}
+
+/** Область з найбільшим (max=true) або найменшим ненульовим значенням показника. */
+function bestOblast(bench, metric, max) {
+  const withVal = bench.allOblasts.filter(o => metric.val(o) > 0);
+  if (!withVal.length) return bench.allOblasts[0];
+  return withVal.reduce((a, b) =>
+    (max ? metric.val(b) > metric.val(a) : metric.val(b) < metric.val(a)) ? b : a);
 }
 
 /* ══════════════════ НАДАВАЧІ ЗА ФІНАНСУВАННЯМ ══════════════════
@@ -867,54 +1020,12 @@ function renderAnalytics() {
     box.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  // Малюємо і карту, і список плиток: на широкому екрані видно карту, на
-  // телефоні — плитки (числа в контурах областей на 320 px нечитні).
-  // Перемикає CSS, тож ніякого стеження за зміною розміру вікна не треба.
-  const svg = regionMapSvg(oblMap, maxObl);
-  const drawn = Boolean(svg);
-  const tiles = bench.allOblasts.map(o => {
-    const d = oblMap[o];
-    const count = d ? d.count : 0;
-    const ratio = count / maxObl;
-    const tip = d
-      ? `${oblastDisplay(o)} — ${count} ЗОЗ${d.sum > 0 ? ` · ${formatMoneyShort(d.sum)}` : ""}`
-      : `${oblastDisplay(o)} — закладів немає`;
-    return `
-      <button type="button" class="region-tile${count ? "" : " empty"}${ratio > 0.55 ? " heat-high" : ""}"
-              style="--heat:${ratio.toFixed(3)}" data-oblast="${escapeHtml(o)}" title="${escapeHtml(tip)}" ${count ? "" : "disabled"}>
-        <span class="rt-name">${escapeHtml(oblastDisplay(o))}</span>
-        <span class="rt-count">${count}</span>
-      </button>`;
-  }).join("");
-
-  heat.innerHTML = svg + `<div class="region-tiles">${tiles}</div>`;
-  heat.classList.toggle("as-map", drawn);
-
-  heat.querySelectorAll(".region-tile:not(.empty)").forEach(tile => {
-    tile.addEventListener("click", () => pickOblast(tile.dataset.oblast));
-  });
-  heat.querySelectorAll(".ua-obl:not(.no-data)").forEach(node => {
-    const go = () => pickOblast(node.dataset.oblast);
-    node.addEventListener("click", go);
-    node.addEventListener("keydown", e => {
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); }
-    });
-  });
-
-  const legend = el("mapLegend");
-  if (legend) {
-    legend.hidden = !drawn;
-    if (drawn) {
-      const missing = bench.allOblasts.filter(o => !oblMap[o]).length;
-      legend.innerHTML =
-        `<span class="ml-scale"><i class="ml-swatch ml-lo"></i>1 ЗОЗ` +
-        `<i class="ml-ramp"></i>${maxObl} ЗОЗ<i class="ml-swatch ml-hi"></i></span>` +
-        `<span class="ml-note">Число в області — скільки закладів мають договір за цим пакетом. ` +
-        (missing ? `У ${missing} ${missing === 1 ? "регіоні" : "регіонах"} закладів немає. ` : "") +
-        `<span class="ml-map-only">АР Крим і м. Севастополь показані у складі України; ` +
-        `договорів за ними у вивантажці немає.</span></span>`;
-    }
-  }
+  // Карта перемальовується ще й з перемикача режимів, тому все, що їй
+  // потрібно, кладемо в стан, а саме малювання винесене в drawRegionMap()
+  passportState._oblMap = oblMap;
+  passportState._maxObl = maxObl;
+  passportState._pickOblast = pickOblast;
+  drawRegionMap();
 
   // ── Донати: власність і спроможна мережа ──
   const ownMap = {};

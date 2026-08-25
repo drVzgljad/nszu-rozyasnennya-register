@@ -11,7 +11,7 @@
   <title>Паспорт пакета ПМГ 2026 — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260808c">
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="passport.css?v=20260825a">
+  <link rel="stylesheet" href="passport.css?v=20260825b">
   <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script type="module" src="../auth-v2.js?v=20260824d"></script>
@@ -140,10 +140,46 @@
               <div class="thermo-footnote" id="thermoFootnote"></div>
             </section>
 
+            <!-- Фактичні обсяги: що надано насправді, з вивантажки ЕСОЗ -->
+            <section class="vol-hero" id="volumesSection" hidden>
+              <div class="vol-head">
+                <h3>📊 Фактично надано</h3>
+                <p class="vol-sub" id="volSub"></p>
+              </div>
+              <div class="vol-kpis thermo-kpis" id="volKpis"></div>
+              <div class="vol-grid">
+                <div class="chart-card">
+                  <h3>📅 Помісячна динаміка <small class="card-hint">послуг за місяць</small></h3>
+                  <div class="vol-months" id="volMonths"></div>
+                </div>
+                <div class="chart-card">
+                  <h3>👥 Хто отримує <small class="card-hint">стать і вік</small></h3>
+                  <div class="vol-demo" id="volDemo"></div>
+                </div>
+              </div>
+              <div class="chart-card vol-services-card" id="volServicesCard" hidden>
+                <h3>🧾 Послуги пакета <small class="card-hint" id="volServicesHead"></small></h3>
+                <div class="vol-services" id="volServices"></div>
+                <button type="button" class="tp-more" id="volServicesMore" hidden></button>
+              </div>
+              <div class="vol-footnote" id="volFootnote"></div>
+            </section>
+
             <!-- Аналітичні картки -->
             <div class="analytics-charts thermo-grid">
               <div class="chart-card map-card">
-                <h3>🗺️ Покриття регіонів <small class="card-hint">клік по області відфільтрує перелік ЗОЗ</small></h3>
+                <h3>🗺️ Карта регіонів <small class="card-hint">клік по області відфільтрує перелік ЗОЗ</small></h3>
+                <div class="map-modes" id="mapModes" hidden role="group" aria-label="Що показує карта">
+                  <button type="button" class="mm-btn active" data-mode="zoz">🏥 Заклади</button>
+                  <button type="button" class="mm-btn" data-mode="vol">📈 Обсяг послуг</button>
+                  <button type="button" class="mm-btn" data-mode="rate">👥 На населення</button>
+                  <select class="mm-unit" id="mapUnit" aria-label="Одиниця показника" hidden>
+                    <option value="auto">одиниця — автоматично</option>
+                    <option value="1000">на 1 тис. населення</option>
+                    <option value="10000">на 10 тис. населення</option>
+                    <option value="100000">на 100 тис. населення</option>
+                  </select>
+                </div>
                 <div class="region-heatmap" id="regionHeatmap"></div>
                 <div class="map-legend" id="mapLegend" hidden></div>
               </div>
@@ -343,6 +379,7 @@
 </div>
 <script src="../spec-links.js?v=20260804c" defer></script>
 <script src="norm-links.js?v=20260824b" defer></script>
-<script src="passport.js?v=20260825a" defer></script>
+<script src="volumes.js?v=20260825e" defer></script>
+<script src="passport.js?v=20260825c" defer></script>
 </body>
 </html>
