@@ -2794,8 +2794,115 @@ function exportPassportToExcel() {
   wsDec['!cols'] = [{ wch: 30 }, { wch: 25 }, { wch: 35 }, { wch: 18 }, { wch: 55 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 10 }, { wch: 45 }];
   XLSX.utils.book_append_sheet(wb, wsDec, "Стандарти ДЕЦ МОЗ");
 
+  // 7-8. Фактичні обсяги і коди послуг — з вивантажки ЕСОЗ
+  appendVolumeSheets(wb, pkg);
+
   // Write file
   XLSX.writeFile(wb, fileName);
+}
+
+/* Два аркуші звіту по аналізу пакета: основні показники фактичних обсягів і
+   перелік кодів послуг. Якщо вивантажки за пакетом немає (реімбурсація,
+   пілоти, пакети з оплатою глобальною ставкою) — аркуші просто не додаються,
+   а не додаються порожніми: порожній аркуш у готовому файлі читається як
+   «нуль послуг», що неправда. */
+function appendVolumeSheets(wb, pkg) {
+  if (!window.Volumes || !window.Volumes.data) return;
+  const d = window.Volumes.data();
+  if (!d || String(d.p) !== String(pkg.number)) return;
+  const tg = window.Volumes.target();
+  const it = window.Volumes.intensity(10000);
+  const demo = window.Volumes.demo();
+  const meta = window.Volumes.meta();
+  const MON = ["січень", "лютий", "березень", "квітень", "травень", "червень",
+               "липень", "серпень", "вересень", "жовтень", "листопад", "грудень"];
+  const dmy = (iso) => (iso && iso.length >= 10 && iso.indexOf("-") > 0)
+    ? iso.slice(8, 10) + "." + iso.slice(5, 7) + "." + iso.slice(0, 4) : (iso || "—");
+  const monName = (m) => MON[Number(m.slice(5, 7)) - 1] + " " + m.slice(0, 4);
+  const full = d.months.filter(m => d.partial.indexOf(m) === -1);
+  const svc = full.reduce((a, m) => a + d.m[m][0], 0);
+  const emz = full.reduce((a, m) => a + d.m[m][1], 0);
+
+  // ── Аркуш «Фактичні обсяги» ──
+  const rows = [
+    [`АНАЛІЗ ПАКЕТА ${pkg.number} — ФАКТИЧНІ ОБСЯГИ`],
+    [pkg.title],
+    [`Джерело: вивантажка наданих послуг ЕСОЗ, зведена ${meta ? meta.generated : "—"}. ` +
+     `Період: ${monName(full[0])} — ${monName(full[full.length - 1])} ` +
+     `(${full.length} повних міс.).` +
+     (d.partial.length ? ` Місяць ${d.partial.map(monName).join(", ")} — обрізаний хвіст вивантажки, у підсумки не входить.` : "")],
+    [],
+    ["ОСНОВНІ ПОКАЗНИКИ"],
+    ["Надано послуг", svc],
+    ["Медичних записів", emz],
+    ["Медзаписів на одну послугу", svc ? Math.round(emz / svc * 100) / 100 : ""],
+    ["Надавачів звітували", d.tot[2]],
+    ["Позицій послуг у вивантажці", d.sv.length],
+    ["Регіонів з обсягом", Object.keys(d.o).length],
+  ];
+  if (it) {
+    rows.push(
+      ["Послуг на 10 тис. цільової групи", Math.round(it.rate * 10) / 10],
+      ["Цільова група", it.target],
+      ["Населення цільової групи", it.den],
+      ["Місце за інтенсивністю", `${it.rank} з ${it.total} пакетів ПМГ з обсягами`]);
+  }
+  rows.push([], ["ПОМІСЯЧНА ДИНАМІКА"], ["Місяць", "Послуг", "Медичних записів", "Примітка"]);
+  d.months.forEach(m => rows.push([monName(m), d.m[m][0], d.m[m][1],
+    d.partial.indexOf(m) !== -1 ? "обрізаний місяць, у підсумки не входить" : ""]));
+
+  rows.push([], ["СТАТЬ І ВІКОВІ ГРУПИ"],
+    ["Вікова група", "Чоловіки, послуг", "Жінки, послуг", "Разом", "У цільовій групі"]);
+  const BL = { "y00-05": "0–5", "y06-17": "6–17", "y18-39": "18–39",
+               "y40-64": "40–64", "y65+": "65+" };
+  Object.keys(BL).forEach(b => {
+    const m = (d.d["MALE|" + b] || [0])[0], f = (d.d["FEMALE|" + b] || [0])[0];
+    if (!m && !f) return;
+    const inTarget = tg && (tg.cells.indexOf("MALE|" + b) !== -1 || tg.cells.indexOf("FEMALE|" + b) !== -1);
+    rows.push([BL[b], m, f, m + f, inTarget ? "так" : "ні"]);
+  });
+
+  rows.push([], ["ПО ОБЛАСТЯХ"],
+    ["Область", "Послуг", "ЗОЗ", "Населення цільової групи", "На 10 тис.",
+     "Довіра до знаменника", "Чому"]);
+  const CONF = { high: "висока", mid: "середня", low: "низька" };
+  Object.keys(d.o).sort((a, b) => d.o[b][0] - d.o[a][0]).forEach(o => {
+    const den = tg ? tg.denOf(o) : 0;
+    const rec = demo && demo.oblasts[o];
+    rows.push([oblastDisplay(o), d.o[o][0], d.o[o][2], den || "",
+      den ? Math.round(d.o[o][0] / den * 10000 * 10) / 10 : "",
+      rec ? (CONF[rec.confidence] || "") : "", rec ? rec.confidence_why : ""]);
+  });
+
+  rows.push([], ["ЗАСТЕРЕЖЕННЯ"],
+    ["Одиниця обліку — послуга, а не пацієнт: унікальних осіб у вивантажці немає, " +
+     "тому показник «на 10 тис.» це інтенсивність, а не відсоток охоплення."],
+    ["Область — місце надавача, а не проживання пацієнта. Для пакетів, що працюють " +
+     "у кількох центрах на країну, обласний розріз не читається."],
+    ["Знаменник — активні декларації ПМД" +
+     (demo ? ` станом на ${dmy(demo.declarations_updated)}` : "") +
+     ": офіційної чисельності населення після 01.01.2022 не існує. Довіра до " +
+     "знаменника рахується з охоплення деклараціями та частки ВПО" +
+     (demo && demo.idp_date ? ` (IOM DTM на ${dmy(demo.idp_date)})` : "") + "."]);
+
+  const wsV = XLSX.utils.aoa_to_sheet(rows);
+  wsV["!cols"] = [{ wch: 34 }, { wch: 16 }, { wch: 18 }, { wch: 24 }, { wch: 14 },
+                  { wch: 20 }, { wch: 60 }];
+  XLSX.utils.book_append_sheet(wb, wsV, "Фактичні обсяги");
+
+  // ── Аркуш «Коди послуг» ──
+  const tot = d.sv.reduce((a, x) => a + x.s, 0);
+  const codes = [
+    [`КОДИ ПОСЛУГ ПАКЕТА ${pkg.number}`],
+    [`За ${full.length} повних міс. ${full[0].slice(0, 4)} року. Усього ${d.sv.length} позицій.`],
+    [],
+    ["Код послуги", "Назва послуги", "Послуг", "Медичних записів", "ЗОЗ", "Частка обсягу, %"],
+  ];
+  d.sv.forEach(x => codes.push([x.n, x.t, x.s, x.e, x.z,
+    tot ? Math.round(x.s / tot * 1000) / 10 : 0]));
+  const wsC = XLSX.utils.aoa_to_sheet(codes);
+  wsC["!cols"] = [{ wch: 14 }, { wch: 78 }, { wch: 14 }, { wch: 18 }, { wch: 10 }, { wch: 16 }];
+  XLSX.utils.book_append_sheet(wb, wsC, "Коди послуг");
 }
 
 // Start Initialization

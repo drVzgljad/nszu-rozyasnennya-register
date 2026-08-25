@@ -232,17 +232,44 @@
       const den = denominator(tc.cells, o);
       if (den > 0) { dens[o] = den; rate[o] = vol[o] / den * unit.mult; }
     });
+    /* Довіра до знаменника рахується в конвеєрі (див. build_demography.py) з
+       двох сигналів: охоплення деклараціями проти бази 2022 року і частка ВПО
+       за IOM DTM. Області з низькою довірою помічаємо зірочкою просто в числі —
+       це звична статистична конвенція і працює однаково на карті й на плитках. */
+    const conf = (o) => {
+      const rec = V.demo && V.demo.oblasts[o];
+      return rec && rec.confidence ? rec.confidence : null;
+    };
+    const why = (o) => {
+      const rec = V.demo && V.demo.oblasts[o];
+      return rec && rec.confidence_why ? rec.confidence_why : "";
+    };
+    const flagged = Object.keys(rate).filter((o) => conf(o) === "low");
+
     return {
       val: (o) => rate[o] || 0,
-      txt: (o) => (rate[o] ? dec(rate[o], rate[o] < 10 ? 1 : 0) : ""),
+      txt: (o) => (rate[o]
+        ? dec(rate[o], rate[o] < 10 ? 1 : 0) + (conf(o) === "low" ? "*" : "")
+        : ""),
       tip: (o) => (rate[o] != null && dens[o]
         ? dec(rate[o], rate[o] < 10 ? 1 : 0) + " послуг " + unit.short +
-          " — " + num(vol[o] || 0) + " послуг на " + num(dens[o]) + " осіб цільової групи"
+          " — " + num(vol[o] || 0) + " послуг на " + num(dens[o]) + " осіб цільової групи" +
+          (conf(o) && conf(o) !== "high" ? ". Знаменник: " + why(o) : "")
         : "знаменника немає"),
+      conf: conf,
       legend: "Число в області — послуг " + unit.short + " цільової групи (" +
               targetLabel(tc.cells) + ") за " + ov.months + " міс. Знаменник — активні " +
               "декларації ПМД станом на " + (V.demo ? dmy(V.demo.declarations_updated) : "—") +
-              ". " + placeWarning(d, vol),
+              ". " + placeWarning(d, vol) +
+              (flagged.length
+                ? " Зірочкою помічені " + flagged.length + " " +
+                  plural(flagged.length, "область", "області", "областей") +
+                  ", де знаменник ненадійний — прифронтові та з базою, що включає " +
+                  "окуповану територію; порівнювати їх з рештою не можна" +
+                  (V.demo && V.demo.idp_date
+                    ? " (оцінка руху населення — ВПО за IOM DTM на " + dmy(V.demo.idp_date) + ")"
+                    : "") + "."
+                : ""),
       unit: unit,
     };
   }
@@ -632,6 +659,18 @@
     boot: boot,
     headline: headline,
     intensity: intensity,
+    // Для Excel-звіту: сирі дані пакета, демографія і правило цільової групи
+    data: function () { return V._pkg; },
+    demo: function () { return V.demo; },
+    meta: function () { return V.index; },
+    target: function () {
+      const d = V._pkg;
+      if (!d) return null;
+      const tc = targetCells(d);
+      return { cells: tc.cells, share: tc.share, label: targetLabel(tc.cells),
+               den: denominator(tc.cells),
+               denOf: (o) => denominator(tc.cells, o) };
+    },
     fmt: { num: num, dec: dec, shortNum: shortNum },
     render: render,
     mapMetric: mapMetric,
