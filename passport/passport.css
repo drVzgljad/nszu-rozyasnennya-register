@@ -2671,53 +2671,51 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
 .dark-theme .svc-cell .svc-na,
 .dark-theme .svc-cell .svc-zero { color: #94a3b8; }
 
-/* ── Друга шкала термометра: інтенсивність, манометром ──
-   Свідомо окрема від градусника: температура міряє масштаб, а це — скільки
-   послуг припадає на населення цільової групи. Стрілка показує МІСЦЕ серед
-   пакетів, число у віконці — саме значення. */
-.intens {
-  /* Токен зелені живе на .vol-hero, а манометр стоїть у .thermo-hero — тому
-     оголошуємо його тут, щоб колір не тримався на fallback-значенні */
+/* ── Плитка «Інтенсивність» у сітці показників ──
+   Манометр поряд із градусником: температура міряє масштаб, манометр — скільки
+   послуг припадає на населення цільової групи. Стрілка — МІСЦЕ пакета серед
+   інших (значення розтягнуті на пʼять порядків, лінійна шкала не читалась би),
+   велике число — саме значення. У формулу температури не входить. */
+.kpi-tile.intens {
   --vol-color: #2f9e6f;
-  display: flex; align-items: center; gap: 14px;
-  margin-top: 12px; padding-top: 12px;
-  border-top: 1px dashed var(--line, #dde6ee);
+  flex-direction: row; align-items: center; gap: 12px;
+  border-left-color: var(--vol-color);
 }
+.kpi-tile.intens:hover { box-shadow: 0 10px 22px color-mix(in srgb, var(--vol-color) 14%, transparent); }
 .in-gauge { flex: 0 0 auto; line-height: 0; }
-.in-side { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.in-label {
-  font-size: 10.5px; font-weight: 800; letter-spacing: .04em;
-  text-transform: uppercase; color: var(--muted, #6b7f92);
-}
-.in-rank {
-  font-size: 15px; font-weight: 900; color: var(--ink, #1f3347);
-  font-family: var(--p-display, inherit); font-variant-numeric: tabular-nums;
-}
-.in-val { font-size: 11px; color: var(--muted, #6b7f92); font-weight: 600; line-height: 1.35; }
+.kpi-tile.intens .mg { width: 96px; height: auto; }
+.in-side { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.in-hint { color: var(--vol-color); }
 
 .mg { display: block; overflow: visible; }
 .mg-track {
   fill: none; stroke: color-mix(in srgb, var(--line, #dde6ee) 75%, transparent);
   stroke-width: 9; stroke-linecap: round;
 }
-.mg-fill {
-  fill: none; stroke: var(--vol-color, #2f9e6f); stroke-width: 9; stroke-linecap: round;
-  transition: d .6s ease;
-}
+.mg-fill { fill: none; stroke: var(--vol-color, #2f9e6f); stroke-width: 9; stroke-linecap: round; }
 .mg-tick { stroke: var(--muted, #6b7f92); stroke-width: 1.4; opacity: .5; }
-.mg-needle {
-  stroke: var(--ink, #1f3347); stroke-width: 2.6; stroke-linecap: round;
-}
+.mg-needle { stroke: var(--ink, #1f3347); stroke-width: 2.6; stroke-linecap: round; }
 .mg-hub { fill: var(--surface, #fff); stroke: var(--ink, #1f3347); stroke-width: 2.2; }
-.mg-val {
-  font-size: 15px; font-weight: 900; fill: var(--ink, #1f3347);
-  font-family: var(--p-display, inherit); font-variant-numeric: tabular-nums;
-}
-.mg-unit { font-size: 8.5px; font-weight: 700; fill: var(--muted, #6b7f92); }
-.mg-end { font-size: 8.5px; font-weight: 600; fill: var(--muted, #6b7f92); opacity: .8; }
 
-.dark-theme .intens { border-top-color: #334155; }
 .dark-theme .mg-hub { fill: #1e293b; }
-@media (max-width: 620px) {
-  .intens { flex-direction: column; align-items: flex-start; }
+@media (max-width: 640px) {
+  .kpi-tile.intens { flex-wrap: wrap; }
 }
+
+
+/* Сітка показників термометра: шість карток у 2×3 поряд із градусником
+   (auto-fit на широкому екрані давав 5+1 і порожній низ). Кількість колонок
+   вʼязати до вьюпорту не можна: фактична ширина колонки залежить від сайдбара
+   і лівої колонки з градусником, тому міряємо САМУ колонку container query.
+   vol-kpis у «Фактично надано» лишається на auto-fit — там інша кількість. */
+.thermo-kpis-cq { container-type: inline-size; min-width: 0; }
+#thermoKpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@container (min-width: 700px) { #thermoKpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@container (max-width: 379px) { #thermoKpis { grid-template-columns: 1fr; } }
+
+/* Шапка блоку «Фактично надано» з кнопкою звіту */
+.vol-head-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 4px;
+}
+.vol-head-row h3 { margin: 0; }

@@ -523,7 +523,7 @@ function animateCount(node, target, formatter) {
 
 // Відсоток у нашій типографіці: десяткова кома, один знак після неї
 function pctUk(v) {
-  return v.toFixed(1).replace(".", ",") + "%";
+  return v.toFixed(1).replace(".", ",") + " %";
 }
 
 const THERMO_BANDS = [
@@ -786,36 +786,92 @@ function drawRegionMap() {
   }
 }
 
-/* Друга шкала під градусником — інтенсивність.
+/* ── Плитка «Інтенсивність» — шоста в сітці показників термометра ──
    Свідомо ОКРЕМА від температури: градусник міряє масштаб (покриття, мережа,
-   гроші), а інтенсивність — скільки послуг припадає на населення цільової
-   групи. В одну формулу їх зводити не можна — вузький пакет із кількома
-   центрами на країну буває найінтенсивнішим і зробив би градусник гарячим
-   при мінімальному масштабі.
-   Одиниця тут фіксована («на 10 тис.»), бо шкала існує для порівняння
-   пакетів між собою, а порівняння в різних одиницях — не порівняння. */
+   гроші), а це — скільки послуг припадає на населення цільової групи. В одну
+   формулу їх зводити не можна: вузький пакет із кількома центрами на країну
+   буває найінтенсивнішим і зробив би градусник гарячим при мінімальному
+   масштабі. Одиниця фіксована («на 10 тис.») — шкала існує для порівняння
+   пакетів між собою.
+
+   Універсальної «норми ВООЗ» для цього показника НЕ існує: міжнародні цілі
+   (ВООЗ, ЄС) здебільшого задані як відсоток ОХОПЛЕННЯ цільової групи, а наша
+   вивантажка рахує послуги без унікальних пацієнтів — одиниці незіставні.
+   Тому пояснення чесно каже, чим показник є і чим не є, а точкові орієнтири
+   додаються лише з верифікованих першоджерел (INTENS_HINTS): краще жодного
+   орієнтира, ніж вигаданий. */
+const INTENS_WHY =
+  "Скільки послуг за пакетом припадає на 10 тис. населення цільової групи за повні місяці вивантажки. " +
+  "У температуру не входить: температура міряє масштаб, а не насиченість. " +
+  "Це послуги, а не пацієнти, тому це НЕ відсоток охоплення. Міжнародні норми ВООЗ і ЄС " +
+  "здебільшого сформульовані саме як відсоток охоплення цільової групи — для порівняння з ними " +
+  "потрібен лічильник унікальних пацієнтів, якого у вивантажці немає. " +
+  "Порівнювати за цією шкалою коректно лише однорідні пакети між собою.";
+
+const INTENS_HINTS = {
+  "10": {
+    short: "ВООЗ: скринінгова мамографія — жінки 50–69",
+    full: "Факт-шит ВООЗ «Breast cancer» (ред. 03.07.2026): скринінг — це застосування " +
+      "мамографії у практично здоровій популяції, зазвичай жінкам 50–69 років. Наша " +
+      "цільова група ширша (жінки 40+ — так пакет фактично працює), а показник рахує " +
+      "дослідження, а не жінок, тому пряме порівняння з нормами охоплення стане можливим " +
+      "лише після появи лічильника унікальних пацієнтів у вивантажці ЕСОЗ.",
+  },
+};
+
+function intensTileHtml() {
+  return `
+    <div class="kpi-tile intens" id="intensBlock" title="${escapeHtml(INTENS_WHY)}">
+      <div class="in-gauge" id="intensGauge"></div>
+      <div class="in-side">
+        <div class="kpi-head"><span class="kpi-icon">📈</span><span class="kpi-label">Інтенсивність</span></div>
+        <div class="kpi-value" id="intensRank">—</div>
+        <div class="kpi-sub" id="intensVal">фактичні обсяги вантажаться…</div>
+        <div class="kpi-sub in-hint" id="intensHint" hidden></div>
+      </div>
+    </div>`;
+}
+
 function updateRateKpi() {
   const box = el("intensBlock");
   if (!box) return;
   const it = window.Volumes && window.Volumes.intensity
     ? window.Volumes.intensity(10000) : null;
-  if (!it) { box.hidden = true; return; }
-  box.hidden = false;
-
+  const hintBox = el("intensHint");
+  if (!it) {
+    el("intensGauge").innerHTML = "";
+    el("intensRank").textContent = "—";
+    el("intensVal").textContent = "у вивантажці обсягів за цим пакетом немає";
+    if (hintBox) hintBox.hidden = true;
+    return;
+  }
   const f = window.Volumes.fmt;
   const shown = it.rate < 10 ? f.dec(it.rate, 1) : f.num(Math.round(it.rate));
-  el("intensRank").textContent = `${it.rank}-е місце з ${it.total}`;
-  el("intensVal").innerHTML =
-    `${escapeHtml(it.target)} · ${escapeHtml(f.shortNum(it.den))} осіб`;
+  el("intensRank").innerHTML = `${escapeHtml(shown)} <small>на 10 тис.</small>`;
+  el("intensVal").textContent =
+    `${it.rank}-е місце з ${it.total} · ${it.target}, ${f.shortNum(it.den)} осіб`;
   el("intensGauge").innerHTML = gaugeSvg(it.pct, shown,
-    `Місце серед ${it.total} пакетів ПМГ, за якими у вивантажці є обсяги. ` +
-    `Найінтенсивніший — пакет ${it.top.p} (${f.num(Math.round(it.top.r.rate))} на 10 тис.), ` +
-    `найрідший — пакет ${it.bottom.p}. Шкала відкладена за МІСЦЕМ, а не за ` +
-    `значенням: показники розтягнуті на пʼять порядків, і на лінійній шкалі ` +
-    `всі пакети, крім двох найбільших, злиплися б у лівому краю.`);
-  box.title = "Інтенсивність у температуру не входить: температура міряє масштаб. " +
-    "Це послуги, а не пацієнти, тож показник не є відсотком охоплення. " +
-    "Порівнювати коректно лише однорідні пакети між собою.";
+    `Стрілка — місце серед ${it.total} пакетів ПМГ, за якими у вивантажці є обсяги: ` +
+    `найінтенсивніший — пакет ${it.top.p} (${f.num(Math.round(it.top.r.rate))} на 10 тис.), ` +
+    `найрідший — пакет ${it.bottom.p}. Шкала за місцем, а не за значенням: показники ` +
+    `розтягнуті на пʼять порядків, і на лінійній шкалі майже всі лежали б на нулі.`);
+  const hint = INTENS_HINTS[String((passportState.selectedPackage || {}).number)];
+  if (hintBox) {
+    hintBox.hidden = !hint;
+    if (hint) { hintBox.textContent = hint.short; hintBox.title = hint.full; }
+  }
+}
+
+/* Окремий файл «звіт по аналізу пакета» — ті самі аркуші «Фактичні обсяги» і
+   «Коди послуг», що входять у повний Excel-паспорт, лише без решти шести:
+   щоб звіт не доводилося шукати серед восьми аркушів. */
+function exportVolumeAnalysis() {
+  const pkg = passportState.selectedPackage;
+  if (!pkg || !window.Volumes || !window.Volumes.data || !window.Volumes.data()) return;
+  const wb = XLSX.utils.book_new();
+  appendVolumeSheets(wb, pkg);
+  if (!wb.SheetNames.length) return;
+  XLSX.writeFile(wb, `analiz_paketa_${pkg.number}_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
 /* Манометр для шкали інтенсивності.
@@ -848,7 +904,7 @@ function gaugeSvg(pct, valueText, tip) {
   }).join("");
   const [nx, ny] = gaugePoint(end, GA.r - 13);
   return `
-    <svg class="mg" viewBox="0 0 124 118" width="124" height="118" role="img"
+    <svg class="mg" viewBox="0 0 124 96" width="124" height="96" role="img"
          aria-label="Інтенсивність: ${escapeHtml(valueText)} послуг на 10 тис.">
       <title>${escapeHtml(tip)}</title>
       <path class="mg-track" d="${gaugeArc(GA.start, GA.start + GA.sweep, GA.r)}"/>
@@ -856,10 +912,6 @@ function gaugeSvg(pct, valueText, tip) {
       ${ticks}
       <line class="mg-needle" x1="${GA.cx}" y1="${GA.cy}" x2="${nx.toFixed(2)}" y2="${ny.toFixed(2)}"/>
       <circle class="mg-hub" cx="${GA.cx}" cy="${GA.cy}" r="4.5"/>
-      <text class="mg-val" x="${GA.cx}" y="${GA.cy + 26}" text-anchor="middle">${escapeHtml(valueText)}</text>
-      <text class="mg-unit" x="${GA.cx}" y="${GA.cy + 38}" text-anchor="middle">на 10 тис.</text>
-      <text class="mg-end" x="10" y="112" text-anchor="start">рідше</text>
-      <text class="mg-end" x="114" y="112" text-anchor="end">частіше</text>
     </svg>`;
 }
 
@@ -869,6 +921,11 @@ function wireVolumeControls() {
   if (more && !more.dataset.wired) {
     more.dataset.wired = "1";
     more.addEventListener("click", () => window.Volumes.moreServices());
+  }
+  const exp = el("volExportBtn");
+  if (exp && !exp.dataset.wired) {
+    exp.dataset.wired = "1";
+    exp.addEventListener("click", exportVolumeAnalysis);
   }
 }
 
@@ -1097,8 +1154,17 @@ function renderAnalytics() {
       noSums ? "у вивантажці суми за пакетом відсутні" : "типова сума на один заклад") +
     kpiTileHtml("🎯", "Ядро: 80 % бюджету", noSums ? "—" : `${core80} <small>ЗОЗ</small>`,
       noSums ? "у вивантажці суми за пакетом відсутні"
-             : `${pctUk(core80Share)} мережі забирає 4/5 грошей пакета · топ-5 ЗОЗ — ${Math.round(top5Share)} %`);
+             : `${pctUk(core80Share)} мережі забирає 4/5 грошей пакета · топ-5 ЗОЗ — ${Math.round(top5Share)} %`) +
+    (passportState.hasVolumes ? intensTileHtml() : "");
   animateCount(el("kpiProviders"), pContracts.length);
+  // Обсяги могли вже лежати в кеші (перемальовування теми чи розміру) — тоді
+  // плитку інтенсивності заповнюємо одразу, без миготіння «вантажиться…».
+  // Guard відсікає дані попереднього пакета: свіжі прийдуть через .then
+  // після Volumes.render
+  if (window.Volumes && window.Volumes.data && window.Volumes.data() &&
+      String(window.Volumes.data().p) === String(pkg.number)) {
+    updateRateKpi();
+  }
 
   // ── Примітка про формулу ──
   el("thermoFootnote").textContent =
@@ -1108,7 +1174,7 @@ function renderAnalytics() {
     `${bench.nReimb} — реімбурсація «Доступні ліки» (договори з аптеками) і ${bench.nOther} — пілотні проєкти за окремими постановами; ` +
     `у порівнянні бере участь лише перша група, бо порівнювати мережу лікарень із мережею аптек некоректно. ` +
     `100° набирав би пакет, який працює в усіх регіонах і є найбільшим за мережею та грошима; вузький пакет із кількома центрами буде «прохолодним» — і це його нормальний режим. ` +
-    `Шкала «Інтенсивність» під градусником у температуру НЕ входить: температура міряє масштаб, а інтенсивність — інша величина, і вузький пакет буває найінтенсивнішим у своїй групі. Місце на ній — серед пакетів ПМГ, за якими у вивантажці є обсяги; порівнювати змістовно можна лише однорідні пакети (скринінг зі скринінгом), а не мамографію з первинкою.` +
+    `Плитка «Інтенсивність» серед показників у температуру НЕ входить: температура міряє масштаб, а інтенсивність — інша величина, і вузький пакет буває найінтенсивнішим у своїй групі. Місце на ній — серед пакетів ПМГ, за якими у вивантажці є обсяги; порівнювати змістовно можна лише однорідні пакети (скринінг зі скринінгом), а не мамографію з первинкою.` +
     (noSums ? " Для цього пакета вивантажка не передає сум (реімбурсація або новий пакет), тому індекс пораховано з двох складових (55/45)." : "");
 
   // ── Карта покриття регіонів ──

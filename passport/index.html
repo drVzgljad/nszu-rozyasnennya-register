@@ -11,7 +11,7 @@
   <title>Паспорт пакета ПМГ 2026 — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260808c">
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="passport.css?v=20260825f">
+  <link rel="stylesheet" href="passport.css?v=20260825h">
   <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script type="module" src="../auth-v2.js?v=20260824d"></script>
@@ -133,18 +133,9 @@
                     <div class="thermo-temp" id="thermoTemp">—</div>
                     <div class="thermo-verdict" id="thermoVerdict">—</div>
                     <div class="thermo-components" id="thermoComponents"></div>
-                    <!-- Друга шкала: інтенсивність, манометром. У температуру не входить -->
-                    <div class="intens" id="intensBlock" hidden>
-                      <div class="in-gauge" id="intensGauge"></div>
-                      <div class="in-side">
-                        <span class="in-label">Інтенсивність</span>
-                        <span class="in-rank" id="intensRank">—</span>
-                        <span class="in-val" id="intensVal">—</span>
-                      </div>
-                    </div>
                   </div>
                 </div>
-                <div class="thermo-kpis" id="thermoKpis"></div>
+                <div class="thermo-kpis-cq"><div class="thermo-kpis" id="thermoKpis"></div></div>
               </div>
               <div class="thermo-footnote" id="thermoFootnote"></div>
             </section>
@@ -152,7 +143,11 @@
             <!-- Фактичні обсяги: що надано насправді, з вивантажки ЕСОЗ -->
             <section class="vol-hero" id="volumesSection" hidden>
               <div class="vol-head">
-                <h3>📊 Фактично надано</h3>
+                <div class="vol-head-row">
+                  <h3>📊 Фактично надано</h3>
+                  <button type="button" class="oc-export-btn" id="volExportBtn"
+                          title="Excel із двома аркушами: основні показники аналізу пакета і перелік кодів послуг з обсягами">&#11015; Звіт по аналізу (Excel)</button>
+                </div>
                 <p class="vol-sub" id="volSub"></p>
               </div>
               <div class="vol-kpis thermo-kpis" id="volKpis"></div>
@@ -392,6 +387,6 @@
 <script src="norm-links.js?v=20260824b" defer></script>
 <script src="volumes.js?v=20260825m" defer></script>
 <script type="module" src="zoz-volumes.js?v=20260825a"></script>
-<script src="passport.js?v=20260825h" defer></script>
+<script src="passport.js?v=20260825i" defer></script>
 </body>
 </html>
