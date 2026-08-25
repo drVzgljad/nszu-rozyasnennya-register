@@ -2670,3 +2670,54 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
 .svc-cell .svc-zero { color: var(--muted, #6b7f92); font-weight: 700; }
 .dark-theme .svc-cell .svc-na,
 .dark-theme .svc-cell .svc-zero { color: #94a3b8; }
+
+/* ── Друга шкала термометра: інтенсивність, манометром ──
+   Свідомо окрема від градусника: температура міряє масштаб, а це — скільки
+   послуг припадає на населення цільової групи. Стрілка показує МІСЦЕ серед
+   пакетів, число у віконці — саме значення. */
+.intens {
+  /* Токен зелені живе на .vol-hero, а манометр стоїть у .thermo-hero — тому
+     оголошуємо його тут, щоб колір не тримався на fallback-значенні */
+  --vol-color: #2f9e6f;
+  display: flex; align-items: center; gap: 14px;
+  margin-top: 12px; padding-top: 12px;
+  border-top: 1px dashed var(--line, #dde6ee);
+}
+.in-gauge { flex: 0 0 auto; line-height: 0; }
+.in-side { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.in-label {
+  font-size: 10.5px; font-weight: 800; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--muted, #6b7f92);
+}
+.in-rank {
+  font-size: 15px; font-weight: 900; color: var(--ink, #1f3347);
+  font-family: var(--p-display, inherit); font-variant-numeric: tabular-nums;
+}
+.in-val { font-size: 11px; color: var(--muted, #6b7f92); font-weight: 600; line-height: 1.35; }
+
+.mg { display: block; overflow: visible; }
+.mg-track {
+  fill: none; stroke: color-mix(in srgb, var(--line, #dde6ee) 75%, transparent);
+  stroke-width: 9; stroke-linecap: round;
+}
+.mg-fill {
+  fill: none; stroke: var(--vol-color, #2f9e6f); stroke-width: 9; stroke-linecap: round;
+  transition: d .6s ease;
+}
+.mg-tick { stroke: var(--muted, #6b7f92); stroke-width: 1.4; opacity: .5; }
+.mg-needle {
+  stroke: var(--ink, #1f3347); stroke-width: 2.6; stroke-linecap: round;
+}
+.mg-hub { fill: var(--surface, #fff); stroke: var(--ink, #1f3347); stroke-width: 2.2; }
+.mg-val {
+  font-size: 15px; font-weight: 900; fill: var(--ink, #1f3347);
+  font-family: var(--p-display, inherit); font-variant-numeric: tabular-nums;
+}
+.mg-unit { font-size: 8.5px; font-weight: 700; fill: var(--muted, #6b7f92); }
+.mg-end { font-size: 8.5px; font-weight: 600; fill: var(--muted, #6b7f92); opacity: .8; }
+
+.dark-theme .intens { border-top-color: #334155; }
+.dark-theme .mg-hub { fill: #1e293b; }
+@media (max-width: 620px) {
+  .intens { flex-direction: column; align-items: flex-start; }
+}

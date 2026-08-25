@@ -305,6 +305,7 @@ function selectPackage(pkgNum) {
     window.Volumes.render(pkgNum).then(() => {
       wireVolumeControls();
       drawRegionMap();
+      updateRateKpi();
     });
   }
   // Обсяги по кожному ЗОЗ — з Supabase, тому окремо й асинхронно. До їх
@@ -785,6 +786,83 @@ function drawRegionMap() {
   }
 }
 
+/* Друга шкала під градусником — інтенсивність.
+   Свідомо ОКРЕМА від температури: градусник міряє масштаб (покриття, мережа,
+   гроші), а інтенсивність — скільки послуг припадає на населення цільової
+   групи. В одну формулу їх зводити не можна — вузький пакет із кількома
+   центрами на країну буває найінтенсивнішим і зробив би градусник гарячим
+   при мінімальному масштабі.
+   Одиниця тут фіксована («на 10 тис.»), бо шкала існує для порівняння
+   пакетів між собою, а порівняння в різних одиницях — не порівняння. */
+function updateRateKpi() {
+  const box = el("intensBlock");
+  if (!box) return;
+  const it = window.Volumes && window.Volumes.intensity
+    ? window.Volumes.intensity(10000) : null;
+  if (!it) { box.hidden = true; return; }
+  box.hidden = false;
+
+  const f = window.Volumes.fmt;
+  const shown = it.rate < 10 ? f.dec(it.rate, 1) : f.num(Math.round(it.rate));
+  el("intensRank").textContent = `${it.rank}-е місце з ${it.total}`;
+  el("intensVal").innerHTML =
+    `${escapeHtml(it.target)} · ${escapeHtml(f.shortNum(it.den))} осіб`;
+  el("intensGauge").innerHTML = gaugeSvg(it.pct, shown,
+    `Місце серед ${it.total} пакетів ПМГ, за якими у вивантажці є обсяги. ` +
+    `Найінтенсивніший — пакет ${it.top.p} (${f.num(Math.round(it.top.r.rate))} на 10 тис.), ` +
+    `найрідший — пакет ${it.bottom.p}. Шкала відкладена за МІСЦЕМ, а не за ` +
+    `значенням: показники розтягнуті на пʼять порядків, і на лінійній шкалі ` +
+    `всі пакети, крім двох найбільших, злиплися б у лівому краю.`);
+  box.title = "Інтенсивність у температуру не входить: температура міряє масштаб. " +
+    "Це послуги, а не пацієнти, тож показник не є відсотком охоплення. " +
+    "Порівнювати коректно лише однорідні пакети між собою.";
+}
+
+/* Манометр для шкали інтенсивності.
+   Круглий циферблат на 270°, стрілка показує МІСЦЕ пакета серед інших, а не
+   абсолютне значення: інтенсивності розтягнуті на пʼять порядків (20 445 у
+   пакеті 9 проти одиниць у трансплантації), і на лінійній шкалі стрілка в
+   майже всіх пакетів лежала б на нулі. Саме число — у віконці циферблата. */
+const GA = { cx: 62, cy: 62, r: 44, start: 135, sweep: 270 };
+
+function gaugePoint(deg, rad) {
+  const a = (deg * Math.PI) / 180;
+  return [GA.cx + rad * Math.cos(a), GA.cy + rad * Math.sin(a)];
+}
+
+function gaugeArc(fromDeg, toDeg, rad) {
+  const [x1, y1] = gaugePoint(fromDeg, rad);
+  const [x2, y2] = gaugePoint(toDeg, rad);
+  const large = Math.abs(toDeg - fromDeg) > 180 ? 1 : 0;
+  return `M${x1.toFixed(2)} ${y1.toFixed(2)} A${rad} ${rad} 0 ${large} 1 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+}
+
+function gaugeSvg(pct, valueText, tip) {
+  const p = Math.min(Math.max(pct, 0), 100);
+  const end = GA.start + (GA.sweep * p) / 100;
+  const ticks = [0, 25, 50, 75, 100].map(t => {
+    const d = GA.start + (GA.sweep * t) / 100;
+    const [x1, y1] = gaugePoint(d, GA.r - 7);
+    const [x2, y2] = gaugePoint(d, GA.r - 1);
+    return `<line class="mg-tick" x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}"/>`;
+  }).join("");
+  const [nx, ny] = gaugePoint(end, GA.r - 13);
+  return `
+    <svg class="mg" viewBox="0 0 124 118" width="124" height="118" role="img"
+         aria-label="Інтенсивність: ${escapeHtml(valueText)} послуг на 10 тис.">
+      <title>${escapeHtml(tip)}</title>
+      <path class="mg-track" d="${gaugeArc(GA.start, GA.start + GA.sweep, GA.r)}"/>
+      ${p > 0.5 ? `<path class="mg-fill" d="${gaugeArc(GA.start, end, GA.r)}"/>` : ""}
+      ${ticks}
+      <line class="mg-needle" x1="${GA.cx}" y1="${GA.cy}" x2="${nx.toFixed(2)}" y2="${ny.toFixed(2)}"/>
+      <circle class="mg-hub" cx="${GA.cx}" cy="${GA.cy}" r="4.5"/>
+      <text class="mg-val" x="${GA.cx}" y="${GA.cy + 26}" text-anchor="middle">${escapeHtml(valueText)}</text>
+      <text class="mg-unit" x="${GA.cx}" y="${GA.cy + 38}" text-anchor="middle">на 10 тис.</text>
+      <text class="mg-end" x="10" y="112" text-anchor="start">рідше</text>
+      <text class="mg-end" x="114" y="112" text-anchor="end">частіше</text>
+    </svg>`;
+}
+
 /** Кнопка «показати ще» в переліку послуг пакета — вішається один раз. */
 function wireVolumeControls() {
   const more = el("volServicesMore");
@@ -1029,7 +1107,8 @@ function renderAnalytics() {
     `Усього у вивантажці договорів ${bench.totalDirections} напрямів контрактування: ${bench.pkgCount} пакетів ПМГ за постановою № 1808, ` +
     `${bench.nReimb} — реімбурсація «Доступні ліки» (договори з аптеками) і ${bench.nOther} — пілотні проєкти за окремими постановами; ` +
     `у порівнянні бере участь лише перша група, бо порівнювати мережу лікарень із мережею аптек некоректно. ` +
-    `100° набирав би пакет, який працює в усіх регіонах і є найбільшим за мережею та грошима; вузький пакет із кількома центрами буде «прохолодним» — і це його нормальний режим.` +
+    `100° набирав би пакет, який працює в усіх регіонах і є найбільшим за мережею та грошима; вузький пакет із кількома центрами буде «прохолодним» — і це його нормальний режим. ` +
+    `Шкала «Інтенсивність» під градусником у температуру НЕ входить: температура міряє масштаб, а інтенсивність — інша величина, і вузький пакет буває найінтенсивнішим у своїй групі. Місце на ній — серед пакетів ПМГ, за якими у вивантажці є обсяги; порівнювати змістовно можна лише однорідні пакети (скринінг зі скринінгом), а не мамографію з первинкою.` +
     (noSums ? " Для цього пакета вивантажка не передає сум (реімбурсація або новий пакет), тому індекс пораховано з двох складових (55/45)." : "");
 
   // ── Карта покриття регіонів ──

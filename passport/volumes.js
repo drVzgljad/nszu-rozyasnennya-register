@@ -44,16 +44,26 @@
      Обидва набори необовʼязкові: якщо конвеєр ще не проганяли, блок просто
      не показується, а решта паспорта працює як раніше.  */
   async function boot() {
-    // Ці два не мають власної версії в імені, тому просимо браузер звірятися
-    // з сервером (no-cache — це перевірка свіжості, а не відмова від кешу)
-    const opt = { cache: "no-cache" };
     const [idx, demo] = await Promise.all([
-      fetch("data/volumes/index.json", opt).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-      fetch("data/demography.json", opt).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      fresh("data/volumes/index.json"),
+      fresh("data/demography.json"),
     ]);
     V.index = idx;
     V.demo = demo;
     return Boolean(idx);
+  }
+
+  /* Ці два файли не мають версії в імені, а сервіс-воркер тримає .json
+     cache-first — тобто `cache: "no-cache"` його не обходить: воркер віддає
+     свою копію, навіть не питаючи сервер. Саме на цьому index.json одного
+     разу приїхав без нового поля. Тому додаємо унікальний параметр: для
+     воркера це інша адреса, і він іде в мережу.
+     Якщо мережі немає (офлайн у PWA), падаємо назад на адресу без параметра —
+     тоді працює збережена копія. */
+  function fresh(url) {
+    return fetch(url + "?t=" + Date.now())
+      .then((r) => { if (!r.ok) throw new Error("no " + url); return r.json(); })
+      .catch(() => fetch(url).then((r) => (r.ok ? r.json() : null)).catch(() => null));
   }
 
   /* Файли пакетів ходять під cache-first сервіс-воркера, тому версіонуємо їх
@@ -550,8 +560,79 @@
     drawServices(V._pkg);
   }
 
+  /* Показник для плитки в термометрі. Одиниця там ЖОРСТКО «на 10 тис.», а не
+     плаваюча, як у блоці «Фактично надано»: термометр існує, щоб порівнювати
+     пакети між собою, а порівняння в різних одиницях — не порівняння. */
+  function headline(mult) {
+    const d = V._pkg;
+    if (!d) return null;
+    const tc = targetCells(d);
+    const den = denominator(tc.cells);
+    if (!den) return null;
+    const full = d.months.filter((m) => d.partial.indexOf(m) === -1);
+    const svc = full.reduce((s, m) => s + d.m[m][0], 0);
+    return {
+      rate: svc / den * (mult || 10000),
+      den: den,
+      services: svc,
+      months: full.length,
+      target: targetLabel(tc.cells),
+    };
+  }
+
+  /* ── Друга шкала: інтенсивність ────────────────────────────────
+     Температура міряє МАСШТАБ (покриття, мережа, гроші). Інтенсивність —
+     інша величина, і в ту саму формулу її класти не можна: неонатальний
+     скринінг дає 732 послуги на 10 тис. дітей при чотирьох лабораторіях на
+     країну, тобто був би «гарячим» при мінімальному масштабі.
+
+     Місце рахуємо серед пакетів ПМГ, за якими у вивантажці є обсяги. Правило
+     цільової групи тут те саме, що й скрізь (targetCells), тому в index.json
+     лежить сирий розподіл «стать × вік», а не готовий показник: два незалежні
+     обчислення рано чи пізно розійшлися б.  */
+  function rateOfEntry(entry, mult) {
+    if (!entry || !entry.d || !entry.s) return null;
+    const wrapped = { d: {} };
+    Object.keys(entry.d).forEach((c) => { wrapped.d[c] = [entry.d[c], 0]; });
+    const tc = targetCells(wrapped);
+    const den = denominator(tc.cells);
+    if (!den) return null;
+    return { rate: entry.s / den * mult, den: den, target: targetLabel(tc.cells) };
+  }
+
+  function intensity(mult) {
+    const d = V._pkg;
+    if (!d || !V.index || !V.demo) return null;
+    const M = mult || 10000;
+    const pool = V.index.packages
+      .filter((e) => e.program === "Програма медичних гарантій")
+      .map((e) => ({ p: e.p, name: e.name, r: rateOfEntry(e, M) }))
+      .filter((e) => e.r)
+      .sort((a, b) => b.r.rate - a.r.rate);
+    const i = pool.findIndex((e) => e.p === d.p);
+    if (i === -1) return null;
+    const me = pool[i];
+    return {
+      rate: me.r.rate,
+      den: me.r.den,
+      target: me.r.target,
+      rank: i + 1,
+      total: pool.length,
+      // Позиція на шкалі — за місцем, а не за значенням: показники розтягнуті
+      // на пʼять порядків, і на лінійній шкалі всі, крім двох найбільших,
+      // злиплися б у лівому краю
+      pct: pool.length > 1 ? (1 - i / (pool.length - 1)) * 100 : 100,
+      top: pool[0],
+      bottom: pool[pool.length - 1],
+      unitMult: M,
+    };
+  }
+
   window.Volumes = {
     boot: boot,
+    headline: headline,
+    intensity: intensity,
+    fmt: { num: num, dec: dec, shortNum: shortNum },
     render: render,
     mapMetric: mapMetric,
     moreServices: moreServices,

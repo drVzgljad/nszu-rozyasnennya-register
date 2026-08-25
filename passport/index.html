@@ -11,7 +11,7 @@
   <title>Паспорт пакета ПМГ 2026 — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260808c">
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="passport.css?v=20260825e">
+  <link rel="stylesheet" href="passport.css?v=20260825f">
   <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script type="module" src="../auth-v2.js?v=20260824d"></script>
@@ -133,6 +133,15 @@
                     <div class="thermo-temp" id="thermoTemp">—</div>
                     <div class="thermo-verdict" id="thermoVerdict">—</div>
                     <div class="thermo-components" id="thermoComponents"></div>
+                    <!-- Друга шкала: інтенсивність, манометром. У температуру не входить -->
+                    <div class="intens" id="intensBlock" hidden>
+                      <div class="in-gauge" id="intensGauge"></div>
+                      <div class="in-side">
+                        <span class="in-label">Інтенсивність</span>
+                        <span class="in-rank" id="intensRank">—</span>
+                        <span class="in-val" id="intensVal">—</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <div class="thermo-kpis" id="thermoKpis"></div>
@@ -381,8 +390,8 @@
 </div>
 <script src="../spec-links.js?v=20260804c" defer></script>
 <script src="norm-links.js?v=20260824b" defer></script>
-<script src="volumes.js?v=20260825h" defer></script>
+<script src="volumes.js?v=20260825k" defer></script>
 <script type="module" src="zoz-volumes.js?v=20260825a"></script>
-<script src="passport.js?v=20260825d" defer></script>
+<script src="passport.js?v=20260825f" defer></script>
 </body>
 </html>
