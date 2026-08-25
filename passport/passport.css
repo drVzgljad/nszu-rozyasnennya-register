@@ -2494,35 +2494,50 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
 }
 @media (max-width: 900px) { .vol-grid { grid-template-columns: 1fr; } }
 
-/* ── Помісячні стовпчики ──
-   Висота задається інлайн у відсотках, тому контейнеру потрібна фіксована
-   висота: без неї відсотки нема від чого рахувати і всі стовпчики схлопуються. */
-.vol-months .vm-bars {
-  display: flex; align-items: flex-end; gap: 6px;
-  height: 148px; padding-top: 16px;
+/* ── Графік помісячної динаміки ──
+   Лінія з площею замість стовпчиків: сім місяців — це часовий ряд, і форма
+   кривої читається краще за висоти. Вісь завжди від нуля (див. коментар у
+   volumes.js), сітка — круглими числами. */
+.vol-months .vc {
+  width: 100%; height: 190px; display: block;
+  overflow: visible;
 }
-.vm-col {
-  flex: 1 1 0; min-width: 0; height: 100%;
-  display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
-  gap: 3px; position: relative;
+.vc-grid { stroke: var(--line, #dde6ee); stroke-width: 1; stroke-dasharray: 2 4; opacity: .75; }
+.vc-tick {
+  font-size: 9px; font-weight: 700; fill: var(--muted, #6b7f92);
+  font-variant-numeric: tabular-nums;
 }
-.vm-val {
-  font-size: 9.5px; font-weight: 800; color: var(--muted, #6b7f92);
-  font-variant-numeric: tabular-nums; white-space: nowrap;
+.vc-area { fill: color-mix(in srgb, var(--vol-color) 14%, transparent); stroke: none; }
+.vc-line {
+  fill: none; stroke: var(--vol-color); stroke-width: 2.5;
+  stroke-linejoin: round; stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
 }
-.vm-bar {
-  width: 100%; border-radius: 5px 5px 2px 2px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--vol-color) 68%, #fff), var(--vol-color));
-  transition: height .9s cubic-bezier(0.16, 1, 0.3, 1);
+.vc-line.emz {
+  stroke: var(--accent, #4a8fc7); stroke-width: 1.8; stroke-dasharray: 5 4;
 }
-.vm-col.partial .vm-bar {
-  background-image: repeating-linear-gradient(45deg,
-    color-mix(in srgb, var(--vol-color) 40%, transparent) 0 4px,
-    transparent 4px 8px);
-  background-color: color-mix(in srgb, var(--vol-color) 16%, transparent);
-  border: 1px dashed color-mix(in srgb, var(--vol-color) 45%, transparent);
+.vc-dot {
+  fill: var(--surface, #fff); stroke: var(--vol-color); stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
 }
-.vm-lbl { font-size: 10px; font-weight: 700; color: var(--muted, #6b7f92); }
+.vc-hit { fill: transparent; }
+.vc-pt:hover .vc-dot { fill: var(--vol-color); }
+.vc-val {
+  font-size: 11px; font-weight: 800; fill: var(--ink, #1f3347);
+  font-variant-numeric: tabular-nums;
+}
+.vc-mon { font-size: 10.5px; font-weight: 700; fill: var(--muted, #6b7f92); }
+.vc-legend {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  margin-top: 8px; font-size: 10.5px; font-weight: 700; color: var(--muted, #6b7f92);
+}
+.vc-key { width: 16px; height: 3px; border-radius: 2px; display: inline-block; }
+.vc-key.svc { background: var(--vol-color); }
+.vc-key.emz {
+  background: repeating-linear-gradient(90deg, var(--accent, #4a8fc7) 0 5px, transparent 5px 9px);
+}
+.vc-legend .vc-key + .vc-key { margin-left: 8px; }
+
 .vm-note, .vd-note {
   margin: 10px 0 0; font-size: 11px; color: var(--muted, #6b7f92); line-height: 1.4;
 }
@@ -2650,3 +2665,11 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
 .dark-theme .mm-unit { background: rgba(30, 41, 59, .82); border-color: #334155; color: #94a3b8; }
 .dark-theme .mm-unit { color: #e2e8f0; }
 .dark-theme .mm-btn.active { background: var(--accent, #4a8fc7); border-color: var(--accent, #4a8fc7); color: #fff; }
+
+/* Колонка «Послуг» у переліку ЗОЗ. Три стани мають читатися по-різному:
+   прочерк — даних немає (не авторизований), сірий нуль — договір є, а послуг
+   за період немає, звичайне число — обсяг. */
+.svc-cell .svc-na { color: var(--muted, #6b7f92); opacity: .55; }
+.svc-cell .svc-zero { color: var(--muted, #6b7f92); font-weight: 700; }
+.dark-theme .svc-cell .svc-na,
+.dark-theme .svc-cell .svc-zero { color: #94a3b8; }

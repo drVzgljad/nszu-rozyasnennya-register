@@ -33,8 +33,23 @@ const passportState = {
   // обсяг на населення цільової групи. Два останні живуть на вивантажці
   // обсягів; якщо її немає, перемикач не показується взагалі.
   mapMode: "zoz",
-  hasVolumes: false
+  hasVolumes: false,
+
+  // Фактичні обсяги в розрізі надавачів (Supabase, лише для авторизованих).
+  // null — ще не вантажили або даних немає; тоді колонка «Послуг» показує
+  // прочерки, а решта таблиці працює як раніше.
+  zozVolumes: null
 };
+
+/* Скільки послуг за поточним пакетом надав цей заклад.
+   Ключ для юросіб — ЄДРПОУ, для ФОП — ПІБ: у вивантажці ЕСОЗ у ФОП замість
+   коду стоїть літерал «ФОП», а в реєстрі договорів — справжній РНОКПП. */
+function providerServices(c) {
+  const zv = passportState.zozVolumes;
+  if (!zv || !window.ZozVolumes) return null;
+  const rec = zv.map.get(window.ZozVolumes.providerKey(c));
+  return rec ? rec.s : 0;
+}
 
 const el = (id) => document.getElementById(id);
 
@@ -290,6 +305,19 @@ function selectPackage(pkgNum) {
     window.Volumes.render(pkgNum).then(() => {
       wireVolumeControls();
       drawRegionMap();
+    });
+  }
+  // Обсяги по кожному ЗОЗ — з Supabase, тому окремо й асинхронно. До їх
+  // приходу колонка «Послуг» стоїть у прочерках; скидаємо попередній пакет,
+  // щоб на новому не блимнули чужі числа.
+  passportState.zozVolumes = null;
+  if (window.ZozVolumes) {
+    window.ZozVolumes.load(pkgNum).then(res => {
+      if (passportState.selectedPackage &&
+          passportState.selectedPackage.number === pkgNum) {
+        passportState.zozVolumes = res;
+        renderHospitalsTable();
+      }
     });
   }
   renderOverlap();
@@ -1461,7 +1489,10 @@ function exportOverlapToExcel() {
     `Надавачів (ЄДРПОУ) з пакетом ${pkg.number}: ${mine.size}. ` +
     `Склад мережі — вивантажка від ${cd.source_date || "?"}` +
     (cd.sums_date && cd.sums_date !== cd.source_date ? `; суми договорів — від ${cd.sums_date} (для частини договорів відсутні)` : "") +
-    `. Вивантажка не містить строків дії окремих пакетів.`;
+    `. Вивантажка не містить строків дії окремих пакетів.` +
+    (passportState.zozVolumes && passportState.zozVolumes.period
+      ? ` Надано послуг — фактичні обсяги ЕСОЗ за ${passportState.zozVolumes.period.from} — ${passportState.zozVolumes.period.to}; нуль означає, що договір є, а послуг за період немає.`
+      : ``);
   const rankData = [
     [`Перетин мереж: пакет ${pkg.number} — ${pkg.title}`],
     [srcNote],
@@ -1493,6 +1524,8 @@ function exportOverlapToExcel() {
         rec.settlement = c.settlement;
         rec.network = c.network_type || "Не входить в спроможну мережу";
         rec.ownership = c.ownership;
+        // Ключ для обсягів: у ФОП він інший, ніж ЄДРПОУ рядка
+        rec.volKey = window.ZozVolumes ? window.ZozVolumes.providerKey(c) : c.edrpou;
       }
       c.packages.forEach(x => {
         rec.sums.set(x.package_num, (rec.sums.get(x.package_num) || 0) + (x.sum || 0));
@@ -1513,12 +1546,21 @@ function exportOverlapToExcel() {
     withPicks.sort(bySum);
     withoutPicks.sort(bySum);
 
+    // Колонка «Надано послуг» з'являється лише тоді, коли обсяги справді
+    // завантажились: порожня колонка в готовому файлі читалася б як «нуль»
+    const zv = passportState.zozVolumes;
     const baseHead = ["ЄДРПОУ", "Назва надавача", "Область", "Населений пункт", "Мережа", "Власність",
       `Сума за пакетом ${pkg.number} (грн)`];
+    if (zv) baseHead.push(`Надано послуг за пакетом ${pkg.number}`);
     const baseRow = (e) => {
       const r = info.get(e) || { sums: new Map() };
-      return [e, r.name || "", r.oblast || "", r.settlement || "", r.network || "", r.ownership || "",
+      const row = [e, r.name || "", r.oblast || "", r.settlement || "", r.network || "", r.ownership || "",
         r.sums.get(pkg.number) || 0];
+      if (zv) {
+        const rec = zv.map.get(r.volKey || e);
+        row.push(rec ? rec.s : 0);
+      }
+      return row;
     };
 
     // «Перетин»: + так/— і сума за кожним обраним пакетом + комбінація
@@ -1543,7 +1585,7 @@ function exportOverlapToExcel() {
     });
     const wsWith = XLSX.utils.aoa_to_sheet(withData);
     wsWith["!cols"] = [{ wch: 12 }, { wch: 48 }, { wch: 18 }, { wch: 20 }, { wch: 24 }, { wch: 18 }, { wch: 22 }]
-      .concat(picks.flatMap(() => [{ wch: 10 }, { wch: 22 }]), [{ wch: 22 }]);
+      .concat(zv ? [{ wch: 24 }] : [], picks.flatMap(() => [{ wch: 10 }, { wch: 22 }]), [{ wch: 22 }]);
     XLSX.utils.book_append_sheet(wb, wsWith, "Перетин");
 
     // «Без перетину»: базові колонки
@@ -1555,7 +1597,8 @@ function exportOverlapToExcel() {
     ];
     withoutPicks.forEach(({ e }) => withoutData.push(baseRow(e)));
     const wsWithout = XLSX.utils.aoa_to_sheet(withoutData);
-    wsWithout["!cols"] = [{ wch: 12 }, { wch: 48 }, { wch: 18 }, { wch: 20 }, { wch: 24 }, { wch: 18 }, { wch: 22 }];
+    wsWithout["!cols"] = [{ wch: 12 }, { wch: 48 }, { wch: 18 }, { wch: 20 }, { wch: 24 }, { wch: 18 }, { wch: 22 }]
+      .concat(zv ? [{ wch: 24 }] : []);
     XLSX.utils.book_append_sheet(wb, wsWithout, "Без перетину");
   }
 
@@ -1729,6 +1772,13 @@ function getFilteredHospitals() {
     if (passportState.hospitalSortField === "sum") {
       a = getPkgSum(left);
       b = getPkgSum(right);
+    } else if (passportState.hospitalSortField === "services") {
+      // Заклади без даних (не авторизований) тримаємо внизу за будь-якого
+      // напрямку сортування — інакше вони витісняли б змістовні рядки
+      a = providerServices(left);
+      b = providerServices(right);
+      a = a === null ? -1 : a;
+      b = b === null ? -1 : b;
     } else if (passportState.hospitalSortField === "name") {
       a = left.provider_name || "";
       b = right.provider_name || "";
@@ -1747,6 +1797,22 @@ function getFilteredHospitals() {
   });
 
   return list;
+}
+
+/* Клітинка «Послуг». Три різні стани, які не можна плутати:
+   даних узагалі немає (не авторизований) — прочерк;
+   заклад у вивантажці не зустрівся — «0» з поясненням;
+   є число — показуємо його.
+   Нуль тут змістовний: договір за пакетом є, а послуг за 7 місяців немає. */
+function svcCellHtml(c) {
+  const n = providerServices(c);
+  if (n === null) {
+    return `<span class="svc-na" title="Обсяги показуються авторизованим користувачам">—</span>`;
+  }
+  if (!n) {
+    return `<span class="svc-zero" title="Договір за пакетом є, але у вивантажці послуг за цим закладом немає">0</span>`;
+  }
+  return `<strong>${n.toLocaleString("uk-UA")}</strong>`;
 }
 
 function renderHospitalsTable() {
@@ -1773,7 +1839,7 @@ function renderHospitalsTable() {
   };
 
   if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="no-results">За цими умовами закладів не знайдено</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="no-results">За цими умовами закладів не знайдено</td></tr>`;
     el("tablePagination").innerHTML = "";
     return;
   }
@@ -1809,6 +1875,7 @@ function renderHospitalsTable() {
       <td><span class="${netClass}">${escapeHtml(c.network_type || "Заклад")}</span></td>
       <td><span class="tag" style="background:#f1f5f9;color:#475569;">${escapeHtml(c.ownership)}</span></td>
       <td class="num-cell"><strong>${formatCurrency(getPkgSum(c))}</strong></td>
+      <td class="num-cell svc-cell">${svcCellHtml(c)}</td>
       <td>${contactsHtml}</td>
     `;
     tbody.appendChild(tr);
