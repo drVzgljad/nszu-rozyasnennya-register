@@ -327,13 +327,21 @@
   /* ── Помісячна динаміка ─────────────────────────────────────
      Обрізаний хвіст малюємо штрихованим і не враховуємо в максимумі, інакше
      графік читався б як обвал наприкінці року.  */
-  const CH = { w: 560, h: 190, l: 8, r: 8, t: 22, b: 26 };  // полотно графіка
+  /* Полотно рахується під ФАКТИЧНУ ширину картки, а не малюється в умовному
+     viewBox і розтягується. preserveAspectRatio="none" розтягує разом із
+     геометрією ще й текст — літери пливуть по горизонталі, і графік виглядає
+     розмитим. Тому viewBox = реальні пікселі, а масштаб (якщо й буде) —
+     рівномірний. */
+  const CH = { h: 210, l: 52, r: 16, t: 26, b: 28, minW: 320 };
 
   function renderMonths(d) {
     const box = el("volMonths");
     const full = d.months.filter((m) => d.partial.indexOf(m) === -1);
     const mn = (m) => MONTH_NAMES[Number(m.slice(5, 7)) - 1];
     if (!full.length) { box.innerHTML = ""; return; }
+
+    const W = Math.max(CH.minW, Math.round(box.clientWidth || 640));
+    box._vw = W;
 
     const svc = full.map((m) => d.m[m][0]);
     const emz = full.map((m) => d.m[m][1]);
@@ -343,7 +351,7 @@
        на першу. Вище 4× — гірше: спільна вісь тягнеться до медзаписів, і лінія
        послуг, заради якої графік існує, розчавлюється в риску біля нуля
        (пакет 54: 148 тис. послуг проти 4,8 млн записів). Там, де так, число
-       записів на послугу вже стоїть у плитці KPI, і цього досить. */
+       записів на послугу вже стоїть у плитці KPI. */
     const showEmz = emzTop > svcTop * 1.15 && emzTop <= svcTop * 4;
 
     /* Вісь від НУЛЯ, а не від мінімуму ряду. Автомасштаб «від мінімуму» —
@@ -352,57 +360,60 @@
     const top = showEmz ? emzTop : svcTop;
     const step = niceStep(top);
     const yMax = Math.max(step, Math.ceil(top / step) * step);
-    const iw = CH.w - CH.l - CH.r;
+    const iw = W - CH.l - CH.r;
     const ih = CH.h - CH.t - CH.b;
     const x = (i) => CH.l + (full.length === 1 ? iw / 2 : (iw * i) / (full.length - 1));
     const y = (v) => CH.t + ih - (v / yMax) * ih;
 
-    // Вісь підписуємо однією одиницею на всю шкалу: «5 000» поряд із «10 тис.»
-    // на одній осі читається як помилка
+    // Підписи осі — у власній лівій колонці, а не поверх графіка: саме там
+    // вони налазили на значення першої точки
     const ax = axisFmt(yMax);
     const ticks = [];
     for (let v = 0; v <= yMax + 1; v += step) ticks.push(v);
     const grid = ticks.map((v) =>
-      '<line class="vc-grid" x1="' + CH.l + '" x2="' + (CH.w - CH.r) +
+      '<line class="vc-grid" x1="' + CH.l + '" x2="' + (W - CH.r) +
       '" y1="' + y(v).toFixed(1) + '" y2="' + y(v).toFixed(1) + '"/>' +
-      '<text class="vc-tick" x="' + (CH.l + 2) + '" y="' + (y(v) - 3).toFixed(1) + '">' +
-      esc(ax(v)) + "</text>").join("");
+      '<text class="vc-tick" x="' + (CH.l - 8) + '" y="' + (y(v) + 3.5).toFixed(1) +
+      '" text-anchor="end">' + esc(ax(v)) + "</text>").join("");
 
-    const line = (vals, cls) =>
-      '<path class="' + cls + '" d="' +
-      vals.map((v, i) => (i ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1)).join(" ") + '"/>';
-    const areaPath = '<path class="vc-area" d="' +
-      svc.map((v, i) => (i ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1)).join(" ") +
+    const path = (vals) =>
+      vals.map((v, i) => (i ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1)).join(" ");
+    const areaPath = '<path class="vc-area" d="' + path(svc) +
       " L" + x(svc.length - 1).toFixed(1) + " " + y(0).toFixed(1) +
       " L" + x(0).toFixed(1) + " " + y(0).toFixed(1) + ' Z"/>';
 
     const dots = full.map((m, i) => {
       const tip = mn(m) + ": " + num(svc[i]) + " послуг · " + num(emz[i]) + " медзаписів";
       return '<g class="vc-pt"><title>' + esc(tip) + "</title>" +
-        '<circle class="vc-dot" cx="' + x(i).toFixed(1) + '" cy="' + y(svc[i]).toFixed(1) + '" r="3.5"/>' +
-        '<circle class="vc-hit" cx="' + x(i).toFixed(1) + '" cy="' + y(svc[i]).toFixed(1) + '" r="14"/>' +
+        '<circle class="vc-dot" cx="' + x(i).toFixed(1) + '" cy="' + y(svc[i]).toFixed(1) + '" r="3"/>' +
+        '<circle class="vc-hit" cx="' + x(i).toFixed(1) + '" cy="' + y(svc[i]).toFixed(1) + '" r="16"/>' +
         "</g>";
     }).join("");
 
-    // Підписуємо не кожну точку, а лише краї та екстремуми — інакше на семи
-    // місяцях числа злипаються в кашу
-    const iMax = svc.indexOf(Math.max.apply(null, svc));
+    /* Підписуємо тільки найвищу і найнижчу точки. Краї ряду підписували
+       раніше — і на лівому краю значення сідало рівно на позначку осі.
+       Динаміку словами й так дає підпис під графіком. */
+    const iMax = svc.indexOf(svcTop);
     const iMin = svc.indexOf(Math.min.apply(null, svc));
-    const marked = [0, full.length - 1, iMax, iMin];
-    const vals = full.map((m, i) => marked.indexOf(i) === -1 ? "" :
-      '<text class="vc-val" x="' + x(i).toFixed(1) + '" y="' + (y(svc[i]) - 9).toFixed(1) +
-      '" text-anchor="' + (i === 0 ? "start" : i === full.length - 1 ? "end" : "middle") + '">' +
-      esc(ax(svc[i])) + "</text>").join("");
+    const marks = iMax === iMin ? [iMax] : [iMax, iMin];
+    const vals = marks.map((i) => {
+      const up = i === iMax;
+      const anchor = i === 0 ? "start" : (i === full.length - 1 ? "end" : "middle");
+      return '<text class="vc-val" x="' + x(i).toFixed(1) + '" y="' +
+        (y(svc[i]) + (up ? -11 : 17)).toFixed(1) + '" text-anchor="' + anchor + '">' +
+        esc(ax(svc[i])) + "</text>";
+    }).join("");
 
     const labels = full.map((m, i) =>
       '<text class="vc-mon" x="' + x(i).toFixed(1) + '" y="' + (CH.h - 8) +
-      '" text-anchor="' + (i === 0 ? "start" : i === full.length - 1 ? "end" : "middle") + '">' +
-      mn(m) + "</text>").join("");
+      '" text-anchor="middle">' + mn(m) + "</text>").join("");
 
-    const svg = '<svg class="vc" viewBox="0 0 ' + CH.w + " " + CH.h +
-      '" preserveAspectRatio="none" role="img" aria-label="Помісячна динаміка наданих послуг">' +
-      grid + areaPath + line(svc, "vc-line") +
-      (showEmz ? line(emz, "vc-line emz") : "") + dots + vals + labels + "</svg>";
+    const svg = '<svg class="vc" viewBox="0 0 ' + W + " " + CH.h + '" width="' + W +
+      '" height="' + CH.h + '" role="img" aria-label="Помісячна динаміка наданих послуг">' +
+      grid + areaPath +
+      '<path class="vc-line" d="' + path(svc) + '"/>' +
+      (showEmz ? '<path class="vc-line emz" d="' + path(emz) + '"/>' : "") +
+      dots + vals + labels + "</svg>";
 
     const legend = showEmz
       ? '<div class="vc-legend"><span class="vc-key svc"></span>послуги' +
@@ -412,7 +423,8 @@
     const first = svc[0], last = svc[svc.length - 1];
     const trend = first ? (last - first) / first * 100 : 0;
     const trendTxt = full.length > 1
-      ? "Від " + mn(full[0]) + " до " + mn(full[full.length - 1]) + " обсяг " +
+      ? "Від " + mn(full[0]) + " (" + ax(first) + ") до " + mn(full[full.length - 1]) +
+        " (" + ax(last) + ") обсяг " +
         (trend > 3 ? "виріс" : (trend < -3 ? "впав" : "тримається рівно")) +
         (Math.abs(trend) > 3 ? " на " + dec(Math.abs(trend), 0) + " %" : "") + "."
       : "";
@@ -421,6 +433,20 @@
         ? " Обрізаний хвіст вивантажки (" +
           d.partial.map((m) => mn(m)).join(", ") + ") на графік не береться."
         : "") + "</p>";
+
+    watchWidth(box, d);
+  }
+
+  /* Полотно прив'язане до ширини в пікселях, тому при зміні розміру вікна його
+     треба перерахувати. Перемальовуємо лише на помітну зміну — інакше власна
+     перерисовка знову тригерила б спостерігача. */
+  function watchWidth(box, d) {
+    if (box._ro || typeof ResizeObserver === "undefined") return;
+    box._ro = new ResizeObserver(() => {
+      const w = Math.round(box.clientWidth || 0);
+      if (w && Math.abs(w - (box._vw || 0)) > 8 && V._pkg) renderMonths(V._pkg);
+    });
+    box._ro.observe(box);
   }
 
   /** Один формат чисел на всю вісь, обраний за її верхом. */
