@@ -1,5 +1,5 @@
 /* ============================================================
-   Фірмовий темний шар НСЗУ («корпоративний фон»)
+   Темний фоновий шар порталу («глибока бірюза»)
    ------------------------------------------------------------
    Токени палітри + компонент .brand-canvas — самодостатній
    CSS-шар, що відтворює корпоративний фон (глибока бірюза,
@@ -7,7 +7,7 @@
    показ, масштабується під будь-який блок.
 
    Коли з'явиться оригінальний файл фону, підключати так:
-       .hero--brand { --brand-photo: url('assets/brand/bg-nszu.webp'); }
+       .hero--brand { --brand-photo: url('assets/brand/bg-bokeh.webp'); }
    Картинка ляже поверх градієнтів, а градієнти залишаться
    як фолбек до її завантаження й заповнять краї.
 
@@ -15,26 +15,26 @@
    ============================================================ */
 
 :root {
-  /* Глибина фону — піпеткою з оригіналу assets/bg-nszu.png */
-  --nszu-950: #011025;
-  --nszu-900: #02163b;
-  --nszu-800: #014783;
-  --nszu-700: #024e6e;
-  --nszu-600: #036485;
-  --nszu-500: #027c91;
+  /* Глибина фону — піпеткою з оригіналу майстер-файлу фону */
+  --brand-950: #011025;
+  --brand-900: #02163b;
+  --brand-800: #014783;
+  --brand-700: #024e6e;
+  --brand-600: #036485;
+  --brand-500: #027c91;
   /* Світло боке */
-  --nszu-glow:  #39b9c4;
-  --nszu-glow-2:#acf2ee;
+  --brand-glow:  #39b9c4;
+  --brand-glow-2:#acf2ee;
   /* Золоті іскри — теплий акцент, якого бракувало палітрі порталу */
-  --nszu-gold:      #ffe694;
-  --nszu-gold-soft: #fbfec4;
-  --nszu-gold-deep: #a8761f;  /* варіант для світлого тла: контраст на білому ≥ 4.5:1 */
+  --brand-gold:      #ffe694;
+  --brand-gold-soft: #fbfec4;
+  --brand-gold-deep: #a8761f;  /* варіант для світлого тла: контраст на білому ≥ 4.5:1 */
 
   /* Текст поверх фірмового фону */
-  --nszu-on-dark:       #f4fbff;
-  --nszu-on-dark-muted: rgba(233, 246, 252, .84);
-  --nszu-on-dark-faint: rgba(233, 246, 252, .62);
-  --nszu-hairline:      rgba(255, 255, 255, .14);
+  --brand-on-dark:       #f4fbff;
+  --brand-on-dark-muted: rgba(233, 246, 252, .84);
+  --brand-on-dark-faint: rgba(233, 246, 252, .62);
+  --brand-hairline:      rgba(255, 255, 255, .14);
 }
 
 /* ── Сам шар ─────────────────────────────────────────── */
@@ -48,7 +48,7 @@
     var(--brand-photo, none),
     radial-gradient(120% 85% at 74% 6%,  rgba(3, 120, 138, .85) 0%, rgba(3, 120, 138, 0) 62%),
     radial-gradient(95% 75% at 8% 96%,   rgba(1, 16, 37, .85)   0%, rgba(1, 16, 37, 0)   68%),
-    linear-gradient(155deg, var(--nszu-900) 0%, var(--nszu-700) 46%, var(--nszu-800) 100%);
+    linear-gradient(155deg, var(--brand-900) 0%, var(--brand-700) 46%, var(--brand-800) 100%);
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -146,20 +146,20 @@
    пізніше і перекриває світлі правила .hero без !important.
    ============================================================ */
 .hero.hero--brand {
-  border-bottom-color: var(--nszu-hairline);
+  border-bottom-color: var(--brand-hairline);
   /* Широкий кроп на смузі боке — 55 КБ WebP замість 5,3 МБ оригіналу */
-  --brand-photo: url('assets/bg-nszu-wide.webp');
+  --brand-photo: url('assets/bg-bokeh-wide.webp');
 }
 /* На вузькому екрані широкий кроп обрізало б по краях — беремо портрет */
 @media (max-width: 720px) {
-  .hero.hero--brand { --brand-photo: url('assets/bg-nszu-portrait.webp'); }
+  .hero.hero--brand { --brand-photo: url('assets/bg-bokeh-portrait.webp'); }
 }
 
 .hero.hero--brand .hero-inner { position: relative; z-index: 2; }
-.hero.hero--brand h1 { color: var(--nszu-on-dark); }
-.hero.hero--brand h1 .accent   { color: var(--nszu-glow-2); }
-.hero.hero--brand h1 .accent-2 { color: var(--nszu-gold); }
-.hero.hero--brand .hero-lead   { color: var(--nszu-on-dark-muted); }
+.hero.hero--brand h1 { color: var(--brand-on-dark); }
+.hero.hero--brand h1 .accent   { color: var(--brand-glow-2); }
+.hero.hero--brand h1 .accent-2 { color: var(--brand-gold); }
+.hero.hero--brand .hero-lead   { color: var(--brand-on-dark-muted); }
 
 /* Крапкова сітка й кубики на темному читаються інакше — перефарбовуємо */
 .hero.hero--brand .plus-field {
@@ -207,7 +207,7 @@
 }
 .hero.hero--brand .hero-logo-replay {
   background: rgba(1, 16, 37, .6);
-  color: var(--nszu-gold);
+  color: var(--brand-gold);
   border-color: rgba(255, 230, 148, .4);
 }
 

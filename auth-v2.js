@@ -438,13 +438,13 @@ function applyAccess() {
     ];
 
     // «Пакети» — усе, що стосується пакета медичних послуг: сам пакет, його
-    // паспорт, роз'яснення НСЗУ до нього, пілоти поза постановою 1808 і архів
+    // паспорт, роз'яснення до нього, пілоти поза постановою 1808 і архів
     // минулих років. Роз'яснення, паспорт і архів були розкидані по трьох
     // різних місцях меню, хоча шукають їх там само, де й пакет.
     const packagesItems = [
       { text: '📗 Пакети ПМГ 2026', path: 'pakety/index.html' },
       { text: '🪪 Паспорт пакета', path: 'passport/index.html' },
-      { text: '📄 Роз\'яснення НСЗУ', path: 'rozjasnennya/index.html' },
+      { text: '📄 Роз\'яснення', path: 'rozjasnennya/index.html' },
       { text: '🧪 Пілотні проєкти', path: 'pilots/index.html' },
       { text: '🗃️ Архів пакетів ПМГ', path: 'pakety/collector.html' }
     ];
@@ -477,7 +477,7 @@ function applyAccess() {
         //   «Посади у вимогах ПМГ» (?view=pkg) — це не сторінка, а галочка
         //     «лише посади, які є вимогою» на тій самій сторінці, і галочка
         //     стоїть на видноті в лівій панелі;
-        //   «Коди посад НСЗУ» (?view=codes) — теж та сама сторінка, але
+        //   «Коди посад» (?view=codes) — теж та сама сторінка, але
         //     список інший (286 кодів за номером, з них 46 без характеристики),
         //     тож пункт не викинуто, а переїхав ПЕРЕМИКАЧЕМ на саму сторінку;
         //   «Кадровий ланцюжок» — знято з навігації за рішенням від 18.08.2026
@@ -515,7 +515,7 @@ function applyAccess() {
     ];
 
     // Довідково-нормативні розділи — згруповані в дропдаун «Документи».
-    // Накази НСЗУ винесені у власне гніздо: їх уже два, і поруч у списку вони
+    // Накази винесені у власне гніздо: їх уже два, і поруч у списку вони
     // читаються як два різні розділи, хоча це один тип документа.
     const documentsItems = [
       {
@@ -525,7 +525,7 @@ function applyAccess() {
         ]
       },
       {
-        text: '📜 Накази НСЗУ', items: [
+        text: '📜 Накази', items: [
           { text: 'Наказ 377 · Алгоритми та правила', path: 'algorithms/index.html' },
           { text: 'Наказ 182 · Кодування реабілітації', path: 'algorithms/rehab.html' }
         ]
@@ -2772,14 +2772,14 @@ let mobileLayoutResizeHooked = false;
 function applyMobileHeaderLayout() {
   const isMobile = window.matchMedia('(max-width: 980px)').matches;
 
-  // Банер департаменту — створюємо один раз, видимість керує CSS
+  // Банер проєкту на вузькому екрані — створюємо один раз, видимість керує CSS
   const headerEl = document.querySelector('header.top') || document.querySelector('header.hero');
   if (headerEl && !document.getElementById('mobile-dept-banner')) {
     const banner = document.createElement('div');
     banner.id = 'mobile-dept-banner';
     banner.innerHTML = `
-      <span class="mdb-agency">НСЗУ</span>
-      <span class="mdb-name">Департамент стратегії універсального охоплення населення медичними послугами</span>`;
+      <span class="mdb-agency">drVzgljad</span>
+      <span class="mdb-name">Довідник Програми медичних гарантій 2026</span>`;
     headerEl.parentElement.insertBefore(banner, headerEl);
   }
 
