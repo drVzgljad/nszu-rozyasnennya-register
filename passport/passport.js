@@ -1037,12 +1037,16 @@ function wireTopProviders() {
   }
 }
 
-function kpiTileHtml(icon, label, valueHtml, sub, id = "") {
+/* Плитка термометра. drill — ключ розгортки в kpi-drill.js: якщо він є,
+   плитка стає клікабельною і відкриває пояснювальну сторінку показника. */
+function kpiTileHtml(icon, label, valueHtml, sub, id = "", drill = "") {
+  const dr = drill && window.KpiDrill && window.KpiDrill.has(drill);
   return `
-    <div class="kpi-tile">
+    <div class="kpi-tile${dr ? " kpi-drillable" : ""}"${dr ? ` data-drill="${drill}" role="button" tabindex="0" aria-label="${escapeHtml(label)} — розгорнути пояснення"` : ""}>
       <div class="kpi-head"><span class="kpi-icon">${icon}</span><span class="kpi-label">${escapeHtml(label)}</span></div>
       <div class="kpi-value"${id ? ` id="${id}"` : ""}>${valueHtml}</div>
       <div class="kpi-sub">${escapeHtml(sub)}</div>
+      ${dr ? `<span class="kpi-more">детально &rarr;</span>` : ""}
     </div>`;
 }
 
@@ -1154,7 +1158,8 @@ function renderAnalytics() {
       noSums ? "у вивантажці суми за пакетом відсутні" : "типова сума на один заклад") +
     kpiTileHtml("🎯", "Ядро: 80 % бюджету", noSums ? "—" : `${core80} <small>ЗОЗ</small>`,
       noSums ? "у вивантажці суми за пакетом відсутні"
-             : `${pctUk(core80Share)} мережі забирає 4/5 грошей пакета · топ-5 ЗОЗ — ${Math.round(top5Share)} %`) +
+             : `${pctUk(core80Share)} мережі забирає 4/5 грошей пакета · топ-5 ЗОЗ — ${Math.round(top5Share)} %`,
+      "", noSums ? "" : "core80") +
     (passportState.hasVolumes ? intensTileHtml() : "");
   animateCount(el("kpiProviders"), pContracts.length);
   // Обсяги могли вже лежати в кеші (перемальовування теми чи розміру) — тоді
@@ -1804,7 +1809,7 @@ function renderComboFilterChip() {
   if (!f) { box.hidden = true; box.innerHTML = ""; return; }
   box.hidden = false;
   box.innerHTML = `
-    <span class="cf-label">Фільтр за пакетами:</span>
+    <span class="cf-label">${escapeHtml(f.chip || "Фільтр за пакетами:")}</span>
     <span class="cf-value">${escapeHtml(f.label)}</span>
     <button type="button" class="cf-clear" id="comboClear">скинути</button>`;
   el("comboClear").addEventListener("click", () => {
@@ -1893,6 +1898,9 @@ function getFilteredHospitals() {
   if (combo) {
     const { byProvider } = getProviderIndex();
     list = list.filter(c => {
+      // only — поіменний перелік ЄДРПОУ (розгортка «Ядро бюджету»);
+      // req/excl — умови за складом пакетів надавача
+      if (combo.only && !combo.only.has(c.edrpou)) return false;
       const own = byProvider.get(c.edrpou) || new Set();
       return combo.req.every(n => own.has(n)) && combo.excl.every(n => !own.has(n));
     });

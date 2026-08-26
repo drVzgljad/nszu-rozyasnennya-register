@@ -2719,3 +2719,465 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
   gap: 12px; flex-wrap: wrap; margin-bottom: 4px;
 }
 .vol-head-row h3 { margin: 0; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   РОЗГОРТКА KPI-ПЛИТКИ (kpi-drill.js)
+   Плитка термометра відкриває пояснювально-візуальну сторінку показника.
+   Своя пара кольорів «ядро/хвіст»: колір термометра означає масштаб
+   пакета, і плутати його з поділом усередині пакета не можна.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Плитка, у якої є розгортка */
+.kpi-tile.kpi-drillable { cursor: pointer; position: relative; }
+.kpi-tile.kpi-drillable:hover,
+.kpi-tile.kpi-drillable:focus-visible {
+  border-color: color-mix(in srgb, var(--thermo-color) 55%, transparent);
+  outline: none;
+}
+.kpi-tile.kpi-drillable:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--thermo-color) 28%, transparent);
+}
+/* Підказка стоїть окремим рядком унизу плитки, а не в шапці: у шапці вона
+   з'їдала половину ширини і назва показника ламалась на два рядки */
+.kpi-more {
+  margin-top: auto; align-self: flex-start;
+  font-size: 9.5px; font-weight: 800; letter-spacing: .04em;
+  text-transform: uppercase; color: var(--thermo-color);
+  border-bottom: 1px dashed color-mix(in srgb, var(--thermo-color) 45%, transparent);
+  opacity: .78; white-space: nowrap;
+}
+.kpi-tile.kpi-drillable:hover .kpi-more { opacity: 1; }
+
+/* ── Каркас шухляди ─────────────────────────────────────────── */
+.drill-scrim {
+  position: fixed; inset: 0; z-index: 300;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+  background: rgba(10, 20, 33, .58);
+  backdrop-filter: blur(3px);
+}
+/* Прозорість підкладки НЕ анімується навмисно. Анімації не просуваються на
+   некомпозитній сторінці (прихована вкладка, знімок), і застигла на нульовому
+   кадрі підкладка була б невидимою, але клікоперехоплювальною поверх усього.
+   Анімуємо лише зсув шухляди: застиглий transform — це 14 px зміщення,
+   з яких нічого поганого не станеться. */
+.drill-scrim[hidden] { display: none; }
+
+.drill-sheet {
+  --core-c: #e0742b;
+  --core-c2: #f6c059;
+  --tail-c: #8fa8bf;
+  width: min(1180px, 100%);
+  max-height: 92vh;
+  display: flex; flex-direction: column;
+  background: var(--soft, #f5fafb);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(8, 20, 34, .38);
+}
+.drill-scrim.in .drill-sheet { animation: drill-sheet-in .24s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes drill-sheet-in { from { transform: translateY(16px) scale(.99); } }
+@media (prefers-reduced-motion: reduce) { .drill-scrim.in .drill-sheet { animation: none; } }
+
+.drill-head {
+  display: flex; align-items: center; gap: 14px;
+  padding: 15px 20px;
+  background: linear-gradient(112deg, #e0742b 0%, #f0a03c 58%, #f6c059 100%);
+  color: #fff;
+}
+.dh-icon {
+  font-size: 26px; line-height: 1;
+  width: 46px; height: 46px; flex: 0 0 46px;
+  display: grid; place-items: center;
+  background: rgba(255, 255, 255, .2);
+  border: 1px solid rgba(255, 255, 255, .34);
+  border-radius: 13px;
+}
+.dh-txt { min-width: 0; }
+.drill-head h2 {
+  margin: 0; font-size: 19px; font-weight: 900; line-height: 1.15;
+  font-family: var(--p-display, inherit); color: #fff;
+}
+.dh-sub {
+  margin: 2px 0 0; font-size: 12.5px; font-weight: 700;
+  color: rgba(255, 255, 255, .9);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.drill-close {
+  margin-left: auto; flex: 0 0 auto;
+  width: 36px; height: 36px; border-radius: 10px;
+  background: rgba(255, 255, 255, .18);
+  border: 1px solid rgba(255, 255, 255, .34);
+  color: #fff; font-size: 16px; font-weight: 800; cursor: pointer;
+  transition: background .15s ease;
+}
+.drill-close:hover { background: rgba(255, 255, 255, .32); }
+
+.drill-body {
+  overflow-y: auto; overscroll-behavior: contain;
+  padding: 16px 20px 26px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+
+/* ── Ліда: пряма відповідь ──────────────────────────────────── */
+.dr-lede {
+  display: grid; grid-template-columns: 1fr 330px; gap: 18px; align-items: center;
+  padding: 20px 22px; border-radius: 16px;
+  background:
+    radial-gradient(760px 220px at 6% -30%, color-mix(in srgb, var(--core-c) 16%, transparent), transparent 70%),
+    var(--surface, #fff);
+  border: 1px solid var(--line, #dde6ee);
+  border-left: 4px solid var(--core-c);
+}
+.dr-lede-q {
+  margin: 0 0 6px; font-size: 10.5px; font-weight: 800; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--muted, #6b7f92);
+}
+.dr-lede-a {
+  margin: 0; font-size: 21px; line-height: 1.35; font-weight: 700;
+  color: var(--ink, #1f3347); font-family: var(--p-display, inherit);
+}
+.dr-lede-a b { font-size: 27px; font-weight: 900; color: var(--core-c); }
+.dr-lede-b {
+  margin: 8px 0 0; font-size: 13px; font-weight: 600; line-height: 1.45;
+  color: var(--muted, #6b7f92);
+}
+.dr-lede-badge {
+  display: grid; grid-template-columns: 34px 1fr; gap: 4px 10px;
+  padding: 13px 15px; border-radius: 13px;
+  background: color-mix(in srgb, var(--core-c) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--core-c) 30%, transparent);
+}
+.dlb-i { grid-row: span 2; font-size: 24px; line-height: 1.1; }
+.dr-lede-badge b {
+  font-size: 14px; font-weight: 900; color: var(--ink, #1f3347); line-height: 1.25;
+}
+.dr-lede-badge i {
+  font-style: normal; font-size: 12px; font-weight: 600; line-height: 1.42;
+  color: var(--muted, #6b7f92);
+}
+
+/* ── Картка розділу ─────────────────────────────────────────── */
+.dr-card {
+  background: var(--surface, #fff);
+  border: 1px solid var(--line, #dde6ee);
+  border-radius: 14px;
+  padding: 15px 18px 17px;
+}
+.dr-card h3 {
+  margin: 0; font-size: 15px; font-weight: 900; color: var(--ink, #1f3347);
+  font-family: var(--p-display, inherit);
+}
+.dr-hint {
+  margin: 4px 0 12px; font-size: 11.5px; font-weight: 600; line-height: 1.4;
+  color: var(--muted, #6b7f92);
+}
+.dr-two { display: grid; grid-template-columns: 1.08fr .92fr; gap: 14px; align-items: start; }
+
+/* ── Лійка «заклади → гроші» ────────────────────────────────── */
+.dr-funnel { width: 100%; height: auto; display: block; }
+.dr-tail-bar { fill: color-mix(in srgb, var(--tail-c) 26%, transparent); }
+.dr-core-bar { fill: var(--core-c); }
+.dr-band-core { fill: color-mix(in srgb, var(--core-c) 22%, transparent); }
+.dr-band-tail { fill: color-mix(in srgb, var(--tail-c) 13%, transparent); }
+.dr-inbar { fill: #fff; font-size: 20px; font-weight: 900; }
+.dr-inbar-dim { fill: var(--muted, #6b7f92); font-size: 16px; font-weight: 800; }
+.dr-outbar { fill: var(--core-c); font-size: 17px; font-weight: 900; }
+.dr-axtitle {
+  fill: var(--muted, #6b7f92); font-size: 13px; font-weight: 800; letter-spacing: .06em;
+}
+.dr-legend {
+  display: flex; gap: 18px; flex-wrap: wrap; margin-top: 10px;
+  font-size: 11.5px; font-weight: 700; color: var(--muted, #6b7f92);
+}
+.dr-legend i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 6px; }
+.dr-legend i.core { background: var(--core-c); }
+.dr-legend i.tail { background: color-mix(in srgb, var(--tail-c) 40%, transparent); }
+
+/* ── Плитки-якорі ───────────────────────────────────────────── */
+.dr-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(196px, 1fr)); gap: 12px; }
+.dr-stat {
+  background: var(--surface, #fff);
+  border: 1px solid var(--line, #dde6ee);
+  border-left: 3px solid var(--core-c);
+  border-radius: 12px; padding: 12px 14px;
+}
+.dr-stat-l {
+  font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--muted, #6b7f92);
+}
+.dr-stat-v {
+  margin: 5px 0 3px; font-size: 25px; font-weight: 900; line-height: 1.05;
+  color: var(--ink, #1f3347); font-variant-numeric: tabular-nums;
+  font-family: var(--p-display, inherit);
+}
+.dr-stat-v small { font-size: 13px; font-weight: 800; color: var(--muted, #6b7f92); }
+.dr-stat-s { font-size: 11px; font-weight: 600; line-height: 1.35; color: var(--muted, #6b7f92); }
+
+/* ── Крива концентрації ─────────────────────────────────────── */
+.dr-curve { width: 100%; height: auto; display: block; }
+.dr-grid { stroke: var(--line, #dde6ee); stroke-width: 1; }
+.dr-axis { stroke: color-mix(in srgb, var(--muted, #6b7f92) 50%, transparent); stroke-width: 1.2; }
+.dr-tick { fill: var(--muted, #6b7f92); font-size: 11px; font-weight: 700; }
+.dr-axname { fill: var(--muted, #6b7f92); font-size: 11px; font-weight: 700; }
+.dr-equal {
+  stroke: color-mix(in srgb, var(--muted, #6b7f92) 62%, transparent);
+  stroke-width: 1.6; stroke-dasharray: 5 5;
+}
+.dr-equal-lbl { fill: var(--muted, #6b7f92); font-size: 11px; font-weight: 700; }
+.dr-line {
+  fill: none; stroke: var(--core-c); stroke-width: 3;
+  stroke-linejoin: round; stroke-linecap: round;
+}
+.dr-mark { stroke: var(--core-c); stroke-width: 1.6; stroke-dasharray: 4 4; opacity: .8; }
+.dr-dot { fill: var(--core-c); stroke: var(--surface, #fff); stroke-width: 2.5; }
+.dr-dotlbl { fill: var(--ink, #1f3347); font-size: 12.5px; font-weight: 900; }
+
+/* ── «Як це читати» ─────────────────────────────────────────── */
+.dr-read { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.dr-read li {
+  display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap;
+  padding: 8px 11px; border-radius: 10px;
+  background: color-mix(in srgb, var(--soft, #f5fafb) 70%, transparent);
+  border: 1px solid var(--line, #dde6ee);
+  font-size: 12.5px; font-weight: 600; color: var(--ink, #1f3347);
+}
+.dr-read li b {
+  font-size: 17px; font-weight: 900; color: var(--core-c);
+  font-variant-numeric: tabular-nums; min-width: 62px;
+}
+.dr-read li small { margin-left: auto; font-size: 10.5px; color: var(--muted, #6b7f92); font-weight: 700; }
+.dr-read li.hi {
+  background: color-mix(in srgb, var(--core-c) 11%, transparent);
+  border-color: color-mix(in srgb, var(--core-c) 34%, transparent);
+}
+
+/* ── Лінійка пакетів ────────────────────────────────────────── */
+.dr-ruler-box { margin-top: 13px; padding-top: 12px; border-top: 1px dashed var(--line, #dde6ee); }
+.dr-ruler-head { font-size: 11.5px; font-weight: 600; line-height: 1.4; color: var(--muted, #6b7f92); }
+.dr-ruler-head strong { color: var(--ink, #1f3347); font-weight: 900; }
+.dr-ruler { position: relative; height: 30px; margin: 12px 6px 2px; }
+.dr-ruler-line {
+  position: absolute; left: 0; right: 0; top: 13px; height: 4px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--core-c), color-mix(in srgb, var(--tail-c) 55%, transparent));
+}
+.dr-dotmark {
+  position: absolute; top: 11px; width: 8px; height: 8px; border-radius: 50%;
+  transform: translateX(-50%);
+  background: var(--surface, #fff);
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--muted, #6b7f92) 60%, transparent);
+}
+.dr-dotmark.me {
+  top: 6px; width: 18px; height: 18px; z-index: 2;
+  background: var(--core-c);
+  box-shadow: 0 0 0 3px var(--surface, #fff), 0 3px 10px color-mix(in srgb, var(--core-c) 45%, transparent);
+}
+.dr-ruler-me {
+  position: absolute; top: 0; width: 2px; height: 30px; transform: translateX(-50%);
+  background: color-mix(in srgb, var(--core-c) 42%, transparent); border-radius: 1px;
+}
+.dr-ruler-ends {
+  display: flex; justify-content: space-between; gap: 10px;
+  font-size: 10.5px; font-weight: 700; color: var(--muted, #6b7f92);
+}
+
+/* ── Регіони ядра ───────────────────────────────────────────── */
+.dr-regs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 16px; }
+@media (max-width: 1080px) { .dr-regs { grid-template-columns: 1fr; } }
+.dr-reg {
+  display: grid; grid-template-columns: 158px 1fr 168px; gap: 12px; align-items: center;
+  width: 100%; padding: 7px 10px; border-radius: 9px; cursor: pointer; text-align: left;
+  background: transparent; border: 1px solid transparent;
+  transition: background .14s ease, border-color .14s ease;
+}
+.dr-reg:hover {
+  background: color-mix(in srgb, var(--core-c) 8%, transparent);
+  border-color: color-mix(in srgb, var(--core-c) 26%, transparent);
+}
+.dr-reg-name { font-size: 12.5px; font-weight: 700; color: var(--ink, #1f3347); }
+.dr-reg-bar {
+  height: 9px; border-radius: 5px; overflow: hidden;
+  background: color-mix(in srgb, var(--line, #dde6ee) 60%, transparent);
+}
+.dr-reg-bar i {
+  display: block; height: 100%; border-radius: 5px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--core-c) 62%, #fff), var(--core-c));
+}
+.dr-reg-val {
+  text-align: right; font-size: 12.5px; font-weight: 800; color: var(--ink, #1f3347);
+  font-variant-numeric: tabular-nums;
+}
+.dr-reg-val small { display: block; font-size: 10.5px; font-weight: 600; color: var(--muted, #6b7f92); }
+.dr-note {
+  margin: 11px 0 0; padding: 9px 12px; border-radius: 9px;
+  font-size: 12px; font-weight: 600; line-height: 1.45;
+}
+.dr-note.warn { background: rgba(240, 160, 60, .13); border: 1px solid rgba(240, 160, 60, .38); color: #8a5411; }
+.dr-note.ok { background: rgba(84, 173, 132, .12); border: 1px solid rgba(84, 173, 132, .34); color: #2f6b51; }
+
+/* ── Ядро проти хвоста ──────────────────────────────────────── */
+.dr-cmp-scroll { overflow-x: auto; }
+.dr-cmp { width: 100%; border-collapse: collapse; min-width: 520px; }
+.dr-cmp th, .dr-cmp td { padding: 9px 12px; text-align: left; vertical-align: top; }
+.dr-cmp thead th {
+  font-size: 12.5px; font-weight: 900; color: var(--ink, #1f3347);
+  border-bottom: 2px solid var(--line, #dde6ee); width: 38%;
+}
+.dr-cmp thead th.core { color: var(--core-c); border-bottom-color: var(--core-c); }
+.dr-cmp thead th:first-child { width: 24%; border-bottom-color: var(--line, #dde6ee); }
+.dr-cmp thead th small {
+  display: block; font-size: 10.5px; font-weight: 700; color: var(--muted, #6b7f92); margin-top: 1px;
+}
+.dr-cmp tbody th {
+  font-size: 11.5px; font-weight: 700; color: var(--muted, #6b7f92);
+  border-bottom: 1px solid var(--line, #dde6ee);
+}
+.dr-cmp tbody td { border-bottom: 1px solid var(--line, #dde6ee); }
+.dr-cmp tbody tr:last-child th, .dr-cmp tbody tr:last-child td { border-bottom: none; }
+.dr-cmp tbody td b {
+  display: block; font-size: 14.5px; font-weight: 900; color: var(--ink, #1f3347);
+  font-variant-numeric: tabular-nums;
+}
+.dr-cmp tbody td b.sm { font-size: 13px; letter-spacing: -.01em; }
+.dr-cmp tbody td small { display: block; font-size: 10.5px; font-weight: 600; color: var(--muted, #6b7f92); }
+.dr-chip {
+  display: inline-flex; align-items: baseline; gap: 4px; margin: 0 5px 4px 0;
+  padding: 2px 8px; border-radius: 999px;
+  background: color-mix(in srgb, var(--soft, #f5fafb) 80%, transparent);
+  border: 1px solid var(--line, #dde6ee);
+  font-size: 11px; font-weight: 600; color: var(--muted, #6b7f92);
+}
+.dr-chip b { display: inline !important; font-size: 11.5px !important; color: var(--ink, #1f3347) !important; }
+.dr-chip i { font-style: normal; font-weight: 800; color: var(--core-c); }
+
+/* ── Поіменний перелік ядра ─────────────────────────────────── */
+.dr-list-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 11px;
+}
+.dr-apply {
+  padding: 7px 13px; border-radius: 9px; cursor: pointer;
+  background: color-mix(in srgb, var(--core-c) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--core-c) 38%, transparent);
+  color: var(--core-c); font-size: 12px; font-weight: 800;
+  transition: background .14s ease;
+}
+.dr-apply:hover { background: color-mix(in srgb, var(--core-c) 22%, transparent); }
+.dr-list-scroll { max-height: 520px; overflow: auto; border-radius: 10px; border: 1px solid var(--line, #dde6ee); }
+.dr-list { width: 100%; border-collapse: collapse; }
+.dr-list thead th {
+  position: sticky; top: 0; z-index: 1;
+  background: var(--soft, #f5fafb);
+  padding: 8px 11px; text-align: left;
+  font-size: 10.5px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase;
+  color: var(--muted, #6b7f92);
+  border-bottom: 1px solid var(--line, #dde6ee);
+}
+.dr-list td { padding: 8px 11px; border-bottom: 1px solid var(--line, #dde6ee); font-size: 12.5px; }
+.dr-list tbody tr:last-child td { border-bottom: none; }
+.dr-list tbody tr:hover { background: color-mix(in srgb, var(--core-c) 6%, transparent); }
+.dr-rk { width: 42px; font-weight: 900; color: var(--muted, #6b7f92); font-variant-numeric: tabular-nums; }
+.dr-nm span { font-weight: 700; color: var(--ink, #1f3347); }
+.dr-nm small { display: block; font-size: 10.5px; font-weight: 600; color: var(--muted, #6b7f92); margin-top: 1px; }
+.dr-sm, .dr-sh, .dr-cu { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.dr-sm { font-weight: 800; color: var(--ink, #1f3347); }
+.dr-sh { font-weight: 700; color: var(--core-c); }
+.dr-cu { font-weight: 700; color: var(--muted, #6b7f92); }
+.dr-more {
+  margin-top: 10px; width: 100%; padding: 9px; border-radius: 9px; cursor: pointer;
+  background: var(--soft, #f5fafb); border: 1px solid var(--line, #dde6ee);
+  color: var(--accent, #4a8fc7); font-size: 12px; font-weight: 800;
+}
+.dr-more:hover { background: color-mix(in srgb, var(--core-c) 9%, transparent); }
+
+/* ── Висновки і межі показника ──────────────────────────────── */
+.dr-card-mean { border-left: 4px solid var(--core-c); }
+.dr-mean { display: grid; grid-template-columns: 30px 1fr; gap: 10px; padding: 9px 0; }
+.dr-mean + .dr-mean { border-top: 1px dashed var(--line, #dde6ee); }
+.dr-mean-i { font-size: 19px; line-height: 1.2; }
+.dr-mean strong { display: block; font-size: 13.5px; font-weight: 900; color: var(--ink, #1f3347); }
+.dr-mean p { margin: 3px 0 0; font-size: 12.5px; font-weight: 600; line-height: 1.5; color: var(--muted, #6b7f92); }
+.dr-card-limits { background: color-mix(in srgb, var(--soft, #f5fafb) 75%, var(--surface, #fff)); }
+.dr-limits { margin: 10px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+.dr-limits li { font-size: 12px; font-weight: 600; line-height: 1.5; color: var(--muted, #6b7f92); }
+.dr-limits li b { color: var(--ink, #1f3347); font-weight: 800; }
+
+/* ── Темна тема ─────────────────────────────────────────────── */
+.dark-theme .drill-sheet { --core-c: #f0913f; --tail-c: #64748b; background: #131c28; }
+.dark-theme .drill-head { background: linear-gradient(112deg, #b4531b 0%, #d07f28 58%, #e0a03a 100%); }
+.dark-theme .dr-lede,
+.dark-theme .dr-card,
+.dark-theme .dr-stat { background: #1e293b; border-color: #334155; }
+.dark-theme .dr-lede { border-left-color: var(--core-c); }
+.dark-theme .dr-lede-a,
+.dark-theme .dr-lede-badge b,
+.dark-theme .dr-card h3,
+.dark-theme .dr-read li,
+.dark-theme .dr-reg-name,
+.dark-theme .dr-reg-val,
+.dark-theme .dr-cmp thead th,
+.dark-theme .dr-cmp tbody td b,
+.dark-theme .dr-nm span,
+.dark-theme .dr-sm,
+.dark-theme .dr-mean strong,
+.dark-theme .dr-ruler-head strong,
+.dark-theme .dr-stat-v,
+.dark-theme .dr-limits li b { color: #e2e8f0; }
+.dark-theme .dr-dotlbl { fill: #e2e8f0; }
+.dark-theme .dr-read li { background: rgba(15, 23, 42, .6); border-color: #334155; }
+.dark-theme .dr-read li.hi {
+  background: color-mix(in srgb, var(--core-c) 15%, transparent);
+  border-color: color-mix(in srgb, var(--core-c) 40%, transparent);
+}
+.dark-theme .dr-grid { stroke: #334155; }
+.dark-theme .dr-dot { stroke: #1e293b; }
+.dark-theme .dr-inbar-dim { fill: #cbd5e1; }
+.dark-theme .dr-reg-bar { background: #0f172a; }
+.dark-theme .dr-cmp thead th,
+.dark-theme .dr-cmp tbody th,
+.dark-theme .dr-cmp tbody td,
+.dark-theme .dr-list thead th,
+.dark-theme .dr-list td { border-color: #334155; }
+.dark-theme .dr-cmp thead th:first-child { border-bottom-color: #334155; }
+.dark-theme .dr-list-scroll { border-color: #334155; }
+.dark-theme .dr-list thead th { background: #16202e; }
+.dark-theme .dr-chip { background: rgba(15, 23, 42, .6); border-color: #334155; }
+.dark-theme .dr-chip b { color: #e2e8f0 !important; }
+.dark-theme .dr-more { background: #263346; border-color: #334155; color: #93c5fd; }
+.dark-theme .dr-dotmark { background: #1e293b; }
+.dark-theme .dr-dotmark.me { background: var(--core-c); box-shadow: 0 0 0 3px #1e293b, 0 3px 10px rgba(240, 145, 63, .5); }
+.dark-theme .dr-card-limits { background: #16202e; }
+.dark-theme .dr-ruler-box,
+.dark-theme .dr-mean + .dr-mean { border-color: #334155; }
+.dark-theme .dr-note.warn { background: rgba(240, 160, 60, .14); border-color: rgba(240, 160, 60, .34); color: #f0c48a; }
+.dark-theme .dr-note.ok { background: rgba(84, 173, 132, .14); border-color: rgba(84, 173, 132, .32); color: #8fd8b6; }
+
+/* ── Вужчі екрани ───────────────────────────────────────────── */
+@media (max-width: 1080px) {
+  .dr-lede { grid-template-columns: 1fr; }
+  .dr-two { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .drill-scrim { padding: 0; }
+  .drill-sheet { width: 100%; max-height: 100vh; height: 100vh; border-radius: 0; }
+  .drill-body { padding: 12px 12px 22px; }
+  .dr-lede { padding: 15px 16px; }
+  .dr-lede-a { font-size: 18px; }
+  .dr-lede-a b { font-size: 23px; }
+  .dr-card { padding: 13px 14px 15px; }
+  .dr-reg { grid-template-columns: 1fr 92px; row-gap: 4px; }
+  .dr-reg-bar { grid-column: 1 / -1; order: 3; }
+  .dr-list-scroll { max-height: 60vh; }
+}
+
+/* Полотна SVG мають однаковий viewBox на всіх ширинах, тому на телефоні кегль
+   треба піднімати в одиницях viewBox: 11 одиниць із 620 на 350 px екрана дають
+   6 пікселів. Поля під підписи ростуть разом із кеглем — у геометрії полотна. */
+.dr-curve.compact .dr-tick,
+.dr-curve.compact .dr-axname,
+.dr-curve.compact .dr-equal-lbl { font-size: 20px; }
+.dr-curve.compact .dr-dotlbl { font-size: 24px; }
+.dr-funnel.compact .dr-inbar { font-size: 46px; }
+.dr-funnel.compact .dr-inbar-dim { font-size: 38px; }
+.dr-funnel.compact .dr-outbar { font-size: 42px; }
+.dr-funnel.compact .dr-axtitle { font-size: 32px; }
