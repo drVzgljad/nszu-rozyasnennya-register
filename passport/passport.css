@@ -3181,3 +3181,168 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
 .dr-funnel.compact .dr-inbar-dim { font-size: 38px; }
 .dr-funnel.compact .dr-outbar { font-size: 42px; }
 .dr-funnel.compact .dr-axtitle { font-size: 32px; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   АНАТОМІЯ ПАКЕТА
+   Свій колір, не термометровий: температура означає масштаб пакета,
+   анатомія — його будову, і плутати ці дві мови не можна.
+   ═══════════════════════════════════════════════════════════════════ */
+.anat-hero {
+  --anat-c: #6b6cc7;
+  /* Колонки міряємо container query по фактичній ширині картки, а не по
+     вьюпорту: сайдбар паспорта змінює ширину і вьюпорт тут бреше */
+  container-type: inline-size;
+  position: relative;
+  margin-bottom: 18px;
+  padding: 16px 20px 14px;
+  border-radius: 16px;
+  background:
+    radial-gradient(820px 240px at 88% -35%, color-mix(in srgb, var(--anat-c) 14%, transparent), transparent 70%),
+    var(--surface, #fff);
+  border: 1px solid var(--line, #dde6ee);
+  border-left: 4px solid var(--anat-c);
+}
+.anat-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.anat-head h3 {
+  margin: 0; font-size: 16px; font-weight: 900; color: var(--ink, #1f3347);
+  font-family: var(--p-display, inherit);
+}
+.anat-gate {
+  display: inline-flex; align-items: baseline; gap: 7px;
+  padding: 4px 12px; border-radius: 999px;
+  background: color-mix(in srgb, var(--anat-c) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--anat-c) 30%, transparent);
+  font-size: 11.5px; line-height: 1.3;
+}
+.anat-gate .ag-i { font-size: 13px; }
+.anat-gate b { font-weight: 900; color: var(--anat-c); }
+.anat-gate i { font-style: normal; font-weight: 600; color: var(--muted, #6b7f92); }
+.anat-more {
+  margin-left: auto; padding: 5px 12px; border-radius: 9px; cursor: pointer;
+  background: color-mix(in srgb, var(--anat-c) 11%, transparent);
+  border: 1px solid color-mix(in srgb, var(--anat-c) 34%, transparent);
+  color: var(--anat-c); font-size: 11px; font-weight: 800;
+  letter-spacing: .03em; text-transform: uppercase; white-space: nowrap;
+  transition: background .14s ease;
+}
+.anat-more:hover { background: color-mix(in srgb, var(--anat-c) 20%, transparent); }
+.anat-sub {
+  margin: 7px 0 14px; font-size: 12px; font-weight: 600; line-height: 1.45;
+  color: var(--muted, #6b7f92); max-width: 92ch;
+}
+.anat-sub strong { color: var(--ink, #1f3347); font-weight: 800; }
+
+.anat-axes {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px;
+}
+@container (max-width: 1150px) { .anat-axes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container (max-width: 560px) { .anat-axes { grid-template-columns: 1fr; } }
+.anat-axis {
+  padding: 11px 13px 10px; border-radius: 12px;
+  background: color-mix(in srgb, var(--soft, #f5fafb) 62%, transparent);
+  border: 1px solid var(--line, #dde6ee);
+}
+.anat-axis.off { opacity: .62; }
+.aa-head { display: flex; align-items: baseline; gap: 7px; }
+.aa-icon { font-size: 13px; }
+.aa-label {
+  font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--muted, #6b7f92); white-space: nowrap;
+}
+.aa-val {
+  margin-left: auto; font-size: 13px; font-weight: 900; text-align: right;
+  color: var(--ink, #1f3347); line-height: 1.2;
+}
+.anat-axis.off .aa-val { color: var(--muted, #6b7f92); font-style: italic; }
+.aa-ladder {
+  display: grid; grid-template-columns: repeat(var(--steps, 4), 1fr);
+  gap: 4px; margin: 9px 0 7px;
+}
+.aa-ladder i {
+  display: block; height: 7px; border-radius: 4px;
+  background: color-mix(in srgb, var(--line, #dde6ee) 65%, transparent);
+}
+.aa-ladder i.on { background: var(--anat-c); }
+/* Сходинки світлішають до початку: видно не лише «скільки», а й «звідки» */
+.aa-ladder i.on:nth-child(1) { background: color-mix(in srgb, var(--anat-c) 45%, #fff); }
+.aa-ladder i.on:nth-child(2) { background: color-mix(in srgb, var(--anat-c) 65%, #fff); }
+.aa-ladder i.on:nth-child(3) { background: color-mix(in srgb, var(--anat-c) 85%, #fff); }
+.aa-note { font-size: 11px; font-weight: 600; line-height: 1.4; color: var(--muted, #6b7f92); }
+.anat-footnote {
+  margin-top: 12px; padding-top: 10px;
+  border-top: 1px dashed var(--line, #dde6ee);
+  font-size: 11.5px; line-height: 1.45; color: var(--muted, #6b7f92);
+}
+
+.dark-theme .anat-hero {
+  --anat-c: #9b9cf0;
+  background:
+    radial-gradient(820px 240px at 88% -35%, color-mix(in srgb, var(--anat-c) 16%, transparent), transparent 70%),
+    #1e293b;
+  border-color: #334155;
+  border-left-color: var(--anat-c);
+}
+.dark-theme .anat-head h3,
+.dark-theme .aa-val,
+.dark-theme .anat-sub strong { color: #e2e8f0; }
+.dark-theme .anat-axis { background: rgba(15, 23, 42, .55); border-color: #334155; }
+.dark-theme .aa-ladder i { background: #0f172a; }
+.dark-theme .aa-ladder i.on:nth-child(1) { background: color-mix(in srgb, var(--anat-c) 45%, #1e293b); }
+.dark-theme .aa-ladder i.on:nth-child(2) { background: color-mix(in srgb, var(--anat-c) 65%, #1e293b); }
+.dark-theme .aa-ladder i.on:nth-child(3) { background: color-mix(in srgb, var(--anat-c) 85%, #1e293b); }
+.dark-theme .anat-footnote { border-top-color: #334155; }
+
+@media (max-width: 760px) {
+  .anat-hero { padding: 13px 14px 12px; }
+  .anat-more { margin-left: 0; }
+}
+
+/* ── Розгортка «Анатомія пакета» ─────────────────────────────── */
+.drill-sheet:has(.da-lede) { --core-c: #6b6cc7; }
+.dark-theme .drill-sheet:has(.da-lede) { --core-c: #9b9cf0; }
+.da-lede .dr-lede-a { font-size: 18px; line-height: 1.4; font-weight: 800; color: var(--core-c); }
+.da-lede .dr-lede-b b { color: var(--ink, #1f3347); }
+.dark-theme .da-lede .dr-lede-b b { color: #e2e8f0; }
+.da-axis { border-left: 4px solid var(--core-c); }
+.da-head { display: grid; grid-template-columns: 34px 1fr auto; gap: 12px; align-items: start; }
+.da-icon { font-size: 24px; line-height: 1.1; }
+.da-q { margin: 2px 0 0; font-size: 12px; font-weight: 600; color: var(--muted, #6b7f92); }
+.da-val {
+  font-size: 14px; font-weight: 900; color: var(--core-c); text-align: right;
+  padding: 4px 12px; border-radius: 999px; white-space: nowrap;
+  background: color-mix(in srgb, var(--core-c) 11%, transparent);
+  border: 1px solid color-mix(in srgb, var(--core-c) 30%, transparent);
+}
+.da-val.off { color: var(--muted, #6b7f92); background: transparent; font-style: italic; }
+.da-steps { display: flex; gap: 6px; flex-wrap: wrap; margin: 13px 0 10px; }
+.da-steps span {
+  flex: 1 1 0; min-width: 92px; padding: 7px 9px; border-radius: 9px; text-align: center;
+  font-size: 11px; font-weight: 700; line-height: 1.3;
+  background: color-mix(in srgb, var(--soft, #f5fafb) 70%, transparent);
+  border: 1px solid var(--line, #dde6ee); color: var(--muted, #6b7f92);
+}
+.da-steps span.past { border-color: color-mix(in srgb, var(--core-c) 30%, transparent); }
+.da-steps span.now {
+  background: var(--core-c); border-color: var(--core-c); color: #fff; font-weight: 900;
+}
+.da-note { margin: 0 0 10px; font-size: 12.5px; font-weight: 700; color: var(--ink, #1f3347); }
+.dark-theme .da-note { color: #e2e8f0; }
+.da-how { margin: 0; font-size: 11.5px; font-weight: 600; line-height: 1.5; color: var(--muted, #6b7f92); }
+.da-how b { color: var(--ink, #1f3347); font-weight: 800; }
+.dark-theme .da-how b { color: #e2e8f0; }
+.da-nums { display: flex; flex-wrap: wrap; gap: 8px; margin: 11px 0 0; }
+.da-nums span {
+  display: flex; flex-direction: column; gap: 1px; padding: 7px 12px; border-radius: 10px;
+  background: color-mix(in srgb, var(--core-c) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--core-c) 24%, transparent);
+  font-size: 10.5px; font-weight: 700; color: var(--muted, #6b7f92); line-height: 1.3;
+}
+.da-nums b { font-size: 17px; font-weight: 900; color: var(--core-c); font-variant-numeric: tabular-nums; }
+/* :not(.now) обовʼязково — інакше темна тема з тією ж вагою селектора
+   перебиває підсвітку поточної сходинки і вісь стає нечитабельною */
+.dark-theme .da-steps span:not(.now) { background: rgba(15, 23, 42, .5); border-color: #334155; }
+@media (max-width: 760px) {
+  .da-head { grid-template-columns: 28px 1fr; }
+  .da-val { grid-column: 1 / -1; text-align: left; width: fit-content; }
+  .da-steps span { min-width: 0; flex-basis: 45%; }
+}

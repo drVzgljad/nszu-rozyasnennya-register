@@ -525,6 +525,148 @@
   /* ═══════ реєстр показників ═══════ */
 
   const DRILLS = {
+    anatomy: {
+      icon: "🧬",
+      title: "Анатомія пакета",
+      build(pkg) {
+        const A = passportState.anatomy && passportState.anatomy.pkgs[pkg.number];
+        if (!A) return null;
+        const service = A.buys === "послуга";
+        const width = service ? anatWidth(A) : { band: null, note: "" };
+        const team = anatTeam(A);
+        const gate = anatGate(A, anatBench());
+        const role = anatRole(pkg.number);
+        const buys = ANAT_BUYS[A.buys] || ANAT_BUYS["послуга"];
+
+        // Черга пакетів за кожною віссю — щоб «дуже високий поріг» мав із чим
+        // порівнюватися, а не висів прикметником у повітрі
+        const all = passportState.anatomy.pkgs;
+        const nums = Object.keys(all);
+        const gateOf = (x) => x.eq + x.org + x.kadr;
+        const rankBy = (f, v) => 1 + nums.filter((k) => f(all[k]) > v).length;
+        const gRank = rankBy(gateOf, gateOf(A));
+        const tRank = rankBy((x) => x.posts, A.posts);
+        const topBy = (f) => nums.slice().sort((a, b) => f(all[b]) - f(all[a]))[0];
+        const gTop = topBy(gateOf), tTop = topBy((x) => x.posts);
+
+        const axis = (icon, name, steps, res, question, how, extra) => {
+          const off = !res || res.band === null;
+          return `
+          <section class="dr-card da-axis">
+            <div class="da-head">
+              <span class="da-icon">${icon}</span>
+              <div>
+                <h3>${escapeHtml(name)}</h3>
+                <p class="da-q">${escapeHtml(question)}</p>
+              </div>
+              <span class="da-val${off ? " off" : ""}">${escapeHtml(off ? "не міряється" : steps[res.band])}</span>
+            </div>
+            <div class="da-steps">
+              ${steps.map((t, i) => `<span class="${!off && i === res.band ? "now" : ""}${!off && i < res.band ? " past" : ""}">${escapeHtml(t)}</span>`).join("")}
+            </div>
+            <p class="da-note">${escapeHtml(res ? res.note : "")}</p>
+            <p class="da-how"><b>Як рахується.</b> ${how}</p>
+            ${extra || ""}
+          </section>`;
+        };
+
+        return {
+          state: null,
+          html: `
+        <section class="dr-lede da-lede">
+          <div class="dr-lede-main">
+            <p class="dr-lede-q">Що це за пакет за будовою</p>
+            <p class="dr-lede-a">${escapeHtml([
+              service ? (width.band === null ? "" : ANAT_WIDTH[width.band]) : "",
+              ANAT_TEAM[team.band],
+              `поріг входу ${ANAT_GATE[gate.band]}`,
+              role ? ANAT_ROLE[role.band] : "",
+            ].filter(Boolean).join(" · "))}</p>
+            <p class="dr-lede-b">Термометр на вкладці міряє <b>масштаб</b> — скільки роботи пакет робить по країні.
+              Тут інша величина: <b>як ця робота влаштована</b>. Одне з іншого не випливає: пакет може бути
+              прохолодним за масштабом і найважчим у ПМГ на вході.</p>
+          </div>
+          <div class="dr-lede-badge">
+            <span class="dlb-i">${buys.icon}</span>
+            <b>Пакет купує: ${escapeHtml(A.buys)}</b>
+            <i>${escapeHtml(buys.text)}${service ? "" : " Через це клінічна ширина для нього не рахується — див. нижче."}</i>
+          </div>
+        </section>
+
+        ${axis("🧬", "Клінічна ширина", ANAT_WIDTH, width,
+          "Скільки різних хвороб і напрямів лежить усередині пакета",
+          "За таблицею співставлення: ОДК — великі діагностичні блоки, МКХ-10 — фактичний перелік діагнозів, з якими пакет працює. " +
+          "Кадри сюди <b>не входять</b> навмисно: паліативна допомога потребує 47 різних посад при 36 діагнозах, і за кадрами вона виглядала б багатопрофільною, якою не є.",
+          service && A.icd != null ? `
+          <div class="da-nums">
+            <span><b>${A.odk ? uaNum(A.odk) : "—"}</b>${A.odk ? "ОДК" : "ОДК немає"}</span>
+            <span><b>${uaNum(A.icd)}</b>${plural(A.icd, "діагноз", "діагнози", "діагнозів")} МКХ-10</span>
+            <span><b>${uaNum(A.achi)}</b>${plural(A.achi, "інтервенція", "інтервенції", "інтервенцій")} ACHI</span>
+            <span><b>${uaNum(A.codes)}</b>${plural(A.codes, "код", "коди", "кодів")} ЕСОЗ у фактичних обсягах</span>
+          </div>` : `<p class="dr-note warn">${escapeHtml(width.note || "")}</p>`)}
+
+        ${axis("👥", "Команда", ANAT_TEAM, team,
+          "Скільки різних фахівців треба зібрати, щоб виконувати пакет",
+          "Кадрові вимоги специфікації, зведені до <b>унікальних посад</b>: одна вимога часто тягне кілька посад через «та/або», і рядки вимог рахувати не можна. " +
+          `Найбільша команда в ПМГ — пакет ${escapeHtml(tTop)} (${uaNum(all[tTop].posts)} посад); цей пакет на ${tRank}-му місці з ${nums.length}.`,
+          `<div class="da-nums">
+            <span><b>${uaNum(A.posts)}</b>${plural(A.posts, "різна посада", "різні посади", "різних посад")}</span>
+            <span><b>${uaNum(A.reqs)}</b>${plural(A.reqs, "кадрова вимога", "кадрові вимоги", "кадрових вимог")}</span>
+            <span><b>${uaNum(A.crit)}</b>з них ${plural(A.crit, "критична", "критичні", "критичних")}</span>
+          </div>`)}
+
+        ${axis("🧗", "Поріг входу", ANAT_GATE, gate,
+          "Скільки треба мати, щоб узагалі увійти в пакет",
+          "Рядки вимог зі специфікації: обладнання, організаційні умови, кадри. Береться <b>сирий текст</b>, а не «розпізнані» позиції: " +
+          "у пакеті 42 розпізнаних одиниць обладнання 24, а в тексті вимог — 480. Смуга — за місцем серед пакетів, бо саме число ні про що не каже. " +
+          `Найважчий вхід у ПМГ — пакет ${escapeHtml(gTop)} (${uaNum(gateOf(all[gTop]))} рядків); цей пакет на ${gRank}-му місці з ${nums.length}.`,
+          `<div class="da-nums">
+            <span><b>${uaNum(A.eq)}</b>${plural(A.eq, "рядок", "рядки", "рядків")} про обладнання</span>
+            <span><b>${uaNum(A.org)}</b>${plural(A.org, "організаційна умова", "організаційні умови", "організаційних умов")}</span>
+            <span><b>${uaNum(A.kadr)}</b>${plural(A.kadr, "кадрова вимога", "кадрові вимоги", "кадрових вимог")}</span>
+            <span><b>${uaNum(A.spec)}</b>${plural(A.spec, "пункт", "пункти", "пунктів")} специфікації</span>
+          </div>`)}
+
+        ${role ? axis("🧩", "Роль у закладі", ANAT_ROLE, role,
+          "Заклад із цим пакетом займається переважно ним — чи це один рядок у великій лікарні",
+          "Єдина вісь, що рахується не з тексту, а з <b>чинних договорів</b>: скільки ще пакетів ПМГ має той самий надавач. " +
+          "Оновлюється разом із вивантажкою мережі. Реімбурсація та пілоти в рахунок не беруться.",
+          `<div class="da-nums">
+            ${role.solo >= 0.5 ? `<span><b>${pctUk(role.solo)}</b>надавачів мають лише цей пакет</span>` : `<span><b>жоден</b>надавач не живе лише цим пакетом</span>`}
+            <span><b>${uaNum(Math.round(role.med))}</b>${plural(Math.round(role.med), "пакет", "пакети", "пакетів")} ПМГ у медіанного надавача, крім цього</span>
+          </div>`) : ""}
+
+        <section class="dr-card dr-card-mean">
+          <h3>Навіщо це поруч із термометром</h3>
+          <div class="dr-mean">
+            <span class="dr-mean-i">🌡️</span>
+            <div><strong>Масштаб і будова — різні питання</strong>
+              <p>Термометр відповідає «скільки роботи», анатомія — «яка це робота». Пакет 64 (трансплантація органів) прохолодний за масштабом і вузький клінічно, але має найважчий вхід у ПМГ. Пакет 34 (стоматологія) монопрофільний і масовий водночас. Звести це в один бал означало б сховати саме те, що відрізняє пакети один від одного.</p></div>
+          </div>
+          <div class="dr-mean">
+            <span class="dr-mean-i">🧩</span>
+            <div><strong>Ширина і команда — теж різні речі</strong>
+              <p>Паліативна допомога вузька за діагнозами (36 кодів МКХ-10), але потребує 47 різних посад: лікар, медсестра, психолог, соціальний працівник. Неонатальний скринінг навпаки — один напрям, шість посад і 69 рядків вимог до обладнання. Одна вісь не замінює іншу.</p></div>
+          </div>
+          <div class="dr-mean">
+            <span class="dr-mean-i">🚪</span>
+            <div><strong>Шлюз важливіший за осі</strong>
+              <p>Перед будь-яким порівнянням стоїть питання, що пакет узагалі купує. Для капітації (ПМД) і готовності (42, 57, 68) клінічна ширина невимірювана: у платіжних даних первинки три коди на 48,4 млн послуг, і будь-яка цифра ширини там буде вигадкою.</p></div>
+          </div>
+        </section>
+
+        <section class="dr-card dr-card-limits">
+          <h3>Чого анатомія не каже</h3>
+          <ul class="dr-limits">
+            <li>Це опис <b>вимог і складу</b>, а не якості. Важкий вхід не означає, що пакет виконується добре.</li>
+            <li>Клінічна ширина рахується з таблиці співставлення, а вона покриває <b>36 пакетів із 46</b>. Для решти вісь чесно показує «не міряється», а не вигадане число.</li>
+            <li>Поріг входу — це <b>кількість рядків</b> вимог, а не їхня вартість. Один томограф в одному рядку важчий за десять рядків дрібного інвентарю.</li>
+            <li>«Роль у закладі» описує мережу, а не пакет: той самий пакет в одній області може бути в моноклініці, а в іншій — у складі лікарні.</li>
+          </ul>
+        </section>`,
+        };
+      },
+    },
     core80: {
       icon: "🎯",
       title: "Ядро бюджету пакета",

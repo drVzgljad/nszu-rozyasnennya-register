@@ -123,6 +123,7 @@ async function init() {
       _specLinks,
       uaMapRes,
       hasVolumes,
+      anatomyRes,
     ] = await Promise.all([
       fetch("../pakety/data/packages_2026.json").then(r => r.json()),
       // Полегшена версія договорів (4.5 МБ замість 19); якщо її немає — повна
@@ -147,7 +148,10 @@ async function init() {
       // Фактичні обсяги наданих послуг + демографічний знаменник. Конвеєр
       // 23_обсяги_демографія; boot() ніколи не кидає — без цих даних просто
       // не буде блоку «Фактично надано» і двох режимів карти.
-      window.Volumes ? window.Volumes.boot() : Promise.resolve(false)
+      window.Volumes ? window.Volumes.boot() : Promise.resolve(false),
+      // Анатомія пакета: сирі ознаки «форми» (конвеєр 24_анатомія_пакетів).
+      // Немає файлу — блок просто не показується, решта сторінки жива.
+      fetch("data/anatomy.json").then(r => r.json()).catch(() => null)
     ]);
 
     // Populate State
@@ -157,6 +161,7 @@ async function init() {
     passportState.decLinks = decLinksRes || {};
     passportState.uaMap = uaMapRes;
     passportState.hasVolumes = Boolean(hasVolumes);
+    passportState.anatomy = anatomyRes && anatomyRes.pkgs ? anatomyRes : null;
     passportState.explanations = docsRes.documents || [];
     passportState.resolution = resolutionRes;
 
@@ -298,6 +303,7 @@ function selectPackage(pkgNum) {
   // Render passport sections
   renderHeaderAndMetrics();
   renderAnalytics();
+  renderAnatomy();
   // Фактичні обсяги вантажаться окремим файлом на пакет, тому асинхронно:
   // карта до їх приходу стоїть у базовому режимі «заклади», а щойно дані є —
   // перемальовуємо її, щоб не загубився вибраний режим при зміні пакета.
@@ -1255,6 +1261,180 @@ function renderAnalytics() {
   // Лічильник у схлопнутому переліку ЗОЗ
   const cnt = el("hospitalsCount");
   if (cnt) cnt.textContent = pContracts.length.toLocaleString("uk-UA");
+}
+
+/* ═══════════════ АНАТОМІЯ ПАКЕТА ═══════════════
+   Термометр міряє МАСШТАБ (скільки роботи по країні). Тут — БУДОВА: як ця
+   робота влаштована всередині. Осі свідомо не зводяться в один бал: вони
+   незалежні, і сума сховала б рівно те, заради чого блок існує. Пакет 64
+   (трансплантація) вузький клінічно, прохолодний за масштабом — і при цьому
+   найважчий у ПМГ на вході; пакет 34 (стоматологія) монопрофільний і масовий.
+
+   Перед осями стоїть шлюз «що купує пакет»: для капітації і готовності
+   клінічна ширина невимірювана — у платіжних даних ПМД три коди на 48 млн
+   послуг, і будь-яка цифра ширини там буде брехнею.
+
+   Сирі ознаки — passport/data/anatomy.json (конвеєр 24_анатомія_пакетів);
+   межі смуг живуть тут, щоб їх можна було перебирати без перезбірки даних. */
+
+const ANAT_WIDTH = ["монопрофільний", "вузькопрофільний", "багатопрофільний", "універсальний"];
+const ANAT_TEAM = ["кадрових вимог немає", "кілька фахівців", "бригада", "мультидисциплінарна команда"];
+const ANAT_GATE = ["низький", "середній", "високий", "дуже високий"];
+const ANAT_ROLE = ["самостійний надавач", "у невеликому закладі",
+                   "у багатопрофільному закладі", "у великій багатопрофільній лікарні"];
+
+const ANAT_BUYS = {
+  "послуга": { icon: "🩺", text: "оплата за послугу або пролікований випадок" },
+  "капітація": { icon: "👥", text: "оплата за приписане населення, а не за випадок" },
+  "готовність": { icon: "🛡️", text: "оплата за готовність надавати допомогу, а не за випадок" },
+  "кадри": { icon: "🎓", text: "оплата за кадровий потенціал, а не за медичну послугу" },
+};
+
+/** Клінічна ширина. Рахується з таблиці співставлення: ОДК — це великі
+    діагностичні блоки, МКХ-10 — фактичний діапазон хвороб пакета. Кадри сюди
+    НЕ входять навмисно: паліатив потребує 47 посад при 36 діагнозах, і за
+    кадрами він виглядав би багатопрофільним, яким не є. */
+function anatWidth(a) {
+  if (a.odk >= 13) return { band: 3, note: `${a.odk} ОДК і ${a.icd.toLocaleString("uk-UA")} діагнозів МКХ-10 у межах пакета` };
+  if (a.odk >= 3) return { band: 2, note: `${a.odk} ОДК і ${a.icd.toLocaleString("uk-UA")} діагнозів МКХ-10` };
+  if (a.icd == null) {
+    return { band: null, note: "пакета немає в таблиці співставлення, тому діапазон хвороб не порахований" };
+  }
+  if (a.icd >= 5000) return { band: 3, note: `${a.icd.toLocaleString("uk-UA")} діагнозів МКХ-10 у межах пакета` };
+  if (a.icd >= 400) return { band: 2, note: `${a.icd.toLocaleString("uk-UA")} діагнозів МКХ-10` };
+  if (a.icd >= 20) return { band: 1, note: `${a.icd.toLocaleString("uk-UA")} діагнозів МКХ-10` };
+  if (a.icd > 0) return { band: 0, note: `${a.icd} ${a.icd === 1 ? "діагноз" : a.icd < 5 ? "діагнози" : "діагнозів"} МКХ-10 — пакет про один стан` };
+  return { band: 0, note: "прив'язки до діагнозів немає: пакет про одну процедуру" };
+}
+
+function anatTeam(a) {
+  const n = a.posts;
+  const band = n >= 30 ? 3 : n >= 8 ? 2 : n >= 2 ? 1 : 0;
+  const note = n
+    ? `${uaPlural(n, "різна посада", "різні посади", "різних посад")} у вимогах пакета`
+    : "кадрових вимог у специфікації немає";
+  return { band, note };
+}
+
+/** Поріг входу — скільки рядків вимог треба виконати, щоб узагалі зайти в
+    пакет: обладнання + організаційні умови + кадри. Смуга — за місцем серед
+    46 пакетів, бо абсолютне число нічого не каже. */
+function anatGate(a, bench) {
+  const v = a.eq + a.org + a.kadr;
+  const rank = bench.filter(x => x < v).length;
+  const pct = bench.length ? (rank / bench.length) * 100 : 0;
+  const band = pct >= 80 ? 3 : pct >= 55 ? 2 : pct >= 25 ? 1 : 0;
+  return {
+    band, value: v,
+    note: `${uaPlural(v, "рядок вимог", "рядки вимог", "рядків вимог")}: ${a.eq} обладнання, ${a.org} організаційних, ${a.kadr} кадрових`,
+    tip: `Місце ${bench.length - rank} із ${bench.length} за кількістю вимог серед пакетів постанови № 1808.`,
+  };
+}
+
+/** Роль у закладі — єдина вісь, що рахується не з файлу, а з договорів:
+    вона має оновлюватися разом з мережею. Питання просте: заклад із цим
+    пакетом займається лише ним чи це один рядок у великій лікарні. */
+function anatRole(pkgNum) {
+  const { byProvider } = getProviderIndex();
+  // Рахуємо лише пакети постанови № 1808: у вивантажці є ще реімбурсація
+  // й пілоти, і з ними «має ще один пакет» означало б різні речі
+  const valid = new Set(passportState.packages.map(p => p.number));
+  const sizes = [];
+  byProvider.forEach(set => {
+    if (!set.has(pkgNum)) return;
+    let k = 0;
+    set.forEach(n => { if (valid.has(n)) k++; });
+    sizes.push(k);
+  });
+  if (!sizes.length) return null;
+  const solo = sizes.filter(n => n === 1).length / sizes.length * 100;
+  const med = medianOf(sizes) - 1;
+  // Межі взяті з фактичного розподілу: медіани йдуть від 0 до 23, і майже вся
+  // мережа сидить у багатопакетних закладах. Рівні кроки тут зібрали б
+  // 37 пакетів з 46 в одну смугу й нічого не розрізняли б.
+  const band = solo >= 25 ? 0 : med <= 10 ? 1 : med <= 17 ? 2 : 3;
+  const rest = uaPlural(Math.round(med), "пакет", "пакети", "пакетів");
+  return {
+    band, solo, med,
+    note: band === 0
+      ? `${pctUk(solo)} надавачів не мають жодного іншого пакета ПМГ — це їхня єдина робота за договором з НСЗУ`
+      : solo >= 1
+        ? `у медіанного надавача ще ${rest} ПМГ; лише цим пакетом живуть ${pctUk(solo)}`
+        : `у медіанного надавача ще ${rest} ПМГ; самостійних надавачів у пакеті практично немає`,
+  };
+}
+
+// «1 пакет / 2 пакети / 5 пакетів» — та сама морфологія, що в розгортці
+function uaPlural(n, one, few, many) {
+  const a = Math.abs(n) % 10, b = Math.abs(n) % 100;
+  if (a === 1 && b !== 11) return `${n} ${one}`;
+  if (a >= 2 && a <= 4 && (b < 12 || b > 14)) return `${n} ${few}`;
+  return `${n} ${many}`;
+}
+
+/** Черга всіх пакетів за кількістю вимог — для смуги «поріг входу». */
+function anatBench() {
+  if (passportState._anatBench) return passportState._anatBench;
+  const p = passportState.anatomy.pkgs;
+  passportState._anatBench = Object.keys(p).map(k => p[k].eq + p[k].org + p[k].kadr).sort((x, y) => x - y);
+  return passportState._anatBench;
+}
+
+function anatAxisHtml(icon, label, steps, res, tip) {
+  const n = steps.length;
+  const off = res && res.band === null;
+  const val = off ? "не міряється" : steps[res.band];
+  const ladder = Array.from({ length: n }, (_, i) =>
+    `<i class="${!off && i <= res.band ? "on" : ""}"></i>`).join("");
+  return `
+    <div class="anat-axis${off ? " off" : ""}"${tip ? ` title="${escapeHtml(tip)}"` : ""}>
+      <div class="aa-head">
+        <span class="aa-icon">${icon}</span>
+        <span class="aa-label">${escapeHtml(label)}</span>
+        <span class="aa-val">${escapeHtml(val)}</span>
+      </div>
+      <div class="aa-ladder" style="--steps:${n}">${ladder}</div>
+      <div class="aa-note">${escapeHtml(res ? res.note : "")}</div>
+    </div>`;
+}
+
+function renderAnatomy() {
+  const box = el("anatomyHero");
+  const pkg = passportState.selectedPackage;
+  if (!box || !pkg || !passportState.anatomy) { if (box) box.hidden = true; return; }
+  const a = passportState.anatomy.pkgs[pkg.number];
+  if (!a) { box.hidden = true; return; }
+  box.hidden = false;
+
+  const buys = ANAT_BUYS[a.buys] || ANAT_BUYS["послуга"];
+  el("anatGate").innerHTML =
+    `<span class="ag-i">${buys.icon}</span><b>${escapeHtml(a.buys)}</b><i>${escapeHtml(buys.text)}</i>`;
+
+  const service = a.buys === "послуга";
+  const width = service ? anatWidth(a) : {
+    band: null,
+    note: a.buys === "капітація"
+      ? "капітаційний пакет: у платіжних даних три коди на всю первинку, тому діапазон хвороб з них не виводиться"
+      : "пакет купує не медичну послугу, тому діапазону хвороб у нього немає",
+  };
+  const team = anatTeam(a);
+  const gate = anatGate(a, anatBench());
+  const role = anatRole(pkg.number);
+
+  el("anatAxes").innerHTML =
+    anatAxisHtml("🧬", "Клінічна ширина", ANAT_WIDTH, width,
+      "Скільки різних хвороб і напрямів покриває пакет. Рахується за ОДК і діапазоном МКХ-10 з таблиці співставлення; кадри сюди не входять — це інша величина.") +
+    anatAxisHtml("👥", "Команда", ANAT_TEAM, team,
+      "Скільки РІЗНИХ фахівців треба зібрати, щоб виконувати пакет. Це не те саме, що клінічна ширина: паліативна допомога вузька за діагнозами, але потребує мультидисциплінарної команди.") +
+    anatAxisHtml("🧗", "Поріг входу", ANAT_GATE, gate, gate.tip) +
+    (role ? anatAxisHtml("🧩", "Роль у закладі", ANAT_ROLE, role,
+      "Заклад із цим пакетом займається переважно ним — чи це один рядок у великій лікарні. Рахується за договорами: скільки ще пакетів ПМГ має той самий надавач.") : "");
+
+  el("anatFootnote").textContent =
+    "Осі навмисно не зводяться в один бал: вони незалежні одна від одної й від температури. " +
+    "Вузький пакет буває найважчим на вході (неонатальний скринінг — один напрям і 132 рядки вимог), " +
+    "а великий за мережею — найпростішим. Клінічна ширина і поріг входу беруться з тексту специфікації " +
+    "та таблиці співставлення, роль у закладі — з чинних договорів.";
 }
 
 /* ═══════ МЕДІАННИЙ ДОГОВІР ПО ОБЛАСТЯХ ═══════
