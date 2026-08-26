@@ -284,6 +284,195 @@
     </svg>`;
   }
 
+  /* Розсіювання «щільність мережі × навантаження на заклад».
+
+     Обидві шкали логарифмічні — і не заради краси: показники областей
+     розтягнуті на порядки, а головне — у логарифмі лінія однакової
+     інтенсивності (load × dens = const) стає ПРЯМОЮ з нахилом −1. Тобто
+     «однакова інтенсивність за різної будови» видно оком, без обчислень. */
+  function scatterSvg(sp, nLoad, nDens) {
+    const compact = isCompact();
+    const W = 660, H = compact ? 500 : 440;
+    const L = compact ? 92 : 74, R = 18;
+    const T = compact ? 30 : 22, B = compact ? 80 : 58;
+    const pw = W - L - R, ph = H - T - B;
+
+    const xs = sp.rows.map(r => r.dens), ys = sp.rows.map(r => r.load);
+    const pad = (lo, hi) => {
+      const a = Math.log10(Math.max(lo, 1e-6)), b = Math.log10(Math.max(hi, 1e-6));
+      const m = Math.max((b - a) * 0.12, 0.12);
+      return [a - m, b + m];
+    };
+    const [x0, x1] = pad(Math.min(...xs), Math.max(...xs));
+    const [y0, y1] = pad(Math.min(...ys), Math.max(...ys));
+    const px = (v) => L + (Math.log10(v) - x0) / (x1 - x0) * pw;
+    const py = (v) => T + (1 - (Math.log10(v) - y0) / (y1 - y0)) * ph;
+
+    // Мітки шкали виду 1-2-5 × 10^k: на вузькому діапазоні самі десятки
+    // дали б одну поділку на всю вісь
+    const ticks = (a, b) => {
+      const out = [];
+      for (let k = Math.floor(a) - 1; k <= Math.ceil(b) + 1; k++) {
+        [1, 2, 5].forEach(m => {
+          const v = m * Math.pow(10, k);
+          if (Math.log10(v) >= a && Math.log10(v) <= b) out.push(v);
+        });
+      }
+      return out.length > 1 ? out : [Math.pow(10, (a + b) / 2)];
+    };
+
+    // Лінія однакової інтенсивності: load = C / dens, у логарифмі — пряма.
+    // Обрізаємо її по видимій частині полотна, інакше вона (і підпис на ній)
+    // вилазить за осі там, де діапазони не збігаються
+    const isoSeg = (C) => {
+      const lc = Math.log10(C);
+      const a = Math.max(x0, lc - y1), b = Math.min(x1, lc - y0);
+      if (!(b > a)) return null;
+      const pt = (ld) => [L + (ld - x0) / (x1 - x0) * pw, T + (1 - (lc - ld - y0) / (y1 - y0)) * ph];
+      return { a, b, p1: pt(a), p2: pt(b), at: (t) => pt(a + (b - a) * t) };
+    };
+    const iso = isoSeg(sp.rate);
+
+    const nets = sp.rows.map(r => r.n);
+    const maxN = Math.max(...nets);
+    const rOf = (n) => (compact ? 6 : 4.5) + Math.sqrt(n / maxN) * (compact ? 13 : 10);
+
+    // Підписуємо лише крайні випадки — 25 підписів злиплися б у кашу
+    const byRate = sp.rows.slice().sort((a, b) => a.rate - b.rate);
+    const byLoad = sp.rows.slice().sort((a, b) => a.load - b.load);
+    const byDens = sp.rows.slice().sort((a, b) => a.dens - b.dens);
+    // На вузькому екрані кегль підписів удвічі більший, тож пʼять назв на
+    // те саме полотно вже не влазять — лишаємо три найпоказовіші
+    const marked = new Set((compact
+      ? [byRate[0].o, byRate[byRate.length - 1].o, byLoad[0].o]
+      : [byRate[0].o, byRate[byRate.length - 1].o, byLoad[0].o,
+         byLoad[byLoad.length - 1].o, byDens[0].o]).filter(Boolean));
+
+    // Розкладаємо підписи так, щоб не налазили один на одного: ширину
+    // доводиться оцінювати наперед (getBBox тут ще немає), тому беремо
+    // консервативні пів-кегля на символ і зсуваємо вниз, поки є перетин
+    const FS = compact ? 20 : 11;
+    const TFS = compact ? 20 : 11;          // кегль підписів шкали
+    // Підписи шкали резервуємо ПЕРШИМИ: інакше назва області сідала на поділку
+    const placed = [];
+    ticks(x0, x1).forEach(v => {
+      const w = String(nDens(v)).length * TFS * 0.68;
+      placed.push({ x: px(v) - w / 2, y: T + ph + (compact ? 28 : 20) - TFS, w, h: TFS + 5 });
+    });
+    ticks(y0, y1).forEach(v => {
+      const w = String(nLoad(v)).length * TFS * 0.68;
+      placed.push({ x: L - 9 - w, y: py(v) - TFS + 2, w, h: TFS + 5 });
+    });
+    const fit = (x, y, w) => {
+      let yy = y, step = 0;
+      const hit = (a) => placed.some(b =>
+        a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h);
+      const mk = (v) => ({ x: x - 2, y: v - FS, w: w + 4, h: FS + 5 });
+      let box = mk(yy);
+      // Крок мусить бути БІЛЬШИЙ за висоту коробки (FS + 5): інакше два
+      // підписи, розведені на один крок, лишалися б накладеними на пікселі
+      while (hit(box) && step < 14) { step++; yy += FS + 7; box = mk(yy); }
+      placed.push(box);
+      return yy;
+    };
+
+    const pts = sp.rows.map(r => {
+      const x = px(r.dens), y = py(r.load), rad = rOf(r.n);
+      const hot = r.rate >= sp.rate;
+      let lbl = "";
+      if (marked.has(r.o)) {
+        const name = oblastDisplay(r.o);
+        const w = name.length * FS * 0.68;   // оцінка з запасом: getBBox тут ще немає
+        // Бік вибираємо за тим, чи ВЛІЗЕ підпис, а не за часткою полотна:
+        // «Дніпропетровська» праворуч від точки виїжджала за край
+        const right = (x + rad + 5 + w) > (L + pw);
+        // Коробка резервування мусить збігатися з тим, де текст справді ляже:
+        // клампінг однієї і не другої розводив їх і давав хибний «вільно»
+        const lx = right ? x - rad - 5 - w : x + rad + 5;
+        const ly = fit(lx, y + 4, w);
+        lbl = `<text x="${(right ? x - rad - 5 : x + rad + 5).toFixed(1)}" y="${ly.toFixed(1)}"
+                 class="sc-lbl" text-anchor="${right ? "end" : "start"}">${escapeHtml(name)}</text>`;
+      }
+      return `<g class="sc-pt${hot ? " hot" : ""}">
+        <title>${escapeHtml(`${oblastDisplay(r.o)} — інтенсивність ${nLoad(r.rate)} = ${nLoad(r.load)} на заклад × ${nDens(r.dens)} закладу на 10 тис. (${r.n} ЗОЗ)`)}</title>
+        <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rad.toFixed(1)}"/>${lbl}</g>`;
+    }).join("");
+
+    const mx = px(sp.medDens), my = py(sp.medLoad);
+    return `
+    <svg class="dr-scatter${compact ? " compact" : ""}" viewBox="0 0 ${W} ${H}" role="img"
+         aria-label="Області: щільність мережі проти навантаження на заклад">
+      ${ticks(x0, x1).map(v => `
+        <line x1="${px(v).toFixed(1)}" y1="${T}" x2="${px(v).toFixed(1)}" y2="${T + ph}" class="dr-grid"/>
+        <text x="${px(v).toFixed(1)}" y="${T + ph + (compact ? 28 : 20)}" class="dr-tick" text-anchor="middle">${escapeHtml(nDens(v))}</text>`).join("")}
+      ${ticks(y0, y1).map(v => `
+        <line x1="${L}" y1="${py(v).toFixed(1)}" x2="${L + pw}" y2="${py(v).toFixed(1)}" class="dr-grid"/>
+        <text x="${L - 9}" y="${(py(v) + (compact ? 6 : 4)).toFixed(1)}" class="dr-tick" text-anchor="end">${escapeHtml(nLoad(v))}</text>`).join("")}
+
+      <line x1="${mx.toFixed(1)}" y1="${T}" x2="${mx.toFixed(1)}" y2="${T + ph}" class="sc-med"/>
+      <line x1="${L}" y1="${my.toFixed(1)}" x2="${L + pw}" y2="${my.toFixed(1)}" class="sc-med"/>
+
+      ${iso ? `<path d="M${iso.p1[0].toFixed(1)} ${iso.p1[1].toFixed(1)} L${iso.p2[0].toFixed(1)} ${iso.p2[1].toFixed(1)}" class="sc-iso"/>` : ""}
+      ${iso ? (() => {
+        // Підпис їде вздовж лінії: біля її кінця він неминуче накривав точку
+        const [lx, ly] = iso.at(0.26);
+        const ang = Math.atan2(iso.p2[1] - iso.p1[1], iso.p2[0] - iso.p1[0]) * 180 / Math.PI;
+        return `<text x="${lx.toFixed(1)}" y="${(ly - 7).toFixed(1)}" class="sc-iso-lbl" text-anchor="start"
+                  transform="rotate(${ang.toFixed(1)} ${lx.toFixed(1)} ${(ly - 7).toFixed(1)})">рівень країни · ${escapeHtml(nLoad(sp.rate))}</text>`;
+      })() : ""}
+
+      ${pts}
+
+      <line x1="${L}" y1="${T}" x2="${L}" y2="${T + ph}" class="dr-axis"/>
+      <line x1="${L}" y1="${T + ph}" x2="${L + pw}" y2="${T + ph}" class="dr-axis"/>
+      <text x="${L}" y="${H - (compact ? 12 : 8)}" class="dr-axname" text-anchor="start">закладів на 10 тис. цільової групи →</text>
+      <text x="0" y="0" class="dr-axname" transform="translate(${compact ? 22 : 15} ${T + ph / 2}) rotate(-90)" text-anchor="middle">послуг на один заклад</text>
+    </svg>`;
+  }
+
+  /** Висновки з розкладу — з числами саме цього пакета. */
+  function intensMeaning(sp, verdict, nLoad, nDens) {
+    const items = [];
+    const tag = (k) => sp.rows.filter(r => verdict(r).k === k);
+    const net = tag("net"), work = tag("work"), bad = tag("bad");
+    const nameList = (a) => a.slice(0, 5).map(r => oblastDisplay(r.o)).join(", ") + (a.length > 5 ? ` та ще ${a.length - 5}` : "");
+
+    if (net.length) {
+      items.push(["🏥", `Мало закладів — ${uaPlural(net.length, "регіон", "регіони", "регіонів")}`,
+        `${nameList(net)}. Наявні заклади працюють не менше за середні по країні, але їх просто мало на цільову групу. ` +
+        `Це питання контрактування й доступності, а не роботи надавачів.`]);
+    }
+    if (work.length) {
+      items.push(["🪫", `Мало роботи в наявних — ${uaPlural(work.length, "регіон", "регіони", "регіонів")}`,
+        `${nameList(work)}. Мережа тут не рідша за медіанну, а послуг мало. Дивитися треба не на кількість договорів, ` +
+        `а на маршрут пацієнта, направлення й реальну потребу.`]);
+    }
+    if (bad.length) {
+      items.push(["🚩", `І закладів, і роботи мало — ${uaPlural(bad.length, "регіон", "регіони", "регіонів")}`,
+        `${nameList(bad)}. Тут обидві складові нижче медіани одночасно — найгірший для пацієнта варіант.`]);
+    }
+
+    const byLoad = sp.rows.slice().sort((a, b) => a.load - b.load);
+    const lo = byLoad[0], hi = byLoad[byLoad.length - 1];
+    if (lo && hi && lo.load > 0) {
+      items.push(["📏", "Розрив у завантаженні",
+        `Від ${nLoad(lo.load)} послуг на заклад (${oblastDisplay(lo.o)}) до ${nLoad(hi.load)} (${oblastDisplay(hi.o)}) — ` +
+        `різниця ${timesUk(hi.load / lo.load)}. Це різниця в роботі однакових за вимогами закладів, а не в населенні: ` +
+        `населення вже поділене.`]);
+    }
+    const perMonth = sp.load / Math.max(1, sp.months);
+    if (perMonth < 25 && sp.net >= 100) {
+      items.push(["🧮", "Мережа проти навантаження",
+        // Дробове число тягне родовий однини: «6,6 послуги», а не «6,6 послуг»
+        `У середньому заклад робить ${nLoad(perMonth)} ${String(nLoad(perMonth)).includes(",") ? "послуги" : plural(perMonth, "послугу", "послуги", "послуг")} на місяць — ` +
+        `при тому, що всі ${uaPlural(sp.net, "заклад", "заклади", "закладів")} мережі тримають обладнання й кадри під вимоги пакета. ` +
+        `Це привід перевірити, чи виправдана така широка мережа.`]);
+    }
+    return items.map(([ic, h, t]) => `
+      <div class="dr-mean"><span class="dr-mean-i">${ic}</span>
+        <div><strong>${escapeHtml(h)}</strong><p>${escapeHtml(t)}</p></div></div>`).join("");
+  }
+
   /* ═══════ блоки сторінки ═══════ */
 
   function verdictOf(s) {
@@ -525,6 +714,109 @@
   /* ═══════ реєстр показників ═══════ */
 
   const DRILLS = {
+    intensity: {
+      icon: "📈",
+      title: "Інтенсивність: мережа чи завантаження",
+      build(pkg) {
+        const sp = intensityBreakdown(pkg.number);
+        if (!sp || sp.rows.length < 3) return null;
+        const f = window.Volumes.fmt;
+        const nLoad = (v) => (v < 10 ? f.dec(v, 1) : f.num(Math.round(v)));
+        const nDens = (v) => f.dec(v, v < 1 ? 3 : 2);
+
+        // Вердикт області: та сама низька інтенсивність буває з двох різних
+        // причин, і саме їх ми тут розділяємо
+        // Поріг із запасом: без нього область із навантаженням на 9 % нижче
+        // медіани отримувала б вирок «роботи мало», хоч це шум, а не сигнал
+        const MARGIN = 0.8;
+        const verdict = (r) => {
+          if (r.rate >= sp.rate) return { k: "ok", t: "вище за країну" };
+          const few = r.dens < sp.medDens * MARGIN;
+          const low = r.load < sp.medLoad * MARGIN;
+          if (few && low) return { k: "bad", t: "і закладів, і роботи мало" };
+          if (few) return { k: "net", t: "мало закладів" };
+          if (low) return { k: "work", t: "мало роботи в наявних" };
+          return { k: "ok", t: "трохи нижче за країну" };
+        };
+
+        return { state: null, html: `
+        <section class="dr-lede in-lede">
+          <div class="dr-lede-main">
+            <p class="dr-lede-q">Інтенсивність — це добуток двох різних речей</p>
+            <p class="dr-lede-a in-formula">
+              <b>${escapeHtml(nLoad(sp.rate))}</b> <small>на 10 тис.</small>
+              <span class="in-eq">=</span>
+              <b>${escapeHtml(nLoad(sp.load))}</b> <small>на заклад</small>
+              <span class="in-eq">×</span>
+              <b>${escapeHtml(nDens(sp.dens))}</b> <small>закладу на 10 тис.</small>
+            </p>
+            <p class="dr-lede-b">${escapeHtml(f.num(sp.s))} послуг за ${sp.months} міс. у
+              ${escapeHtml(uaPlural(sp.net, "закладі", "закладах", "закладах"))};
+              цільова група — ${escapeHtml(sp.target)}, ${escapeHtml(f.shortNum(sp.den))} осіб.
+              Пакет на ${sp.rank}-му місці з ${sp.total} за інтенсивністю.</p>
+          </div>
+          <div class="dr-lede-badge">
+            <span class="dlb-i">🔀</span>
+            <b>Навіщо розкладати</b>
+            <i>«Тут мало послуг» означає дві протилежні речі: закладів мало — або кожен наявний
+              робить мало. Перше — питання контрактування, друге — завантаження й маршруту пацієнта.
+              Сама інтенсивність їх не розрізняє.</i>
+          </div>
+        </section>
+
+        <section class="dr-card dr-card-hero">
+          <h3>Області: мережа проти завантаження</h3>
+          <p class="dr-hint">Обидві шкали логарифмічні. Пунктирна діагональ — рівень країни: усі точки на ній
+            мають однакову інтенсивність за різної будови. Сірі лінії — медіани по областях.</p>
+          ${scatterSvg(sp, nLoad, nDens)}
+          <div class="dr-legend">
+            <span><i class="core"></i>вище за рівень країни</span>
+            <span><i class="tail"></i>нижче</span>
+            <span>розмір точки — скільки закладів</span>
+          </div>
+          <p class="dr-hint sc-read">Ліворуч-угорі — <b>закладів мало, кожен завантажений</b>;
+            праворуч-унизу — <b>закладів багато, роботи мало</b>. Обидва кути дають однаково низьку
+            інтенсивність, але вимагають протилежних рішень.</p>
+        </section>
+
+        <section class="dr-card">
+          <h3>Поіменно по областях</h3>
+          <p class="dr-hint">Спершу ті, де інтенсивність найнижча. Клік по рядку відфільтрує перелік ЗОЗ.</p>
+          <div class="dr-cmp-scroll"><table class="dr-list in-tab">
+            <thead><tr><th>Область</th><th>Інтенсивність</th><th>На заклад</th><th>Закладів<br><small>на 10 тис.</small></th><th>ЗОЗ</th><th>Причина</th></tr></thead>
+            <tbody>
+              ${sp.rows.slice().sort((a, b) => a.rate - b.rate).map((r) => {
+                const v = verdict(r);
+                return `<tr data-obl="${escapeHtml(r.o)}">
+                  <td class="dr-nm"><span>${escapeHtml(oblastDisplay(r.o))}</span></td>
+                  <td class="dr-sm">${escapeHtml(nLoad(r.rate))}</td>
+                  <td class="dr-sm">${escapeHtml(nLoad(r.load))}</td>
+                  <td class="dr-cu">${escapeHtml(nDens(r.dens))}</td>
+                  <td class="dr-cu">${uaNum(r.n)}</td>
+                  <td><span class="in-tag ${v.k}">${escapeHtml(v.t)}</span></td>
+                </tr>`;
+              }).join("")}
+            </tbody>
+          </table></div>
+        </section>
+
+        <section class="dr-card dr-card-mean">
+          <h3>Що з цього випливає</h3>
+          ${intensMeaning(sp, verdict, nLoad, nDens)}
+        </section>
+
+        <section class="dr-card dr-card-limits">
+          <h3>Чого показник не каже</h3>
+          <ul class="dr-limits">
+            <li>Навантаження на заклад <b>не можна порівнювати між різними пакетами</b>: одиниця послуги в них різна — пакет 9 рахує кожен аналіз, пакет 3 — кожну операцію. Між областями одного пакета порівняння чесне.</li>
+            <li>Знаменник — <b>активні декларації ПМД</b>, а не чисельність населення: офіційної чисельності немає. В областях з ненадійним знаменником інтенсивність спотворена, навантаження — ні.</li>
+            <li>Область — це місце <b>надавача</b>, а не проживання пацієнта. У пакетах з кількома центрами на країну люди їдуть, і навантаження «чужої» області вбирає їхні випадки.</li>
+            <li>Низьке навантаження саме по собі не вирок: воно може означати і зайву мережу, і слабку потребу, і те, що пацієнти не доходять. Показник ставить питання, а не відповідає на нього.</li>
+          </ul>
+        </section>`,
+        };
+      },
+    },
     anatomy: {
       icon: "🧬",
       title: "Анатомія пакета",

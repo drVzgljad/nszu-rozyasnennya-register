@@ -3346,3 +3346,56 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
   .da-val { grid-column: 1 / -1; text-align: left; width: fit-content; }
   .da-steps span { min-width: 0; flex-basis: 45%; }
 }
+
+/* ── Розгортка «Інтенсивність» ───────────────────────────────── */
+.drill-sheet:has(.in-lede) { --core-c: #2f8f7a; }
+.dark-theme .drill-sheet:has(.in-lede) { --core-c: #5cc0a8; }
+.in-formula {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  font-size: 15px; font-weight: 700; color: var(--muted, #6b7f92);
+}
+.in-formula b { font-size: 26px; font-weight: 900; color: var(--core-c); font-variant-numeric: tabular-nums; }
+.in-formula small { font-size: 12px; font-weight: 700; color: var(--muted, #6b7f92); }
+.in-eq { font-size: 19px; font-weight: 900; color: var(--muted, #6b7f92); opacity: .6; }
+.dr-scatter { width: 100%; height: auto; display: block; }
+.sc-pt circle {
+  fill: color-mix(in srgb, var(--tail-c) 55%, transparent);
+  stroke: var(--surface, #fff); stroke-width: 1.5;
+}
+.sc-pt.hot circle { fill: color-mix(in srgb, var(--core-c) 78%, transparent); }
+.sc-pt:hover circle { stroke: var(--ink, #1f3347); stroke-width: 2; }
+.sc-lbl { font-size: 11px; font-weight: 800; fill: var(--ink, #1f3347); }
+.sc-med { stroke: color-mix(in srgb, var(--muted, #6b7f92) 40%, transparent); stroke-width: 1.2; stroke-dasharray: 2 4; }
+.sc-iso { stroke: var(--core-c); stroke-width: 2; stroke-dasharray: 6 4; fill: none; }
+.sc-iso-lbl { font-size: 11.5px; font-weight: 900; fill: var(--core-c); }
+.sc-quad { font-size: 11px; font-weight: 700; fill: var(--muted, #6b7f92); opacity: .85; }
+.dark-theme .sc-lbl { fill: #e2e8f0; }
+.dark-theme .sc-pt circle { stroke: #1e293b; }
+.dark-theme .sc-pt:hover circle { stroke: #e2e8f0; }
+.in-tab tbody tr { cursor: pointer; }
+.in-tab th { vertical-align: bottom; }
+.in-tab th small { font-weight: 600; text-transform: none; letter-spacing: 0; }
+.in-tag {
+  display: inline-block; padding: 2px 9px; border-radius: 999px; white-space: nowrap;
+  font-size: 10.5px; font-weight: 800;
+  background: color-mix(in srgb, var(--muted, #6b7f92) 12%, transparent);
+  color: var(--muted, #6b7f92);
+}
+.in-tag.net { background: rgba(74, 143, 199, .16); color: #24618f; }
+.in-tag.work { background: rgba(240, 160, 60, .18); color: #8a5411; }
+.in-tag.bad { background: rgba(224, 83, 47, .16); color: #a3341a; }
+.dark-theme .in-tag.net { color: #93c5fd; }
+.dark-theme .in-tag.work { color: #f0c48a; }
+.dark-theme .in-tag.bad { color: #f6a58c; }
+/* Рядок розкладу в плитці термометра */
+.in-split { font-variant-numeric: tabular-nums; }
+.in-split b { color: var(--ink, #1f3347); font-weight: 900; }
+.dark-theme .in-split b { color: #e2e8f0; }
+.kpi-tile.intens .kpi-more { margin-top: 4px; }
+@media (max-width: 760px) {
+  .dr-scatter.compact .dr-tick,
+  .dr-scatter.compact .dr-axname { font-size: 20px; }
+  .dr-scatter.compact .sc-lbl { font-size: 20px; }
+  .dr-scatter.compact .sc-iso-lbl { font-size: 21px; }
+  .in-formula b { font-size: 21px; }
+}

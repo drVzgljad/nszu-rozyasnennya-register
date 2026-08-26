@@ -701,8 +701,13 @@ function drawRegionMap() {
   if (!heat) return;
 
   const mode = passportState.mapMode;
-  const metric = (mode !== "zoz" && window.Volumes && window.Volumes.hasData())
-    ? window.Volumes.mapMetric(mode) : null;
+  // Режим «на заклад» будується тут, а не у volumes.js: йому потрібні договори,
+  // про які модуль обсягів навмисно нічого не знає
+  const metric = (mode === "zoz" || !window.Volumes || !window.Volumes.hasData())
+    ? null
+    : (mode === "load"
+      ? loadMapMetric(String((passportState.selectedPackage || {}).number))
+      : window.Volumes.mapMetric(mode));
   // Режим просили, а даних немає (пакет без обсягів) — тихо падаємо на заклади
   const effMode = metric ? mode : "zoz";
 
@@ -833,7 +838,9 @@ function intensTileHtml() {
         <div class="kpi-head"><span class="kpi-icon">📈</span><span class="kpi-label">Інтенсивність</span></div>
         <div class="kpi-value" id="intensRank">—</div>
         <div class="kpi-sub" id="intensVal">фактичні обсяги вантажаться…</div>
+        <div class="kpi-sub in-split" id="intensSplitLine" hidden></div>
         <div class="kpi-sub in-hint" id="intensHint" hidden></div>
+        <span class="kpi-more" id="intensMore" hidden>детально &rarr;</span>
       </div>
     </div>`;
 }
@@ -861,11 +868,121 @@ function updateRateKpi() {
     `найінтенсивніший — пакет ${it.top.p} (${f.num(Math.round(it.top.r.rate))} на 10 тис.), ` +
     `найрідший — пакет ${it.bottom.p}. Шкала за місцем, а не за значенням: показники ` +
     `розтягнуті на пʼять порядків, і на лінійній шкалі майже всі лежали б на нулі.`);
+  // Розклад «навантаження × щільність»: сама інтенсивність не розрізняє
+  // «мало закладів» і «мало роботи в наявних», а це різні висновки
+  const splitBox = el("intensSplitLine");
+  const sp = intensityBreakdown(String((passportState.selectedPackage || {}).number));
+  // Плитка стає клікабельною лише коли є що показувати в розгортці
+  // Розгортка живе на порівнянні областей — на трьох точках порівнювати нічого,
+  // і плитка, яка клікається без наслідків, гірша за неклікабельну
+  const canDrill = Boolean(sp && sp.rows.length >= 3);
+  const moreBox = el("intensMore");
+  if (moreBox) moreBox.hidden = !canDrill;
+  if (canDrill) {
+    box.classList.add("kpi-drillable");
+    box.setAttribute("data-drill", "intensity");
+    box.setAttribute("role", "button");
+    box.setAttribute("tabindex", "0");
+  } else {
+    box.classList.remove("kpi-drillable");
+    box.removeAttribute("data-drill");
+  }
+  if (splitBox) {
+    splitBox.hidden = !sp;
+    if (sp) {
+      const ld = sp.load < 10 ? f.dec(sp.load, 1) : f.num(Math.round(sp.load));
+      splitBox.innerHTML = `= <b>${escapeHtml(ld)}</b> на заклад × <b>${escapeHtml(f.dec(sp.dens, sp.dens < 1 ? 3 : 2))}</b> закладу на 10 тис.`;
+      splitBox.title = `Інтенсивність розкладається надвоє: ${f.num(sp.s)} послуг за ${sp.months} міс. у ` +
+        `${uaPlural(sp.net, "закладі", "закладах", "закладах")} — це ${ld} на заклад; ` +
+        `а самих закладів ${f.dec(sp.dens, sp.dens < 1 ? 3 : 2)} на 10 тис. цільової групи. ` +
+        "Добуток цих двох чисел і є показник на плитці.";
+    }
+  }
+
   const hint = INTENS_HINTS[String((passportState.selectedPackage || {}).number)];
   if (hintBox) {
     hintBox.hidden = !hint;
     if (hint) { hintBox.textContent = hint.short; hintBox.title = hint.full; }
   }
+}
+
+/* ═══════ РОЗКЛАД ІНТЕНСИВНОСТІ ═══════
+
+   Тотожність, на якій усе тримається:
+
+       послуг / населення  =  (послуг / заклад) × (закладів / населення)
+
+   Тобто інтенсивність = навантаження на заклад × щільність мережі. Сама по
+   собі інтенсивність не відрізняє «мало послуг, бо мало закладів» від «мало
+   послуг, бо кожен заклад робить мало» — а це два різні висновки: перший про
+   контрактування, другий про завантаження й маршрут пацієнта.
+
+   Приклад із мамографії: у Херсонській найнижча інтенсивність у країні (52),
+   але навантаження там середнє (909) — заклад просто один. У Луганській
+   щільність вища за київську, а навантаження найнижче: мережа є, роботи нема.
+
+   Навантаження порівнюване МІЖ ОБЛАСТЯМИ одного пакета і між однорідними
+   пакетами; між різними пакетами — ні, бо одиниця послуги різна (пакет 9
+   рахує кожен аналіз, пакет 3 — кожну операцію). */
+
+function intensityBreakdown(pkgNum) {
+  const V = window.Volumes;
+  if (!V || !V.hasData || !V.hasData()) return null;
+  const it = V.intensity(10000);
+  const d = V.data();
+  const t = V.target();
+  if (!it || !d || !t || !it.den) return null;
+  const { byPackage } = getProviderIndex();
+  const net = (byPackage.get(pkgNum) || new Set()).size;
+  if (!net) return null;
+
+  const netO = {};
+  passportState.contractsData.contracts.forEach(c => {
+    if (c.packages.some(p => p.package_num === pkgNum)) {
+      netO[c.oblast] = (netO[c.oblast] || 0) + 1;
+    }
+  });
+
+  const rows = Object.keys(d.o || {}).map(o => {
+    const den = t.denOf(o) || 0;
+    const n = netO[o] || 0;
+    const s = d.o[o][0];
+    if (!den || !n) return null;
+    return { o, s, n, den, rate: s / den * 10000, load: s / n, dens: n / den * 10000 };
+  }).filter(Boolean).sort((a, b) => b.rate - a.rate);
+
+  const partial = new Set(d.partial || []);
+  return {
+    rate: it.rate, den: it.den, target: it.target, rank: it.rank, total: it.total,
+    s: d.tot[0], net, load: d.tot[0] / net, dens: net / it.den * 10000,
+    months: (d.months || []).filter(m => !partial.has(m)).length,
+    medLoad: medianOf(rows.map(r => r.load)),
+    medDens: medianOf(rows.map(r => r.dens)),
+    rows,
+  };
+}
+
+/** Метрика карти «навантаження на заклад». Живе тут, а не у volumes.js:
+    їй потрібні договори, а модуль обсягів навмисно про них не знає. */
+function loadMapMetric(pkgNum) {
+  const sp = intensityBreakdown(pkgNum);
+  if (!sp || !sp.rows.length) return null;
+  const f = window.Volumes.fmt;
+  const by = {};
+  sp.rows.forEach(r => { by[r.o] = r; });
+  const show = (v) => (v < 10 ? f.dec(v, 1) : f.num(Math.round(v)));
+  return {
+    val: (o) => (by[o] ? by[o].load : 0),
+    txt: (o) => (by[o] ? show(by[o].load) : ""),
+    tip: (o) => (by[o]
+      ? `${show(by[o].load)} послуг на заклад за ${sp.months} міс. — ` +
+        `${f.num(by[o].s)} послуг у ${uaPlural(by[o].n, "закладі", "закладах", "закладах")}`
+      : "закладів з договором або обсягів немає"),
+    legend: `Число в області — скільки послуг за ${sp.months} міс. припадає на ОДИН заклад із договором. ` +
+      "Разом із режимом «на населення» це розкладає інтенсивність надвоє: мало послуг буває тому, " +
+      "що закладів мало, і тому, що кожен робить мало. Порівнювати з іншими пакетами не можна — " +
+      "одиниця послуги в них різна.",
+  };
 }
 
 /* Окремий файл «звіт по аналізу пакета» — ті самі аркуші «Фактичні обсяги» і
