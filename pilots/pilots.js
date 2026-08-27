@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
   try {
-    const res = await fetch('data/pilots_2026.json?v=20260729a');
+    const res = await fetch('data/pilots_2026.json?v=20260827a');
     const data = await res.json();
     PILOTS = data.pilots || [];
   } catch (e) {
@@ -142,6 +142,23 @@ function renderDetail(p) {
     ${pr.equipment ? `<h4 class="pl-sub">🔧 Обладнання</h4>${list(pr.equipment)}` : ''}
   ` : '';
 
+  // ── Специфікація та умови закупівлі (додаток до договору).
+  // Це джерело істини щодо обсягу послуги: перелік тарифів показує, ЗА ЩО платять,
+  // а специфікація — що надавач ЗОБОВ'ЯЗАНИЙ надати. Плутати їх не можна.
+  const sp = p.specification || {};
+  const specSub = (icon, title, arr) => (arr && arr.length)
+    ? `<h4 class="pl-sub">${icon} ${title}</h4>${list(arr)}` : '';
+  const specInner = sp.scope || sp.organization ? `
+    <p class="pl-spec-src">📄 ${esc(sp.source || '')}</p>
+    ${sp.conditions ? `<div class="pl-pay-chips"><span class="pl-chip pl-chip-accent">Умови надання: ${esc(sp.conditions)}</span></div>` : ''}
+    ${specSub('📝', 'Підстави надання за специфікацією', sp.grounds)}
+    ${specSub('⚙️', 'Вимоги до організації надання', sp.organization)}
+    ${specSub('👥', 'Спеціалісти', sp.staff)}
+    ${specSub('🔧', 'Обладнання у ЗОЗ', sp.equipment_zoz)}
+    ${specSub('🔧', 'Обладнання за місцем надання послуг', sp.equipment_place)}
+    ${specSub('📌', 'Інші вимоги', sp.other)}
+  ` : '';
+
   // ── Пов'язаний пакет ПМГ (умова допуску)
   const reqPkg = REQUIRED_PACKAGE[p.number];
   const linkBlock = reqPkg ? `
@@ -174,9 +191,10 @@ function renderDetail(p) {
     ${linkBlock}
 
     ${block('👥', 'Кому надається', list(p.categories))}
-    ${block('📋', 'Що входить у послугу', list(p.content))}
-    ${block('📝', 'Підстави надання', list(p.grounds))}
+    ${block('📋', sp.scope ? 'Обсяг послуги за специфікацією' : 'Що входить у послугу', list(p.content))}
+    ${block('📝', 'Документи, які подає особа', list(p.grounds))}
     ${block('🏥', 'Вимоги до надавача', providerInner)}
+    ${block('📄', 'Специфікація та умови закупівлі', specInner, 'pl-block-spec')}
     ${block('💵', 'Оплата і тарифи', payInner, 'pl-block-pay')}
     ${block('⚖️', 'Нормативна база', normative)}
 

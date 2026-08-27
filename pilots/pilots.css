@@ -181,6 +181,14 @@
 
 .pl-who { margin: 0 0 12px; font-size: 13.5px; line-height: 1.55; }
 
+/* Специфікація та умови закупівлі — додаток до договору, першоджерело обсягу */
+.pl-block-spec { border-left: 3px solid #2f6b9e; }
+.pl-spec-src {
+  margin: 0 0 12px; padding: 10px 12px; border-radius: 8px;
+  background: var(--p-soft); border: 1px solid var(--p-line);
+  font-size: 12.5px; line-height: 1.5; color: var(--p-muted);
+}
+
 /* Оплата */
 .pl-block-pay { border-left: 3px solid #2f9e5f; }
 .pl-pay-model { font-size: 13.5px; line-height: 1.55; margin-bottom: 12px; }
