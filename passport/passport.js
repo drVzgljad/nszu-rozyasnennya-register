@@ -1651,17 +1651,18 @@ function getProviderIndex() {
   const byPackage = new Map();
   const contractRows = [];   // { e, set } — пакети одного договору
   passportState.contractsData.contracts.forEach(c => {
-    let set = byProvider.get(c.edrpou);
-    if (!set) byProvider.set(c.edrpou, (set = new Set()));
+    const pk = c.pkey || c.edrpou;   // у ФОП edrpou — літерал «ФОП», ключ у pkey
+    let set = byProvider.get(pk);
+    if (!set) byProvider.set(pk, (set = new Set()));
     const own = new Set();
     c.packages.forEach(p => {
       set.add(p.package_num);
       own.add(p.package_num);
       let list = byPackage.get(p.package_num);
       if (!list) byPackage.set(p.package_num, (list = new Set()));
-      list.add(c.edrpou);
+      list.add(pk);
     });
-    contractRows.push({ e: c.edrpou, set: own });
+    contractRows.push({ e: pk, set: own });
   });
   passportState._provIdx = { byProvider, byPackage, contractRows };
   return passportState._provIdx;

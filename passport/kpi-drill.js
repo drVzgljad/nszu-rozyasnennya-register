@@ -1116,7 +1116,7 @@
   function applyCoreFilter(s) {
     passportState.hospitalCombo = {
       req: [], excl: [],
-      only: new Set(s.coreRows.map((r) => r.c.edrpou)),
+      only: new Set(s.coreRows.map((r) => r.c.pkey || r.c.edrpou)),
       chip: "Фільтр:",
       label: `ядро бюджету — ${uaNum(s.core)} ${zozUk(s.core)}, що дають ${pctUk(s.coreMoneyPct)} грошей пакета`,
     };

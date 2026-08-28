@@ -324,7 +324,9 @@ function applyFilters() {
   });
 
   // Update summary metrics
-  const uniqueProviders = new Set(state.filtered.map(c => c.edrpou)).size;
+  /* Ключ надавача: pkey, а не edrpou — у ФОП edrpou віддає літерал «ФОП»,
+     тож підрахунок за ним склеїв би всіх ФОП в одного надавача. */
+  const uniqueProviders = new Set(state.filtered.map(c => c.pkey || c.edrpou)).size;
   
   // Calculate total sum of filtered contracts or filtered packages
   let sumTotal = 0;
@@ -764,19 +766,21 @@ function exportEmailsToExcel() {
     }
 
     const edrpou = c.edrpou;
+    const pkey = c.pkey || c.edrpou;   // ключ зведення; edrpou у ФОП — літерал
     const email = c.email || "";
     const name = c.provider_name_full || c.provider_name;
     const pkgsStr = matchedPkgs.join(", ");
 
-    if (uniqueZOZ.has(edrpou)) {
-      const existing = uniqueZOZ.get(edrpou);
+    if (uniqueZOZ.has(pkey)) {
+      const existing = uniqueZOZ.get(pkey);
       const existingPkgs = existing.pkgs.split(", ");
       matchedPkgs.forEach(p => {
         if (!existingPkgs.includes(p)) existingPkgs.push(p);
       });
       existing.pkgs = existingPkgs.sort((a,b) => parseInt(a) - parseInt(b)).join(", ");
     } else {
-      uniqueZOZ.set(edrpou, {
+      uniqueZOZ.set(pkey, {
+        edrpou: edrpou,
         name: name,
         email: email,
         pkgs: pkgsStr
@@ -789,9 +793,9 @@ function exportEmailsToExcel() {
     return;
   }
 
-  uniqueZOZ.forEach((info, edrpou) => {
+  uniqueZOZ.forEach((info) => {
     wsData.push([
-      edrpou,
+      info.edrpou,
       info.name,
       info.email,
       info.pkgs
