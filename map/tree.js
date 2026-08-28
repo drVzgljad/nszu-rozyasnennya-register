@@ -71,7 +71,7 @@
         name: "Взаємодія та експертиза", icon: "🤝", tone: "b",
         children: [
           { name: "Запитання ЗОЗ", icon: "❓", path: "zoz-questions/index.html", role: "expert" },
-          { name: "Пропозиції до ПМГ-2026", icon: "🗳️", path: "pmg-proposals/index.html", role: "expert" },
+          { name: "Пропозиції до ПМГ", icon: "🗳️", path: "pmg-proposals/index.html", role: "expert" },
           { name: "Пропозиції робочих груп", icon: "⚖️", path: "expert-proposals/index.html", role: "expert" },
         ],
       },
