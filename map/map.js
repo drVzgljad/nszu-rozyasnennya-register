@@ -93,7 +93,7 @@
           ],
         },
         {
-          icon: "🧮", title: "Алгоритми та правила (Наказ 377)", path: "algorithms/index.html", role: "guest", mission: "science",
+          icon: "🧮", title: "Алгоритми та правила (Наказ 377)", path: "algorithms/index.html", role: "expert", mission: "science",
           desc: "Правила наказу № 377, коди НК 025, діагнози та амбулаторно-асоційовані стани.",
           tags: "алгоритми наказ 377 нк025 діагнози коди правила",
           guide: [

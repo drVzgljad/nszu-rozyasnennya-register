@@ -508,7 +508,7 @@ function applyAccess() {
           { text: 'Групер ДСГ · випадок → група', path: 'koduvannia/grouper.html', role: 'expert' },
           { text: 'Інструменти ДСГ · тарифи й аномалії', path: 'drg/index.html', role: 'expert' },
           { text: 'Таблиця співставлення · код ↔ пакет', path: 'mapping/index.html' },
-          { text: 'Правила: наказ 377', path: 'algorithms/index.html' },
+          { text: 'Правила: наказ 377', path: 'algorithms/index.html', role: 'expert' },
           { text: 'Кодування реабілітації · наказ 182', path: 'algorithms/rehab.html' },
           { text: 'Кодування амбулаторки · пакет 9', path: 'algorithms/ambulatory.html', role: 'expert' }
         ]
@@ -527,7 +527,7 @@ function applyAccess() {
       },
       {
         text: '📜 Накази', items: [
-          { text: 'Наказ 377 · Алгоритми та правила', path: 'algorithms/index.html' },
+          { text: 'Наказ 377 · Алгоритми та правила', path: 'algorithms/index.html', role: 'expert' },
           { text: 'Наказ 182 · Кодування реабілітації', path: 'algorithms/rehab.html' },
           { text: 'Наказ 1044 · Критерії госпіталізації', path: 'gospitalizatsiya/index.html', role: 'expert' }
         ]
@@ -2643,7 +2643,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '🧪', label: 'Пілотні проєкти', path: 'pilots/index.html' },
     { icon: '📜', label: 'Постанова 1808', path: 'postanova/index.html' },
     { icon: '↔️', label: 'Тарифи 2025 ↔ 2026', path: 'postanova/porivnyannya.html' },
-    { icon: '🧮', label: 'Наказ 377', path: 'algorithms/index.html' },
+    { icon: '🧮', label: 'Наказ 377', path: 'algorithms/index.html', role: 'expert' },
     { icon: '🏥', label: 'Наказ 1044 · Критерії госпіталізації', path: 'gospitalizatsiya/index.html', role: 'expert' },
     { icon: '⚖️', label: 'Нормативна база', path: 'regulatory/index.html' },
     { icon: '☢️', label: 'Рентген і ДІВ', path: 'rentgen/index.html' },
