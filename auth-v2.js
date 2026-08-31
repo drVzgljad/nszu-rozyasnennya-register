@@ -101,7 +101,8 @@ let bootPaint = false;
 // Після перезавантаження з кореня все знову працює, тож збій легко списати на
 // кеш. Спіймано 09.08.2026 на розділі «Інструменти ДСГ» (drg), який тут забули.
 const PORTAL_SUBDIRS = [
-  'algorithms', 'bloknot', 'cabinet', 'chat', 'classifiers', 'dec', 'drg', 'expert-proposals', 'infocenter',
+  'algorithms', 'bloknot', 'cabinet', 'chat', 'classifiers', 'dec', 'drg', 'expert-proposals',
+  'gospitalizatsiya', 'infocenter',
   'koduvannia', 'map', 'mapping', 'news', 'pakety', 'passport', 'pilots', 'pmg-proposals', 'postanova',
   'regulatory', 'relax', 'reminders', 'rentgen', 'rozjasnennya', 'skod', 'zoz-dogovr', 'zoz-poshuk',
   'zoz-questions'
@@ -527,7 +528,8 @@ function applyAccess() {
       {
         text: '📜 Накази', items: [
           { text: 'Наказ 377 · Алгоритми та правила', path: 'algorithms/index.html' },
-          { text: 'Наказ 182 · Кодування реабілітації', path: 'algorithms/rehab.html' }
+          { text: 'Наказ 182 · Кодування реабілітації', path: 'algorithms/rehab.html' },
+          { text: 'Наказ 1044 · Критерії госпіталізації', path: 'gospitalizatsiya/index.html', role: 'expert' }
         ]
       },
       { text: 'Нормативна база', path: 'regulatory/index.html' },
@@ -2642,6 +2644,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '📜', label: 'Постанова 1808', path: 'postanova/index.html' },
     { icon: '↔️', label: 'Тарифи 2025 ↔ 2026', path: 'postanova/porivnyannya.html' },
     { icon: '🧮', label: 'Наказ 377', path: 'algorithms/index.html' },
+    { icon: '🏥', label: 'Наказ 1044 · Критерії госпіталізації', path: 'gospitalizatsiya/index.html', role: 'expert' },
     { icon: '⚖️', label: 'Нормативна база', path: 'regulatory/index.html' },
     { icon: '☢️', label: 'Рентген і ДІВ', path: 'rentgen/index.html' },
     { icon: '🏥', label: 'ДЕЦ МОЗ', path: 'dec/index.html' },

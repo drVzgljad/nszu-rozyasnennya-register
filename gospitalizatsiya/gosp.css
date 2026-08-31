@@ -1,0 +1,461 @@
+/* ============================================================
+   Розділ «Критерії госпіталізації» (наказ МОЗ від 30.07.2026 № 1044)
+
+   Три режими: розбір → текст стандарту → відповіді МОЗ на вебінарі.
+   Кольори тільки через токени порталу — темна тема тоді працює сама,
+   без жодного власного правила під :root.dark-theme.
+   ============================================================ */
+
+.gp-hero h1 { margin-bottom: 6px; }
+.gp-sub { max-width: 74ch; }
+
+.gp-layout {
+  /* Портальний .layout — двоколонковий grid. Без цього скидання вкладки
+     лягли б у ліву колонку, а вміст у праву (та сама пастка, що й у
+     розділі «Рентген і ДІВ»). Свою сітку розділ будує в .gp-body. */
+  display: block;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 16px 20px 48px;
+}
+
+/* ---------- перемикач режимів ---------- */
+.gp-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.gp-tab {
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  padding: 10px 18px;
+  border-radius: 10px 10px 0 0;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.gp-tab:hover { color: var(--accent-dark); background: var(--accent-soft); }
+.gp-tab.is-active {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line);
+  box-shadow: 0 -2px 0 var(--accent) inset;
+}
+
+.gp-view { display: none; }
+.gp-view.is-visible { display: block; }
+
+.gp-loading, .gp-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14.5px;
+}
+.gp-empty-ico { font-size: 34px; margin-bottom: 10px; }
+.gp-empty h2 { margin: 0 0 6px; font-size: 17px; color: var(--ink); }
+
+/* ============================================================
+   РЕЖИМ 1 — РОЗБІР
+   ============================================================ */
+
+.gp-verdict {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: 12px;
+  padding: 20px 22px;
+  margin-bottom: 22px;
+  box-shadow: var(--shadow);
+}
+.gp-verdict-lead {
+  margin: 0 0 16px;
+  font-size: 16.5px;
+  line-height: 1.55;
+  font-weight: 600;
+  color: var(--ink);
+}
+.gp-vpoints { margin: 0; padding: 0; list-style: none; display: grid; gap: 11px; }
+.gp-vpoint {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: start;
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+/* Мітка джерела твердження. Головне правило розділу: норма і наша оцінка
+   ніколи не стоять поруч без візуальної різниці — інакше експертний
+   висновок приїде в лист як цитата з наказу. */
+.gp-badge {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+.gp-badge.norm { background: var(--accent-soft); color: var(--accent-dark); border: 1px solid var(--accent); }
+.gp-badge.ours { background: var(--soft); color: var(--muted); border: 1px solid var(--line); }
+
+.gp-h2 {
+  margin: 30px 0 6px;
+  font-size: 19px;
+  color: var(--ink);
+  letter-spacing: -.01em;
+}
+.gp-h2-note { margin: 0 0 14px; color: var(--muted); font-size: 14px; line-height: 1.55; max-width: 82ch; }
+
+/* ---------- чотири маршрути ---------- */
+.gp-routes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(235px, 1fr));
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.gp-route {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 15px 16px;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition: border-color .15s, transform .15s;
+}
+.gp-route:hover { border-color: var(--accent); transform: translateY(-2px); }
+.gp-route-top { display: flex; align-items: baseline; gap: 8px; margin-bottom: 7px; }
+.gp-route-n {
+  width: 22px; height: 22px; flex: none;
+  border-radius: 50%;
+  background: var(--accent-fill); color: #fff;
+  font-size: 12px; font-weight: 800;
+  display: grid; place-items: center;
+}
+.gp-route h3 { margin: 0; font-size: 15.5px; color: var(--ink); }
+.gp-route-sec {
+  margin-left: auto;
+  font-size: 11.5px; font-weight: 700;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+.gp-route p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--muted); }
+.gp-route-count { display: block; margin-top: 8px; font-size: 12.5px; color: var(--accent-dark); font-weight: 700; }
+
+/* ---------- периметр ---------- */
+.gp-scope {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+.gp-scope-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 15px 17px;
+}
+.gp-scope-card h3 { margin: 0 0 9px; font-size: 14.5px; color: var(--ink); }
+.gp-scope-card ul { margin: 0; padding-left: 18px; font-size: 13.5px; line-height: 1.65; color: var(--muted); }
+.gp-scope-card.is-out { border-left: 3px solid var(--warning-border); }
+.gp-scope-note {
+  margin: 12px 0 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--muted);
+  background: var(--soft);
+  border-radius: 10px;
+  padding: 11px 14px;
+}
+
+/* ---------- вузли тертя ---------- */
+.gp-fgroup { margin-top: 26px; }
+.gp-fgroup > h3 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 6px;
+}
+.gp-fnodes { display: grid; gap: 12px; }
+.gp-fnode {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.gp-fnode.is-warn { border-left: 4px solid var(--warning-border); }
+.gp-fhead {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  text-align: left;
+  padding: 14px 17px;
+  cursor: pointer;
+  color: var(--ink);
+}
+.gp-fhead:hover { background: var(--soft); }
+.gp-fhead h4 { margin: 0; font-size: 15.5px; flex: 1; line-height: 1.4; }
+.gp-fchev { color: var(--muted); font-size: 13px; transition: transform .18s; flex: none; }
+.gp-fnode.is-open .gp-fchev { transform: rotate(90deg); }
+.gp-fbody { padding: 0 17px 16px; display: none; }
+.gp-fnode.is-open .gp-fbody { display: block; }
+
+.gp-row { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; margin-bottom: 11px; }
+.gp-row p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--ink); }
+.gp-row.ours p { color: var(--muted); }
+.gp-action {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  background: var(--warm);
+  border-radius: 10px;
+  padding: 11px 14px;
+  color: var(--ink);
+}
+.gp-action b { color: var(--teal-dark); }
+
+/* ---------- посилання в текст акта і у відео ---------- */
+.gp-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 2px 8px;
+  cursor: pointer;
+  text-decoration: none;
+  margin-right: 6px;
+}
+.gp-link:hover { border-color: var(--accent); }
+
+/* ---------- чинність і борги ---------- */
+.gp-validity {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+.gp-debts { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: var(--ink); }
+.gp-debts li { margin-bottom: 4px; }
+
+/* ============================================================
+   РЕЖИМ 2 — ТЕКСТ СТАНДАРТУ
+   ============================================================ */
+
+.gp-toolbar { margin-bottom: 14px; }
+.gp-search { position: relative; max-width: 620px; }
+.gp-search-ico { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 15px; opacity: .6; }
+.gp-search input {
+  width: 100%;
+  padding: 13px 44px 13px 42px;
+  font: inherit;
+  font-size: 15px;
+  border: 2px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.gp-search input:focus { outline: none; border-color: var(--accent); }
+.gp-search-clear {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  border: 0; background: transparent; color: var(--muted);
+  font-size: 15px; cursor: pointer; padding: 4px 7px;
+}
+.gp-hits { margin-top: 8px; font-size: 13.5px; color: var(--muted); }
+
+.gp-body {
+  display: grid;
+  grid-template-columns: minmax(230px, 300px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 880px) { .gp-body { grid-template-columns: 1fr; } }
+
+.gp-tree {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px;
+  position: sticky;
+  top: 12px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+@media (max-width: 880px) { .gp-tree { position: static; max-height: none; } }
+
+.gp-tnode {
+  width: 100%;
+  display: block;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  padding: 9px 11px;
+  border-radius: 9px;
+  cursor: pointer;
+  line-height: 1.4;
+}
+.gp-tnode:hover { background: var(--soft); }
+/* Смужка обовʼязкова: у темній темі --accent-soft збігається з --surface,
+   тобто з тлом самої панелі, і активний розділ відрізнявся б лише кольором
+   тексту. Перевірено вимірюванням із вимкненими transition — інакше
+   getComputedStyle віддає проміжний кадр анімації. */
+.gp-tnode.is-active {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-weight: 700;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.gp-tnode .gp-tnum { font-weight: 800; margin-right: 6px; color: var(--muted); }
+.gp-tnode.is-active .gp-tnum { color: var(--accent-dark); }
+.gp-tcount { float: right; font-size: 11.5px; color: var(--faint); font-weight: 600; }
+
+.gp-reader {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 24px 28px 30px;
+  min-height: 420px;
+}
+@media (max-width: 640px) { .gp-reader { padding: 18px 16px 24px; } }
+.gp-reader h2 {
+  margin: 0 0 4px;
+  font-size: 21px;
+  color: var(--ink);
+  letter-spacing: -.01em;
+}
+.gp-reader-sub { margin: 0 0 20px; color: var(--muted); font-size: 13.5px; }
+
+/* Блоки тексту. Відступ = рівень вкладеності, а не декор: у стандарті
+   пункт-крапка під підпунктом означає «будь-що з наведеного», і без
+   зсуву читач губить, до чого саме належить критерій. */
+.gp-b { position: relative; margin: 0 0 10px; font-size: 14.5px; line-height: 1.62; color: var(--ink); scroll-margin-top: 16px; }
+.gp-b-head { font-weight: 700; font-size: 15.5px; margin: 22px 0 10px; color: var(--ink); }
+.gp-b-num { margin-top: 18px; }
+.gp-b-num .gp-m { font-weight: 800; color: var(--accent-dark); }
+.gp-b-sub { padding-left: 20px; }
+.gp-b-sub .gp-m { font-weight: 700; color: var(--muted); }
+.gp-b-letter { padding-left: 20px; }
+.gp-b-letter .gp-m { font-weight: 700; color: var(--muted); }
+.gp-b-bullet { padding-left: 38px; }
+.gp-b-bullet::before {
+  content: "";
+  position: absolute;
+  left: 22px; top: .62em;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.gp-b-para { }
+.gp-b-src { padding-left: 26px; text-indent: -26px; font-size: 13.5px; color: var(--muted); margin-bottom: 8px; }
+
+/* Перелік скорочень — двоколонковий список термінів */
+.gp-abbr {
+  display: grid;
+  grid-template-columns: minmax(90px, max-content) 1fr;
+  gap: 6px 18px;
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+.gp-abbr dt { font-weight: 700; color: var(--accent-dark); }
+.gp-abbr dd { margin: 0; color: var(--ink); }
+@media (max-width: 560px) {
+  .gp-abbr { grid-template-columns: 1fr; gap: 0 0; }
+  .gp-abbr dd { margin-bottom: 10px; color: var(--muted); }
+}
+
+.gp-b.is-hit { background: var(--warm); border-radius: 8px; }
+.gp-b mark { background: var(--warning-bg); color: var(--warning-text); border-radius: 3px; padding: 0 2px; }
+
+.gp-anchor {
+  opacity: 0;
+  border: 0; background: transparent;
+  color: var(--faint); cursor: pointer;
+  font-size: 12px; padding: 0 6px;
+  transition: opacity .15s;
+}
+.gp-b:hover .gp-anchor { opacity: 1; }
+.gp-b.is-flash { animation: gpFlash 1.6s ease-out; }
+@keyframes gpFlash {
+  0%   { background: var(--accent-soft); }
+  100% { background: transparent; }
+}
+
+.gp-acts { margin-top: 5px; display: flex; flex-wrap: wrap; gap: 5px; }
+.gp-act {
+  font-size: 11.5px;
+  color: var(--muted);
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1px 7px;
+}
+
+/* ============================================================
+   РЕЖИМ 3 — ВЕБІНАР
+   ============================================================ */
+
+.gp-wmeta {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 17px 19px;
+  margin-bottom: 20px;
+}
+.gp-wmeta h2 { margin: 0 0 5px; font-size: 18px; color: var(--ink); }
+.gp-wfacts { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 10px 0 12px; font-size: 13.5px; color: var(--muted); }
+.gp-wfacts b { color: var(--ink); }
+.gp-wdisc { margin: 0; font-size: 13px; line-height: 1.6; color: var(--muted); background: var(--soft); border-radius: 9px; padding: 10px 13px; }
+.gp-wspeakers { margin: 8px 0 0; padding-left: 18px; font-size: 13.5px; line-height: 1.6; color: var(--muted); }
+
+.gp-wgroup { margin-bottom: 24px; }
+.gp-wgroup > h3 {
+  margin: 0 0 4px;
+  font-size: 16.5px;
+  color: var(--ink);
+  display: flex; align-items: center; gap: 8px;
+}
+.gp-wgroup-note { margin: 0 0 12px; font-size: 13.5px; color: var(--muted); line-height: 1.55; }
+
+.gp-qa {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 15px 17px;
+  margin-bottom: 10px;
+}
+.gp-qa.is-warn { border-left: 4px solid var(--warning-border); }
+.gp-qa h4 { margin: 0 0 8px; font-size: 15px; color: var(--ink); line-height: 1.45; }
+.gp-qa-a { margin: 0; font-size: 14px; line-height: 1.62; color: var(--ink); }
+.gp-qa-foot { margin-top: 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.gp-who { font-size: 11.5px; font-weight: 700; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; }
+.gp-note {
+  margin: 9px 0 0;
+  font-size: 13px; line-height: 1.6;
+  color: var(--muted);
+  border-left: 2px solid var(--line);
+  padding-left: 11px;
+}
+.gp-note.is-warn { border-left-color: var(--warning-border); color: var(--warning-text); }

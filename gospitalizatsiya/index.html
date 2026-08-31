@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>НавігаторПМГ26 | Критерії госпіталізації · наказ 1044</title>
+  <link rel="stylesheet" href="../styles.css?v=20260808b">
+  <link rel="stylesheet" href="gosp.css?v=20260831d">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
+  <script type="module" src="../auth-v2.js?v=20260831a"></script>
+</head>
+<body id="top" data-required-role="expert">
+
+  <div id="access-denied-overlay" class="access-denied-overlay" style="display:none">
+    <div class="access-denied-box">
+      <h2>Доступ обмежено</h2>
+      <p id="access-denied-msg">Ця сторінка доступна лише для зареєстрованих співробітників.</p>
+      <button class="auth-submit" id="access-denied-btn">Увійти / Зареєструватись</button>
+    </div>
+  </div>
+
+  <header class="hero gp-hero">
+    <div class="hero-copy">
+      <div class="overline">Нормативна база ПМГ</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Критерії госпіталізації</h1>
+      <p class="gp-sub">Наказ МОЗ від 30 липня 2026 року № 1044. Документ клінічний,
+        але вирішує питання, яке в системі досі не мало відповіді: чи мав цей пацієнт
+        лежати. Тут — повний текст, розбір дотику до ПМГ і те, що МОЗ сказав уголос.</p>
+    </div>
+    <div class="stats" aria-label="Обсяг розділу">
+      <div class="stat"><strong id="statSections">-</strong><span>розділи стандарту</span></div>
+      <div class="stat"><strong id="statBlocks">-</strong><span>пунктів і критеріїв</span></div>
+      <div class="stat"><strong id="statStates">-</strong><span>груп станів</span></div>
+      <div class="stat"><strong id="statSocial">-</strong><span>соціальних показань</span></div>
+    </div>
+  </header>
+
+  <main class="layout gp-layout">
+
+    <div class="gp-tabs" role="tablist" aria-label="Режим перегляду">
+      <button class="gp-tab is-active" id="tabAnalysis" role="tab" aria-selected="true" type="button">🧭 Розбір</button>
+      <button class="gp-tab" id="tabStandard" role="tab" aria-selected="false" type="button">📖 Стандарт</button>
+      <button class="gp-tab" id="tabWebinar" role="tab" aria-selected="false" type="button">🎙️ МОЗ відповідає</button>
+    </div>
+
+    <!-- ============ РЕЖИМ: РОЗБІР ============ -->
+    <section class="gp-view is-visible" id="viewAnalysis">
+      <div id="analysisBody"><div class="gp-loading">Завантаження…</div></div>
+    </section>
+
+    <!-- ============ РЕЖИМ: СТАНДАРТ ============ -->
+    <section class="gp-view" id="viewStandard" hidden>
+      <div class="gp-toolbar">
+        <div class="gp-search">
+          <span class="gp-search-ico" aria-hidden="true">🔍</span>
+          <input id="q" type="search" autocomplete="off"
+                 placeholder="Пошук по всьому стандарту — напр. «сатурація», «денний стаціонар», «відступ»">
+          <button class="gp-search-clear" id="qClear" type="button" aria-label="Очистити пошук" hidden>✕</button>
+        </div>
+        <div class="gp-hits" id="hits" hidden></div>
+      </div>
+
+      <div class="gp-body">
+        <aside class="gp-tree" id="tree" aria-label="Розділи стандарту">
+          <div class="gp-loading">Завантаження…</div>
+        </aside>
+        <section class="gp-reader" id="reader" aria-label="Текст стандарту" tabindex="-1">
+          <div class="gp-empty">
+            <div class="gp-empty-ico" aria-hidden="true">📖</div>
+            <h2>Оберіть розділ зліва</h2>
+            <p>Кожен пункт має власну адресу, тож посилання на критерій можна
+              вставити просто в лист.</p>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ============ РЕЖИМ: ВЕБІНАР ============ -->
+    <section class="gp-view" id="viewWebinar" hidden>
+      <div id="webinarBody"><div class="gp-loading">Завантаження…</div></div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <p>Текст стандарту зібрано з офіційного PDF МОЗ (наказ від 30.07.2026 № 1044
+          і додаток до нього), звірено <span id="footerFresh">31.08.2026</span>.
+          Контрольне джерело редакції — Реєстр медико-технологічних документів ДЕЦ,
+          а не копія файлу. Розбір і оцінки — експертні: вони не є нормою, посилання
+          під ними — є.</p>
+      </div>
+    </div>
+  </footer>
+
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <script src="gosp.js?v=20260831g" defer></script>
+</body>
+</html>
