@@ -1,6 +1,66 @@
 {
  "runs": [
   {
+   "started": "2026-08-31T05:53:21.556098+00:00",
+   "finished": "2026-08-31T05:53:53.779333+00:00",
+   "documents": 194,
+   "with_real_date": 134,
+   "edges": 50,
+   "failed": false,
+   "steps": [
+    {
+     "step": "1/7 Звірка з архівом НСЗУ",
+     "status": "ok",
+     "seconds": 14.5
+    },
+    {
+     "step": "2/7 Видобування тексту й таблиць",
+     "status": "ok",
+     "seconds": 1.0
+    },
+    {
+     "step": "3/7 Довідники посад і кодів ЕСОЗ",
+     "status": "ok",
+     "seconds": 0.7
+    },
+    {
+     "step": "4/7 Коди в текстах і таблицях",
+     "status": "ok",
+     "seconds": 4.3
+    },
+    {
+     "step": "5/7 Паспорти документів",
+     "status": "ok",
+     "seconds": 1.8
+    },
+    {
+     "step": "6/7 Вердикти експертів",
+     "status": "ok",
+     "seconds": 1.7
+    },
+    {
+     "step": "7/7 Граф зв'язків",
+     "status": "ok",
+     "seconds": 0.7
+    },
+    {
+     "step": "8/8 Кодування амбулаторки (пакет 9)",
+     "status": "ok",
+     "seconds": 0.9
+    },
+    {
+     "step": "deploy",
+     "status": "ok",
+     "seconds": 0.3
+    },
+    {
+     "step": "publish",
+     "status": "ok",
+     "seconds": 6.3
+    }
+   ]
+  },
+  {
    "started": "2026-08-29T06:16:06.224965+00:00",
    "finished": "2026-08-29T06:16:36.931519+00:00",
    "documents": 194,
