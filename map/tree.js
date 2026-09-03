@@ -27,7 +27,7 @@
           { name: "Постанова № 1808", icon: "📜", path: "postanova/index.html", role: "guest" },
           { name: "Алгоритми (Наказ 377)", icon: "🧮", path: "algorithms/index.html", role: "expert" },
           { name: "Кодування реабілітації (Наказ 182)", icon: "🦼", path: "algorithms/rehab.html", role: "guest" },
-          { name: "Кодування амбулаторки", icon: "🏥", path: "algorithms/ambulatory.html", role: "guest" },
+          { name: "Кодування амбулаторки", icon: "🏥", path: "algorithms/ambulatory.html", role: "expert" },
           { name: "Критерії госпіталізації (Наказ 1044)", icon: "🏥", path: "gospitalizatsiya/index.html", role: "expert" },
           { name: "Нормативна база", icon: "⚖️", path: "regulatory/index.html", role: "guest" },
           { name: "Рентген і ДІВ", icon: "☢️", path: "rentgen/index.html", role: "guest" },

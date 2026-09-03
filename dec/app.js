@@ -641,7 +641,7 @@ async function init() {
     const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
     const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
     const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
-    const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+    const sb = window.__pmgSb || (window.__pmgSb = createClient(SUPABASE_URL, SUPABASE_KEY));
     
     if (sb) {
       const { data: dbData, error } = await sb.from('dec_documents').select('*');

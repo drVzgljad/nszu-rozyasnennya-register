@@ -80,7 +80,7 @@ const boot = readBoot();
 
 const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = window.__pmgSb || (window.__pmgSb = createClient(SUPABASE_URL, SUPABASE_KEY));
 
 let user = null;
 let role = null; // null = guest | 'registered' | 'full'
@@ -2833,7 +2833,7 @@ if ('serviceWorker' in navigator &&
   // неї браузер до десяти хвилин не помічає, що воркер змінився, і продовжує
   // роздавати старі файли з кешу. Змінений URL змушує перевірити одразу.
   // ПРИ ЗМІНІ sw.js ПІДНІМАТИ ЦЮ ВЕРСІЮ РАЗОМ З CACHE усередині воркера.
-  navigator.serviceWorker.register('/sw.js?v=53').catch(() => {});
+  navigator.serviceWorker.register('/sw.js?v=54').catch(() => {});
 
   // Перезавантаження на controllerchange прибрано 30.07.2026 разом зі
   // skipWaiting() у воркері (див. коментар у sw.js). Новий воркер більше не
