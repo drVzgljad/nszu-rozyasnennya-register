@@ -122,7 +122,7 @@ async function openGlobalSearch() {
   try {
     if (!globalSearchModule) {
       // Шлях відносно МОДУЛЯ auth-v2.js (обидва лежать у корені), а не сторінки
-      globalSearchModule = await import('./global-search.js?v=20260810b');
+      globalSearchModule = await import('./global-search.js?v=20260903b');
     }
     globalSearchModule.open(getPathPrefix());
   } catch (err) {
@@ -2833,7 +2833,7 @@ if ('serviceWorker' in navigator &&
   // неї браузер до десяти хвилин не помічає, що воркер змінився, і продовжує
   // роздавати старі файли з кешу. Змінений URL змушує перевірити одразу.
   // ПРИ ЗМІНІ sw.js ПІДНІМАТИ ЦЮ ВЕРСІЮ РАЗОМ З CACHE усередині воркера.
-  navigator.serviceWorker.register('/sw.js?v=55').catch(() => {});
+  navigator.serviceWorker.register('/sw.js?v=56').catch(() => {});
 
   // Перезавантаження на controllerchange прибрано 30.07.2026 разом зі
   // skipWaiting() у воркері (див. коментар у sw.js). Новий воркер більше не

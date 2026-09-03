@@ -9,6 +9,7 @@ let state = { entries: [], blobs: [], results: [], selected: 0, prefix: './' };
 const GROUPS = [
   { type: 1, label: 'Пакети ПМГ-2026', icon: '📦' },
   { type: 2, label: 'Постанова 1808', icon: '📜' },
+  { type: 8, label: 'Нормативна база', icon: '⚖️' },
   { type: 4, label: 'Класифікатор НК 025', icon: '🩺' },
   { type: 5, label: 'Класифікатор НК 026', icon: '🔬' },
   { type: 6, label: 'Таблиця співставлення', icon: '🔗' },
@@ -16,7 +17,7 @@ const GROUPS = [
   { type: 0, label: "Роз'яснення НСЗУ", icon: '📄' },
   { type: 3, label: 'Договори ЗОЗ', icon: '🏥' },
 ];
-const GROUP_ORDER = { 1: 0, 2: 1, 6: 2, 4: 3, 5: 4, 7: 5, 0: 6, 3: 7 };
+const GROUP_ORDER = { 1: 0, 2: 1, 8: 2, 6: 3, 4: 4, 5: 5, 7: 6, 0: 7, 3: 8 };
 const PER_GROUP = 7;
 
 function buildUrl(entry, prefix) {
@@ -33,6 +34,8 @@ function buildUrl(entry, prefix) {
     // Додатка 7, P… — посада за наказом МОЗ № 1065.
     case 7: return `${prefix}classifiers/specialnosti.html?reg=${
       link.startsWith('P') ? 'p' : 's'}&id=${encodeURIComponent(link)}`;
+    // Акт «Нормативної бази»: link — ключ акта, адреса — якір читалки
+    case 8: return `${prefix}regulatory/index.html#doc/${encodeURIComponent(link)}`;
   }
 }
 

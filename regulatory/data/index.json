@@ -1,0 +1,2584 @@
+{
+ "corpus": "Нормативна база ПМГ-2026",
+ "built": "2026-09-03",
+ "groups": [
+  {
+   "key": "zakony",
+   "title": "Закони України",
+   "count": 6
+  },
+  {
+   "key": "pkmu",
+   "title": "Постанови КМУ про ПМГ",
+   "count": 11
+  },
+  {
+   "key": "licence",
+   "title": "Ліцензування та санітарні вимоги",
+   "count": 3
+  },
+  {
+   "key": "esoz",
+   "title": "ЕСОЗ і е-послуги",
+   "count": 6
+  },
+  {
+   "key": "moz-clin",
+   "title": "Накази МОЗ: клінічні",
+   "count": 33
+  },
+  {
+   "key": "moz-org",
+   "title": "Накази МОЗ: організаційні",
+   "count": 19
+  },
+  {
+   "key": "nszu",
+   "title": "Накази НСЗУ",
+   "count": 1
+  }
+ ],
+ "built_nodes": 8542,
+ "with_text": 69,
+ "packages": [
+  "1",
+  "3",
+  "4",
+  "5",
+  "6",
+  "7",
+  "8",
+  "9",
+  "18",
+  "23",
+  "24",
+  "63"
+ ],
+ "documents": [
+  {
+   "key": "2168-19",
+   "id": "e4b11fba-7a13-4ce2-b230-e37452d3a011",
+   "kind": "Закон",
+   "num": "2168-VIII",
+   "date": "2017-10-19",
+   "title": "Про державні фінансові гарантії медичного обслуговування населення",
+   "group": "zakony",
+   "category": "Держфінгарантії",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/2168-19",
+   "url_is_search": false,
+   "owners": [
+    {
+     "label": "Розділ «Рентген і ДІВ»",
+     "href": "../rentgen/index.html#/doc/2168-19"
+    }
+   ],
+   "revision": "01.01.2026",
+   "packages": [
+    {
+     "n": "9",
+     "refs": 2
+    },
+    {
+     "n": "18",
+     "refs": 6
+    }
+   ],
+   "nodes": 79,
+   "chars": 43933,
+   "text_source": "rentgen",
+   "summary": ""
+  },
+  {
+   "key": "5081-17",
+   "id": "5e2b6c6c-e633-54c3-bec7-3b2383880987",
+   "kind": "Закон",
+   "num": "5081-VI",
+   "date": "2012-07-05",
+   "title": "Про екстрену медичну допомогу",
+   "group": "zakony",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/5081-17",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "9",
+     "refs": 9
+    }
+   ],
+   "nodes": 64,
+   "chars": 46575,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "1489-14",
+   "id": "06921f07-a9ab-5291-8a59-752a1fa3b237",
+   "kind": "Закон",
+   "num": "1489-III",
+   "date": "2000-02-22",
+   "title": "Про психіатричну допомогу",
+   "group": "zakony",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/1489-14",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "9",
+     "refs": 25
+    }
+   ],
+   "nodes": 198,
+   "chars": 64537,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "393-96-vr",
+   "id": "37c610ed-4e18-5b9d-b955-8b7b4ab479d9",
+   "kind": "Закон",
+   "num": "393/96-ВР",
+   "date": "1996-10-02",
+   "title": "Про звернення громадян",
+   "group": "zakony",
+   "category": "Держфінгарантії",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/393/96-%D0%B2%D1%80",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [],
+   "nodes": 34,
+   "chars": 32804,
+   "text_source": "legacy",
+   "summary": ""
+  },
+  {
+   "key": "56-95-vr",
+   "id": "56875a22-38d6-55eb-9c65-b092a6780faa",
+   "kind": "Закон",
+   "num": "56/95-ВР",
+   "date": "1995-02-15",
+   "title": "Про статус гірських населених пунктів в Україні",
+   "group": "zakony",
+   "category": "Держфінгарантії",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/56/95-%D0%B2%D1%80",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [],
+   "nodes": 18,
+   "chars": 7564,
+   "text_source": "legacy",
+   "summary": ""
+  },
+  {
+   "key": "2801-12",
+   "id": "a55d728a-ea69-5c24-bde1-e33350d7cfe5",
+   "kind": "Закон",
+   "num": "2801-XII",
+   "date": "1992-11-19",
+   "title": "Основи законодавства України про охорону здоров’я",
+   "group": "zakony",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/2801-12",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "8",
+     "refs": 1
+    },
+    {
+     "n": "9",
+     "refs": 46
+    },
+    {
+     "n": "18",
+     "refs": 22
+    }
+   ],
+   "nodes": 524,
+   "chars": 176694,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "1808-2025-p",
+   "id": "c1f77d33-4bc2-4ef9-8b83-a7a2a0d1cf55",
+   "kind": "Постанова КМУ",
+   "num": "1808",
+   "date": "2025-12-31",
+   "title": "Деякі питання реалізації програми медичних гарантій у 2026 році",
+   "group": "pkmu",
+   "category": "Тарифи та специфікації",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/1808-2025-%D0%BF",
+   "url_is_search": false,
+   "owners": [
+    {
+     "label": "Постанова № 1808 повним текстом",
+     "href": "../postanova/index.html"
+    }
+   ],
+   "revision": null,
+   "packages": [],
+   "nodes": 0,
+   "chars": 0,
+   "text_source": null,
+   "summary": "Цією постановою затверджено Порядок реалізації програми медичних гарантій у 2026 році, що визначає тарифи, коефіцієнти, ліміти та правила оплати медичних послуг надавачам."
+  },
+  {
+   "key": "1652-2025-p",
+   "id": "9d5ed661-64b1-50d1-84f4-dcee9d4d4264",
+   "kind": "Постанова КМУ",
+   "num": "1652",
+   "date": "2025-12-10",
+   "title": "Деякі питання проведення скринінгів здоров’я для осіб віком від 40 років",
+   "group": "pkmu",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/1652-2025-п",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "1",
+     "refs": 5
+    }
+   ],
+   "nodes": 56,
+   "chars": 36646,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "1338-2024-p",
+   "id": "38609635-8da1-5fe2-a491-e06f79d6c0a9",
+   "kind": "Постанова КМУ",
+   "num": "1338",
+   "date": "2024-11-15",
+   "title": "Деякі питання запровадження оцінювання повсякденного функціонування особи",
+   "group": "pkmu",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/1338-2024-п",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "9",
+     "refs": 11
+    }
+   ],
+   "nodes": 328,
+   "chars": 93379,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "174-2023-p",
+   "id": "4847b76b-d6db-58e4-9f4f-cb2ee42f03ea",
+   "kind": "Постанова КМУ",
+   "num": "174",
+   "date": "2023-02-28",
+   "title": "Деякі питання організації спроможної мережі закладів охорони здоров’я (надкластерні, кластерні та загальні заклади)",
+   "group": "pkmu",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/174-2023-п",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "9",
+     "refs": 3
+    }
+   ],
+   "nodes": 24,
+   "chars": 20064,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "1268-2021-p",
+   "id": "9cfbf994-0819-5728-af11-996ab95c9423",
+   "kind": "Постанова КМУ",
+   "num": "1268",
+   "date": "2021-11-03",
+   "title": "Питання організації реабілітації у сфері охорони здоров’я",
+   "group": "pkmu",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/1268-2021-п",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "3",
+     "refs": 93
+    },
+    {
+     "n": "4",
+     "refs": 79
+    },
+    {
+     "n": "5",
+     "refs": 50
+    },
+    {
+     "n": "6",
+     "refs": 43
+    },
+    {
+     "n": "23",
+     "refs": 55
+    },
+    {
+     "n": "24",
+     "refs": 35
+    }
+   ],
+   "nodes": 150,
+   "chars": 125099,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "31-2021-p",
+   "id": "6b767d50-47ee-5c01-97b1-37f21ee4ddec",
+   "kind": "Постанова КМУ",
+   "num": "31",
+   "date": "2021-01-20",
+   "title": "Про затвердження Порядку здійснення медичного обслуговування учнів закладів загальної середньої освіти",
+   "group": "pkmu",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/31-2021-п",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "9",
+     "refs": 3
+    }
+   ],
+   "nodes": 14,
+   "chars": 7501,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "691-2019-p",
+   "id": "63322412-df1c-55f8-9e52-fb7095a9be02",
+   "kind": "Постанова КМУ",
+   "num": "691",
+   "date": "2019-07-10",
+   "title": "Про реалізацію експериментального проекту щодо створення комплексної послуги «єМалятко»",
+   "group": "pkmu",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/691-2019-п",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "7",
+     "refs": 1
+    }
+   ],
+   "nodes": 0,
+   "chars": 0,
+   "text_source": null,
+   "summary": "Акт-якір шару нормативного підкріплення пакетів ПМГ-2026 (вкладка «Вимоги закупівлі» паспорта). Застосований у пакетах: 7. Повні тексти розібрано на вузли в корпусі 18_нормативне_підкріплення."
+  },
+  {
+   "key": "410-2018-p",
+   "id": "5d9eaed3-e875-5456-8f20-ee33a2169a0a",
+   "kind": "Постанова КМУ",
+   "num": "410",
+   "date": "2018-04-25",
+   "title": "Про договори про медичне обслуговування населення за програмою медичних гарантій",
+   "group": "pkmu",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/410-2018-п",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "1",
+     "refs": 16
+    },
+    {
+     "n": "9",
+     "refs": 6
+    },
+    {
+     "n": "18",
+     "refs": 8
+    }
+   ],
+   "nodes": 136,
+   "chars": 41568,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "1101-2017-p",
+   "id": "ae410e19-0656-5c0b-9de3-8927e0892afd",
+   "kind": "Постанова КМУ",
+   "num": "1101",
+   "date": "2017-12-27",
+   "title": "Про утворення Національної служби здоров'я України",
+   "group": "pkmu",
+   "category": "Держфінгарантії",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/1101-2017-%D0%BF",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [],
+   "nodes": 102,
+   "chars": 24988,
+   "text_source": "legacy",
+   "summary": ""
+  },
+  {
+   "key": "333-2009-p",
+   "id": "38ba1686-26ca-56d6-8d2a-e61ee5e32bc0",
+   "kind": "Постанова КМУ",
+   "num": "333",
+   "date": "2009-03-25",
+   "title": "Деякі питання державного регулювання цін на лікарські засоби і вироби медичного призначення (Національний перелік основних ЛЗ)",
+   "group": "pkmu",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/333-2009-п",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "3",
+     "refs": 2
+    },
+    {
+     "n": "4",
+     "refs": 2
+    },
+    {
+     "n": "5",
+     "refs": 1
+    },
+    {
+     "n": "6",
+     "refs": 2
+    },
+    {
+     "n": "23",
+     "refs": 3
+    },
+    {
+     "n": "24",
+     "refs": 3
+    },
+    {
+     "n": "63",
+     "refs": 2
+    }
+   ],
+   "nodes": 0,
+   "chars": 0,
+   "text_source": null,
+   "summary": "Акт-якір шару нормативного підкріплення пакетів ПМГ-2026 (вкладка «Вимоги закупівлі» паспорта). Застосований у пакетах: 5, 6, 7, 8, 23, 24, 63. Повні тексти розібрано на вузли в корпусі 18_нормативне_підкріплення."
+  },
+  {
+   "key": "1138-96-p",
+   "id": "c30263ae-ce3a-5bce-91b3-2a44d04627ae",
+   "kind": "Постанова КМУ",
+   "num": "1138",
+   "date": "1996-09-17",
+   "title": "Про затвердження переліку платних послуг, які надаються в державних і комунальних закладах охорони здоров’я та вищих медичних навчальних закладах",
+   "group": "pkmu",
+   "category": "Держфінгарантії",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/1138-96-%D0%BF",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [],
+   "nodes": 67,
+   "chars": 15170,
+   "text_source": "legacy",
+   "summary": ""
+  },
+  {
+   "key": "z1109-25",
+   "id": "c04bdf22-93e1-5db2-b43c-54ad670f96b7",
+   "kind": "Наказ МОЗ",
+   "num": "1065",
+   "date": "2025-07-05",
+   "title": "Деякі питання підготовки та професійної діяльності за професіями у сфері охорони здоров'я (Перелік професій (посад) працівників сфери охорони здоров'я)",
+   "group": "licence",
+   "category": "Ліцензування",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z1109-25",
+   "url_is_search": false,
+   "owners": [
+    {
+     "label": "Спеціальності та посади",
+     "href": "../classifiers/specialnosti.html"
+    }
+   ],
+   "revision": null,
+   "packages": [],
+   "nodes": 0,
+   "chars": 0,
+   "text_source": null,
+   "summary": "Зареєстровано в Мін'юсті 23.07.2025 за № 1109/44515; редакція від 26.06.2026 (наказ МОЗ № 618 від 14.05.2026). Затверджує Перелік професій (посад) працівників сфери охорони здоров'я (301 позиція: 238 базових посад і 63 посади за профілями роботи) та Перелік спеціалізацій підготовки. Вимоги до кваліфікацій визначають професійні стандарти, а за їх відсутності — ДКХП, випуск 78. З 01.09.2026 п. 32 Лі"
+  },
+  {
+   "key": "285-2016-p",
+   "id": "0aa5d427-3cf2-51e8-8457-3c82b518d434",
+   "kind": "Постанова КМУ",
+   "num": "285",
+   "date": "2016-03-02",
+   "title": "Ліцензійні умови провадження господарської діяльності з медичної практики",
+   "group": "licence",
+   "category": "Ліцензування",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/285-2016-%D0%BF",
+   "url_is_search": false,
+   "owners": [
+    {
+     "label": "Розділ «Рентген і ДІВ»",
+     "href": "../rentgen/index.html#/doc/285-2016"
+    }
+   ],
+   "revision": "07.04.2026",
+   "packages": [
+    {
+     "n": "1",
+     "refs": 12
+    },
+    {
+     "n": "3",
+     "refs": 171
+    },
+    {
+     "n": "4",
+     "refs": 128
+    },
+    {
+     "n": "5",
+     "refs": 19
+    },
+    {
+     "n": "6",
+     "refs": 23
+    },
+    {
+     "n": "7",
+     "refs": 24
+    },
+    {
+     "n": "8",
+     "refs": 29
+    },
+    {
+     "n": "9",
+     "refs": 27
+    },
+    {
+     "n": "18",
+     "refs": 9
+    },
+    {
+     "n": "23",
+     "refs": 23
+    },
+    {
+     "n": "24",
+     "refs": 30
+    },
+    {
+     "n": "63",
+     "refs": 21
+    }
+   ],
+   "nodes": 49,
+   "chars": 42138,
+   "text_source": "rentgen",
+   "summary": ""
+  },
+  {
+   "key": "z1256-07",
+   "id": "0f1bf7b0-5e47-5aa3-a74e-e7651c59f934",
+   "kind": "Наказ МОЗ",
+   "num": "294",
+   "date": "2007-06-04",
+   "title": "ДСанПіН 6.6.3-150-2007. Гігієнічні вимоги до влаштування та експлуатації рентгенівських кабінетів",
+   "group": "licence",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z1256-07",
+   "url_is_search": false,
+   "owners": [
+    {
+     "label": "Розділ «Рентген і ДІВ»",
+     "href": "../rentgen/index.html#/doc/z1256-07"
+    }
+   ],
+   "revision": "23.12.2025",
+   "packages": [
+    {
+     "n": "9",
+     "refs": 16
+    },
+    {
+     "n": "18",
+     "refs": 8
+    }
+   ],
+   "nodes": 263,
+   "chars": 121131,
+   "text_source": "rentgen",
+   "summary": ""
+  },
+  {
+   "key": "z0633-25",
+   "id": "05c5a6c9-74e0-46ad-8f65-d41c44e9805c",
+   "kind": "Наказ МОЗ",
+   "num": "697",
+   "date": "2025-04-22",
+   "title": "Деякі питання реєстрації медичного обладнання в Реєстрі суб'єктів господарювання у сфері охорони здоров'я в електронній системі охорони здоров'я",
+   "group": "esoz",
+   "category": "Електронні послуги",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z0633-25",
+   "url_is_search": false,
+   "owners": [
+    {
+     "label": "Обладнання у вимогах ПМГ",
+     "href": "../classifiers/obladnannia.html"
+    },
+    {
+     "label": "Довідник кодів ЕСОЗ",
+     "href": "../classifiers/esoz.html"
+    }
+   ],
+   "revision": null,
+   "packages": [],
+   "nodes": 0,
+   "chars": 0,
+   "text_source": null,
+   "summary": "Затверджує Перелік медичного обладнання (84 типи) — заклад, який його має, вносить обладнання до Реєстру суб'єктів господарювання в ЕСОЗ, вказуючи назву та код типу за Переліком. Коди Переліку є кодами НК 031:2024. Другою частиною змінює Порядок ведення Реєстру (наказ МОЗ від 18.10.2021 № 2243): визначає, що саме вноситься у запис — виробник, дата виробництва, модель, серійний та інвентарний номер"
+  },
+  {
+   "key": "z0728-21",
+   "id": "d25a1a75-0300-5169-92fa-0783be57f8e3",
+   "kind": "Наказ МОЗ",
+   "num": "1066",
+   "date": "2021-06-01",
+   "title": "Деякі питання формування медичних висновків про тимчасову непрацездатність в електронній системі охорони здоров’я",
+   "group": "esoz",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z0728-21",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "9",
+     "refs": 10
+    }
+   ],
+   "nodes": 76,
+   "chars": 56560,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "z0236-20",
+   "id": "232cb761-2c98-5173-95f6-d7952a9d985a",
+   "kind": "Наказ МОЗ",
+   "num": "587",
+   "date": "2020-02-28",
+   "title": "Деякі питання ведення Реєстру медичних записів, записів про направлення та рецептів в електронній системі охорони здоров’я",
+   "group": "esoz",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z0236-20",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "1",
+     "refs": 5
+    },
+    {
+     "n": "3",
+     "refs": 25
+    },
+    {
+     "n": "4",
+     "refs": 27
+    },
+    {
+     "n": "5",
+     "refs": 17
+    },
+    {
+     "n": "6",
+     "refs": 18
+    },
+    {
+     "n": "7",
+     "refs": 13
+    },
+    {
+     "n": "8",
+     "refs": 8
+    },
+    {
+     "n": "9",
+     "refs": 5
+    },
+    {
+     "n": "18",
+     "refs": 2
+    },
+    {
+     "n": "23",
+     "refs": 16
+    },
+    {
+     "n": "24",
+     "refs": 10
+    },
+    {
+     "n": "63",
+     "refs": 13
+    }
+   ],
+   "nodes": 48,
+   "chars": 33358,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "411-2018-p",
+   "id": "9af6b57f-cf1c-5a40-a0bb-21e7f351900a",
+   "kind": "Постанова КМУ",
+   "num": "411",
+   "date": "2018-04-25",
+   "title": "Деякі питання електронної системи охорони здоров’я (Порядок функціонування ЕСОЗ, перелік реєстрів)",
+   "group": "esoz",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/411-2018-п",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "9",
+     "refs": 5
+    },
+    {
+     "n": "18",
+     "refs": 1
+    }
+   ],
+   "nodes": 156,
+   "chars": 56023,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "2155-19",
+   "id": "e5427645-090e-5a4b-a6f9-5d7e58b14a05",
+   "kind": "Закон",
+   "num": "2155-VIII",
+   "date": "2017-10-05",
+   "title": "Про електронну ідентифікацію та електронні довірчі послуги",
+   "group": "esoz",
+   "category": "Електронні послуги",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/2155-19",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [],
+   "nodes": 590,
+   "chars": 215475,
+   "text_source": "legacy",
+   "summary": ""
+  },
+  {
+   "key": "z1400-15",
+   "id": "739bbe2c-64c7-5430-b189-d0bc749e993c",
+   "kind": "Наказ МОЗ",
+   "num": "681",
+   "date": "2015-10-19",
+   "title": "Про затвердження нормативних документів щодо застосування телемедицини у сфері охорони здоров’я",
+   "group": "esoz",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z1400-15",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "9",
+     "refs": 5
+    },
+    {
+     "n": "18",
+     "refs": 3
+    }
+   ],
+   "nodes": 64,
+   "chars": 16173,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "z0728-26",
+   "id": "88752ecb-21ef-57c9-9bed-10206710aa7c",
+   "kind": "Наказ МОЗ",
+   "num": "599",
+   "date": "2026-05-08",
+   "title": "Про затвердження Порядку організації надання перинатальної та неонатальної допомоги",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z0728-26",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "7",
+     "refs": 20
+    },
+    {
+     "n": "8",
+     "refs": 23
+    }
+   ],
+   "nodes": 39,
+   "chars": 18435,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "z0128-26",
+   "id": "df98da88-69e6-52f2-aa1b-e7bab8f77eb1",
+   "kind": "Наказ МОЗ",
+   "num": "1864",
+   "date": "2025-12-10",
+   "title": "Про затвердження Порядку надання медичної допомоги з катамнестичного спостереження за новонародженими та дітьми віком до чотирьох років із групи ризику",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z0128-26",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "8",
+     "refs": 5
+    },
+    {
+     "n": "9",
+     "refs": 2
+    }
+   ],
+   "nodes": 15,
+   "chars": 5855,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "1539-2025",
+   "id": "f39b3c07-7373-5896-9f59-5a98c8bbab7b",
+   "kind": "Наказ МОЗ",
+   "num": "1539",
+   "date": "2025-10-08",
+   "title": "Про удосконалення надання медичної допомоги пацієнтам із гострим мозковим інсультом (примірні положення про інсультний блок/центр)",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [],
+   "nodes": 0,
+   "chars": 0,
+   "text_source": null,
+   "summary": "Акт-якір шару нормативного підкріплення пакетів ПМГ-2026 (вкладка «Вимоги закупівлі» паспорта). Застосований у пакетах: 6. Повні тексти розібрано на вузли в корпусі 18_нормативне_підкріплення."
+  },
+  {
+   "key": "z0746-25",
+   "id": "3a2bf46e-991b-58e2-b44d-bfed05143549",
+   "kind": "Наказ МОЗ",
+   "num": "736",
+   "date": "2025-04-29",
+   "title": "Про затвердження Порядку надання медичної допомоги з організації скринінгу та діагностики порушень слуху у дітей",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z0746-25",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "7",
+     "refs": 11
+    },
+    {
+     "n": "8",
+     "refs": 21
+    },
+    {
+     "n": "9",
+     "refs": 4
+    }
+   ],
+   "nodes": 31,
+   "chars": 14719,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "536-2025",
+   "id": "d081c612-eda2-5613-a350-3711e8daf6ec",
+   "kind": "Наказ МОЗ",
+   "num": "536",
+   "date": "2025-03-26",
+   "title": "Про затвердження УКПМД «Початкова, реанімаційна та післяреанімаційна допомога новонародженим»",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://www.dec.gov.ua/mtd/pochatkova-reanimaczijna-ta-pislyareanimaczijna-dopomoga-novonarodzhenym-v-ukrayini/",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "7",
+     "refs": 46
+    },
+    {
+     "n": "8",
+     "refs": 31
+    }
+   ],
+   "nodes": 40,
+   "chars": 98456,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "z1936-24",
+   "id": "8ada8a8a-391c-55e9-a6e3-98816547029d",
+   "kind": "Наказ МОЗ",
+   "num": "2003",
+   "date": "2024-12-03",
+   "title": "Про затвердження Порядків та періодичності проведення профілактичних медичних оглядів певних категорій дітей",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z1936-24",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "9",
+     "refs": 12
+    }
+   ],
+   "nodes": 47,
+   "chars": 23217,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "1070-2024",
+   "id": "5ab74b39-414b-5db9-9358-964d7988b856",
+   "kind": "Наказ МОЗ",
+   "num": "1070",
+   "date": "2024-06-20",
+   "title": "Про затвердження Стандарту медичної допомоги «Ішемічний інсульт»",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://www.dec.gov.ua/mtd/ishemichnyj-insult/",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "5",
+     "refs": 102
+    }
+   ],
+   "nodes": 163,
+   "chars": 162468,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "z0126-24",
+   "id": "eeb6eb6b-c612-590c-886b-505fc2ec0355",
+   "kind": "Наказ МОЗ",
+   "num": "2118",
+   "date": "2023-12-13",
+   "title": "Про організацію надання психосоціальної допомоги населенню",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z0126-24",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "1",
+     "refs": 23
+    },
+    {
+     "n": "9",
+     "refs": 10
+    },
+    {
+     "n": "18",
+     "refs": 10
+    }
+   ],
+   "nodes": 76,
+   "chars": 22596,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "v1533282-23",
+   "id": "d78adcdf-c5f5-572f-8ad2-ea8ecf40a1c0",
+   "kind": "Наказ МОЗ",
+   "num": "1533",
+   "date": "2023-08-25",
+   "title": "Про затвердження Стандарту медичної допомоги «Передчасний розрив плідних оболонок»",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://www.dec.gov.ua/mtd/peredchasnyj-rozryv-plidnyh-obolonok/",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "7",
+     "refs": 38
+    }
+   ],
+   "nodes": 73,
+   "chars": 29811,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "z1118-23",
+   "id": "68c35706-254e-50ef-9667-33ad29653a51",
+   "kind": "Наказ МОЗ",
+   "num": "1091",
+   "date": "2023-06-15",
+   "title": "Про затвердження Порядку організації надання медичної допомоги пацієнтам із гострим мозковим інсультом",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z1118-23",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "5",
+     "refs": 46
+    }
+   ],
+   "nodes": 29,
+   "chars": 9937,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "783-2023",
+   "id": "8d411abf-fd28-5aa2-8f9d-2858c3030cdf",
+   "kind": "Наказ МОЗ",
+   "num": "783",
+   "date": "2023-04-27",
+   "title": "Про затвердження УКПМД «Жовтяниця новонароджених дітей»",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://www.dec.gov.ua/mtd/zhovtyanycza-novonarodzhenyh-ditej/",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "8",
+     "refs": 14
+    }
+   ],
+   "nodes": 30,
+   "chars": 46697,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "643-2023",
+   "id": "a75e3490-2873-500b-8565-93311542f90b",
+   "kind": "Наказ МОЗ",
+   "num": "643",
+   "date": "2023-04-06",
+   "title": "Про затвердження Стандартів медичної допомоги «Хронічний больовий синдром у дорослих та дітей»",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://www.dec.gov.ua/mtd/hronichnyj-bolovyj-syndrom/",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "9",
+     "refs": 4
+    },
+    {
+     "n": "18",
+     "refs": 6
+    },
+    {
+     "n": "23",
+     "refs": 10
+    },
+    {
+     "n": "24",
+     "refs": 12
+    }
+   ],
+   "nodes": 63,
+   "chars": 34302,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "227-2023",
+   "id": "dc9ec586-233a-5d81-a90c-15722ad9ab72",
+   "kind": "Наказ МОЗ",
+   "num": "227",
+   "date": "2023-02-06",
+   "title": "Про затвердження стандартів медичної допомоги «Пульсоксиметричний скринінг критичних вроджених вад серця у новонароджених»",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://www.dec.gov.ua/mtd/pulsoksymetrychnyj-skryning/",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "7",
+     "refs": 10
+    }
+   ],
+   "nodes": 42,
+   "chars": 31146,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "102-2023",
+   "id": "1396393f-39b5-55fd-9191-cdc4cc8b6175",
+   "kind": "Наказ МОЗ",
+   "num": "102",
+   "date": "2023-01-19",
+   "title": "Про затвердження Стандартів медичної допомоги «Туберкульоз»",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://www.dec.gov.ua/mtd/tuberkuloz/",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "1",
+     "refs": 29
+    }
+   ],
+   "nodes": 198,
+   "chars": 179572,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "1437-2022",
+   "id": "cc95c5e5-db4c-540e-b648-b1b3768209bd",
+   "kind": "Наказ МОЗ",
+   "num": "1437",
+   "date": "2022-08-09",
+   "title": "Про затвердження стандартів медичної допомоги «Нормальна вагітність»",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://www.dec.gov.ua/mtd/normalna-vagitnist/",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "1",
+     "refs": 7
+    },
+    {
+     "n": "7",
+     "refs": 37
+    },
+    {
+     "n": "63",
+     "refs": 1
+    }
+   ],
+   "nodes": 116,
+   "chars": 73461,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "692-2022",
+   "id": "b71e62e8-e2b4-54a8-b5df-1567506405f3",
+   "kind": "Наказ МОЗ",
+   "num": "692",
+   "date": "2022-04-26",
+   "title": "Про затвердження КН та стандартів медичної допомоги «Профілактика передачі ВІЛ від матері до дитини»",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://www.dec.gov.ua/mtd/profilaktyka-peredachi-vil-vid-materi-do-dytyny/",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "7",
+     "refs": 39
+    },
+    {
+     "n": "8",
+     "refs": 17
+    }
+   ],
+   "nodes": 130,
+   "chars": 82147,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "650-2022",
+   "id": "bbc750da-0e72-5c62-978b-57e9528d2e40",
+   "kind": "Наказ МОЗ",
+   "num": "650",
+   "date": "2022-04-18",
+   "title": "Про затвердження УКПМД «Парентеральне харчування новонароджених»",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://www.dec.gov.ua/mtd/parenteralne-harchuvannya-novonarodzhenyh/",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "8",
+     "refs": 39
+    }
+   ],
+   "nodes": 55,
+   "chars": 65572,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "z0366-22",
+   "id": "7b3a1994-e18a-5ce3-ad62-58cd9ba60086",
+   "kind": "Наказ МОЗ",
+   "num": "302",
+   "date": "2022-02-16",
+   "title": "Про затвердження Порядку організації виявлення та діагностики туберкульозу та латентної туберкульозної інфекції",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z0366-22",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "1",
+     "refs": 46
+    }
+   ],
+   "nodes": 92,
+   "chars": 28394,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "170-2022",
+   "id": "2371c7ba-cb85-5eaf-98e4-8b91ca65401e",
+   "kind": "Наказ МОЗ",
+   "num": "170",
+   "date": "2022-01-26",
+   "title": "Про затвердження УКПМД «Фізіологічні пологи»",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://www.dec.gov.ua/mtd/fiziologichni-pology/",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "7",
+     "refs": 26
+    }
+   ],
+   "nodes": 37,
+   "chars": 40041,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "9-2022",
+   "id": "c496b344-2e9e-523a-83fd-0c1f6702e4e1",
+   "kind": "Наказ МОЗ",
+   "num": "9",
+   "date": "2022-01-05",
+   "title": "Про затвердження Стандартів медичної допомоги «Надання допомоги при спонтанному внутрішньомозковому крововиливі»",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://www.dec.gov.ua/mtd/gemoragichnyj-insult/",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "5",
+     "refs": 64
+    }
+   ],
+   "nodes": 137,
+   "chars": 75679,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "8-2022",
+   "id": "a54c4d56-8457-5cc2-a6c6-21fdfd8271c9",
+   "kind": "Наказ МОЗ",
+   "num": "8",
+   "date": "2022-01-05",
+   "title": "Про затвердження УКПМД «Кесарів розтин»",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://www.dec.gov.ua/mtd/kesariv-roztyn/",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "7",
+     "refs": 46
+    }
+   ],
+   "nodes": 147,
+   "chars": 86072,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "z1360-21",
+   "id": "0c209c5c-e74b-5673-ae24-0816d2e253da",
+   "kind": "Наказ МОЗ",
+   "num": "2142",
+   "date": "2021-10-01",
+   "title": "Про забезпечення розширення неонатальних скринінгових програм для новонароджених",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z1360-21",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "7",
+     "refs": 20
+    },
+    {
+     "n": "8",
+     "refs": 22
+    }
+   ],
+   "nodes": 154,
+   "chars": 45487,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "1957-2021",
+   "id": "d6eb94b6-e52e-57d0-b36c-3c209380d460",
+   "kind": "Наказ МОЗ",
+   "num": "1957",
+   "date": "2021-09-15",
+   "title": "Про затвердження УКПМД «Гострий коронарний синдром без елевації сегмента ST»",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://www.dec.gov.ua/mtd/gostryj-koronarnyj-syndrom-bez-elevacziyi-segmenta-st/",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "6",
+     "refs": 49
+    }
+   ],
+   "nodes": 86,
+   "chars": 93569,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "1936-2021",
+   "id": "35a3475e-317f-5d12-b22d-1eed6ee67021",
+   "kind": "Наказ МОЗ",
+   "num": "1936",
+   "date": "2021-09-14",
+   "title": "Про затвердження УКПМД «Гострий коронарний синдром з елевацією сегмента ST»",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://www.dec.gov.ua/mtd/gostryj-koronarnyj-syndrom-z-elevacziyeyu-segmenta-st/",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "6",
+     "refs": 78
+    }
+   ],
+   "nodes": 75,
+   "chars": 83993,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "873-2021",
+   "id": "9432ef5d-0e92-5a15-8694-5304da68902f",
+   "kind": "Наказ МОЗ",
+   "num": "873",
+   "date": "2021-05-05",
+   "title": "Про затвердження УКПМД «Респіраторний дистрес-синдром у передчасно народжених дітей»",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://www.dec.gov.ua/mtd/respiratornyj-dystres-syndrom-u-peredchasno-narodzhenyh-ditej/",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "8",
+     "refs": 32
+    }
+   ],
+   "nodes": 49,
+   "chars": 52976,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "870-2021",
+   "id": "364ca2e5-4d47-5ef7-b64f-875bc067f4d8",
+   "kind": "Наказ МОЗ",
+   "num": "870",
+   "date": "2021-05-05",
+   "title": "Про затвердження УКПМД «Ентеральне харчування недоношених немовлят»",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://www.dec.gov.ua/mtd/enteralne-harchuvannya-nedonoshenyh-nemovlyat/",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "8",
+     "refs": 48
+    }
+   ],
+   "nodes": 62,
+   "chars": 99561,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "z0609-20",
+   "id": "6ceb7909-ebad-5357-8a49-bc8cf1208ee7",
+   "kind": "Наказ МОЗ",
+   "num": "1308",
+   "date": "2020-06-04",
+   "title": "Про удосконалення організації надання паліативної допомоги в Україні",
+   "group": "moz-clin",
+   "category": "Держфінгарантії",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z0609-20",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "1",
+     "refs": 18
+    },
+    {
+     "n": "18",
+     "refs": 2
+    },
+    {
+     "n": "23",
+     "refs": 76
+    },
+    {
+     "n": "24",
+     "refs": 68
+    }
+   ],
+   "nodes": 55,
+   "chars": 26292,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "z0262-19",
+   "id": "bc30929c-ec9f-5086-af3d-ea67a00685fe",
+   "kind": "Наказ МОЗ",
+   "num": "278",
+   "date": "2019-02-01",
+   "title": "Про затвердження Порядку проведення та документування результатів медичного обстеження постраждалих осіб від домашнього насильства та надання їм медичної допомоги",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z0262-19",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "1",
+     "refs": 15
+    },
+    {
+     "n": "9",
+     "refs": 18
+    }
+   ],
+   "nodes": 84,
+   "chars": 53043,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "v0275282-14",
+   "id": "48367618-e111-5249-a97e-4bbfd5983176",
+   "kind": "Наказ МОЗ",
+   "num": "275",
+   "date": "2014-04-17",
+   "title": "Про затвердження та впровадження медико-технологічних документів зі стандартизації медичної допомоги при геморагічному інсульті",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/rada/show/v0275282-14",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "5",
+     "refs": 1
+    }
+   ],
+   "nodes": 0,
+   "chars": 0,
+   "text_source": null,
+   "summary": "Акт-якір шару нормативного підкріплення пакетів ПМГ-2026 (вкладка «Вимоги закупівлі» паспорта). Застосований у пакетах: 5. Повні тексти розібрано на вузли в корпусі 18_нормативне_підкріплення."
+  },
+  {
+   "key": "z2110-13",
+   "id": "5d94ff1f-64f5-52b6-9189-c0c662d12995",
+   "kind": "Наказ МОЗ",
+   "num": "1024",
+   "date": "2013-11-28",
+   "title": "Про затвердження Порядку транспортування новонароджених дітей високого перинатального ризику в Україні",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z2110-13",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "8",
+     "refs": 41
+    }
+   ],
+   "nodes": 96,
+   "chars": 24777,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "z1697-13",
+   "id": "89450238-68b4-52e9-afea-467bccfa309c",
+   "kind": "Наказ МОЗ",
+   "num": "787",
+   "date": "2013-09-09",
+   "title": "Про затвердження Порядку застосування допоміжних репродуктивних технологій в Україні",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z1697-13",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "63",
+     "refs": 121
+    }
+   ],
+   "nodes": 34,
+   "chars": 65614,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "z2001-12",
+   "id": "7dc1e0df-4f23-59ec-aeab-29b63c27a64f",
+   "kind": "Наказ МОЗ",
+   "num": "751",
+   "date": "2012-09-28",
+   "title": "Про створення та впровадження медико-технологічних документів зі стандартизації медичної допомоги (апарат галузевих стандартів)",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z2001-12",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "3",
+     "refs": 8
+    },
+    {
+     "n": "4",
+     "refs": 5
+    }
+   ],
+   "nodes": 0,
+   "chars": 0,
+   "text_source": null,
+   "summary": "Акт-якір шару нормативного підкріплення пакетів ПМГ-2026 (вкладка «Вимоги закупівлі» паспорта). Застосований у пакетах: 6. Повні тексти розібрано на вузли в корпусі 18_нормативне_підкріплення."
+  },
+  {
+   "key": "z1159-11",
+   "id": "2075be9a-4460-5fa1-be70-63639ece4b93",
+   "kind": "Наказ МОЗ",
+   "num": "595",
+   "date": "2011-09-16",
+   "title": "Про порядок проведення профілактичних щеплень в Україні (Календар профілактичних щеплень)",
+   "group": "moz-clin",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z1159-11",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "1",
+     "refs": 7
+    },
+    {
+     "n": "7",
+     "refs": 2
+    },
+    {
+     "n": "8",
+     "refs": 1
+    }
+   ],
+   "nodes": 29,
+   "chars": 65203,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "z1318-21",
+   "id": "0b817ce5-c3ce-5e51-b223-f4c39005becd",
+   "kind": "Наказ МОЗ",
+   "num": "1614",
+   "date": "2021-08-03",
+   "title": "Про організацію профілактики інфекцій та інфекційного контролю в закладах охорони здоров’я",
+   "group": "moz-org",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z1318-21",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "1",
+     "refs": 35
+    },
+    {
+     "n": "3",
+     "refs": 32
+    },
+    {
+     "n": "4",
+     "refs": 22
+    },
+    {
+     "n": "5",
+     "refs": 1
+    },
+    {
+     "n": "6",
+     "refs": 1
+    },
+    {
+     "n": "7",
+     "refs": 1
+    },
+    {
+     "n": "8",
+     "refs": 1
+    },
+    {
+     "n": "9",
+     "refs": 42
+    },
+    {
+     "n": "18",
+     "refs": 26
+    },
+    {
+     "n": "23",
+     "refs": 1
+    },
+    {
+     "n": "24",
+     "refs": 1
+    },
+    {
+     "n": "63",
+     "refs": 2
+    }
+   ],
+   "nodes": 857,
+   "chars": 194579,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "z0993-21",
+   "id": "de767c17-caca-566b-8e6d-098942bcd250",
+   "kind": "Наказ МОЗ",
+   "num": "1254",
+   "date": "2021-06-22",
+   "title": "Про затвердження Положення про інтернатуру та вторинну лікарську (провізорську) спеціалізацію",
+   "group": "moz-org",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z0993-21",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "7",
+     "refs": 1
+    },
+    {
+     "n": "8",
+     "refs": 1
+    },
+    {
+     "n": "9",
+     "refs": 9
+    },
+    {
+     "n": "18",
+     "refs": 4
+    }
+   ],
+   "nodes": 191,
+   "chars": 117401,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "z1260-20",
+   "id": "bd15f371-5488-520e-9e23-7088f46905a9",
+   "kind": "Наказ МОЗ",
+   "num": "2559",
+   "date": "2020-11-09",
+   "title": "Про затвердження Порядку констатації та діагностичних критеріїв смерті мозку людини",
+   "group": "moz-org",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z1260-20",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "3",
+     "refs": 30
+    },
+    {
+     "n": "4",
+     "refs": 23
+    },
+    {
+     "n": "5",
+     "refs": 22
+    },
+    {
+     "n": "6",
+     "refs": 1
+    },
+    {
+     "n": "23",
+     "refs": 15
+    },
+    {
+     "n": "24",
+     "refs": 11
+    }
+   ],
+   "nodes": 97,
+   "chars": 28631,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "z0235-20",
+   "id": "c8065640-2fbf-5f2b-98f0-69f9cdd11326",
+   "kind": "Наказ МОЗ",
+   "num": "586",
+   "date": "2020-02-28",
+   "title": "Про затвердження Порядку направлення пацієнтів до закладів охорони здоров’я та фізичних осіб - підприємців, які в установленому законом порядку одержали ліцензію на провадження господарської діяльності з медичної практики та надають медичну допомогу відповідного виду",
+   "group": "moz-org",
+   "category": "Направлення пацієнтів",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z0235-20",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "1",
+     "refs": 7
+    },
+    {
+     "n": "3",
+     "refs": 48
+    },
+    {
+     "n": "4",
+     "refs": 23
+    },
+    {
+     "n": "5",
+     "refs": 13
+    },
+    {
+     "n": "6",
+     "refs": 14
+    },
+    {
+     "n": "7",
+     "refs": 10
+    },
+    {
+     "n": "8",
+     "refs": 9
+    },
+    {
+     "n": "9",
+     "refs": 10
+    },
+    {
+     "n": "18",
+     "refs": 12
+    },
+    {
+     "n": "23",
+     "refs": 19
+    },
+    {
+     "n": "24",
+     "refs": 15
+    },
+    {
+     "n": "63",
+     "refs": 15
+    }
+   ],
+   "nodes": 61,
+   "chars": 14880,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "2559-2019",
+   "id": "8baff75c-6453-507f-afca-3a50cbfde9ad",
+   "kind": "Наказ МОЗ",
+   "num": "2559",
+   "date": "2019-12-19",
+   "title": "Про затвердження Методики розрахунку тарифів",
+   "group": "moz-org",
+   "category": "Тарифи та специфікації",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/find?q=2559",
+   "url_is_search": true,
+   "owners": [],
+   "revision": null,
+   "packages": [],
+   "nodes": 31,
+   "chars": 6574,
+   "text_source": "legacy",
+   "summary": ""
+  },
+  {
+   "key": "z0348-18",
+   "id": "813fad53-a75b-5506-b5c3-c6951edf1d69",
+   "kind": "Наказ МОЗ",
+   "num": "504",
+   "date": "2018-03-19",
+   "title": "Про затвердження Порядку надання первинної медичної допомоги",
+   "group": "moz-org",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z0348-18",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "1",
+     "refs": 85
+    },
+    {
+     "n": "9",
+     "refs": 28
+    }
+   ],
+   "nodes": 85,
+   "chars": 25959,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "z0347-18",
+   "id": "295b213e-d7d3-5eac-8afe-e0e7ba98da50",
+   "kind": "Наказ МОЗ",
+   "num": "503",
+   "date": "2018-03-19",
+   "title": "Про затвердження Порядку вибору лікаря, який надає первинну медичну допомогу, та форми декларації про вибір лікаря",
+   "group": "moz-org",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z0347-18",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "1",
+     "refs": 15
+    }
+   ],
+   "nodes": 62,
+   "chars": 25693,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "v0148282-18",
+   "id": "c78feb31-58c7-5210-bf61-fbdcfac544b9",
+   "kind": "Наказ МОЗ",
+   "num": "148",
+   "date": "2018-01-26",
+   "title": "Про затвердження Примірного табеля матеріально-технічного оснащення закладів охорони здоров’я та ФОП, які надають первинну медичну допомогу",
+   "group": "moz-org",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/v0148282-18",
+   "url_is_search": false,
+   "owners": [
+    {
+     "label": "Табелі оснащення",
+     "href": "../classifiers/tabel.html"
+    }
+   ],
+   "revision": null,
+   "packages": [
+    {
+     "n": "1",
+     "refs": 21
+    }
+   ],
+   "nodes": 4,
+   "chars": 3718,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "z0883-16",
+   "id": "26b556aa-bb40-5e14-a579-e1e17577ebb8",
+   "kind": "Наказ МОЗ",
+   "num": "592",
+   "date": "2016-06-15",
+   "title": "Про затвердження Порядку допуску відвідувачів до пацієнтів, які перебувають на стаціонарному лікуванні у відділенні інтенсивної терапії",
+   "group": "moz-org",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z0883-16",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "3",
+     "refs": 14
+    },
+    {
+     "n": "4",
+     "refs": 17
+    },
+    {
+     "n": "5",
+     "refs": 3
+    },
+    {
+     "n": "6",
+     "refs": 8
+    },
+    {
+     "n": "7",
+     "refs": 5
+    },
+    {
+     "n": "8",
+     "refs": 5
+    },
+    {
+     "n": "18",
+     "refs": 5
+    },
+    {
+     "n": "23",
+     "refs": 3
+    },
+    {
+     "n": "24",
+     "refs": 5
+    }
+   ],
+   "nodes": 13,
+   "chars": 4182,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "249-2013",
+   "id": "9d912db4-dfc0-59de-b24c-ec907e68081b",
+   "kind": "Наказ МОЗ",
+   "num": "249",
+   "date": "2013-03-28",
+   "title": "Про затвердження Методичних рекомендацій визначення нормативів навантаження на медичних працівників (лікарів) у закладах охорони здоров'я, які надають вторинну (спеціалізовану) та третинну (високоспеціалізовану) медичну допомогу",
+   "group": "moz-org",
+   "category": "Держфінгарантії",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/find?q=249",
+   "url_is_search": true,
+   "owners": [],
+   "revision": null,
+   "packages": [],
+   "nodes": 292,
+   "chars": 66276,
+   "text_source": "legacy",
+   "summary": ""
+  },
+  {
+   "key": "z1996-12",
+   "id": "82e1bbdc-d65a-5c5f-a55f-926e39d8d287",
+   "kind": "Наказ МОЗ",
+   "num": "752",
+   "date": "2012-09-28",
+   "title": "Про порядок контролю якості медичної допомоги",
+   "group": "moz-org",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z1996-12",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "1",
+     "refs": 2
+    },
+    {
+     "n": "9",
+     "refs": 2
+    }
+   ],
+   "nodes": 10,
+   "chars": 5615,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "z0661-12",
+   "id": "9ee03330-1bdc-5d88-9d7f-c249727686ed",
+   "kind": "Наказ МОЗ",
+   "num": "110",
+   "date": "2012-02-14",
+   "title": "Про затвердження форм первинної облікової документації та інструкцій щодо їх заповнення (форма 003/о — Медична карта стаціонарного хворого)",
+   "group": "moz-org",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z0661-12",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "3",
+     "refs": 28
+    },
+    {
+     "n": "4",
+     "refs": 28
+    },
+    {
+     "n": "5",
+     "refs": 8
+    },
+    {
+     "n": "6",
+     "refs": 7
+    },
+    {
+     "n": "7",
+     "refs": 7
+    },
+    {
+     "n": "8",
+     "refs": 9
+    },
+    {
+     "n": "23",
+     "refs": 3
+    },
+    {
+     "n": "24",
+     "refs": 5
+    },
+    {
+     "n": "63",
+     "refs": 9
+    }
+   ],
+   "nodes": 40,
+   "chars": 12350,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "v0951282-10",
+   "id": "3a5734af-1bb7-5565-8646-c935d4a014bf",
+   "kind": "Наказ МОЗ",
+   "num": "951",
+   "date": "2010-11-04",
+   "title": "Про затвердження Примірних табелів оснащення обладнанням, медичною технікою та виробами медичного призначення (акушерсько-гінекологічна допомога)",
+   "group": "moz-org",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/v0951282-10",
+   "url_is_search": false,
+   "owners": [
+    {
+     "label": "Табелі оснащення",
+     "href": "../classifiers/tabel.html"
+    }
+   ],
+   "revision": null,
+   "packages": [
+    {
+     "n": "7",
+     "refs": 127
+    },
+    {
+     "n": "8",
+     "refs": 63
+    },
+    {
+     "n": "9",
+     "refs": 21
+    }
+   ],
+   "nodes": 47,
+   "chars": 63635,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "z0221-06",
+   "id": "7f8ad74c-1fda-500a-a1eb-4f1c530e2463",
+   "kind": "Наказ МОЗ",
+   "num": "67",
+   "date": "2006-02-13",
+   "title": "Про затвердження форм первинної облікової документації в закладах, що надають медичну допомогу вагітним, роділлям та породіллям",
+   "group": "moz-org",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z0221-06",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "7",
+     "refs": 1
+    },
+    {
+     "n": "8",
+     "refs": 1
+    }
+   ],
+   "nodes": 0,
+   "chars": 0,
+   "text_source": null,
+   "summary": "Акт-якір шару нормативного підкріплення пакетів ПМГ-2026 (вкладка «Вимоги закупівлі» паспорта). Застосований у пакетах: 7, 8. Повні тексти розібрано на вузли в корпусі 18_нормативне_підкріплення."
+  },
+  {
+   "key": "z0892-02",
+   "id": "c8061f6f-c664-5149-8263-22f9e72f74a6",
+   "kind": "Наказ МОЗ",
+   "num": "385",
+   "date": "2002-10-28",
+   "title": "Про затвердження переліків закладів охорони здоров’я, лікарських, провізорських посад та посад фахівців з базовою вищою освітою",
+   "group": "moz-org",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/z0892-02",
+   "url_is_search": false,
+   "owners": [],
+   "revision": null,
+   "packages": [
+    {
+     "n": "18",
+     "refs": 3
+    }
+   ],
+   "nodes": 33,
+   "chars": 16783,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "dkhp78",
+   "id": "1c353d82-8dba-582e-bf4c-b1e65040d3a1",
+   "kind": "Наказ МОЗ",
+   "num": "117",
+   "date": "2002-03-29",
+   "title": "Довідник кваліфікаційних характеристик професій працівників. Випуск 78 «Охорона здоров’я»",
+   "group": "moz-org",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний",
+   "in_force": true,
+   "url": "",
+   "url_is_search": false,
+   "owners": [
+    {
+     "label": "Розділ «Посади» (ДКХП-78)",
+     "href": "../classifiers/posady.html"
+    }
+   ],
+   "revision": null,
+   "packages": [
+    {
+     "n": "9",
+     "refs": 98
+    },
+    {
+     "n": "18",
+     "refs": 28
+    }
+   ],
+   "nodes": 509,
+   "chars": 985945,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "v0153282-98",
+   "id": "1b209c7d-463b-5149-9a0a-60f9560c401c",
+   "kind": "Наказ МОЗ",
+   "num": "153",
+   "date": "1998-06-05",
+   "title": "Про затвердження табелів оснащення виробами медичного призначення структурних підрозділів закладів охорони здоров’я",
+   "group": "moz-org",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний (ред. 04.11.2010)",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/v0153282-98",
+   "url_is_search": false,
+   "owners": [
+    {
+     "label": "Табель № 153 у розділі «Табелі»",
+     "href": "../classifiers/tabel153.html"
+    }
+   ],
+   "revision": null,
+   "packages": [
+    {
+     "n": "3",
+     "refs": 183
+    },
+    {
+     "n": "4",
+     "refs": 110
+    },
+    {
+     "n": "9",
+     "refs": 52
+    },
+    {
+     "n": "18",
+     "refs": 28
+    }
+   ],
+   "nodes": 52,
+   "chars": 47551,
+   "text_source": "corpus",
+   "summary": ""
+  },
+  {
+   "key": "v0340282-97",
+   "id": "cb120d82-a2f3-5cf6-aebc-a5b8241bb1c2",
+   "kind": "Наказ МОЗ",
+   "num": "340",
+   "date": "1997-11-28",
+   "title": "Про удосконалення організації служби променевої діагностики та променевої терапії",
+   "group": "moz-org",
+   "category": "Пакети ПМГ: нормативне підкріплення",
+   "status": "чинний (частково)",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/show/v0340282-97",
+   "url_is_search": false,
+   "owners": [
+    {
+     "label": "Розділ «Рентген і ДІВ»",
+     "href": "../rentgen/index.html#/doc/v0340282-97"
+    }
+   ],
+   "revision": "28.11.1997",
+   "packages": [
+    {
+     "n": "9",
+     "refs": 78
+    },
+    {
+     "n": "18",
+     "refs": 53
+    }
+   ],
+   "nodes": 509,
+   "chars": 151187,
+   "text_source": "rentgen",
+   "summary": ""
+  },
+  {
+   "key": "195-1992",
+   "id": "d126d73e-3d52-5b55-a56c-5f9bf1e80bbb",
+   "kind": "Наказ МОЗ",
+   "num": "195",
+   "date": "1992-12-25",
+   "title": "Про затвердження Переліку вищих і середніх спеціальних навчальних закладів, підготовка і отримання звання в яких дають право займатися медичною і фармацевтичною діяльністю",
+   "group": "moz-org",
+   "category": "Держфінгарантії",
+   "status": "чинний",
+   "in_force": true,
+   "url": "https://zakon.rada.gov.ua/laws/find?q=195",
+   "url_is_search": true,
+   "owners": [],
+   "revision": null,
+   "packages": [],
+   "nodes": 325,
+   "chars": 25136,
+   "text_source": "legacy",
+   "summary": ""
+  },
+  {
+   "key": "377-2025",
+   "id": "a90401b1-21ff-4dd4-9192-3323a0429f9e",
+   "kind": "Наказ НСЗУ",
+   "num": "377",
+   "date": "2025-04-02",
+   "title": "Про затвердження вимог до специфікацій та умов закупівлі медичних послуг за ПМГ-2026",
+   "group": "nszu",
+   "category": "Взаємодія з надавачами",
+   "status": "чинний",
+   "in_force": true,
+   "url": "",
+   "url_is_search": false,
+   "owners": [
+    {
+     "label": "Алгоритми (наказ 377)",
+     "href": "../algorithms/index.html"
+    }
+   ],
+   "revision": null,
+   "packages": [],
+   "nodes": 0,
+   "chars": 0,
+   "text_source": null,
+   "summary": "Цей наказ затверджує вимоги до надавачів медичних послуг, які бажають укласти договір з НСЗУ, а також детальний опис пакетів послуг (специфікацій) на 2026 рік."
+  }
+ ]
+}
