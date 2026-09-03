@@ -78,6 +78,10 @@ const boot = readBoot();
   if (strip && bdayHeight > 0) strip.style.minHeight = bdayHeight + 'px';
 })();
 
+// Реєстрацію закрито 03.09.2026: департамент укомплектований, акаунти додає/прибирає
+// адміністратор у Supabase на прохання власника. Вкладку не малюємо, signUp не викликаємо.
+const REGISTRATION_OPEN = false;
+
 const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
 const sb = window.__pmgSb || (window.__pmgSb = createClient(SUPABASE_URL, SUPABASE_KEY));
@@ -889,6 +893,7 @@ async function onLogin(e) {
 }
 
 async function onRegister(e) {
+  if (!REGISTRATION_OPEN) { e.preventDefault(); return; }
   e.preventDefault();
   const btn = e.submitter;
   const errEl = document.getElementById('reg-error');
@@ -1187,7 +1192,7 @@ function inject() {
     <div class="auth-brand">НавігаторПМГ26</div>
     <div class="auth-tabs" role="tablist">
       <button class="auth-tab active" data-tab="login" role="tab">Увійти</button>
-      <button class="auth-tab" data-tab="register" role="tab">Реєстрація</button>
+      ${REGISTRATION_OPEN ? '<button class="auth-tab" data-tab="register" role="tab">Реєстрація</button>' : ''}
     </div>
     <form id="auth-login-form" novalidate>
       <div class="auth-field">
@@ -1200,6 +1205,7 @@ function inject() {
       </div>
       <div class="auth-error" id="login-error"></div>
       <button type="submit" class="auth-submit">Увійти</button>
+      ${REGISTRATION_OPEN ? '' : '<p class="auth-hint" style="margin:10px 0 0;text-align:center">Реєстрацію закрито: доступ надає адміністратор порталу.</p>'}
     </form>
     <form id="auth-reg-form" style="display:none" novalidate>
       <div class="auth-field">
@@ -1246,7 +1252,7 @@ function inject() {
   <div class="access-denied-box">
     <h2>Доступ обмежено</h2>
     <p id="access-denied-msg">Ця сторінка доступна лише для зареєстрованих користувачів.</p>
-    <button class="auth-submit" id="access-denied-btn">Увійти / Зареєструватись</button>
+    <button class="auth-submit" id="access-denied-btn">Увійти</button>
   </div>
 </div>`);
 
