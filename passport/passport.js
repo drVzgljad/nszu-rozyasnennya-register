@@ -2515,19 +2515,26 @@ async function decorateNorms(pkgNum, container) {
   legend.innerHTML = window.NormLinks.legend(data);
   container.prepend(legend.firstElementChild);
 
-  let shown = 0, skipped = 0;
+  let shown = 0, outside = 0, stale = 0;
   container.querySelectorAll(".spec-item[data-sec]").forEach(div => {
     const text = div.querySelector("span:last-child")?.textContent || "";
     const e = window.NormLinks.entry(data, div.dataset.sec, Number(div.dataset.ord), text, div.dataset.nk);
-    if (!e) { skipped++; return; }
+    if (!e) {
+      const st = window.NormLinks.status(data, div.dataset.sec, Number(div.dataset.ord), text, div.dataset.nk);
+      if (st === 'stale') stale++; else outside++;
+      return;
+    }
     div.insertAdjacentHTML("afterbegin", window.NormLinks.badge(e));
     div.insertAdjacentHTML("beforeend", window.NormLinks.panel(e));
     div.classList.add("has-norm");
     shown++;
   });
-  if (skipped) {
-    console.info(`NormLinks: пакет ${pkgNum} — прив'язано ${shown}, пропущено ${skipped} ` +
-                 `(текст пункту не збігся з відбитком — дані треба перезібрати).`);
+  if (stale) {
+    console.warn(`NormLinks: пакет ${pkgNum} — прив'язано ${shown}, поза шкалою ${outside}, ` +
+                 `ЗАСТАРІЛИХ ${stale} (текст пункту змінився після збірки — перезібрати ` +
+                 `18_нормативне_підкріплення/build_final${pkgNum}.py).`);
+  } else if (outside) {
+    console.info(`NormLinks: пакет ${pkgNum} — прив'язано ${shown}, поза шкалою ${outside}.`);
   }
   // валідація прив'язок експертами (✓/✗ + пропозиції норм, Supabase)
   if (window.NormLinks.votes) window.NormLinks.votes.init(pkgNum, container);

@@ -181,6 +181,18 @@
     return e;
   }
 
+
+  // Стан пункту для діагностики: 'ok' — значок є; 'none' — пункт поза шкалою
+  // (у даних його немає, це нормально для довідникових переліків); 'stale' —
+  // пункт є, але текст пакета змінився і відбиток не збігся (дані перезібрати).
+  function status(data, sectionKey, ord, text, precomputedKey) {
+    if (!data) return 'none';
+    const list = data.sections && data.sections[sectionKey];
+    const e = list && list.find(x => x.o === ord);
+    if (!e) return 'none';
+    return e.k === (precomputedKey || key(text)) ? 'ok' : 'stale';
+  }
+
   function badge(e) {
     const meta = LEVELS[e.lv] || LEVELS['?'];
     const n = e.c.length;
@@ -248,7 +260,7 @@
     b.setAttribute('aria-expanded', String(open));
   });
 
-  window.NormLinks = { load, entry, badge, panel, legend, key, votes: null };
+  window.NormLinks = { load, entry, status, badge, panel, legend, key, votes: null };
 
   // ── Валідація прив'язок і пропозиції норм (Supabase) ────────
   // Голос ✓/✗ на пункт від експерта, відсоток підтримки біля значка,
