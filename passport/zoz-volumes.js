@@ -14,7 +14,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = (window.__pmgSb || (window.__pmgSb = createClient(SUPABASE_URL, SUPABASE_KEY)));
 
 const PAGE = 1000;              // PostgREST за замовчуванням не віддає більше
 const cache = new Map();        // пакет -> { map, total, period } | null

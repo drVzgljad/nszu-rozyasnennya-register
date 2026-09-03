@@ -345,7 +345,7 @@ async function init() {
     const { createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm");
     const SUPABASE_URL = "https://qdqtkvyvhtjgxpxnvblk.supabase.co";
     const SUPABASE_KEY = "sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz";
-    sbClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+    sbClient = (window.__pmgSb || (window.__pmgSb = createClient(SUPABASE_URL, SUPABASE_KEY)));
 
     await fetchAllDocuments();
 

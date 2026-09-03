@@ -278,7 +278,7 @@
       this.pkg = String(pkg);
       try {
         const mod = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-        this.sb = mod.createClient(SB_URL, SB_KEY);
+        this.sb = window.__pmgSb || (window.__pmgSb = mod.createClient(SB_URL, SB_KEY));
         const { data: { session } } = await this.sb.auth.getSession();
         this.user = session?.user || null;
         this.name = await this.resolveName();

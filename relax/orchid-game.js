@@ -15,7 +15,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
   const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
   let sb = null;
   try {
-    sb = window.__relaxSb || (window.__relaxSb = createClient(SUPABASE_URL, SUPABASE_KEY));
+    sb = window.__pmgSb || (window.__pmgSb = createClient(SUPABASE_URL, SUPABASE_KEY));
   } catch (e) { console.warn('Оранжерея: Supabase недоступний', e); }
 
   const stageEl = document.getElementById('orchidStage');

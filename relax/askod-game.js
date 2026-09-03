@@ -13,7 +13,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
   const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
   let sb = null;
-  try { sb = createClient(SUPABASE_URL, SUPABASE_KEY); } catch (e) { console.warn('АСКОД: Supabase недоступний', e); }
+  try { sb = (window.__pmgSb || (window.__pmgSb = createClient(SUPABASE_URL, SUPABASE_KEY))); } catch (e) { console.warn('АСКОД: Supabase недоступний', e); }
 
   const timeEl = document.getElementById('askodTime');
   const scoreEl = document.getElementById('askodScore');
