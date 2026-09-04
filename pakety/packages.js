@@ -4,6 +4,7 @@ const packageState = {
   resolution: null,
   decDocuments: [],
   decLinks: {},
+  news: {},
   visible: [],
   selected: null,
   selectedUnit: null,
@@ -312,6 +313,28 @@ function getLinkedCategoriesForPackage(pkgNum) {
   return Object.keys(pkgLinks);
 }
 
+// Новини НСЗУ як додатковий шар: не норма, а те, що НСЗУ публічно казала про
+// пакет. Зв'язок будує infocenter_pipeline/build_news_links.py — тільки за
+// назвою пакета, назвами послуг таблиці співставлення і явним «пакет N».
+// Слабші здогади свідомо не беремо: хибна новина на сторінці пакета читається
+// як помилка порталу.
+function readerNews(pkg) {
+  const entry = packageState.news[pkg.number];
+  if (!entry || !entry.items.length) {
+    return "<p>Новин НСЗУ про цей пакет не знайдено.</p>";
+  }
+  const more = entry.total > entry.items.length
+    ? `<p class="news-more">Показано ${entry.items.length} з ${entry.total}.</p>`
+    : "";
+  return entry.items.map((n) => {
+    const date = (n.created_at || "").slice(0, 10).split("-").reverse().join(".");
+    return `<a class="law-related-link" href="${escapeHtml(n.url)}" target="_blank" rel="noopener">
+      <strong>${escapeHtml(n.title)}</strong>
+      <span>${escapeHtml(date)} · збіг: ${escapeHtml((n.matched || []).join("; "))}</span>
+    </a>`;
+  }).join("") + more;
+}
+
 function readerDec(pkg) {
   if (!packageState.decDocuments || !packageState.decDocuments.length) {
     return "<p>Завантажуємо стандарти ДЕЦ...</p>";
@@ -418,6 +441,10 @@ function renderReader() {
     <section class="related-explanations">
       <h3>Пов'язані роз'яснення</h3>
       ${readerRelated(pkg)}
+    </section>
+    <section class="related-explanations news-connections" style="border-top-color: #e4dcef;">
+      <h3>Новини НСЗУ про цей пакет</h3>
+      ${readerNews(pkg)}
     </section>`;
 }
 
@@ -509,6 +536,19 @@ function initScopeToggle() {
   }));
 }
 
+// Новини НСЗУ про пакет. Вантажаться окремо і мовчки: якщо файлу немає або
+// він не прочитався, блок просто скаже, що новин не знайдено.
+async function loadPackageNews() {
+  try {
+    const res = await fetch("../infocenter/data/news_archive/by_package.json");
+    if (!res.ok) return;
+    packageState.news = (await res.json()).packages || {};
+    if (packageState.selected) renderReader();
+  } catch (e) {
+    console.warn("Не вдалося завантажити новини пакетів", e);
+  }
+}
+
 async function initPackages() {
   const [packagesResponse, docsResponse, decLinksResponse] = await Promise.all([
     fetch("data/packages_2026.json"),
@@ -531,6 +571,10 @@ async function initPackages() {
       packageState.decLinks = await decLinksResponse.json() || {};
     } catch(e) { console.warn("Failed to load dec links", e); }
   }
+  // Новини — додатковий шар, не критичний шлях: тягнемо окремо, після
+  // основних даних. У Promise.all вони ставали п'ятим паралельним запитом і
+  // однопотоковий тестовий сервер їх рвав.
+  loadPackageNews();
 
   // Гібридне завантаження документів ДЕЦ
   let loadedFromSupabase = false;
