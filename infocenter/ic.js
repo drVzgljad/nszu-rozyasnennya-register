@@ -171,7 +171,7 @@ function shortTitle(t) {
 }
 function srcBadge(n) {
   const cls = n.kind === 'nszu-site' ? 'is-nszu' : n.kind === 'nszu-tg' ? 'is-tg' : n.kind === 'industry' ? 'is-ind' : '';
-  const icon = n.kind === 'nszu-site' ? '🏥' : n.isTg ? '✈️' : n.kind === 'industry' ? '⚕️' : '📰';
+  const icon = n.kind === 'nszu-site' ? '🏥' : n.isTg ? '✈️' : /youtube/i.test(n.source) ? '🎬' : n.kind === 'industry' ? '⚕️' : '📰';
   return `<span class="ic-src ${cls}">${icon} ${esc(n.source)}</span>`;
 }
 function itemCard(n) {
