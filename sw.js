@@ -248,7 +248,11 @@
 //   data/search.json, data/docs/<key>.json; старі app.js і search_index.json
 //   прибрано. regulatory/data/ ходить без ?v=, а global-search.js отримав тип 8
 //   («акт»), тож без нового CACHE пошук Ctrl+K не знав би про акти.
-const CACHE = 'pmg-portal-v91';
+// v92 (04.09.2026): Інфоцентр перебудовано навколо новин НСЗУ: nszu_feed.json
+//   (~0,9 МБ) і шарди news_archive/ (до 2,5 МБ) ходять повз SW, як LOINC, —
+//   інакше клонування в Cache Storage рве завантаження і сторінка порожня.
+//   Новий ic.css/ic.js, старий infocenter.css лишається для youtube.html.
+const CACHE = 'pmg-portal-v92';
 // РЎРєС–Р»СЊРєРё С‡РµРєР°С‚Рё РЅР° РјРµСЂРµР¶Сѓ РїС–Рґ С‡Р°СЃ РЅР°РІС–РіР°С†С–С—, РїРµСЂС€ РЅС–Р¶ РїРѕРєР°Р·Р°С‚Рё Р·Р±РµСЂРµР¶РµРЅСѓ РєРѕРїС–СЋ.
 // GitHub Pages РїС–Рґ РЅР°РІР°РЅС‚Р°Р¶РµРЅРЅСЏРј РІС–РґРґР°С” HTML СЃРµРєСѓРЅРґР°РјРё вЂ” Р±РµР· С†СЊРѕРіРѕ Р»С–РјС–С‚Сѓ РІРєР»Р°РґРєР°
 // РїСЂРѕСЃС‚Рѕ РІРёСЃРёС‚СЊ Р±С–Р»РѕСЋ, С– РєРѕСЂРёСЃС‚СѓРІР°С‡ С‚РёСЃРЅРµ РїРѕСЃРёР»Р°РЅРЅСЏ РІРґСЂСѓРіРµ.
@@ -316,6 +320,9 @@ self.addEventListener('fetch', (e) => {
   // РєРµС€СѓРІР°РЅРЅСЏ РІ Cache Storage: С–РЅР°РєС€Рµ SW СЂРѕР·РґСѓРІР°С” СЃС…РѕРІРёС‰Рµ С– РЅР° СЃР»Р°Р±РєРёС… РїСЂРёСЃС‚СЂРѕСЏС…
   // РјРѕР¶Рµ РѕР±С–СЂРІР°С‚Рё РІРµР»РёРєРµ Р·Р°РІР°РЅС‚Р°Р¶РµРЅРЅСЏ. HTTP-РєРµС€ Р±СЂР°СѓР·РµСЂР° С‚СѓС‚ РґРѕСЃС‚Р°С‚РЅС–Р№.
   if (url.pathname.startsWith('/classifiers/data/loinc/loinc_data_')) return;
+  // Корпус новин НСЗУ — та сама історія: великі JSON повз Cache Storage
+  if (url.pathname.startsWith('/infocenter/data/news_archive/') ||
+      url.pathname === '/infocenter/data/nszu_feed.json') return;
 
   if (req.mode === 'navigate') {
     // no-cache: GitHub Pages СЃС‚Р°РІРёС‚СЊ max-age=600, Р±РµР· С†СЊРѕРіРѕ Р±СЂР°СѓР·РµСЂ РґРѕ 10 С…РІ

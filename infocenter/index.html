@@ -10,15 +10,14 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Інфоцентр</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="../news/news.css?v=20260805a">
-  <link rel="stylesheet" href="infocenter.css?v=20260805b">
+  <link rel="stylesheet" href="ic.css?v=20260904a">
   <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
-  <script type="module" src="../auth-v2.js?v=20260903e"></script>
+  <script type="module" src="../auth-v2.js?v=20260904a"></script>
 </head>
 <body id="top" data-required-role="full">
   <header class="hero news-hero">
     <div class="hero-copy">
-      <div class="overline">Автоматичний моніторинг</div>
+      <div class="overline">Що НСЗУ каже публічно</div>
       <div class="header-nav-row">
         <div class="nav-row-1">
           <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
@@ -35,85 +34,85 @@
         </div>
       </div>
       <h1>📡 Інфоцентр</h1>
-      <p>Автоматично агреговані політичні, медичні, юридичні та фінансові новини з офіційних джерел, а також детальний експертний аналіз YouTube-каналів медичних інформаційних систем.</p>
+      <p>Новини НСЗУ за 2023–2026 з прив'язкою до пакетів, канали Служби й Академії, галузь і те, що діється довкола.</p>
     </div>
-    <div class="stats" id="feedStats" aria-label="Статистика стрічки"></div>
+    <div class="stats" id="feedStats" aria-label="Статистика"></div>
   </header>
 
-  <main class="infocenter-layout">
-    <!-- Верхня панель дій: YouTube-аналіз + час оновлення -->
-    <div class="infocenter-topbar">
-      <a class="yt-top-btn" href="youtube.html">
-        🎬 Аналіз YouTube-каналів МІС
-        <span class="yt-top-btn-sub" id="ytTopProgress">МедЕйр · Health24</span>
-        <span class="yt-top-arrow">→</span>
-      </a>
-      <div class="update-time" id="updateTime" title="Час останнього автоматичного збору новин">
-        <span class="update-dot"></span>
-        <span id="updateTimeText">Оновлення...</span>
-      </div>
-    </div>
+  <main class="ic">
+    <div class="ic-grid">
+      <div class="ic-main">
 
-    <!-- AI-дайджест «Головне за 12 годин» (build_digest.py, 08:00 і 20:00) -->
-    <section id="digestPanel" class="digest-panel" style="display:none;" aria-label="Головне за 12 годин"></section>
+        <!-- Головне: найсвіжіша новина НСЗУ з картинкою + три поруч -->
+        <section class="ic-lead" id="leadBlock" aria-label="Головне"></section>
 
-    <section aria-label="Стрічка новин">
-      <div class="category-tabs" id="categoryTabs">
-        <button class="category-tab active" data-cat="all" type="button">Усі</button>
-        <button class="category-tab" data-cat="political" type="button">🏛 Політичні</button>
-        <button class="category-tab" data-cat="medical" type="button">⚕️ Медичні</button>
-        <button class="category-tab" data-cat="legal" type="button">⚖️ Юридичні</button>
-        <button class="category-tab" data-cat="financial" type="button">💰 Фінансові</button>
-      </div>
+        <!-- AI-зведення «Головне за 12 годин» (build_digest.py), якщо є свіже -->
+        <section id="digestPanel" class="ic-digest" aria-label="Головне за 12 годин"></section>
 
-      <div class="quick-filters" id="quickFilters" aria-label="Швидкі фільтри за джерелами">
-        <span class="quick-filters-label">Швидкі фільтри:</span>
-        <button class="quick-filter qf-pmg" data-quick="pmg" type="button">⭐ ПМГ</button>
-        <button class="quick-filter qf-nszu" data-quick="nszu" type="button">🏥 НСЗУ</button>
-        <button class="quick-filter qf-moz" data-quick="moz" type="button">⚕️ МОЗ</button>
-        <button class="quick-filter qf-community" data-quick="community" type="button">💬 Спільноти (МІС/БПР)</button>
-      </div>
-
-      <div class="quick-filters" id="periodFilters" aria-label="Фільтр за датою">
-        <span class="quick-filters-label">Період:</span>
-        <button class="period-pill active" data-days="all" type="button">Увесь час</button>
-        <button class="period-pill" data-days="1" type="button">Сьогодні</button>
-        <button class="period-pill" data-days="7" type="button">7 днів</button>
-        <button class="period-pill" data-days="30" type="button">30 днів</button>
-      </div>
-
-      <div class="search-panel feed-search">
-        <label class="search">
-          <span>Пошук у новинах</span>
-          <input id="feedSearch" type="search" placeholder="Наприклад: тарифи, бюджет, законопроєкт..." autocomplete="off">
-        </label>
-        <div class="results-summary">
-          <span id="feedCount">Завантаження новин...</span>
+        <div class="ic-toolbar" role="search">
+          <label class="ic-search">
+            <span class="ic-search-icon" aria-hidden="true">🔍</span>
+            <input id="feedSearch" type="search" placeholder="Пошук: тариф, реабілітація, ПМГ-2027…" autocomplete="off">
+          </label>
+          <select id="packageSelect" aria-label="Фільтр за пакетом">
+            <option value="">Усі пакети</option>
+          </select>
+          <div class="ic-period" id="periodPills" aria-label="Період">
+            <button type="button" data-days="7">7 днів</button>
+            <button type="button" data-days="30" class="active">30 днів</button>
+            <button type="button" data-days="365">Рік</button>
+            <button type="button" data-days="all">Усе</button>
+          </div>
         </div>
+
+        <section class="ic-section" id="secPmg">
+          <header><h2>Стосується пакетів ПМГ</h2><span class="ic-count"></span></header>
+          <div class="ic-list"></div>
+          <button type="button" class="ic-more" hidden>Показати ще</button>
+        </section>
+
+        <section class="ic-section" id="secNszu">
+          <header><h2>НСЗУ говорить</h2><span class="ic-count"></span></header>
+          <div class="ic-list"></div>
+          <button type="button" class="ic-more" hidden>Показати ще</button>
+        </section>
+
+        <section class="ic-section" id="secIndustry">
+          <header><h2>Галузь</h2><span class="ic-count"></span></header>
+          <div class="ic-list"></div>
+          <button type="button" class="ic-more" hidden>Показати ще</button>
+        </section>
+
+        <details class="ic-section ic-rest" id="secRest">
+          <summary><h2>Довкола: політика, право, фінанси</h2><span class="ic-count"></span></summary>
+          <div class="ic-list"></div>
+          <button type="button" class="ic-more" hidden>Показати ще</button>
+        </details>
       </div>
 
-      <div class="feed-grid" id="feedGrid"></div>
-    </section>
-
-    <section class="yt-hub-section" aria-label="Аналіз YouTube-каналів">
-      <h2>🎬 Аналіз YouTube-каналів МІС</h2>
-      <p class="yt-hub-sub">Детальний розбір відео каналів розробників медичних інформаційних систем: резюме, ключові твердження та їх перевірка на відповідність нормам ПМГ-2026 і НПА.</p>
-      <div class="yt-channels-grid" id="ytChannelsGrid">
-        <div class="no-results">Завантаження даних каналів...</div>
-      </div>
-    </section>
+      <aside class="ic-side">
+        <section class="ic-card" id="weekBlock" aria-label="Тиждень у цифрах"></section>
+        <section class="ic-card" id="topPackages" aria-label="Пакети, про які говорять"></section>
+        <section class="ic-card ic-yt" aria-label="Аналіз відео МІС">
+          <h3>🎬 Відео МІС під лупою</h3>
+          <p class="ic-card-sub">Розбір ефірів розробників МІС: що з тверджень збігається з ПМГ-2026, а що ні.</p>
+          <div id="ytChannelsGrid"></div>
+        </section>
+        <section class="ic-card" id="sourcesBlock" aria-label="Джерела"></section>
+      </aside>
+    </div>
   </main>
 
   <footer class="site-footer">
     <div class="footer-inner">
       <div class="footer-copy">
-        <div class="footer-agency">НСЗУ</div>
-        <div class="footer-department">Департамент стратегії універсального охоплення населення медичними послугами</div>
-        <p>Реєстр розроблено силами Департаменту без зовнішнього сприяння та проєктів.</p>
+        <div class="footer-agency">drVzgljad</div>
+        <div class="footer-department">Довідник Програми медичних гарантій 2026</div>
+        <p>Новини НСЗУ — з nszu.gov.ua; прив'язка до пакетів — за назвами пакетів і послуг таблиці співставлення.</p>
       </div>
     </div>
   </footer>
 
-  <script type="module" src="infocenter.js?v=20260903a" defer></script>
+  <script type="module" src="ic.js?v=20260904b" defer></script>
 </body>
 </html>
