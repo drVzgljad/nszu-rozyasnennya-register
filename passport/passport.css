@@ -3457,3 +3457,72 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
 .dark-theme .drs td { border-bottom-color: #334155; }
 .dark-theme .drs .drs-n,
 .dark-theme .drs .drs-d { color: #e2e8f0; }
+
+/* ── Поріг входу за обсягом ───────────────────────────────────
+   Індикатори обсягу, за відповідності яким укладався договір.
+   Показується лише для шести пакетів із 46, тому картка навмисно
+   компактна — вона рідкісна, а не постійна частина сторінки. */
+.vreq-hero {
+  margin-bottom: 20px; padding: 16px 18px;
+  border: 1px solid var(--line, #dde6ee);
+  border-left: 4px solid var(--accent, #4a8fc7);
+  border-radius: 14px;
+  background: var(--surface, #fff);
+}
+.vreq-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.vreq-head h3 { margin: 0; font-size: 16px; font-weight: 800; color: var(--ink, #1f3347); }
+.vreq-src {
+  font-size: 10px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase;
+  color: var(--muted, #6b7f92); background: var(--soft, #f1f6f9);
+  border: 1px solid var(--line, #dde6ee); border-radius: 999px; padding: 2px 9px;
+}
+.vreq-sub { margin: 6px 0 12px; font-size: 12.5px; line-height: 1.5; color: var(--muted, #6b7f92); }
+.vreq-sub strong { color: var(--ink, #1f3347); }
+
+.vreq-rules { display: flex; flex-direction: column; gap: 8px; }
+.vreq-rule {
+  display: flex; gap: 10px; padding: 10px 12px;
+  border: 1px solid var(--line, #dde6ee); border-radius: 10px;
+  background: var(--soft, #f1f6f9);
+}
+.vreq-rule.share { background: transparent; border-style: dashed; }
+.vreq-rule .vr-i { font-size: 15px; line-height: 1.3; }
+.vreq-rule .vr-body { flex: 1 1 auto; min-width: 0; }
+.vr-val { font-size: 13.5px; line-height: 1.45; color: var(--ink, #1f3347); }
+.vr-val b { font-size: 15px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.vr-val span { color: var(--muted, #6b7f92); }
+.vr-per { margin-top: 2px; font-size: 11.5px; font-weight: 600; color: var(--muted, #6b7f92); }
+.vr-why { margin-top: 6px; }
+.vr-why summary {
+  cursor: pointer; font-size: 10px; font-weight: 800; letter-spacing: .03em;
+  text-transform: uppercase; color: var(--accent, #4a8fc7); list-style: none;
+}
+.vr-why summary::-webkit-details-marker { display: none; }
+.vr-why summary::before { content: "▸ "; }
+.vr-why[open] summary::before { content: "▾ "; }
+.vr-why p {
+  margin: 6px 0 0; padding-left: 10px;
+  border-left: 2px solid var(--line, #dde6ee);
+  font-size: 11.5px; line-height: 1.5; color: var(--muted, #6b7f92); font-style: italic;
+}
+
+.vreq-extra { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.vreq-list summary {
+  cursor: pointer; font-size: 11.5px; font-weight: 700; color: var(--ink, #1f3347);
+}
+.vreq-list summary b { color: var(--accent, #4a8fc7); }
+.vreq-list ul { margin: 6px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.vreq-list li { font-size: 11.5px; line-height: 1.5; color: var(--muted, #6b7f92); }
+
+.vreq-warn {
+  margin: 12px 0 0; padding-top: 9px;
+  border-top: 1px dashed var(--line, #dde6ee);
+  font-size: 11.5px; font-weight: 600; line-height: 1.45; color: var(--muted, #6b7f92);
+}
+
+.dark-theme .vreq-hero { background: #1e293b; border-color: #334155; }
+.dark-theme .vreq-rule { background: #0f172a; border-color: #334155; }
+.dark-theme .vreq-rule.share { background: transparent; }
+.dark-theme .vreq-src { background: #0f172a; border-color: #334155; }
+.dark-theme .vreq-warn,
+.dark-theme .vr-why p { border-color: #334155; }

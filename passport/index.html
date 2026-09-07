@@ -11,7 +11,7 @@
   <title>Паспорт пакета ПМГ 2026 — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260808c">
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="passport.css?v=20260907a">
+  <link rel="stylesheet" href="passport.css?v=20260907b">
   <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script type="module" src="../auth-v2.js?v=20260904a"></script>
@@ -155,6 +155,21 @@
                 як ця робота влаштована всередині. Вузький пакет буває найважчим на вході, а масовий — найпростішим.</p>
               <div class="anat-axes" id="anatAxes"></div>
               <div class="anat-footnote" id="anatFootnote"></div>
+            </section>
+
+            <!-- Індикатори обсягу для укладення договору. Це НОРМА, а не звірка:
+                 індикатор міряється за 2025 роком, а обсяги нижче — за 2026. -->
+            <section class="vreq-hero" id="volReqSection" hidden>
+              <div class="vreq-head">
+                <h3>🎚️ Поріг входу за обсягом</h3>
+                <span class="vreq-src" id="volReqSrc"></span>
+              </div>
+              <p class="vreq-sub">Договір на 2026 рік укладався не з кожним, хто відповідає вимогам до обладнання
+                й кадрів: у цьому пакеті є ще <strong>індикатор обсягу</strong> — скільки роботи заклад зробив
+                за визначений період 2025 року.</p>
+              <div class="vreq-rules" id="volReqRules"></div>
+              <div class="vreq-extra" id="volReqExtra"></div>
+              <p class="vreq-warn" id="volReqWarn"></p>
             </section>
 
             <!-- Фактичні обсяги: що надано насправді, з вивантажки ЕСОЗ -->
@@ -405,7 +420,7 @@
 <script src="norm-links.js?v=20260903c" defer></script>
 <script src="volumes.js?v=20260825m" defer></script>
 <script type="module" src="zoz-volumes.js?v=20260903c"></script>
-<script src="passport.js?v=20260907a" defer></script>
+<script src="passport.js?v=20260907b" defer></script>
 <script src="kpi-drill.js?v=20260907a" defer></script>
 </body>
 </html>

@@ -124,6 +124,7 @@ async function init() {
       uaMapRes,
       hasVolumes,
       anatomyRes,
+      volReqRes,
     ] = await Promise.all([
       fetch("../pakety/data/packages_2026.json").then(r => r.json()),
       // Полегшена версія договорів (4.5 МБ замість 19); якщо її немає — повна
@@ -151,7 +152,10 @@ async function init() {
       window.Volumes ? window.Volumes.boot() : Promise.resolve(false),
       // Анатомія пакета: сирі ознаки «форми» (конвеєр 24_анатомія_пакетів).
       // Немає файлу — блок просто не показується, решта сторінки жива.
-      fetch("data/anatomy.json").then(r => r.json()).catch(() => null)
+      fetch("data/anatomy.json").then(r => r.json()).catch(() => null),
+      // Індикатори обсягу для укладення договору (6 пакетів із 46). Немає
+      // файлу — картка просто не показується, решта сторінки жива.
+      fetch("data/volume_requirements.json").then(r => r.json()).catch(() => null)
     ]);
 
     // Populate State
@@ -163,6 +167,7 @@ async function init() {
     passportState.uaMap = uaMapRes;
     passportState.hasVolumes = Boolean(hasVolumes);
     passportState.anatomy = anatomyRes && anatomyRes.pkgs ? anatomyRes : null;
+    passportState.volReq = volReqRes && volReqRes.packages ? volReqRes : null;
     passportState.explanations = docsRes.documents || [];
     passportState.resolution = resolutionRes;
 
@@ -305,6 +310,7 @@ function selectPackage(pkgNum) {
   renderHeaderAndMetrics();
   renderAnalytics();
   renderAnatomy();
+  renderVolumeReq();
   // Фактичні обсяги вантажаться окремим файлом на пакет, тому асинхронно:
   // карта до їх приходу стоїть у базовому режимі «заклади», а щойно дані є —
   // перемальовуємо її, щоб не загубився вибраний режим при зміні пакета.
@@ -1551,6 +1557,52 @@ function anatAxisHtml(icon, label, steps, res, tip) {
       <div class="aa-ladder" style="--steps:${n}">${ladder}</div>
       <div class="aa-note">${escapeHtml(res ? res.note : "")}</div>
     </div>`;
+}
+
+/** Картка «Поріг входу за обсягом»: індикатори обсягу, за відповідності яким
+ *  укладався договір на 2026 рік. Показується лише для пакетів, де така умова
+ *  є (їх шість із 46). Свідомо БЕЗ звірки з фактом: індикатор міряється за
+ *  2025 роком, а обсяги в паспорті — за 2026, і «майже звірку» потім
+ *  цитували б як звірку. Дані — data/volume_requirements.json. */
+function renderVolumeReq() {
+  const box = el("volReqSection");
+  const pkg = passportState.selectedPackage;
+  if (!box || !pkg || !passportState.volReq) { if (box) box.hidden = true; return; }
+  const v = passportState.volReq.packages[pkg.number];
+  if (!v || !(v.rules || []).length) { box.hidden = true; return; }
+  box.hidden = false;
+
+  el("volReqSrc").textContent = v.source;
+
+  const nUk = (x) => Number(x).toLocaleString("uk-UA");
+  el("volReqRules").innerHTML = v.rules.map(r => {
+    const share = r.kind === "share";
+    const dir = r.direction || "не менше";
+    const val = share ? `${nUk(r.value)} %` : nUk(r.value);
+    return `
+      <div class="vreq-rule${share ? " share" : ""}">
+        <span class="vr-i" aria-hidden="true">${share ? "⚖️" : "📐"}</span>
+        <div class="vr-body">
+          <div class="vr-val"><b>${escapeHtml(dir)} ${escapeHtml(val)}</b>
+            <span>${escapeHtml(share ? r.unit.replace(/^%\s*/, "") : r.unit)}</span></div>
+          <div class="vr-per">${escapeHtml(r.period === "—" ? "період не встановлено" : "за період " + r.period)}${
+            r.extra ? " · " + escapeHtml(r.extra) : ""}${
+            r.applies_to ? " · лише: " + escapeHtml(r.applies_to) : ""}</div>
+          <details class="vr-why"><summary>дослівно з норми</summary><p>${escapeHtml(r.text)}</p></details>
+        </div>
+      </div>`;
+  }).join("");
+
+  const list = (title, arr) => !arr || !arr.length ? "" : `
+    <details class="vreq-list"><summary>${escapeHtml(title)} <b>${arr.length}</b></summary>
+      <ul>${arr.map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul></details>`;
+  el("volReqExtra").innerHTML =
+    list("Індикатор не застосовується до:", v.exceptions) +
+    list("Якщо пропозицій кілька, черговість:", v.order);
+
+  el("volReqWarn").textContent =
+    "Це норма, а не звірка. Перевірити виконання індикатора за даними порталу не можна: " +
+    "він міряється за 2025 роком, а фактичні обсяги нижче — за 2026 рік.";
 }
 
 function renderAnatomy() {
