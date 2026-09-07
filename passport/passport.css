@@ -3556,3 +3556,7 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
 /* Акцент #1f6f6b на темному тлі дає контраст 2,4:1 — для точки даних мало.
    Світліший крок тієї самої рампи: 4,5:1. */
 .dark-theme .pkg-axes .pa-me { fill: #4e9e96; }
+/* Емодзі-іконки прибрані 07.09.2026: вони кричали голосніше за дані й не мали
+   спільної сітки. Порожній span не має лишати проміжок у шапці плитки. */
+.kpi-icon:empty { display: none; }
+.kpi-head:has(.kpi-icon:empty) { gap: 0; }

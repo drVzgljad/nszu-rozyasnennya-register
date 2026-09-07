@@ -11,7 +11,7 @@
   <title>Паспорт пакета ПМГ 2026 — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260808c">
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="passport.css?v=20260907f">
+  <link rel="stylesheet" href="passport.css?v=20260907g">
   <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script type="module" src="../auth-v2.js?v=20260904a"></script>
@@ -135,17 +135,17 @@
             </section>
 
             <!-- Анатомія пакета: не масштаб, а будова. Свідомо окремим блоком
-                 від термометра: температура міряє, СКІЛЬКИ роботи, анатомія —
+                 від осей масштабу: вони міряють, СКІЛЬКИ роботи, анатомія —
                  ЯК ця робота влаштована. Змішати їх в один бал означало б
                  сховати рівно те, заради чого блок існує. -->
             <section class="anat-hero" id="anatomyHero" hidden>
               <div class="anat-head">
-                <h3>🧬 Анатомія пакета</h3>
+                <h3>Анатомія пакета</h3>
                 <span class="anat-gate" id="anatGate"></span>
                 <button type="button" class="anat-more" data-drill="anatomy">детально &rarr;</button>
               </div>
-              <p class="anat-sub">Термометр вище міряє <strong>масштаб</strong> роботи по країні. Анатомія — про інше:
-                як ця робота влаштована всередині. Вузький пакет буває найважчим на вході, а масовий — найпростішим.</p>
+              <p class="anat-sub">Осі вище показують <strong>масштаб</strong> — скільки роботи пакет робить по країні.
+                Анатомія про інше: як ця робота влаштована всередині. Вузький пакет буває найважчим на вході, а масовий — найпростішим.</p>
               <div class="anat-axes" id="anatAxes"></div>
               <div class="anat-footnote" id="anatFootnote"></div>
             </section>
@@ -154,7 +154,7 @@
                  індикатор міряється за 2025 роком, а обсяги нижче — за 2026. -->
             <section class="vreq-hero" id="volReqSection" hidden>
               <div class="vreq-head">
-                <h3>🎚️ Поріг входу за обсягом</h3>
+                <h3>Поріг входу за обсягом</h3>
                 <span class="vreq-src" id="volReqSrc"></span>
               </div>
               <p class="vreq-sub">Договір на 2026 рік укладався не з кожним, хто відповідає вимогам до обладнання
@@ -169,7 +169,7 @@
             <section class="vol-hero" id="volumesSection" hidden>
               <div class="vol-head">
                 <div class="vol-head-row">
-                  <h3>📊 Фактично надано</h3>
+                  <h3>Фактично надано</h3>
                   <button type="button" class="oc-export-btn" id="volExportBtn"
                           title="Excel із двома аркушами: основні показники аналізу пакета і перелік кодів послуг з обсягами">&#11015; Звіт по аналізу (Excel)</button>
                 </div>
@@ -178,16 +178,16 @@
               <div class="vol-kpis thermo-kpis" id="volKpis"></div>
               <div class="vol-grid">
                 <div class="chart-card">
-                  <h3>📅 Помісячна динаміка <small class="card-hint">послуг за місяць</small></h3>
+                  <h3>Помісячна динаміка <small class="card-hint">послуг за місяць</small></h3>
                   <div class="vol-months" id="volMonths"></div>
                 </div>
                 <div class="chart-card">
-                  <h3>👥 Хто отримує <small class="card-hint">стать і вік</small></h3>
+                  <h3>Хто отримує <small class="card-hint">стать і вік</small></h3>
                   <div class="vol-demo" id="volDemo"></div>
                 </div>
               </div>
               <div class="chart-card vol-services-card" id="volServicesCard" hidden>
-                <h3>🧾 Послуги пакета <small class="card-hint" id="volServicesHead"></small></h3>
+                <h3>Послуги пакета <small class="card-hint" id="volServicesHead"></small></h3>
                 <div class="vol-services" id="volServices"></div>
                 <button type="button" class="tp-more" id="volServicesMore" hidden></button>
               </div>
@@ -197,7 +197,7 @@
             <!-- Аналітичні картки -->
             <div class="analytics-charts thermo-grid">
               <div class="chart-card map-card">
-                <h3>🗺️ Карта регіонів <small class="card-hint">клік по області відфільтрує перелік ЗОЗ</small></h3>
+                <h3>Карта регіонів <small class="card-hint">клік по області відфільтрує перелік ЗОЗ</small></h3>
                 <div class="map-modes" id="mapModes" hidden role="group" aria-label="Що показує карта">
                   <button type="button" class="mm-btn active" data-mode="zoz">🏥 Заклади</button>
                   <button type="button" class="mm-btn" data-mode="vol">📈 Обсяг послуг</button>
@@ -215,16 +215,16 @@
               </div>
               <div class="side-cards">
                 <div class="chart-card">
-                  <h3>🏛️ Форма власності</h3>
+                  <h3>Форма власності</h3>
                   <div class="donut-wrap" id="ownershipDonut"></div>
                 </div>
                 <div class="chart-card">
-                  <h3>🕸️ Спроможна мережа</h3>
+                  <h3>Спроможна мережа</h3>
                   <div class="donut-wrap" id="networkDonut"></div>
                 </div>
               </div>
               <div class="chart-card scale-card" id="scaleCard">
-                <h3>📏 Медіанний договір по областях
+                <h3>Медіанний договір по областях
                   <small class="card-hint">проти медіани країни</small>
                 </h3>
                 <details class="sc-why">
@@ -251,7 +251,7 @@
                 <div class="scale-body" id="scaleBody"></div>
               </div>
               <div class="chart-card span-2 collapsed" id="topProvidersCard">
-                <h3>🏆 Надавачі за фінансуванням
+                <h3>Надавачі за фінансуванням
                   <small class="card-hint" id="topProvidersHead"></small>
                   <button type="button" class="card-toggle" id="topProvidersToggle"
                           aria-expanded="false" aria-controls="topProvidersBody"
@@ -267,7 +267,7 @@
             <!-- Перетин мереж: які ще пакети мають ті самі заклади -->
             <section class="overlap-card collapsed" id="overlapCard">
               <div class="overlap-head">
-                <h3>🔗 Перетин мереж <small class="card-hint">які ще пакети мають ті самі заклади</small>
+                <h3>Перетин мереж <small class="card-hint">які ще пакети мають ті самі заклади</small>
                   <button type="button" class="card-toggle" id="overlapToggle"
                           aria-expanded="false" aria-controls="overlapBody"
                           title="Розгорнути"><span class="ct-chevron" aria-hidden="true"></span></button>
@@ -411,9 +411,9 @@
 </div>
 <script src="../spec-links.js?v=20260804c" defer></script>
 <script src="norm-links.js?v=20260903c" defer></script>
-<script src="volumes.js?v=20260825m" defer></script>
+<script src="volumes.js?v=20260907a" defer></script>
 <script type="module" src="zoz-volumes.js?v=20260903c"></script>
-<script src="passport.js?v=20260907e" defer></script>
-<script src="kpi-drill.js?v=20260907a" defer></script>
+<script src="passport.js?v=20260907h" defer></script>
+<script src="kpi-drill.js?v=20260907b" defer></script>
 </body>
 </html>

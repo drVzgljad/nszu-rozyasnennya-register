@@ -325,15 +325,15 @@
         : "майже один до одного з послугами");
 
     el("volKpis").innerHTML =
-      kpi("📈", "Надано послуг", num(fullSum), "за " + full.length + " міс. " + esc(periodLabel)) +
-      kpi("🧾", "Медичних записів", num(fullEmz), emzHint) +
-      kpi("🏥", "Надавачів звітували", num(d.tot[2]),
+      kpi("", "Надано послуг", num(fullSum), "за " + full.length + " міс. " + esc(periodLabel)) +
+      kpi("", "Медичних записів", num(fullEmz), emzHint) +
+      kpi("", "Надавачів звітували", num(d.tot[2]),
           "у пакеті " + d.sv.length + " " +
           plural(d.sv.length, "послуга", "послуги", "послуг") + " у вивантажці") +
       (denUkr
-        ? kpi("👥", "Послуг " + unit.short, dec(rateUkr, rateUkr < 10 ? 1 : 0),
+        ? kpi("", "Послуг " + unit.short, dec(rateUkr, rateUkr < 10 ? 1 : 0),
               "цільова група — " + esc(targetLabel(tc.cells)) + ", " + shortNum(denUkr) + " осіб")
-        : kpi("👥", "Послуг на населення", "—", "знаменника для цієї групи немає"));
+        : kpi("", "Послуг на населення", "—", "знаменника для цієї групи немає"));
 
     renderMonths(d);
     renderDemo(d, unit);
