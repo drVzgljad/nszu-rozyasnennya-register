@@ -11,7 +11,7 @@
   <title>Паспорт пакета ПМГ 2026 — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260808c">
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="passport.css?v=20260907b">
+  <link rel="stylesheet" href="passport.css?v=20260907f">
   <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script type="module" src="../auth-v2.js?v=20260904a"></script>
@@ -114,27 +114,20 @@
           <!-- Tab 1: Analytics and ZOZ -->
           <div class="tab-pane active" id="tab-analytics">
 
-            <!-- Термометр масштабу -->
+            <!-- Пакет серед 46: три осі, що рахуються з даних. Синтетичний
+                 індекс 0-100 прибрано 07.09.2026 - ваги 40/35/25 і межі смуг були
+                 довільні, а бал стирав головне: розбіжність рангів пакета за
+                 мережею, грошима й обсягом. -->
             <section class="thermo-hero" id="thermoHero">
               <div class="thermo-hero-head">
-                <h3>🌡️ Термометр масштабу</h3>
+                <h3>Пакет серед 46</h3>
                 <span id="zozFreshness" class="zoz-freshness" data-drill="sources" role="button" tabindex="0" hidden></span>
               </div>
-              <p class="thermo-sub">Показує <strong>масштаб</strong> роботи пакета по країні, а не оцінку якості:
-                🔥 гарячий — масовий загальнонаціональний, ❄️ прохолодний — вузькоспеціалізований (кілька центрів на країну — так і задумано).</p>
+              <p class="thermo-sub">Де цей пакет серед решти <strong>за трьома осями, які рахуються з даних</strong>:
+                мережа, гроші, обсяг. Кожна точка — один пакет постанови № 1808, шкала логарифмічна.
+                Вузький пакет із кількома центрами на країну стоятиме ліворуч — і це його нормальний режим, а не оцінка.</p>
               <div class="thermo-hero-body">
-                <div class="thermo-gauge-wrap">
-                  <div class="thermo-gauge" aria-hidden="true">
-                    <div class="thermo-ticks"><span>100°</span><span>75°</span><span>50°</span><span>25°</span><span>0°</span></div>
-                    <div class="thermo-tube"><div class="thermo-mercury" id="thermoMercury"></div></div>
-                    <div class="thermo-bulb"></div>
-                  </div>
-                  <div class="thermo-readout">
-                    <div class="thermo-temp" id="thermoTemp">—</div>
-                    <div class="thermo-verdict" id="thermoVerdict">—</div>
-                    <div class="thermo-components" id="thermoComponents"></div>
-                  </div>
-                </div>
+                <div class="pkg-axes" id="pkgAxes"></div>
                 <div class="thermo-kpis-cq"><div class="thermo-kpis" id="thermoKpis"></div></div>
               </div>
               <div class="thermo-sources" id="thermoSources" data-drill="sources" role="button" tabindex="0" hidden></div>
@@ -420,7 +413,7 @@
 <script src="norm-links.js?v=20260903c" defer></script>
 <script src="volumes.js?v=20260825m" defer></script>
 <script type="module" src="zoz-volumes.js?v=20260903c"></script>
-<script src="passport.js?v=20260907b" defer></script>
+<script src="passport.js?v=20260907e" defer></script>
 <script src="kpi-drill.js?v=20260907a" defer></script>
 </body>
 </html>

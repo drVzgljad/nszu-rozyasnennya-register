@@ -567,12 +567,6 @@ function pctUk(v) {
   return v.toFixed(1).replace(".", ",") + " %";
 }
 
-const THERMO_BANDS = [
-  { min: 75, icon: "🔥", label: "Гарячий", desc: "пакет-гігант: працює масово по всій країні", color: "#e0532f" },
-  { min: 50, icon: "☀️", label: "Теплий", desc: "великий пакет із широкою мережею закладів", color: "#f0a03c" },
-  { min: 25, icon: "🌤️", label: "Помірний", desc: "середній масштаб: працює стабільно, але не всюди", color: "#54ad84" },
-  { min: 0,  icon: "❄️", label: "Прохолодний", desc: "вузькоспеціалізований: мала мережа — так і задумано", color: "#4a8fc7" },
-];
 
 const DONUT_PALETTE = ["#4a8fc7", "#54ad84", "#f0a03c", "#e0532f", "#8b6cc7", "#c75c8f", "#64748b"];
 const NETWORK_COLORS = {
@@ -1208,6 +1202,114 @@ function kpiTileHtml(icon, label, valueHtml, sub, id = "", drill = "") {
     </div>`;
 }
 
+/** Один сталий акцент замість кольору температури. */
+const ACCENT = "#1f6f6b";
+
+/** «Пакет серед 46» — три осі, які рахуються з даних, замість синтетичного
+ *  індексу 0-100 (прибраний 07.09.2026: ваги 40/35/25 і межі смуг були
+ *  довільні, а бал стирав головне - розбіжність рангів пакета за мережею,
+ *  грошима й обсягом; пакет 1 перший за мережею, третій за грошима і другий
+ *  за обсягом, і саме це його характеризує).
+ *
+ *  Шкала логарифмічна: діапазони в три порядки (мережа 3-2 626 закладів,
+ *  гроші 0,026-30,9 млрд), на лінійній усе злиплося б у купу біля нуля.
+ *  Полотно з viewBox 1000 і width:100% - масштабується разом із колонкою. */
+function renderPkgAxes(pkgNum, bench, myNet, myMoney, sharePMG) {
+  const box = el("pkgAxes");
+  if (!box) return;
+
+  const nets = [], moneys = [];
+  bench.perPkg.forEach(s => {
+    nets.push(s.n);
+    if (s.sum > 0) moneys.push(s.sum);
+  });
+
+  // Обсяги - з індексу вивантажки ЕСОЗ; є не для всіх пакетів
+  let vols = [], myVol = null;
+  const vmeta = window.Volumes && window.Volumes.meta ? window.Volumes.meta() : null;
+  if (vmeta && Array.isArray(vmeta.packages)) {
+    const valid = new Set(passportState.packages.map(p => p.number));
+    vmeta.packages.forEach(e => {
+      if (!e || !e.s || !valid.has(String(e.p))) return;
+      vols.push(e.s);
+      if (String(e.p) === String(pkgNum)) myVol = e.s;
+    });
+  }
+
+  const rankOf = (arr, v) => 1 + arr.filter(x => x > v).length;
+  const uk = v => Number(v).toLocaleString("uk-UA");
+  const dec = (v, d) => v.toFixed(d).replace(".", ",");
+
+  const rows = [
+    {
+      label: "Мережа закладів", vals: nets, me: myNet,
+      val: uk(myNet), unit: "закладів",
+      fmt: v => v >= 1000 ? uk(Math.round(v)) : String(Math.round(v)),
+    },
+    myMoney > 0 ? {
+      label: "Бюджет пакета", vals: moneys, me: myMoney,
+      val: dec(myMoney / 1e9, 2),
+      unit: "млрд \u20b4" + (sharePMG != null ? " \u00b7 " + (sharePMG < 0.1 ? "<0,1" : dec(sharePMG, 1)) + " % ПМГ" : ""),
+      fmt: v => (v >= 1e9 ? dec(v / 1e9, 0) : v >= 1e8 ? dec(v / 1e9, 1) : dec(v / 1e9, 2)) + " млрд",
+    } : null,
+    (myVol && vols.length) ? {
+      label: "Надано послуг", vals: vols, me: myVol,
+      val: myVol >= 1e6 ? dec(myVol / 1e6, 1) : uk(myVol),
+      unit: myVol >= 1e6 ? "млн" : "послуг",
+      fmt: v => v >= 1e6 ? dec(v / 1e6, 0) + " млн" : v >= 1e3 ? Math.round(v / 1e3) + " тис." : String(Math.round(v)),
+    } : null,
+  ].filter(Boolean);
+
+  const W = 1000, ROW = 74, L = 232, R = 250;
+  let svg = `<svg viewBox="0 0 ${W} ${ROW * rows.length}" width="100%" height="${ROW * rows.length}"
+                  preserveAspectRatio="xMidYMid meet" role="img"
+                  aria-label="Місце пакета серед пакетів програми за трьома осями">`;
+
+  rows.forEach((r, ri) => {
+    const lo = Math.log10(Math.min.apply(null, r.vals));
+    const hi = Math.log10(Math.max.apply(null, r.vals));
+    const span = (hi - lo) || 1;
+    const X = v => L + (Math.log10(v) - lo) / span * (W - L - R);
+    const ax = 46, used = {};
+
+    svg += `<g transform="translate(0,${ri * ROW})">`;
+    svg += `<text x="0" y="34" class="pa-name">${escapeHtml(r.label)}</text>`;
+    svg += `<line x1="${L}" y1="${ax}" x2="${W - R}" y2="${ax}" class="pa-axis"/>`;
+
+    // позначки - степені десятки в межах діапазону
+    for (let p = Math.ceil(lo); p <= Math.floor(hi); p++) {
+      const v = Math.pow(10, p);
+      svg += `<line x1="${X(v).toFixed(1)}" y1="${ax}" x2="${X(v).toFixed(1)}" y2="${ax + 4}" class="pa-axis"/>`;
+      svg += `<text x="${X(v).toFixed(1)}" y="${ax + 17}" class="pa-tick">${escapeHtml(r.fmt(v))}</text>`;
+    }
+
+    r.vals.forEach(v => {
+      const x = X(v), b = Math.round(x / 9);
+      const k = used[b] || 0; used[b] = k + 1;
+      if (v === r.me) return;
+      svg += `<circle cx="${x.toFixed(1)}" cy="${(ax - 14 - k * 9).toFixed(1)}" r="3.6" class="pa-dot"/>`;
+    });
+    svg += `<circle cx="${X(r.me).toFixed(1)}" cy="${(ax - 14).toFixed(1)}" r="6.5" class="pa-me"/>`;
+
+    const rk = rankOf(r.vals, r.me);
+    svg += `<text x="${W}" y="30" class="pa-val">${escapeHtml(r.val)}</text>`;
+    svg += `<text x="${W}" y="47" class="pa-sub">${escapeHtml(r.unit)} \u00b7 ${rk}${rk % 10 === 3 ? "-є" : "-е"} з ${r.vals.length}</text>`;
+    svg += `</g>`;
+  });
+  svg += `</svg>`;
+
+  // Якщо осі бракує — сказати чому. Мовчазна відсутність третього рядка
+  // читається як збій, а не як межа даних.
+  let note = "";
+  if (!myMoney) {
+    note = "Осі грошей немає: у вивантажці договорів суми за цим пакетом відсутні.";
+  } else if (!myVol) {
+    note = "Осі обсягу немає: у вивантажці ЕСОЗ послуг за цим пакетом немає \u2014 " +
+           "пакет оплачується за готовність або капітацією, а не за кількістю послуг.";
+  }
+  box.innerHTML = svg + (note ? `<p class="pa-note">${escapeHtml(note)}</p>` : "");
+}
+
 function renderAnalytics() {
   const pkg = passportState.selectedPackage;
   const bench = getPkgBenchmarks();
@@ -1243,55 +1345,17 @@ function renderAnalytics() {
   const oblCovered = Object.keys(oblMap).filter(Boolean).length;
   const oblTotal = bench.allOblasts.length;
 
-  const coverage = oblTotal ? (oblCovered / oblTotal) * 100 : 0;
-  const netPct = percentileOf(bench.counts, pContracts.length);
-  const budPct = noSums ? null : percentileOf(bench.sums, totalSum);
-  const temp = Math.round(budPct === null
-    ? coverage * 0.55 + netPct * 0.45
-    : coverage * 0.40 + netPct * 0.35 + budPct * 0.25);
-  const band = THERMO_BANDS.find(b => temp >= b.min) || THERMO_BANDS[3];
-
-  const hero = el("thermoHero");
-  hero.style.setProperty("--thermo-color", band.color);
-  // Той самий колір — усім карткам вкладки: фони з бліком успадковують його
-  const pane = el("tab-analytics");
-  if (pane) pane.style.setProperty("--thermo-color", band.color);
-
-  // Ртутний стовпчик: висота = температура (перезапуск анімації через reflow)
-  const mercury = el("thermoMercury");
-  mercury.style.transition = "none";
-  mercury.style.height = "0%";
-  void mercury.offsetHeight;
-  mercury.style.transition = "";
-  mercury.style.height = `${Math.max(temp, 3)}%`;
-
-  animateCount(el("thermoTemp"), temp, v => `${Math.round(v)}°`);
-  el("thermoVerdict").innerHTML =
-    `<span class="verdict-badge">${band.icon} ${band.label}</span><span class="verdict-desc">${escapeHtml(band.desc)}</span>`;
-
-  // Три складові індексу; title — пояснення людською мовою
-  const compRow = (icon, label, pct, valText, tip) => `
-    <div class="comp-row" title="${escapeHtml(tip)}">
-      <span class="comp-label">${icon} ${escapeHtml(label)}</span>
-      <div class="comp-track"><div class="comp-fill" style="width:${Math.max(pct, 1.5)}%"></div></div>
-      <span class="comp-val">${escapeHtml(valText)}</span>
-    </div>`;
   const rank = 1 + [...bench.perPkg.values()].filter(s => s.n > pContracts.length).length;
   const sharePMG = bench.totalPMG > 0 ? (totalSum / bench.totalPMG) * 100 : 0;
-  el("thermoComponents").innerHTML =
-    compRow("🗺️", "Покриття регіонів", coverage, `${oblCovered} з ${oblTotal}`,
-      `У скількох із ${oblTotal} регіонів є хоча б один заклад із договором за цим пакетом. ` +
-      `${oblCovered} з ${oblTotal}: ${oblCovered === oblTotal ? "пакет доступний по всій країні" : `у ${oblTotal - oblCovered} регіонах закладів немає`}.`) +
-    compRow("🏥", "Мережа закладів", netPct, `місце ${rank} із ${bench.pkgCount}`,
-      `Договір за цим пакетом мають ${pContracts.length.toLocaleString("uk-UA")} закладів. ` +
-      `Якщо вишикувати всі ${bench.pkgCount} пакетів постанови № 1808 за кількістю закладів — від найбільшого до найменшого, ` +
-      (rank === 1 ? "цей пакет стоїть першим: найширша мережа в усій ПМГ."
-                  : `цей пакет стоїть на ${rank}-му місці. Перший у черзі — пакет ${bench.maxPkg.num} (${bench.maxPkg.n.toLocaleString("uk-UA")} закладів).`) +
-      ` Реімбурсація (аптеки) та пілотні проєкти в порівнянні участі не беруть.`) +
-    compRow("💰", "Фінансова вага", budPct ?? 0,
-      noSums ? "немає даних" : `${sharePMG < 0.1 ? "<0,1" : sharePMG.toFixed(1).replace(".", ",")}% ПМГ`,
-      noSums ? "У вивантажці за цим пакетом сум немає, складова не рахується."
-             : `Яка частка всіх грошей ПМГ іде через цей пакет — тут ${sharePMG < 0.1 ? "менш як 0,1" : sharePMG.toFixed(1).replace(".", ",")} %.`);
+
+  // Колір вкладки більше не походить від температури (індекс прибрано), але
+  // блік на картках на нього спирається — тримаємо один сталий акцент.
+  const hero = el("thermoHero");
+  hero.style.setProperty("--thermo-color", ACCENT);
+  const pane = el("tab-analytics");
+  if (pane) pane.style.setProperty("--thermo-color", ACCENT);
+
+  renderPkgAxes(pkg.number, bench, pContracts.length, totalSum, sharePMG);
 
   // ── KPI-плитки ──
   const sums = pContracts.map(getPkgSum).filter(v => v > 0).sort((a, b) => a - b);
@@ -1313,10 +1377,10 @@ function renderAnalytics() {
   }
   const core80Share = sums.length ? (core80 / sums.length) * 100 : 0;
 
+  // «ЗОЗ у мережі» і «Бюджет пакета» з плиток прибрані 07.09.2026: ті самі
+  // числа стоять на осях вище, разом із місцем пакета серед 46. Дублювати
+  // головні числа на одному екрані — найдешевший спосіб здешевити екран.
   el("thermoKpis").innerHTML =
-    kpiTileHtml("🏥", "ЗОЗ у мережі", "0", `місце ${rank} із ${bench.pkgCount} пакетів постанови 1808 за кількістю закладів`, "kpiProviders") +
-    kpiTileHtml("💰", "Бюджет пакета", escapeHtml(formatMoneyShort(totalSum)),
-      noSums ? "у вивантажці суми за пакетом відсутні" : `${sharePMG < 0.1 ? "менш як 0,1" : sharePMG.toFixed(1).replace(".", ",")} % усієї ПМГ`) +
     kpiTileHtml("🗺️", "Покриття регіонів", `${oblCovered} <small>з ${oblTotal}</small>`,
       oblCovered === oblTotal ? "заклади в усіх регіонах" : `немає закладів у ${oblTotal - oblCovered} регіонах`) +
     kpiTileHtml("⚖️", "Медіанний договір", escapeHtml(formatMoneyShort(median)),
@@ -1326,7 +1390,6 @@ function renderAnalytics() {
              : `${pctUk(core80Share)} мережі забирає 4/5 грошей пакета · топ-5 ЗОЗ — ${Math.round(top5Share)} %`,
       "", noSums ? "" : "core80") +
     (passportState.hasVolumes ? intensTileHtml() : "");
-  animateCount(el("kpiProviders"), pContracts.length);
   // Обсяги могли вже лежати в кеші (перемальовування теми чи розміру) — тоді
   // плитку інтенсивності заповнюємо одразу, без миготіння «вантажиться…».
   // Guard відсікає дані попереднього пакета: свіжі прийдуть через .then

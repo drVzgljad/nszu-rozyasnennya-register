@@ -1781,9 +1781,11 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
 }
 
 .thermo-hero-body {
+  /* Було «градусник | плитки». Осі широкі за природою (viewBox 1000), тому
+     з 07.09.2026 блок в одну колонку: осі на всю ширину, плитки під ними. */
   display: grid;
-  grid-template-columns: minmax(300px, 380px) 1fr;
-  gap: 22px;
+  grid-template-columns: 1fr;
+  gap: 18px;
   align-items: start;
 }
 
@@ -3526,3 +3528,31 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
 .dark-theme .vreq-src { background: #0f172a; border-color: #334155; }
 .dark-theme .vreq-warn,
 .dark-theme .vr-why p { border-color: #334155; }
+
+/* ── «Пакет серед 46»: три осі замість термометра ──────────────
+   Синтетичний індекс 0-100 прибрано 07.09.2026. Полотно масштабується
+   разом із колонкою (viewBox 1000 + width:100%), тому кеглі задані тут,
+   а не в SVG: у viewBox-одиницях вони «пливли» б із шириною. */
+.pkg-axes { flex: 1 1 0; min-width: 0; }
+.pkg-axes svg { display: block; overflow: visible; }
+.pkg-axes .pa-name { font-size: 15px; font-weight: 700; fill: var(--ink, #1f3347); }
+.pkg-axes .pa-tick { font-size: 11px; fill: var(--muted, #6b7f92); text-anchor: middle; }
+.pkg-axes .pa-axis { stroke: var(--line, #dde6ee); stroke-width: 1; }
+.pkg-axes .pa-dot  { fill: #c2ccd5; }
+.pkg-axes .pa-me   { fill: var(--thermo-color, #1f6f6b); stroke: var(--surface, #fff); stroke-width: 2.5; }
+.pkg-axes .pa-val  { font-size: 24px; font-weight: 800; fill: var(--ink, #1f3347); text-anchor: end;
+                     font-variant-numeric: tabular-nums; }
+.pkg-axes .pa-sub  { font-size: 12px; fill: var(--muted, #6b7f92); text-anchor: end; }
+.dark-theme .pkg-axes .pa-dot { fill: #475569; }
+@media (max-width: 900px) {
+  .pkg-axes .pa-name { font-size: 17px; }
+  .pkg-axes .pa-val  { font-size: 27px; }
+  .pkg-axes .pa-sub, .pkg-axes .pa-tick { font-size: 13px; }
+}
+.pkg-axes .pa-note {
+  margin: 6px 0 0; font-size: 11.5px; line-height: 1.5;
+  color: var(--muted, #6b7f92);
+}
+/* Акцент #1f6f6b на темному тлі дає контраст 2,4:1 — для точки даних мало.
+   Світліший крок тієї самої рампи: 4,5:1. */
+.dark-theme .pkg-axes .pa-me { fill: #4e9e96; }
