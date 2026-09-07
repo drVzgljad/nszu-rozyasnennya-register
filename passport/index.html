@@ -11,7 +11,7 @@
   <title>Паспорт пакета ПМГ 2026 — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260808c">
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="passport.css?v=20260826p">
+  <link rel="stylesheet" href="passport.css?v=20260907a">
   <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script type="module" src="../auth-v2.js?v=20260904a"></script>
@@ -114,11 +114,11 @@
           <!-- Tab 1: Analytics and ZOZ -->
           <div class="tab-pane active" id="tab-analytics">
 
-            <!-- Термометр роботи пакету -->
+            <!-- Термометр масштабу -->
             <section class="thermo-hero" id="thermoHero">
               <div class="thermo-hero-head">
-                <h3>🌡️ Термометр роботи пакету</h3>
-                <span id="zozFreshness" class="zoz-freshness" hidden></span>
+                <h3>🌡️ Термометр масштабу</h3>
+                <span id="zozFreshness" class="zoz-freshness" data-drill="sources" role="button" tabindex="0" hidden></span>
               </div>
               <p class="thermo-sub">Показує <strong>масштаб</strong> роботи пакета по країні, а не оцінку якості:
                 🔥 гарячий — масовий загальнонаціональний, ❄️ прохолодний — вузькоспеціалізований (кілька центрів на країну — так і задумано).</p>
@@ -137,6 +137,7 @@
                 </div>
                 <div class="thermo-kpis-cq"><div class="thermo-kpis" id="thermoKpis"></div></div>
               </div>
+              <div class="thermo-sources" id="thermoSources" data-drill="sources" role="button" tabindex="0" hidden></div>
               <div class="thermo-footnote" id="thermoFootnote"></div>
             </section>
 
@@ -404,7 +405,7 @@
 <script src="norm-links.js?v=20260903c" defer></script>
 <script src="volumes.js?v=20260825m" defer></script>
 <script type="module" src="zoz-volumes.js?v=20260903c"></script>
-<script src="passport.js?v=20260903b" defer></script>
-<script src="kpi-drill.js?v=20260828a" defer></script>
+<script src="passport.js?v=20260907a" defer></script>
+<script src="kpi-drill.js?v=20260907a" defer></script>
 </body>
 </html>

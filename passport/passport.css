@@ -3399,3 +3399,61 @@ mark.norm-hl { background: var(--norm-hl-bg); color: inherit; border-radius: 2px
   .dr-scatter.compact .sc-iso-lbl { font-size: 21px; }
   .in-formula b { font-size: 21px; }
 }
+
+/* ── Смуга «Джерела та межі даних» під плитками термометра ────
+   Стоїть між плитками і приміткою про формулу: дати джерел і покриття сум
+   саме цього пакета. Клікається — відкриває однойменну розгортку. */
+.thermo-sources {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 14px; padding: 7px 11px;
+  border: 1px solid var(--line, #dde6ee);
+  border-left: 3px solid color-mix(in srgb, var(--thermo-color, #4a8fc7) 60%, transparent);
+  border-radius: 9px;
+  background: var(--soft, #f1f6f9);
+  font-size: 11.5px; font-weight: 600; color: var(--muted, #6b7f92);
+  cursor: pointer;
+}
+.thermo-sources:hover,
+.thermo-sources:focus-visible {
+  border-color: color-mix(in srgb, var(--thermo-color, #4a8fc7) 55%, transparent);
+  outline: none;
+}
+.thermo-sources:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--thermo-color, #4a8fc7) 24%, transparent);
+}
+.thermo-sources .ts-i { font-size: 13px; }
+.thermo-sources .ts-txt { flex: 1 1 auto; }
+.thermo-sources .ts-more {
+  font-size: 9.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--thermo-color, #4a8fc7); opacity: .8; white-space: nowrap;
+}
+.thermo-sources:hover .ts-more { opacity: 1; }
+.dark-theme .thermo-sources { background: #1e293b; border-color: #334155; }
+
+/* Бейдж дат у шапці термометра теж відкриває розгортку */
+.zoz-freshness[data-drill] { cursor: pointer; }
+.zoz-freshness[data-drill]:hover { border-color: var(--accent, #4a8fc7); color: var(--accent-dark, #24618f); }
+
+/* Таблиця джерел усередині розгортки. На вузькому екрані горизонтальна
+   прокрутка йде всередині картки, а не всієї сторінки. */
+.drs-wrap { overflow-x: auto; margin-top: 4px; }
+.drs { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 560px; }
+.drs th {
+  text-align: left; padding: 6px 8px; font-size: 10px; font-weight: 800;
+  letter-spacing: .04em; text-transform: uppercase;
+  color: var(--muted, #6b7f92); border-bottom: 1px solid var(--line, #dde6ee);
+}
+.drs td {
+  padding: 8px; vertical-align: top; line-height: 1.45;
+  border-bottom: 1px solid var(--line, #dde6ee);
+  color: var(--muted, #6b7f92);
+}
+.drs tr:last-child td { border-bottom: 0; }
+.drs .drs-n { font-weight: 800; color: var(--ink, #1f3347); white-space: nowrap; }
+.drs .drs-n span { margin-right: 6px; }
+.drs .drs-d { font-weight: 800; color: var(--ink, #1f3347); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.drs .drs-b { font-style: italic; }
+.dark-theme .drs th,
+.dark-theme .drs td { border-bottom-color: #334155; }
+.dark-theme .drs .drs-n,
+.dark-theme .drs .drs-d { color: #e2e8f0; }

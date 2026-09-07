@@ -156,6 +156,7 @@ async function init() {
 
     // Populate State
     passportState.packages = packagesRes.packages || [];
+    passportState.packagesGenerated = packagesRes.generated || "";
     passportState.contractsData = contractsRes;
     passportState.decDocuments = decDocsRes.documents || [];
     passportState.decLinks = decLinksRes || {};
@@ -426,7 +427,35 @@ function renderHeaderAndMetrics() {
   el("tabCountDec").textContent = decDocs.length;
 }
 
-// ── Tab 1: Analytics — «Термометр роботи пакету» ──────────────
+/** Смуга «Джерела та межі даних» під плитками термометра: дати джерел і
+ *  покриття сум саме цього пакета. Клік відкриває розгортку з подробицями. */
+function renderSourcesStrip(nContracts, withSum) {
+  const box = el("thermoSources");
+  if (!box) return;
+  const cd = passportState.contractsData || {};
+  const gap = nContracts - withSum;
+  // «з 21 договору», але «з 22 договорів» — рід. відмінок після числівника
+  const dogGen = (n) => (Math.abs(n) % 10 === 1 && Math.abs(n) % 100 !== 11) ? "договору" : "договорів";
+  const cover = !nContracts ? ""
+    : gap === 0
+      ? (nContracts === 1
+          ? "сума є за єдиним договором пакета"
+          : `суми є за всіма ${nContracts.toLocaleString("uk-UA")} договорами пакета`)
+      : `суми є за ${withSum.toLocaleString("uk-UA")} з ${nContracts.toLocaleString("uk-UA")} ` +
+        `${dogGen(nContracts)} пакета (${pctUk(nContracts ? withSum / nContracts * 100 : 0)})`;
+  box.innerHTML =
+    `<span class="ts-i" aria-hidden="true">🔎</span>` +
+    `<span class="ts-txt">мережа — від ${escapeHtml(cd.source_date || "?")}` +
+    (cd.sums_date && cd.sums_date !== cd.source_date ? ` · суми — від ${escapeHtml(cd.sums_date)}` : "") +
+    (cover ? ` · ${escapeHtml(cover)}` : "") +
+    `</span><span class="ts-more">джерела та межі даних →</span>`;
+  box.hidden = false;
+}
+
+// ── Tab 1: Analytics — «Термометр масштабу» ───────────────────
+// Перейменовано 07.09.2026: індекс складається з покриття регіонів, мережі
+// й грошей — фактичних обсягів у ньому немає. «Термометр роботи» обіцяв
+// більше, ніж міряє: він міряє МАСШТАБ.
 // Зведення по ВСІХ пакетах для перцентилів термометра. Рахується один раз
 // після завантаження договорів і кешується.
 function getPkgBenchmarks() {
@@ -1188,6 +1217,13 @@ function renderAnalytics() {
   const totalSum = pContracts.reduce((sum, c) => sum + getPkgSum(c), 0);
   const noSums = totalSum === 0;
 
+  // Скільки договорів пакета мають суму у вивантажці. Глобальний
+  // sums_matched_pct (34,7 %) для пакета не каже нічого: він низький через
+  // реімбурсацію, де сум немає за задумом, а всередині пакетів постанови
+  // № 1808 покриття 85–100 %. Тому на смузі стоїть число саме цього пакета,
+  // а глобальне пояснюється в розгортці «Джерела та межі даних».
+  const withSum = pContracts.filter(c => getPkgSum(c) > 0).length;
+
   // ── Складові температури ──
   const oblMap = {};
   pContracts.forEach(c => {
@@ -1293,6 +1329,8 @@ function renderAnalytics() {
       String(window.Volumes.data().p) === String(pkg.number)) {
     updateRateKpi();
   }
+
+  renderSourcesStrip(pContracts.length, withSum);
 
   // ── Примітка про формулу ──
   el("thermoFootnote").textContent =
@@ -1962,9 +2000,13 @@ function exportOverlapToExcel() {
     // всіма договорами юрособи, окремо за кожним пакетом
     const info = new Map();
     cd.contracts.forEach(c => {
-      if (!mine.has(c.edrpou)) return;
-      let rec = info.get(c.edrpou);
-      if (!rec) info.set(c.edrpou, (rec = { name: "", oblast: "", settlement: "", network: "", ownership: "", sums: new Map() }));
+      // Ключ надавача — той самий, що в getProviderIndex: у ФОП ЄДРПОУ є
+      // літерал «ФОП», однаковий у всіх 2 521 рядку. Пошук за c.edrpou не
+      // знаходив жодного ФОП, і в звіт вони йшли порожніми рядками з нулем.
+      const pk = c.pkey || c.edrpou;
+      if (!mine.has(pk)) return;
+      let rec = info.get(pk);
+      if (!rec) info.set(pk, (rec = { edrpou: c.edrpou, name: "", oblast: "", settlement: "", network: "", ownership: "", sums: new Map() }));
       const hasCur = c.packages.some(x => x.package_num === pkg.number);
       if (hasCur && !rec.name) {
         rec.name = c.provider_name;
@@ -2002,7 +2044,8 @@ function exportOverlapToExcel() {
     if (zv) baseHead.push(`Надано послуг за пакетом ${pkg.number}`);
     const baseRow = (e) => {
       const r = info.get(e) || { sums: new Map() };
-      const row = [e, r.name || "", r.oblast || "", r.settlement || "", r.network || "", r.ownership || "",
+      // у колонці — реквізит із вивантажки (у ФОП це «ФОП»), а не внутрішній ключ
+      const row = [r.edrpou || e, r.name || "", r.oblast || "", r.settlement || "", r.network || "", r.ownership || "",
         r.sums.get(pkg.number) || 0];
       if (zv) {
         const rec = zv.map.get(r.volKey || e);
@@ -2196,10 +2239,14 @@ function getFilteredHospitals() {
   if (combo) {
     const { byProvider } = getProviderIndex();
     list = list.filter(c => {
-      // only — поіменний перелік ЄДРПОУ (розгортка «Ядро бюджету»);
-      // req/excl — умови за складом пакетів надавача
-      if (combo.only && !combo.only.has(c.edrpou)) return false;
-      const own = byProvider.get(c.edrpou) || new Set();
+      // only — поіменний перелік надавачів (розгортка «Ядро бюджету»);
+      // req/excl — умови за складом пакетів надавача.
+      // Ключ той самий, що в getProviderIndex: у ФОП це pkey, бо ЄДРПОУ в них
+      // літерал «ФОП». З c.edrpou кожен ФОП виглядав як «не має жодного
+      // пакета» і випадав і з ядра, і з будь-якої req/excl-комбінації.
+      const pk = c.pkey || c.edrpou;
+      if (combo.only && !combo.only.has(pk)) return false;
+      const own = byProvider.get(pk) || new Set();
       return combo.req.every(n => own.has(n)) && combo.excl.every(n => !own.has(n));
     });
   }
