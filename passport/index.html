@@ -11,7 +11,7 @@
   <title>Паспорт пакета ПМГ 2026 — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260808c">
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="passport.css?v=20260907g">
+  <link rel="stylesheet" href="passport.css?v=20260911c">
   <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script type="module" src="../auth-v2.js?v=20260904a"></script>
@@ -117,15 +117,22 @@
             <!-- Пакет серед 46: три осі, що рахуються з даних. Синтетичний
                  індекс 0-100 прибрано 07.09.2026 - ваги 40/35/25 і межі смуг були
                  довільні, а бал стирав головне: розбіжність рангів пакета за
-                 мережею, грошима й обсягом. -->
+                 мережею, грошима й обсягом.
+                 Хмару крапок на логарифмічній шкалі прибрано 11.09.2026: сорок
+                 шість безіменних точок були тлом, з якого читалася лише своя, а
+                 логарифм доводилося пояснювати підписом - підпис говорив про
+                 шкалу, а не про пакет. Лишилися три числа і смужка місця в черзі.
+                 Блок і далі про МАСШТАБ, а не про якість: коротка смужка у
+                 вузького пакета описує його режим роботи, а не погану оцінку. -->
             <section class="thermo-hero" id="thermoHero">
               <div class="thermo-hero-head">
                 <h3>Пакет серед 46</h3>
                 <span id="zozFreshness" class="zoz-freshness" data-drill="sources" role="button" tabindex="0" hidden></span>
               </div>
               <p class="thermo-sub">Де цей пакет серед решти <strong>за трьома осями, які рахуються з даних</strong>:
-                мережа, гроші, обсяг. Кожна точка — один пакет постанови № 1808, шкала логарифмічна.
-                Вузький пакет із кількома центрами на країну стоятиме ліворуч — і це його нормальний режим, а не оцінка.</p>
+                мережа, гроші, обсяг. Число — саме значення, поряд — <strong>місце в черзі пакетів постанови № 1808</strong>,
+                а смужка під ним показує те саме місце: скільки пакетів лишилося позаду (риска посередині — половина черги).
+                Вузький пакет із кількома центрами на країну матиме коротку смужку — і це його нормальний режим роботи, а не оцінка.</p>
               <div class="thermo-hero-body">
                 <div class="pkg-axes" id="pkgAxes"></div>
                 <div class="thermo-kpis-cq"><div class="thermo-kpis" id="thermoKpis"></div></div>
@@ -148,6 +155,30 @@
                 Анатомія про інше: як ця робота влаштована всередині. Вузький пакет буває найважчим на вході, а масовий — найпростішим.</p>
               <div class="anat-axes" id="anatAxes"></div>
               <div class="anat-footnote" id="anatFootnote"></div>
+            </section>
+
+            <!-- Місто і село. Поки що ЛИШЕ для пакета 1 (ПМД): в інших пакетах
+                 немає ні капітації, ні індикаторів ПМД, ні кадрової звітності
+                 в такому розрізі, тож перемикач там не мав би що показувати.
+                 ⚠ Блоки всередині рахуються за РІЗНИМИ класифікаціями і за
+                 різними рівнями прив'язки (тип НП / клас надавача / юридична
+                 адреса) — тому кожна група несе свій підпис, а числа з різних
+                 груп не додаються. Це не надмірна обережність: та сама країна
+                 в розрізі «за типом НП» і «за класом надавача» дає 6,60 проти
+                 4,89 млн декларацій у селі. -->
+            <section class="pmd-hero" id="pmdCvSection" hidden>
+              <div class="pmd-head">
+                <h3>Місто і село</h3>
+                <div class="pmd-switch" id="pmdCvSwitch" role="group"
+                     aria-label="Розріз: місто, село або разом">
+                  <button type="button" data-b="misto">Місто</button>
+                  <button type="button" data-b="selo">Село</button>
+                  <button type="button" data-b="vsjogo">Разом</button>
+                </div>
+              </div>
+              <p class="pmd-sub" id="pmdCvSub"></p>
+              <div class="pmd-groups" id="pmdCvGroups"></div>
+              <p class="pmd-warn" id="pmdCvWarn"></p>
             </section>
 
             <!-- Індикатори обсягу для укладення договору. Це НОРМА, а не звірка:
@@ -413,7 +444,7 @@
 <script src="norm-links.js?v=20260903c" defer></script>
 <script src="volumes.js?v=20260907a" defer></script>
 <script type="module" src="zoz-volumes.js?v=20260903c"></script>
-<script src="passport.js?v=20260907h" defer></script>
+<script src="passport.js?v=20260911c" defer></script>
 <script src="kpi-drill.js?v=20260907b" defer></script>
 </body>
 </html>

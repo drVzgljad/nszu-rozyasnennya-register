@@ -35,6 +35,14 @@ const passportState = {
   mapMode: "zoz",
   hasVolumes: false,
 
+  // Місто/село — лише пакет 1 (ПМД). Файл вантажиться ліниво, при першому
+  // відкритті пакета: для решти 45 пакетів він не потрібен узагалі.
+  // Типова позиція — «село»: перемикач з'явився заради сільського розрізу,
+  // а протилежна колонка все одно показується поряд кожним рядком.
+  pmdCv: null,
+  pmdCvLoading: null,
+  pmdCvBucket: "selo",
+
   // Фактичні обсяги в розрізі надавачів (Supabase, лише для авторизованих).
   // null — ще не вантажили або даних немає; тоді колонка «Послуг» показує
   // прочерки, а решта таблиці працює як раніше.
@@ -310,6 +318,8 @@ function selectPackage(pkgNum) {
   renderHeaderAndMetrics();
   renderAnalytics();
   renderAnatomy();
+  renderPmdCv();
+  wirePmdCv();
   renderVolumeReq();
   // Фактичні обсяги вантажаться окремим файлом на пакет, тому асинхронно:
   // карта до їх приходу стоїть у базовому режимі «заклади», а щойно дані є —
@@ -1211,9 +1221,22 @@ const ACCENT = "#1f6f6b";
  *  грошима й обсягом; пакет 1 перший за мережею, третій за грошима і другий
  *  за обсягом, і саме це його характеризує).
  *
- *  Шкала логарифмічна: діапазони в три порядки (мережа 3-2 626 закладів,
- *  гроші 0,026-30,9 млрд), на лінійній усе злиплося б у купу біля нуля.
- *  Полотно з viewBox 1000 і width:100% - масштабується разом із колонкою. */
+ *  Хмару крапок на логарифмічній шкалі прибрано 11.09.2026. Вона показувала
+ *  сорок шість безіменних точок, з яких читалася рівно одна - своя, а решта
+ *  була тлом; до того ж логарифм доводилося пояснювати підписом, і підпис
+ *  говорив про шкалу, а не про пакет. Лишилися три числа, ранг і смужка.
+ *
+ *  Чим заповнена смужка - рангом, а НЕ часткою від максимуму. На цих даних
+ *  частка порожня майже для всіх: за обсягом послуг пакет із рангом 3 має
+ *  3,9 % від лідера, з рангом 17 - 0,3 %; за грошима ранг 17 дає 6,6 %.
+ *  Один пакет-гігант притискає решту до нуля, і смужка перестає розрізняти
+ *  середину черги від хвоста - тобто рівно те, заради чого вона малюється.
+ *  Тому смужка міряє, скільки пакетів лишилося позаду серед тих, у яких ця
+ *  вісь взагалі є. Вона узгоджена з числом праворуч («3-є з 46») і не
+ *  потребує жодної шкали під собою. Риска посередині - половина черги.
+ *
+ *  Верстка навмисно не SVG: тут нема чого малювати, крім прямокутника, а
+ *  текст у HTML сам переноситься й масштабується під ширину екрана. */
 function renderPkgAxes(pkgNum, bench, myNet, myMoney, sharePMG) {
   const box = el("pkgAxes");
   if (!box) return;
@@ -1244,59 +1267,41 @@ function renderPkgAxes(pkgNum, bench, myNet, myMoney, sharePMG) {
     {
       label: "Мережа закладів", vals: nets, me: myNet,
       val: uk(myNet), unit: "закладів",
-      fmt: v => v >= 1000 ? uk(Math.round(v)) : String(Math.round(v)),
     },
     myMoney > 0 ? {
       label: "Бюджет пакета", vals: moneys, me: myMoney,
       val: dec(myMoney / 1e9, 2),
-      unit: "млрд \u20b4" + (sharePMG != null ? " \u00b7 " + (sharePMG < 0.1 ? "<0,1" : dec(sharePMG, 1)) + " % ПМГ" : ""),
-      fmt: v => (v >= 1e9 ? dec(v / 1e9, 0) : v >= 1e8 ? dec(v / 1e9, 1) : dec(v / 1e9, 2)) + " млрд",
+      unit: "млрд ₴" + (sharePMG != null ? " · " + (sharePMG < 0.1 ? "<0,1" : dec(sharePMG, 1)) + " % ПМГ" : ""),
     } : null,
     (myVol && vols.length) ? {
       label: "Надано послуг", vals: vols, me: myVol,
       val: myVol >= 1e6 ? dec(myVol / 1e6, 1) : uk(myVol),
-      unit: myVol >= 1e6 ? "млн" : "послуг",
-      fmt: v => v >= 1e6 ? dec(v / 1e6, 0) + " млн" : v >= 1e3 ? Math.round(v / 1e3) + " тис." : String(Math.round(v)),
+      unit: myVol >= 1e6 ? "млн послуг" : "послуг",
     } : null,
   ].filter(Boolean);
 
-  const W = 1000, ROW = 74, L = 232, R = 250;
-  let svg = `<svg viewBox="0 0 ${W} ${ROW * rows.length}" width="100%" height="${ROW * rows.length}"
-                  preserveAspectRatio="xMidYMid meet" role="img"
-                  aria-label="Місце пакета серед пакетів програми за трьома осями">`;
-
-  rows.forEach((r, ri) => {
-    const lo = Math.log10(Math.min.apply(null, r.vals));
-    const hi = Math.log10(Math.max.apply(null, r.vals));
-    const span = (hi - lo) || 1;
-    const X = v => L + (Math.log10(v) - lo) / span * (W - L - R);
-    const ax = 46, used = {};
-
-    svg += `<g transform="translate(0,${ri * ROW})">`;
-    svg += `<text x="0" y="34" class="pa-name">${escapeHtml(r.label)}</text>`;
-    svg += `<line x1="${L}" y1="${ax}" x2="${W - R}" y2="${ax}" class="pa-axis"/>`;
-
-    // позначки - степені десятки в межах діапазону
-    for (let p = Math.ceil(lo); p <= Math.floor(hi); p++) {
-      const v = Math.pow(10, p);
-      svg += `<line x1="${X(v).toFixed(1)}" y1="${ax}" x2="${X(v).toFixed(1)}" y2="${ax + 4}" class="pa-axis"/>`;
-      svg += `<text x="${X(v).toFixed(1)}" y="${ax + 17}" class="pa-tick">${escapeHtml(r.fmt(v))}</text>`;
-    }
-
-    r.vals.forEach(v => {
-      const x = X(v), b = Math.round(x / 9);
-      const k = used[b] || 0; used[b] = k + 1;
-      if (v === r.me) return;
-      svg += `<circle cx="${x.toFixed(1)}" cy="${(ax - 14 - k * 9).toFixed(1)}" r="3.6" class="pa-dot"/>`;
-    });
-    svg += `<circle cx="${X(r.me).toFixed(1)}" cy="${(ax - 14).toFixed(1)}" r="6.5" class="pa-me"/>`;
-
+  const html = rows.map(r => {
+    const n = r.vals.length;
     const rk = rankOf(r.vals, r.me);
-    svg += `<text x="${W}" y="30" class="pa-val">${escapeHtml(r.val)}</text>`;
-    svg += `<text x="${W}" y="47" class="pa-sub">${escapeHtml(r.unit)} \u00b7 ${rk}${rk % 10 === 3 ? "-є" : "-е"} з ${r.vals.length}</text>`;
-    svg += `</g>`;
-  });
-  svg += `</svg>`;
+    const behind = Math.max(0, n - rk);                 // скільки пакетів позаду
+    // Смужка - місце в черзі, а не частка від максимуму (чому саме так -
+    // у коментарі до функції). Єдиний пакет у черзі означає смужку повну.
+    const fill = n > 1 ? Math.min(100, (behind / (n - 1)) * 100) : 100;
+    const ord = `${rk}${rk % 10 === 3 ? "-є" : "-е"} з ${n}`;
+    const tip = `Смужка — місце в черзі: позаду ${behind} з ${n - 1} інших пакетів, ` +
+                `у яких ця вісь є. Риска посередині — половина черги.`;
+    return `<div class="pax-row">
+      <div class="pax-name">${escapeHtml(r.label)}</div>
+      <div class="pax-line">
+        <span class="pax-val"><span class="pax-num">${escapeHtml(r.val)}</span><span class="pax-unit"> ${escapeHtml(r.unit)}</span></span>
+        <span class="pax-rank">${escapeHtml(ord)}</span>
+      </div>
+      <div class="pax-track" role="img" title="${escapeHtml(tip)}"
+           aria-label="${escapeHtml(r.label)}: ${escapeHtml(r.val)} ${escapeHtml(r.unit)}, ${escapeHtml(ord)}. ${escapeHtml(tip)}">
+        <i class="pax-fill" style="width:${fill.toFixed(1)}%"></i>
+      </div>
+    </div>`;
+  }).join("");
 
   // Якщо осі бракує — сказати чому. Мовчазна відсутність третього рядка
   // читається як збій, а не як межа даних.
@@ -1307,7 +1312,7 @@ function renderPkgAxes(pkgNum, bench, myNet, myMoney, sharePMG) {
     note = "Осі обсягу немає: у вивантажці ЕСОЗ послуг за цим пакетом немає \u2014 " +
            "пакет оплачується за готовність або капітацією, а не за кількістю послуг.";
   }
-  box.innerHTML = svg + (note ? `<p class="pa-note">${escapeHtml(note)}</p>` : "");
+  box.innerHTML = html + (note ? `<p class="pax-note">${escapeHtml(note)}</p>` : "");
 }
 
 function renderAnalytics() {
@@ -1405,7 +1410,8 @@ function renderAnalytics() {
   el("thermoFootnote").textContent =
     `Осі показують масштаб роботи пакета, а не його якість, і навмисно не зводяться в один бал: ` +
     `пакет може бути першим за мережею і третім за грошима, і саме ця розбіжність його характеризує. ` +
-    `Шкала логарифмічна, бо діапазони розтягнуті на три порядки — від кількох закладів до кількох тисяч. ` +
+    `Смужка під числом — не частка від максимуму, а місце в черзі: скільки пакетів лишилося позаду. ` +
+    `Частка була б порожньою майже в кожного, бо один пакет-гігант забирає більшу частину і мережі, і грошей, і обсягу. ` +
     `Усього у вивантажці договорів ${bench.totalDirections} напрямів контрактування: ${bench.pkgCount} пакетів ПМГ за постановою № 1808, ` +
     `${bench.nReimb} — реімбурсація «Доступні ліки» (договори з аптеками) і ${bench.nOther} — пілотні проєкти за окремими постановами; ` +
     `у порівнянні бере участь лише перша група, бо порівнювати мережу лікарень із мережею аптек некоректно. ` +
@@ -1620,6 +1626,174 @@ function anatAxisHtml(icon, label, steps, res, tip) {
       <div class="aa-ladder" style="--steps:${n}">${ladder}</div>
       <div class="aa-note">${escapeHtml(res ? res.note : "")}</div>
     </div>`;
+}
+
+/* ── Місто і село (лише пакет 1) ──────────────────────────────────────────
+ *  Дані — data/pmd_city_village.json, конвеєр tools/build_pmd_city_village.py.
+ *  Чотири категорії вивантажки ЕСОЗ (місто / смт / селище / село) згорнуто у
+ *  дві за ч. 6 ст. 1 Закону № 3285-IX.
+ *
+ *  ⚠ Головне, чого тут не можна зламати: групи рахуються за РІЗНИМИ
+ *  класифікаціями і на різних рівнях прив'язки. Тому кожна група друкує свій
+ *  підпис, а числа з різних груп не додаються і не діляться одне на одне.
+ *  Спокуса «порахувати оплату на декларацію» через decl_total з першої групи
+ *  і pay_pmd_2026 з останньої дає неправильний результат: знаменники різні. */
+
+const PMD_CV_BUCKETS = { misto: "місто", selo: "село", vsjogo: "разом" };
+
+function pmdCvFmt(m, v) {
+  if (v === null || v === undefined) return "—";
+  const unit = m.unit || "";
+  const dec = m.decimals == null ? 0 : m.decimals;
+  const num = d => Number(v).toLocaleString("uk-UA",
+    { minimumFractionDigits: d, maximumFractionDigits: d });
+  // Гроші пакета — мільярди. 17 811 922 297 грн у рядку не читається взагалі.
+  if (unit === "грн" && Math.abs(v) >= 1e8) {
+    const b = Math.abs(v) >= 1e9;
+    return (v / (b ? 1e9 : 1e6)).toLocaleString("uk-UA",
+      { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + (b ? " млрд ₴" : " млн ₴");
+  }
+  if (m.fmt === "pct") return num(dec) + " %";
+  return num(m.fmt === "int" ? 0 : dec);
+}
+
+/** Одиниця поряд із числом. Порожня там, де formatter уже її вставив: для
+ *  fmt="pct" unit теж "%", а для великих гривень число вже стало «млрд ₴» —
+ *  інакше в рядку з'являється «21,9 % %» і «17,81 млрд ₴ грн». */
+function pmdCvUnit(m, v) {
+  const u = m.unit || "";
+  if (m.fmt === "pct" && u === "%") return "";
+  // «грн» ховаємо лише там, де formatter сам зробив «млрд ₴»; 566,6 грн на
+  // декларацію без одиниці читалося б як безрозмірне число.
+  if (u === "грн" && Math.abs(v) >= 1e8) return "";
+  return u;
+}
+
+/** Спарклайн за наявними періодами індикатора. Без осей і підписів: він тут
+ *  каже лише «росте / стоїть / падає», точні числа є в самому рядку. */
+function pmdCvSpark(periods) {
+  const keys = Object.keys(periods || {});
+  if (keys.length < 3) return "";
+  keys.sort();
+  const vals = keys.map(k => periods[k]).filter(x => typeof x === "number");
+  if (vals.length < 3) return "";
+  const lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+  const span = (hi - lo) || 1, W = 54, H = 16;
+  const pts = vals.map((v, i) =>
+    `${(i / (vals.length - 1) * W).toFixed(1)},${(H - (v - lo) / span * H).toFixed(1)}`);
+  return `<svg class="pmd-spark" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}"
+    aria-hidden="true"><polyline points="${pts.join(" ")}"/></svg>`;
+}
+
+function renderPmdCv() {
+  const box = el("pmdCvSection");
+  const pkg = passportState.selectedPackage;
+  if (!box) return;
+  if (!pkg || pkg.number !== "1") { box.hidden = true; return; }
+
+  const data = passportState.pmdCv;
+  if (!data) {
+    // Ще вантажиться (або файла немає) — секцію не показуємо. Порожня рамка
+    // з написом «завантаження» на статичному сайті блимає більше, ніж дає.
+    box.hidden = true;
+    if (!passportState.pmdCvLoading) {
+      passportState.pmdCvLoading = fetch("data/pmd_city_village.json")
+        .then(r => r.ok ? r.json() : null)
+        .catch(() => null)
+        .then(res => {
+          passportState.pmdCv = res;
+          if (passportState.selectedPackage &&
+              passportState.selectedPackage.number === "1") renderPmdCv();
+        });
+    }
+    return;
+  }
+  box.hidden = false;
+
+  const b = passportState.pmdCvBucket;
+  const other = b === "misto" ? "selo" : b === "selo" ? "misto" : null;
+
+  el("pmdCvSwitch").querySelectorAll("button").forEach(btn => {
+    const on = btn.dataset.b === b;
+    btn.classList.toggle("on", on);
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+  });
+
+  const meta = data.meta || {};
+  el("pmdCvSub").innerHTML =
+    `Той самий пакет у розрізі типу населеного пункту. Чотири категорії вивантажки ` +
+    `(місто, смт, селище, село) згорнуто у дві: <strong>місто = місто + смт</strong>, ` +
+    `<strong>село = село + селище</strong> — за частиною 6 статті 1 Закону № 3285-IX, ` +
+    `яка відносить і селища, і села до сільських населених пунктів. ` +
+    `Кожна група рахована за своєю класифікацією — вона підписана під заголовком, ` +
+    `і <strong>числа з різних груп не додаються між собою</strong>.`;
+
+  const cls = data.classifications || {};
+  el("pmdCvGroups").innerHTML = (data.groups || []).map(g => {
+    const c = cls[g.classification] || {};
+    const rows = (g.metrics || []).map(id => {
+      const m = (data.metrics || {})[id];
+      if (!m) return "";
+      const cur = (data[b] || {})[id];
+      if (!cur || cur.v === null || cur.v === undefined) return "";
+      const oth = other ? (data[other] || {})[id] : null;
+
+      let cmp = "";
+      if (oth && typeof oth.v === "number" && typeof cur.v === "number") {
+        // Для відсоткових показників різниця — у відсоткових пунктах; ділити
+        // відсоток на відсоток і звати це «на 23 % більше» — класична підміна.
+        const pp = m.fmt === "pct";
+        const d = cur.v - oth.v;
+        const rel = pp ? null : (oth.v ? d / oth.v * 100 : null);
+        const sign = d > 0 ? "+" : d < 0 ? "−" : "";
+        const dTxt = pp
+          ? sign + Math.abs(d).toLocaleString("uk-UA",
+              { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " в. п."
+          : rel === null ? ""
+            : sign + Math.abs(rel).toLocaleString("uk-UA",
+                { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " %";
+        cmp = `<span class="pmd-cmp">${escapeHtml(PMD_CV_BUCKETS[other])} ` +
+              `${escapeHtml(pmdCvFmt(m, oth.v))}` +
+              (dTxt ? ` · <b>${escapeHtml(dTxt)}</b>` : "") + `</span>`;
+      }
+
+      const title = [m.note, cur.num != null && cur.den != null
+        ? `${Number(cur.num).toLocaleString("uk-UA")} з ${Number(cur.den).toLocaleString("uk-UA")}`
+        : ""].filter(Boolean).join(" · ");
+
+      return `<div class="pmd-row"${title ? ` title="${escapeHtml(title)}"` : ""}>
+          <span class="pmd-lbl">${escapeHtml(m.label)}</span>
+          <span class="pmd-right">${pmdCvSpark(cur.periods)}<span class="pmd-val">${
+            escapeHtml(pmdCvFmt(m, cur.v))}<i>${escapeHtml(pmdCvUnit(m, cur.v))}</i></span></span>
+          ${cmp}
+        </div>`;
+    }).join("");
+    if (!rows) return "";
+    // Підпис класифікації — не прикраса: без нього два сусідні блоки читаються
+    // як один показник, порахований двічі.
+    const warn = c.semantics_unresolved
+      ? `<span class="pmd-cls-warn" title="${escapeHtml(c.semantics_unresolved)}">?</span>` : "";
+    return `<div class="pmd-group">
+        <h4>${escapeHtml(g.title)}</h4>
+        <div class="pmd-cls">${escapeHtml(c.label || g.classification)}${warn}</div>
+        ${rows}
+      </div>`;
+  }).join("");
+
+  el("pmdCvWarn").textContent = [meta.warning, meta.built ? "Зібрано " + meta.built : ""]
+    .filter(Boolean).join(" · ");
+}
+
+function wirePmdCv() {
+  const sw = el("pmdCvSwitch");
+  if (!sw || sw.dataset.wired) return;
+  sw.dataset.wired = "1";
+  sw.addEventListener("click", e => {
+    const btn = e.target.closest("button[data-b]");
+    if (!btn) return;
+    passportState.pmdCvBucket = btn.dataset.b;
+    renderPmdCv();
+  });
 }
 
 /** Картка «Поріг входу за обсягом»: індикатори обсягу, за відповідності яким
