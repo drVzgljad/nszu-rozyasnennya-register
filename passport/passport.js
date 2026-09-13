@@ -151,9 +151,26 @@ async function init() {
       // рештою, щоб посилання були вже на першому малюванні вкладки «Вимоги»;
       // load() не кидає — без карти сторінка просто покаже чистий текст.
       window.SpecLinks ? window.SpecLinks.load() : Promise.resolve(null),
-      // Контури областей для карти покриття. Немає — карта тихо падає назад
-      // на список плиток, сторінка від цього не ламається.
-      fetch("../assets/ua-oblasts.json").then(r => r.json()).catch(() => null),
+      // Контури областей для карти покриття — UN OCHA COD-AB-UKR (HDX,
+      // CC BY-IGO 3.0), той самий шар, що й у панелі. Natural Earth лишився
+      // в assets/ для інших розділів, але тут не годиться: на ньому громади
+      // наступного щабля лягають повз свої області (20 % на узбережжі).
+      // Проєкція і viewBox у файлів однакові, тож розмітка не змінюється.
+      // Немає файлу — карта тихо падає назад на список плиток.
+      fetch("../panel/data/geo/oblast.json")
+        .then(r => r.json())
+        .then(g => ({
+          meta: {
+            // Реальні межі шару HDX по Y — від −32,7 до 716,1: він детальніший
+            // за Natural Earth і в старе вікно 0 0 1000 673,3 не влазить.
+            // Зі старим viewBox зрізало північ Чернігівської та Сумської
+            // і південь Криму разом із Севастополем.
+            viewBox: "0 -33 1000 750",
+            source: "UN OCHA COD-AB-UKR (HDX), CC BY-IGO 3.0",
+          },
+          oblasts: g.units,
+        }))
+        .catch(() => null),
       // Фактичні обсяги наданих послуг + демографічний знаменник. Конвеєр
       // 23_обсяги_демографія; boot() ніколи не кидає — без цих даних просто
       // не буде блоку «Фактично надано» і двох режимів карти.
@@ -317,6 +334,9 @@ function selectPackage(pkgNum) {
   // Render passport sections
   renderHeaderAndMetrics();
   renderAnalytics();
+  // Панель «Як працює пакет» (analytics-panel.js) — верхній рівень вкладки;
+  // її дані (panel.json, ставки постанови) вантажаться асинхронно
+  if (window.AnalyticsPanel) window.AnalyticsPanel.render(pkgNum);
   renderAnatomy();
   renderPmdCv();
   wirePmdCv();
@@ -329,6 +349,7 @@ function selectPackage(pkgNum) {
       wireVolumeControls();
       drawRegionMap();
       updateRateKpi();
+      if (window.AnalyticsPanel) window.AnalyticsPanel.onVolumes(pkgNum);
     });
   }
   // Обсяги по кожному ЗОЗ — з Supabase, тому окремо й асинхронно. До їх
@@ -341,6 +362,7 @@ function selectPackage(pkgNum) {
           passportState.selectedPackage.number === pkgNum) {
         passportState.zozVolumes = res;
         renderHospitalsTable();
+        if (window.AnalyticsPanel) window.AnalyticsPanel.onProviderVolumes(pkgNum, res);
       }
     });
   }
@@ -613,20 +635,21 @@ function renderDonut(container, entries) {
 }
 
 /* ══════════════════ КАРТА ПОКРИТТЯ РЕГІОНІВ ══════════════════
-   Контури областей — assets/ua-oblasts.json (Natural Earth, public domain,
-   проєкція Ламберта). Одиниці відібрані за ISO 3166-2 «UA-*», тому Крим і
-   Севастополь є на карті у складі України, хоча договорів за ними немає.
+   Контури областей — panel/data/geo/oblast.json: UN OCHA COD-AB-UKR (HDX,
+   CC BY-IGO 3.0, атрибуція обовʼязкова), проєкція Ламберта 46°/51°, меридіан
+   31°, viewBox 1000×673,3 — той самий шар і та сама проєкція, що в панелі.
+   Крим і Севастополь є на карті у складі України, хоча договорів за ними немає.
    Якщо файл контурів не завантажився, малюємо старий список плиток.
    ─────────────────────────────────────────────────────────── */
 
-// Області, де назва не влазить у контур (виміряно по bw з ua-oblasts.json при
-// кеглі 13): підпис виноситься назовні, до області веде поводок. Координати —
-// в одиницях viewBox карти (1000×673).
+// Області, де назва не влазить у контур (виміряно по bw при кеглі 13; на HDX
+// виходять ті самі чотири, що й на Natural Earth): підпис виноситься назовні,
+// до області веде поводок. Координати — в одиницях viewBox карти (0 −33 1000 750).
 const MAP_CALLOUTS = {
-  "М.КИЇВ":            { line: [468, 164, 430, 124], cx: 398, cy: 112 },
+  "М.КИЇВ":            { line: [470, 164, 430, 124], cx: 398, cy: 112 },
   "ТЕРНОПІЛЬСЬКА":     { line: [197, 220, 178, 172], cx: 170, cy: 155 },
   "ІВАНО-ФРАНКІВСЬКА": { line: [141, 318, 150, 388], cx: 150, cy: 402 },
-  "М.СЕВАСТОПОЛЬ":     { line: [652, 658, 610, 645], cx: 595, cy: 640 },
+  "М.СЕВАСТОПОЛЬ":     { line: [645, 695, 600, 690], cx: 572, cy: 686 },
 };
 // Області, яким назву малюємо всередині попри тісний контур: Хмельницька
 // ширша за назву лише на кілька пікселів, з ореолом це виглядає нормально
@@ -634,6 +657,10 @@ const MAP_FORCE_INNER = { "ХМЕЛЬНИЦЬКА": true };
 // Ручні зсуви внутрішніх підписів, щоб сусідні написи не злипалися
 // (Київська — щоб звільнити місце під виноску м. Києва)
 const MAP_LABEL_NUDGE = {
+  // Одеська і Сумська: геометричний центр контуру HDX лежить ПОЗА самим
+  // контуром (обидві сильно витягнуті), підпис без зсуву висів у порожнечі
+  "ОДЕСЬКА": [16, 0],
+  "СУМСЬКА": [-2, 1],
   "КИЇВСЬКА": [25, 18],
   "ЖИТОМИРСЬКА": [-5, 24],
   "ВОЛИНСЬКА": [-14, -6],
@@ -721,10 +748,18 @@ function regionMapSvg(oblMap, maxObl, metric) {
     }
   });
 
+  // Порожні шари під щаблі (map-drill.js): громади, їхні підписи й точки
+  // закладів. Порядок груп = порядок малювання, тому точки лежать над
+  // громадами, а назви областей — найвище і ховаються при зумі.
   return `<svg class="ua-map" viewBox="${vb}" role="img"
         aria-label="Карта покриття регіонів закладами з договором за цим пакетом">
-       <g class="ua-shapes">${shapes.join("")}</g>
-       <g class="ua-labels">${labels.join("")}</g>
+       <g class="ua-zoom">
+         <g class="ua-shapes">${shapes.join("")}</g>
+         <g class="ua-hroms"></g>
+         <g class="ua-hlabels"></g>
+         <g class="ua-dots"></g>
+         <g class="ua-labels">${labels.join("")}</g>
+       </g>
      </svg>`;
 }
 
@@ -815,6 +850,33 @@ function drawRegionMap() {
     }
   }
 
+  // Щаблі карти (громади, точки, віяло) — надбудова з map-drill.js.
+  // Її дані вантажаться ліниво, на першому зумі; без модуля карта лишається
+  // плоскою і робочою.
+  if (drawn && window.MapDrill) {
+    window.MapDrill.attach(heat.querySelector(".ua-map"), {
+      pkg: (passportState.selectedPackage || {}).number,
+      // габарити областей — щоб щаблі не міряли карту через getBBox()
+      oblGeo: (passportState.uaMap || {}).oblasts,
+      // щабель карти → сходи панелі «Як працює пакет»
+      onScope: (s) => { if (window.AnalyticsPanel) window.AnalyticsPanel.onMapScope(s); },
+      // клік по закладу на карті = паспорт закладу (панель); без панелі —
+      // як раніше, показати заклад у переліку ЗОЗ нижче
+      pickProvider: (edrpou, pi) => {
+        if (window.AnalyticsPanel && pi != null && !Number.isNaN(pi)) {
+          window.AnalyticsPanel.openZoz(pi);
+          return;
+        }
+        const inp = el("hospitalSearchInput");
+        if (!inp) return;
+        inp.value = edrpou;
+        inp.dispatchEvent(new Event("input", { bubbles: true }));
+        const box = el("hospitalsCollapse");
+        if (box) box.open = true;
+      },
+    });
+  }
+
   const legend = el("mapLegend");
   if (legend) {
     legend.hidden = !drawn;
@@ -831,7 +893,8 @@ function drawRegionMap() {
         `<span class="ml-note">${escapeHtml(note)} ` +
         (missing ? `У ${missing} ${plural(missing, "регіоні", "регіонах", "регіонах")} даних немає. ` : "") +
         `<span class="ml-map-only">АР Крим і м. Севастополь показані у складі України; ` +
-        `даних за ними у вивантажці немає.</span></span>`;
+        `даних за ними у вивантажці немає. Межі — UN OCHA COD-AB-UKR (HDX), ` +
+        `CC BY-IGO 3.0.</span></span>`;
     }
   }
 }
@@ -1425,6 +1488,12 @@ function renderAnalytics() {
   // Клік по регіону — фільтр переліку ЗОЗ; поведінка однакова і для карти,
   // і для запасного списку плиток
   const pickOblast = (o) => {
+    // З панеллю «Як працює пакет» клік по області — крок сходами вниз: панель
+    // сама зумить карту й фільтрує перелік, без стрибка сторінки до переліку
+    if (window.AnalyticsPanel) {
+      window.AnalyticsPanel.setScope({ obl: o });
+      return;
+    }
     passportState.hospitalOblast = o;
     passportState.hospitalCurrentPage = 1;
     el("hospitalOblastFilter").value = o;
@@ -2651,9 +2720,10 @@ function renderHospitalsTable() {
     else if (c.network_type === "Кластерний") netClass = "tag";
     else if (c.network_type === "Загальний") netClass = "tag";
 
-    const contactsHtml = c.email 
-      ? `<a href="mailto:${escapeHtml(c.email)}" style="text-decoration:none;color:var(--accent-dark);font-weight:600;">${escapeHtml(c.email)}</a>` 
-      : '<span style="color:var(--muted)">—</span>';
+    const email = contactEmailOf(c);
+    const contactsHtml = email.href
+      ? `<a href="mailto:${escapeHtml(email.href)}" style="text-decoration:none;color:var(--accent-dark);font-weight:600;">${escapeHtml(email.href)}</a>`
+      : `<span style="color:var(--muted)">${escapeHtml(email.text)}</span>`;
 
     tr.innerHTML = `
       <td><strong>${escapeHtml(c.edrpou)}</strong></td>
@@ -2671,6 +2741,32 @@ function renderHospitalsTable() {
   // Render pagination controls
   renderTablePagination(totalItems, totalPages, startIdx + 1, endIdx);
 }
+
+/* Контакти ФОП (email) з 13.09.2026 — не в публічному файлі договорів, а в
+   Supabase під RLS (provider-private.js). Для юросіб email лишається як був.
+   Контакти ФОП вантажимо одним заходом, коли вони вперше знадобилися таблиці. */
+function contactEmailOf(c) {
+  const PPriv = window.ProviderPrivate;
+  const fop = PPriv ? PPriv.isFop(c) : c.ownership === "ФОП";
+  if (!fop) return c.email ? { href: c.email } : { text: "—" };
+  const st = passportState.fopPrivate;
+  if (!PPriv) return { text: "—" };
+  if (!st) {
+    passportState.fopPrivate = { status: "loading", map: new Map() };
+    PPriv.loadAll().then((res) => { passportState.fopPrivate = res; renderHospitalsTable(); });
+    return { text: "…" };
+  }
+  if (st.status === "loading") return { text: "…" };
+  if (st.status !== "ok") return { text: PPriv.message(st.status) };
+  const rec = st.map.get(c.pkey);
+  return rec && rec.email ? { href: rec.email } : { text: "—" };
+}
+
+// вхід чи вихід без перезавантаження — контакти ФОП перечитуються наново
+window.addEventListener("provider-private-reset", () => {
+  passportState.fopPrivate = null;
+  if (passportState.selectedPackage) renderHospitalsTable();
+});
 
 function renderTablePagination(totalItems, totalPages, fromItem, toItem) {
   const container = el("tablePagination");
@@ -3452,7 +3548,7 @@ function exportPassportToExcel() {
       c.ownership,
       c.network_type || "Не входить в спроможну мережу",
       getPkgSum(c),
-      c.email || "",
+      (() => { const e = contactEmailOf(c); return e.href || (e.text === "—" || e.text === "…" ? "" : e.text); })(),
       c.reg_address || ""
     ]);
   });

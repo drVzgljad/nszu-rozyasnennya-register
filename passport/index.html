@@ -11,10 +11,11 @@
   <title>Паспорт пакета ПМГ 2026 — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260808c">
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="passport.css?v=20260911c">
+  <link rel="stylesheet" href="passport.css?v=20260912b">
+  <link rel="stylesheet" href="analytics-panel.css?v=20260913d">
   <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script type="module" src="../auth-v2.js?v=20260904a"></script>
+  <script type="module" src="../auth-v2.js?v=20260913a"></script>
 </head>
 <body>
 <div class="portal">
@@ -113,6 +114,108 @@
           
           <!-- Tab 1: Analytics and ZOZ -->
           <div class="tab-pane active" id="tab-analytics">
+
+            <!-- ══ Панель «Як працює пакет» (analytics-panel.js, 13.09.2026) ══
+                 П'ять ланок — умови → мережа → гроші → робота → доступ; сходи
+                 країна → область → громада → населений пункт → заклад; лампочки
+                 якості даних. Каталог показників і пороги —
+                 D:\pmg-data\27_панель_пакета\ПОКАЗНИКИ.md. -->
+            <section class="ap" id="analyticsPanel" aria-labelledby="apHeadTitle">
+              <header class="ap-head" id="apHead"><h3 id="apHeadTitle">Як працює пакет</h3></header>
+              <nav class="ap-ladder" id="apLadder" aria-label="Сходи розкриття"></nav>
+              <div class="ap-chain" id="apChain"></div>
+              <!-- Карта — центральний елемент огляду; поряд — зріз «де гроші» -->
+              <div class="ap-row ap-row-map">
+                <div class="ap-mapslot" id="apMapSlot">
+                  <div class="chart-card map-card">
+                    <h3>Карта <small class="card-hint">клік по області, громаді чи точці — крок сходами вниз</small></h3>
+                    <div class="map-modes" id="mapModes" hidden role="group" aria-label="Що показує карта">
+                      <button type="button" class="mm-btn active" data-mode="zoz">Заклади</button>
+                      <button type="button" class="mm-btn" data-mode="vol">Обсяг послуг</button>
+                      <button type="button" class="mm-btn" data-mode="rate">На населення</button>
+                      <button type="button" class="mm-btn" data-mode="load">На заклад</button>
+                      <select class="mm-unit" id="mapUnit" aria-label="Одиниця показника" hidden>
+                        <option value="auto">одиниця — автоматично</option>
+                        <option value="1000">на 1 тис. населення</option>
+                        <option value="10000">на 10 тис. населення</option>
+                        <option value="100000">на 100 тис. населення</option>
+                      </select>
+                    </div>
+                    <div class="map-drill" id="mapDrill" hidden>
+                      <button type="button" class="md-back" id="mapDrillBack">← на щабель вище</button>
+                      <span class="md-where" id="mapDrillWhere"></span>
+                    </div>
+                    <div class="region-heatmap" id="regionHeatmap"></div>
+                    <div class="map-legend" id="mapLegend" hidden></div>
+                  </div>
+                </div>
+                <section class="ap-card ap-kids-card" id="apKids" aria-label="Зріз: де гроші"></section>
+              </div>
+              <div class="ap-row ap-row-3">
+                <section class="ap-card" id="apMoney" aria-label="Концентрація грошей"></section>
+                <section class="ap-card" id="apWork" aria-label="Робота в часі"></section>
+                <section class="ap-card" id="apAccess" aria-label="Доступ по областях"></section>
+              </div>
+              <!-- Дані — лише за потреби -->
+              <details class="ap-more-block" id="apDataDetails">
+                <summary><span class="ap-ms-t">Дані зрізу — таблиця</span> <small id="apDataCount"></small></summary>
+                <section class="ap-card ap-steps" id="apSteps" aria-label="Дані зрізу"></section>
+              </details>
+              <details class="ap-more-block" id="apQualityDetails">
+                <summary><span class="ap-ms-t">Якість даних — реєстр джерел</span> <span id="apQualitySum"></span></summary>
+                <section class="ap-card ap-quality" id="apQuality" aria-label="Якість даних"></section>
+              </details>
+            </section>
+
+            <!-- Contracted Hospitals Table (collapsed by default) -->
+            <details class="hospitals-collapse" id="hospitalsCollapse">
+              <summary class="hospitals-summary">
+                <span class="hs-icon">🏥</span>
+                <span class="hs-text">Перелік законтрактованих закладів <strong id="hospitalsCount">0</strong></span>
+                <span class="hs-chevron" aria-hidden="true">▾</span>
+              </summary>
+              <div class="hospitals-section">
+                <div class="hospitals-header">
+                  <div class="hospitals-filter-row">
+                    <input type="search" id="hospitalSearchInput" placeholder="Шукати за назвою, ЄДРПОУ чи населеним пунктом..." autocomplete="off">
+                    <select id="hospitalOblastFilter">
+                      <option value="">Усі області</option>
+                    </select>
+                  </div>
+                  <!-- активний фільтр за перетином пакетів; ставиться з блоку «Перетин мереж» -->
+                  <div class="combo-filter" id="comboFilter" hidden></div>
+                </div>
+                <div class="table-wrap">
+                  <table class="hospitals-table">
+                    <thead>
+                      <tr>
+                        <th data-sort="edrpou" class="sortable">ЄДРПОУ</th>
+                        <th data-sort="name" class="sortable">Назва закладу</th>
+                        <th data-sort="oblast" class="sortable">Область</th>
+                        <th data-sort="network" class="sortable">Мережа</th>
+                        <th data-sort="ownership" class="sortable">Власність</th>
+                        <th data-sort="sum" class="sortable number active desc">Сума договору (₴)</th>
+                        <th data-sort="services" class="sortable number" id="thServices"
+                            title="Фактично надано послуг за цим пакетом. Дані для авторизованих.">Послуг</th>
+                        <th>Контакти</th>
+                      </tr>
+                    </thead>
+                    <tbody id="hospitalsTableBody">
+                      <!-- Dynamic hospital rows -->
+                    </tbody>
+                  </table>
+                </div>
+                <div class="table-pagination" id="tablePagination">
+                  <!-- Pagination buttons -->
+                </div>
+              </div>
+            </details>
+
+            <!-- Попередні блоки вкладки — згорнуті до рішення, що з них прибрати
+                 після перегляду панелі. Код і розгортки працюють як раніше. -->
+            <details class="ap-legacy" id="apLegacy">
+              <summary class="ap-legacy-sum">Попередні блоки аналітики <small>осі серед 46, анатомія, фактично надано, медіанний договір, перетин мереж</small></summary>
+            <div class="ap-legacy-body">
 
             <!-- Пакет серед 46: три осі, що рахуються з даних. Синтетичний
                  індекс 0-100 прибрано 07.09.2026 - ваги 40/35/25 і межі смуг були
@@ -227,23 +330,7 @@
 
             <!-- Аналітичні картки -->
             <div class="analytics-charts thermo-grid">
-              <div class="chart-card map-card">
-                <h3>Карта регіонів <small class="card-hint">клік по області відфільтрує перелік ЗОЗ</small></h3>
-                <div class="map-modes" id="mapModes" hidden role="group" aria-label="Що показує карта">
-                  <button type="button" class="mm-btn active" data-mode="zoz">🏥 Заклади</button>
-                  <button type="button" class="mm-btn" data-mode="vol">📈 Обсяг послуг</button>
-                  <button type="button" class="mm-btn" data-mode="rate">👥 На населення</button>
-                  <button type="button" class="mm-btn" data-mode="load">🏋️ На заклад</button>
-                  <select class="mm-unit" id="mapUnit" aria-label="Одиниця показника" hidden>
-                    <option value="auto">одиниця — автоматично</option>
-                    <option value="1000">на 1 тис. населення</option>
-                    <option value="10000">на 10 тис. населення</option>
-                    <option value="100000">на 100 тис. населення</option>
-                  </select>
-                </div>
-                <div class="region-heatmap" id="regionHeatmap"></div>
-                <div class="map-legend" id="mapLegend" hidden></div>
-              </div>
+              <!-- Карту перенесено в панель «Як працює пакет» (#apMapSlot) 13.09.2026 -->
               <div class="side-cards">
                 <div class="chart-card">
                   <h3>Форма власності</h3>
@@ -340,50 +427,8 @@
               <p class="overlap-foot" id="overlapFoot"></p>
               </div>
             </section>
-
-            <!-- Contracted Hospitals Table (collapsed by default) -->
-            <details class="hospitals-collapse" id="hospitalsCollapse">
-              <summary class="hospitals-summary">
-                <span class="hs-icon">🏥</span>
-                <span class="hs-text">Перелік законтрактованих закладів <strong id="hospitalsCount">0</strong></span>
-                <span class="hs-chevron" aria-hidden="true">▾</span>
-              </summary>
-              <div class="hospitals-section">
-                <div class="hospitals-header">
-                  <div class="hospitals-filter-row">
-                    <input type="search" id="hospitalSearchInput" placeholder="Шукати за назвою, ЄДРПОУ чи областю..." autocomplete="off">
-                    <select id="hospitalOblastFilter">
-                      <option value="">Усі області</option>
-                    </select>
-                  </div>
-                  <!-- активний фільтр за перетином пакетів; ставиться з блоку «Перетин мереж» -->
-                  <div class="combo-filter" id="comboFilter" hidden></div>
-                </div>
-                <div class="table-wrap">
-                  <table class="hospitals-table">
-                    <thead>
-                      <tr>
-                        <th data-sort="edrpou" class="sortable">ЄДРПОУ</th>
-                        <th data-sort="name" class="sortable">Назва закладу</th>
-                        <th data-sort="oblast" class="sortable">Область</th>
-                        <th data-sort="network" class="sortable">Мережа</th>
-                        <th data-sort="ownership" class="sortable">Власність</th>
-                        <th data-sort="sum" class="sortable number active desc">Сума договору (₴)</th>
-                        <th data-sort="services" class="sortable number" id="thServices"
-                            title="Фактично надано послуг за цим пакетом. Дані для авторизованих.">Послуг</th>
-                        <th>Контакти</th>
-                      </tr>
-                    </thead>
-                    <tbody id="hospitalsTableBody">
-                      <!-- Dynamic hospital rows -->
-                    </tbody>
-                  </table>
-                </div>
-                <div class="table-pagination" id="tablePagination">
-                  <!-- Pagination buttons -->
-                </div>
-              </div>
-            </details>
+            </div><!-- /.ap-legacy-body -->
+            </details><!-- /#apLegacy -->
           </div>
 
           <!-- Tab 2: Requirements (Specification) -->
@@ -439,12 +484,18 @@
 
   </main>
 
+  <!-- Паспорт закладу: останній щабель сходів, лише для авторизованих -->
+  <div class="ap-zoz" id="apZoz" hidden></div>
+
 </div>
 <script src="../spec-links.js?v=20260804c" defer></script>
 <script src="norm-links.js?v=20260903c" defer></script>
 <script src="volumes.js?v=20260907a" defer></script>
-<script type="module" src="zoz-volumes.js?v=20260903c"></script>
-<script src="passport.js?v=20260911c" defer></script>
+<script type="module" src="zoz-volumes.js?v=20260913a"></script>
+<script src="../provider-private.js?v=20260913a" defer></script>
+<script src="passport.js?v=20260913b" defer></script>
+<script src="map-drill.js?v=20260913a" defer></script>
+<script src="analytics-panel.js?v=20260913g" defer></script>
 <script src="kpi-drill.js?v=20260907b" defer></script>
 </body>
 </html>

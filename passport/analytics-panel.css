@@ -1,0 +1,356 @@
+/* ══════════ ПАНЕЛЬ «ЯК ПРАЦЮЄ ПАКЕТ» (analytics-panel.js) ══════════
+   Токени — портальні (--ink, --muted, --line, --surface, --soft, --accent):
+   темна тема порталу перевизначає їх класом .dark-theme, тож панель
+   перемальовується сама. Елевація — світлістю підкладки й бордером, не тінню.
+   Числа — таблично (tabular-nums). Спершу загальна картина, дані — у <details>. */
+
+.ap {
+  --ap-ok: #1f8a5b;   --ap-ok-bg: #e3f4ec;
+  --ap-warn: #a86b00; --ap-warn-bg: #fbf0d9;
+  --ap-bad: #b3261e;  --ap-bad-bg: #fbe4e2;
+  --ap-na: #6b7686;   --ap-na-bg: #eceff3;
+  --ap-card: var(--surface, #fff);
+  --ap-sunk: var(--soft, #f2f8fb);
+  --ap-money: #d0782b;
+  --ap-z0: color-mix(in srgb, var(--accent, #4a8fc7) 14%, transparent);
+  --ap-z1: color-mix(in srgb, var(--accent, #4a8fc7) 30%, transparent);
+  --ap-z2: color-mix(in srgb, var(--accent, #4a8fc7) 50%, transparent);
+  --ap-z3: color-mix(in srgb, var(--accent, #4a8fc7) 72%, transparent);
+  container-type: inline-size;
+  margin-bottom: 18px;
+  color: var(--ink, #1f3347);
+}
+.dark-theme .ap {
+  --ap-ok: #5cc79b;   --ap-ok-bg: #123026;
+  --ap-warn: #e0b167; --ap-warn-bg: #33270f;
+  --ap-bad: #f08a80;  --ap-bad-bg: #371916;
+  --ap-na: #9aa6b5;   --ap-na-bg: #1f252d;
+  --ap-card: #1b2536;
+  --ap-sunk: #121a27;
+  --ap-money: #e89a55;
+}
+.ap small { font-weight: 400; color: var(--muted, #647688); }
+/* display у .map-drill і .mm-unit перебивав атрибут hidden */
+.ap [hidden] { display: none !important; }
+.ap .n, .ap-kv dd, .ap-link-v, .ap-dval, .ap-kids b { font-variant-numeric: tabular-nums; }
+
+/* ── Шапка ─────────────────────────────────────────────────────── */
+.ap-head {
+  display: flex; flex-wrap: wrap; gap: 10px 18px;
+  align-items: flex-start; justify-content: space-between;
+  margin-bottom: 10px;
+}
+.ap-titlebox h3 { margin: 0 0 4px; font-size: 1.25rem; }
+.ap-lead { margin: 0; max-width: 72ch; color: var(--muted, #647688); font-size: .9rem; line-height: 1.45; }
+.ap-pill {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px;
+  border: 1px solid var(--line, #e3edf3); background: var(--ap-card);
+  border-radius: 10px; padding: 8px 12px; cursor: pointer; font: inherit; color: inherit;
+}
+.ap-pill:hover { border-color: var(--accent, #4a8fc7); }
+.ap-pill-h { font-weight: 600; font-size: .85rem; }
+
+/* ── Лампочки: колір + форма значка + слово ────────────────────── */
+.ap-lamp {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: .76rem; line-height: 1.2; white-space: nowrap;
+  padding: 2px 8px 2px 6px; border-radius: 999px;
+  color: var(--ap-na); background: var(--ap-na-bg);
+}
+.ap-lamp i { width: 9px; height: 9px; border-radius: 50%; flex: none; box-sizing: border-box; }
+.ap-lamp.is-ok   { color: var(--ap-ok);   background: var(--ap-ok-bg); }
+.ap-lamp.is-ok i   { background: var(--ap-ok); }                                   /* ● */
+.ap-lamp.is-warn { color: var(--ap-warn); background: var(--ap-warn-bg); }
+.ap-lamp.is-warn i { background: linear-gradient(90deg, var(--ap-warn) 50%, transparent 50%);
+                     border: 1.5px solid var(--ap-warn); }                          /* ◐ */
+.ap-lamp.is-bad  { color: var(--ap-bad);  background: var(--ap-bad-bg); }
+.ap-lamp.is-bad i  { border: 2px solid var(--ap-bad); border-radius: 2px; transform: rotate(45deg); } /* ◇ */
+.ap-lamp.is-na i   { border: 1.5px dashed var(--ap-na); }                          /* ○ */
+
+/* ── Стежка сходів ─────────────────────────────────────────────── */
+.ap-ladder {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px;
+  padding: 8px 10px; margin-bottom: 12px;
+  border: 1px solid var(--line, #e3edf3); border-radius: 10px; background: var(--ap-sunk);
+  font-size: .9rem;
+}
+.ap-crumb {
+  border: 0; background: none; font: inherit; color: var(--accent-deep, #2f6b9e);
+  padding: 2px 4px; border-radius: 6px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+}
+.ap-crumb:hover { background: color-mix(in srgb, var(--accent, #4a8fc7) 12%, transparent); }
+.ap-crumb.is-now { color: var(--ink, #1f3347); text-decoration: none; font-weight: 600; cursor: default; }
+.ap-sep { color: var(--muted, #647688); }
+.ap-next { margin-left: auto; color: var(--muted, #647688); font-size: .8rem; }
+
+/* ── Ланцюжок ланок ────────────────────────────────────────────── */
+.ap-chain { display: grid; gap: 10px; margin-bottom: 14px; grid-template-columns: 1fr; }
+.ap-arrow { display: none; }
+@container (min-width: 1180px) {
+  .ap-chain { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr); gap: 6px; }
+  .ap-arrow { display: flex; align-items: center; color: var(--muted, #647688); font-size: 1.1rem; }
+}
+/* п'ять карток — або всі в ряд, або 3 + 2; «4 + 1 сирота» ламає ланцюжок */
+@container (min-width: 860px) and (max-width: 1179px) {
+  .ap-chain { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+}
+@container (min-width: 540px) and (max-width: 859px) {
+  .ap-chain { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.ap-link {
+  position: relative; min-width: 0;
+  display: flex; flex-direction: column; gap: 4px;
+  background: var(--ap-card); border: 1px solid var(--line, #e3edf3); border-radius: 12px;
+  padding: 10px 12px; cursor: pointer; outline: none;
+}
+.ap-link:hover, .ap-link:focus-visible { border-color: var(--accent, #4a8fc7); }
+.ap-link-h { display: flex; align-items: center; gap: 8px; }
+.ap-link-n {
+  width: 20px; height: 20px; border-radius: 50%; flex: none;
+  display: grid; place-items: center; font-size: .72rem; font-weight: 700;
+  background: color-mix(in srgb, var(--accent, #4a8fc7) 16%, transparent); color: var(--accent-deep, #2f6b9e);
+}
+.ap-link-name { font-weight: 700; font-size: .95rem; margin-right: auto; }
+.ap-link-v { font-size: 1.28rem; font-weight: 700; line-height: 1.2; }
+.ap-link-v small { display: block; font-size: .76rem; margin-top: 2px; line-height: 1.3; }
+.ap-link-s { margin: 0; font-size: .8rem; line-height: 1.4; color: var(--muted, #647688); }
+.ap-link-more { font-size: .8rem; color: var(--muted, #647688); }
+.ap-link-more summary { cursor: pointer; color: var(--accent-deep, #2f6b9e); width: max-content; }
+.ap-link-more p { margin: 4px 0; line-height: 1.4; }
+.ap-more { color: var(--accent-deep, #2f6b9e); }
+.ap-warn-inline { color: var(--ap-warn); }
+.ap-link.is-skel { min-height: 190px; cursor: default; }
+.ap-link.is-skel i, .ap-skel i {
+  display: block; height: 12px; border-radius: 6px; margin: 6px 0;
+  background: linear-gradient(90deg, var(--ap-sunk), color-mix(in srgb, var(--line, #e3edf3) 90%, transparent), var(--ap-sunk));
+}
+.ap-link.is-skel i:nth-child(2) { width: 70%; height: 60px; border-radius: 60px 60px 0 0; }
+.ap-link.is-skel i:nth-child(3) { width: 45%; }
+.ap-skel { padding: 14px; }
+
+/* ── Спідометр ─────────────────────────────────────────────────── */
+.ap-gauge { margin: 2px 0 0; }
+.ap-gauge svg { display: block; width: 100%; max-width: 230px; height: auto; margin: 0 auto; overflow: visible; }
+.ap-gauge figcaption { font-size: .74rem; color: var(--muted, #647688); text-align: center; line-height: 1.35; }
+.ap-gz.z0 { fill: var(--ap-z0); }
+.ap-gz.z1 { fill: var(--ap-z1); }
+.ap-gz.z2 { fill: var(--ap-z2); }
+.ap-gz.z3 { fill: var(--ap-z3); }
+.ap-gn { fill: var(--ink, #1f3347); }
+.ap-gh { fill: var(--ink, #1f3347); stroke: var(--ap-card); stroke-width: 2; }
+.ap-gt { stroke: var(--ap-money); stroke-width: 2.5; }
+.ap-gl { fill: var(--muted, #647688); font-size: 10.5px; }
+.ap-gv { fill: var(--ink, #1f3347); font-size: 14px; font-weight: 700; }
+
+/* ── Смуга часток ──────────────────────────────────────────────── */
+.ap-share { display: flex; height: 18px; border-radius: 4px; overflow: hidden; margin-top: 4px; }
+.ap-seg { position: relative; min-width: 2px; }
+.ap-seg span {
+  position: absolute; inset: 0; display: flex; align-items: center; padding: 0 5px;
+  font-size: .68rem; font-style: normal; white-space: nowrap; overflow: hidden; color: #fff;
+}
+.ap-seg.own-0 { background: #2f6b9e; }
+.ap-seg.own-1 { background: #5b8fb9; }
+.ap-seg.own-2 { background: #c7792b; }
+.ap-seg.own-3 { background: #9a6a3a; }
+.ap-seg.own-4 { background: #8a94a3; }
+
+/* ── Спарклайн, лінія, крива, смуга точок ──────────────────────── */
+.ap-spark { display: block; width: 100%; height: 30px; }
+.ap-spark-l, .ap-line-l, .ap-lorenz-l { fill: none; stroke: var(--accent, #4a8fc7); stroke-width: 2; }
+.ap-spark-a { fill: color-mix(in srgb, var(--accent, #4a8fc7) 14%, transparent); stroke: none; }
+.ap-spark-d, .ap-line-d { fill: var(--accent, #4a8fc7); }
+.ap-line { display: block; width: 100%; height: auto; max-height: 240px; }
+.ap-grid { stroke: var(--line, #e3edf3); stroke-width: 1; }
+.ap-axis { fill: var(--muted, #647688); font-size: 11px; }
+.ap-line-v { fill: var(--ink, #1f3347); font-size: 12px; font-weight: 700; }
+.ap-lorenz { display: block; width: 100%; max-width: 300px; height: auto; }
+.ap-diag { stroke: var(--muted, #647688); stroke-dasharray: 4 4; stroke-width: 1; }
+.ap-core-zone { fill: color-mix(in srgb, var(--ap-money) 12%, transparent); }
+.ap-strip-svg { display: block; width: 100%; height: auto; overflow: visible; }
+.ap-medline { stroke: var(--ink, #1f3347); stroke-width: 1.5; }
+.ap-sdot { cursor: pointer; outline: none; }
+.ap-sdot circle { fill: color-mix(in srgb, var(--accent, #4a8fc7) 70%, transparent); stroke: var(--ap-card); stroke-width: 1.5; }
+.ap-sdot.is-low circle { fill: var(--ap-card); stroke: var(--muted, #647688); }
+.ap-sdot.is-me circle { fill: var(--ap-money); }
+.ap-sdot:hover circle, .ap-sdot:focus-visible circle { stroke: var(--ink, #1f3347); }
+
+/* ── Ряди карток ───────────────────────────────────────────────── */
+.ap-row { display: grid; gap: 12px; margin-bottom: 12px; grid-template-columns: minmax(0, 1fr); }
+@container (min-width: 980px) {
+  .ap-row-map { grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr); align-items: start; }
+}
+@container (min-width: 1180px) {
+  .ap-row-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@container (min-width: 760px) and (max-width: 1179px) {
+  .ap-row-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.ap-card {
+  min-width: 0; background: var(--ap-card);
+  border: 1px solid var(--line, #e3edf3); border-radius: 12px; padding: 12px 14px;
+}
+.ap-card-h h4 { margin: 0 0 3px; font-size: 1rem; line-height: 1.35; }
+.ap-prov { margin: 0 0 10px; font-size: .76rem; color: var(--muted, #647688); line-height: 1.45; }
+.ap-prov .ap-lamp { margin-right: 2px; }
+.ap-empty { color: var(--muted, #647688); font-size: .88rem; margin: 8px 0; }
+.ap-warn { font-size: .82rem; color: var(--ap-warn); background: var(--ap-warn-bg); border-radius: 8px; padding: 6px 10px; margin: 6px 0; }
+.ap-sub { font-size: .8rem; color: var(--muted, #647688); margin: 10px 0 4px; }
+.ap-mapslot .map-card { margin: 0; }
+.ap-mapslot .map-card h3 { font-size: 1rem; }
+
+/* ── Зріз поруч із картою ──────────────────────────────────────── */
+.ap-kids { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.ap-kids li {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(60px, 34%) auto 3.2em;
+  gap: 8px; align-items: center; font-size: .82rem; cursor: pointer; padding: 4px 6px; border-radius: 6px;
+}
+.ap-kids li:hover, .ap-kids li:focus-visible { background: color-mix(in srgb, var(--accent, #4a8fc7) 9%, transparent); outline: none; }
+.ap-kbar { display: block; height: 10px; border-radius: 3px; background: color-mix(in srgb, var(--muted, #647688) 10%, transparent); }
+.ap-kbar i { display: block; height: 100%; border-radius: 3px; background: var(--ap-money); }
+.ap-kids b { font-weight: 600; white-space: nowrap; }
+.ap-kn { color: var(--muted, #647688); text-align: right; font-size: .76rem; }
+
+/* ── Дані за потреби ───────────────────────────────────────────── */
+.ap-more-block { margin: 10px 0 0; border: 1px solid var(--line, #e3edf3); border-radius: 12px; background: var(--ap-sunk); }
+.ap-more-block > summary { cursor: pointer; padding: 10px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.ap-more-block > summary .ap-ms-t { font-weight: 600; }
+.ap-more-block > .ap-card { border-radius: 0 0 12px 12px; border-width: 1px 0 0; }
+.ap-inline-more { margin-top: 8px; }
+.ap-inline-more > summary { cursor: pointer; color: var(--accent-deep, #2f6b9e); font-size: .82rem; width: max-content; }
+
+/* ── Таблиці ───────────────────────────────────────────────────── */
+.ap-table-wrap { overflow-x: auto; }
+.ap-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+.ap-table th, .ap-table td { padding: 6px 8px; border-bottom: 1px solid var(--line, #e3edf3); text-align: left; vertical-align: middle; }
+.ap-table thead th { font-size: .74rem; font-weight: 600; color: var(--muted, #647688); background: var(--ap-card); }
+.ap-table .n { text-align: right; white-space: nowrap; }
+.ap-table tbody th { font-weight: 500; }
+.ap-table tbody tr[data-ap-child], .ap-table tbody tr[data-ap-zoz] { cursor: pointer; }
+.ap-table tbody tr[data-ap-child]:hover, .ap-table tbody tr[data-ap-zoz]:hover,
+.ap-table tbody tr:focus-visible { background: color-mix(in srgb, var(--accent, #4a8fc7) 8%, transparent); outline: none; }
+.ap-rname { display: inline-block; max-width: 34ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+.ap-kids .ap-rname, .ap-top .ap-rname, .ap-dots .ap-rname { max-width: 100%; }
+.ap-go { margin-left: 6px; color: var(--accent-deep, #2f6b9e); font-size: .75rem; opacity: 0; }
+tr:hover .ap-go, tr:focus-visible .ap-go { opacity: 1; }
+.ap-table td small { display: block; font-size: .7rem; }
+.ap-table td small.up { color: var(--ap-money); }
+.ap-cellbar { display: block; height: 4px; border-radius: 2px; margin-bottom: 3px; background: color-mix(in srgb, var(--muted, #647688) 12%, transparent); }
+.ap-cellbar i { display: block; height: 100%; border-radius: 2px; background: color-mix(in srgb, var(--accent, #4a8fc7) 72%, transparent); margin-left: auto; }
+.ap-cellbar.is-money i { background: var(--ap-money); }
+.ap-lock { color: var(--muted, #647688); font-size: .74rem; }
+.ap-more-row td { text-align: center; }
+.ap-link-btn { border: 0; background: none; color: var(--accent-deep, #2f6b9e); font: inherit; font-size: .82rem; cursor: pointer; padding: 6px 0; }
+.ap-link-btn:hover { text-decoration: underline; }
+.ap-qtable th small { display: block; font-weight: 400; color: var(--muted, #647688); max-width: 52ch; margin-top: 2px; }
+.ap-qtable code { font-size: .74rem; white-space: normal; }
+
+/* ── Гроші ─────────────────────────────────────────────────────── */
+.ap-money { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-items: center; }
+@container (min-width: 520px) { .ap-money { grid-template-columns: minmax(180px, 1fr) minmax(0, 1fr); } }
+.ap-kv { margin: 0; display: grid; gap: 8px; }
+.ap-kv div { display: grid; gap: 1px; }
+.ap-kv dt { font-size: .72rem; color: var(--muted, #647688); }
+.ap-kv dd { margin: 0; font-weight: 700; font-size: 1.05rem; }
+.ap-kv dd small { display: block; font-size: .72rem; }
+.ap-top { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 4px; }
+.ap-top li { display: grid; grid-template-columns: minmax(0, 1fr) 70px auto; gap: 8px; align-items: center; font-size: .8rem; cursor: pointer; padding: 2px 4px; border-radius: 6px; }
+.ap-top li:hover, .ap-top li:focus-visible { background: color-mix(in srgb, var(--accent, #4a8fc7) 8%, transparent); outline: none; }
+.ap-top .ap-cellbar { margin: 0; }
+.ap-top .ap-cellbar i { margin-left: 0; }
+
+/* ── Доступ: перелік областей ──────────────────────────────────── */
+.ap-dots { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 2px; max-height: 420px; overflow-y: auto; }
+.ap-dots li { display: grid; grid-template-columns: 9.5em minmax(0, 1fr) 4.2em; gap: 8px; align-items: center; font-size: .8rem; cursor: pointer; padding: 1px 4px; border-radius: 6px; }
+.ap-dots li:hover, .ap-dots li:focus-visible { background: color-mix(in srgb, var(--accent, #4a8fc7) 8%, transparent); outline: none; }
+.ap-dots li.is-me { background: color-mix(in srgb, var(--ap-money) 14%, transparent); font-weight: 600; }
+.ap-dtrack { position: relative; height: 12px; border-bottom: 1px solid var(--line, #e3edf3); }
+.ap-dtrack i { position: absolute; top: 2px; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: var(--accent, #4a8fc7); }
+.ap-dots li.is-me .ap-dtrack i { background: var(--ap-money); }
+.ap-dtrack b { position: absolute; top: -2px; bottom: -1px; width: 1px; background: var(--muted, #647688); }
+.ap-dval { text-align: right; }
+
+/* ── Попередні блоки ───────────────────────────────────────────── */
+.ap-legacy { margin-top: 18px; border: 1px dashed var(--line, #e3edf3); border-radius: 12px; padding: 0 12px; }
+.ap-legacy[open] { padding-bottom: 12px; }
+.ap-legacy-sum { cursor: pointer; padding: 12px 0; font-weight: 600; }
+.ap-legacy-sum small { font-weight: 400; margin-left: 6px; }
+@media (min-width: 1400px) {
+  .ap-legacy .side-cards { grid-row: 1; }
+  .ap-legacy .scale-card { grid-row: 1 / span 2; }
+  .ap-legacy .chart-card.span-2 { grid-row: 2; }
+}
+
+/* ── Паспорт закладу ───────────────────────────────────────────── */
+.ap-zoz {
+  position: fixed; inset: 0; z-index: 1200;
+  background: rgba(15, 23, 42, .38);
+  display: flex; justify-content: flex-end;
+  --ap-z0: color-mix(in srgb, var(--accent, #4a8fc7) 14%, transparent);
+  --ap-z1: color-mix(in srgb, var(--accent, #4a8fc7) 30%, transparent);
+  --ap-z2: color-mix(in srgb, var(--accent, #4a8fc7) 50%, transparent);
+  --ap-money: #d0782b; --ap-card: var(--surface, #fff);
+  --ap-ok: #1f8a5b; --ap-ok-bg: #e3f4ec; --ap-warn: #a86b00; --ap-warn-bg: #fbf0d9;
+  --ap-bad: #b3261e; --ap-bad-bg: #fbe4e2; --ap-na: #6b7686; --ap-na-bg: #eceff3;
+}
+.dark-theme .ap-zoz { --ap-card: #1b2536; --ap-money: #e89a55; --ap-ok: #5cc79b; --ap-ok-bg: #123026;
+  --ap-warn: #e0b167; --ap-warn-bg: #33270f; --ap-na: #9aa6b5; --ap-na-bg: #1f252d; }
+.ap-zoz[hidden] { display: none; }
+.ap-zoz-panel {
+  position: relative; width: min(580px, 100%); height: 100%; overflow-y: auto;
+  background: var(--surface, #fff); color: var(--ink, #1f3347);
+  border-left: 1px solid var(--line, #e3edf3);
+  padding: 20px 22px 28px;
+  box-shadow: -18px 0 44px rgba(15, 23, 42, .18);  /* шухляда справді злітає */
+}
+.dark-theme .ap-zoz-panel { background: #1b2536; }
+.ap-zoz-panel.is-skel p { color: var(--muted, #647688); }
+.ap-zoz-x { position: absolute; top: 12px; right: 12px; border: 0; background: none; font-size: 1.1rem; cursor: pointer; color: var(--muted, #647688); padding: 4px 8px; border-radius: 6px; }
+.ap-zoz-x:hover { background: var(--soft, #f2f8fb); color: var(--ink, #1f3347); }
+.ap-zoz-kicker { margin: 0 0 4px; font-size: .74rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted, #647688); }
+.ap-zoz-panel h3 { margin: 0 32px 8px 0; font-size: 1.15rem; line-height: 1.3; }
+.ap-zoz-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.ap-zoz-badges span { font-size: .74rem; padding: 2px 8px; border-radius: 999px; background: var(--soft, #f2f8fb); border: 1px solid var(--line, #e3edf3); }
+.ap-zoz-badges .is-core { background: color-mix(in srgb, var(--ap-money, #d0782b) 16%, transparent); border-color: transparent; }
+.ap-zoz-req { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 8px; }
+.ap-zoz-req dd { font-size: .9rem; font-weight: 600; }
+.ap-zoz-sec { border-top: 1px solid var(--line, #e3edf3); padding-top: 12px; margin-top: 12px; }
+.ap-zoz-sec h4 { margin: 0 0 6px; font-size: .95rem; }
+.ap-zoz-sec > summary { font-weight: 600; font-size: .92rem; color: var(--ink, #1f3347); width: auto; }
+.ap-zoz-lead { margin: 0 0 8px; font-size: .88rem; line-height: 1.45; }
+.ap-zoz-gauges { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.ap-zoz-pk tbody tr.is-me { background: color-mix(in srgb, var(--accent, #4a8fc7) 10%, transparent); }
+.ap-zoz-q { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+.ap-btn { border: 1px solid var(--accent, #4a8fc7); background: var(--accent, #4a8fc7); color: #fff; border-radius: 8px; padding: 8px 16px; font: inherit; cursor: pointer; }
+body.ap-zoz-open { overflow: hidden; }
+.ap-zoz .ap-gz.z0 { fill: var(--ap-z0); }
+.ap-zoz .ap-gz.z1 { fill: var(--ap-z1); }
+.ap-zoz .ap-gz.z2 { fill: var(--ap-z2); }
+.ap-zoz .ap-gn, .ap-zoz .ap-gh { fill: var(--ink, #1f3347); }
+.ap-zoz .ap-gh { stroke: var(--ap-card); stroke-width: 2; }
+.ap-zoz .ap-gt { stroke: var(--ap-money); stroke-width: 2.5; }
+.ap-zoz .ap-gl { fill: var(--muted, #647688); font-size: 10.5px; }
+.ap-zoz .ap-gv { fill: var(--ink, #1f3347); font-size: 14px; font-weight: 700; }
+.ap-zoz .ap-gauge svg { display: block; width: 100%; max-width: 230px; height: auto; margin: 0 auto; overflow: visible; }
+.ap-zoz .ap-gauge figcaption { font-size: .74rem; color: var(--muted, #647688); text-align: center; }
+.ap-zoz .ap-lamp { display: inline-flex; align-items: center; gap: 5px; font-size: .76rem; padding: 2px 8px 2px 6px; border-radius: 999px; color: var(--ap-na); background: var(--ap-na-bg); }
+.ap-zoz .ap-lamp i { width: 9px; height: 9px; border-radius: 50%; box-sizing: border-box; }
+.ap-zoz .ap-lamp.is-ok { color: var(--ap-ok); background: var(--ap-ok-bg); }
+.ap-zoz .ap-lamp.is-ok i { background: var(--ap-ok); }
+.ap-zoz .ap-lamp.is-warn { color: var(--ap-warn); background: var(--ap-warn-bg); }
+.ap-zoz .ap-lamp.is-warn i { background: linear-gradient(90deg, var(--ap-warn) 50%, transparent 50%); border: 1.5px solid var(--ap-warn); }
+.ap-zoz .ap-lamp.is-na i { border: 1.5px dashed var(--ap-na); }
+.ap-zoz .ap-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.ap-zoz .ap-table th, .ap-zoz .ap-table td { padding: 5px 6px; border-bottom: 1px solid var(--line, #e3edf3); text-align: left; }
+.ap-zoz .ap-table .n { text-align: right; white-space: nowrap; }
+.ap-zoz .ap-kv { margin: 0; display: grid; gap: 8px; }
+.ap-zoz .ap-kv dt { font-size: .72rem; color: var(--muted, #647688); }
+.ap-zoz .ap-kv dd { margin: 0; }
+.ap-zoz .ap-empty, .ap-zoz .ap-sub { color: var(--muted, #647688); font-size: .82rem; }
+.ap-zoz .ap-warn { font-size: .82rem; color: var(--ap-warn); background: var(--ap-warn-bg); border-radius: 8px; padding: 6px 10px; }
+
+@media print {
+  .ap-zoz, .ap-legacy, .ap-pill { display: none !important; }
+  .ap-card, .ap-link { break-inside: avoid; }
+  .ap-more-block[open] { break-inside: auto; }
+}

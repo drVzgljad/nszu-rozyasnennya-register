@@ -1,0 +1,1564 @@
+/* ══════════════ ПАНЕЛЬ «ЯК ПРАЦЮЄ ПАКЕТ» ══════════════
+   Верхній рівень вкладки «Аналітика та ЗОЗ». Каталог показників і пороги
+   лампочок — D:\pmg-data\27_панель_пакета\ПОКАЗНИКИ.md.
+
+   ПРИНЦИП (домовленість із користувачем): спершу загальна картина — картки зі
+   спідометрами, КАРТА і загальні діаграми; таблиці, переліки й реєстр джерел
+   розкриваються лише за потреби (<details>).
+
+   Будова відповідає самому пакету: Умови → Мережа → Гроші → Робота → Доступ.
+   Сходи: країна → область → громада → населений пункт → заклад. Крок униз —
+   клік по карті, по стовпчику зрізу чи по області на діаграмі доступу; карта і
+   панель синхронні (map-drill.js). Останній щабель — паспорт закладу, лише для
+   авторизованих.
+
+   ОДНЕ ДЖЕРЕЛО ЗРІЗУ. Мережа й гроші на всіх щаблях рахуються з panel.json
+   (ті самі рядки, що малює карта), обсяги — з volumes/pkg_N.json по
+   областях і з Supabase нижче області.
+   ──────────────────────────────────────────────────────────────── */
+(() => {
+"use strict";
+
+const P = { EDRPOU: 0, NAME: 1, OBL: 2, SETTLE: 3, X: 4, Y: 5,
+            OWN: 6, NET: 7, HCODE: 8, HNAME: 9 };
+const NO_HROM = "∅";                      // заклади без прив'язки до громади
+const NET_LABEL = { 3: "Надкластерний", 2: "Кластерний", 1: "Загальний", 0: "Поза мережею" };
+const OWN_ORDER = ["Комунальна", "Державна", "Приватна (без ФОП)", "ФОП", "Інші орг.-правові форми"];
+const OWN_SHORT = { "Комунальна": "комунальні", "Державна": "державні",
+  "Приватна (без ФОП)": "приватні", "ФОП": "ФОП", "Інші орг.-правові форми": "інші" };
+const MONTHS = ["січ", "лют", "бер", "кві", "тра", "чер", "лип", "сер", "вер", "жов", "лис", "гру"];
+const MONTH_FULL = ["січень", "лютий", "березень", "квітень", "травень", "червень",
+                    "липень", "серпень", "вересень", "жовтень", "листопад", "грудень"];
+const MONTH_GEN = ["січня", "лютого", "березня", "квітня", "травня", "червня",
+                   "липня", "серпня", "вересня", "жовтня", "листопада", "грудня"];
+
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g,
+  (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/* passportState оголошено через const у passport.js: це спільна глобальна
+   область класичних скриптів, але НЕ властивість window. */
+const ST = () => (typeof passportState !== "undefined" ? passportState : {});
+
+/* ── Числа українською ─────────────────────────────────────────── */
+const NB = "\u00a0";
+function num(v) { return Math.round(v || 0).toLocaleString("uk-UA"); }
+function dec(v, d) {
+  return (v || 0).toLocaleString("uk-UA", { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+function pct(v, d) { return dec(v, d == null ? 1 : d) + NB + "%"; }
+function money(v) {
+  if (!v) return "—";
+  if (v >= 1e9) return dec(v / 1e9, 2) + NB + "млрд" + NB + "₴";
+  if (v >= 1e6) return dec(v / 1e6, v >= 1e8 ? 0 : 1) + NB + "млн" + NB + "₴";
+  if (v >= 1e3) return dec(v / 1e3, 0) + NB + "тис." + NB + "₴";
+  return num(v) + NB + "₴";
+}
+function big(v) {
+  if (v >= 1e6) return dec(v / 1e6, 1) + NB + "млн";
+  if (v >= 1e4) return dec(v / 1e3, 0) + NB + "тис.";
+  return num(v);
+}
+const PR = new Intl.PluralRules("uk-UA");
+function plural(n, one, few, many) {
+  const f = PR.select(Math.round(n));
+  return f === "one" ? one : f === "few" ? few : many;
+}
+const nProv = (n) => num(n) + NB + plural(n, "надавач", "надавачі", "надавачів");
+/** «191 послуга», «1,2 млн послуг» — після «тис./млн» завжди родовий. */
+const svc = (v) => big(v) + NB + (v >= 1e4 ? "послуг" : plural(v, "послуга", "послуги", "послуг"));
+
+/* ── Статистика ────────────────────────────────────────────────── */
+function quantile(sortedAsc, q) {
+  if (!sortedAsc.length) return 0;
+  const i = (sortedAsc.length - 1) * q;
+  const lo = Math.floor(i), hi = Math.ceil(i);
+  return sortedAsc[lo] + (sortedAsc[hi] - sortedAsc[lo]) * (i - lo);
+}
+const median = (a) => quantile(a, 0.5);
+
+/** Скільки найбільших отримувачів разом дають ≥ 80 % суми. */
+function core80(sortedAsc, total) {
+  let acc = 0, k = 0;
+  for (let i = sortedAsc.length - 1; i >= 0; i--) {
+    acc += sortedAsc[i];
+    k++;
+    if (acc >= total * 0.8) break;
+  }
+  return { count: k, share: sortedAsc.length ? k / sortedAsc.length * 100 : 0 };
+}
+
+/** Коефіцієнт Джині: 0 — усім порівну, 1 — усе в одного. */
+function gini(sortedAsc) {
+  const n = sortedAsc.length;
+  if (n < 2) return null;
+  let s = 0, w = 0;
+  sortedAsc.forEach((x, i) => { s += x; w += (i + 1) * x; });
+  return s ? (2 * w) / (n * s) - (n + 1) / n : null;
+}
+
+/* ── Стан ──────────────────────────────────────────────────────── */
+const A = {
+  pkg: null,
+  panel: null,
+  items: [],                          // [{pi, sum, q}] унікальні надавачі пакета
+  scope: { obl: null, hrom: null, place: null },
+  hromCount: new Map(),               // область → скільки громад у геометрії
+  cmp: null, docStatus: null,         // ставки й монітор редакцій
+  access: null,                       // {signedIn, role} — null, поки не перевіряли
+  pvol: null, pvolPkg: null,          // обсяги по закладах (Supabase)
+  provPk: null,                       // pi → [[пакет, сума]]
+  showAll: false,
+  zozPi: null,
+  loading: null,
+  urlApplied: false,
+  syncing: false,
+};
+
+/* ── Дані ──────────────────────────────────────────────────────── */
+function getJson(url) {
+  return fetch(url).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+}
+
+function ensurePanel() {
+  if (A.panel) return Promise.resolve(A.panel);
+  const p = window.MapDrill && window.MapDrill.ensurePanel
+    ? window.MapDrill.ensurePanel()
+    : getJson("../panel/data/panel.json");
+  return p.then((d) => { A.panel = d; return d; });
+}
+
+function ensureExtras() {
+  if (A.loading) return A.loading;
+  A.loading = Promise.all([
+    getJson("../postanova/data/comparison_2025_2026.json"),
+    getJson("../postanova/data/document_status.json"),
+  ]).then(([cmp, ds]) => { A.cmp = cmp; A.docStatus = ds; });
+  return A.loading;
+}
+
+function loadHromCount(obl) {
+  if (!obl || A.hromCount.has(obl)) return Promise.resolve();
+  return getJson(`../panel/data/geo/hromada/${encodeURIComponent(obl)}.json`)
+    .then((g) => { A.hromCount.set(obl, g && g.units ? Object.keys(g.units).length : 0); });
+}
+
+function prepare() {
+  const d = A.panel;
+  const acc = new Map();
+  ((d && d.links[String(A.pkg)]) || []).forEach(([pi, s]) => acc.set(pi, (acc.get(pi) || 0) + s));
+  A.items = [...acc].map(([pi, sum]) => ({ pi, sum, q: d.providers[pi] })).filter((it) => it.q);
+}
+
+function providerPackages(pi) {
+  if (!A.provPk) {
+    A.provPk = new Map();
+    Object.entries(A.panel.links).forEach(([pk, rows]) => rows.forEach(([i, s]) => {
+      let a = A.provPk.get(i);
+      if (!a) A.provPk.set(i, (a = []));
+      a.push([pk, s]);
+    }));
+  }
+  return A.provPk.get(pi) || [];
+}
+
+/** Пакети постанови 1808, з якими порівнюємо (реімбурсація й пілоти — ні). */
+function validPkgs() {
+  return new Set((ST().packages || []).map((p) => String(p.number)));
+}
+
+/* ── Доступ ────────────────────────────────────────────────────── */
+/** Роль лише з profiles, як в auth-v2.js. Межа паспорта закладу — «не гість»:
+ *  та сама, що в RLS таблиці package_provider_volumes. */
+async function checkAccess() {
+  const sb = window.__pmgSb;
+  if (!sb) return { signedIn: false, role: "guest" };
+  try {
+    const { data } = await sb.auth.getSession();
+    const session = data && data.session;
+    if (!session) return { signedIn: false, role: "guest" };
+    const { data: prof } = await sb.from("profiles").select("role").eq("id", session.user.id).single();
+    return { signedIn: true, role: (prof && prof.role) || "guest" };
+  } catch (e) {
+    return { signedIn: false, role: "guest" };
+  }
+}
+const canSeeZoz = () => Boolean(A.access && A.access.signedIn && A.access.role !== "guest");
+
+/* ── Лампочки якості даних ─────────────────────────────────────────
+   Правило користувача (13.09.2026), однакове для всіх джерел:
+   🟢 дані до 1 місяця · 🟡 до 3 місяців · 🔴 старші за 3 місяці · ⚪ немає даних.
+   «Дата даних» — зріз джерела; для обсягів — кінець останнього повного місяця. */
+const LAMP_TEXT = { ok: "актуальні", warn: "треба оновити", bad: "неактуальні", na: "немає даних" };
+const LAMP_RANK = { ok: 0, na: 1, warn: 2, bad: 3 };
+const LAMP_RULE = "до 1 міс. — актуальні · до 3 міс. — треба оновити · старші — неактуальні";
+
+function parseDate(s) {
+  if (!s) return null;
+  const m = String(s).match(/^(\d{2})\.(\d{2})\.(\d{4})/);
+  if (m) return new Date(+m[3], +m[2] - 1, +m[1]);
+  const i = String(s).match(/^(\d{4})-(\d{2})(?:-(\d{2}))?/);
+  if (i) return new Date(+i[1], +i[2] - 1, i[3] ? +i[3] : 1);
+  return null;
+}
+const dmy = (d) => d ? `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}` : "—";
+const worst = (...st) => st.filter(Boolean).reduce((a, b) => (LAMP_RANK[b] > LAMP_RANK[a] ? b : a), "ok");
+
+function monthsAgo(n) {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setMonth(d.getMonth() - n);
+  return d;
+}
+function byMonths(date) {
+  if (!date) return "na";
+  return date >= monthsAgo(1) ? "ok" : date >= monthsAgo(3) ? "warn" : "bad";
+}
+function ageText(date) {
+  if (!date) return "—";
+  const days = Math.floor((Date.now() - date.getTime()) / 86400000);
+  return days < 45 ? `${num(days)} ${plural(days, "день", "дні", "днів")}` : `${dec(days / 30.44, 1)} міс.`;
+}
+
+/** Ставки: колір — за віком звірки (правило для всіх), а зміни постанови після
+ *  звірки — окремим застереженням поруч, щоб не губилися. */
+function ratesInfo() {
+  const cmp = A.cmp, ds = A.docStatus;
+  if (!cmp) return { date: null, note: "ставки постанови не завантажилися", fresh: [] };
+  const meta = cmp.meta || {};
+  const src = (meta.sources && meta.sources["2026"]) || {};
+  const edition = parseDate(src.edition);
+  const verified = new Set((meta.note || "").match(/\d{3,4}/g) || []);
+  if (src.basis) verified.add(String(src.basis).split("-")[0]);
+  const fresh = ((ds && ds.amendments) || []).filter((a) => {
+    const nm = String(a.doc_id || "").split("-")[0];
+    const eff = parseDate(a.effective_date);
+    return !verified.has(nm) && eff && (!edition || eff > edition);
+  });
+  const lastVerified = [...verified].filter((n) => n !== "1808").sort((a, b) => +a - +b).pop();
+  const list = fresh.map((a) => `№ ${String(a.doc_id).split("-")[0]} від ${a.effective_date}`).join(", ");
+  return {
+    date: parseDate(meta.generated),
+    fresh,
+    slice: `звірено ${dmy(parseDate(meta.generated))}${lastVerified ? ` (до зміни № ${lastVerified})` : ""}`,
+    note: (fresh.length ? `⚠ Після звірки постанову змінювали: ${list} — ставки треба звірити. ` : "") +
+      (ds && ds.checked_at ? `Монітор редакцій перевіряв zakon.rada.gov.ua ${dmy(parseDate(ds.checked_at))}.` : ""),
+  };
+}
+
+function sources() {
+  const st = ST();
+  const cd = st.contractsData || {};
+  const V = window.Volumes;
+  const meta = V && V.meta ? V.meta() : null;
+  const demo = V && V.demo ? V.demo() : null;
+  const lastFull = meta && meta.full_months && meta.full_months.length
+    ? meta.full_months[meta.full_months.length - 1] : null;
+  const volEnd = lastFull ? (() => { const d = parseDate(lastFull); return new Date(d.getFullYear(), d.getMonth() + 1, 0); })() : null;
+  const net = parseDate(cd.source_date), sums = parseDate(cd.sums_date);
+  const decl = demo ? parseDate(demo.declarations_updated) : null;
+  const spec = parseDate(st.packagesGenerated);
+  const rates = ratesInfo();
+  const pvEnd = A.pvol && A.pvol.period ? parseDate(A.pvol.period.to) : null;
+  return [
+    { id: "net", title: "Склад мережі (реєстр договорів)", slice: dmy(net), date: net, state: byMonths(net),
+      affects: "Мережа, Гроші, карта, паспорт закладу", fix: "Оновити_договори.cmd" },
+    { id: "sums", title: "Суми договорів", slice: dmy(sums), date: sums, state: byMonths(sums),
+      affects: "Гроші, медіанний договір, ядро 80 %",
+      fix: "з серпня вивантажка складу йде без сум — потрібна вивантажка з сумами",
+      note: cd.sums_date && cd.sums_date !== cd.source_date
+        ? `Суми старші за склад мережі: склад від ${cd.source_date}, суми від ${cd.sums_date}.` : "" },
+    { id: "vol", title: "Обсяги ЕСОЗ (по областях)", date: volEnd, state: meta ? byMonths(volEnd) : "na",
+      slice: lastFull ? `повні місяці до ${lastFull.slice(5)}.${lastFull.slice(0, 4)}` : "—",
+      affects: "Робота, Доступ", fix: "запит аналітикам за наступний місяць → 23_обсяги_демографія",
+      note: meta ? `Вивантажку зібрано ${meta.generated}; вік рахується від кінця останнього повного місяця; обрізаний місяць викинуто з усіх підсумків.` : "" },
+    { id: "decl", title: "Декларації ПМД (знаменник)", slice: dmy(decl), date: decl, state: demo ? byMonths(decl) : "na",
+      affects: "Доступ (на населення)", fix: "23_обсяги_демографія/build_demography.py" },
+    { id: "rates", title: "Ставки й коефіцієнти (постанова 1808)", slice: rates.slice, date: rates.date,
+      state: byMonths(rates.date), affects: "Умови", fix: "звірити зміни → postanova/build_comparison.py", note: rates.note },
+    { id: "spec", title: "Специфікації пакетів", slice: dmy(spec), date: spec, state: byMonths(spec),
+      affects: "Умови: поріг входу, анатомія", fix: "перезібрати pakety/data/packages_2026.json" },
+    { id: "geo", title: "Межі громад і координати", slice: "HDX (реформа 2020) + GeoNames", date: null,
+      ageText: "довідник", state: "ok", affects: "карта, сходи", fix: "—",
+      note: "Довідник меж і населених пунктів із часом не старіє — оновлюється при зміні адмінустрою. Точність — населений пункт, не адреса закладу." },
+    { id: "pvol", title: "Послуги по закладах (Supabase)", date: pvEnd,
+      slice: A.pvol && A.pvol.period ? `${A.pvol.period.from} — ${A.pvol.period.to}` : "—",
+      ageText: canSeeZoz() ? (A.pvol ? null : "за пакетом немає") : "лише після входу",
+      state: canSeeZoz() && pvEnd ? byMonths(pvEnd) : "na",
+      affects: "Робота нижче області, паспорт закладу", fix: "23_обсяги_демографія/upload_provider_volumes.py" },
+  ];
+}
+const srcState = (list, id) => (list.find((s) => s.id === id) || {}).state || "na";
+
+function lampHtml(state, label) {
+  return `<span class="ap-lamp is-${state}" title="${esc(LAMP_TEXT[state])}">` +
+    `<i aria-hidden="true"></i><span>${esc(label || LAMP_TEXT[state])}</span></span>`;
+}
+
+/* ── Зріз і щаблі ──────────────────────────────────────────────── */
+function level() {
+  const s = A.scope;
+  return s.place ? "place" : s.hrom ? "hromada" : s.obl ? "oblast" : "country";
+}
+
+function scoped(scope) {
+  const s = scope || A.scope;
+  return A.items.filter((it) =>
+    (!s.obl || it.q[P.OBL] === s.obl) &&
+    (!s.hrom || (s.hrom === NO_HROM ? !it.q[P.HCODE] : it.q[P.HCODE] === s.hrom)) &&
+    (!s.place || it.q[P.SETTLE] === s.place));
+}
+
+function oblName(o) {
+  if (!o) return "";
+  if (o === "М.КИЇВ") return "м. Київ";
+  if (o === "М.СЕВАСТОПОЛЬ") return "м. Севастополь";
+  if (o === "АВТОНОМНА РЕСПУБЛІКА КРИМ") return "АР Крим";
+  const t = o.toLowerCase().replace(/(^|[-\s])(\S)/gu, (m, p, ch) => p + ch.toUpperCase());
+  return t + " область";
+}
+function oblShort(o) { return oblName(o).replace(/ область$/, ""); }
+function hromName(code, list) {
+  if (code === NO_HROM) return "без прив'язки до громади";
+  const it = (list || A.items).find((x) => x.q[P.HCODE] === code);
+  return it ? `${it.q[P.HNAME]} громада` : "громада";
+}
+/** «м. ПОГРЕБИЩЕ» → «м. Погребище», «смт ТИВРІВ» → «смт Тиврів». */
+function placeName(s) {
+  const raw = String(s || "").trim();
+  if (!raw || raw === "—") return "—";
+  const m = raw.match(/^(м\.|с\.|смт|с-ще|селище)\s*(.*)$/i);
+  const body = (m ? m[2] : raw).toLowerCase()
+    .replace(/(^|[-\s'’])(\S)/gu, (x, p, ch) => (p === "'" || p === "’" ? p + ch : p + ch.toUpperCase()));
+  return m ? `${m[1].toLowerCase()} ${body}` : body;
+}
+function scopeTitle(s) {
+  s = s || A.scope;
+  if (s.place) return placeName(s.place);
+  if (s.hrom) return hromName(s.hrom);
+  if (s.obl) return oblName(s.obl);
+  return "Україна";
+}
+const CHILD_WORD = {
+  country: ["область", "області", "областей"],
+  oblast: ["громада", "громади", "громад"],
+  hromada: ["населений пункт", "населені пункти", "населених пунктів"],
+  place: ["заклад", "заклади", "закладів"],
+};
+
+/** Діти поточного щабля: ключ і назва. */
+function childOf(it, lvl) {
+  if (lvl === "country") return [it.q[P.OBL], oblShort(it.q[P.OBL])];
+  if (lvl === "oblast") return it.q[P.HCODE] ? [it.q[P.HCODE], it.q[P.HNAME]] : [NO_HROM, "без прив'язки до громади"];
+  if (lvl === "hromada") return [it.q[P.SETTLE] || "—", placeName(it.q[P.SETTLE])];
+  return ["pi:" + it.pi, it.q[P.NAME]];
+}
+
+function childGroups(list, lvl) {
+  const groups = new Map();
+  list.forEach((it) => {
+    const [k, label] = childOf(it, lvl);
+    let g = groups.get(k);
+    if (!g) groups.set(k, (g = { key: k, label, list: [] }));
+    g.list.push(it);
+  });
+  return [...groups.values()].map((g) => ({ ...g, st: stats(g.list) }))
+    .sort((a, b) => (b.st.total - a.st.total) || (b.st.n - a.st.n));
+}
+
+/* ── Обсяги в зрізі ────────────────────────────────────────────────
+   По країні й областях — публічні агрегати volumes.js. Нижче області —
+   сума по закладах із Supabase, і лише для авторизованих. */
+function volData() {
+  const V = window.Volumes;
+  const d = V && V.data ? V.data() : null;
+  return d && String(d.p) === String(A.pkg) ? d : null;
+}
+function volMetric(mode) {
+  const V = window.Volumes;
+  if (!volData() || !V.hasData || !V.hasData()) return null;
+  return V.mapMetric(mode);
+}
+function pvKey(q) {
+  const Z = window.ZozVolumes;
+  return Z ? Z.providerKey({ ownership: q[P.OWN], provider_name: q[P.NAME], edrpou: q[P.EDRPOU] }) : null;
+}
+function pvOf(it) {
+  if (!A.pvol || A.pvolPkg !== String(A.pkg)) return null;
+  const r = A.pvol.map.get(pvKey(it.q));
+  return r ? r.s : 0;
+}
+/** Послуги списку закладів: {v, how} або null, якщо показати нічим. */
+function servicesOf(list, lvl, key) {
+  const d = volData();
+  if (lvl === "country-total" && d) return { v: d.tot[0], how: "pub" };
+  if (lvl === "oblast-row" || lvl === "oblast-total") {
+    const m = volMetric("vol");
+    if (m) return { v: m.val(key), how: "pub" };
+  }
+  if (A.pvol && A.pvolPkg === String(A.pkg)) {
+    return { v: list.reduce((a, it) => a + (pvOf(it) || 0), 0), how: "auth" };
+  }
+  return null;
+}
+
+function stats(list) {
+  const sums = list.map((it) => it.sum).filter((v) => v > 0).sort((a, b) => a - b);
+  const total = sums.reduce((a, b) => a + b, 0);
+  const own = {}, net = { 0: 0, 1: 0, 2: 0, 3: 0 };
+  list.forEach((it) => {
+    const o = it.q[P.OWN] || "Інші орг.-правові форми";
+    own[o] = (own[o] || 0) + 1;
+    net[it.q[P.NET] || 0]++;
+  });
+  return {
+    n: list.length, total, withSum: sums.length, sums,
+    med: median(sums), q1: quantile(sums, 0.25), q3: quantile(sums, 0.75),
+    core: core80(sums, total), gini: gini(sums),
+    inNet: list.length - net[0], net, own,
+    places: new Set(list.map((it) => it.q[P.SETTLE])).size,
+    hroms: new Set(list.map((it) => it.q[P.HCODE]).filter(Boolean)).size,
+    obls: new Set(list.map((it) => it.q[P.OBL])).size,
+  };
+}
+
+/** Гроші й мережа 46 пакетів — для місця пакета в черзі. */
+function bench() {
+  const valid = validPkgs();
+  const pk = (A.panel && A.panel.packages) || {};
+  const rows = Object.entries(pk).filter(([n]) => valid.has(n))
+    .map(([n, v]) => ({ n, sum: v.sum || 0, prov: v.providers || 0 }));
+  const V = window.Volumes;
+  const meta = V && V.meta ? V.meta() : null;
+  const vols = ((meta && meta.packages) || []).filter((e) => e && e.s && valid.has(String(e.p)))
+    .map((e) => ({ n: String(e.p), s: e.s }));
+  return { rows, vols, totalSum: rows.reduce((a, r) => a + r.sum, 0) };
+}
+const rankIn = (arr, v) => 1 + arr.filter((x) => x > v).length;
+const behindPct = (arr, v) => { const rk = rankIn(arr, v); return arr.length > 1 ? (arr.length - rk) / (arr.length - 1) * 100 : 100; };
+
+/* ── Примітиви малювання: чистий SVG/HTML, без бібліотек ─────────── */
+
+/** Спідометр — вибір користувача (скіл pmg-dashboard, налаштування
+ *  «вимірювач»). Правила, без яких він бреше: підписані мінімум і максимум,
+ *  зони одного тону з назвами в підказках, стрілка І число під віссю, риска
+ *  порівняння, компактний розмір (не більший за картку). */
+function gaugeSvg(o) {
+  const W = 190, H = 118, cx = 95, cy = 92, R = 78, r0 = 58;
+  const min = o.min == null ? 0 : o.min, max = o.max == null ? 100 : o.max;
+  const clamp = (v) => Math.max(min, Math.min(max, v));
+  const ang = (v) => Math.PI * (1 - (clamp(v) - min) / ((max - min) || 1));
+  const pt = (a, rr) => [cx + rr * Math.cos(a), cy - rr * Math.sin(a)];
+  const f = (x) => x.toFixed(2);
+  const band = (v1, v2, rOut, rIn) => {
+    const [x1, y1] = pt(ang(v1), rOut), [x2, y2] = pt(ang(v2), rOut);
+    const [x3, y3] = pt(ang(v2), rIn), [x4, y4] = pt(ang(v1), rIn);
+    return `M${f(x1)},${f(y1)} A${rOut},${rOut} 0 0 1 ${f(x2)},${f(y2)} L${f(x3)},${f(y3)} A${rIn},${rIn} 0 0 0 ${f(x4)},${f(y4)} Z`;
+  };
+  const zones = (o.zones || [[min, max, ""]]).map((z, i) =>
+    `<path d="${band(z[0], z[1], R, r0)}" class="ap-gz z${o.zoneCls ? o.zoneCls[i] : i}"><title>${esc(z[2] || "")}</title></path>`).join("");
+  const has = o.value != null && Number.isFinite(o.value);
+  const a = ang(has ? o.value : min);
+  const [nx, ny] = pt(a, R - 4);
+  const [bx1, by1] = pt(a + Math.PI / 2, 3.2), [bx2, by2] = pt(a - Math.PI / 2, 3.2);
+  const needle = has
+    ? `<path d="M${f(bx1)},${f(by1)} L${f(nx)},${f(ny)} L${f(bx2)},${f(by2)} Z" class="ap-gn"/><circle cx="${cx}" cy="${cy}" r="5.5" class="ap-gh"/>`
+    : "";
+  let tick = "";
+  if (o.target != null) {
+    const [t1x, t1y] = pt(ang(o.target), r0 - 4), [t2x, t2y] = pt(ang(o.target), R + 5);
+    tick = `<line x1="${f(t1x)}" y1="${f(t1y)}" x2="${f(t2x)}" y2="${f(t2y)}" class="ap-gt"><title>${esc(o.targetLabel || "")}</title></line>`;
+  }
+  const lbl = (v) => (o.fmt ? o.fmt(v) : num(v));
+  return `<figure class="ap-gauge" role="img" aria-label="${esc(o.aria || "")}">
+      <svg viewBox="0 0 ${W} ${H}" aria-hidden="true">
+        ${zones}${tick}${needle}
+        <text x="${f(cx - (R + r0) / 2)}" y="${cy + 15}" class="ap-gl" text-anchor="middle">${esc(o.minLabel || lbl(min))}</text>
+        <text x="${f(cx + (R + r0) / 2)}" y="${cy + 15}" class="ap-gl" text-anchor="middle">${esc(o.maxLabel || lbl(max))}</text>
+        <text x="${cx}" y="${cy + 23}" class="ap-gv" text-anchor="middle">${esc(has ? o.valueText : "—")}</text>
+      </svg>
+      ${o.caption ? `<figcaption>${o.caption}</figcaption>` : ""}
+    </figure>`;
+}
+
+function sparkSvg(vals, o) {
+  o = o || {};
+  const W = o.w || 160, H = o.h || 30, pad = 3;
+  if (!vals.length) return "";
+  const max = Math.max(...vals, 1);
+  const x = (i) => pad + (vals.length > 1 ? i / (vals.length - 1) : 0.5) * (W - 2 * pad);
+  const y = (v) => H - pad - (v / max) * (H - 2 * pad);
+  const d = vals.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
+  const last = vals.length - 1;
+  return `<svg class="ap-spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M${x(0).toFixed(1)},${H - pad}${d.replace(/^M/, "L")}L${x(last).toFixed(1)},${H - pad}Z" class="ap-spark-a"/>
+      <path d="${d}" class="ap-spark-l"/><circle cx="${x(last).toFixed(1)}" cy="${y(vals[last]).toFixed(1)}" r="2.6" class="ap-spark-d"/>
+    </svg>`;
+}
+
+/** Лінія за місяцями: вісь від нуля, підписи прямо на точках. */
+function lineSvg(points, o) {
+  o = o || {};
+  const W = 560, H = 210, L = 46, R = 16, T = 16, B = 30;
+  if (!points.length) return "";
+  const max = Math.max(...points.map((p) => p.v), 1) * 1.12;
+  const x = (i) => L + (points.length > 1 ? i / (points.length - 1) : 0.5) * (W - L - R);
+  const y = (v) => T + (1 - v / max) * (H - T - B);
+  const ticks = [0, 0.5, 1].map((k) => max / 1.12 * k);
+  const grid = ticks.map((t) => `<line x1="${L}" x2="${W - R}" y1="${y(t).toFixed(1)}" y2="${y(t).toFixed(1)}" class="ap-grid"/>
+      <text x="${L - 6}" y="${(y(t) + 4).toFixed(1)}" class="ap-axis" text-anchor="end">${esc(big(t))}</text>`).join("");
+  const d = points.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).join("");
+  const dots = points.map((p, i) => `<g><circle cx="${x(i).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="3.2" class="ap-line-d"/>
+      <title>${esc(p.label)}: ${esc(num(p.v))}</title>
+      <text x="${x(i).toFixed(1)}" y="${H - 10}" class="ap-axis" text-anchor="middle">${esc(p.short)}</text></g>`).join("");
+  const lastI = points.length - 1;
+  return `<svg class="ap-line" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.aria || "")}">
+      ${grid}<path d="${d}" class="ap-line-l"/>${dots}
+      <text x="${x(lastI).toFixed(1)}" y="${(y(points[lastI].v) - 9).toFixed(1)}" class="ap-line-v" text-anchor="end">${esc(big(points[lastI].v))}</text>
+    </svg>`;
+}
+
+/** Крива концентрації (Лоренца): частка надавачів → частка грошей. */
+function lorenzSvg(sortedAsc, total) {
+  const W = 260, H = 200, L = 34, R = 10, T = 10, B = 28;
+  const n = sortedAsc.length;
+  if (n < 2 || !total) return "";
+  const x = (fr) => L + fr * (W - L - R);
+  const y = (fr) => T + (1 - fr) * (H - T - B);
+  let acc = 0;
+  const pts = [[0, 0]];
+  const step = Math.max(1, Math.floor(n / 120));
+  sortedAsc.forEach((v, i) => {
+    acc += v;
+    if (i % step === 0 || i === n - 1) pts.push([(i + 1) / n, acc / total]);
+  });
+  const d = pts.map(([a, b], i) => `${i ? "L" : "M"}${x(a).toFixed(1)},${y(b).toFixed(1)}`).join("");
+  const c = core80(sortedAsc, total);
+  const fx = 1 - c.count / n;                       // звідки починається ядро
+  return `<svg class="ap-lorenz" viewBox="0 0 ${W} ${H}" role="img"
+        aria-label="Крива концентрації: ${esc(num(c.count))} найбільших із ${esc(num(n))} отримують 80 % грошей">
+      <line x1="${x(0)}" y1="${y(0)}" x2="${x(1)}" y2="${y(1)}" class="ap-diag"/>
+      <rect x="${x(fx).toFixed(1)}" y="${T}" width="${(x(1) - x(fx)).toFixed(1)}" height="${H - T - B}" class="ap-core-zone"><title>ядро: заклади, що разом отримують 80 % грошей</title></rect>
+      <path d="${d}" class="ap-lorenz-l"/>
+      <line x1="${L}" x2="${W - R}" y1="${y(0.2).toFixed(1)}" y2="${y(0.2).toFixed(1)}" class="ap-grid"/>
+      <text x="${L - 4}" y="${(y(0.2) + 3).toFixed(1)}" class="ap-axis" text-anchor="end">20%</text>
+      <text x="${x(0)}" y="${H - 8}" class="ap-axis">менші</text>
+      <text x="${x(1)}" y="${H - 8}" class="ap-axis" text-anchor="end">більші →</text>
+    </svg>`;
+}
+
+/** Смуга часток (100 %) з підписами прямо на сегментах. */
+function shareBarHtml(parts, total) {
+  const t = total || parts.reduce((a, p) => a + p.v, 0);
+  if (!t) return "";
+  return `<div class="ap-share" role="img" aria-label="${esc(parts.map((p) => `${p.label} ${num(p.v)}`).join(", "))}">` +
+    parts.filter((p) => p.v > 0).map((p) => {
+      const w = p.v / t * 100;
+      return `<i class="ap-seg ${p.cls || ""}" style="width:${w.toFixed(2)}%" title="${esc(p.label)}: ${esc(num(p.v))} (${esc(pct(w))})">` +
+        (w >= 14 ? `<span>${esc(p.short || p.label)} ${esc(pct(w, 0))}</span>` : "") + `</i>`;
+    }).join("") + `</div>`;
+}
+const ownShares = (own) => shareBarHtml(OWN_ORDER.map((k) => ({ label: k, short: OWN_SHORT[k], v: own[k] || 0, cls: "own-" + OWN_ORDER.indexOf(k) })));
+
+/* ── Шапка і стежка ────────────────────────────────────────────── */
+function lampSummary(srcs) {
+  const cnt = { ok: 0, warn: 0, bad: 0, na: 0 };
+  srcs.forEach((s) => cnt[s.state]++);
+  return ["ok", "warn", "bad", "na"].filter((k) => cnt[k]).map((k) => lampHtml(k, `${cnt[k]} ${LAMP_TEXT[k]}`)).join(" ");
+}
+
+function renderHead(srcs) {
+  const box = $("apHead");
+  if (!box) return;
+  const pkg = ST().selectedPackage || {};
+  box.innerHTML = `
+    <div class="ap-titlebox">
+      <h3>Як працює пакет ${esc(pkg.number || A.pkg)}</h3>
+      <p class="ap-lead">Умови → мережа → гроші → робота → доступ. Клік по карті чи стовпчику — крок униз, до закладу; дані розкриваються нижче за потреби.</p>
+    </div>
+    <button type="button" class="ap-pill" data-ap-open="apQualityDetails" title="Якість даних: ${esc(LAMP_RULE)}">
+      <span class="ap-pill-h">Якість даних</span>${lampSummary(srcs)}
+    </button>`;
+  const qs = $("apQualitySum");
+  if (qs) qs.innerHTML = lampSummary(srcs);
+}
+
+function renderLadder() {
+  const box = $("apLadder");
+  if (!box) return;
+  const s = A.scope;
+  const steps = [{ label: "Україна", scope: { obl: null, hrom: null, place: null } }];
+  if (s.obl) steps.push({ label: oblName(s.obl), scope: { obl: s.obl, hrom: null, place: null } });
+  if (s.hrom) steps.push({ label: hromName(s.hrom), scope: { obl: s.obl, hrom: s.hrom, place: null } });
+  if (s.place) steps.push({ label: placeName(s.place), scope: { ...s } });
+  const next = { country: "області", oblast: "громади", hromada: "населені пункти", place: "заклади — паспорт закладу" }[level()];
+  box.innerHTML = steps.map((st, i) => i === steps.length - 1
+    ? `<span class="ap-crumb is-now" aria-current="location">${esc(st.label)}</span>`
+    : `<button type="button" class="ap-crumb" data-ap-scope='${esc(JSON.stringify(st.scope))}'>${esc(st.label)}</button><span class="ap-sep" aria-hidden="true">›</span>`)
+    .join("") + `<span class="ap-next">далі — ${esc(next)}${s.obl ? " · Esc — щабель вище" : ""}</span>`;
+}
+
+/* ── Ланцюжок із п'яти карток ──────────────────────────────────── */
+function card(o) {
+  return `<article class="ap-link" data-ap-go="${esc(o.go || "")}" tabindex="0" role="button" aria-label="${esc(o.name)}: ${esc(o.plain || "")}">
+      <header class="ap-link-h"><span class="ap-link-n">${esc(o.step)}</span><span class="ap-link-name">${esc(o.name)}</span>${lampHtml(o.lamp, LAMP_TEXT[o.lamp])}</header>
+      <div class="ap-link-v">${o.value}</div>
+      ${o.gauge || ""}
+      ${o.base ? `<p class="ap-link-s">${o.base}</p>` : ""}
+      ${o.more ? `<details class="ap-link-more"><summary>детально</summary><div>${o.more}</div></details>` : ""}
+    </article>`;
+}
+
+function pkgRates() {
+  if (!A.cmp) return null;
+  const k = String(A.pkg);
+  const rows = (A.cmp.rates || []).filter((r) => (r.packages || []).includes(k));
+  return {
+    rows,
+    base: rows.filter((r) => r.base),
+    kinds: [...new Set(rows.map((r) => r.kind).filter((x) => x && x !== "Інше"))],
+    coef: (A.cmp.coefficients || []).filter((g) => (g.packages || []).includes(k)),
+    drg: (A.cmp.drg || []).filter((d) => (d.packages || []).includes(k)),
+  };
+}
+
+/** Як платять — лише з типів ставок, що є в постанові для цього пакета.
+ *  Якщо типів кілька (пакет 9: ставка за послугу + глобальна), пишемо обидва,
+ *  а не вигадуємо механізм. */
+function payHint(r) {
+  const has = (re) => r.kinds.some((k) => re.test(k));
+  if (has(/глобальн/i) && has(/послуг|пролікован/i)) {
+    return "глобальна ставка на період; ставка " + (has(/пролікован/i) ? "за випадок" : "за послугу") + " — база її розрахунку";
+  }
+  if (has(/глобальн/i)) return "фіксована сума на період, а не плата за кожну послугу";
+  if (has(/капітац/i)) return "ставка на одного пацієнта за період (капітація)";
+  if (has(/пролікован/i)) return r.drg.length ? "за пролікований випадок: базова ставка × ваговий коефіцієнт ДСГ" : "за кожен пролікований випадок";
+  if (has(/послуг/i)) return "за кожну надану медичну послугу";
+  return "за ставками глави — див. вкладку «Оплата»";
+}
+
+/** Поріг входу: скільки вимог специфікації (обладнання + організація + кадри)
+ *  проти 46 пакетів — та сама міра, що вісь «Поріг входу» в анатомії. */
+function entryGate() {
+  const an = ST().anatomy && ST().anatomy.pkgs;
+  if (!an || !an[String(A.pkg)]) return null;
+  const valid = validPkgs();
+  const val = (a) => (a.eq || 0) + (a.org || 0) + (a.kadr || 0);
+  const all = Object.entries(an).filter(([n]) => valid.has(n)).map(([, a]) => val(a)).sort((a, b) => a - b);
+  const mine = val(an[String(A.pkg)]);
+  const below = all.filter((v) => v < mine).length;
+  return { mine, pctl: all.length > 1 ? below / (all.length - 1) * 100 : 50, n: all.length, buys: an[String(A.pkg)].buys };
+}
+
+function conditionsCard(list, st, srcs) {
+  const r = pkgRates();
+  const lamp = worst(srcState(srcs, "rates"), srcState(srcs, "spec"));
+  if (!r) return card({ step: "1", name: "Умови", lamp: "na", value: "—", base: "ставки постанови не завантажилися", go: "" });
+  const base = r.base.find((x) => x.v2026 > 1) || r.base[0];
+  const kind = (base && base.kind) || r.kinds[0] || "ставка";
+  const value = base && base.v2026 > 1
+    ? `${esc(num(base.v2026))}${NB}₴ <small>${esc(kind.toLowerCase())}${base.qualifier && base.qualifier.length < 30 ? " " + esc(base.qualifier) : ""}</small>`
+    : `<small>${esc(kind)}${base && base.qualifier ? " — " + esc(base.qualifier) : ""}</small>`;
+  const delta = base && base.delta_pct != null && base.v2025
+    ? (Math.abs(base.delta_pct) < 0.05 ? "ставка та сама, що у 2025" : `до 2025: ${base.delta_pct > 0 ? "+" : ""}${pct(base.delta_pct)}`)
+    : (base && base.status === "only-2026" ? "нова в 2026" : "");
+  const gate = entryGate();
+  const gauge = gate ? gaugeSvg({
+    value: gate.pctl, min: 0, max: 100, minLabel: "легкий", maxLabel: "важкий",
+    zones: [[0, 25, "низький поріг входу"], [25, 55, "середній"], [55, 80, "високий"], [80, 100, "дуже високий"]],
+    valueText: `вищий за ${Math.round(gate.pctl)} %`,
+    aria: `поріг входу вищий, ніж у ${Math.round(gate.pctl)} % пакетів`,
+    caption: `поріг входу: ${num(gate.mine)} вимог специфікації проти ${gate.n} пакетів`,
+  }) : "";
+  const vr = ST().volReq && ST().volReq.packages ? ST().volReq.packages[String(A.pkg)] : null;
+  const rule = vr && vr.rules && vr.rules[0] ? vr.rules[0] : null;
+  const rates = ratesInfo();
+  const more = [
+    `<b>Як платять:</b> ${esc(payHint(r))}${delta ? ` · ${esc(delta)}` : ""}`,
+    r.kinds.length > 1 ? `Типи ставок: ${esc(r.kinds.join(", "))}` : "",
+    r.coef.length ? `${r.coef.length} ${plural(r.coef.length, "група", "групи", "груп")} коригувальних коефіцієнтів` : "коригувальних коефіцієнтів немає",
+    r.drg.length ? `${r.drg.length} ДСГ, вагові коефіцієнти ${esc(dec(Math.min(...r.drg.map((d) => d.w2026 || Infinity)), 2))}–${esc(dec(Math.max(...r.drg.map((d) => d.w2026 || 0)), 2))}` : "",
+    gate ? `Пакет купує: <b>${esc(gate.buys)}</b>` : "",
+    rule ? `Поріг обсягу: не менше ${esc(num(rule.value))} ${esc(rule.unit)} за ${esc(rule.period)}` : "",
+    rates.fresh.length ? `<span class="ap-warn-inline">${esc(rates.note)}</span>` : "",
+    `<a href="#" data-ap-go="tariffs" class="ap-more">формула й коефіцієнти — вкладка «Оплата» →</a>`,
+  ].filter(Boolean).map((x) => `<p>${x}</p>`).join("");
+  return card({ step: "1", name: "Умови", lamp, go: "tariffs", value, gauge, more,
+    base: esc(payHint(r)), plain: `${kind} ${base && base.v2026 ? base.v2026 : ""}` });
+}
+
+function networkCard(list, st, srcs) {
+  const lvl = level();
+  const all = A.items.length;
+  let value, gauge;
+  if (lvl === "country") {
+    const nets = bench().rows.map((r) => r.prov);
+    const rk = rankIn(nets, all);
+    value = `${esc(num(all))} <small>${plural(all, "надавач", "надавачі", "надавачів")} у ${st.obls} з 25 регіонів</small>`;
+    gauge = gaugeSvg({ value: behindPct(nets, all), min: 0, max: 100, minLabel: "вузька", maxLabel: "широка",
+      zones: [[0, 25, "нижня чверть пакетів"], [25, 50, "друга чверть"], [50, 75, "третя чверть"], [75, 100, "верхня чверть"]],
+      valueText: `місце ${rk} із ${nets.length}`, aria: `мережа пакета: місце ${rk} із ${nets.length}`,
+      caption: "ширина мережі серед пакетів постанови 1808" });
+  } else {
+    const where = lvl === "oblast" ? `у ${st.hroms} з ${A.hromCount.get(A.scope.obl) || "…"} громад`
+      : lvl === "hromada" ? `у ${st.places} ${plural(st.places, "населеному пункті", "населених пунктах", "населених пунктах")}` : "";
+    value = `${esc(num(st.n))} <small>${plural(st.n, "надавач", "надавачі", "надавачів")} ${esc(where)}</small>`;
+    // частка мережі пакета проти «рівної» частки серед сусідів того самого щабля
+    const parent = lvl === "oblast" ? { obl: null } : lvl === "hromada" ? { obl: A.scope.obl } : { obl: A.scope.obl, hrom: A.scope.hrom };
+    const parentLvl = lvl === "oblast" ? "country" : lvl === "hromada" ? "oblast" : "hromada";
+    const sibs = childGroups(scoped(parent), parentLvl);
+    const maxShare = Math.max(...sibs.map((g) => g.st.n / all * 100), 1);
+    const share = st.n / all * 100;
+    gauge = gaugeSvg({ value: share, min: 0, max: Math.ceil(maxShare * 1.1), target: 100 / Math.max(sibs.length, 1) * (scoped(parent).length / all),
+      targetLabel: "середня частка серед сусідів", fmt: (v) => pct(v, 0),
+      zones: [[0, maxShare * 0.33, ""], [maxShare * 0.33, maxShare * 0.66, ""], [maxShare * 0.66, Math.ceil(maxShare * 1.1), ""]],
+      valueText: pct(share, 1), aria: `частка мережі пакета ${pct(share, 1)}`,
+      caption: `частка мережі пакета · риска — середня серед сусідніх ${CHILD_WORD[parentLvl][2]}` });
+  }
+  const fop = st.own["ФОП"] || 0;
+  return card({ step: "2", name: "Мережа", lamp: srcState(srcs, "net"), go: "apMapSlot", value, gauge,
+    base: `у спроможній мережі — <b>${esc(num(st.inNet))}</b> (${esc(pct(st.n ? st.inNet / st.n * 100 : 0, 0))})`,
+    more: `<p>Форма власності:</p>${ownShares(st.own)}` + (fop ? `<p>ФОП — ${esc(num(fop))}</p>` : ""),
+    plain: `${st.n} надавачів` });
+}
+
+function moneyCard(list, st, srcs) {
+  const lvl = level();
+  const lamp = worst(srcState(srcs, "sums"), srcState(srcs, "net"));
+  if (!st.total) {
+    return card({ step: "3", name: "Гроші", lamp: "na", go: "apMoney", value: "—",
+      base: "у вивантажці договорів суми за цим пакетом відсутні", plain: "сум немає" });
+  }
+  const b = bench();
+  const pkgTotal = A.items.reduce((a, it) => a + it.sum, 0);
+  const shareTxt = lvl === "country"
+    ? `${pct(b.totalSum ? st.total / b.totalSum * 100 : 0)} ПМГ · місце ${rankIn(b.rows.map((r) => r.sum), st.total)} із ${b.rows.length}`
+    : `${pct(pkgTotal ? st.total / pkgTotal * 100 : 0)} грошей пакета`;
+  const natMed = median(A.items.map((it) => it.sum).filter((v) => v > 0).sort((a, c) => a - c));
+  const gauge = st.withSum > 2 ? gaugeSvg({
+    value: st.core.share, min: 0, max: 100, target: 80, targetLabel: "рівний поділ: 80 % закладів",
+    fmt: (v) => pct(v, 0), minLabel: "у кількох", maxLabel: "порівну",
+    zones: [[0, 20, "дуже зосереджено"], [20, 50, "зосереджено"], [50, 80, "помірно"], [80, 100, "порівну"]],
+    valueText: `ядро ${pct(st.core.share, 0)}`,
+    aria: `${st.core.count} з ${st.withSum} закладів отримують 80 % грошей`,
+    caption: `${num(st.core.count)} з ${num(st.withSum)} закладів отримують 80 % грошей · риска — рівний поділ` }) : "";
+  return card({ step: "3", name: "Гроші", lamp, go: "apMoney",
+    value: `${esc(money(st.total))} <small>${esc(shareTxt)}</small>`, gauge,
+    base: `медіанний договір <b>${esc(money(st.med))}</b>${lvl !== "country" && natMed ? ` · ×${esc(dec(st.med / natMed, 1))} до країни` : ""}`,
+    more: st.withSum > 3 ? `<p>Половина договорів — від ${esc(money(st.q1))} до ${esc(money(st.q3))}.</p><p>Джині ${st.gini == null ? "—" : esc(dec(st.gini, 2))}.</p>` : "",
+    plain: money(st.total) });
+}
+
+function workCard(list, st, srcs) {
+  const lvl = level();
+  const d = volData();
+  const gate = entryGate();
+  if (!d) {
+    return card({ step: "4", name: "Робота", lamp: "na", go: "apWork", value: "—",
+      base: gate && gate.buys !== "послуга"
+        ? `обсяг послуг не рахується: пакет купує <b>${esc(gate.buys)}</b>, а не окремі послуги`
+        : "у вивантажці ЕСОЗ послуг за цим пакетом немає", plain: "обсягів немає" });
+  }
+  const full = d.months.filter((m) => d.partial.indexOf(m) === -1);
+  const lamp = srcState(srcs, "vol");
+  if (lvl === "country") {
+    const vs = bench().vols.map((v) => v.s);
+    const rk = rankIn(vs, d.tot[0]);
+    return card({ step: "4", name: "Робота", lamp, go: "apWork",
+      value: `${esc(big(d.tot[0]))} <small>послуг за ${full.length} міс. 2026</small>`,
+      gauge: gaugeSvg({ value: behindPct(vs, d.tot[0]), min: 0, max: 100, minLabel: "мало", maxLabel: "багато",
+        zones: [[0, 25, "нижня чверть"], [25, 50, "друга чверть"], [50, 75, "третя чверть"], [75, 100, "верхня чверть"]],
+        valueText: `місце ${rk} із ${vs.length}`, aria: `обсяг послуг: місце ${rk} із ${vs.length}`,
+        caption: "обсяг послуг серед пакетів з даними ЕСОЗ" }),
+      base: `${esc(svc(Math.round(d.tot[0] / Math.max(d.tot[2], 1) / full.length)))} на надавача за місяць`,
+      // tot[2] — надавачі з послугами в ЕСОЗ; їх буває більше, ніж договорів у
+      // реєстрі: ЕСОЗ бачить і тих, чий договір не дожив до дати реєстру
+      more: `<p>У ЕСОЗ послуги подали ${esc(num(d.tot[2]))} ${plural(d.tot[2], "надавач", "надавачі", "надавачів")}; договорів у реєстрі — ${esc(num(A.items.length))}.</p>${sparkSvg(full.map((m) => d.m[m][0]))}`,
+      plain: `${d.tot[0]} послуг` });
+  }
+  if (lvl === "oblast") {
+    const o = (d.o && d.o[A.scope.obl]) || [0, 0, 0];
+    const pkgTotal = A.items.reduce((a, it) => a + it.sum, 0);
+    const shS = d.tot[0] ? o[0] / d.tot[0] * 100 : 0;
+    const shM = pkgTotal ? st.total / pkgTotal * 100 : 0;
+    const ratio = shM ? shS / shM : null;
+    return card({ step: "4", name: "Робота", lamp, go: "apWork",
+      value: `${esc(big(o[0]))} <small>послуг за ${full.length} міс.</small>`,
+      gauge: ratio != null ? gaugeSvg({ value: ratio, min: 0, max: 2, target: 1, targetLabel: "пропорційно грошам",
+        fmt: (v) => "×" + dec(v, 0), zones: [[0, 0.8, "роботи менше, ніж грошей"], [0.8, 1.2, "пропорційно"], [1.2, 2, "роботи більше, ніж грошей"]],
+        zoneCls: [0, 2, 1], valueText: `×${dec(ratio, 2)}`, aria: `частка послуг до частки грошей ${dec(ratio, 2)}`,
+        caption: `частка послуг ${pct(shS)} проти частки грошей ${pct(shM)}` }) : "",
+      base: `послуги подали <b>${esc(num(o[2]))}</b> з ${esc(num(st.n))} надавачів області`,
+      more: sparkSvg(full.map((m) => (d.mo[m] || {})[A.scope.obl] || 0)),
+      plain: `${o[0]} послуг` });
+  }
+  const sv = servicesOf(list, "below");
+  return card({ step: "4", name: "Робота", lamp: sv ? lamp : "na", go: "apWork",
+    value: sv ? `${esc(big(sv.v))} <small>послуг за ${full.length} міс.</small>` : "—",
+    base: sv ? "сума по закладах зрізу (Supabase)" : "нижче області обсяги — по закладах, їх видно лише після входу",
+    plain: sv ? `${sv.v} послуг` : "після входу" });
+}
+
+function accessCard(list, st, srcs) {
+  const m = volMetric("rate");
+  const lamp = worst(srcState(srcs, "vol"), srcState(srcs, "decl"));
+  if (!m) {
+    return card({ step: "5", name: "Доступ", lamp: "na", go: "apAccess", value: "—",
+      base: "без обсягів послуг показник «на населення» не рахується", plain: "не рахується" });
+  }
+  const oblasts = [...new Set(A.items.map((it) => it.q[P.OBL]))];
+  const vals = oblasts.map((o) => ({ o, v: m.val(o) })).filter((x) => x.v > 0).sort((a, b) => a.v - b.v);
+  const unit = (m.unit && m.unit.short) || "";
+  // Точкова мережа: обсяг кількох центрів ділиться на населення їхніх областей,
+  // а лікують вони всю країну — «розрив між областями» тут не читається взагалі
+  if (vals.length < 15) {
+    return card({ step: "5", name: "Доступ", lamp, go: "apAccess",
+      value: `${vals.length} <small>${plural(vals.length, "регіон", "регіони", "регіонів")} з обсягами — мережа точкова</small>`,
+      base: "показник «на населення» не читається: центри лікують пацієнтів з усієї країни",
+      plain: `${vals.length} регіонів` });
+  }
+  const med = median(vals.map((x) => x.v));
+  const low = vals.filter((x) => m.conf && m.conf(x.o) === "low").length;
+  // Розрив — стійкою мірою Q3/Q1 без областей із ненадійним знаменником: відношення
+  // крайніх бреше (пакет 3 давав «×95», пакет 64 — «×270» через одну область)
+  const reliable = vals.filter((x) => !(m.conf && m.conf(x.o) === "low"));
+  const base = reliable.length >= 4 ? reliable : vals;
+  const asc = base.map((x) => x.v);
+  const q1 = quantile(asc, 0.25), q3 = quantile(asc, 0.75);
+  const eq = q1 > 0 ? q3 / q1 : asc[asc.length - 1] / asc[0];
+  const mine = A.scope.obl ? vals.find((x) => x.o === A.scope.obl) : null;
+  if (A.scope.obl) {
+    const r = mine ? mine.v / med : null;
+    return card({ step: "5", name: "Доступ", lamp, go: "apAccess",
+      value: mine ? `${esc(m.txt(A.scope.obl))} <small>послуг ${esc(unit)} цільової групи</small>` : "—",
+      gauge: r != null ? gaugeSvg({ value: r, min: 0, max: 2, target: 1, targetLabel: "медіана областей",
+        fmt: (v) => "×" + dec(v, 0), zones: [[0, 0.8, "нижче за типову область"], [0.8, 1.2, "як типова область"], [1.2, 2, "вище за типову"]],
+        zoneCls: [0, 2, 1], valueText: `×${dec(r, 2)}`, aria: `інтенсивність до медіани областей ${dec(r, 2)}`,
+        caption: "інтенсивність проти медіани областей" }) : "",
+      base: mine ? (m.conf && m.conf(A.scope.obl) === "low" ? "⚠ знаменник області ненадійний (*)" : "знаменник надійний")
+        : "в області обсягів немає",
+      more: `<p>Область — місце надавача, а не проживання пацієнта.${level() === "hromada" || level() === "place" ? " Знаменник є лише по областях, тому показано область." : ""}</p>`,
+      plain: mine ? `${m.txt(A.scope.obl)} ${unit}` : "—" });
+  }
+  return card({ step: "5", name: "Доступ", lamp, go: "apAccess",
+    value: `×${esc(dec(eq, 1))} <small>верхня чверть областей проти нижньої</small>`,
+    gauge: gaugeSvg({ value: eq, min: 1, max: 3, fmt: (v) => "×" + dec(v, 0), minLabel: "×1", maxLabel: "×3+",
+      zones: [[1, 1.3, "майже рівно"], [1.3, 2, "помірний розрив"], [2, 3, "великий розрив"]], zoneCls: [0, 1, 2],
+      valueText: `×${dec(eq, 1)}`, aria: `розрив між областями ${dec(eq, 1)}`,
+      caption: `розрив інтенсивності між областями${low ? " (без областей з *)" : ""}` }),
+    base: `медіана областей — <b>${esc(dec(med, med < 10 ? 1 : 0))}</b> послуг ${esc(unit)}`,
+    more: `<p>Крайні області — ×${esc(dec(vals[vals.length - 1].v / vals[0].v, 0))}.${low ? ` ${low} ${plural(low, "область", "області", "областей")} із ненадійним знаменником (*) у розрив не входять.` : ""}</p><p>Область — місце надавача, а не проживання пацієнта.</p>`,
+    plain: `розрив ${dec(eq, 1)}` });
+}
+
+function renderChain(list, st, srcs) {
+  const box = $("apChain");
+  if (!box) return;
+  const parts = [conditionsCard, networkCard, moneyCard, workCard, accessCard].map((fn) => {
+    try { return fn(list, st, srcs); } catch (e) { console.warn("панель: картка не намалювалась —", e); return ""; }
+  });
+  box.innerHTML = parts.join('<span class="ap-arrow" aria-hidden="true">→</span>');
+}
+
+/* ── Зріз поруч із картою: де гроші (загальний графік, клік — крок униз) ── */
+const KIDS_TOP = 10;
+
+function renderKids(list, st) {
+  const box = $("apKids");
+  if (!box) return;
+  const lvl = level();
+  const word = CHILD_WORD[lvl];
+  let rows;
+  if (lvl === "place") {
+    rows = [...list].sort((a, b) => b.sum - a.sum).map((it) => ({ key: "pi:" + it.pi, pi: it.pi, label: it.q[P.NAME], st: { total: it.sum, n: 1 } }));
+  } else {
+    rows = childGroups(list, lvl);
+  }
+  if (!rows.length) { box.innerHTML = `<p class="ap-empty">У цьому зрізі закладів за пакетом немає.</p>`; return; }
+  const top = rows.slice(0, KIDS_TOP);
+  const maxS = Math.max(...top.map((r) => r.st.total), 1);
+  const lead3 = rows.slice(0, 3).reduce((a, r) => a + r.st.total, 0);
+  const title = st.total
+    ? (rows.length > 3
+      ? `${rows.length} ${word[plural(rows.length, 0, 1, 2)] || word[2]}: перші три — ${pct(lead3 / st.total * 100, 0)} грошей`
+      : `${rows.length} ${plural(rows.length, word[0], word[1], word[2])}`)
+    : `${rows.length} ${plural(rows.length, word[0], word[1], word[2])}`;
+  box.innerHTML = `
+    <header class="ap-card-h">
+      <h4>${esc(scopeTitle())}: ${esc(title)}</h4>
+      <p class="ap-prov">${lvl === "place" ? "Клік — паспорт закладу" : "Клік — крок униз"} · смуга — гроші, число праворуч — закладів</p>
+    </header>
+    <ol class="ap-kids">${top.map((r) => {
+      const attr = r.pi != null ? `data-ap-zoz="${r.pi}"` : `data-ap-child="${esc(r.key)}"`;
+      return `<li ${attr} tabindex="0" title="${esc(r.label)}">
+        <span class="ap-rname">${esc(r.label)}</span>
+        <span class="ap-kbar"><i style="width:${(r.st.total / maxS * 100).toFixed(1)}%"></i></span>
+        <b>${esc(money(r.st.total))}</b>
+        <span class="ap-kn">${r.pi != null ? esc(OWN_SHORT[(A.panel.providers[r.pi] || [])[P.OWN]] || "") : esc(num(r.st.n))}</span>
+      </li>`;
+    }).join("")}</ol>
+    ${rows.length > KIDS_TOP ? `<button type="button" class="ap-link-btn" data-ap-open="apDataDetails">усі ${rows.length} — у даних зрізу нижче</button>` : ""}`;
+}
+
+/* ── Дані зрізу: таблиця (розкривається за потреби) ────────────── */
+const TOP_ROWS = 12;
+
+function renderSteps(list, st) {
+  const box = $("apSteps");
+  if (!box) return;
+  const lvl = level();
+  const cd = ST().contractsData || {};
+  const rate = lvl === "country" ? volMetric("rate") : null;
+  const authVol = A.pvol && A.pvolPkg === String(A.pkg);
+  const svcHead = lvl === "country" ? "Послуг" : "Послуг" + (authVol ? "" : " 🔒");
+  let head, body, count;
+
+  if (lvl === "place") {
+    const rows = [...list].sort((a, b) => b.sum - a.sum);
+    count = rows.length;
+    const pkgTotal = A.items.reduce((a, it) => a + it.sum, 0);
+    head = `<th scope="col">Заклад</th><th scope="col">Власність</th><th scope="col">Мережа</th>
+      <th scope="col" class="n">Сума договору</th><th scope="col" class="n">Частка пакета</th><th scope="col" class="n">${svcHead}</th>`;
+    body = rows.map((it) => {
+      const sv = pvOf(it);
+      return `<tr data-ap-zoz="${it.pi}" tabindex="0" title="Відкрити паспорт закладу">
+        <th scope="row"><span class="ap-rname">${esc(it.q[P.NAME])}</span><span class="ap-go">паспорт →</span></th>
+        <td>${esc(OWN_SHORT[it.q[P.OWN]] || it.q[P.OWN] || "—")}</td>
+        <td>${esc(NET_LABEL[it.q[P.NET] || 0])}</td>
+        <td class="n">${esc(money(it.sum))}</td>
+        <td class="n">${esc(pct(pkgTotal ? it.sum / pkgTotal * 100 : 0, 2))}</td>
+        <td class="n">${sv == null ? '<span class="ap-lock">після входу</span>' : esc(num(sv))}</td></tr>`;
+    }).join("");
+  } else {
+    const rows = childGroups(list, lvl);
+    count = rows.length;
+    const maxN = Math.max(...rows.map((r) => r.st.n), 1);
+    const maxS = Math.max(...rows.map((r) => r.st.total), 1);
+    const what = { country: "Область", oblast: "Громада", hromada: "Населений пункт" }[lvl];
+    head = `<th scope="col">${what}</th><th scope="col" class="n">Надавачів</th><th scope="col" class="n">Гроші</th>
+      <th scope="col" class="n" title="Медіанний договір і його відношення до медіани рівня вище">Медіанний договір</th>
+      <th scope="col" class="n">У спроможній мережі</th><th scope="col" class="n">${svcHead}</th>` +
+      (rate ? `<th scope="col" class="n" title="${esc("послуг " + ((rate.unit && rate.unit.short) || "") + " цільової групи")}">На населення</th>` : "");
+    const shown = A.showAll ? rows : rows.slice(0, TOP_ROWS);
+    body = shown.map((r) => {
+      const sv = servicesOf(r.list, lvl === "country" ? "oblast-row" : "below", r.key);
+      const idx = st.med && r.st.med ? r.st.med / st.med : null;
+      return `<tr data-ap-child="${esc(r.key)}" tabindex="0" title="Крок униз: ${esc(r.label)}">
+        <th scope="row"><span class="ap-rname">${esc(r.label)}</span><span class="ap-go">↘</span></th>
+        <td class="n"><span class="ap-cellbar"><i style="width:${(r.st.n / maxN * 100).toFixed(1)}%"></i></span>${esc(num(r.st.n))}</td>
+        <td class="n"><span class="ap-cellbar is-money"><i style="width:${(r.st.total / maxS * 100).toFixed(1)}%"></i></span>${esc(money(r.st.total))}
+          <small>${esc(pct(st.total ? r.st.total / st.total * 100 : 0, 1))}</small></td>
+        <td class="n">${esc(money(r.st.med))}${idx != null && r.st.withSum >= 3 ? ` <small class="${idx >= 1 ? "up" : "down"}">×${esc(dec(idx, 1))}</small>` : ""}</td>
+        <td class="n">${esc(pct(r.st.n ? r.st.inNet / r.st.n * 100 : 0, 0))}</td>
+        <td class="n">${sv == null ? '<span class="ap-lock">після входу</span>' : esc(big(sv.v))}</td>` +
+        (rate ? `<td class="n">${esc(rate.txt(r.key) || "—")}</td>` : "") + `</tr>`;
+    }).join("");
+    if (rows.length > TOP_ROWS) {
+      body += `<tr class="ap-more-row"><td colspan="${rate ? 7 : 6}">
+        <button type="button" class="ap-link-btn" data-ap-all="1">${A.showAll ? "згорнути до " + TOP_ROWS : `показано ${TOP_ROWS} з ${rows.length} — показати всі`}</button></td></tr>`;
+    }
+  }
+  const cnt = $("apDataCount");
+  if (cnt) cnt.textContent = `${scopeTitle()}: ${count} ${plural(count, CHILD_WORD[lvl][0], CHILD_WORD[lvl][1], CHILD_WORD[lvl][2])}`;
+  const svTotal = lvl === "country" ? servicesOf(list, "country-total")
+    : lvl === "oblast" ? servicesOf(list, "oblast-total", A.scope.obl) : servicesOf(list, "below");
+  box.innerHTML = `
+    <header class="ap-card-h">
+      <h4>${esc(scopeTitle())}: ${esc(nProv(st.n))} · ${esc(money(st.total))}${svTotal ? ` · ${esc(big(svTotal.v))} послуг` : ""}</h4>
+      <p class="ap-prov">Реєстр договорів від ${esc(cd.source_date || "—")}; суми від ${esc(cd.sums_date || "—")};
+        громада — за координатою населеного пункту (HDX).${lvl === "country" ? "" : " Послуги нижче області — сума по закладах із Supabase, лише після входу."}</p>
+    </header>
+    <div class="ap-table-wrap"><table class="ap-table">
+      <thead><tr>${head}</tr></thead><tbody>${body || `<tr><td colspan="7" class="ap-empty">У цьому зрізі закладів за пакетом немає.</td></tr>`}</tbody>
+    </table></div>`;
+}
+
+/* ── Гроші: концентрація ───────────────────────────────────────── */
+function renderMoney(list, st) {
+  const box = $("apMoney");
+  if (!box) return;
+  if (st.withSum < 3) {
+    box.innerHTML = `<header class="ap-card-h"><h4>Концентрація грошей</h4></header>
+      <p class="ap-empty">${st.withSum ? "Закладів із сумою менше трьох — частки тут нічого не пояснюють, важать конкретні заклади." : "Сум за пакетом у цьому зрізі немає."}</p>`;
+    return;
+  }
+  const g = st.gini;
+  const gTxt = g == null ? "" : g < 0.3 ? "рівномірно" : g < 0.5 ? "помірна нерівність" : g < 0.7 ? "висока концентрація" : "дуже висока концентрація";
+  const top = [...list].sort((a, b) => b.sum - a.sum).slice(0, 5);
+  const top5 = top.reduce((a, it) => a + it.sum, 0);
+  const maxT = Math.max(...top.map((it) => it.sum), 1);
+  box.innerHTML = `
+    <header class="ap-card-h">
+      <h4>${esc(num(st.core.count))} з ${esc(num(st.withSum))} закладів (${esc(pct(st.core.share, 0))}) отримують 80 % грошей</h4>
+      <p class="ap-prov">${esc(scopeTitle())} · суми договорів від ${esc((ST().contractsData || {}).sums_date || "—")} · при рівному поділі 80 % грошей отримували б 80 % закладів</p>
+    </header>
+    <div class="ap-money">
+      ${lorenzSvg(st.sums, st.total)}
+      <dl class="ap-kv">
+        <div><dt>Джині</dt><dd>${g == null ? "—" : esc(dec(g, 2))}<small>${esc(gTxt)}</small></dd></div>
+        <div><dt>Топ-5 закладів</dt><dd>${esc(pct(st.total ? top5 / st.total * 100 : 0, 0))}<small>грошей зрізу</small></dd></div>
+        <div><dt>Медіанний договір</dt><dd>${esc(money(st.med))}<small>половина — від ${esc(money(st.q1))} до ${esc(money(st.q3))}</small></dd></div>
+      </dl>
+    </div>
+    <details class="ap-inline-more"><summary>топ-5 закладів</summary>
+      <ol class="ap-top">${top.map((it) => `<li data-ap-zoz="${it.pi}" tabindex="0" title="Паспорт закладу">
+        <span class="ap-rname">${esc(it.q[P.NAME])}</span><span class="ap-cellbar is-money"><i style="width:${(it.sum / maxT * 100).toFixed(1)}%"></i></span>
+        <b>${esc(money(it.sum))}</b></li>`).join("")}</ol>
+      ${level() === "country" ? `<button type="button" class="ap-link-btn" data-drill="core80">ядро бюджету пакета детально →</button>` : ""}
+    </details>`;
+}
+
+/* ── Робота в часі ─────────────────────────────────────────────── */
+function renderWork(list, st) {
+  const box = $("apWork");
+  if (!box) return;
+  const V = window.Volumes;
+  const d = volData();
+  const lvl = level();
+  if (!d) {
+    box.innerHTML = `<header class="ap-card-h"><h4>Робота в часі</h4></header>
+      <p class="ap-empty">У вивантажці ЕСОЗ послуг за цим пакетом немає — пакет оплачується не за кількість послуг, або обсяги ще не зібрані.</p>`;
+    return;
+  }
+  const full = d.months.filter((m) => d.partial.indexOf(m) === -1);
+  const cut = d.partial.length ? `${MONTH_FULL[+d.partial[0].slice(5) - 1]} обрізаний у вивантажці і не показаний` : "";
+  if (lvl === "country" || lvl === "oblast") {
+    const pts = full.map((m) => ({ label: `${MONTH_FULL[+m.slice(5) - 1]} ${m.slice(0, 4)}`, short: MONTHS[+m.slice(5) - 1],
+      v: lvl === "country" ? d.m[m][0] : ((d.mo[m] || {})[A.scope.obl] || 0) }));
+    const tot = pts.reduce((a, p) => a + p.v, 0);
+    const first = pts[0].v, last = pts[pts.length - 1].v;
+    const ch = first ? (last - first) / first * 100 : 0;
+    const lastM = MONTH_FULL[+full[full.length - 1].slice(5) - 1], firstG = MONTH_GEN[+full[0].slice(5) - 1];
+    const chTxt = Math.abs(ch) < 3 ? `${lastM} проти ${firstG} — практично без змін` : `${lastM} проти ${firstG}: ${ch > 0 ? "+" : ""}${pct(ch, 0)}`;
+    box.innerHTML = `
+      <header class="ap-card-h">
+        <h4>${esc(big(tot))} послуг за ${full.length} міс.; ${esc(chTxt)}</h4>
+        <p class="ap-prov">${esc(scopeTitle())} · ЕСОЗ, вивантажка від ${esc((V.meta() || {}).generated || "—")}${cut ? " · " + esc(cut) : ""} · вісь від нуля</p>
+      </header>
+      ${lineSvg(pts, { aria: `послуги за місяцями, ${scopeTitle()}` })}
+      ${lvl === "country" && d.prop ? `<p class="ap-sub">Хто надає послуги — за формою власності:</p>${ownShares(d.prop)}` : ""}`;
+    return;
+  }
+  const sv = servicesOf(list, "below");
+  box.innerHTML = `<header class="ap-card-h"><h4>Робота: ${esc(scopeTitle())}</h4></header>
+    <p class="ap-empty">Помісячної динаміки нижче області у вивантажці немає.
+      ${sv ? `Разом по закладах зрізу — <b>${esc(num(sv.v))}</b> послуг за ${full.length} міс. (Supabase).` : "Обсяги по закладах видно після входу."}</p>`;
+}
+
+/* ── Доступ: області за інтенсивністю (загальний графік + перелік за потреби) ── */
+function renderAccess() {
+  const box = $("apAccess");
+  if (!box) return;
+  const m = volMetric("rate");
+  if (!m) {
+    box.innerHTML = `<header class="ap-card-h"><h4>Доступ по країні</h4></header>
+      <p class="ap-empty">Без обсягів послуг показник «на населення» не рахується.</p>`;
+    return;
+  }
+  const obls = [...new Set(A.items.map((it) => it.q[P.OBL]))];
+  const vals = obls.map((o) => ({ o, v: m.val(o) })).filter((x) => x.v > 0).sort((a, b) => b.v - a.v);
+  const unit = (m.unit && m.unit.short) || "";
+  if (vals.length < 2) {
+    box.innerHTML = `<header class="ap-card-h"><h4>Доступ по країні</h4></header><p class="ap-empty">Обсяги лише в одній області.</p>`;
+    return;
+  }
+  const max = vals[0].v, med = median(vals.map((x) => x.v).sort((a, b) => a - b));
+  const reliable = vals.filter((x) => !(m.conf && m.conf(x.o) === "low"));
+  const base = reliable.length >= 4 ? reliable : vals;
+  const ascV = base.map((x) => x.v).sort((a, b) => a - b);
+  const q1 = quantile(ascV, 0.25), q3 = quantile(ascV, 0.75);
+  const eq = q1 > 0 ? q3 / q1 : ascV[ascV.length - 1] / ascV[0];
+  const nLow = vals.length - reliable.length;
+  // Загальний графік: усі області точками на одній осі; підписані лише крайні
+  // й вибрана — повний перелік розкривається нижче
+  const W = 520, H = 70, L = 10, R = 10, y0 = 34;
+  const x = (v) => L + (v / max) * (W - L - R);
+  const labelled = new Set([vals[0].o, vals[vals.length - 1].o, A.scope.obl].filter(Boolean));
+  const dots = vals.map((v) => `<g class="ap-sdot${v.o === A.scope.obl ? " is-me" : ""}${m.conf && m.conf(v.o) === "low" ? " is-low" : ""}" data-ap-child="${esc(v.o)}" data-ap-lvl="country" tabindex="0">
+      <circle cx="${x(v.v).toFixed(1)}" cy="${y0}" r="${v.o === A.scope.obl ? 7 : 5}"/>
+      <title>${esc(oblShort(v.o))}: ${esc(m.txt(v.o))} ${esc(unit)}</title>
+      ${labelled.has(v.o) ? `<text x="${x(v.v).toFixed(1)}" y="${v.o === vals[0].o ? y0 - 12 : y0 + 22}" text-anchor="${x(v.v) > W - 90 ? "end" : x(v.v) < 90 ? "start" : "middle"}" class="ap-axis">${esc(oblShort(v.o))}</text>` : ""}
+    </g>`).join("");
+  const warn = vals.length < 15
+    ? `<p class="ap-warn">⚠ Заклади з обсягами є лише у ${vals.length} ${plural(vals.length, "регіоні", "регіонах", "регіонах")}: обсяг центру ділиться на населення його області, а лікуються там люди з усієї країни. Дивіться абсолютний обсяг.</p>` : "";
+  box.innerHTML = `
+    <header class="ap-card-h">
+      <h4>${vals.length < 15 ? `Обсяги лише у ${vals.length} ${plural(vals.length, "регіоні", "регіонах", "регіонах")}`
+        : `Типова область верхньої чверті надає в ${esc(dec(eq, 1))} раза більше послуг на населення, ніж нижньої`}</h4>
+      <p class="ap-prov">послуг ${esc(unit)} цільової групи · медіана ${esc(dec(med, med < 10 ? 1 : 0))}${nLow && base === reliable ? ` · розрив без ${nLow} ${plural(nLow, "області", "областей", "областей")} з *` : ""} · область — місце надавача</p>
+    </header>
+    ${warn}
+    <svg class="ap-strip-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(`області за інтенсивністю від ${m.txt(vals[vals.length - 1].o)} до ${m.txt(vals[0].o)} ${unit}`)}">
+      <line x1="${L}" x2="${W - R}" y1="${y0}" y2="${y0}" class="ap-grid"/>
+      <line x1="${x(med).toFixed(1)}" x2="${x(med).toFixed(1)}" y1="${y0 - 16}" y2="${y0 + 12}" class="ap-medline"><title>медіана областей</title></line>
+      ${dots}
+    </svg>
+    <details class="ap-inline-more"><summary>усі ${vals.length} ${plural(vals.length, "область", "області", "областей")} за інтенсивністю</summary>
+      <ol class="ap-dots">${vals.map((v) => `<li data-ap-child="${esc(v.o)}" data-ap-lvl="country" tabindex="0" class="${v.o === A.scope.obl ? "is-me" : ""}">
+        <span class="ap-rname">${esc(oblShort(v.o))}</span>
+        <span class="ap-dtrack"><b style="left:${(med / max * 100).toFixed(1)}%"></b><i style="left:${(v.v / max * 100).toFixed(1)}%"></i></span>
+        <span class="ap-dval">${esc(m.txt(v.o))}</span></li>`).join("")}</ol>
+    </details>`;
+}
+
+/* ── Якість даних (реєстр, розкривається за потреби) ───────────── */
+function renderQuality(srcs) {
+  const box = $("apQuality");
+  if (!box) return;
+  box.innerHTML = `
+    <p class="ap-prov">${lampHtml("ok", "до 1 місяця")} ${lampHtml("warn", "до 3 місяців")} ${lampHtml("bad", "старші за 3 місяці")} ${lampHtml("na", "немає даних")}
+      Колір — вік даних. Лампочка картки вгорі — найгірша з її джерел.</p>
+    <div class="ap-table-wrap"><table class="ap-table ap-qtable">
+      <thead><tr><th scope="col">Стан</th><th scope="col">Джерело</th><th scope="col">Дата даних</th><th scope="col" class="n">Вік</th>
+        <th scope="col">На що впливає</th><th scope="col">Що зробити</th></tr></thead>
+      <tbody>${srcs.map((s) => `<tr>
+        <td>${lampHtml(s.state)}</td>
+        <th scope="row">${esc(s.title)}${s.note ? `<small>${esc(s.note)}</small>` : ""}</th>
+        <td>${esc(s.slice)}</td>
+        <td class="n">${esc(s.ageText || ageText(s.date))}</td>
+        <td>${esc(s.affects)}</td>
+        <td><code>${esc(s.fix)}</code></td></tr>`).join("")}</tbody>
+    </table></div>`;
+}
+
+/* ── Паспорт закладу (лише для авторизованих) ──────────────────────
+   Межа — роль «не гість», як у RLS таблиці обсягів. Оверлей тут — лише
+   видимість: справжній замок стоїть на даних Supabase. */
+function zozBox() { return $("apZoz"); }
+
+function closeZoz() {
+  const box = zozBox();
+  A.zozPi = null;
+  if (!box || box.hidden) return;
+  box.hidden = true;
+  box.innerHTML = "";
+  document.body.classList.remove("ap-zoz-open");
+}
+
+async function openZoz(pi) {
+  const box = zozBox();
+  if (!box || !A.panel || !A.panel.providers[pi]) return;
+  A.zozPi = pi;
+  box.hidden = false;
+  document.body.classList.add("ap-zoz-open");
+  box.innerHTML = `<div class="ap-zoz-panel is-skel" role="dialog" aria-modal="true" aria-label="Паспорт закладу"><p>Перевіряю доступ…</p></div>`;
+  if (A.access == null) A.access = await checkAccess();
+  if (A.zozPi !== pi) return;
+  if (!canSeeZoz()) {
+    box.innerHTML = `<div class="ap-zoz-panel" role="dialog" aria-modal="true" aria-labelledby="apZozTitle">
+      <button type="button" class="ap-zoz-x" data-ap-close aria-label="Закрити">✕</button>
+      <p class="ap-zoz-kicker">Паспорт закладу</p>
+      <h3 id="apZozTitle">Доступно після входу</h3>
+      <p>Паспорт закладу — останній щабель сходів: місце закладу в пакеті, його договір проти медіан області й країни,
+        фактичні послуги й навантаження. Послуги конкретного закладу — внутрішні аналітичні дані, тому паспорт відкривається
+        лише співробітникам із роллю експерта.</p>
+      ${A.access && A.access.signedIn ? `<p class="ap-warn">Ви увійшли, але роль у профілі — «гість». Роль виставляє адміністратор порталу.</p>`
+        : `<button type="button" class="ap-btn" data-ap-login>Увійти</button>`}
+    </div>`;
+    return;
+  }
+  renderZoz(pi);
+  loadZozAllPackages(pi);
+  fillZozContacts(pi);
+}
+
+function renderZoz(pi) {
+  const box = zozBox();
+  const q = A.panel.providers[pi];
+  const it = A.items.find((x) => x.pi === pi) || { pi, sum: 0, q };
+  const isFop = q[P.OWN] === "ФОП";
+  const obl = q[P.OBL];
+  const inObl = A.items.filter((x) => x.q[P.OBL] === obl);
+  const sortDesc = (l) => [...l].sort((a, b) => b.sum - a.sum);
+  const nat = sortDesc(A.items), oblL = sortDesc(inObl);
+  const natSums = A.items.map((x) => x.sum).filter((v) => v > 0).sort((a, b) => a - b);
+  const oblSums = inObl.map((x) => x.sum).filter((v) => v > 0).sort((a, b) => a - b);
+  const natTotal = natSums.reduce((a, b) => a + b, 0), oblTotal = oblSums.reduce((a, b) => a + b, 0);
+  let acc = 0, inCore = false;
+  for (const x of nat) { if (acc >= natTotal * 0.8) break; acc += x.sum; if (x.pi === pi) { inCore = true; break; } }
+  const rankN = nat.findIndex((x) => x.pi === pi) + 1, rankO = oblL.findIndex((x) => x.pi === pi) + 1;
+  const medN = median(natSums), medO = median(oblSums);
+
+  const d = volData();
+  const months = d ? d.months.filter((m) => d.partial.indexOf(m) === -1).length : 7;
+  const sv = pvOf(it);
+  const loads = (l) => l.map((x) => pvOf(x)).filter((v) => v > 0).map((v) => v / months).sort((a, b) => a - b);
+  const lO = loads(inObl), lN = loads(A.items);
+  const myLoad = sv ? sv / months : 0;
+  const ratioZones = [[0, 0.5, "удвічі менше за медіану"], [0.5, 1.5, "близько до медіани"], [1.5, 3, "значно більше за медіану"]];
+
+  const valid = validPkgs();
+  const allPk = providerPackages(pi).sort((a, b) => b[1] - a[1]);
+  const pkgs = allPk.filter(([n]) => valid.has(n));
+  const otherPk = allPk.filter(([n]) => !valid.has(n)).map(([n]) => n).sort((a, b) => +a - +b);
+  const pkgName = (n) => ((A.panel.packages || {})[n] || {}).name || "";
+  const contract = contractOf(q);
+  const contact = { fop: isFop, email: contract ? contract.email : "", pkey: contract ? contract.pkey : null };
+  const quality = [
+    [it.sum > 0 ? "ok" : "warn", it.sum > 0 ? "сума договору є" : "суми у вивантажці немає"],
+    [q[P.X] != null ? "ok" : "warn", q[P.X] != null ? "населений пункт геокодовано" : "координат немає"],
+    [q[P.HCODE] ? "ok" : "warn", q[P.HCODE] ? "громаду визначено" : "громаду не визначено"],
+    [sv == null ? "na" : sv > 0 ? "ok" : "warn", sv == null ? "обсяги за пакетом не завантажені" : sv > 0 ? "обсяги зшито з ЕСОЗ" : "послуг за ключем закладу не знайдено"],
+  ];
+
+  box.innerHTML = `<div class="ap-zoz-panel" role="dialog" aria-modal="true" aria-labelledby="apZozTitle">
+    <button type="button" class="ap-zoz-x" data-ap-close aria-label="Закрити паспорт закладу">✕</button>
+    <p class="ap-zoz-kicker">Паспорт закладу · пакет ${esc(A.pkg)}</p>
+    <h3 id="apZozTitle">${esc(q[P.NAME])}</h3>
+    <p class="ap-zoz-badges"><span>${esc(q[P.OWN] || "—")}</span><span>${esc(NET_LABEL[q[P.NET] || 0])}</span>
+      ${inCore ? '<span class="is-core">ядро 80 % пакета</span>' : ""}</p>
+    <dl class="ap-kv ap-zoz-req">
+      <div><dt>Код</dt><dd>${isFop ? "ФОП — код не показуємо" : esc(q[P.EDRPOU])}</dd></div>
+      <div><dt>Область</dt><dd>${esc(oblName(obl))}</dd></div>
+      <div><dt>Громада</dt><dd>${q[P.HCODE] ? esc(q[P.HNAME]) : "—"}</dd></div>
+      <div><dt>Населений пункт</dt><dd>${esc(placeName(q[P.SETTLE]))}</dd></div>
+    </dl>
+
+    <section class="ap-zoz-sec">
+      <h4>Місце в пакеті</h4>
+      ${it.sum > 0 ? `
+      <p class="ap-zoz-lead"><b>${esc(money(it.sum))}</b> — ${esc(pct(natTotal ? it.sum / natTotal * 100 : 0, 2))} грошей пакета,
+        ${esc(pct(oblTotal ? it.sum / oblTotal * 100 : 0, 1))} області · місце ${rankO} з ${oblL.length} в області, ${rankN} з ${nat.length} у країні</p>
+      <div class="ap-zoz-gauges">
+        ${gaugeSvg({ value: medO ? it.sum / medO : null, min: 0, max: 3, target: 1, targetLabel: "медіана області",
+          fmt: (v) => "×" + dec(v, 0), zones: ratioZones, zoneCls: [0, 2, 1], valueText: medO ? `×${dec(it.sum / medO, 1)}` : "—",
+          aria: `договір до медіани області`, caption: `договір проти медіани області (${esc(money(medO))})` })}
+        ${gaugeSvg({ value: medN ? it.sum / medN : null, min: 0, max: 3, target: 1, targetLabel: "медіана країни",
+          fmt: (v) => "×" + dec(v, 0), zones: ratioZones, zoneCls: [0, 2, 1], valueText: medN ? `×${dec(it.sum / medN, 1)}` : "—",
+          aria: `договір до медіани країни`, caption: `проти медіани країни (${esc(money(medN))})` })}
+      </div>`
+      : `<p class="ap-empty">Суми за цим пакетом у вивантажці немає.</p>`}
+    </section>
+
+    <section class="ap-zoz-sec">
+      <h4>Робота за пакетом</h4>
+      ${sv == null ? `<p class="ap-empty">Обсяги по закладах ще вантажаться або за пакетом їх немає.</p>`
+        : sv === 0 ? `<p class="ap-warn">За ключем закладу послуг у вивантажці ЕСОЗ не знайдено. Це або справді нуль, або ключ не зшився (для ФОП зшиваємо за ПІБ).</p>`
+        : `<p class="ap-zoz-lead"><b>${esc(num(sv))}</b> послуг за ${months} міс. · ${esc(num(myLoad))} на місяць</p>
+          <div class="ap-zoz-gauges">
+            ${gaugeSvg({ value: median(lO) ? myLoad / median(lO) : null, min: 0, max: 3, target: 1, targetLabel: "медіана області",
+              fmt: (v) => "×" + dec(v, 0), zones: ratioZones, zoneCls: [0, 2, 1], valueText: median(lO) ? `×${dec(myLoad / median(lO), 1)}` : "—",
+              aria: "навантаження до медіани області", caption: `навантаження проти медіани області (${esc(num(median(lO)))}/міс.)` })}
+            ${gaugeSvg({ value: median(lN) ? myLoad / median(lN) : null, min: 0, max: 3, target: 1, targetLabel: "медіана країни",
+              fmt: (v) => "×" + dec(v, 0), zones: ratioZones, zoneCls: [0, 2, 1], valueText: median(lN) ? `×${dec(myLoad / median(lN), 1)}` : "—",
+              aria: "навантаження до медіани країни", caption: `проти медіани країни (${esc(num(median(lN)))}/міс.)` })}
+          </div>
+          <p class="ap-sub">Навантаження порівнюється лише всередині пакета: одиниця послуги в різних пакетах різна.</p>`}
+    </section>
+
+    <details class="ap-zoz-sec ap-inline-more" open>
+      <summary>Пакети закладу · ${pkgs.length} ${plural(pkgs.length, "пакет", "пакети", "пакетів")} постанови 1808 · ${esc(money(pkgs.reduce((a, r) => a + r[1], 0)))}</summary>
+      <table class="ap-table ap-zoz-pk"><thead><tr><th scope="col">Пакет</th><th scope="col" class="n">Сума</th><th scope="col" class="n">Послуг</th></tr></thead>
+        <tbody>${pkgs.map(([n, s]) => `<tr class="${n === String(A.pkg) ? "is-me" : ""}"><th scope="row"><b>${esc(n)}</b> ${esc(pkgName(n))}</th>
+          <td class="n">${esc(money(s))}</td><td class="n" data-ap-pkgsv="${esc(n)}">…</td></tr>`).join("")}</tbody></table>
+      ${otherPk.length ? `<p class="ap-sub">Ще ${otherPk.length} ${plural(otherPk.length, "напрям", "напрями", "напрямів")} поза постановою 1808 (реімбурсація «Доступні ліки», пілоти): ${esc(otherPk.join(", "))}.</p>` : ""}
+    </details>
+
+    <section class="ap-zoz-sec">
+      <h4>Контакти</h4>
+      <dl class="ap-kv ap-zoz-req">
+        <div><dt>Email</dt><dd data-ap-contact="email">${contact.fop ? "…" : (contact.email ? `<a href="mailto:${esc(contact.email)}">${esc(contact.email)}</a>` : "—")}</dd></div>
+        <div><dt>Адреса реєстрації</dt><dd data-ap-contact="addr">${contact.fop ? "…" : "у картці договору"}</dd></div>
+      </dl>
+      ${!contact.fop && q[P.EDRPOU] ? `<p class="ap-sub"><a href="../zoz-dogovr/?q=${encodeURIComponent(q[P.EDRPOU])}" class="ap-more">картка договору в «Договорах ЗОЗ» →</a></p>` : ""}
+      ${contact.fop ? `<p class="ap-sub">Контакти ФОП — персональні дані: зберігаються в базі під захистом доступу, у публічних файлах їх немає.</p>` : ""}
+    </section>
+
+    <section class="ap-zoz-sec">
+      <h4>Якість рядка</h4>
+      <p class="ap-zoz-q">${quality.map(([s, t]) => lampHtml(s, t)).join(" ")}</p>
+    </section>
+    <p class="ap-sub">Джерела: реєстр договорів НСЗУ (${esc((ST().contractsData || {}).source_date || "—")}, суми — ${esc((ST().contractsData || {}).sums_date || "—")}); послуги — вивантажка ЕСОЗ у Supabase (RLS).</p>
+  </div>`;
+}
+
+/** Договір закладу з реєстру (для ключа pkey і email юрособи). panel.json
+ *  зводить надавачів за парою (код, назва) — тим самим шукаємо й тут. */
+function contractOf(q) {
+  const list = (ST().contractsData || {}).contracts || [];
+  return list.find((c) => c.edrpou === q[P.EDRPOU] && (c.provider_name || "").trim() === (q[P.NAME] || "").trim()) || null;
+}
+
+/** Контакти ФОП — із Supabase (provider-private.js), лише для авторизованих. */
+function fillZozContacts(pi) {
+  const q = A.panel.providers[pi];
+  const PPriv = window.ProviderPrivate;
+  if (!q || q[P.OWN] !== "ФОП" || !PPriv) return;
+  const c = contractOf(q);
+  PPriv.get(c ? c.pkey : null).then((res) => {
+    if (A.zozPi !== pi) return;
+    const note = PPriv.message(res.status);
+    document.querySelectorAll('[data-ap-contact="email"]').forEach((n) => {
+      n.innerHTML = res.status === "ok" && res.email ? `<a href="mailto:${esc(res.email)}">${esc(res.email)}</a>` : esc(res.status === "ok" ? "—" : note);
+    });
+    document.querySelectorAll('[data-ap-contact="addr"]').forEach((n) => {
+      n.textContent = res.status === "ok" ? (res.reg_address || "—") : note;
+    });
+  });
+}
+
+/** Послуги закладу за всіма пакетами — одним запитом за ключем закладу. */
+async function loadZozAllPackages(pi) {
+  const sb = window.__pmgSb;
+  const key = pvKey(A.panel.providers[pi]);
+  const fill = (map) => {
+    if (A.zozPi !== pi) return;
+    document.querySelectorAll("[data-ap-pkgsv]").forEach((td) => {
+      const v = map ? map.get(td.dataset.apPkgsv) : null;
+      td.textContent = map ? (v != null ? num(v) : "—") : "н/д";
+    });
+  };
+  if (!sb || !key) { fill(null); return; }
+  try {
+    const { data, error } = await sb.from("package_provider_volumes")
+      .select("packet,services").eq("provider_key", key).limit(200);
+    if (error) throw error;
+    fill(new Map((data || []).map((r) => [String(r.packet), r.services || 0])));
+  } catch (e) {
+    console.warn("паспорт закладу: послуги за пакетами недоступні —", e.message || e);
+    fill(null);
+  }
+}
+
+/* ── Керування зрізом ──────────────────────────────────────────── */
+const sameScope = (a, b) => a.obl === b.obl && a.hrom === b.hrom && a.place === b.place;
+
+function setScope(next, opt) {
+  opt = opt || {};
+  const s = { obl: next.obl || null, hrom: next.hrom || null, place: next.place || null };
+  if (sameScope(s, A.scope)) return;
+  A.scope = s;
+  A.showAll = false;
+  if (!opt.fromMap) syncMap();
+  syncList();
+  syncUrl();
+  draw();
+  if (s.obl && !A.hromCount.has(s.obl)) loadHromCount(s.obl).then(() => { if (A.scope.obl === s.obl) draw(); });
+}
+
+/** Панель → карта. Поки синхронізуємося, відповіді карти ігноруємо, інакше
+ *  проміжний щабель (громада без віяла) перезаписав би вибраний населений пункт. */
+function syncMap(attempt) {
+  const M = window.MapDrill;
+  if (!M || !M.state) return;
+  const st = M.state;
+  if (!st.svg) return;
+  if (st.busy) {
+    if ((attempt || 0) < 10) setTimeout(() => syncMap((attempt || 0) + 1), 250);
+    return;
+  }
+  const s = A.scope;
+  const hrom = s.hrom && s.hrom !== NO_HROM ? s.hrom : null;
+  A.syncing = true;
+  const done = () => { setTimeout(() => { A.syncing = false; }, 50); };
+  let p = Promise.resolve();
+  if (!s.obl) { if (st.oblast) p = M.zoomTo(null); }
+  else if (st.oblast !== s.obl || st.hromada !== hrom) p = M.zoomTo(s.obl, { hromada: hrom });
+  Promise.resolve(p).then(() => {
+    if (s.place && M.openFan) {
+      const it = scoped().find((x) => x.q[P.X] != null);
+      if (it) M.openFan(`${it.q[P.X]}|${it.q[P.Y]}`);
+    } else if (!s.place && st.fan && M.openFan) {
+      M.openFan(null);
+    }
+  }).finally(done);
+}
+
+/** Карта → панель (виклик із map-drill.js). */
+function onMapScope(ms) {
+  if (A.syncing || !A.panel) return;
+  const s = { obl: ms.oblast || null, hrom: ms.hromada || null, place: null };
+  if (ms.fan && ms.place) {
+    s.place = ms.place;
+    if (!s.hrom) {
+      const it = A.items.find((x) => x.q[P.OBL] === s.obl && x.q[P.SETTLE] === ms.place);
+      if (it && it.q[P.HCODE]) s.hrom = it.q[P.HCODE];
+    }
+  }
+  setScope(s, { fromMap: true });
+}
+
+/** Перелік ЗОЗ нижче панелі фільтрується за областю зрізу — без прокрутки. */
+function syncList() {
+  const st = ST();
+  const sel = $("hospitalOblastFilter");
+  if (!sel || !st) return;
+  const o = A.scope.obl || "";
+  if ((st.hospitalOblast || "") === o) return;
+  st.hospitalOblast = o;
+  st.hospitalCurrentPage = 1;
+  sel.value = o;
+  if (typeof renderHospitalsTable === "function") renderHospitalsTable();
+}
+
+function syncUrl() {
+  const p = new URLSearchParams(location.search);
+  const set = (k, v) => (v ? p.set(k, v) : p.delete(k));
+  set("obl", A.scope.obl);
+  set("hrom", A.scope.hrom);
+  set("np", A.scope.place);
+  history.replaceState(null, "", `${location.pathname}?${p}`);
+}
+
+function applyUrlOnce() {
+  if (A.urlApplied) return;
+  A.urlApplied = true;
+  const p = new URLSearchParams(location.search);
+  if (p.get("package") !== A.pkg) return;
+  const s = { obl: p.get("obl"), hrom: p.get("hrom"), place: p.get("np") };
+  if (s.obl && A.items.some((it) => it.q[P.OBL] === s.obl)) A.scope = { obl: s.obl, hrom: s.hrom || null, place: s.place || null };
+}
+
+/* ── Малювання і життєвий цикл ─────────────────────────────────── */
+function draw() {
+  if (!A.panel) return;
+  const list = scoped();
+  const st = stats(list);
+  const srcs = sources();
+  const safe = (fn, ...args) => { try { fn(...args); } catch (e) { console.warn("панель «Як працює пакет»:", fn.name, e); } };
+  safe(renderHead, srcs);
+  safe(renderLadder);
+  safe(renderChain, list, st, srcs);
+  safe(renderKids, list, st);
+  safe(renderMoney, list, st);
+  safe(renderWork, list, st);
+  safe(renderAccess);
+  safe(renderSteps, list, st);
+  safe(renderQuality, srcs);
+}
+
+function skeleton() {
+  const chain = $("apChain");
+  if (chain) chain.innerHTML = Array.from({ length: 5 }, () => '<article class="ap-link is-skel"><i></i><i></i><i></i></article>').join("");
+  ["apKids", "apMoney", "apWork", "apAccess"].forEach((id) => { const b = $(id); if (b) b.innerHTML = '<div class="ap-skel"><i></i><i></i><i></i></div>'; });
+}
+
+async function render(pkgNum) {
+  wire();
+  A.pkg = String(pkgNum);
+  A.scope = { obl: null, hrom: null, place: null };
+  A.showAll = false;
+  A.pvol = null;
+  A.pvolPkg = null;
+  closeZoz();
+  skeleton();
+  const [panel] = await Promise.all([ensurePanel(), ensureExtras()]);
+  if (A.pkg !== String(pkgNum)) return;
+  if (!panel) {
+    const box = $("apKids");
+    if (box) box.innerHTML = '<p class="ap-empty">Не завантажилися дані панелі (panel/data/panel.json) — сходи недоступні. Решта вкладки працює.</p>';
+    return;
+  }
+  prepare();
+  applyUrlOnce();
+  if (A.scope.obl) await loadHromCount(A.scope.obl);
+  syncUrl();
+  draw();
+  if (A.scope.obl) { syncList(); setTimeout(syncMap, 400); }
+}
+
+function onVolumes(pkgNum) {
+  if (String(pkgNum) === A.pkg) draw();
+}
+
+function onProviderVolumes(pkgNum, res) {
+  if (String(pkgNum) !== A.pkg) return;
+  A.pvol = res;
+  A.pvolPkg = String(pkgNum);
+  draw();
+  if (A.zozPi != null && canSeeZoz()) { renderZoz(A.zozPi); loadZozAllPackages(A.zozPi); fillZozContacts(A.zozPi); }
+}
+
+function openDetails(id) {
+  const d = $(id);
+  if (!d) return;
+  d.open = true;
+  d.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+let wired = false;
+function wire() {
+  if (wired) return;
+  wired = true;
+  const root = $("analyticsPanel");
+  const zoz = zozBox();
+  const act = (e) => {
+    const t = e.target;
+    // «детально» всередині картки розкривається само, без переходу
+    if (t.closest("summary") && t.closest(".ap-link-more, .ap-inline-more")) return true;
+    const op = t.closest("[data-ap-open]");
+    if (op) { openDetails(op.dataset.apOpen); return true; }
+    const sc = t.closest("[data-ap-scope]");
+    if (sc) { setScope(JSON.parse(sc.dataset.apScope)); return true; }
+    const zz = t.closest("[data-ap-zoz]");
+    if (zz) { openZoz(+zz.dataset.apZoz); return true; }
+    const ch = t.closest("[data-ap-child]");
+    if (ch) {
+      const k = ch.dataset.apChild;
+      const lvl = ch.dataset.apLvl || level();
+      const s = A.scope;
+      if (lvl === "country") setScope({ obl: k });
+      else if (lvl === "oblast") setScope({ obl: s.obl, hrom: k });
+      else if (lvl === "hromada") setScope({ obl: s.obl, hrom: s.hrom, place: k });
+      return true;
+    }
+    if (t.closest("[data-ap-all]")) { A.showAll = !A.showAll; renderSteps(scoped(), stats(scoped())); return true; }
+    if (t.closest(".ap-link-more")) return true;
+    const go = t.closest("[data-ap-go]");
+    if (go && go.dataset.apGo) {
+      e.preventDefault();
+      if (go.dataset.apGo === "tariffs") {
+        const tab = document.querySelector('.tab-link[data-tab="tariffs"]');
+        if (tab) tab.click();
+      } else {
+        const target = $(go.dataset.apGo);
+        if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      return true;
+    }
+    return false;
+  };
+  if (root) {
+    root.addEventListener("click", (e) => { act(e); });
+    root.addEventListener("keydown", (e) => {
+      if ((e.key === "Enter" || e.key === " ") && e.target.matches("[tabindex]") && act(e)) e.preventDefault();
+    });
+  }
+  if (zoz) {
+    zoz.addEventListener("click", (e) => {
+      if (e.target === zoz || e.target.closest("[data-ap-close]")) { closeZoz(); return; }
+      if (e.target.closest("[data-ap-login]")) {
+        const btn = document.getElementById("auth-nav-btn");
+        closeZoz();
+        if (btn) btn.click();
+      }
+    });
+  }
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    if (A.zozPi != null) { closeZoz(); e.stopImmediatePropagation(); return; }
+    const pane = $("tab-analytics");
+    if (!pane || !pane.classList.contains("active") || !A.scope.obl) return;
+    if (e.target.closest("input, textarea, select, .kd-drawer, [role=dialog]")) return;
+    // карта сама обробляє Esc, коли її видно; тут — лише коли панель веде сама
+    if (window.MapDrill && window.MapDrill.state && window.MapDrill.state.oblast) return;
+    const s = A.scope;
+    setScope(s.place ? { obl: s.obl, hrom: s.hrom } : s.hrom ? { obl: s.obl } : {});
+  }, true);
+  const hookAuth = () => {
+    const sb = window.__pmgSb;
+    if (!sb || !sb.auth) return false;
+    sb.auth.onAuthStateChange(() => {
+      A.access = null;
+      if (A.zozPi != null) openZoz(A.zozPi);
+    });
+    return true;
+  };
+  if (!hookAuth()) { let n = 0; const t = setInterval(() => { if (hookAuth() || ++n > 20) clearInterval(t); }, 500); }
+}
+
+window.AnalyticsPanel = {
+  render, onVolumes, onProviderVolumes, onMapScope, openZoz, closeZoz, setScope,
+  get state() { return A; },
+};
+})();

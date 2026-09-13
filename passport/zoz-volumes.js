@@ -66,6 +66,8 @@ export async function load(pkgNum) {
         .from('package_provider_volumes')
         .select('provider_key,services,emz,period_from,period_to')
         .eq('packet', String(pkgNum))
+        // без порядку PostgREST не гарантує, що сторінки не перекриються
+        .order('provider_key')
         .range(from, from + PAGE - 1);
       if (error) throw error;
       if (!data || !data.length) break;
@@ -86,6 +88,10 @@ export async function load(pkgNum) {
   cache.set(pkgNum, res);
   return res;
 }
+
+// Вхід або вихід без перезавантаження: закешований null «не увійшов» інакше
+// лишався б і після входу, і колонка «Послуг» стояла б у прочерках
+try { sb.auth.onAuthStateChange(() => cache.clear()); } catch (e) { /* без клієнта — нічого */ }
 
 // passport.js — класичний скрипт, тому віддаємо йому інтерфейс через window
 window.ZozVolumes = { load, providerKey, signedIn };

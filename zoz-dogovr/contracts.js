@@ -467,12 +467,48 @@ function renderLocations(locations) {
 // Картка малюється у двох місцях (панель списку і шухляда мапи) — заповнюємо обидві
 function fillDetailSlots(contract) {
   const data = (contractDetails || {})[contract.id] || {};
-  document.querySelectorAll('[data-detail-slot="address"]').forEach((node) => {
-    node.textContent = data.reg_address || "—";
-  });
+  // адресу ФОП заповнює fillPrivateSlots: у публічному файлі її немає
+  if (!isFopContract(contract)) {
+    document.querySelectorAll('[data-detail-slot="address"]').forEach((node) => {
+      node.textContent = data.reg_address || "—";
+    });
+  }
   document.querySelectorAll('[data-detail-slot="locations"]').forEach((node) => {
     node.innerHTML = renderLocations(data.locations);
   });
+}
+
+// ── Контакти ФОП ──────────────────────────────────────────────────────────
+// Email і адреса реєстрації ФОП — персональні дані, з 13.09.2026 вони не в
+// публічних JSON, а в Supabase (provider-private.js, RLS «роль не guest»).
+function isFopContract(c) {
+  return window.ProviderPrivate ? window.ProviderPrivate.isFop(c) : String(c.ownership || "").trim() === "ФОП";
+}
+
+function fillPrivateSlots(contract) {
+  if (!isFopContract(contract) || !window.ProviderPrivate) return;
+  window.ProviderPrivate.get(contract.pkey).then((res) => {
+    if (!state.selected || state.selected.id !== contract.id) return;
+    const note = window.ProviderPrivate.message(res.status);
+    const emailHtml = res.status === "ok" && res.email
+      ? `<a href="mailto:${escapeHtml(res.email)}">${escapeHtml(res.email)}</a>`
+      : `<span class="text-muted">${escapeHtml(res.status === "ok" ? "—" : note)}</span>`;
+    document.querySelectorAll('[data-private-slot="email"]').forEach((node) => { node.innerHTML = emailHtml; });
+    document.querySelectorAll('[data-detail-slot="address"]').forEach((node) => {
+      node.textContent = res.status === "ok" ? (res.reg_address || "—") : note;
+    });
+  });
+}
+
+/** Для Excel: email ФОП із Supabase, якщо користувач має доступ. */
+async function fopEmailsForExport(list) {
+  if (!window.ProviderPrivate || !list.some(isFopContract)) return null;
+  return window.ProviderPrivate.loadAll();
+}
+function exportEmailOf(c, priv) {
+  if (!isFopContract(c)) return c.email || "";
+  if (priv && priv.status === "ok") return (priv.map.get(c.pkey) || {}).email || "";
+  return priv ? window.ProviderPrivate.message(priv.status) : "";
 }
 
 function selectContract(id) {
@@ -501,7 +537,8 @@ function selectContract(id) {
   const locationsHtml = loaded
     ? renderLocations(details.locations)
     : "<p class='text-muted'>Завантаження переліку…</p>";
-  const regAddressText = loaded ? (details.reg_address || "—") : "…";
+  const fop = isFopContract(contract);
+  const regAddressText = fop ? "…" : (loaded ? (details.reg_address || "—") : "…");
 
   let netBadgeClass = "";
   if (contract.network_type === "Надкластерний") netBadgeClass = "nadklaster";
@@ -572,7 +609,9 @@ function selectContract(id) {
       </div>
       <div class="details-grid-item">
         <span>Контактний email</span>
-        <strong>${contract.email ? `<a href="mailto:${escapeHtml(contract.email)}">${escapeHtml(contract.email)}</a>` : "—"}</strong>
+        ${fop
+          ? `<strong data-private-slot="email"><span class="text-muted">…</span></strong>`
+          : `<strong>${contract.email ? `<a href="mailto:${escapeHtml(contract.email)}">${escapeHtml(contract.email)}</a>` : "—"}</strong>`}
       </div>
       <div class="details-grid-item">
         <span>Населений пункт</span>
@@ -620,6 +659,8 @@ function selectContract(id) {
     mapDrawer.classList.remove("hidden-drawer");
   }
 
+  fillPrivateSlots(contract);
+
   // Перше відкриття картки — довантажуємо деталі й заповнюємо заглушки.
   // Перевірка id рятує від випадку, коли за час завантаження людина клацнула інший договір.
   if (!loaded) {
@@ -635,11 +676,12 @@ function selectContract(id) {
 window.selectContract = selectContract;
 
 // Export filtered list to premium binary Excel (.xlsx) file using SheetJS
-function exportToExcel() {
+async function exportToExcel() {
   if (!state.filtered || state.filtered.length === 0) {
     alert("Немає даних для експорту!");
     return;
   }
+  const priv = await fopEmailsForExport(state.filtered);
 
   const headers = [
     "Код ЄДРПОУ",
@@ -692,7 +734,7 @@ function exportToExcel() {
         meta.direction || "",
         meta.help_type || "",
         c.network_type,
-        c.email || "",
+        exportEmailOf(c, priv),
         p.sum, // Keep as numeric value
         c.has_extra_coef_contract || "Ні",
         p.has_extra_coef_package || "Ні",
@@ -737,11 +779,12 @@ function exportToExcel() {
 }
 
 // Export a brief table of EDRPOU, ZOZ Name, Email and Selected Packages
-function exportEmailsToExcel() {
+async function exportEmailsToExcel() {
   if (!state.filtered || state.filtered.length === 0) {
     alert("Немає даних для експорту!");
     return;
   }
+  const priv = await fopEmailsForExport(state.filtered);
 
   const headers = [
     "Код ЄДРПОУ",
@@ -767,7 +810,7 @@ function exportEmailsToExcel() {
 
     const edrpou = c.edrpou;
     const pkey = c.pkey || c.edrpou;   // ключ зведення; edrpou у ФОП — літерал
-    const email = c.email || "";
+    const email = exportEmailOf(c, priv);
     const name = c.provider_name_full || c.provider_name;
     const pkgsStr = matchedPkgs.join(", ");
 

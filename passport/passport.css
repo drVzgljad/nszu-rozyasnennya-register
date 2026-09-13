@@ -414,6 +414,129 @@ header.top {
 
 /* Базова розкладка: усе стовпчиком на всю ширину, донати — рядком поруч. */
 .map-card { grid-column: 1 / -1; }
+
+/* ══════ ЩАБЛІ КАРТИ: ГРОМАДИ, ТОЧКИ, ВІЯЛО (map-drill.js) ══════
+   Усе фарбуємо тим самим пандусом --accent/--soft, що й області, тому
+   щаблі перемальовуються разом із темою порталу.                   */
+
+.map-drill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0 2px;
+  font-size: .82rem;
+  color: var(--muted);
+}
+.md-back {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--accent);
+  border-radius: 6px;
+  padding: 3px 9px;
+  cursor: pointer;
+  font: inherit;
+}
+.md-back:hover { background: var(--soft); }
+
+/* група зуму: рухаємо трансформом, а не viewBox — viewBox перераховує
+   layout на процесорі й засмикується на сотнях полігонів */
+.ua-zoom { transition: transform .62s cubic-bezier(.2, 0, 0, 1); }
+/* при зумі назви областей зайві — їх замінюють назви громад */
+.ua-map.is-zoomed .ua-labels { opacity: 0; pointer-events: none; }
+.ua-labels { transition: opacity .3s ease; }
+
+/* громада — той самий пандус, що й область */
+.ua-hrom {
+  --heat: 0;
+  fill: color-mix(in srgb, var(--accent, #4a8fc7) calc(var(--heat) * 85%), var(--soft, #f2f8fb));
+  stroke: #fff;
+  stroke-width: .5;
+  vector-effect: non-scaling-stroke;
+  stroke-linejoin: round;
+  cursor: pointer;
+  transition: fill .15s ease;
+}
+.ua-hrom:hover { stroke: var(--accent-dark, #2f6b9e); stroke-width: 1.6; }
+.ua-hrom.is-open { stroke: var(--ink, #1f3347); stroke-width: 2; }
+.ua-hrom.no-data { fill: var(--soft, #f2f8fb); cursor: default; }
+
+.ua-hlabel {
+  fill: var(--ink, #1f3347);
+  font-size: calc(12px / var(--s, 1));
+  font-family: inherit;
+  text-anchor: middle;
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: calc(3px / var(--s, 1));
+  stroke-linejoin: round;
+  opacity: .9;
+}
+
+/* точка = населений пункт; усі заклади міста мають одну координату,
+   бо геокодування знає лише населений пункт */
+.ua-dot {
+  fill: var(--accent-dark, #2f6b9e);
+  stroke: #fff;
+  stroke-width: .7;
+  vector-effect: non-scaling-stroke;
+  cursor: pointer;
+}
+.ua-dot.is-out { fill: var(--warning-border, #ffc107); }
+.ua-dot.is-hub { stroke: var(--ink, #1f3347); stroke-width: 2; }
+.ua-dot.is-muted { opacity: .3; }
+.ua-dotn {
+  fill: #fff;
+  font-size: calc(10px / var(--s, 1));
+  font-weight: 700;
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  text-anchor: middle;
+  pointer-events: none;
+}
+.ua-dotn.is-muted { opacity: .35; }
+
+/* листок віяла — окремий заклад міста */
+.ua-leaf {
+  opacity: 0;
+  transition: opacity .2s ease, transform .3s cubic-bezier(.16, 1, .3, 1);
+}
+.ua-leaf.is-vis { opacity: 1; }
+.ua-leaf.is-picked { stroke: var(--ink, #1f3347); stroke-width: 2; }
+/* промінь від центру міста до листка: нагадує, що всі вони в одній точці */
+.ua-ray {
+  stroke: var(--accent-dark, #2f6b9e);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .2s ease;
+}
+.ua-ray.is-vis { opacity: .45; }
+
+.ua-plabel {
+  fill: var(--ink, #1f3347);
+  font-size: calc(13px / var(--s, 1));
+  font-family: inherit;
+  text-anchor: middle;
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: calc(3.5px / var(--s, 1));
+  stroke-linejoin: round;
+}
+.ua-plabel.is-muted { opacity: .4; }
+.ua-plabel.is-open { font-weight: 600; }
+
+/* Темна тема — за тією самою домовленістю, що вже діє для областей нижче:
+   контури лишаються білими, підписи світлі з темним ореолом #1e293b.
+   Лічильник усередині точки — навпаки темний: у темній темі сама точка
+   стає світло-блакитною (--accent-dark: #38bdf8), і білий по ній не читався б. */
+.dark-theme .ua-hrom { stroke: #fff; }
+.dark-theme .ua-hrom.no-data { fill: #263346; stroke: #fff; }
+.dark-theme .ua-hlabel,
+.dark-theme .ua-plabel { fill: #e2e8f0; stroke: #1e293b; }
+.dark-theme .ua-dot { stroke: #fff; }
+.dark-theme .ua-dotn { fill: #0f172a; }
 .side-cards {
   grid-column: 1 / -1;
   display: flex;
