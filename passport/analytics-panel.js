@@ -107,6 +107,7 @@ const A = {
   cmp: null, docStatus: null,         // ставки й монітор редакцій
   access: null,                       // {signedIn, role} — null, поки не перевіряли
   pvol: null, pvolPkg: null,          // обсяги по закладах (Supabase)
+  pay: null, payPkg: null, payTried: null, // фактичні оплати (таблиця ДІТ), data/payments/pkg_N.json
   provPk: null,                       // pi → [[пакет, сума]]
   showAll: false,
   zozPi: null,
@@ -135,6 +136,21 @@ function ensureExtras() {
     getJson("../postanova/data/document_status.json"),
   ]).then(([cmp, ds]) => { A.cmp = cmp; A.docStatus = ds; });
   return A.loading;
+}
+
+/* Фактичні оплати за пакетом — tools/build_payments_it.py із таблиці ДІТ.
+   Гроші за ЗВІТНИМ місяцем; у файлі: tot/ytd/np по роках, m — помісячно,
+   o/mo — по областях, pv — по надавачах [t×3, ytd×3], nm — назви юросіб,
+   яких немає в реєстрі договорів. Вантажимо окремо: панель без них малюється. */
+function loadPay(pkg) {
+  const key = String(pkg);
+  return getJson(`data/payments/pkg_${encodeURIComponent(key)}.json`).then((d) => {
+    if (A.pkg !== key) return;
+    A.pay = d;
+    A.payPkg = key;
+    A.payTried = key;
+    draw();
+  });
 }
 
 function loadHromCount(obl) {
@@ -260,14 +276,27 @@ function sources() {
   const spec = parseDate(st.packagesGenerated);
   const rates = ratesInfo();
   const pvEnd = A.pvol && A.pvol.period ? parseDate(A.pvol.period.to) : null;
+  // Оплати — як обсяги: вік від кінця останнього ПОВНОГО звітного місяця
+  const pd = payData();
+  const pp = pd ? payPeriod(pd) : null;
+  const payEnd = pp && pp.k ? new Date(pp.Y[pp.cur], pp.k, 0) : null;
+  const payMatch = pd && pd.match_pct ? pd.match_pct[String(pp.Y[pp.cur])] : null;
   return [
     { id: "net", title: "Склад мережі (реєстр договорів)", slice: dmy(net), date: net, state: byMonths(net),
       affects: "Мережа, Гроші, карта, паспорт закладу", fix: "Оновити_договори.cmd" },
     { id: "sums", title: "Суми договорів", slice: dmy(sums), date: sums, state: byMonths(sums),
       affects: "Гроші, медіанний договір, ядро 80 %",
-      fix: "з серпня вивантажка складу йде без сум — потрібна вивантажка з сумами",
+      fix: "вивантажка реєстру з колонкою «Сума договорів» → Оновити_договори.cmd",
       note: cd.sums_date && cd.sums_date !== cd.source_date
         ? `Суми старші за склад мережі: склад від ${cd.source_date}, суми від ${cd.sums_date}.` : "" },
+    { id: "pay", title: "Фактичні оплати (таблиця ДІТ)", date: payEnd,
+      state: pd ? byMonths(payEnd) : "na",
+      slice: pp ? `повні місяці ${pp.Y[pp.cur]}: ${pp.span}` : "—",
+      ageText: pd ? null : (A.payTried === String(A.pkg) ? "за пакетом немає" : "вантажиться"),
+      affects: "Оплати, дані зрізу, паспорт закладу",
+      fix: "запросити в ДІТ оновлену таблицю → tools/build_payments_it.py",
+      note: pd ? `${pd.src.doc}. Гроші — за звітним місяцем${pp.tail ? `; ${pp.tail} ще оплачуються і в порівняння не входять` : ""}. ` +
+        `Зшито із закладами реєстру договорів: ${payMatch != null ? pct(payMatch) : "—"} суми ${pp.Y[pp.cur]} року (решта — отримувачі, чиїх договорів у реєстрі вже немає).` : "" },
     { id: "vol", title: "Обсяги ЕСОЗ (по областях)", date: volEnd, state: meta ? byMonths(volEnd) : "na",
       slice: lastFull ? `повні місяці до ${lastFull.slice(5)}.${lastFull.slice(0, 4)}` : "—",
       affects: "Робота, Доступ", fix: "запит аналітикам за наступний місяць → 23_обсяги_демографія",
@@ -402,6 +431,79 @@ function servicesOf(list, lvl, key) {
   return null;
 }
 
+/* ── Оплати в зрізі ────────────────────────────────────────────────
+   Країна й область — підсумки таблиці ДІТ (усі отримувачі, зокрема ті, чий
+   договір уже не в реєстрі). Нижче області — сума по закладах реєстру
+   договорів, зшитих за ключем надавача (юрособа → ЄДРПОУ, ФОП → ПІБ). */
+function payData() {
+  return A.pay && A.payPkg === String(A.pkg) ? A.pay : null;
+}
+/** Дзеркало normName() із zoz-volumes.js і norm_name() у build_payments_it.py. */
+function payNorm(s) {
+  return String(s || "").replace(/[’`]/g, "'").toUpperCase().split(/\s+/).filter(Boolean).join(" ");
+}
+function payKey(q) {
+  return q[P.OWN] === "ФОП" ? payNorm(q[P.NAME]) : String(q[P.EDRPOU] || "");
+}
+function payRow(it) {
+  const d = payData();
+  return d ? d.pv[payKey(it.q)] || null : null;
+}
+const PAY_ZERO = () => ({ t: [0, 0, 0], ytd: [0, 0, 0], n: [0, 0, 0], m: null, how: "items" });
+/** Сума по закладах списку (кожен ключ — один раз). */
+function payItems(list) {
+  if (!payData()) return null;
+  const res = PAY_ZERO(), seen = new Set();
+  list.forEach((it) => {
+    const k = payKey(it.q);
+    if (seen.has(k)) return;
+    seen.add(k);
+    const r = payRow(it);
+    if (!r) return;
+    for (let i = 0; i < 3; i++) {
+      res.t[i] += r[i];
+      res.ytd[i] += r[3 + i];
+      if (Math.abs(r[i]) >= 1) res.n[i]++;
+    }
+  });
+  return res;
+}
+/** Оплати поточного зрізу або дочірньої групи: {t, ytd, n, m, how}. */
+function payOf(list, lvl, key) {
+  const d = payData();
+  if (!d) return null;
+  if (lvl === "country") return { t: d.tot, ytd: d.ytd, n: d.np, m: d.m, how: "file" };
+  if (lvl === "oblast") {
+    const o = d.o[key];
+    return o ? { t: o.slice(0, 3), ytd: o.slice(3, 6), n: o.slice(6, 9), m: d.mo[key] || null, how: "file" }
+      : { ...PAY_ZERO(), how: "file" };
+  }
+  return payItems(list);
+}
+/** «+15,7 %», «−3 %»; null — бази немає. */
+function payChange(cur, base) {
+  if (!base) return null;
+  return (cur - base) / Math.abs(base) * 100;
+}
+function chgText(v) {
+  if (v == null || !Number.isFinite(v)) return "";
+  const a = Math.abs(v);
+  return (v > 0.05 ? "+" : v < -0.05 ? "−" : "") + pct(a, a < 10 ? 1 : 0);
+}
+/** Підписи періоду порівняння: «7 міс. 2026», «січень–липень». */
+function payPeriod(d) {
+  const Y = d.y, k = d.ytd_months, cur = Y.length - 1;
+  const last = d.last[String(Y[cur])] || k;
+  const tail = last > k ? MONTH_FULL.slice(k, last).join(" і ") : "";
+  return {
+    Y, k, cur,
+    ytdLbl: k >= 12 ? `${Y[cur]} рік` : `${k} міс. ${Y[cur]}`,
+    ytdPrev: k >= 12 ? `${Y[cur - 1]} рік` : `${k} міс. ${Y[cur - 1]}`,
+    span: k >= 1 ? `січень–${MONTH_FULL[k - 1]}` : "—",
+    tail,
+  };
+}
+
 function stats(list) {
   const sums = list.map((it) => it.sum).filter((v) => v > 0).sort((a, b) => a - b);
   const total = sums.reduce((a, b) => a + b, 0);
@@ -515,6 +617,51 @@ function lineSvg(points, o) {
   return `<svg class="ap-line" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.aria || "")}">
       ${grid}<path d="${d}" class="ap-line-l"/>${dots}
       <text x="${x(lastI).toFixed(1)}" y="${(y(points[lastI].v) - 9).toFixed(1)}" class="ap-line-v" text-anchor="end">${esc(big(points[lastI].v))}</text>
+    </svg>`;
+}
+
+/** Короткі гроші для осей: «2,6 млрд», «340 млн». */
+function moneyAxis(v) {
+  const a = Math.abs(v);
+  if (a >= 1e9) return dec(v / 1e9, a >= 1e10 ? 0 : 1) + NB + "млрд";
+  if (a >= 1e6) return dec(v / 1e6, 0) + NB + "млн";
+  if (a >= 1e3) return dec(v / 1e3, 0) + NB + "тис.";
+  return num(v);
+}
+
+/** Оплати за місяцями, рік до року: три лінії на одній осі січень–грудень.
+ *  Поточний рік — лише повні місяці: неповні занизили б криву й збрехали про спад. */
+function yearLinesSvg(series, o) {
+  o = o || {};
+  // ширина viewBox = реальна ширина місця: інакше на телефоні підписи стискаються до 6 px
+  const W = Math.round(Math.max(300, Math.min(640, o.w || 640)));
+  const narrow = W < 460;
+  const H = narrow ? 200 : 232, L = narrow ? 50 : 58, R = narrow ? 40 : 54, T = 14, B = 30;
+  const all = series.flatMap((s) => s.vals);
+  if (!all.length) return "";
+  const max = Math.max(...all, 1) * 1.1;
+  const x = (i) => L + i / 11 * (W - L - R);
+  const y = (v) => T + (1 - Math.max(v, 0) / max) * (H - T - B);
+  const ticks = [0, 0.5, 1].map((k) => max / 1.1 * k);
+  const grid = ticks.map((t) => `<line x1="${L}" x2="${W - R}" y1="${y(t).toFixed(1)}" y2="${y(t).toFixed(1)}" class="ap-grid"/>
+      <text x="${L - 6}" y="${(y(t) + 4).toFixed(1)}" class="ap-axis" text-anchor="end">${esc(moneyAxis(t))}</text>`).join("");
+  const months = MONTHS.map((m, i) => (narrow && i % 2 ? "" : `<text x="${x(i).toFixed(1)}" y="${H - 10}" class="ap-axis" text-anchor="middle">${m}</text>`)).join("");
+  // підписи років біля кінців ліній — розводимо, щоб не налазили
+  const ends = series.filter((s) => s.vals.length).map((s) => ({ s, i: s.vals.length - 1, yy: y(s.vals[s.vals.length - 1]) }))
+    .sort((a, b) => a.yy - b.yy);
+  for (let i = 1; i < ends.length; i++) {
+    if (Math.abs(ends[i].i - ends[i - 1].i) < 2 && ends[i].yy - ends[i - 1].yy < 13) ends[i].yy = ends[i - 1].yy + 13;
+  }
+  const lines = series.map((s) => {
+    if (!s.vals.length) return "";
+    const d = s.vals.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
+    const dots = s.vals.map((v, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="${s.main ? 3.2 : 2.4}" class="ap-yl-d ${s.cls}">
+        <title>${esc(MONTH_FULL[i])} ${s.year}: ${esc(money(v))}</title></circle>`).join("");
+    return `<g class="ap-yl ${s.cls}"><path d="${d}" class="ap-yl-l"/>${dots}</g>`;
+  }).join("");
+  const labels = ends.map((e) => `<text x="${(x(e.i) + 7).toFixed(1)}" y="${(e.yy + 4).toFixed(1)}" class="ap-yl-t ${e.s.cls}">${e.s.year}</text>`).join("");
+  return `<svg class="ap-line ap-years" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.aria || "")}">
+      ${grid}${months}${lines}${labels}
     </svg>`;
 }
 
@@ -742,10 +889,17 @@ function moneyCard(list, st, srcs) {
     valueText: `ядро ${pct(st.core.share, 0)}`,
     aria: `${st.core.count} з ${st.withSum} закладів отримують 80 % грошей`,
     caption: `${num(st.core.count)} з ${num(st.withSum)} закладів отримують 80 % грошей · риска — рівний поділ` }) : "";
+  const pd = payData();
+  const pay = pd ? payOf(list, lvl, A.scope.obl) : null;
+  const pp = pd ? payPeriod(pd) : null;
+  const payLine = pay && (pay.ytd[pp.cur] || pay.t[pp.cur - 1])
+    ? `<p><b>Фактично сплачено:</b> ${pp.Y[pp.cur - 1]} рік — ${esc(money(pay.t[pp.cur - 1]))}; ${esc(pp.ytdLbl)} — ${esc(money(pay.ytd[pp.cur]))}` +
+      `${payChange(pay.ytd[pp.cur], pay.ytd[pp.cur - 1]) != null ? ` (${esc(chgText(payChange(pay.ytd[pp.cur], pay.ytd[pp.cur - 1])))} до ${esc(pp.ytdPrev)})` : ""}.` +
+      ` <a href="#" data-ap-go="apPay" class="ap-more">оплати рік до року →</a></p>` : "";
   return card({ step: "3", name: "Гроші", lamp, go: "apMoney",
     value: `${esc(money(st.total))} <small>${esc(shareTxt)}</small>`, gauge,
     base: `медіанний договір <b>${esc(money(st.med))}</b>${lvl !== "country" && natMed ? ` · ×${esc(dec(st.med / natMed, 1))} до країни` : ""}`,
-    more: st.withSum > 3 ? `<p>Половина договорів — від ${esc(money(st.q1))} до ${esc(money(st.q3))}.</p><p>Джині ${st.gini == null ? "—" : esc(dec(st.gini, 2))}.</p>` : "",
+    more: payLine + (st.withSum > 3 ? `<p>Половина договорів — від ${esc(money(st.q1))} до ${esc(money(st.q3))}.</p><p>Джині ${st.gini == null ? "—" : esc(dec(st.gini, 2))}.</p>` : ""),
     plain: money(st.total) });
 }
 
@@ -911,6 +1065,18 @@ function renderSteps(list, st) {
   const rate = lvl === "country" ? volMetric("rate") : null;
   const authVol = A.pvol && A.pvolPkg === String(A.pkg);
   const svcHead = lvl === "country" ? "Послуг" : "Послуг" + (authVol ? "" : " 🔒");
+  // Фактичні оплати: минулий рік цілком і повні місяці поточного (рік до року)
+  const pd = payData();
+  const pp = pd ? payPeriod(pd) : null;
+  const payHead = pp ? `<th scope="col" class="n" title="${esc(pd.src.doc)}">Сплачено ${pp.Y[pp.cur - 1]}</th>
+      <th scope="col" class="n" title="${esc(`порівняння з ${pp.ytdPrev}`)}">Сплачено, ${esc(pp.ytdLbl)}</th>` : "";
+  const payCells = (t, ytdCur, ytdPrev) => {
+    if (!pp) return "";
+    const ch = payChange(ytdCur, ytdPrev);
+    return `<td class="n">${esc(money(t))}</td>
+      <td class="n">${esc(money(ytdCur))}${ch != null ? ` <small class="${ch >= 0 ? "up" : "down"}">${esc(chgText(ch))}</small>` : ""}</td>`;
+  };
+  const payCols = pp ? 2 : 0;
   let head, body, count;
 
   if (lvl === "place") {
@@ -918,15 +1084,17 @@ function renderSteps(list, st) {
     count = rows.length;
     const pkgTotal = A.items.reduce((a, it) => a + it.sum, 0);
     head = `<th scope="col">Заклад</th><th scope="col">Власність</th><th scope="col">Мережа</th>
-      <th scope="col" class="n">Сума договору</th><th scope="col" class="n">Частка пакета</th><th scope="col" class="n">${svcHead}</th>`;
+      <th scope="col" class="n">Сума договору</th><th scope="col" class="n">Частка пакета</th>${payHead}<th scope="col" class="n">${svcHead}</th>`;
     body = rows.map((it) => {
       const sv = pvOf(it);
+      const r = pp ? payRow(it) : null;
       return `<tr data-ap-zoz="${it.pi}" tabindex="0" title="Відкрити паспорт закладу">
         <th scope="row"><span class="ap-rname">${esc(it.q[P.NAME])}</span><span class="ap-go">паспорт →</span></th>
         <td>${esc(OWN_SHORT[it.q[P.OWN]] || it.q[P.OWN] || "—")}</td>
         <td>${esc(NET_LABEL[it.q[P.NET] || 0])}</td>
         <td class="n">${esc(money(it.sum))}</td>
         <td class="n">${esc(pct(pkgTotal ? it.sum / pkgTotal * 100 : 0, 2))}</td>
+        ${pp ? (r ? payCells(r[pp.cur - 1], r[3 + pp.cur], r[3 + pp.cur - 1]) : '<td class="n">—</td><td class="n">—</td>') : ""}
         <td class="n">${sv == null ? '<span class="ap-lock">після входу</span>' : esc(num(sv))}</td></tr>`;
     }).join("");
   } else {
@@ -937,24 +1105,26 @@ function renderSteps(list, st) {
     const what = { country: "Область", oblast: "Громада", hromada: "Населений пункт" }[lvl];
     head = `<th scope="col">${what}</th><th scope="col" class="n">Надавачів</th><th scope="col" class="n">Гроші</th>
       <th scope="col" class="n" title="Медіанний договір і його відношення до медіани рівня вище">Медіанний договір</th>
-      <th scope="col" class="n">У спроможній мережі</th><th scope="col" class="n">${svcHead}</th>` +
+      ${payHead}<th scope="col" class="n">У спроможній мережі</th><th scope="col" class="n">${svcHead}</th>` +
       (rate ? `<th scope="col" class="n" title="${esc("послуг " + ((rate.unit && rate.unit.short) || "") + " цільової групи")}">На населення</th>` : "");
     const shown = A.showAll ? rows : rows.slice(0, TOP_ROWS);
     body = shown.map((r) => {
       const sv = servicesOf(r.list, lvl === "country" ? "oblast-row" : "below", r.key);
       const idx = st.med && r.st.med ? r.st.med / st.med : null;
+      const pr = pp ? (lvl === "country" ? payOf(r.list, "oblast", r.key) : payItems(r.list)) : null;
       return `<tr data-ap-child="${esc(r.key)}" tabindex="0" title="Крок униз: ${esc(r.label)}">
         <th scope="row"><span class="ap-rname">${esc(r.label)}</span><span class="ap-go">↘</span></th>
         <td class="n"><span class="ap-cellbar"><i style="width:${(r.st.n / maxN * 100).toFixed(1)}%"></i></span>${esc(num(r.st.n))}</td>
         <td class="n"><span class="ap-cellbar is-money"><i style="width:${(r.st.total / maxS * 100).toFixed(1)}%"></i></span>${esc(money(r.st.total))}
           <small>${esc(pct(st.total ? r.st.total / st.total * 100 : 0, 1))}</small></td>
         <td class="n">${esc(money(r.st.med))}${idx != null && r.st.withSum >= 3 ? ` <small class="${idx >= 1 ? "up" : "down"}">×${esc(dec(idx, 1))}</small>` : ""}</td>
+        ${pr ? payCells(pr.t[pp.cur - 1], pr.ytd[pp.cur], pr.ytd[pp.cur - 1]) : ""}
         <td class="n">${esc(pct(r.st.n ? r.st.inNet / r.st.n * 100 : 0, 0))}</td>
         <td class="n">${sv == null ? '<span class="ap-lock">після входу</span>' : esc(big(sv.v))}</td>` +
         (rate ? `<td class="n">${esc(rate.txt(r.key) || "—")}</td>` : "") + `</tr>`;
     }).join("");
     if (rows.length > TOP_ROWS) {
-      body += `<tr class="ap-more-row"><td colspan="${rate ? 7 : 6}">
+      body += `<tr class="ap-more-row"><td colspan="${(rate ? 7 : 6) + payCols}">
         <button type="button" class="ap-link-btn" data-ap-all="1">${A.showAll ? "згорнути до " + TOP_ROWS : `показано ${TOP_ROWS} з ${rows.length} — показати всі`}</button></td></tr>`;
     }
   }
@@ -962,14 +1132,15 @@ function renderSteps(list, st) {
   if (cnt) cnt.textContent = `${scopeTitle()}: ${count} ${plural(count, CHILD_WORD[lvl][0], CHILD_WORD[lvl][1], CHILD_WORD[lvl][2])}`;
   const svTotal = lvl === "country" ? servicesOf(list, "country-total")
     : lvl === "oblast" ? servicesOf(list, "oblast-total", A.scope.obl) : servicesOf(list, "below");
+  const payTotal = pp ? payOf(list, lvl, A.scope.obl) : null;
   box.innerHTML = `
     <header class="ap-card-h">
-      <h4>${esc(scopeTitle())}: ${esc(nProv(st.n))} · ${esc(money(st.total))}${svTotal ? ` · ${esc(big(svTotal.v))} послуг` : ""}</h4>
+      <h4>${esc(scopeTitle())}: ${esc(nProv(st.n))} · договори ${esc(money(st.total))}${payTotal ? ` · сплачено ${esc(money(payTotal.ytd[pp.cur]))} за ${esc(pp.ytdLbl)}` : ""}${svTotal ? ` · ${esc(big(svTotal.v))} послуг` : ""}</h4>
       <p class="ap-prov">Реєстр договорів від ${esc(cd.source_date || "—")}; суми від ${esc(cd.sums_date || "—")};
-        громада — за координатою населеного пункту (HDX).${lvl === "country" ? "" : " Послуги нижче області — сума по закладах із Supabase, лише після входу."}</p>
+        громада — за координатою населеного пункту (HDX).${pp ? ` Оплати — ${esc(pd.src.short)}, за звітним місяцем; ${lvl === "country" ? "у рядках областей — усі отримувачі області" : "у рядках — сума по закладах реєстру договорів"}.` : ""}${lvl === "country" ? "" : " Послуги нижче області — сума по закладах із Supabase, лише після входу."}</p>
     </header>
     <div class="ap-table-wrap"><table class="ap-table">
-      <thead><tr>${head}</tr></thead><tbody>${body || `<tr><td colspan="7" class="ap-empty">У цьому зрізі закладів за пакетом немає.</td></tr>`}</tbody>
+      <thead><tr>${head}</tr></thead><tbody>${body || `<tr><td colspan="${7 + payCols}" class="ap-empty">У цьому зрізі закладів за пакетом немає.</td></tr>`}</tbody>
     </table></div>`;
 }
 
@@ -1005,6 +1176,87 @@ function renderMoney(list, st) {
         <span class="ap-rname">${esc(it.q[P.NAME])}</span><span class="ap-cellbar is-money"><i style="width:${(it.sum / maxT * 100).toFixed(1)}%"></i></span>
         <b>${esc(money(it.sum))}</b></li>`).join("")}</ol>
       ${level() === "country" ? `<button type="button" class="ap-link-btn" data-drill="core80">ядро бюджету пакета детально →</button>` : ""}
+    </details>`;
+}
+
+/* ── Оплати: рік до року (таблиця ДІТ) ─────────────────────────────
+   Питання блока: скільки держава фактично заплатила за пакет у цьому зрізі і
+   як це змінюється рік до року. Порівняння — лише рівних відрізків (повні
+   місяці поточного року проти тих самих місяців минулого). */
+const PAY_TOP = 10;
+
+function renderPay(list) {
+  const box = $("apPay");
+  if (!box) return;
+  const d = payData();
+  if (!d) {
+    box.innerHTML = A.payTried === String(A.pkg)
+      ? `<header class="ap-card-h"><h4>Фактичні оплати</h4></header>
+        <p class="ap-empty">У таблиці оплат ДІТ за 2024–2026 роки записів за цим пакетом немає.</p>`
+      : '<div class="ap-skel"><i></i><i></i><i></i></div>';
+    return;
+  }
+  const lvl = level();
+  const pp = payPeriod(d);
+  const { Y, k, cur } = pp;
+  const pay = payOf(list, lvl, A.scope.obl);
+  const dYtd = payChange(pay.ytd[cur], pay.ytd[cur - 1]);
+  const dYear = payChange(pay.t[cur - 1], pay.t[cur - 2]);
+  const title = pay.ytd[cur]
+    ? `сплачено ${money(pay.ytd[cur])} за ${pp.ytdLbl}${dYtd != null ? `, ${chgText(dYtd)} до ${pp.ytdPrev}` : ""}`
+    : pay.t[cur - 1] ? `у ${Y[cur - 1]} році сплачено ${money(pay.t[cur - 1])}; за ${pp.ytdLbl} оплат немає`
+    : `оплат за ${Y[0]}–${Y[cur]} роки немає`;
+  const how = pay.how === "file"
+    ? (lvl === "country" ? "усі отримувачі за пакетом" : "усі отримувачі області, зокрема ті, чиїх договорів у реєстрі вже немає")
+    : "сума по закладах реєстру договорів у цьому зрізі";
+  const tile = (label, v, sub) => `<div><dt>${esc(label)}</dt><dd>${esc(money(v))}<small>${sub}</small></dd></div>`;
+  const tiles = `<dl class="ap-kv ap-pay-kv">
+      ${tile(`${Y[cur - 2]} рік`, pay.t[cur - 2], esc(nProv(pay.n[cur - 2])))}
+      ${tile(`${Y[cur - 1]} рік`, pay.t[cur - 1], (dYear != null ? `${esc(chgText(dYear))} до ${Y[cur - 2]} · ` : "") + esc(nProv(pay.n[cur - 1])))}
+      ${tile(pp.ytdLbl, pay.ytd[cur], (dYtd != null ? `${esc(chgText(dYtd))} до ${esc(pp.ytdPrev)} · ` : "") + esc(nProv(pay.n[cur])))}
+    </dl>`;
+  let chart = "";
+  if (pay.m) {
+    const series = Y.map((yr, i) => ({
+      year: yr, cls: "y" + i, main: i === cur,
+      vals: (pay.m[String(yr)] || []).slice(0, i === cur ? k : 12),
+    }));
+    // у широкому контейнері графік займає праву колонку сітки .ap-pay, у вузькому — усю ширину
+    const cw = box.clientWidth || 0;
+    const apw = ($("analyticsPanel") || box).clientWidth || cw;
+    const w = apw >= 900 ? cw - 28 - 300 - 12 : cw - 28;
+    chart = yearLinesSvg(series, { w: w > 0 ? w : 640, aria: `оплати за місяцями у ${Y.join(", ")} роках, ${scopeTitle()}` });
+  }
+  // Заклади зрізу за оплатами поточного року; у найвужчих зрізах — усі
+  const narrow = lvl === "hromada" || lvl === "place";
+  const rows = list.map((it) => ({ it, r: payRow(it) })).filter((x) => x.r)
+    .sort((a, b) => (b.r[3 + cur] - a.r[3 + cur]) || (b.r[cur - 1] - a.r[cur - 1]));
+  const shown = narrow ? rows : rows.slice(0, PAY_TOP);
+  const without = list.length - rows.length;
+  const maxT = Math.max(...shown.map((x) => x.r[3 + cur]), 1);
+  const listHtml = shown.length ? `<ol class="ap-top ap-pay-top">${shown.map(({ it, r }) => {
+      const ch = payChange(r[3 + cur], r[3 + cur - 1]);
+      return `<li data-ap-zoz="${it.pi}" tabindex="0" title="${esc(it.q[P.NAME])}: ${esc(pp.ytdPrev)} — ${esc(money(r[3 + cur - 1]))} → ${esc(pp.ytdLbl)} — ${esc(money(r[3 + cur]))}. Клік — паспорт закладу">
+        <span class="ap-rname">${esc(it.q[P.NAME])}</span>
+        <span class="ap-cellbar is-money"><i style="width:${(Math.max(r[3 + cur], 0) / maxT * 100).toFixed(1)}%"></i></span>
+        <b>${esc(money(r[3 + cur]))}</b><small class="${ch == null ? "" : ch >= 0 ? "up" : "down"}">${esc(chgText(ch)) || "—"}</small></li>`;
+    }).join("")}</ol>`
+    : `<p class="ap-empty">Серед закладів зрізу оплат за пакетом у таблиці ДІТ не знайдено.</p>`;
+  const cap = !narrow && rows.length > PAY_TOP ? ` · показано ${PAY_TOP} з ${num(rows.length)}` : "";
+  box.innerHTML = `
+    <header class="ap-card-h">
+      <h4>${esc(scopeTitle())}: ${esc(title)}</h4>
+      <p class="ap-prov">${esc(d.src.short)} · гроші за звітним місяцем · ${Y[cur]}: повні місяці ${esc(pp.span)}${pp.tail ? `, ${esc(pp.tail)} ще оплачуються й у порівняння не входять` : ""} · ${esc(how)}</p>
+    </header>
+    <div class="ap-pay">
+      ${tiles}
+      ${chart ? `<figure class="ap-pay-chart">${chart}<figcaption>${Y.map((yr, i) => `<span class="ap-yl-key y${i}">${yr}</span>`).join(" ")} · ${Y[cur]} — лише повні місяці · вісь від нуля</figcaption></figure>`
+        : `<p class="ap-sub">Помісячні оплати є до рівня області; нижче — річні суми по закладах зрізу.</p>`}
+    </div>
+    <details class="ap-inline-more"${narrow ? " open" : ""}>
+      <summary>${narrow ? "заклади зрізу" : "найбільші отримувачі"} за ${esc(pp.ytdLbl)}${cap}</summary>
+      ${listHtml}
+      ${without > 0 ? `<p class="ap-sub">${esc(num(without))} ${plural(without, "заклад", "заклади", "закладів")} реєстру договорів у зрізі — без оплат за пакетом у таблиці ДІТ (договір новий, або заклад зшито не вдалося).</p>` : ""}
     </details>`;
 }
 
@@ -1230,6 +1482,8 @@ function renderZoz(pi) {
       : `<p class="ap-empty">Суми за цим пакетом у вивантажці немає.</p>`}
     </section>
 
+    ${zozPayHtml(it, inObl)}
+
     <section class="ap-zoz-sec">
       <h4>Робота за пакетом</h4>
       ${sv == null ? `<p class="ap-empty">Обсяги по закладах ще вантажаться або за пакетом їх немає.</p>`
@@ -1268,8 +1522,34 @@ function renderZoz(pi) {
       <h4>Якість рядка</h4>
       <p class="ap-zoz-q">${quality.map(([s, t]) => lampHtml(s, t)).join(" ")}</p>
     </section>
-    <p class="ap-sub">Джерела: реєстр договорів НСЗУ (${esc((ST().contractsData || {}).source_date || "—")}, суми — ${esc((ST().contractsData || {}).sums_date || "—")}); послуги — вивантажка ЕСОЗ у Supabase (RLS).</p>
+    <p class="ap-sub">Джерела: реєстр договорів НСЗУ (${esc((ST().contractsData || {}).source_date || "—")}, суми — ${esc((ST().contractsData || {}).sums_date || "—")}); послуги — вивантажка ЕСОЗ у Supabase (RLS)${payData() ? `; оплати — ${esc(payData().src.short)}` : ""}.</p>
   </div>`;
+}
+
+/** Паспорт закладу: скільки закладу фактично сплачено за пакетом і його місце за оплатами. */
+function zozPayHtml(it, inObl) {
+  const d = payData();
+  if (!d) return "";
+  const pp = payPeriod(d);
+  const { Y, cur } = pp;
+  const r = payRow(it);
+  if (!r) {
+    return `<section class="ap-zoz-sec"><h4>Оплати за пакетом</h4>
+      <p class="ap-empty">У таблиці оплат ДІТ за ${Y[0]}–${Y[cur]} роки закладу за цим пакетом не знайдено${it.q[P.OWN] === "ФОП" ? " (ФОП зшиваємо за ПІБ — розбіжність у написанні теж дає «не знайдено»)" : ""}.</p></section>`;
+  }
+  // місце за оплатами минулого повного року: в області — серед закладів реєстру, у країні — серед усіх отримувачів
+  const col = cur - 1;
+  const oblVals = inObl.map((x) => payRow(x)).filter(Boolean).map((x) => x[col]).sort((a, b) => b - a);
+  const natVals = Object.values(d.pv).map((x) => x[col]).sort((a, b) => b - a);
+  const rankO = oblVals.filter((v) => v > r[col]).length + 1, rankN = natVals.filter((v) => v > r[col]).length + 1;
+  const ch = payChange(r[3 + cur], r[3 + cur - 1]);
+  return `<section class="ap-zoz-sec">
+      <h4>Оплати за пакетом</h4>
+      <p class="ap-zoz-lead">${Y[cur - 2]} — <b>${esc(money(r[cur - 2]))}</b> · ${Y[cur - 1]} — <b>${esc(money(r[cur - 1]))}</b> ·
+        ${esc(pp.ytdLbl)} — <b>${esc(money(r[3 + cur]))}</b>${ch != null ? ` (${esc(chgText(ch))} до ${esc(pp.ytdPrev)})` : ""}</p>
+      ${r[col] > 0 ? `<p class="ap-sub">За оплатами ${Y[col]} року — місце ${rankO} з ${oblVals.length} в області (заклади реєстру) і ${rankN} з ${natVals.length} у країні (усі отримувачі).</p>` : ""}
+      <p class="ap-sub">${esc(d.src.short)}; гроші за звітним місяцем, ${Y[cur]} — повні місяці ${esc(pp.span)}.</p>
+    </section>`;
 }
 
 /** Договір закладу з реєстру (для ключа pkey і email юрособи). panel.json
@@ -1420,6 +1700,7 @@ function draw() {
   safe(renderLadder);
   safe(renderChain, list, st, srcs);
   safe(renderKids, list, st);
+  safe(renderPay, list);
   safe(renderMoney, list, st);
   safe(renderWork, list, st);
   safe(renderAccess);
@@ -1430,7 +1711,7 @@ function draw() {
 function skeleton() {
   const chain = $("apChain");
   if (chain) chain.innerHTML = Array.from({ length: 5 }, () => '<article class="ap-link is-skel"><i></i><i></i><i></i></article>').join("");
-  ["apKids", "apMoney", "apWork", "apAccess"].forEach((id) => { const b = $(id); if (b) b.innerHTML = '<div class="ap-skel"><i></i><i></i><i></i></div>'; });
+  ["apKids", "apPay", "apMoney", "apWork", "apAccess"].forEach((id) => { const b = $(id); if (b) b.innerHTML = '<div class="ap-skel"><i></i><i></i><i></i></div>'; });
 }
 
 async function render(pkgNum) {
@@ -1440,8 +1721,12 @@ async function render(pkgNum) {
   A.showAll = false;
   A.pvol = null;
   A.pvolPkg = null;
+  A.pay = null;
+  A.payPkg = null;
+  A.payTried = null;
   closeZoz();
   skeleton();
+  loadPay(A.pkg);                   // окремо: панель не чекає на оплати
   const [panel] = await Promise.all([ensurePanel(), ensureExtras()]);
   if (A.pkg !== String(pkgNum)) return;
   if (!panel) {

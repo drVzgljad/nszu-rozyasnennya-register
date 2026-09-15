@@ -259,6 +259,36 @@ tr:hover .ap-go, tr:focus-visible .ap-go { opacity: 1; }
 .ap-top .ap-cellbar { margin: 0; }
 .ap-top .ap-cellbar i { margin-left: 0; }
 
+/* ── Фактичні оплати рік до року (таблиця ДІТ) ─────────────────── */
+.ap-pay { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
+@container (min-width: 900px) { .ap-pay { grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); } }
+.ap-pay-kv { gap: 12px; }
+@container (min-width: 560px) and (max-width: 899px) { .ap-pay-kv { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.ap-pay-kv dd { font-size: 1.15rem; }
+.ap-pay-chart { margin: 0; min-width: 0; }
+.ap-pay-chart figcaption { font-size: .74rem; color: var(--muted, #647688); margin-top: 2px; }
+/* роки одним тоном: минулі — світліші й тонші, поточний — насичений */
+.ap-yl-l { fill: none; stroke-width: 1.6; stroke-linejoin: round; }
+.ap-yl.y0 .ap-yl-l { stroke: color-mix(in srgb, var(--muted, #647688) 55%, transparent); }
+.ap-yl.y1 .ap-yl-l { stroke: color-mix(in srgb, var(--accent, #4a8fc7) 60%, transparent); }
+.ap-yl.y2 .ap-yl-l { stroke: var(--ap-money); stroke-width: 2.6; }
+.ap-yl-d.y0 { fill: color-mix(in srgb, var(--muted, #647688) 55%, transparent); }
+.ap-yl-d.y1 { fill: color-mix(in srgb, var(--accent, #4a8fc7) 60%, transparent); }
+.ap-yl-d.y2 { fill: var(--ap-money); }
+.ap-yl-t { font-size: 11px; font-weight: 600; }
+.ap-yl-t.y0 { fill: var(--muted, #647688); }
+.ap-yl-t.y1 { fill: var(--accent-deep, #2f6b9e); }
+.ap-yl-t.y2 { fill: var(--ap-money); }
+.ap-yl-key { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
+.ap-yl-key::before { content: ""; width: 14px; height: 0; border-top: 2px solid currentColor; }
+.ap-yl-key.y0 { color: var(--muted, #647688); }
+.ap-yl-key.y1 { color: var(--accent-deep, #2f6b9e); }
+.ap-yl-key.y2 { color: var(--ap-money); }
+.ap-pay-top li { grid-template-columns: minmax(0, 1fr) 70px auto 3.8em; }
+.ap-pay-top small { text-align: right; font-size: .72rem; color: var(--muted, #647688); }
+/* зміна оплат — не оцінка: без червоного й зеленого */
+.ap-pay-top small.up { color: var(--ap-money); }
+
 /* ── Доступ: перелік областей ──────────────────────────────────── */
 .ap-dots { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 2px; max-height: 420px; overflow-y: auto; }
 .ap-dots li { display: grid; grid-template-columns: 9.5em minmax(0, 1fr) 4.2em; gap: 8px; align-items: center; font-size: .8rem; cursor: pointer; padding: 1px 4px; border-radius: 6px; }

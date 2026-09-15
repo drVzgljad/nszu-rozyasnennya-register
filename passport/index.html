@@ -12,10 +12,10 @@
   <link rel="stylesheet" href="../portal.css?v=20260808c">
   <link rel="stylesheet" href="../styles.css?v=20260808b">
   <link rel="stylesheet" href="passport.css?v=20260912b">
-  <link rel="stylesheet" href="analytics-panel.css?v=20260913d">
+  <link rel="stylesheet" href="analytics-panel.css?v=20260915a">
   <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script type="module" src="../auth-v2.js?v=20260913a"></script>
+  <script type="module" src="../auth-v2.js?v=20260915a"></script>
 </head>
 <body>
 <div class="portal">
@@ -150,6 +150,10 @@
                   </div>
                 </div>
                 <section class="ap-card ap-kids-card" id="apKids" aria-label="Зріз: де гроші"></section>
+              </div>
+              <!-- Фактичні оплати рік до року — таблиця ДІТ (tools/build_payments_it.py), 15.09.2026 -->
+              <div class="ap-row">
+                <section class="ap-card ap-pay-card" id="apPay" aria-label="Фактичні оплати"></section>
               </div>
               <div class="ap-row ap-row-3">
                 <section class="ap-card" id="apMoney" aria-label="Концентрація грошей"></section>
@@ -495,7 +499,7 @@
 <script src="../provider-private.js?v=20260913a" defer></script>
 <script src="passport.js?v=20260913b" defer></script>
 <script src="map-drill.js?v=20260913a" defer></script>
-<script src="analytics-panel.js?v=20260913g" defer></script>
+<script src="analytics-panel.js?v=20260915c" defer></script>
 <script src="kpi-drill.js?v=20260907b" defer></script>
 </body>
 </html>
