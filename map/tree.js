@@ -56,6 +56,7 @@
           { name: "Планувальник", icon: "🗓️", path: "cabinet/planner.html", role: "expert" },
           { name: "Доручення (СКО-Д)", icon: "✅", path: "skod/tasks.html", role: "manager" },
           { name: "Звіти та аналітика", icon: "📊", path: "skod/reports.html", role: "expert" },
+          { name: "Внутрішні акти НСЗУ", icon: "🏛️", path: "vnutrishni-akty/index.html", role: "expert" },
           { name: "Структура департаменту", icon: "👥", path: "dept-tree.html", role: "expert" },
           { name: "Терміни звітування", icon: "⏰", path: "reminders/index.html", role: "expert" },
         ],

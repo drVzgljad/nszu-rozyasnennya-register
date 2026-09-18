@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>НавігаторПМГ26 | Внутрішні акти НСЗУ</title>
+  <link rel="stylesheet" href="../styles.css?v=20260808b">
+  <link rel="stylesheet" href="akty.css?v=20260918a">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
+  <script type="module" src="../auth-v2.js?v=20260918a"></script>
+</head>
+<!-- Розділ закритий: вміст внутрішніх актів НСЗУ. Оверлей «Доступ обмежено»
+     вставляє сам auth-v2.js — власного блоку тут бути не повинно. -->
+<body id="top" data-required-role="expert">
+
+  <header class="hero va-hero">
+    <div class="hero-copy">
+      <div class="overline">Як ми працюємо всередині</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Внутрішні акти НСЗУ</h1>
+      <p class="va-sub">Накази, порядки й алгоритми, що визначають нашу власну роботу:
+        який строк має документ, хто його опрацьовує і що зараз лежить на погодженні.
+        Це не нормативна база ПМГ — це внутрішня кухня Служби.</p>
+    </div>
+    <div class="stats" aria-label="Обсяг розділу">
+      <div class="stat"><strong id="statKinds">—</strong><span>видів документів зі строком</span></div>
+      <div class="stat"><strong id="statUnits">—</strong><span>підрозділів у матриці</span></div>
+      <div class="stat"><strong id="statTopics">—</strong><span>типів питань</span></div>
+      <div class="stat"><strong id="statActs">—</strong><span>актів у реєстрі</span></div>
+    </div>
+  </header>
+
+  <main class="layout va-layout">
+
+    <div class="va-tabs" role="tablist" aria-label="Режим перегляду">
+      <button class="va-tab is-active" id="tabStroky" role="tab" aria-selected="true" type="button">⏱️ Строки</button>
+      <button class="va-tab" id="tabHto" role="tab" aria-selected="false" type="button">🧭 Хто опрацьовує</button>
+      <button class="va-tab" id="tabReyestr" role="tab" aria-selected="false" type="button">📁 Реєстр актів</button>
+    </div>
+
+    <!-- ============ РЕЖИМ: СТРОКИ (Додаток 1) ============ -->
+    <section class="va-view is-visible" id="viewStroky">
+
+      <div class="va-calc" id="calc">
+        <h2>Порахувати строк</h2>
+        <p class="va-calc-hint">Відлік — з дня, наступного за днем реєстрації. Робочі дні
+          рахуються зі святами за ст. 73 КЗпП, зокрема рухомими (Великдень, Трійця).</p>
+        <div class="va-calc-row">
+          <label class="va-field">
+            <span>Вид документа</span>
+            <select id="calcKind"></select>
+          </label>
+          <label class="va-field va-field-date">
+            <span>Зареєстровано</span>
+            <input id="calcDate" type="date">
+          </label>
+        </div>
+        <div class="va-calc-out" id="calcOut" hidden></div>
+      </div>
+
+      <div class="va-toolbar">
+        <div class="va-search">
+          <span class="va-search-ico" aria-hidden="true">🔍</span>
+          <input id="qStroky" type="search" autocomplete="off"
+                 placeholder="Пошук за видом документа — напр. «адвокат», «публічн», «депутат»">
+          <button class="va-search-clear" id="qStrokyClear" type="button" aria-label="Очистити пошук" hidden>✕</button>
+        </div>
+        <div class="va-hits" id="hitsStroky" hidden></div>
+      </div>
+
+      <div id="strokyBody"><div class="va-loading">Завантаження…</div></div>
+
+      <p class="va-source" id="strokySource"></p>
+    </section>
+
+    <!-- ============ РЕЖИМ: ХТО ОПРАЦЬОВУЄ (Додаток 2) ============ -->
+    <section class="va-view" id="viewHto" hidden>
+      <div class="va-toolbar">
+        <div class="va-search">
+          <span class="va-search-ico" aria-hidden="true">🔍</span>
+          <input id="qHto" type="search" autocomplete="off"
+                 placeholder="Про що лист? — напр. «тариф», «акт звіряння», «реорганізація», «1-НС»">
+          <button class="va-search-clear" id="qHtoClear" type="button" aria-label="Очистити пошук" hidden>✕</button>
+        </div>
+        <label class="va-only-ours">
+          <input type="checkbox" id="onlyOurs">
+          <span>лише наші питання</span>
+        </label>
+        <div class="va-hits" id="hitsHto" hidden></div>
+      </div>
+
+      <div id="htoBody"><div class="va-loading">Завантаження…</div></div>
+    </section>
+
+    <!-- ============ РЕЖИМ: РЕЄСТР АКТІВ ============ -->
+    <section class="va-view" id="viewReyestr" hidden>
+      <div id="reyestrBody"><div class="va-loading">Завантаження…</div></div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <p>Строки — Додаток 1 до Алгоритму взаємодії структурних підрозділів при розгляді
+          вхідної кореспонденції (наказ НСЗУ від 15.09.2026 № 502); нормативна підстава
+          наведена в кожному рядку, вона й є контрольним джерелом. Матриця підрозділів —
+          Додаток 2 до того самого Алгоритму. Розрахунок строку — довідковий: остаточний
+          строк стоїть у реєстраційній картці АСКОД і може бути випереджувальним (п. 4).</p>
+      </div>
+    </div>
+  </footer>
+
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <script type="module" src="akty.js?v=20260918a"></script>
+</body>
+</html>

@@ -1,0 +1,355 @@
+/* ============================================================
+   Розділ «Внутрішні акти НСЗУ»
+
+   Три режими: строки (Додаток 1 наказу № 502) → хто опрацьовує (Додаток 2)
+   → реєстр актів і наших позицій.
+
+   Кольори беремо ВИКЛЮЧНО з ролей теми (--ink, --muted, --faint, --line,
+   --surface, --soft, --accent, --accent-dark, --accent-soft, --warning-*).
+   Запасних значень у var() немає навмисно: hardcode-фолбек на неіснуючий
+   токен свого часу зламав темну тему (var(--p-accent, #2f6b9e)). Тому
+   власного блоку :root.dark-theme тут теж немає — тема працює сама.
+
+   Один виняток із правила «беремо токен»: --accent-soft у темній темі
+   дорівнює --surface, тож акцентна підкладка ПОВЕРХ картки там зникає
+   (контраст 1,00). У таких місцях під токеном стоїть другий рядок
+   color-mix із прозорим акцентом — він композититься з тим, що під ним.
+   ============================================================ */
+
+.va-hero h1 { margin-bottom: 6px; }
+.va-sub { max-width: 74ch; }
+
+.va-layout {
+  /* Портальний .layout — двоколонковий grid. Без цього скидання вкладки лягли б
+     у ліву колонку, а вміст у праву (та сама пастка, що в «Критеріях
+     госпіталізації» і «Рентгені»). */
+  display: block;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 16px 20px 48px;
+}
+
+/* ---------- перемикач режимів ---------- */
+.va-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.va-tab {
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  padding: 10px 18px;
+  border-radius: 10px 10px 0 0;
+  cursor: pointer;
+  transition: color .15s, background-color .15s;
+}
+.va-tab:hover { color: var(--ink); background: var(--soft); }
+.va-tab.is-active {
+  color: var(--accent-dark);
+  background: var(--surface);
+  border-color: var(--line);
+  margin-bottom: -1px;
+}
+
+.va-view { display: none; }
+.va-view.is-visible { display: block; }
+
+/* ---------- пошук ---------- */
+.va-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 16px;
+}
+.va-search {
+  position: relative;
+  flex: 1 1 340px;
+  display: flex;
+  align-items: center;
+}
+.va-search-ico {
+  position: absolute;
+  left: 12px;
+  font-size: 14px;
+  opacity: .6;
+  pointer-events: none;
+}
+.va-search input {
+  width: 100%;
+  font: inherit;
+  font-size: 14.5px;
+  padding: 10px 34px 10px 34px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.va-search input:focus { outline: none; border-color: var(--accent); }
+.va-search-clear {
+  position: absolute;
+  right: 8px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 6px;
+  line-height: 1;
+}
+.va-hits { font-size: 13px; color: var(--muted); white-space: nowrap; }
+
+.va-only-ours {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13.5px;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+.va-only-ours input { accent-color: var(--accent); }
+
+.va-loading, .va-state {
+  padding: 26px 20px;
+  text-align: center;
+  color: var(--muted);
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.va-state p { margin: 0 0 6px; }
+.va-state-howto { font-size: 13px; color: var(--faint); }
+.va-state code {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 12px;
+  background: var(--soft);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+
+/* ---------- калькулятор строку ---------- */
+.va-calc {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  padding: 18px 20px;
+  margin-bottom: 22px;
+}
+.va-calc h2 { margin: 0 0 4px; font-size: 17px; }
+.va-calc-hint { margin: 0 0 14px; font-size: 13px; color: var(--muted); max-width: 72ch; }
+.va-calc-row { display: flex; gap: 14px; flex-wrap: wrap; }
+.va-field { display: flex; flex-direction: column; gap: 5px; flex: 1 1 340px; min-width: 0; }
+.va-field-date { flex: 0 1 190px; }
+.va-field > span { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.va-field select, .va-field input {
+  font: inherit;
+  font-size: 14px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--page);
+  color: var(--ink);
+  max-width: 100%;
+}
+.va-field select:focus, .va-field input:focus { outline: none; border-color: var(--accent); }
+
+.va-calc-out { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 16px; }
+.va-calc-main { display: flex; gap: 14px; flex-wrap: wrap; }
+.va-calc-big {
+  flex: 1 1 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 14px;
+  border-radius: 11px;
+  background: var(--accent-soft);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border: 1px solid var(--line);
+}
+.va-calc-ext { background: var(--soft); }
+.va-calc-label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+.va-calc-big strong { font-size: 19px; color: var(--accent-dark); line-height: 1.25; }
+.va-calc-sub { font-size: 12.5px; color: var(--muted); }
+.va-calc-warn { color: var(--warning-text); }
+
+.va-calc-chain { margin: 14px 0 0; padding: 0 0 0 18px; display: flex; flex-direction: column; gap: 7px; }
+.va-calc-chain li { font-size: 13.5px; color: var(--ink); line-height: 1.45; }
+.va-calc-chain strong { color: var(--accent-dark); }
+/* Посилання на пункт Алгоритму — не декор, а те, чим у листі підкріплюють
+   строк, тому --muted, а не --faint: у темній темі faint дає лише 3,07. */
+.va-calc-src { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.va-calc-basis { margin: 12px 0 0; font-size: 12.5px; color: var(--faint); }
+/* Застереження, яке не вкладається в число: «строк встановлює рада»,
+   «для спецперевірки — 3 дні» тощо. Стоїть під розрахунком. */
+.va-calc-note {
+  margin: 14px 0 0;
+  font-size: 13.5px;
+  color: var(--ink);
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: 10px;
+  padding: 11px 13px;
+}
+
+/* ---------- таблиця строків ---------- */
+.va-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.va-table th {
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: var(--muted);
+  padding: 10px 14px;
+  background: var(--soft);
+  border-bottom: 1px solid var(--line);
+}
+.va-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+.va-table tr:last-child td { border-bottom: none; }
+.va-td-kind { color: var(--ink); font-weight: 600; max-width: 30ch; }
+.va-td-base { color: var(--muted); font-size: 12.5px; max-width: 32ch; }
+.va-col-term { width: 24ch; }
+.va-chip {
+  display: inline-block;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--soft);
+  color: var(--ink);
+  white-space: nowrap;
+}
+.va-chip.is-wd {
+  background: var(--accent-soft);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent-dark);
+}
+.va-term-full { margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+
+.va-source { margin: 14px 0 0; font-size: 12.5px; color: var(--faint); }
+
+/* ---------- підрозділи (Додаток 2) ---------- */
+.va-unit {
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface);
+  padding: 14px 18px 4px;
+  margin-bottom: 12px;
+}
+.va-unit.is-ours { border-color: var(--accent); }
+.va-unit-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.va-unit-head h3 { margin: 0; font-size: 15.5px; line-height: 1.3; }
+.va-unit-n {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--soft);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+.va-unit.is-ours .va-unit-n {
+  background: var(--accent-soft);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent-dark);
+}
+.va-badge {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+
+.va-block { padding: 12px 0; border-top: 1px solid var(--line); margin-top: 12px; }
+.va-unit > .va-block:first-of-type { border-top: none; }
+.va-block-intro { margin: 0 0 6px; font-size: 13.5px; color: var(--ink); line-height: 1.45; }
+.va-block-items { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.va-block-items li { font-size: 13px; color: var(--muted); line-height: 1.45; }
+.va-block-official { margin: 9px 0 0; font-size: 12.5px; color: var(--ink); }
+.va-block-official span { color: var(--faint); }
+.va-unit mark { background: var(--warning-bg); color: var(--ink); border-radius: 3px; padding: 0 2px; }
+
+/* ---------- реєстр актів ---------- */
+.va-group { margin-bottom: 30px; }
+.va-group h2 { margin: 0 0 2px; font-size: 17px; display: flex; align-items: baseline; gap: 9px; }
+.va-group-n { font-size: 12.5px; font-weight: 700; color: var(--muted); background: var(--soft);
+  border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; }
+.va-group-note { margin: 0 0 12px; font-size: 13px; color: var(--muted); }
+
+.va-act {
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 14px 18px;
+  margin-bottom: 10px;
+}
+.va-act-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; justify-content: space-between; }
+.va-act-head h3 { margin: 0; font-size: 15px; line-height: 1.35; flex: 1 1 60%; }
+.va-act-status {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.va-act-meta { margin: 6px 0 0; font-size: 12.5px; color: var(--faint); }
+.va-act-text { margin: 8px 0 0; font-size: 13.5px; color: var(--ink); line-height: 1.5; }
+.va-act-role { margin: 8px 0 0; font-size: 13px; color: var(--ink); }
+.va-act-role span { color: var(--faint); }
+.va-act-notes { margin: 9px 0 0; }
+.va-act-notes summary { font-size: 12.5px; color: var(--accent-dark); cursor: pointer; }
+.va-act-notes p { margin: 8px 0 0; font-size: 13px; color: var(--muted); line-height: 1.55; }
+.va-act-path {
+  margin: 9px 0 0;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 11.5px;
+  color: var(--faint);
+  word-break: break-all;
+}
+
+/* ---------- вузький екран ---------- */
+@media (max-width: 720px) {
+  .va-layout { padding: 12px 14px 40px; }
+  .va-calc { padding: 14px; }
+  .va-calc-row { flex-direction: column; }
+  .va-field-date { flex: 1 1 auto; }
+  /* Таблиця строків на телефоні розсипається в картки: три колонки по 24ch
+     у 360px не влазять, а горизонтальний скрол у розділі з довгими
+     формулюваннями читається гірше за стовпчик. */
+  .va-table, .va-table tbody, .va-table tr, .va-table td { display: block; width: 100%; }
+  .va-table thead { display: none; }
+  .va-table tr { border-bottom: 1px solid var(--line); padding: 6px 0; }
+  .va-table tr:last-child { border-bottom: none; }
+  .va-table td { border-bottom: none; padding: 4px 14px; max-width: none; }
+  .va-col-term { width: auto; }
+  .va-unit { padding: 12px 14px 4px; }
+}

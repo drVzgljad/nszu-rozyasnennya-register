@@ -108,8 +108,8 @@ const PORTAL_SUBDIRS = [
   'algorithms', 'bloknot', 'cabinet', 'chat', 'classifiers', 'dec', 'drg', 'expert-proposals',
   'gospitalizatsiya', 'infocenter',
   'koduvannia', 'map', 'mapping', 'news', 'pakety', 'passport', 'pilots', 'pmg-proposals', 'postanova',
-  'regulatory', 'relax', 'reminders', 'rentgen', 'rozjasnennya', 'skod', 'zoz-dogovr', 'zoz-poshuk',
-  'zoz-questions'
+  'regulatory', 'relax', 'reminders', 'rentgen', 'rozjasnennya', 'skod', 'vnutrishni-akty',
+  'zoz-dogovr', 'zoz-poshuk', 'zoz-questions'
 ];
 
 function isInPortalSubdir() {
@@ -536,6 +536,10 @@ function applyAccess() {
           { text: 'Наказ 1044 · Критерії госпіталізації', path: 'gospitalizatsiya/index.html', role: 'expert' }
         ]
       },
+      // Внутрішні акти НСЗУ — окремо від «Наказів» вище: там накази МОЗ, які
+      // регулюють ПМГ, тут — накази самої Служби, які регулюють нашу роботу.
+      // Розділ закритий (role: 'expert'), бо вміст цих актів не публічний.
+      { text: '🏛️ Внутрішні акти НСЗУ', path: 'vnutrishni-akty/index.html', role: 'expert' },
       { text: 'Нормативна база', path: 'regulatory/index.html' },
       { text: '🩻 Рентген і ДІВ', path: 'rentgen/index.html' },
       { text: 'ДЕЦ МОЗ', path: 'dec/index.html' },
@@ -2651,6 +2655,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '↔️', label: 'Тарифи 2025 ↔ 2026', path: 'postanova/porivnyannya.html' },
     { icon: '🧮', label: 'Наказ 377', path: 'algorithms/index.html', role: 'expert' },
     { icon: '🏥', label: 'Наказ 1044 · Критерії госпіталізації', path: 'gospitalizatsiya/index.html', role: 'expert' },
+    { icon: '🏛️', label: 'Внутрішні акти НСЗУ', path: 'vnutrishni-akty/index.html', role: 'expert' },
     { icon: '⚖️', label: 'Нормативна база', path: 'regulatory/index.html' },
     { icon: '☢️', label: 'Рентген і ДІВ', path: 'rentgen/index.html' },
     { icon: '🏥', label: 'ДЕЦ МОЗ', path: 'dec/index.html' },
