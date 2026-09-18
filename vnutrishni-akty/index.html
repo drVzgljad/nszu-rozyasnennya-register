@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Внутрішні акти НСЗУ</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="akty.css?v=20260918a">
+  <link rel="stylesheet" href="akty.css?v=20260918b">
   <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
   <script type="module" src="../auth-v2.js?v=20260918a"></script>
 </head>
@@ -37,15 +37,14 @@
         </div>
       </div>
       <h1>Внутрішні акти НСЗУ</h1>
-      <p class="va-sub">Накази, порядки й алгоритми, що визначають нашу власну роботу:
-        який строк має документ, хто його опрацьовує і що зараз лежить на погодженні.
-        Це не нормативна база ПМГ — це внутрішня кухня Служби.</p>
+      <p class="va-sub">Два питання, на які внутрішні акти НСЗУ дають нормативну
+        відповідь: який строк має цей документ і хто його опрацьовує. Це не нормативна
+        база ПМГ — це порядок роботи самої Служби.</p>
     </div>
     <div class="stats" aria-label="Обсяг розділу">
       <div class="stat"><strong id="statKinds">—</strong><span>видів документів зі строком</span></div>
       <div class="stat"><strong id="statUnits">—</strong><span>підрозділів у матриці</span></div>
       <div class="stat"><strong id="statTopics">—</strong><span>типів питань</span></div>
-      <div class="stat"><strong id="statActs">—</strong><span>актів у реєстрі</span></div>
     </div>
   </header>
 
@@ -54,7 +53,6 @@
     <div class="va-tabs" role="tablist" aria-label="Режим перегляду">
       <button class="va-tab is-active" id="tabStroky" role="tab" aria-selected="true" type="button">⏱️ Строки</button>
       <button class="va-tab" id="tabHto" role="tab" aria-selected="false" type="button">🧭 Хто опрацьовує</button>
-      <button class="va-tab" id="tabReyestr" role="tab" aria-selected="false" type="button">📁 Реєстр актів</button>
     </div>
 
     <!-- ============ РЕЖИМ: СТРОКИ (Додаток 1) ============ -->
@@ -111,11 +109,6 @@
       <div id="htoBody"><div class="va-loading">Завантаження…</div></div>
     </section>
 
-    <!-- ============ РЕЖИМ: РЕЄСТР АКТІВ ============ -->
-    <section class="va-view" id="viewReyestr" hidden>
-      <div id="reyestrBody"><div class="va-loading">Завантаження…</div></div>
-    </section>
-
   </main>
 
   <footer class="site-footer">
@@ -131,6 +124,6 @@
   </footer>
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
-  <script type="module" src="akty.js?v=20260918a"></script>
+  <script type="module" src="akty.js?v=20260918b"></script>
 </body>
 </html>

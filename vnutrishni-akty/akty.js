@@ -1,10 +1,15 @@
 /**
  * Розділ «Внутрішні акти НСЗУ».
  *
- * Три режими:
+ * Два режими:
  *   Строки        — Додаток 1 наказу № 502 + калькулятор строку (файл data/stroky.json);
- *   Хто опрацьовує — Додаток 2 того ж наказу (Supabase, таблиця internal_act_units);
- *   Реєстр актів  — чинні, проєкти на погодженні, наші позиції (Supabase, internal_acts).
+ *   Хто опрацьовує — Додаток 2 того ж наказу (Supabase, таблиця internal_act_units).
+ *
+ * Реєстру внутрішніх актів і наших позицій до них тут НЕМАЄ і не має бути
+ * (рішення користувача 18.09.2026): портал бачить кожен обліковий запис
+ * департаменту, а статуси наших зауважень, чого ми домоглися в чужому проєкті
+ * наказу і де лежать робочі файли — не те, що виносять на спільний екран.
+ * Реєстр лишається в README теки 28_внутрішні_акти_НСЗУ.
  *
  * Чому вміст розділений між файлом і базою. Репозиторій порталу публічний, а
  * роль-гейт на сторінці — це видимість, а не захист: розмітка й дані вантажаться
@@ -376,59 +381,11 @@ function renderUnits() {
 }
 
 /* ──────────────────────────────────────────────────────────────
-   Режим 3: реєстр актів
-   ────────────────────────────────────────────────────────────── */
-const GROUPS = [
-  { kind: "chynnyi", title: "Чинні акти", note: "Те, чим ми зобов'язані керуватися вже зараз." },
-  { kind: "proekt", title: "Проєкти на погодженні", note: "Те, на що ми ще можемо вплинути зауваженнями." },
-  { kind: "pozytsiia", title: "Наші позиції та зауваження", note: "Що департамент уже подав до цих проєктів." },
-];
-
-async function loadActs() {
-  const { status, rows } = await fetchTable("internal_acts", "sort");
-  if (status !== "ok") {
-    $("reyestrBody").innerHTML = stateBox(status, "Реєстр актів",
-      status === "missing" || status === "empty"
-        ? "Виконати <code>migration_2026-09-18_internal_acts.sql</code> — реєстр засівається самою міграцією."
-        : "");
-    return;
-  }
-  $("statActs").textContent = rows.length;
-  $("reyestrBody").innerHTML = GROUPS.map((g) => {
-    const list = rows.filter((r) => r.kind === g.kind);
-    if (!list.length) return "";
-    return `
-      <section class="va-group">
-        <h2>${esc(g.title)} <span class="va-group-n">${list.length}</span></h2>
-        <p class="va-group-note">${esc(g.note)}</p>
-        ${list.map(actCard).join("")}
-      </section>`;
-  }).join("");
-}
-
-function actCard(a) {
-  const meta = [a.requisites, a.developer && `розробник: ${a.developer}`].filter(Boolean);
-  return `
-    <article class="va-act">
-      <header class="va-act-head">
-        <h3>${esc(a.title)}</h3>
-        ${a.status ? `<span class="va-act-status">${esc(a.status)}</span>` : ""}
-      </header>
-      ${meta.length ? `<p class="va-act-meta">${esc(meta.join(" · "))}</p>` : ""}
-      ${a.regulates ? `<p class="va-act-text">${esc(a.regulates)}</p>` : ""}
-      ${a.our_role ? `<p class="va-act-role"><span>Наша роль:</span> ${esc(a.our_role)}</p>` : ""}
-      ${a.notes ? `<details class="va-act-notes"><summary>Подробиці</summary><p>${esc(a.notes)}</p></details>` : ""}
-      ${a.doc_path ? `<p class="va-act-path" title="Шлях у робочій теці">${esc(a.doc_path)}</p>` : ""}
-    </article>`;
-}
-
-/* ──────────────────────────────────────────────────────────────
    Вкладки та події
    ────────────────────────────────────────────────────────────── */
 const VIEWS = [
   { tab: "tabStroky", view: "viewStroky" },
   { tab: "tabHto", view: "viewHto" },
-  { tab: "tabReyestr", view: "viewReyestr" },
 ];
 
 function switchTo(id) {
@@ -439,7 +396,7 @@ function switchTo(id) {
     $(view).classList.toggle("is-visible", on);
     $(view).hidden = !on;
   });
-  const hash = { tabStroky: "", tabHto: "#hto", tabReyestr: "#reyestr" }[id];
+  const hash = { tabStroky: "", tabHto: "#hto" }[id];
   if (hash !== undefined) history.replaceState(null, "", location.pathname + hash);
 }
 
@@ -466,14 +423,12 @@ $("calcDate").addEventListener("change", runCalc);
 
 $("calcDate").value = new Date().toISOString().slice(0, 10);
 if (location.hash === "#hto") switchTo("tabHto");
-if (location.hash === "#reyestr") switchTo("tabReyestr");
 
 loadStroky();
 loadUnits();
-loadActs();
 
 // Вхід або вихід без перезавантаження — перечитуємо закриті таблиці
 (async () => {
   const sb = await client();
-  if (sb && sb.auth) sb.auth.onAuthStateChange(() => { loadUnits(); loadActs(); });
+  if (sb && sb.auth) sb.auth.onAuthStateChange(() => { loadUnits(); });
 })();
