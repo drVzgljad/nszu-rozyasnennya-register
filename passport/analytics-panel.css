@@ -119,6 +119,9 @@
 .ap-link-more p { margin: 4px 0; line-height: 1.4; }
 .ap-more { color: var(--accent-deep, #2f6b9e); }
 .ap-warn-inline { color: var(--ap-warn); }
+/* Застереження про межі показника: тихіше за основний текст, але читабельне
+   і в темній темі — колір береться з тієї самої змінної, що й підписи. */
+.ap-note { color: var(--muted, #647688); font-style: italic; }
 .ap-link.is-skel { min-height: 190px; cursor: default; }
 .ap-link.is-skel i, .ap-skel i {
   display: block; height: 12px; border-radius: 6px; margin: 6px 0;

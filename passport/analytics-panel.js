@@ -54,6 +54,12 @@ function money(v) {
   if (v >= 1e3) return dec(v / 1e3, 0) + NB + "тис." + NB + "₴";
   return num(v) + NB + "₴";
 }
+/** Нормативна ставка з постанови — рівно як у джерелі, дві цифри після коми
+ *  (921,82 ₴, а не 922 ₴). money() з його «тис./млн» для ставок не годиться:
+ *  він створений для сум договорів і оплат. */
+function rate(v) { return dec(v, 2) + NB + "₴"; }
+/** Коефіцієнт друкуємо з точністю джерела (до 4 знаків), без добивання нулями. */
+function coefTxt(v) { return (v || 0).toLocaleString("uk-UA", { maximumFractionDigits: 4 }); }
 function big(v) {
   if (v >= 1e6) return dec(v / 1e6, 1) + NB + "млн";
   if (v >= 1e4) return dec(v / 1e3, 0) + NB + "тис.";
@@ -403,6 +409,19 @@ function volData() {
   const d = V && V.data ? V.data() : null;
   return d && String(d.p) === String(A.pkg) ? d : null;
 }
+/** Період повних місяців вивантажки словами: «січень–липень 2026». */
+function volSpan(full) {
+  if (!full || !full.length) return "—";
+  const a = full[0], b = full[full.length - 1];
+  const mA = MONTH_FULL[+a.slice(5) - 1], mB = MONTH_FULL[+b.slice(5) - 1];
+  if (a === b) return `${mA} ${a.slice(0, 4)}`;
+  return a.slice(0, 4) === b.slice(0, 4)
+    ? `${mA}–${mB} ${b.slice(0, 4)}` : `${mA} ${a.slice(0, 4)} – ${mB} ${b.slice(0, 4)}`;
+}
+/** Дата зрізу реєстру договорів — з неї береться склад мережі. */
+function netDate() { return dmy(parseDate((ST().contractsData || {}).source_date)); }
+/** Дата, на яку взято суми договорів (буває старша за склад мережі). */
+function sumsDate() { return dmy(parseDate((ST().contractsData || {}).sums_date)); }
 function volMetric(mode) {
   const V = window.Volumes;
   if (!volData() || !V.hasData || !V.hasData()) return null;
@@ -665,7 +684,7 @@ function yearLinesSvg(series, o) {
     </svg>`;
 }
 
-/** Крива концентрації (Лоренца): частка надавачів → частка грошей. */
+/** Крива концентрації (Лоренца): частка надавачів → частка СУМИ ДОГОВОРІВ. */
 function lorenzSvg(sortedAsc, total) {
   const W = 260, H = 200, L = 34, R = 10, T = 10, B = 28;
   const n = sortedAsc.length;
@@ -683,9 +702,9 @@ function lorenzSvg(sortedAsc, total) {
   const c = core80(sortedAsc, total);
   const fx = 1 - c.count / n;                       // звідки починається ядро
   return `<svg class="ap-lorenz" viewBox="0 0 ${W} ${H}" role="img"
-        aria-label="Крива концентрації: ${esc(num(c.count))} найбільших із ${esc(num(n))} отримують 80 % грошей">
+        aria-label="Крива концентрації: ${esc(num(c.count))} найбільших із ${esc(num(n))} мають 80 % суми договорів">
       <line x1="${x(0)}" y1="${y(0)}" x2="${x(1)}" y2="${y(1)}" class="ap-diag"/>
-      <rect x="${x(fx).toFixed(1)}" y="${T}" width="${(x(1) - x(fx)).toFixed(1)}" height="${H - T - B}" class="ap-core-zone"><title>ядро: заклади, що разом отримують 80 % грошей</title></rect>
+      <rect x="${x(fx).toFixed(1)}" y="${T}" width="${(x(1) - x(fx)).toFixed(1)}" height="${H - T - B}" class="ap-core-zone"><title>ядро: заклади, на які разом припадає 80 % суми договорів</title></rect>
       <path d="${d}" class="ap-lorenz-l"/>
       <line x1="${L}" x2="${W - R}" y1="${y(0.2).toFixed(1)}" y2="${y(0.2).toFixed(1)}" class="ap-grid"/>
       <text x="${L - 4}" y="${(y(0.2) + 3).toFixed(1)}" class="ap-axis" text-anchor="end">20%</text>
@@ -803,35 +822,53 @@ function conditionsCard(list, st, srcs) {
   if (!r) return card({ step: "1", name: "Умови", lamp: "na", value: "—", base: "ставки постанови не завантажилися", go: "" });
   const base = r.base.find((x) => x.v2026 > 1) || r.base[0];
   const kind = (base && base.kind) || r.kinds[0] || "ставка";
+  // Ставку НЕ проганяємо через money(): той округлює і стискає в «тис./млн»,
+  // і 921,82 ₴ ставало «922 ₴». Поруч — пункт постанови, з якого вона взята.
+  const point = base && base.point2026 ? `п. ${String(base.point2026)}` : "";
   const value = base && base.v2026 > 1
-    ? `${esc(num(base.v2026))}${NB}₴ <small>${esc(kind.toLowerCase())}${base.qualifier && base.qualifier.length < 30 ? " " + esc(base.qualifier) : ""}</small>`
+    ? `${esc(rate(base.v2026))} <small>${esc(kind.toLowerCase())}${base.qualifier && base.qualifier.length < 30 ? " " + esc(base.qualifier) : ""}${point ? " · " + esc(point) : ""}</small>`
     : `<small>${esc(kind)}${base && base.qualifier ? " — " + esc(base.qualifier) : ""}</small>`;
   const delta = base && base.delta_pct != null && base.v2025
     ? (Math.abs(base.delta_pct) < 0.05 ? "ставка та сама, що у 2025" : `до 2025: ${base.delta_pct > 0 ? "+" : ""}${pct(base.delta_pct)}`)
     : (base && base.status === "only-2026" ? "нова в 2026" : "");
   const gate = entryGate();
-  const gauge = gate ? gaugeSvg({
-    value: gate.pctl, min: 0, max: 100, minLabel: "легкий", maxLabel: "важкий",
-    zones: [[0, 25, "низький поріг входу"], [25, 55, "середній"], [55, 80, "високий"], [80, 100, "дуже високий"]],
-    valueText: `вищий за ${Math.round(gate.pctl)} %`,
-    aria: `поріг входу вищий, ніж у ${Math.round(gate.pctl)} % пакетів`,
-    caption: `поріг входу: ${num(gate.mine)} вимог специфікації проти ${gate.n} пакетів`,
+  // Шкали «легкий—важкий» за кількістю пунктів специфікації тут більше немає:
+  // це міра довжини переліку вимог (і парсингу документа), а не вартості
+  // обладнання, кадрової складності чи виконання вимог. Саме число лишилося
+  // в «детально» з методикою. Спідометр натомість показує зміну САМОЇ ставки
+  // до 2025 року — та сама норма, та сама одиниця, тож порівняння чесне.
+  // Малюємо, лише якщо ставка справді змінилася: з 44 базових ставок 34 такі
+  // самі, що й у 2025, і спідометр на нулі був би порожнім місцем. Шкала
+  // −70…+30 покриває весь фактичний розмах (пакет 42: −61,7 %; пакет 2: +22,4 %),
+  // тож стрілка нікуди не впирається.
+  const dp = base && base.delta_pct != null && base.v2025 && Math.abs(base.delta_pct) >= 0.05 ? base.delta_pct : null;
+  const gauge = dp != null ? gaugeSvg({
+    value: dp, min: -70, max: 30, target: 0, targetLabel: "рівень 2025 року",
+    fmt: (v) => (v > 0 ? "+" : "") + dec(v, 0) + NB + "%",
+    minLabel: `−70${NB}%`, maxLabel: `+30${NB}%`,
+    zones: [[-70, 0, "нижча, ніж у 2025"], [0, 30, "вища, ніж у 2025"]], zoneCls: [3, 3],
+    valueText: `${dp > 0 ? "+" : "−"}${pct(Math.abs(dp))}`,
+    aria: `ставка 2026 проти 2025: ${dec(dp, 1)} відсотка`,
+    caption: "ставка 2026 до ставки 2025 · риска — рівень 2025",
   }) : "";
   const vr = ST().volReq && ST().volReq.packages ? ST().volReq.packages[String(A.pkg)] : null;
   const rule = vr && vr.rules && vr.rules[0] ? vr.rules[0] : null;
   const rates = ratesInfo();
   const more = [
     `<b>Як платять:</b> ${esc(payHint(r))}${delta ? ` · ${esc(delta)}` : ""}`,
+    `<span class="ap-note">Пояснення скорочене: ставка — не вся формула оплати${point ? `; базова ставка — ${esc(point)}` : ""}. Коригувальні коефіцієнти, умови надання й винятки — у пунктах глави.</span>`,
     r.kinds.length > 1 ? `Типи ставок: ${esc(r.kinds.join(", "))}` : "",
     r.coef.length ? `${r.coef.length} ${plural(r.coef.length, "група", "групи", "груп")} коригувальних коефіцієнтів` : "коригувальних коефіцієнтів немає",
-    r.drg.length ? `${r.drg.length} ДСГ, вагові коефіцієнти ${esc(dec(Math.min(...r.drg.map((d) => d.w2026 || Infinity)), 2))}–${esc(dec(Math.max(...r.drg.map((d) => d.w2026 || 0)), 2))}` : "",
+    // Коефіцієнти — з точністю джерела: у постанові трапляється 11,0813
+    r.drg.length ? `${r.drg.length} ДСГ, вагові коефіцієнти ${esc(coefTxt(Math.min(...r.drg.map((d) => d.w2026 || Infinity))))}–${esc(coefTxt(Math.max(...r.drg.map((d) => d.w2026 || 0))))}` : "",
     gate ? `Пакет купує: <b>${esc(gate.buys)}</b>` : "",
-    rule ? `Поріг обсягу: не менше ${esc(num(rule.value))} ${esc(rule.unit)} за ${esc(rule.period)}` : "",
+    rule ? `<b>Поріг обсягу (норма):</b> не менше ${esc(num(rule.value))} ${esc(rule.unit)} за ${esc(rule.period)}` : "",
+    gate ? `Вимоги специфікації: <b>${esc(num(gate.mine))}</b> ${esc(plural(gate.mine, "структурований пункт", "структуровані пункти", "структурованих пунктів"))} (обладнання, організація, кадри). Це довжина переліку вимог у тексті специфікації, а не оцінка складності, вартості входу чи відповідності надавача; із нормативним порогом обсягу вище не плутати.` : "",
     rates.fresh.length ? `<span class="ap-warn-inline">${esc(rates.note)}</span>` : "",
     `<a href="#" data-ap-go="tariffs" class="ap-more">формула й коефіцієнти — вкладка «Оплата» →</a>`,
   ].filter(Boolean).map((x) => `<p>${x}</p>`).join("");
   return card({ step: "1", name: "Умови", lamp, go: "tariffs", value, gauge, more,
-    base: esc(payHint(r)), plain: `${kind} ${base && base.v2026 ? base.v2026 : ""}` });
+    base: esc(payHint(r)), plain: `${kind} ${base && base.v2026 ? dec(base.v2026, 2) : ""}` });
 }
 
 function networkCard(list, st, srcs) {
@@ -878,17 +915,19 @@ function moneyCard(list, st, srcs) {
   }
   const b = bench();
   const pkgTotal = A.items.reduce((a, it) => a + it.sum, 0);
+  // Знаменник — сума договорів пакетів постанови в реєстрі, а НЕ весь бюджет
+  // ПМГ: реімбурсація та інші компоненти програми в panel.json не входять.
   const shareTxt = lvl === "country"
-    ? `${pct(b.totalSum ? st.total / b.totalSum * 100 : 0)} ПМГ · місце ${rankIn(b.rows.map((r) => r.sum), st.total)} із ${b.rows.length}`
-    : `${pct(pkgTotal ? st.total / pkgTotal * 100 : 0)} грошей пакета`;
+    ? `${pct(b.totalSum ? st.total / b.totalSum * 100 : 0)} суми договорів пакетів · місце ${rankIn(b.rows.map((r) => r.sum), st.total)} із ${b.rows.length}`
+    : `${pct(pkgTotal ? st.total / pkgTotal * 100 : 0)} суми договорів пакета`;
   const natMed = median(A.items.map((it) => it.sum).filter((v) => v > 0).sort((a, c) => a - c));
   const gauge = st.withSum > 2 ? gaugeSvg({
     value: st.core.share, min: 0, max: 100, target: 80, targetLabel: "рівний поділ: 80 % закладів",
     fmt: (v) => pct(v, 0), minLabel: "у кількох", maxLabel: "порівну",
     zones: [[0, 20, "дуже зосереджено"], [20, 50, "зосереджено"], [50, 80, "помірно"], [80, 100, "порівну"]],
     valueText: `ядро ${pct(st.core.share, 0)}`,
-    aria: `${st.core.count} з ${st.withSum} закладів отримують 80 % грошей`,
-    caption: `${num(st.core.count)} з ${num(st.withSum)} закладів отримують 80 % грошей · риска — рівний поділ` }) : "";
+    aria: `${st.core.count} з ${st.withSum} закладів мають 80 % суми договорів`,
+    caption: `${num(st.core.count)} з ${num(st.withSum)} закладів мають 80 % суми договорів · риска — рівний поділ` }) : "";
   const pd = payData();
   const pay = pd ? payOf(list, lvl, A.scope.obl) : null;
   const pp = pd ? payPeriod(pd) : null;
@@ -898,8 +937,9 @@ function moneyCard(list, st, srcs) {
       ` <a href="#" data-ap-go="apPay" class="ap-more">оплати рік до року →</a></p>` : "";
   return card({ step: "3", name: "Гроші", lamp, go: "apMoney",
     value: `${esc(money(st.total))} <small>${esc(shareTxt)}</small>`, gauge,
-    base: `медіанний договір <b>${esc(money(st.med))}</b>${lvl !== "country" && natMed ? ` · ×${esc(dec(st.med / natMed, 1))} до країни` : ""}`,
-    more: payLine + (st.withSum > 3 ? `<p>Половина договорів — від ${esc(money(st.q1))} до ${esc(money(st.q3))}.</p><p>Джині ${st.gini == null ? "—" : esc(dec(st.gini, 2))}.</p>` : ""),
+    base: `сума договорів на ${esc(sumsDate())} · медіанний договір <b>${esc(money(st.med))}</b>${lvl !== "country" && natMed ? ` · ×${esc(dec(st.med / natMed, 1))} до країни` : ""}`,
+    more: `<p class="ap-note">Показано законтрактовану суму, а не перераховані кошти.${lvl === "country" ? ` Частка рахується від суми договорів ${esc(num(b.rows.length))} ${plural(b.rows.length, "пакета", "пакетів", "пакетів")} постанови в реєстрі на ${esc(sumsDate())}, а не від усього бюджету ПМГ.` : ""}</p>` +
+      payLine + (st.withSum > 3 ? `<p>Половина договорів — від ${esc(money(st.q1))} до ${esc(money(st.q3))}.</p><p>Джині ${st.gini == null ? "—" : esc(dec(st.gini, 2))}.</p>` : ""),
     plain: money(st.total) });
 }
 
@@ -926,8 +966,11 @@ function workCard(list, st, srcs) {
         caption: "обсяг послуг серед пакетів з даними ЕСОЗ" }),
       base: `${esc(svc(Math.round(d.tot[0] / Math.max(d.tot[2], 1) / full.length)))} на надавача за місяць`,
       // tot[2] — надавачі з послугами в ЕСОЗ; їх буває більше, ніж договорів у
-      // реєстрі: ЕСОЗ бачить і тих, чий договір не дожив до дати реєстру
-      more: `<p>У ЕСОЗ послуги подали ${esc(num(d.tot[2]))} ${plural(d.tot[2], "надавач", "надавачі", "надавачів")}; договорів у реєстрі — ${esc(num(A.items.length))}.</p>${sparkSvg(full.map((m) => d.m[m][0]))}`,
+      // реєстрі: ЕСОЗ бачить і тих, чий договір не дожив до дати реєстру.
+      // Тому два незалежні твердження з періодом і датою, а не «N з M».
+      more: `<p>У ЕСОЗ звітували ${esc(num(d.tot[2]))} ${plural(d.tot[2], "надавач", "надавачі", "надавачів")} за ${esc(volSpan(full))}.</p>` +
+        `<p>У реєстрі договорів на ${esc(netDate())} — ${esc(num(A.items.length))} ${plural(A.items.length, "надавач", "надавачі", "надавачів")}.</p>` +
+        `<p class="ap-note">Це різні зрізи: різні періоди й різні джерела, тому ділити одне на одне не можна.</p>${sparkSvg(full.map((m) => d.m[m][0]))}`,
       plain: `${d.tot[0]} послуг` });
   }
   if (lvl === "oblast") {
@@ -936,14 +979,26 @@ function workCard(list, st, srcs) {
     const shS = d.tot[0] ? o[0] / d.tot[0] * 100 : 0;
     const shM = pkgTotal ? st.total / pkgTotal * 100 : 0;
     const ratio = shM ? shS / shM : null;
+    // Спідометр «×0,93 — роботи менше, ніж грошей» знято: це відношення часток
+    // із РІЗНИХ джерел і періодів (ЕСОЗ проти реєстру договорів), договірна сума
+    // не є сплаченою, а випадки різної ресурсоємності. Оцінка ефективності з
+    // нього не виводиться. Замість цього — місце області за обсягом послуг:
+    // одне джерело, один період, одна одиниця.
+    const oblVals = Object.values(d.o || {}).map((v) => (v && v[0]) || 0).filter((v) => v > 0).sort((a, b) => a - b);
+    const rkO = rankIn(oblVals, o[0]);
     return card({ step: "4", name: "Робота", lamp, go: "apWork",
       value: `${esc(big(o[0]))} <small>послуг за ${full.length} міс.</small>`,
-      gauge: ratio != null ? gaugeSvg({ value: ratio, min: 0, max: 2, target: 1, targetLabel: "пропорційно грошам",
-        fmt: (v) => "×" + dec(v, 0), zones: [[0, 0.8, "роботи менше, ніж грошей"], [0.8, 1.2, "пропорційно"], [1.2, 2, "роботи більше, ніж грошей"]],
-        zoneCls: [0, 2, 1], valueText: `×${dec(ratio, 2)}`, aria: `частка послуг до частки грошей ${dec(ratio, 2)}`,
-        caption: `частка послуг ${pct(shS)} проти частки грошей ${pct(shM)}` }) : "",
-      base: `послуги подали <b>${esc(num(o[2]))}</b> з ${esc(num(st.n))} надавачів області`,
-      more: sparkSvg(full.map((m) => (d.mo[m] || {})[A.scope.obl] || 0)),
+      gauge: o[0] > 0 && oblVals.length > 3 ? gaugeSvg({ value: behindPct(oblVals, o[0]), min: 0, max: 100,
+        minLabel: "менше", maxLabel: "більше",
+        zones: [[0, 25, "нижня чверть областей"], [25, 50, "друга чверть"], [50, 75, "третя чверть"], [75, 100, "верхня чверть"]],
+        valueText: `місце ${rkO} із ${oblVals.length}`, aria: `обсяг послуг: місце ${rkO} із ${oblVals.length} областей`,
+        caption: "обсяг послуг серед областей з даними ЕСОЗ · масштаб, не оцінка" }) : "",
+      base: `у ЕСОЗ звітували <b>${esc(num(o[2]))}</b> · у реєстрі договорів — <b>${esc(num(st.n))}</b>`,
+      more: `<p>ЕСОЗ: ${esc(num(o[2]))} ${plural(o[2], "надавач", "надавачі", "надавачів")} із послугами за ${esc(volSpan(full))}. Реєстр договорів на ${esc(netDate())}: ${esc(num(st.n))} ${plural(st.n, "надавач", "надавачі", "надавачів")} області.</p>` +
+        `<p class="ap-note">Сукупності різні — ЕСОЗ бачить і тих, чий договір до дати реєстру вже не дожив, тому «N з M» тут не рахується.</p>` +
+        (ratio != null ? `<p>Частка області: послуги — ${esc(pct(shS))}, сума договорів — ${esc(pct(shM))}.</p>` +
+          `<p class="ap-note">Це опис двох часток із різних джерел і періодів, а не показник ефективності: сума договору не дорівнює сплаченому, а випадки мають різну ресурсоємність.</p>` : "") +
+        sparkSvg(full.map((m) => (d.mo[m] || {})[A.scope.obl] || 0)),
       plain: `${o[0]} послуг` });
   }
   const sv = servicesOf(list, "below");
@@ -1034,13 +1089,13 @@ function renderKids(list, st) {
   const lead3 = rows.slice(0, 3).reduce((a, r) => a + r.st.total, 0);
   const title = st.total
     ? (rows.length > 3
-      ? `${rows.length} ${word[plural(rows.length, 0, 1, 2)] || word[2]}: перші три — ${pct(lead3 / st.total * 100, 0)} грошей`
+      ? `${rows.length} ${word[plural(rows.length, 0, 1, 2)] || word[2]}: перші три — ${pct(lead3 / st.total * 100, 0)} суми договорів`
       : `${rows.length} ${plural(rows.length, word[0], word[1], word[2])}`)
     : `${rows.length} ${plural(rows.length, word[0], word[1], word[2])}`;
   box.innerHTML = `
     <header class="ap-card-h">
       <h4>${esc(scopeTitle())}: ${esc(title)}</h4>
-      <p class="ap-prov">${lvl === "place" ? "Клік — паспорт закладу" : "Клік — крок униз"} · смуга — гроші, число праворуч — закладів</p>
+      <p class="ap-prov">${lvl === "place" ? "Клік — паспорт закладу" : "Клік — крок униз"} · смуга — сума договорів, число праворуч — закладів</p>
     </header>
     <ol class="ap-kids">${top.map((r) => {
       const attr = r.pi != null ? `data-ap-zoz="${r.pi}"` : `data-ap-child="${esc(r.key)}"`;
@@ -1103,7 +1158,7 @@ function renderSteps(list, st) {
     const maxN = Math.max(...rows.map((r) => r.st.n), 1);
     const maxS = Math.max(...rows.map((r) => r.st.total), 1);
     const what = { country: "Область", oblast: "Громада", hromada: "Населений пункт" }[lvl];
-    head = `<th scope="col">${what}</th><th scope="col" class="n">Надавачів</th><th scope="col" class="n">Гроші</th>
+    head = `<th scope="col">${what}</th><th scope="col" class="n">Надавачів</th><th scope="col" class="n">Сума договорів</th>
       <th scope="col" class="n" title="Медіанний договір і його відношення до медіани рівня вище">Медіанний договір</th>
       ${payHead}<th scope="col" class="n">У спроможній мережі</th><th scope="col" class="n">${svcHead}</th>` +
       (rate ? `<th scope="col" class="n" title="${esc("послуг " + ((rate.unit && rate.unit.short) || "") + " цільової групи")}">На населення</th>` : "");
@@ -1149,7 +1204,7 @@ function renderMoney(list, st) {
   const box = $("apMoney");
   if (!box) return;
   if (st.withSum < 3) {
-    box.innerHTML = `<header class="ap-card-h"><h4>Концентрація грошей</h4></header>
+    box.innerHTML = `<header class="ap-card-h"><h4>Концентрація сум договорів</h4></header>
       <p class="ap-empty">${st.withSum ? "Закладів із сумою менше трьох — частки тут нічого не пояснюють, важать конкретні заклади." : "Сум за пакетом у цьому зрізі немає."}</p>`;
     return;
   }
@@ -1160,14 +1215,14 @@ function renderMoney(list, st) {
   const maxT = Math.max(...top.map((it) => it.sum), 1);
   box.innerHTML = `
     <header class="ap-card-h">
-      <h4>${esc(num(st.core.count))} з ${esc(num(st.withSum))} закладів (${esc(pct(st.core.share, 0))}) отримують 80 % грошей</h4>
-      <p class="ap-prov">${esc(scopeTitle())} · суми договорів від ${esc((ST().contractsData || {}).sums_date || "—")} · при рівному поділі 80 % грошей отримували б 80 % закладів</p>
+      <h4>${esc(num(st.core.count))} з ${esc(num(st.withSum))} закладів (${esc(pct(st.core.share, 0))}) мають 80 % суми договорів</h4>
+      <p class="ap-prov">${esc(scopeTitle())} · суми договорів від ${esc((ST().contractsData || {}).sums_date || "—")} — це законтрактовані суми, а не перераховані кошти · при рівному поділі 80 % суми договорів припадало б на 80 % закладів</p>
     </header>
     <div class="ap-money">
       ${lorenzSvg(st.sums, st.total)}
       <dl class="ap-kv">
         <div><dt>Джині</dt><dd>${g == null ? "—" : esc(dec(g, 2))}<small>${esc(gTxt)}</small></dd></div>
-        <div><dt>Топ-5 закладів</dt><dd>${esc(pct(st.total ? top5 / st.total * 100 : 0, 0))}<small>грошей зрізу</small></dd></div>
+        <div><dt>Топ-5 закладів</dt><dd>${esc(pct(st.total ? top5 / st.total * 100 : 0, 0))}<small>суми договорів зрізу</small></dd></div>
         <div><dt>Медіанний договір</dt><dd>${esc(money(st.med))}<small>половина — від ${esc(money(st.q1))} до ${esc(money(st.q3))}</small></dd></div>
       </dl>
     </div>
@@ -1469,7 +1524,7 @@ function renderZoz(pi) {
     <section class="ap-zoz-sec">
       <h4>Місце в пакеті</h4>
       ${it.sum > 0 ? `
-      <p class="ap-zoz-lead"><b>${esc(money(it.sum))}</b> — ${esc(pct(natTotal ? it.sum / natTotal * 100 : 0, 2))} грошей пакета,
+      <p class="ap-zoz-lead"><b>${esc(money(it.sum))}</b> — ${esc(pct(natTotal ? it.sum / natTotal * 100 : 0, 2))} суми договорів пакета,
         ${esc(pct(oblTotal ? it.sum / oblTotal * 100 : 0, 1))} області · місце ${rankO} з ${oblL.length} в області, ${rankN} з ${nat.length} у країні</p>
       <div class="ap-zoz-gauges">
         ${gaugeSvg({ value: medO ? it.sum / medO : null, min: 0, max: 3, target: 1, targetLabel: "медіана області",
