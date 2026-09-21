@@ -289,6 +289,8 @@ function renderSidebar(query = "") {
     });
 
     container.appendChild(card);
+    // Лампочки приладової панелі (signals.js): скільки сигналів горить у пакеті
+    if (window.PkgSignals) window.PkgSignals.decorate(card, pkg.number);
   });
 }
 
@@ -337,6 +339,8 @@ function selectPackage(pkgNum) {
   // Панель «Як працює пакет» (analytics-panel.js) — верхній рівень вкладки;
   // її дані (panel.json, ставки постанови) вантажаться асинхронно
   if (window.AnalyticsPanel) window.AnalyticsPanel.render(pkgNum);
+  // Приладова панель у шапці: горить лише відхилення (signals.js, alerts.json)
+  if (window.PkgSignals) window.PkgSignals.render(pkgNum);
   renderAnatomy();
   renderPmdCv();
   wirePmdCv();

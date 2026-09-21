@@ -1,0 +1,142 @@
+/* ══════════ ПРИЛАДОВА ПАНЕЛЬ ПАКЕТА (signals.js, 21.09.2026) ══════════
+   Тиша — мінімальна візуалізація; горить лише відхилення. Лампочки тієї самої
+   форми, що в панелі «Як працює пакет»: ● у нормі · ◐ горить · ◇ червоний ·
+   ○ не перевіряється — колір не єдиний носій змісту. Токени — портальні
+   (--ink, --muted, --line, --surface), темна тема — класом .dark-theme.
+   Елевація — бордером, без тіней. */
+
+.passport-layout {
+  --sg-ok: #1f8a5b;   --sg-ok-bg: #e3f4ec;
+  --sg-warn: #a86b00; --sg-warn-bg: #fbf0d9;
+  --sg-bad: #b3261e;  --sg-bad-bg: #fbe4e2;
+  --sg-na: #6b7686;   --sg-na-bg: #eceff3;
+}
+.dark-theme .passport-layout {
+  --sg-ok: #5cc79b;   --sg-ok-bg: #123026;
+  --sg-warn: #e0b167; --sg-warn-bg: #33270f;
+  --sg-bad: #f08a80;  --sg-bad-bg: #371916;
+  --sg-na: #9aa6b5;   --sg-na-bg: #1f252d;
+}
+
+/* ── Смуга в шапці ─────────────────────────────────────────────────── */
+.pkg-signals { margin: -8px 0 18px; }
+.pkg-signals[hidden] { display: none; }
+
+.sg {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); color: var(--ink);
+  font-size: .85rem;
+}
+.sg-h { font-weight: 700; font-size: .8rem; color: var(--muted); margin-right: 2px; }
+
+.sg-quiet { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: .82rem; }
+.sg-quiet i { width: 9px; height: 9px; border-radius: 50%; background: var(--sg-ok); flex: none; }
+
+.sg-chip {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+  padding: 4px 10px 4px 8px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  font: inherit; font-size: .8rem; line-height: 1.25; text-align: left; cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.sg-chip:hover, .sg-chip:focus-visible { border-color: var(--accent); }
+.sg-chip .sg-x { min-width: 0; }
+.sg-chip i, .sg-li > i, .sg-dots i, .sg-side i {
+  width: 9px; height: 9px; border-radius: 50%; flex: none; box-sizing: border-box;
+}
+.sg-chip.is-amber { border-color: color-mix(in srgb, var(--sg-warn) 45%, transparent); background: var(--sg-warn-bg); }
+.sg-chip.is-red   { border-color: color-mix(in srgb, var(--sg-bad) 50%, transparent);  background: var(--sg-bad-bg); }
+.sg-chip.is-na    { color: var(--muted); }
+.is-amber > i { background: linear-gradient(90deg, var(--sg-warn) 50%, transparent 50%); border: 1.5px solid var(--sg-warn); }  /* ◐ */
+.is-red > i   { border: 2px solid var(--sg-bad); border-radius: 2px; transform: rotate(45deg); width: 8px; height: 8px; }   /* ◇ */
+.is-na > i    { border: 1.5px dashed var(--sg-na); }                                                                        /* ○ */
+.is-ok > i    { background: var(--sg-ok); }                                                                                 /* ● */
+
+/* Тип норми словом поруч із написом */
+.sg-t {
+  font-weight: 600; font-size: .68rem; letter-spacing: .02em;
+  color: var(--muted); padding: 0 0 0 6px; border-left: 1px solid var(--line);
+}
+
+/* Системні лампочки — однакові для всіх пакетів, тому приглушені й праворуч */
+.sg-sys { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-left: auto; }
+.sg-sys-h { font-size: .72rem; color: var(--muted); }
+.sg-chip.is-sys { font-size: .74rem; padding: 2px 8px 2px 7px; }
+.sg-chip.is-sys.is-amber, .sg-chip.is-sys.is-red { background: var(--surface); }
+
+.sg-toggle {
+  border: 0; background: none; padding: 2px 0; margin-left: 4px;
+  font: inherit; font-size: .74rem; color: var(--muted); cursor: pointer; white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.sg-toggle:hover { color: var(--ink); text-decoration: underline; }
+.sg.is-quiet .sg-toggle { margin-left: auto; }
+.sg.is-quiet .sg-sys + .sg-toggle { margin-left: 4px; }
+
+.sg-stale {
+  margin: 6px 0 0; padding: 6px 10px; border-radius: 8px;
+  background: var(--sg-warn-bg); color: var(--ink); font-size: .8rem;
+}
+
+/* ── Розгортка «що перевірено» ─────────────────────────────────────── */
+.sg-more {
+  margin-top: 6px; padding: 10px 14px 12px;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--soft);
+  font-size: .84rem; color: var(--ink);
+}
+.sg-more[hidden] { display: none; }
+.sg-sub { margin: 8px 0 6px; font-size: .78rem; font-weight: 700; color: var(--muted); letter-spacing: .02em; }
+.sg-sub:first-child { margin-top: 0; }
+.sg-ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.sg-li { display: grid; grid-template-columns: 12px minmax(0, 1fr); gap: 8px; align-items: start; }
+.sg-li > i { margin-top: 5px; }
+.sg-li p { margin: 0 0 2px; line-height: 1.45; }
+.sg-li-h b { font-weight: 700; }
+.sg-li-st { font-size: .74rem; color: var(--muted); }
+.sg-li .sg-t { margin-left: 4px; }
+.sg-rule, .sg-off, .sg-foot { color: var(--muted); font-size: .76rem; }
+.sg-need b { font-weight: 600; }
+.sg-off { margin: 10px 0 0; }
+.sg-foot { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid var(--line); }
+.sg-link {
+  border: 0; background: none; padding: 0; margin: 2px 0 0;
+  font: inherit; font-size: .78rem; color: var(--accent-dark); cursor: pointer;
+}
+.sg-link:hover { text-decoration: underline; }
+
+/* Блок, до якого перейшли, коротко обведено */
+.sg-flash { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 10px; }
+
+/* ── Бічний перелік пакетів ───────────────────────────────────────── */
+.sidebar-pkg-card .sg-dots {
+  margin-left: auto; flex: none;
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: .72rem; font-weight: 700; color: var(--sg-warn);
+  font-variant-numeric: tabular-nums;
+}
+.sg-dots i { background: linear-gradient(90deg, var(--sg-warn) 50%, transparent 50%); border: 1.5px solid var(--sg-warn); }
+.sg-dots.is-red { color: var(--sg-bad); }
+.sg-dots.is-red i { background: none; border: 2px solid var(--sg-bad); border-radius: 2px; transform: rotate(45deg); width: 8px; height: 8px; }
+.sg-vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.sidebar-list.sg-only .sidebar-pkg-card:not(.has-sig) { display: none; }
+
+.sg-side {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  margin-top: 8px; padding: 7px 10px;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: var(--surface); color: var(--ink);
+  font: inherit; font-size: .78rem; text-align: left; cursor: pointer;
+  font-variant-numeric: tabular-nums;
+}
+.sg-side i { background: linear-gradient(90deg, var(--sg-warn) 50%, transparent 50%); border: 1.5px solid var(--sg-warn); }
+.sg-side:hover { border-color: var(--accent); }
+.sg-side[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.sg-side-a { margin-left: auto; color: var(--accent-dark); font-size: .74rem; white-space: nowrap; }
+
+@media (max-width: 640px) {
+  .sg-sys { margin-left: 0; }
+  .sg-toggle { margin-left: 0; }
+}
