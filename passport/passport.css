@@ -501,6 +501,24 @@ header.top {
 }
 .ua-dotn.is-muted { opacity: .35; }
 
+/* Дотик по карті не підсвічується прямокутником браузера: на кружку закладу
+   це виглядало як пульсуючий квадрат (21.09.2026). Вибір показує лампочка нижче. */
+.ua-map, .ua-map * { -webkit-tap-highlight-color: transparent; }
+.ua-map :focus { outline: none; }
+
+/* лампочка на відкритому закладі: ядро світиться, дві хвилі розходяться */
+.ua-lamp circle { vector-effect: non-scaling-stroke; transform-box: fill-box; transform-origin: center; }
+.ua-lamp-glow { fill: #ffb020; opacity: .35; animation: ua-lamp-glow 1.6s ease-in-out infinite; }
+.ua-lamp-ring { fill: none; stroke: #ff9f0a; stroke-width: 2.2; }
+.ua-lamp-wave { fill: none; stroke: #ff9f0a; stroke-width: 2; opacity: 0; animation: ua-lamp-wave 1.6s ease-out infinite; }
+.ua-lamp-wave.is-late { animation-delay: .8s; }
+@keyframes ua-lamp-wave { 0% { transform: scale(1); opacity: .85; } 100% { transform: scale(3.2); opacity: 0; } }
+@keyframes ua-lamp-glow { 0%, 100% { opacity: .2; } 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) {
+  .ua-lamp-wave { animation: none; opacity: 0; }
+  .ua-lamp-glow { animation: none; opacity: .45; }
+}
+
 /* листок віяла — окремий заклад міста */
 .ua-leaf {
   opacity: 0;

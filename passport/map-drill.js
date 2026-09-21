@@ -29,6 +29,7 @@ const st = {
   oblast: null,     // область, у яку зумнуто
   hromada: null,    // громада, у яку зумнуто
   fan: null,        // ключ "x|y" розкритої точки
+  pick: null,       // {x, y, r} — заклад, чий паспорт відкрито: на ньому горить лампочка
   fanNew: false,    // щойно розкрили — тільки тоді листки вилітають із центру
   hgeom: null,      // геометрія громад поточної області
   panel: null,      // panel.json
@@ -412,6 +413,38 @@ function renderDots() {
     addPlaceLabel(g, sel,
       (fanOut ? fanR + 9 : 8 + 6.5 * Math.sqrt(sel.sum / maxSum)) / sc, " is-open");
   }
+  renderLamp();
+}
+
+/* Лампочка на місці відкритого закладу (21.09.2026): користувач бачив на місці
+   закладу пульсуючий квадрат — підсвітку дотику браузера навколо кружка — і чекав
+   на мигаючу лампочку. Тепер підсвітку вимкнено (passport.css), а на вибраному
+   закладі горить кільце, що розходиться хвилями, поки відкрито паспорт закладу. */
+function renderLamp() {
+  const g = $(".ua-dots", st.svg);
+  if (!g) return;
+  $$(".ua-lamp", g).forEach(n => n.remove());
+  if (!st.pick || !st.oblast) return;
+  const sc = currentScale();
+  const lamp = document.createElementNS(NS, "g");
+  lamp.setAttribute("class", "ua-lamp");
+  lamp.setAttribute("pointer-events", "none");
+  const r = st.pick.r + 2.5 / sc;
+  for (const cls of ["ua-lamp-glow", "ua-lamp-wave", "ua-lamp-wave is-late", "ua-lamp-ring"]) {
+    const c = document.createElementNS(NS, "circle");
+    c.setAttribute("cx", st.pick.x);
+    c.setAttribute("cy", st.pick.y);
+    c.setAttribute("r", r);
+    c.setAttribute("class", cls);
+    lamp.appendChild(c);
+  }
+  g.appendChild(lamp);
+}
+
+/** Засвітити лампочку на точці/листку (el) або погасити (null). */
+function setPick(el) {
+  st.pick = el ? { x: +el.getAttribute("cx"), y: +el.getAttribute("cy"), r: +el.getAttribute("r") || 0 } : null;
+  renderLamp();
 }
 
 function addPlaceLabel(g, rec, dy, extra) {
@@ -500,6 +533,7 @@ async function zoomTo(oblast, opt) {
     st.oblast = oblast;
     st.hromada = opt.hromada || null;
     st.fan = null;
+    st.pick = null;
 
     if (oblast) {
       const d = await ensurePanel();
@@ -606,6 +640,7 @@ function wire(svg) {
     if (leaf) {
       e.stopPropagation();
       $$(".ua-leaf", svg).forEach(d => d.classList.toggle("is-picked", d === leaf));
+      setPick(leaf);
       // індекс закладу передаємо поряд із кодом: у ФОП код — літерал «ФОП»,
       // і пошук за ним знаходив усіх ФОП пакета одразу
       if (st.ctx.pickProvider) st.ctx.pickProvider(leaf.dataset.edrpou, +leaf.dataset.pi);
@@ -617,6 +652,7 @@ function wire(svg) {
       const pis = (dot.dataset.pis || "").split(",").filter(Boolean);
       if (dot.classList.contains("is-hub")) { st.fan = null; renderDots(); notify(); return; }
       if (pis.length === 1) {
+        setPick(dot);
         if (st.ctx.pickProvider) {
           const prov = st.panel.providers[+pis[0]];
           st.ctx.pickProvider(prov[P.EDRPOU], +pis[0]);
@@ -654,5 +690,6 @@ function wire(svg) {
   }
 }
 
-window.MapDrill = { attach, back, zoomTo, openFan, ensurePanel, get state() { return st; } };
+window.MapDrill = { attach, back, zoomTo, openFan, ensurePanel, clearPick: () => setPick(null),
+  get state() { return st; } };
 })();

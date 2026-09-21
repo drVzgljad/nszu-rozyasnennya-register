@@ -1676,6 +1676,8 @@ function closeZoz() {
   box.hidden = true;
   box.innerHTML = "";
   document.body.classList.remove("ap-zoz-open");
+  // паспорт закладу закрито — лампочка на карті гасне
+  if (window.MapDrill && window.MapDrill.clearPick) window.MapDrill.clearPick();
 }
 
 async function openZoz(pi) {
