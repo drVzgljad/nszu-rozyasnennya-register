@@ -180,9 +180,9 @@
 
 /* ── Ряди карток ───────────────────────────────────────────────── */
 .ap-row { display: grid; gap: 12px; margin-bottom: 12px; grid-template-columns: minmax(0, 1fr); }
-@container (min-width: 980px) {
-  .ap-row-map { grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr); align-items: start; }
-}
+/* Карта — сама на всю ширину ряду (рішення користувача 21.09.2026): зріз «де гроші»
+   переїхав окремим рядом під неї. Ширше поле — більша карта, але не вище за ~690 px. */
+.ap-row-map .ua-map { max-width: 920px; }
 @container (min-width: 1180px) {
   .ap-row-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
@@ -202,7 +202,7 @@
 .ap-mapslot .map-card { margin: 0; }
 .ap-mapslot .map-card h3 { font-size: 1rem; }
 
-/* ── Зріз поруч із картою ──────────────────────────────────────── */
+/* ── Зріз «де гроші» під картою ────────────────────────────────── */
 .ap-kids { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
 .ap-kids li {
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(60px, 34%) auto 3.2em;
@@ -213,6 +213,11 @@
 .ap-kbar i { display: block; height: 100%; border-radius: 3px; background: var(--ap-money); }
 .ap-kids b { font-weight: 600; white-space: nowrap; }
 .ap-kn { color: var(--muted, #647688); text-align: right; font-size: .76rem; }
+/* на всю ширину список читається у дві колонки: 1–5 ліворуч, 6–10 праворуч */
+@container (min-width: 760px) {
+  .ap-row-kids .ap-kids { display: block; columns: 2; column-gap: 28px; }
+  .ap-row-kids .ap-kids li { break-inside: avoid; margin-bottom: 3px; }
+}
 
 /* ── Дані за потреби ───────────────────────────────────────────── */
 .ap-more-block { margin: 10px 0 0; border: 1px solid var(--line, #e3edf3); border-radius: 12px; background: var(--ap-sunk); }
