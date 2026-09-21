@@ -387,3 +387,12 @@ body.ap-zoz-open { overflow: hidden; }
   .ap-card, .ap-link { break-inside: avoid; }
   .ap-more-block[open] { break-inside: auto; }
 }
+
+/* ── Випадки ЕСОЗ (пілот, 21.09.2026) ─────────────────────────── */
+.ap-cases-g { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 4px 0 6px; }
+.ap-cases-g .ap-gauge figcaption b { color: var(--ink, #1f3347); font-weight: 600; }
+.ap-cases { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.ap-qa-list { margin: 6px 0 0; padding-left: 18px; font-size: .82rem; line-height: 1.5; }
+.ap-qa-list b { font-variant-numeric: tabular-nums; }
+@media (max-width: 1100px) { .ap-cases-g { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 860px)  { .ap-cases { grid-template-columns: 1fr; } }

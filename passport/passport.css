@@ -443,6 +443,9 @@ header.top {
 .ua-zoom { transition: transform .62s cubic-bezier(.2, 0, 0, 1); }
 /* при зумі назви областей зайві — їх замінюють назви громад */
 .ua-map.is-zoomed .ua-labels { opacity: 0; pointer-events: none; }
+/* при зумі карта не виходить за своє поле: без цього збільшена Україна
+   малювалася на 2,6 тис. пікселів поверх сусідніх блоків сторінки (21.09.2026) */
+.ua-map.is-zoomed { overflow: hidden; }
 .ua-labels { transition: opacity .3s ease; }
 
 /* громада — той самий пандус, що й область */
@@ -458,6 +461,9 @@ header.top {
 }
 .ua-hrom:hover { stroke: var(--accent-dark, #2f6b9e); stroke-width: 1.6; }
 .ua-hrom.is-open { stroke: var(--ink, #1f3347); stroke-width: 2; }
+/* відкрита громада: поза першим поясом сусідів — лише тло (21.09.2026) */
+.ua-hrom.is-far { opacity: .18; }
+.ua-map.is-hzoom .ua-obl { opacity: .3; }
 .ua-hrom.no-data { fill: var(--soft, #f2f8fb); cursor: default; }
 
 .ua-hlabel {

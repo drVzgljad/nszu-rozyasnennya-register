@@ -85,34 +85,151 @@ function rows() {
  *  getBBox() потребує розкладки і мовчки віддає нулі, коли сторінку не
  *  малюють (прихована вкладка, згорнутий блок) — з таких нулів виходив
  *  масштаб 660 замість 5 і карта відлітала в нікуди. */
-function unit() {
-  if (st.hromada && st.hgeom) return st.hgeom[st.hromada] || null;
-  if (st.oblast && st.ctx && st.ctx.oblGeo) return st.ctx.oblGeo[st.oblast] || null;
+/* Вимоги користувача 21.09.2026:
+ *  — область, у яку зумнули, займає поле карти (раніше лишалося 12 % повітря,
+ *    а сама карта при зумі вилазила за своє поле на сусідні блоки сторінки —
+ *    обрізання дає `.ua-map.is-zoomed { overflow: hidden }` у passport.css);
+ *  — громада показується так, щоб довкола неї було видно щонайбільше ОДИН
+ *    пояс сусідніх громад. */
+const PAD_OBLAST = 0.96;
+const PAD_HROMADA = 0.9;
+
+/** Рамка громади за вершинами контуру: cx/cy у файлі — точка підпису, а не
+ *  центр рамки, тож для зуму її не беремо. */
+function pathBox(d) {
+  const n = String(d || "").match(/-?\d+(?:\.\d+)?/g);
+  if (!n || n.length < 2) return null;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (let i = 0; i + 1 < n.length; i += 2) {
+    const x = +n[i], y = +n[i + 1];
+    if (x < x0) x0 = x; if (x > x1) x1 = x;
+    if (y < y0) y0 = y; if (y > y1) y1 = y;
+  }
+  return { x0, y0, x1, y1 };
+}
+
+/** Сусіди громад поточної області: межі в геометрії HDX мають спільні
+ *  вершини, тож сусіди — ті, у кого їх щонайменше дві (одна спільна точка —
+ *  лише дотик кутами). Рахуємо раз на область. */
+const nbCache = new WeakMap();
+function neighbors(code) {
+  const geo = st.hgeom;
+  if (!geo) return [];
+  let nb = nbCache.get(geo);
+  if (!nb) {
+    const owners = new Map();                   // "x,y" -> [коди]
+    for (const [c, u] of Object.entries(geo)) {
+      const n = String(u.d || "").match(/-?\d+(?:\.\d+)?/g) || [];
+      const seen = new Set();
+      for (let i = 0; i + 1 < n.length; i += 2) {
+        const k = n[i] + "," + n[i + 1];
+        if (seen.has(k)) continue;
+        seen.add(k);
+        const arr = owners.get(k);
+        if (arr) arr.push(c); else owners.set(k, [c]);
+      }
+    }
+    const pairs = new Map();                    // "a|b" -> к-сть спільних вершин
+    for (const arr of owners.values()) {
+      if (arr.length < 2) continue;
+      for (let i = 0; i < arr.length; i++)
+        for (let j = i + 1; j < arr.length; j++) {
+          const k = arr[i] < arr[j] ? arr[i] + "|" + arr[j] : arr[j] + "|" + arr[i];
+          pairs.set(k, (pairs.get(k) || 0) + 1);
+        }
+    }
+    nb = new Map();
+    for (const [k, cnt] of pairs) {
+      if (cnt < 2) continue;
+      const [a, b] = k.split("|");
+      if (!nb.has(a)) nb.set(a, []);
+      if (!nb.has(b)) nb.set(b, []);
+      nb.get(a).push(b);
+      nb.get(b).push(a);
+    }
+    nbCache.set(geo, nb);
+  }
+  return nb.get(code) || [];
+}
+
+/** Вершини кожної громади поточної області: код -> Float64Array [x0,y0,x1,y1,…]. */
+const vxCache = new WeakMap();
+function vertices() {
+  const geo = st.hgeom;
+  let vx = vxCache.get(geo);
+  if (!vx) {
+    vx = new Map();
+    for (const [c, u] of Object.entries(geo)) {
+      const n = String(u.d || "").match(/-?\d+(?:\.\d+)?/g) || [];
+      vx.set(c, Float64Array.from(n, Number));
+    }
+    vxCache.set(geo, vx);
+  }
+  return vx;
+}
+
+/** Куди і наскільки зумити: {s, cx, cy} у координатах viewBox або null. */
+function view() {
+  if (st.hromada && st.hgeom && st.hgeom[st.hromada]) {
+    const hb = pathBox(st.hgeom[st.hromada].d);
+    if (!hb) return null;
+    const hcx = (hb.x0 + hb.x1) / 2, hcy = (hb.y0 + hb.y1) / 2;
+    const hw0 = Math.max(hb.x1 - hb.x0, 0.5), hh0 = Math.max(hb.y1 - hb.y0, 0.5);
+    // найбільший масштаб, за якого громада ще вміщається цілком
+    const sFit = Math.min(VB.w / hw0, VB.h / hh0) * PAD_HROMADA;
+
+    // «Щонайбільше один пояс сусідів»: віддаляємося, доки у вікно не потрапить
+    // перша вершина громади, що не є сусідньою. Вікно з центром у громаді й
+    // пропорціями viewBox містить точку, якщо max(|dx|/VB.w, |dy|/VB.h) ≤ 1/(2s),
+    // тож найближча така вершина прямо дає найменший допустимий масштаб.
+    const vx = vertices();
+    const own = new Set();
+    const mine = vx.get(st.hromada) || [];
+    for (let i = 0; i + 1 < mine.length; i += 2) own.add(mine[i] + "," + mine[i + 1]);
+    const nb = new Set(neighbors(st.hromada));
+    let dmin = Infinity;
+    for (const [c, arr] of vx) {
+      if (c === st.hromada || nb.has(c)) continue;
+      for (let i = 0; i + 1 < arr.length; i += 2) {
+        if (own.has(arr[i] + "," + arr[i + 1])) continue;   // дотик кутом до самої громади
+        const d = Math.max(Math.abs(arr[i] - hcx) / VB.w, Math.abs(arr[i + 1] - hcy) / VB.h);
+        if (d < dmin) dmin = d;
+      }
+    }
+    const sRing = Number.isFinite(dmin) && dmin > 0 ? 1.02 / (2 * dmin) : 0;
+    // громада лишається помітною: не дрібніша за половину свого «впритул»
+    const s = Math.min(sFit, Math.max(sRing, sFit * 0.5));
+    return { s, cx: hcx, cy: hcy };
+  }
+  if (st.oblast && st.ctx && st.ctx.oblGeo) {
+    const u = st.ctx.oblGeo[st.oblast];
+    if (!u) return null;
+    const s = Math.min(VB.w / Math.max(u.bw, 1), VB.h / Math.max(u.bh, 1)) * PAD_OBLAST;
+    return { s, cx: u.cx, cy: u.cy };
+  }
   return null;
 }
 
 function currentScale() {
-  const u = unit();
-  if (!u) return 1;
-  const pad = st.hromada ? 0.72 : 0.88;   // громаді лишаємо більше повітря
-  return Math.min(VB.w / Math.max(u.bw, 1), VB.h / Math.max(u.bh, 1)) * pad;
+  const v = view();
+  return v ? v.s : 1;
 }
 
 function applyTransform() {
   const z = $(".ua-zoom", st.svg);
   if (!z) return;
-  const u = unit();
-  if (!u) {
+  const v = view();
+  if (!v) {
     z.style.transform = "translate(0px, 0px) scale(1)";
     z.style.setProperty("--s", 1);
-    st.svg.classList.remove("is-zoomed");
+    st.svg.classList.remove("is-zoomed", "is-hzoom");
     return;
   }
-  const s = currentScale();
   z.style.transform =
-    `translate(${VB.x + VB.w / 2 - s * u.cx}px, ${VB.y + VB.h / 2 - s * u.cy}px) scale(${s})`;
-  z.style.setProperty("--s", s);
+    `translate(${VB.x + VB.w / 2 - v.s * v.cx}px, ${VB.y + VB.h / 2 - v.s * v.cy}px) scale(${v.s})`;
+  z.style.setProperty("--s", v.s);
   st.svg.classList.add("is-zoomed");
+  st.svg.classList.toggle("is-hzoom", Boolean(st.hromada));
 }
 
 /* ── громади ───────────────────────────────────────────────────── */
@@ -161,12 +278,16 @@ function renderHromady() {
   // найменшу громаду теж видно: пандус починаємо з 0,22, а не з нуля
   const heatOf = (n) => (0.22 + 0.78 * rank.get(n)).toFixed(3);
   const sc = currentScale();
+  // у відкритій громаді повністю видно лише її та перший пояс сусідів;
+  // решту приглушуємо — пропорції поля 4:3 не дають відрізати їх самим зумом
+  const near = st.hromada ? new Set([st.hromada, ...neighbors(st.hromada)]) : null;
 
   for (const [code, u] of Object.entries(st.hgeom)) {
     const rec = totals.get(code);
     const p = document.createElementNS(NS, "path");
     p.setAttribute("d", u.d);
-    p.setAttribute("class", "ua-hrom" + (rec ? "" : " no-data"));
+    const far = near && !near.has(code);
+    p.setAttribute("class", "ua-hrom" + (rec ? "" : " no-data") + (far ? " is-far" : ""));
     p.style.setProperty("--heat", rec ? heatOf(rec[1]) : 0);
     p.dataset.code = code;
     p.dataset.label = u.label || "";
@@ -182,7 +303,7 @@ function renderHromady() {
     // Підпис ставимо лише тому, у кого він вміщається в габарити громади:
     // інакше 60 назв злипаються в суцільну кашу.
     const label = u.label || "";
-    if (!label) continue;
+    if (!label || far) continue;
     const w = label.length * 12 * 0.52 / sc;
     if (w > (u.bw || 0)) continue;
     const tx = document.createElementNS(NS, "text");

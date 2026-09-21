@@ -114,6 +114,7 @@ const A = {
   access: null,                       // {signedIn, role} — null, поки не перевіряли
   pvol: null, pvolPkg: null,          // обсяги по закладах (Supabase)
   pay: null, payPkg: null, payTried: null, // фактичні оплати (таблиця ДІТ), data/payments/pkg_N.json
+  cases: null, casesPkg: null, casesTried: null, // випадки ЕСОЗ (пілот): data/cases/pkg_N.json
   provPk: null,                       // pi → [[пакет, сума]]
   showAll: false,
   zozPi: null,
@@ -155,6 +156,22 @@ function loadPay(pkg) {
     A.pay = d;
     A.payPkg = key;
     A.payTried = key;
+    draw();
+  });
+}
+
+/* Випадки ЕСОЗ — 30_випадки_ЕСОЗ/build_cases.py з вигрузки «один рядок = випадок»
+   (пілот 21.09.2026: пакет 7). Лише агрегати по країні й областях, без закладів.
+   Файлу немає — блок не показується взагалі. */
+let casesIndex = null;
+function loadCases(pkg) {
+  const key = String(pkg);
+  if (!casesIndex) casesIndex = getJson("data/cases/_index.json").then((x) => new Set(((x && x.pkgs) || []).map(String)));
+  return casesIndex.then((have) => (have.has(key) ? getJson(`data/cases/pkg_${encodeURIComponent(key)}.json`) : null)).then((d) => {
+    if (A.pkg !== key) return;
+    A.cases = d;
+    A.casesPkg = key;
+    A.casesTried = key;
     draw();
   });
 }
@@ -316,6 +333,15 @@ function sources() {
     { id: "geo", title: "Межі громад і координати", slice: "HDX (реформа 2020) + GeoNames", date: null,
       ageText: "довідник", state: "ok", affects: "карта, сходи", fix: "—",
       note: "Довідник меж і населених пунктів із часом не старіє — оновлюється при зміні адмінустрою. Точність — населений пункт, не адреса закладу." },
+    ...(casesData() ? [(() => {
+      const cm = casesData().meta, lastM = cm.months[cm.months.length - 1];
+      const end = new Date(+lastM.slice(0, 4), +lastM.slice(5), 0);
+      return { id: "cases", title: "Випадки ЕСОЗ (пілотна вигрузка)", date: end, state: byMonths(end),
+        slice: `${cm.months[0]} — ${lastM}`, affects: "Випадки: розродження, результати, заклади за обсягом",
+        fix: "нова вигрузка аналітиків → 30_випадки_ЕСОЗ/build_cases.py",
+        note: `Вигрузка від ${cm.export}; ${cm.rows_used} із ${cm.rows} рядків (неповний місяць викинуто). ` +
+          "Область — за місцем закладу. Лише агрегати по країні й областях; менше трьох закладів — показники якості приховано." };
+    })()] : []),
     { id: "pvol", title: "Послуги по закладах (Supabase)", date: pvEnd,
       slice: A.pvol && A.pvol.period ? `${A.pvol.period.from} — ${A.pvol.period.to}` : "—",
       ageText: canSeeZoz() ? (A.pvol ? null : "за пакетом немає") : "лише після входу",
@@ -663,7 +689,7 @@ function yearLinesSvg(series, o) {
   const y = (v) => T + (1 - Math.max(v, 0) / max) * (H - T - B);
   const ticks = [0, 0.5, 1].map((k) => max / 1.1 * k);
   const grid = ticks.map((t) => `<line x1="${L}" x2="${W - R}" y1="${y(t).toFixed(1)}" y2="${y(t).toFixed(1)}" class="ap-grid"/>
-      <text x="${L - 6}" y="${(y(t) + 4).toFixed(1)}" class="ap-axis" text-anchor="end">${esc(moneyAxis(t))}</text>`).join("");
+      <text x="${L - 6}" y="${(y(t) + 4).toFixed(1)}" class="ap-axis" text-anchor="end">${esc((o.axisFmt || moneyAxis)(t))}</text>`).join("");
   const months = MONTHS.map((m, i) => (narrow && i % 2 ? "" : `<text x="${x(i).toFixed(1)}" y="${H - 10}" class="ap-axis" text-anchor="middle">${m}</text>`)).join("");
   // підписи років біля кінців ліній — розводимо, щоб не налазили
   const ends = series.filter((s) => s.vals.length).map((s) => ({ s, i: s.vals.length - 1, yy: y(s.vals[s.vals.length - 1]) }))
@@ -675,7 +701,7 @@ function yearLinesSvg(series, o) {
     if (!s.vals.length) return "";
     const d = s.vals.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
     const dots = s.vals.map((v, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="${s.main ? 3.2 : 2.4}" class="ap-yl-d ${s.cls}">
-        <title>${esc(MONTH_FULL[i])} ${s.year}: ${esc(money(v))}</title></circle>`).join("");
+        <title>${esc(MONTH_FULL[i])} ${s.year}: ${esc((o.tipFmt || money)(v))}</title></circle>`).join("");
     return `<g class="ap-yl ${s.cls}"><path d="${d}" class="ap-yl-l"/>${dots}</g>`;
   }).join("");
   const labels = ends.map((e) => `<text x="${(x(e.i) + 7).toFixed(1)}" y="${(e.yy + 4).toFixed(1)}" class="ap-yl-t ${e.s.cls}">${e.s.year}</text>`).join("");
@@ -1200,6 +1226,215 @@ function renderSteps(list, st) {
 }
 
 /* ── Гроші: концентрація ───────────────────────────────────────── */
+/* ── Випадки ЕСОЗ: як розроджують і з яким результатом (пілот) ──────
+   Питання блока: скільки пологів і в якій динаміці до того самого періоду
+   минулого року; яка частка кесаревих проти медіани закладів чи країни;
+   які результати (мертвонародження, передчасні, кровотечі, летальні);
+   як потрапляють до закладу; скільки лежать; як обсяг розподілений між
+   закладами; чи можна вірити записам. Дані — лише агрегати по країні й
+   областях (30_випадки_ЕСОЗ/build_cases.py). */
+function casesData() {
+  return A.cases && A.casesPkg === String(A.pkg) ? A.cases : null;
+}
+/** «січень 2025 – серпень 2026» з "2025-01", "2026-08". */
+function monthSpan(a, b) {
+  const f = (s) => `${MONTH_FULL[+s.slice(5) - 1]} ${s.slice(0, 4)}`;
+  return `${f(a)} – ${f(b)}`;
+}
+/** «січень–серпень» для одного року. */
+function monthSpanShort(a, b) {
+  const f = (s) => MONTH_FULL[+s.slice(5) - 1];
+  return a.slice(0, 4) === b.slice(0, 4) ? `${f(a)}–${f(b)}` : `${f(a)} ${a.slice(0, 4)} – ${f(b)} ${b.slice(0, 4)}`;
+}
+const per = (a, b, k) => (b ? a / b * k : null);
+
+function renderCases() {
+  const box = $("apCases");
+  if (!box) return;
+  const row = box.closest(".ap-row");
+  const d = casesData();
+  if (!d) {
+    // файлу за пакетом немає — блок не займає місця
+    if (row) row.hidden = A.casesTried === String(A.pkg);
+    if (A.casesTried !== String(A.pkg)) box.innerHTML = '<div class="ap-skel"><i></i><i></i><i></i></div>';
+    return;
+  }
+  if (row) row.hidden = false;
+  const M = d.meta, ms = M.months, ua = d.scopes.UA;
+  const lvl = level();
+  const key = lvl === "country" ? "UA" : A.scope.obl;
+  const c = d.scopes[key];
+  const span = monthSpan(ms[0], ms[ms.length - 1]);
+  const prov = `ЕСОЗ, вигрузка випадків від ${esc(dmy(parseDate(M.export)))} (пілот) · ${esc(span)}` +
+    (M.dropped ? ` · ${esc(MONTH_FULL[+M.dropped.month.slice(5) - 1])} ${M.dropped.month.slice(0, 4)} неповний — не враховано` : "") +
+    " · область — за місцем закладу, не проживання пацієнтки";
+  if (lvl === "hromada" || lvl === "place") {
+    box.innerHTML = `<header class="ap-card-h"><h4>Випадки: ${esc(scopeTitle())}</h4><p class="ap-prov">${prov}</p></header>
+      <p class="ap-empty">Пілотна вигрузка розкладена лише до області закладу. Нижче області випадки можна показати тільки по закладах — це окремий закритий шар, його ще не підключено.</p>`;
+    return;
+  }
+  if (!c) {
+    box.innerHTML = `<header class="ap-card-h"><h4>Випадки: ${esc(scopeTitle())}</h4><p class="ap-prov">${prov}</p></header>
+      <p class="ap-empty">У вигрузці немає випадків, наданих закладами цієї області.</p>`;
+    return;
+  }
+  const ytdCh = c.ytd[1] ? (c.ytd[0] / c.ytd[1] - 1) * 100 : null;
+  const ytdSpan = monthSpanShort(M.ytd.cur[0], M.ytd.cur[1]);
+  const ytdTxt = ytdCh == null ? "" :
+    `; за ${ytdSpan} ${M.ytd.cur[0].slice(0, 4)} — ${num(c.ytd[0])}, ${chgText(ytdCh)} до того самого періоду ${M.ytd.base[0].slice(0, 4)}`;
+  const csShare = c.mode ? per(c.mode.cs || 0, c.n, 100) : null;
+  const title = `${num(c.n)} ${plural(c.n, "випадок пологів", "випадки пологів", "випадків пологів")} за ${span}${ytdTxt}` +
+    (csShare != null ? `; кесарів розтин — ${pct(csShare)}` : "");
+
+  // двадцять місяців → лінії «рік до року» на одній осі
+  const years = [...new Set(ms.map((m) => m.slice(0, 4)))];
+  const series = years.map((y, i) => ({
+    year: y, cls: i === years.length - 1 ? "is-cur" : i === years.length - 2 ? "is-prev" : "is-old",
+    main: i === years.length - 1,
+    vals: ms.map((m, j) => [m, c.m[j]]).filter(([m]) => m.startsWith(y)).map(([, v]) => v),
+  }));
+  const line = yearLinesSvg(series, {
+    aria: `Випадки пологів за місяцями, ${years.join(" і ")}`, w: 560,
+    axisFmt: (v) => big(v), tipFmt: (v) => `${num(v)} ${plural(v, "випадок", "випадки", "випадків")}`,
+  });
+
+  if (c.small) {
+    box.innerHTML = `<header class="ap-card-h"><h4>${esc(scopeTitle())}: ${esc(title)}</h4><p class="ap-prov">${prov}</p></header>
+      <p class="ap-sub">Випадки за місяцями</p>${line}
+      <p class="ap-empty">Пологи в цій області приймає ${c.prov === 1 ? "один заклад" : `${c.prov} заклади`}: обласні показники якості збіглися б із показниками конкретного закладу, тому тут їх не показуємо.</p>`;
+    return;
+  }
+
+  // спідометри: порівняння — з медіаною закладів (країна) або з країною (область)
+  const isUA = key === "UA";
+  const still = per(c.still, c.n, 1000), stillUA = per(ua.still, ua.n, 1000);
+  const pre = per(c.pre, c.n, 100), preUA = per(ua.pre, ua.n, 100);
+  const csUA = per(ua.mode.cs || 0, ua.n, 100);
+  const pcs = c.pcs;
+  const gauges = [
+    gaugeSvg({
+      value: csShare, min: 0, max: 50, fmt: (v) => pct(v, 0),
+      zones: [[0, 15, "до 15 %"], [15, 30, "15–30 %"], [30, 50, "понад 30 %"]],
+      target: isUA ? (pcs ? pcs.med : null) : csUA,
+      targetLabel: isUA ? "медіана закладів" : "Україна",
+      valueText: csShare == null ? "—" : pct(csShare),
+      aria: `Кесарів розтин ${csShare == null ? "—" : pct(csShare)}`,
+      caption: `<b>Кесарів розтин</b><br>${isUA
+        ? (pcs ? `медіана закладів ${esc(pct(pcs.med))}, у половини — від ${esc(pct(pcs.q1, 0))} до ${esc(pct(pcs.q3, 0))}` : "")
+        : `Україна — ${esc(pct(csUA))}${pcs ? `; медіана закладів області ${esc(pct(pcs.med))}` : ""}`}`,
+    }),
+    gaugeSvg({
+      value: still, min: 0, max: 12, fmt: (v) => dec(v, 0),
+      zones: [[0, 4, "до 4 на 1 000"], [4, 8, "4–8 на 1 000"], [8, 12, "понад 8 на 1 000"]],
+      target: isUA ? null : stillUA, targetLabel: "Україна",
+      valueText: still == null ? "—" : dec(still, 1) + NB + "‰",
+      aria: `Мертвонародження ${still == null ? "—" : dec(still, 1)} на 1 000 пологів`,
+      caption: `<b>Мертвонародження на 1 000 пологів</b><br>${esc(num(c.still))} ${plural(c.still, "випадок", "випадки", "випадків")}${isUA ? "" : ` · Україна — ${esc(dec(stillUA, 1))}‰`}`,
+    }),
+    gaugeSvg({
+      value: pre, min: 0, max: 10, fmt: (v) => pct(v, 0),
+      zones: [[0, 5, "до 5 %"], [5, 8, "5–8 %"], [8, 10, "понад 8 %"]],
+      target: isUA ? null : preUA, targetLabel: "Україна",
+      valueText: pre == null ? "—" : pct(pre),
+      aria: `Передчасні пологи ${pre == null ? "—" : pct(pre)}`,
+      caption: `<b>Передчасні пологи</b><br>${esc(num(c.pre))} із ${esc(num(c.n))}${isUA ? "" : ` · Україна — ${esc(pct(preUA))}`}`,
+    }),
+    gaugeSvg({
+      value: c.los.med, min: 0, max: 8, fmt: (v) => dec(v, 0),
+      zones: [[0, 3, "до 3 днів"], [3, 5, "3–5 днів"], [5, 8, "понад 5 днів"]],
+      target: isUA ? null : ua.los.med, targetLabel: "Україна",
+      valueText: `${dec(c.los.med, 0)}${NB}${plural(c.los.med, "день", "дні", "днів")}`,
+      aria: `Медіана тривалості госпіталізації ${dec(c.los.med, 0)} днів`,
+      caption: `<b>Госпіталізація, медіана днів</b><br>самостійні — ${esc(dec(c.los.med_v, 0))}, кесарів — ${esc(dec(c.los.med_c, 0))} · довше 30 днів: ${esc(num(c.los.gt30))}`,
+    }),
+  ].join("");
+
+  const modeBar = shareBarHtml([
+    { label: "Самостійні", short: "самостійні", v: c.mode.sp || 0, cls: "own-0" },
+    { label: "Щипці або вакуум", short: "щипці/вакуум", v: c.mode.inst || 0, cls: "own-1" },
+    { label: "Кесарів розтин", short: "кесарів", v: c.mode.cs || 0, cls: "own-2" },
+    { label: "Інші, зокрема багатоплідні", short: "інші", v: c.mode.oth || 0, cls: "own-4" },
+  ], c.n);
+  const a = c.adm || {};
+  const admBar = shareBarHtml([
+    { label: "Звернулася сама", short: "сама", v: a.self || 0, cls: "own-0" },
+    { label: "За направленням", short: "направлення", v: (a.eref || 0) + (a.paper || 0), cls: "own-1" },
+    { label: "Бригадою екстреної допомоги", short: "ЕМД", v: a.ems || 0, cls: "own-2" },
+    { label: "Переведено з іншого відділення або закладу", short: "переведення", v: (a.dept || 0) + (a.zoz || 0), cls: "own-3" },
+    { label: "Доставлено третіми особами та інше", short: "інше", v: (a.third || 0) + (a.other || 0), cls: "own-4" },
+  ], c.n);
+  const plan = per(c.plan, c.n, 100);
+
+  // результати: по країні — разом із летальними; в області летальних не показуємо (одиниці)
+  const outs = [
+    ["Мертвонародження (хоча б одна дитина)", c.still],
+    ["Післяпологова кровотеча", c.pph],
+    ["Багатоплідні пологи", c.multi],
+    ["Переведено в інший заклад", c.tr_out],
+    ["Пішла всупереч рекомендаціям", c.ama],
+  ];
+  if (isUA) outs.unshift(["Летальні випадки", ua.died]);
+  const outMax = Math.max(...outs.map(([, v]) => v), 1);
+  const outsHtml = `<ol class="ap-cbars is-res">${outs.map(([l, v]) => `<li title="${esc(l)}: ${esc(num(v))} (${esc(dec(per(v, c.n, 1000), 2))} на 1 000 пологів)">
+      <span class="ap-rname">${esc(l)}</span><span class="ap-kbar"><i style="width:${Math.max(1, v / outMax * 100).toFixed(1)}%"></i></span>
+      <b>${esc(num(v))}</b><small>${esc(dec(per(v, c.n, 1000), 1))}‰</small></li>`).join("")}</ol>`;
+
+  // заклади за обсягом пологів — знеособлено
+  const binsRows = c.bins.map((b) => (b.hid
+    ? `<tr><th>${esc(b.k)}</th><td class="n">${esc(num(b.prov))}</td><td class="n" colspan="4">${b.prov ? "приховано: менше трьох закладів" : "—"}</td></tr>`
+    : `<tr><th>${esc(b.k)}</th><td class="n">${esc(num(b.prov))}</td><td class="n">${esc(num(b.n))}</td>
+        <td class="n">${b.cs == null ? "—" : esc(pct(b.cs))}</td><td class="n">${b.still == null ? "—" : esc(dec(b.still, 1))}</td><td class="n">${b.los == null ? "—" : esc(dec(b.los, 0))}</td></tr>`)).join("");
+  const smallN = c.bins.filter((b) => b.k === "<100" || b.k === "100–299").reduce((acc, b) => acc + (b.prov || 0), 0);
+  const binsHtml = `<details class="ap-inline-more"><summary>заклади за кількістю пологів у 2025 році${smallN ? ` · ${num(smallN)} ${plural(smallN, "заклад", "заклади", "закладів")} мають менше 300 пологів на рік` : ""}</summary>
+      <div class="ap-table-wrap"><table class="ap-table">
+        <thead><tr><th>Пологів за рік</th><th class="n">Закладів</th><th class="n">Пологів</th><th class="n">Кесарів</th><th class="n">Мертвонар., ‰</th><th class="n">Днів, медіана</th></tr></thead>
+        <tbody>${binsRows}</tbody></table></div>
+      <p class="ap-sub">Без поправки на ризик: великі перинатальні центри приймають складніші випадки, тож вищі показники в них не означають гіршої допомоги. Показники окремих закладів тут не публікуються.</p></details>`;
+
+  // області — лише на рівні країни, клік = крок униз
+  let oblHtml = "";
+  if (isUA) {
+    const rows = Object.entries(d.scopes).filter(([k]) => k !== "UA").map(([o, v]) => ({ o, v }))
+      .sort((x, y) => y.v.n - x.v.n);
+    oblHtml = `<details class="ap-inline-more"><summary>області · ${rows.length}</summary>
+      <div class="ap-table-wrap"><table class="ap-table">
+        <thead><tr><th>Область закладу</th><th class="n">Випадків</th><th class="n">${esc(ytdSpan)} до ${M.ytd.base[0].slice(0, 4)}</th><th class="n">Кесарів</th><th class="n">Мертвонар., ‰</th><th class="n">Передч., %</th><th class="n">Днів</th></tr></thead>
+        <tbody>${rows.map(({ o, v }) => {
+          const ch = v.ytd[1] ? (v.ytd[0] / v.ytd[1] - 1) * 100 : null;
+          const qcells = v.small
+            ? '<td class="n" colspan="4">менше трьох закладів — не публікуються</td>'
+            : `<td class="n">${esc(pct(per(v.mode.cs || 0, v.n, 100)))}</td><td class="n">${esc(dec(per(v.still, v.n, 1000), 1))}</td><td class="n">${esc(pct(per(v.pre, v.n, 100)))}</td><td class="n">${esc(dec(v.los.med, 0))}</td>`;
+          return `<tr data-ap-child="${esc(o)}" data-ap-lvl="country" tabindex="0" title="${esc(oblShort(o))} — крок униз">
+            <th>${esc(oblShort(o))}</th><td class="n">${esc(num(v.n))}</td><td class="n">${ch == null ? "—" : esc(chgText(ch))}</td>${qcells}</tr>`;
+        }).join("")}</tbody></table></div></details>`;
+  }
+
+  const qa = M.qa || {};
+  const qaHtml = isUA ? `<details class="ap-inline-more"><summary>якість записів у вигрузці</summary>
+      <ul class="ap-qa-list">
+        <li>Діагноз кесаревого розтину без самої операції в записі — <b>${esc(num(qa.dx_no_proc || 0))}</b>; операція без такого діагнозу — <b>${esc(num(qa.proc_no_dx || 0))}</b>.</li>
+        <li>Одна пацієнтка двічі в одному місяці, ймовірні дублі записів — <b>${esc(num(qa.dup_same_month || 0))}</b>.</li>
+        <li>Госпіталізація довша за 30 днів — <b>${esc(num(qa.los_gt30 || 0))}</b>; тип епізоду не «Лікування» — <b>${esc(num(qa.ep_atypical || 0))}</b>.</li>
+        <li>Унікальних пацієнток — <b>${esc(num(ua.pat))}</b> на ${esc(num(ua.n))} випадків; із двома й більше пологами за період — ${esc(num(ua.rep))}.</li>
+      </ul></details>` : "";
+
+  box.innerHTML = `
+    <header class="ap-card-h">
+      <h4>${esc(scopeTitle())}: ${esc(title)}</h4>
+      <p class="ap-prov">${prov} · кесарів розтин — основний діагноз O82 або O84.2; мертвонародження — Z37.1, .3, .4, .6, .7 у супутніх · без поправки на ризик</p>
+    </header>
+    <div class="ap-cases-g">${gauges}</div>
+    <div class="ap-cases">
+      <div><p class="ap-sub">Випадки за місяцями</p>${line}</div>
+      <div>
+        <p class="ap-sub">Як розроджено</p>${modeBar}
+        <p class="ap-sub">Як потрапили до закладу · планових госпіталізацій ${esc(pct(plan))}</p>${admBar}
+        <p class="ap-sub">Результати й ускладнення · на 1 000 пологів</p>${outsHtml}
+      </div>
+    </div>
+    ${binsHtml}${oblHtml}${qaHtml}`;
+}
+
 function renderMoney(list, st) {
   const box = $("apMoney");
   if (!box) return;
@@ -1756,6 +1991,7 @@ function draw() {
   safe(renderChain, list, st, srcs);
   safe(renderKids, list, st);
   safe(renderPay, list);
+  safe(renderCases);
   safe(renderMoney, list, st);
   safe(renderWork, list, st);
   safe(renderAccess);
@@ -1766,7 +2002,7 @@ function draw() {
 function skeleton() {
   const chain = $("apChain");
   if (chain) chain.innerHTML = Array.from({ length: 5 }, () => '<article class="ap-link is-skel"><i></i><i></i><i></i></article>').join("");
-  ["apKids", "apPay", "apMoney", "apWork", "apAccess"].forEach((id) => { const b = $(id); if (b) b.innerHTML = '<div class="ap-skel"><i></i><i></i><i></i></div>'; });
+  ["apKids", "apPay", "apCases", "apMoney", "apWork", "apAccess"].forEach((id) => { const b = $(id); if (b) b.innerHTML = '<div class="ap-skel"><i></i><i></i><i></i></div>'; });
 }
 
 async function render(pkgNum) {
@@ -1779,9 +2015,13 @@ async function render(pkgNum) {
   A.pay = null;
   A.payPkg = null;
   A.payTried = null;
+  A.cases = null;
+  A.casesPkg = null;
+  A.casesTried = null;
   closeZoz();
   skeleton();
   loadPay(A.pkg);                   // окремо: панель не чекає на оплати
+  loadCases(A.pkg);
   const [panel] = await Promise.all([ensurePanel(), ensureExtras()]);
   if (A.pkg !== String(pkgNum)) return;
   if (!panel) {
