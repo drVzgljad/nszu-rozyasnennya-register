@@ -612,7 +612,8 @@ function gaugeSvg(o) {
     ? `<path d="M${f(bx1)},${f(by1)} L${f(nx)},${f(ny)} L${f(bx2)},${f(by2)} Z" class="ap-gn"/><circle cx="${cx}" cy="${cy}" r="5.5" class="ap-gh"/>`
     : "";
   let tick = "";
-  if (o.target != null) {
+  // риска лише для числа: поки частина даних вантажиться, порівняння буває NaN
+  if (o.target != null && Number.isFinite(o.target)) {
     const [t1x, t1y] = pt(ang(o.target), r0 - 4), [t2x, t2y] = pt(ang(o.target), R + 5);
     tick = `<line x1="${f(t1x)}" y1="${f(t1y)}" x2="${f(t2x)}" y2="${f(t2y)}" class="ap-gt"><title>${esc(o.targetLabel || "")}</title></line>`;
   }
