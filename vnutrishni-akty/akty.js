@@ -1,9 +1,10 @@
 /**
  * Розділ «Внутрішні акти НСЗУ».
  *
- * Два режими:
+ * Три режими:
  *   Строки        — Додаток 1 наказу № 502 + калькулятор строку (файл data/stroky.json);
- *   Хто опрацьовує — Додаток 2 того ж наказу (Supabase, таблиця internal_act_units).
+ *   Хто опрацьовує — Додаток 2 того ж наказу (Supabase, таблиця internal_act_units);
+ *   Комунікація    — гайд і помічник за рекомендаціями ДІТ (Supabase, internal_act_guides).
  *
  * Реєстру внутрішніх актів і наших позицій до них тут НЕМАЄ і не має бути
  * (рішення користувача 18.09.2026): портал бачить кожен обліковий запис
@@ -381,11 +382,197 @@ function renderUnits() {
 }
 
 /* ──────────────────────────────────────────────────────────────
+   Режим 3: комунікація (гайд + помічник)
+
+   Тут лише механіка. Текст розділів, приклади, ситуації помічника, позначки
+   «що буде в матеріалі» і шаблон листа на press@ — у Supabase
+   (internal_act_guides, slug 'komunikatsiia'), бо це вміст внутрішнього
+   документа НСЗУ, а репозиторій публічний.
+
+   Строки помічника двох типів:
+     before_cal — n календарних днів ДО події («погодити за три дні»);
+     after_wd   — n робочих днів ПІСЛЯ події («новина — 1–2 р. д.»).
+   ────────────────────────────────────────────────────────────── */
+let guide = null;
+
+async function loadGuide() {
+  const { status, rows } = await fetchTable("internal_act_guides", "slug");
+  guide = status === "ok" ? rows.find((r) => r.slug === "komunikatsiia") : null;
+  if (!guide) {
+    $("komBody").innerHTML = stateBox(status === "ok" ? "empty" : status, "Гайд із зовнішньої комунікації",
+      status === "missing" || status === "empty" || status === "ok"
+        ? "Виконати <code>migration_2026-10-06_internal_guides.sql</code>, потім <code>python 05_Веб_реєстр/vnutrishni-akty/upload_guides.py</code>."
+        : "");
+    return;
+  }
+  renderGuide();
+}
+
+function renderGuide() {
+  const c = guide.content || {};
+  const calc = c.calc || {};
+  const mail = calc.email || {};
+  const sections = c.sections || [];
+
+  $("komBody").innerHTML = `
+    ${c.lead ? `<p class="kom-lead">${esc(c.lead)}</p>` : ""}
+
+    <div class="va-calc kom-calc">
+      <h2>${esc(calc.title || "Помічник")}</h2>
+      ${calc.hint ? `<p class="va-calc-hint">${esc(calc.hint)}</p>` : ""}
+      <div class="va-calc-row">
+        <label class="va-field">
+          <span>Ситуація</span>
+          <select id="komScen">${(calc.scenarios || []).map((s) =>
+            `<option value="${esc(s.id)}">${esc(s.label)}</option>`).join("")}</select>
+        </label>
+        <label class="va-field va-field-date" id="komDateWrap">
+          <span id="komDateLabel">Дата</span>
+          <input id="komDate" type="date">
+        </label>
+      </div>
+      <fieldset class="kom-flags">
+        <legend>Що буде в матеріалі чи розмові?</legend>
+        ${(calc.flags || []).map((f) => `
+          <label class="kom-flag"><input type="checkbox" value="${esc(f.id)}"><span>${esc(f.label)}</span></label>`).join("")}
+      </fieldset>
+      <div class="va-calc-out" id="komOut"></div>
+
+      <div class="kom-mail" id="komMail" hidden>
+        <h3>Лист на <a href="mailto:${esc(c.press_email)}">${esc(c.press_email)}</a></h3>
+        <div class="kom-mail-grid">
+          ${(mail.fields || []).map((f) => `
+            <label class="va-field${f.multiline ? " kom-wide" : ""}">
+              <span>${esc(f.label)}</span>
+              ${f.select
+                ? `<select data-mail="${esc(f.id)}">${(mail.formats || []).map((o) => `<option>${esc(o)}</option>`).join("")}</select>`
+                : f.multiline
+                  ? `<textarea data-mail="${esc(f.id)}" rows="3"></textarea>`
+                  : `<input data-mail="${esc(f.id)}" type="text">`}
+            </label>`).join("")}
+        </div>
+        <pre class="kom-mail-text" id="komMailText"></pre>
+        <div class="kom-mail-actions">
+          <button type="button" class="kom-btn" id="komCopy">Скопіювати текст</button>
+          <a class="kom-btn kom-btn-ghost" id="komMailto" href="#">Відкрити в пошті</a>
+          <span class="kom-copied" id="komCopied" hidden>скопійовано</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="kom-sections">
+      ${sections.map((s) => `
+        <article class="kom-sec" id="kom-${esc(s.id)}">
+          <h3><span aria-hidden="true">${esc(s.icon || "")}</span> ${esc(s.title)}</h3>
+          <ul class="kom-rules">${(s.rules || []).map((r) => `<li>${esc(r)}</li>`).join("")}</ul>
+          ${s.script ? `<blockquote class="kom-script">${esc(s.script)}</blockquote>` : ""}
+          ${(s.examples || []).length ? `
+            <div class="kom-ex">
+              <div class="kom-ex-head">Приклади</div>
+              ${s.examples.map((e) => `
+                <p class="kom-ex-item ${e.ok ? "is-ok" : "is-no"}"><span aria-hidden="true">${e.ok ? "✅" : "⛔"}</span> ${esc(e.text)}</p>`).join("")}
+            </div>` : ""}
+        </article>`).join("")}
+    </div>
+
+    <p class="va-source">${esc(guide.doc_ref || "")}${c.examples_note ? ` ${esc(c.examples_note)}` : ""}</p>`;
+
+  $("komScen").addEventListener("change", runKom);
+  $("komDate").addEventListener("change", runKom);
+  $("komBody").querySelectorAll(".kom-flag input").forEach((i) => i.addEventListener("change", runKom));
+  $("komBody").querySelectorAll("[data-mail]").forEach((i) => {
+    i.addEventListener("input", renderMail);
+    i.addEventListener("change", renderMail);
+  });
+  $("komCopy").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText($("komMailText").textContent);
+      $("komCopied").hidden = false;
+      setTimeout(() => { $("komCopied").hidden = true; }, 1800);
+    } catch (e) { /* буфер недоступний — текст видно, його можна виділити */ }
+  });
+  $("komDate").value = new Date().toISOString().slice(0, 10);
+  runKom();
+}
+
+function runKom() {
+  const calc = guide.content.calc || {};
+  const sc = (calc.scenarios || []).find((s) => s.id === $("komScen").value);
+  if (!sc) return;
+
+  $("komDateWrap").hidden = !sc.deadline;
+  $("komDateLabel").textContent = sc.date_label || "Дата";
+
+  const flags = [...$("komBody").querySelectorAll(".kom-flag input:checked")]
+    .map((i) => (calc.flags || []).find((f) => f.id === i.value)).filter(Boolean);
+  const stops = flags.filter((f) => f.effect === "stop");
+  const warns = flags.filter((f) => f.effect !== "stop");
+  const vKey = stops.length ? "stop" : sc.verdict;
+  const v = (calc.verdicts || {})[vKey] || { tone: "warn", title: "" };
+
+  let dateHtml = "";
+  const when = parseDate($("komDate").value);
+  if (sc.deadline && when) {
+    const d = sc.deadline;
+    const due = d.type === "before_cal" ? addDays(when, -d.n) : addWorkdays(when, d.n);
+    const today = parseDate(new Date().toISOString().slice(0, 10));
+    const late = d.type === "before_cal" && due < today;
+    dateHtml = `
+      <div class="va-calc-big">
+        <span class="va-calc-label">${esc(d.label)}</span>
+        <strong>${fmtLong(due)}</strong>
+        ${late ? `<span class="va-calc-sub va-calc-warn">цей день уже минув — погоджуйте якнайшвидше, терміново — телефоном</span>` : ""}
+      </div>`;
+  }
+
+  $("komOut").innerHTML = `
+    <div class="kom-verdict is-${esc(v.tone)}">${v.tone === "stop" ? "⛔ " : v.tone === "ok" ? "✅ " : "⚠️ "}${esc(v.title)}</div>
+    ${stops.length ? `<ul class="kom-alerts is-stop">${stops.map((f) => `<li>${esc(f.msg)}</li>`).join("")}</ul>
+      <p class="kom-hint">Приберіть цю інформацію з матеріалу чи розмови — тоді помічник покаже кроки погодження.</p>` : `
+    ${dateHtml ? `<div class="va-calc-main">${dateHtml}</div>` : ""}
+    <ol class="va-calc-chain">${(sc.steps || []).map((s) => `<li>${esc(s)}</li>`).join("")}</ol>`}
+    ${warns.length ? `<ul class="kom-alerts">${warns.map((f) => `<li>${esc(f.msg)}</li>`).join("")}</ul>` : ""}`;
+
+  $("komMail").hidden = !sc.email || vKey === "stop";
+  if (!$("komMail").hidden) {
+    const w = $("komBody").querySelector('[data-mail="when"]');
+    if (w && !w.dataset.touched && when) w.value = fmt(when);
+    const f = $("komBody").querySelector('[data-mail="format"]');
+    if (f && !f.dataset.touched) f.value = sc.format_default || (f.options[0] && f.options[0].value) || "";
+    renderMail();
+  }
+}
+
+function renderMail() {
+  const c = guide.content;
+  const mail = (c.calc || {}).email || {};
+  const val = (id) => {
+    const el = $("komBody").querySelector(`[data-mail="${id}"]`);
+    return el && el.value.trim() ? el.value.trim() : "…";
+  };
+  const act = document.activeElement;
+  if (act && act.dataset && act.dataset.mail) act.dataset.touched = "1";
+  const sc = (c.calc.scenarios || []).find((s) => s.id === $("komScen").value);
+  const what = sc && sc.id === "event" ? "публічний виступ" : "взаємодію з медіа";
+  const body = [
+    "Доброго дня!",
+    "",
+    `Прошу погодити ${what}:`,
+    ...(mail.fields || []).map((f) => `• ${f.label}: ${val(f.id)}`),
+    "",
+    "З повагою,",
+  ].join("\n");
+  $("komMailText").textContent = `Тема: ${mail.subject || ""}\n\n${body}`;
+  $("komMailto").href = `mailto:${c.press_email}?subject=${encodeURIComponent(mail.subject || "")}&body=${encodeURIComponent(body)}`;
+}
+
+/* ──────────────────────────────────────────────────────────────
    Вкладки та події
    ────────────────────────────────────────────────────────────── */
 const VIEWS = [
   { tab: "tabStroky", view: "viewStroky" },
   { tab: "tabHto", view: "viewHto" },
+  { tab: "tabKom", view: "viewKom" },
 ];
 
 function switchTo(id) {
@@ -396,7 +583,7 @@ function switchTo(id) {
     $(view).classList.toggle("is-visible", on);
     $(view).hidden = !on;
   });
-  const hash = { tabStroky: "", tabHto: "#hto" }[id];
+  const hash = { tabStroky: "", tabHto: "#hto", tabKom: "#komunikatsiia" }[id];
   if (hash !== undefined) history.replaceState(null, "", location.pathname + hash);
 }
 
@@ -423,12 +610,20 @@ $("calcDate").addEventListener("change", runCalc);
 
 $("calcDate").value = new Date().toISOString().slice(0, 10);
 if (location.hash === "#hto") switchTo("tabHto");
+if (location.hash === "#komunikatsiia") switchTo("tabKom");
 
 loadStroky();
 loadUnits();
+loadGuide();
+
+// Локальний перегляд вкладки «Комунікація» до заливки в базу: сід лежить у
+// _seeds_local (поза git), http.server його віддає. На проді хука немає.
+if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+  window.__komPreview = (g) => { guide = g; renderGuide(); };
+}
 
 // Вхід або вихід без перезавантаження — перечитуємо закриті таблиці
 (async () => {
   const sb = await client();
-  if (sb && sb.auth) sb.auth.onAuthStateChange(() => { loadUnits(); });
+  if (sb && sb.auth) sb.auth.onAuthStateChange(() => { loadUnits(); loadGuide(); });
 })();

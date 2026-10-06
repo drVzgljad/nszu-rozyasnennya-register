@@ -1,7 +1,8 @@
 /* ============================================================
    Розділ «Внутрішні акти НСЗУ»
 
-   Два режими: строки (Додаток 1 наказу № 502) → хто опрацьовує (Додаток 2).
+   Три режими: строки (Додаток 1 наказу № 502) → хто опрацьовує (Додаток 2) →
+   комунікація (гайд і помічник; вміст — у Supabase).
 
    Кольори беремо ВИКЛЮЧНО з ролей теми (--ink, --muted, --faint, --line,
    --surface, --soft, --accent, --accent-dark, --accent-soft, --warning-*).
@@ -292,6 +293,89 @@
 .va-block-official { margin: 9px 0 0; font-size: 12.5px; color: var(--ink); }
 .va-block-official span { color: var(--faint); }
 .va-unit mark { background: var(--warning-bg); color: var(--ink); border-radius: 3px; padding: 0 2px; }
+
+/* ---------- комунікація: гайд + помічник ---------- */
+.kom-lead { margin: 0 0 16px; font-size: 14.5px; color: var(--ink); max-width: 80ch; line-height: 1.55; }
+
+.kom-flags {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin: 14px 0 0;
+  padding: 10px 14px 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 6px 18px;
+}
+.kom-flags legend { font-size: 12.5px; font-weight: 700; color: var(--muted); padding: 0 6px; }
+.kom-flag { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; color: var(--ink); cursor: pointer; line-height: 1.4; }
+.kom-flag input { accent-color: var(--accent); margin-top: 3px; flex: 0 0 auto; }
+
+.kom-verdict {
+  font-size: 15.5px;
+  font-weight: 700;
+  padding: 11px 14px;
+  border-radius: 11px;
+  border: 1px solid var(--line);
+  margin-bottom: 12px;
+}
+.kom-verdict.is-ok {
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.kom-verdict.is-warn { color: var(--warning-text); background: var(--warning-bg); border-color: var(--warning-border); }
+/* Окремого токена «небезпека» в темі немає: «не можна» = попередження,
+   посилене товстою рамкою й значком, а не новим кольором. */
+.kom-verdict.is-stop { color: var(--warning-text); background: var(--warning-bg); border: 2px solid var(--warning-border); }
+
+.kom-alerts { margin: 12px 0 0; padding: 0 0 0 18px; display: flex; flex-direction: column; gap: 6px; }
+.kom-alerts li { font-size: 13.5px; color: var(--ink); line-height: 1.45; }
+.kom-alerts.is-stop li { font-weight: 700; color: var(--warning-text); }
+.kom-hint { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+
+.kom-mail { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; }
+.kom-mail h3 { margin: 0 0 10px; font-size: 15px; }
+.kom-mail h3 a { color: var(--accent-dark); }
+.kom-mail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 10px 14px; }
+.kom-mail-grid .kom-wide { grid-column: 1 / -1; }
+.kom-mail-grid textarea {
+  font: inherit; font-size: 14px; padding: 9px 10px; border: 1px solid var(--line);
+  border-radius: 9px; background: var(--page); color: var(--ink); resize: vertical;
+}
+.kom-mail-grid textarea:focus { outline: none; border-color: var(--accent); }
+.kom-mail-text {
+  margin: 12px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--ink);
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.kom-mail-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.kom-btn {
+  font: inherit; font-size: 13.5px; font-weight: 700; cursor: pointer; text-decoration: none;
+  padding: 8px 14px; border-radius: 9px; border: 1px solid var(--accent);
+  background: var(--accent); color: var(--surface);
+}
+.kom-btn-ghost { background: transparent; color: var(--accent-dark); }
+.kom-copied { font-size: 12.5px; color: var(--muted); }
+
+.kom-sections { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr)); gap: 12px; }
+.kom-sec { border: 1px solid var(--line); border-radius: 13px; background: var(--surface); padding: 14px 18px; min-width: 0; }
+.kom-sec h3 { margin: 0 0 8px; font-size: 15.5px; }
+.kom-rules { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+.kom-rules li { font-size: 13.5px; color: var(--ink); line-height: 1.5; }
+.kom-script {
+  margin: 10px 0 0; padding: 10px 13px; font-size: 13.5px; font-style: italic; color: var(--ink);
+  border-left: 3px solid var(--accent); background: var(--soft); border-radius: 0 9px 9px 0;
+}
+.kom-ex { margin-top: 10px; border-top: 1px dashed var(--line); padding-top: 8px; }
+.kom-ex-head { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); margin-bottom: 4px; }
+.kom-ex-item { margin: 5px 0 0; font-size: 13px; color: var(--muted); line-height: 1.45; }
 
 /* ---------- вузький екран ---------- */
 @media (max-width: 720px) {
