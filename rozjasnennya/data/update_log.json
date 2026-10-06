@@ -1,6 +1,66 @@
 {
  "runs": [
   {
+   "started": "2026-10-02T07:03:04.151832+00:00",
+   "finished": "2026-10-02T07:03:27.356814+00:00",
+   "documents": 194,
+   "with_real_date": 134,
+   "edges": 50,
+   "failed": false,
+   "steps": [
+    {
+     "step": "1/7 Звірка з архівом НСЗУ",
+     "status": "ok",
+     "seconds": 1.9
+    },
+    {
+     "step": "2/7 Видобування тексту й таблиць",
+     "status": "ok",
+     "seconds": 1.0
+    },
+    {
+     "step": "3/7 Довідники посад і кодів ЕСОЗ",
+     "status": "ok",
+     "seconds": 0.7
+    },
+    {
+     "step": "4/7 Коди в текстах і таблицях",
+     "status": "ok",
+     "seconds": 4.4
+    },
+    {
+     "step": "5/7 Паспорти документів",
+     "status": "ok",
+     "seconds": 1.5
+    },
+    {
+     "step": "6/7 Вердикти експертів",
+     "status": "ok",
+     "seconds": 1.5
+    },
+    {
+     "step": "7/7 Граф зв'язків",
+     "status": "ok",
+     "seconds": 0.6
+    },
+    {
+     "step": "8/8 Кодування амбулаторки (пакет 9)",
+     "status": "ok",
+     "seconds": 0.9
+    },
+    {
+     "step": "deploy",
+     "status": "ok",
+     "seconds": 0.2
+    },
+    {
+     "step": "publish",
+     "status": "ok",
+     "seconds": 10.5
+    }
+   ]
+  },
+  {
    "started": "2026-09-30T04:51:01.734124+00:00",
    "finished": "2026-09-30T04:51:22.937541+00:00",
    "documents": 194,
@@ -3497,61 +3557,6 @@
      "step": "8/8 Кодування амбулаторки (пакет 9)",
      "status": "ok",
      "seconds": 1.2
-    }
-   ]
-  },
-  {
-   "started": "2026-07-29T10:46:56.333547+00:00",
-   "finished": "2026-07-29T10:47:07.654453+00:00",
-   "documents": 179,
-   "with_real_date": 129,
-   "edges": 48,
-   "failed": false,
-   "steps": [
-    {
-     "step": "1/7 Звірка з архівом НСЗУ",
-     "status": "ok",
-     "seconds": 1.2
-    },
-    {
-     "step": "2/7 Видобування тексту й таблиць",
-     "status": "ok",
-     "seconds": 1.0
-    },
-    {
-     "step": "3/7 Довідники посад і кодів ЕСОЗ",
-     "status": "ok",
-     "seconds": 0.9
-    },
-    {
-     "step": "4/7 Коди в текстах і таблицях",
-     "status": "ok",
-     "seconds": 3.4
-    },
-    {
-     "step": "5/7 Паспорти документів",
-     "status": "ok",
-     "seconds": 1.0
-    },
-    {
-     "step": "6/7 Вердикти експертів",
-     "status": "ok",
-     "seconds": 1.6
-    },
-    {
-     "step": "7/7 Граф зв'язків",
-     "status": "ok",
-     "seconds": 0.9
-    },
-    {
-     "step": "8/8 Кодування амбулаторки (пакет 9)",
-     "status": "ok",
-     "seconds": 1.2
-    },
-    {
-     "step": "deploy",
-     "status": "ok",
-     "seconds": 0.2
     }
    ]
   }
