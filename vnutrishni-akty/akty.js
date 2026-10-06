@@ -517,10 +517,18 @@ function runKom() {
     const due = d.type === "before_cal" ? addDays(when, -d.n) : addWorkdays(when, d.n);
     const today = parseDate(new Date().toISOString().slice(0, 10));
     const late = d.type === "before_cal" && due < today;
+    // «За три дні» до події може припасти на вихідний — тоді підказуємо
+    // попередній робочий день: у суботу запит на press@ ніхто не опрацює.
+    let prevWd = null;
+    if (d.type === "before_cal" && !isWorkday(due)) {
+      prevWd = new Date(due.getTime());
+      while (!isWorkday(prevWd)) prevWd.setUTCDate(prevWd.getUTCDate() - 1);
+    }
     dateHtml = `
       <div class="va-calc-big">
         <span class="va-calc-label">${esc(d.label)}</span>
         <strong>${fmtLong(due)}</strong>
+        ${prevWd && !late ? `<span class="va-calc-sub">неробочий день — краще не пізніше ${fmtLong(prevWd)}</span>` : ""}
         ${late ? `<span class="va-calc-sub va-calc-warn">цей день уже минув — погоджуйте якнайшвидше, терміново — телефоном</span>` : ""}
       </div>`;
   }
