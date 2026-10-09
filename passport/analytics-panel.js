@@ -114,7 +114,9 @@ const A = {
   access: null,                       // {signedIn, role} — null, поки не перевіряли
   pvol: null, pvolPkg: null,          // обсяги по закладах (Supabase)
   pay: null, payPkg: null, payTried: null, // фактичні оплати (таблиця ДІТ), data/payments/pkg_N.json
+  compl: null, complPkg: null, complTried: null, // скарги: зведені лічильники, data/complaints/pkg_N.json
   cases: null, casesPkg: null, casesTried: null, // випадки ЕСОЗ (пілот): data/cases/pkg_N.json
+  pcompl: null, pcomplPkg: null, pcomplBusy: false, // скарги по закладах (Supabase, RLS)
   provPk: null,                       // pi → [[пакет, сума]]
   showAll: false,
   zozPi: null,
@@ -160,6 +162,19 @@ function loadPay(pkg) {
   });
 }
 
+/* Скарги пацієнтів — tools/build_complaints.py із реєстру скарг НСЗУ.
+   Публічний файл має лише лічильники; скарги на конкретний заклад — у Supabase. */
+function loadCompl(pkg) {
+  const key = String(pkg);
+  return getJson(`data/complaints/pkg_${encodeURIComponent(key)}.json`).then((d) => {
+    if (A.pkg !== key) return;
+    A.compl = d;
+    A.complPkg = key;
+    A.complTried = key;
+    draw();
+  });
+}
+
 /* Випадки ЕСОЗ — 30_випадки_ЕСОЗ/build_cases.py з вигрузки «один рядок = випадок»
    (пілот 21.09.2026: пакет 7). Лише агрегати по країні й областях, без закладів.
    Файлу немає — блок не показується взагалі. */
@@ -174,6 +189,48 @@ function loadCases(pkg) {
     A.casesTried = key;
     draw();
   });
+}
+
+/** Скарги по закладах пакета: provider_key → {t:[5], cat:{}, res:{}}. Лише для не-гостей. */
+async function ensureProvCompl() {
+  const key = String(A.pkg);
+  if (A.pcomplPkg === key || A.pcomplBusy || !canSeeZoz()) return;
+  const sb = window.__pmgSb;
+  const d = complData();
+  if (!sb || !d) return;
+  A.pcomplBusy = true;
+  const years = d.years;
+  const map = new Map();
+  try {
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await sb.from("package_provider_complaints")
+        .select("provider_key,year,cat,res,n").eq("packet", key)
+        .order("provider_key").range(from, from + 999);
+      if (error) throw error;
+      (data || []).forEach((r) => {
+        let e = map.get(r.provider_key);
+        if (!e) map.set(r.provider_key, (e = { t: years.map(() => 0), cat: {}, res: {} }));
+        const yi = years.indexOf(r.year);
+        if (yi < 0) return;
+        e.t[yi] += r.n;
+        (e.cat[r.cat] || (e.cat[r.cat] = years.map(() => 0)))[yi] += r.n;
+        (e.res[r.res] || (e.res[r.res] = years.map(() => 0)))[yi] += r.n;
+      });
+      if (!data || data.length < 1000) break;
+    }
+    if (A.pkg !== key) return;
+    A.pcompl = map;
+    A.pcomplPkg = key;
+  } catch (e) {
+    console.warn("скарги по закладах недоступні —", e.message || e);
+    if (A.pkg === key) { A.pcompl = null; A.pcomplPkg = key; }
+  } finally {
+    A.pcomplBusy = false;
+  }
+  if (A.pkg === key) {
+    draw();
+    if (A.zozPi != null) refreshZozCompl(A.zozPi);
+  }
 }
 
 function loadHromCount(obl) {
@@ -304,6 +361,8 @@ function sources() {
   const pp = pd ? payPeriod(pd) : null;
   const payEnd = pp && pp.k ? new Date(pp.Y[pp.cur], pp.k, 0) : null;
   const payMatch = pd && pd.match_pct ? pd.match_pct[String(pp.Y[pp.cur])] : null;
+  const cm = complData();
+  const complDate = cm && cm.src ? parseDate(cm.src.last) : null;
   return [
     { id: "net", title: "Склад мережі (реєстр договорів)", slice: dmy(net), date: net, state: byMonths(net),
       affects: "Мережа, Гроші, карта, паспорт закладу", fix: "Оновити_договори.cmd" },
@@ -320,6 +379,12 @@ function sources() {
       fix: "запросити в ДІТ оновлену таблицю → tools/build_payments_it.py",
       note: pd ? `${pd.src.doc}. Гроші — за звітним місяцем${pp.tail ? `; ${pp.tail} ще оплачуються і в порівняння не входять` : ""}. ` +
         `Зшито із закладами реєстру договорів: ${payMatch != null ? pct(payMatch) : "—"} суми ${pp.Y[pp.cur]} року (решта — отримувачі, чиїх договорів у реєстрі вже немає).` : "" },
+    { id: "compl", title: "Скарги пацієнтів (реєстр скарг НСЗУ)", date: complDate, state: cm ? byMonths(complDate) : "na",
+      slice: cm ? `скарги до ${cm.src.last || "—"}` : "—",
+      ageText: cm ? null : (A.complTried === String(A.pkg) ? "за пакетом немає" : "вантажиться"),
+      affects: "Скарги пацієнтів, паспорт закладу",
+      fix: "нова вивантажка реєстру скарг → tools/build_complaints.py → upload_provider_complaints.py",
+      note: cm ? `Реєстр скарг НСЗУ (вивантажка ${cm.src.export || "—"}). Персональні поля не читаються. Класифікатор категорій змінився у 2025 році, тому частки показано за 2025–2026.` : "" },
     { id: "vol", title: "Обсяги ЕСОЗ (по областях)", date: volEnd, state: meta ? byMonths(volEnd) : "na",
       slice: lastFull ? `повні місяці до ${lastFull.slice(5)}.${lastFull.slice(0, 4)}` : "—",
       affects: "Робота, Доступ", fix: "запит аналітикам за наступний місяць → 23_обсяги_демографія",
@@ -1227,6 +1292,125 @@ function renderSteps(list, st) {
 }
 
 /* ── Гроші: концентрація ───────────────────────────────────────── */
+function renderMoney(list, st) {
+  const box = $("apMoney");
+  if (!box) return;
+  if (st.withSum < 3) {
+    box.innerHTML = `<header class="ap-card-h"><h4>Концентрація сум договорів</h4></header>
+      <p class="ap-empty">${st.withSum ? "Закладів із сумою менше трьох — частки тут нічого не пояснюють, важать конкретні заклади." : "Сум за пакетом у цьому зрізі немає."}</p>`;
+    return;
+  }
+  const g = st.gini;
+  const gTxt = g == null ? "" : g < 0.3 ? "рівномірно" : g < 0.5 ? "помірна нерівність" : g < 0.7 ? "висока концентрація" : "дуже висока концентрація";
+  const top = [...list].sort((a, b) => b.sum - a.sum).slice(0, 5);
+  const top5 = top.reduce((a, it) => a + it.sum, 0);
+  const maxT = Math.max(...top.map((it) => it.sum), 1);
+  box.innerHTML = `
+    <header class="ap-card-h">
+      <h4>${esc(num(st.core.count))} з ${esc(num(st.withSum))} закладів (${esc(pct(st.core.share, 0))}) мають 80 % суми договорів</h4>
+      <p class="ap-prov">${esc(scopeTitle())} · суми договорів від ${esc((ST().contractsData || {}).sums_date || "—")} — це законтрактовані суми, а не перераховані кошти · при рівному поділі 80 % суми договорів припадало б на 80 % закладів</p>
+    </header>
+    <div class="ap-money">
+      ${lorenzSvg(st.sums, st.total)}
+      <dl class="ap-kv">
+        <div><dt>Джині</dt><dd>${g == null ? "—" : esc(dec(g, 2))}<small>${esc(gTxt)}</small></dd></div>
+        <div><dt>Топ-5 закладів</dt><dd>${esc(pct(st.total ? top5 / st.total * 100 : 0, 0))}<small>суми договорів зрізу</small></dd></div>
+        <div><dt>Медіанний договір</dt><dd>${esc(money(st.med))}<small>половина — від ${esc(money(st.q1))} до ${esc(money(st.q3))}</small></dd></div>
+      </dl>
+    </div>
+    <details class="ap-inline-more"><summary>топ-5 закладів</summary>
+      <ol class="ap-top">${top.map((it) => `<li data-ap-zoz="${it.pi}" tabindex="0" title="Паспорт закладу">
+        <span class="ap-rname">${esc(it.q[P.NAME])}</span><span class="ap-cellbar is-money"><i style="width:${(it.sum / maxT * 100).toFixed(1)}%"></i></span>
+        <b>${esc(money(it.sum))}</b></li>`).join("")}</ol>
+      ${level() === "country" ? `<button type="button" class="ap-link-btn" data-drill="core80">ядро бюджету пакета детально →</button>` : ""}
+    </details>`;
+}
+
+/* ── Оплати: рік до року (таблиця ДІТ) ─────────────────────────────
+   Питання блока: скільки держава фактично заплатила за пакет у цьому зрізі і
+   як це змінюється рік до року. Порівняння — лише рівних відрізків (повні
+   місяці поточного року проти тих самих місяців минулого). */
+const PAY_TOP = 10;
+
+function renderPay(list) {
+  const box = $("apPay");
+  if (!box) return;
+  const d = payData();
+  if (!d) {
+    box.innerHTML = A.payTried === String(A.pkg)
+      ? `<header class="ap-card-h"><h4>Фактичні оплати</h4></header>
+        <p class="ap-empty">У таблиці оплат ДІТ за 2024–2026 роки записів за цим пакетом немає.</p>`
+      : '<div class="ap-skel"><i></i><i></i><i></i></div>';
+    return;
+  }
+  const lvl = level();
+  const pp = payPeriod(d);
+  const { Y, k, cur } = pp;
+  const pay = payOf(list, lvl, A.scope.obl);
+  const dYtd = payChange(pay.ytd[cur], pay.ytd[cur - 1]);
+  const dYear = payChange(pay.t[cur - 1], pay.t[cur - 2]);
+  const title = pay.ytd[cur]
+    ? `сплачено ${money(pay.ytd[cur])} за ${pp.ytdLbl}${dYtd != null ? `, ${chgText(dYtd)} до ${pp.ytdPrev}` : ""}`
+    : pay.t[cur - 1] ? `у ${Y[cur - 1]} році сплачено ${money(pay.t[cur - 1])}; за ${pp.ytdLbl} оплат немає`
+    : `оплат за ${Y[0]}–${Y[cur]} роки немає`;
+  const how = pay.how === "file"
+    ? (lvl === "country" ? "усі отримувачі за пакетом" : "усі отримувачі області, зокрема ті, чиїх договорів у реєстрі вже немає")
+    : "сума по закладах реєстру договорів у цьому зрізі";
+  const tile = (label, v, sub) => `<div><dt>${esc(label)}</dt><dd>${esc(money(v))}<small>${sub}</small></dd></div>`;
+  const tiles = `<dl class="ap-kv ap-pay-kv">
+      ${tile(`${Y[cur - 2]} рік`, pay.t[cur - 2], esc(nProv(pay.n[cur - 2])))}
+      ${tile(`${Y[cur - 1]} рік`, pay.t[cur - 1], (dYear != null ? `${esc(chgText(dYear))} до ${Y[cur - 2]} · ` : "") + esc(nProv(pay.n[cur - 1])))}
+      ${tile(pp.ytdLbl, pay.ytd[cur], (dYtd != null ? `${esc(chgText(dYtd))} до ${esc(pp.ytdPrev)} · ` : "") + esc(nProv(pay.n[cur])))}
+    </dl>`;
+  let chart = "";
+  if (pay.m) {
+    const series = Y.map((yr, i) => ({
+      year: yr, cls: "y" + i, main: i === cur,
+      vals: (pay.m[String(yr)] || []).slice(0, i === cur ? k : 12),
+    }));
+    // у широкому контейнері графік займає праву колонку сітки .ap-pay, у вузькому — усю ширину
+    const cw = box.clientWidth || 0;
+    const apw = ($("analyticsPanel") || box).clientWidth || cw;
+    const w = apw >= 900 ? cw - 28 - 300 - 12 : cw - 28;
+    chart = yearLinesSvg(series, { w: w > 0 ? w : 640, aria: `оплати за місяцями у ${Y.join(", ")} роках, ${scopeTitle()}` });
+  }
+  // Заклади зрізу за оплатами поточного року; у найвужчих зрізах — усі
+  const narrow = lvl === "hromada" || lvl === "place";
+  const rows = list.map((it) => ({ it, r: payRow(it) })).filter((x) => x.r)
+    .sort((a, b) => (b.r[3 + cur] - a.r[3 + cur]) || (b.r[cur - 1] - a.r[cur - 1]));
+  const shown = narrow ? rows : rows.slice(0, PAY_TOP);
+  const without = list.length - rows.length;
+  const maxT = Math.max(...shown.map((x) => x.r[3 + cur]), 1);
+  const listHtml = shown.length ? `<ol class="ap-top ap-pay-top">${shown.map(({ it, r }) => {
+      const ch = payChange(r[3 + cur], r[3 + cur - 1]);
+      return `<li data-ap-zoz="${it.pi}" tabindex="0" title="${esc(it.q[P.NAME])}: ${esc(pp.ytdPrev)} — ${esc(money(r[3 + cur - 1]))} → ${esc(pp.ytdLbl)} — ${esc(money(r[3 + cur]))}. Клік — паспорт закладу">
+        <span class="ap-rname">${esc(it.q[P.NAME])}</span>
+        <span class="ap-cellbar is-money"><i style="width:${(Math.max(r[3 + cur], 0) / maxT * 100).toFixed(1)}%"></i></span>
+        <b>${esc(money(r[3 + cur]))}</b><small class="${ch == null ? "" : ch >= 0 ? "up" : "down"}">${esc(chgText(ch)) || "—"}</small></li>`;
+    }).join("")}</ol>`
+    : `<p class="ap-empty">Серед закладів зрізу оплат за пакетом у таблиці ДІТ не знайдено.</p>`;
+  const cap = !narrow && rows.length > PAY_TOP ? ` · показано ${PAY_TOP} з ${num(rows.length)}` : "";
+  box.innerHTML = `
+    <header class="ap-card-h">
+      <h4>${esc(scopeTitle())}: ${esc(title)}</h4>
+      <p class="ap-prov">${esc(d.src.short)} · гроші за звітним місяцем · ${Y[cur]}: повні місяці ${esc(pp.span)}${pp.tail ? `, ${esc(pp.tail)} ще оплачуються й у порівняння не входять` : ""} · ${esc(how)}</p>
+    </header>
+    <div class="ap-pay">
+      ${tiles}
+      ${chart ? `<figure class="ap-pay-chart">${chart}<figcaption>${Y.map((yr, i) => `<span class="ap-yl-key y${i}">${yr}</span>`).join(" ")} · ${Y[cur]} — лише повні місяці · вісь від нуля</figcaption></figure>`
+        : `<p class="ap-sub">Помісячні оплати є до рівня області; нижче — річні суми по закладах зрізу.</p>`}
+    </div>
+    <details class="ap-inline-more"${narrow ? " open" : ""}>
+      <summary>${narrow ? "заклади зрізу" : "найбільші отримувачі"} за ${esc(pp.ytdLbl)}${cap}</summary>
+      ${listHtml}
+      ${without > 0 ? `<p class="ap-sub">${esc(num(without))} ${plural(without, "заклад", "заклади", "закладів")} реєстру договорів у зрізі — без оплат за пакетом у таблиці ДІТ (договір новий, або заклад зшито не вдалося).</p>` : ""}
+    </details>`;
+}
+
+/* ── Скарги пацієнтів (реєстр скарг НСЗУ) ──────────────────────────
+   Питання блока: на що скаржаться пацієнти за цим пакетом і чим закінчується
+   розгляд. Роки — за датою реєстрації; частки категорій і результатів — за
+   2025–2026: класифікатор цих років однаковий, а 2022–2024 записані іншим. */
 /* ── Випадки ЕСОЗ: як розроджують і з яким результатом (пілот) ──────
    Питання блока: скільки пологів і в якій динаміці до того самого періоду
    минулого року; яка частка кесаревих проти медіани закладів чи країни;
@@ -1436,119 +1620,173 @@ function renderCases() {
     ${binsHtml}${oblHtml}${qaHtml}`;
 }
 
-function renderMoney(list, st) {
-  const box = $("apMoney");
-  if (!box) return;
-  if (st.withSum < 3) {
-    box.innerHTML = `<header class="ap-card-h"><h4>Концентрація сум договорів</h4></header>
-      <p class="ap-empty">${st.withSum ? "Закладів із сумою менше трьох — частки тут нічого не пояснюють, важать конкретні заклади." : "Сум за пакетом у цьому зрізі немає."}</p>`;
-    return;
-  }
-  const g = st.gini;
-  const gTxt = g == null ? "" : g < 0.3 ? "рівномірно" : g < 0.5 ? "помірна нерівність" : g < 0.7 ? "висока концентрація" : "дуже висока концентрація";
-  const top = [...list].sort((a, b) => b.sum - a.sum).slice(0, 5);
-  const top5 = top.reduce((a, it) => a + it.sum, 0);
-  const maxT = Math.max(...top.map((it) => it.sum), 1);
-  box.innerHTML = `
-    <header class="ap-card-h">
-      <h4>${esc(num(st.core.count))} з ${esc(num(st.withSum))} закладів (${esc(pct(st.core.share, 0))}) мають 80 % суми договорів</h4>
-      <p class="ap-prov">${esc(scopeTitle())} · суми договорів від ${esc((ST().contractsData || {}).sums_date || "—")} — це законтрактовані суми, а не перераховані кошти · при рівному поділі 80 % суми договорів припадало б на 80 % закладів</p>
-    </header>
-    <div class="ap-money">
-      ${lorenzSvg(st.sums, st.total)}
-      <dl class="ap-kv">
-        <div><dt>Джині</dt><dd>${g == null ? "—" : esc(dec(g, 2))}<small>${esc(gTxt)}</small></dd></div>
-        <div><dt>Топ-5 закладів</dt><dd>${esc(pct(st.total ? top5 / st.total * 100 : 0, 0))}<small>суми договорів зрізу</small></dd></div>
-        <div><dt>Медіанний договір</dt><dd>${esc(money(st.med))}<small>половина — від ${esc(money(st.q1))} до ${esc(money(st.q3))}</small></dd></div>
-      </dl>
-    </div>
-    <details class="ap-inline-more"><summary>топ-5 закладів</summary>
-      <ol class="ap-top">${top.map((it) => `<li data-ap-zoz="${it.pi}" tabindex="0" title="Паспорт закладу">
-        <span class="ap-rname">${esc(it.q[P.NAME])}</span><span class="ap-cellbar is-money"><i style="width:${(it.sum / maxT * 100).toFixed(1)}%"></i></span>
-        <b>${esc(money(it.sum))}</b></li>`).join("")}</ol>
-      ${level() === "country" ? `<button type="button" class="ap-link-btn" data-drill="core80">ядро бюджету пакета детально →</button>` : ""}
-    </details>`;
+const COMPL_CAT = [["pay", "Вимагання оплати"], ["refuse", "Відмова в наданні послуг"],
+  ["quality", "Якість або неповний обсяг"], ["org", "Організація роботи, запис до лікаря"],
+  ["ethics", "Неетичне поводження"], ["fake", "Фіктивні записи й декларації"],
+  ["other", "Інші питання"], ["none", "Порушення відсутнє"]];
+const COMPL_RES = [["restored", "Права поновлено"], ["claim", "Претензійна робота, заходи реагування"],
+  ["pending", "Лист надавачу, розгляд триває"], ["denied", "Надавач заперечує порушення"],
+  ["explained", "Надано роз’яснення"], ["redirect", "За належністю / не компетенція НСЗУ"],
+  ["noinfo", "Недостатньо інформації"], ["unknown", "Інше або не зазначено"]];
+const COMPL_RECENT = [2025, 2026];          // роки з однаковим класифікатором
+
+function complData() {
+  return A.compl && A.complPkg === String(A.pkg) ? A.compl : null;
 }
 
-/* ── Оплати: рік до року (таблиця ДІТ) ─────────────────────────────
-   Питання блока: скільки держава фактично заплатила за пакет у цьому зрізі і
-   як це змінюється рік до року. Порівняння — лише рівних відрізків (повні
-   місяці поточного року проти тих самих місяців минулого). */
-const PAY_TOP = 10;
+/** Скарги зрізу: {t:[роки], cat:{k:[роки]}, res:{k:[роки]}, how, known}. */
+function complOf(list, lvl, key) {
+  const d = complData();
+  if (!d) return null;
+  const zero = () => d.years.map(() => 0);
+  if (lvl === "country") return { t: d.t, cat: d.cat, res: d.res, how: "file", known: true };
+  if (lvl === "oblast") {
+    return { t: d.o[key] || zero(), cat: (d.ocat || {})[key] || {}, res: (d.ores || {})[key] || {}, how: "file", known: true };
+  }
+  if (!A.pcompl || A.pcomplPkg !== String(A.pkg)) return { t: zero(), cat: {}, res: {}, how: "auth", known: false };
+  const acc = { t: zero(), cat: {}, res: {}, how: "auth", known: true };
+  const seen = new Set();
+  list.forEach((it) => {
+    const k = payKey(it.q);
+    if (seen.has(k)) return;
+    seen.add(k);
+    const e = A.pcompl.get(k);
+    if (!e) return;
+    e.t.forEach((v, i) => { acc.t[i] += v; });
+    [["cat", e.cat], ["res", e.res]].forEach(([field, src]) => Object.entries(src).forEach(([c, arr]) => {
+      const tgt = acc[field][c] || (acc[field][c] = zero());
+      arr.forEach((v, i) => { tgt[i] += v; });
+    }));
+  });
+  return acc;
+}
 
-function renderPay(list) {
-  const box = $("apPay");
+/** Сума за роками COMPL_RECENT для розподілу {k:[роки]}. */
+function complRecent(d, src) {
+  const idx = COMPL_RECENT.map((y) => d.years.indexOf(y)).filter((i) => i >= 0);
+  const out = {};
+  Object.entries(src || {}).forEach(([k, arr]) => { out[k] = idx.reduce((a, i) => a + (arr[i] || 0), 0); });
+  return out;
+}
+
+function complBars(labels, counts, cls) {
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  if (!total) return `<p class="ap-empty">Немає скарг за 2025–2026 роки.</p>`;
+  const rows = labels.map(([k, label]) => ({ k, label, v: counts[k] || 0 })).filter((r) => r.v > 0);
+  const max = Math.max(...rows.map((r) => r.v), 1);
+  return `<ol class="ap-cbars ${cls || ""}">${rows.map((r) => `<li class="c-${r.k}" title="${esc(r.label)}: ${esc(num(r.v))} (${esc(pct(r.v / total * 100))})">
+      <span class="ap-rname">${esc(r.label)}</span>
+      <span class="ap-kbar"><i style="width:${(r.v / max * 100).toFixed(1)}%"></i></span>
+      <b>${esc(num(r.v))}</b><small>${esc(pct(r.v / total * 100, 0))}</small></li>`).join("")}</ol>`;
+}
+
+function complYears(d, t) {
+  const max = Math.max(...t, 1);
+  const last = d.src && d.src.last ? d.src.last.slice(0, 5) : "";
+  return `<div class="ap-cyears" role="img" aria-label="${esc(d.years.map((y, i) => `${y}: ${t[i]}`).join(", "))}">${d.years.map((y, i) => {
+      const partial = i === d.years.length - 1;
+      return `<div class="ap-cy${partial ? " is-partial" : ""}" title="${y}${partial ? ` (до ${esc(last)})` : ""}: ${esc(num(t[i]))} ${plural(t[i], "скарга", "скарги", "скарг")}">
+        <b>${esc(num(t[i]))}</b><span class="ap-cy-bar"><i style="height:${(t[i] / max * 100).toFixed(1)}%"></i></span><small>${y}${partial ? "*" : ""}</small></div>`;
+    }).join("")}</div>`;
+}
+
+function renderCompl(list) {
+  const box = $("apCompl");
   if (!box) return;
-  const d = payData();
+  const d = complData();
   if (!d) {
-    box.innerHTML = A.payTried === String(A.pkg)
-      ? `<header class="ap-card-h"><h4>Фактичні оплати</h4></header>
-        <p class="ap-empty">У таблиці оплат ДІТ за 2024–2026 роки записів за цим пакетом немає.</p>`
+    box.innerHTML = A.complTried === String(A.pkg)
+      ? `<header class="ap-card-h"><h4>Скарги пацієнтів</h4></header>
+        <p class="ap-empty">У реєстрі скарг за 2022–2026 роки скарг, прив’язаних до цього пакета, немає.</p>`
       : '<div class="ap-skel"><i></i><i></i><i></i></div>';
     return;
   }
   const lvl = level();
-  const pp = payPeriod(d);
-  const { Y, k, cur } = pp;
-  const pay = payOf(list, lvl, A.scope.obl);
-  const dYtd = payChange(pay.ytd[cur], pay.ytd[cur - 1]);
-  const dYear = payChange(pay.t[cur - 1], pay.t[cur - 2]);
-  const title = pay.ytd[cur]
-    ? `сплачено ${money(pay.ytd[cur])} за ${pp.ytdLbl}${dYtd != null ? `, ${chgText(dYtd)} до ${pp.ytdPrev}` : ""}`
-    : pay.t[cur - 1] ? `у ${Y[cur - 1]} році сплачено ${money(pay.t[cur - 1])}; за ${pp.ytdLbl} оплат немає`
-    : `оплат за ${Y[0]}–${Y[cur]} роки немає`;
-  const how = pay.how === "file"
-    ? (lvl === "country" ? "усі отримувачі за пакетом" : "усі отримувачі області, зокрема ті, чиїх договорів у реєстрі вже немає")
-    : "сума по закладах реєстру договорів у цьому зрізі";
-  const tile = (label, v, sub) => `<div><dt>${esc(label)}</dt><dd>${esc(money(v))}<small>${sub}</small></dd></div>`;
-  const tiles = `<dl class="ap-kv ap-pay-kv">
-      ${tile(`${Y[cur - 2]} рік`, pay.t[cur - 2], esc(nProv(pay.n[cur - 2])))}
-      ${tile(`${Y[cur - 1]} рік`, pay.t[cur - 1], (dYear != null ? `${esc(chgText(dYear))} до ${Y[cur - 2]} · ` : "") + esc(nProv(pay.n[cur - 1])))}
-      ${tile(pp.ytdLbl, pay.ytd[cur], (dYtd != null ? `${esc(chgText(dYtd))} до ${esc(pp.ytdPrev)} · ` : "") + esc(nProv(pay.n[cur])))}
-    </dl>`;
-  let chart = "";
-  if (pay.m) {
-    const series = Y.map((yr, i) => ({
-      year: yr, cls: "y" + i, main: i === cur,
-      vals: (pay.m[String(yr)] || []).slice(0, i === cur ? k : 12),
-    }));
-    // у широкому контейнері графік займає праву колонку сітки .ap-pay, у вузькому — усю ширину
-    const cw = box.clientWidth || 0;
-    const apw = ($("analyticsPanel") || box).clientWidth || cw;
-    const w = apw >= 900 ? cw - 28 - 300 - 12 : cw - 28;
-    chart = yearLinesSvg(series, { w: w > 0 ? w : 640, aria: `оплати за місяцями у ${Y.join(", ")} роках, ${scopeTitle()}` });
-  }
-  // Заклади зрізу за оплатами поточного року; у найвужчих зрізах — усі
+  const c = complOf(list, lvl, A.scope.obl);
+  const Y = d.years, i25 = Y.indexOf(2025), iLast = Y.length - 1;
+  const last = (d.src && d.src.last) || "—";
   const narrow = lvl === "hromada" || lvl === "place";
-  const rows = list.map((it) => ({ it, r: payRow(it) })).filter((x) => x.r)
-    .sort((a, b) => (b.r[3 + cur] - a.r[3 + cur]) || (b.r[cur - 1] - a.r[cur - 1]));
-  const shown = narrow ? rows : rows.slice(0, PAY_TOP);
-  const without = list.length - rows.length;
-  const maxT = Math.max(...shown.map((x) => x.r[3 + cur]), 1);
-  const listHtml = shown.length ? `<ol class="ap-top ap-pay-top">${shown.map(({ it, r }) => {
-      const ch = payChange(r[3 + cur], r[3 + cur - 1]);
-      return `<li data-ap-zoz="${it.pi}" tabindex="0" title="${esc(it.q[P.NAME])}: ${esc(pp.ytdPrev)} — ${esc(money(r[3 + cur - 1]))} → ${esc(pp.ytdLbl)} — ${esc(money(r[3 + cur]))}. Клік — паспорт закладу">
-        <span class="ap-rname">${esc(it.q[P.NAME])}</span>
-        <span class="ap-cellbar is-money"><i style="width:${(Math.max(r[3 + cur], 0) / maxT * 100).toFixed(1)}%"></i></span>
-        <b>${esc(money(r[3 + cur]))}</b><small class="${ch == null ? "" : ch >= 0 ? "up" : "down"}">${esc(chgText(ch)) || "—"}</small></li>`;
-    }).join("")}</ol>`
-    : `<p class="ap-empty">Серед закладів зрізу оплат за пакетом у таблиці ДІТ не знайдено.</p>`;
-  const cap = !narrow && rows.length > PAY_TOP ? ` · показано ${PAY_TOP} з ${num(rows.length)}` : "";
+  if (narrow && !c.known) {
+    if (A.access == null) { checkAccess().then((a) => { A.access = a; ensureProvCompl(); draw(); }); }
+    else if (canSeeZoz()) ensureProvCompl();
+    box.innerHTML = `<header class="ap-card-h"><h4>Скарги пацієнтів: ${esc(scopeTitle())}</h4>
+        <p class="ap-prov">реєстр скарг НСЗУ · скарги на конкретні заклади — внутрішні дані</p></header>
+      <p class="ap-empty">${A.access == null || A.pcomplBusy ? "Перевіряю доступ…" : canSeeZoz() ? "Скарги по закладах вантажаться…" : "Нижче області скарги показуються по закладах — лише після входу з роллю експерта."}</p>`;
+    return;
+  }
+  const cats = complRecent(d, c.cat), ress = complRecent(d, c.res);
+  const recentTotal = Object.values(cats).reduce((a, b) => a + b, 0);
+  const top = COMPL_CAT.filter(([k]) => k !== "none").map(([k, l]) => ({ k, l, v: cats[k] || 0 })).sort((a, b) => b.v - a.v)[0];
+  const rankTxt = lvl === "country" && d.rank && d.rank[i25] ? `, місце ${d.rank[i25]} серед ${d.pkgs_with[i25]} пакетів` : "";
+  const title = c.t[i25] || recentTotal
+    ? `${num(c.t[i25])} ${plural(c.t[i25], "скарга", "скарги", "скарг")} у 2025 році${rankTxt}` +
+      (top && top.v && recentTotal ? `; найчастіше — ${top.l.toLowerCase()} (${pct(top.v / recentTotal * 100, 0)} за 2025–2026)` : "")
+    : "скарг за 2025–2026 роки немає";
+  const how = c.how === "file"
+    ? (lvl === "country" ? "скарги з визначеним пакетом" : "за областю закладу, на який скаржились")
+    : "сума по закладах реєстру договорів у цьому зрізі (дані після входу)";
+  // Області (країна) або заклади (нижче області) — за потреби
+  let more = "";
+  if (lvl === "country") {
+    const rows = Object.entries(d.o).map(([o, arr]) => ({ o, v: COMPL_RECENT.reduce((a, y) => a + (arr[Y.indexOf(y)] || 0), 0), v25: arr[i25] || 0, v26: arr[iLast] || 0 }))
+      .filter((r) => r.v > 0).sort((a, b) => b.v - a.v);
+    const max = Math.max(...rows.map((r) => r.v), 1);
+    more = rows.length ? `<details class="ap-inline-more"><summary>області за кількістю скарг 2025–2026 · ${rows.length}</summary>
+      <ol class="ap-cbars is-obl">${rows.map((r) => `<li data-ap-child="${esc(r.o)}" data-ap-lvl="country" tabindex="0" title="${esc(oblShort(r.o))}: 2025 — ${r.v25}, 2026 — ${r.v26}. Клік — область">
+        <span class="ap-rname">${esc(oblShort(r.o))}</span><span class="ap-kbar"><i style="width:${(r.v / max * 100).toFixed(1)}%"></i></span>
+        <b>${esc(num(r.v))}</b><small>${r.v25} · ${r.v26}</small></li>`).join("")}</ol>
+      ${d.o_unknown && d.o_unknown.some(Boolean) ? `<p class="ap-sub">Без визначеної області (заклад не знайдено в реєстрі договорів або не зазначено): ${esc(num(COMPL_RECENT.reduce((a, y) => a + (d.o_unknown[Y.indexOf(y)] || 0), 0)))} за 2025–2026.</p>` : ""}</details>` : "";
+  } else if (c.how === "auth" && c.known) {
+    const rows = list.map((it) => ({ it, e: A.pcompl.get(payKey(it.q)) })).filter((x) => x.e)
+      .map((x) => ({ ...x, v: COMPL_RECENT.reduce((a, y) => a + (x.e.t[Y.indexOf(y)] || 0), 0) })).filter((x) => x.v > 0)
+      .sort((a, b) => b.v - a.v);
+    more = `<details class="ap-inline-more" open><summary>заклади зрізу за скаргами 2025–2026 · ${rows.length}</summary>
+      ${rows.length ? `<ol class="ap-cbars is-zoz">${rows.map((x) => `<li data-ap-zoz="${x.it.pi}" tabindex="0" title="${esc(x.it.q[P.NAME])} — паспорт закладу">
+        <span class="ap-rname">${esc(x.it.q[P.NAME])}</span><span class="ap-kbar"><i style="width:${(x.v / rows[0].v * 100).toFixed(1)}%"></i></span>
+        <b>${esc(num(x.v))}</b><small>${x.e.t[i25] || 0} · ${x.e.t[iLast] || 0}</small></li>`).join("")}</ol>`
+        : `<p class="ap-empty">На заклади цього зрізу скарг за 2025–2026 роки не зареєстровано.</p>`}</details>`;
+  }
+  const noPkgNote = lvl === "country" ? " · скарги без зазначеного пакета сюди не входять" : "";
   box.innerHTML = `
     <header class="ap-card-h">
       <h4>${esc(scopeTitle())}: ${esc(title)}</h4>
-      <p class="ap-prov">${esc(d.src.short)} · гроші за звітним місяцем · ${Y[cur]}: повні місяці ${esc(pp.span)}${pp.tail ? `, ${esc(pp.tail)} ще оплачуються й у порівняння не входять` : ""} · ${esc(how)}</p>
+      <p class="ap-prov">реєстр скарг НСЗУ (вивантажка ${esc(d.src.export || "—")}, скарги до ${esc(last)}) · за датою реєстрації · ${Y[iLast]}* — неповний, частина скарг ще на розгляді · ${esc(how)}${noPkgNote}</p>
     </header>
-    <div class="ap-pay">
-      ${tiles}
-      ${chart ? `<figure class="ap-pay-chart">${chart}<figcaption>${Y.map((yr, i) => `<span class="ap-yl-key y${i}">${yr}</span>`).join(" ")} · ${Y[cur]} — лише повні місяці · вісь від нуля</figcaption></figure>`
-        : `<p class="ap-sub">Помісячні оплати є до рівня області; нижче — річні суми по закладах зрізу.</p>`}
+    <div class="ap-compl">
+      <div class="ap-compl-years"><p class="ap-sub">Скарги за роками</p>${complYears(d, c.t)}</div>
+      <div><p class="ap-sub">На що скаржаться, 2025–2026</p>${complBars(COMPL_CAT, cats, "is-cat")}</div>
+      <div><p class="ap-sub">Чим закінчився розгляд, 2025–2026</p>${complBars(COMPL_RES, ress, "is-res")}</div>
     </div>
-    <details class="ap-inline-more"${narrow ? " open" : ""}>
-      <summary>${narrow ? "заклади зрізу" : "найбільші отримувачі"} за ${esc(pp.ytdLbl)}${cap}</summary>
-      ${listHtml}
-      ${without > 0 ? `<p class="ap-sub">${esc(num(without))} ${plural(without, "заклад", "заклади", "закладів")} реєстру договорів у зрізі — без оплат за пакетом у таблиці ДІТ (договір новий, або заклад зшито не вдалося).</p>` : ""}
-    </details>`;
+    ${more}`;
+}
+
+/** Секція паспорта закладу: скарги на заклад за пакетом (Supabase, RLS). */
+function zozComplHtml(it) {
+  const d = complData();
+  if (!d) return "";
+  const head = `<section class="ap-zoz-sec" data-ap-zoz-compl><h4>Скарги пацієнтів за пакетом</h4>`;
+  if (!A.pcompl || A.pcomplPkg !== String(A.pkg)) {
+    return `${head}<p class="ap-empty">${A.pcomplBusy || A.pcomplPkg !== String(A.pkg) ? "Скарги вантажаться…" : "Скарги по закладах недоступні."}</p></section>`;
+  }
+  const e = A.pcompl.get(payKey(it.q));
+  if (!e || !e.t.some(Boolean)) {
+    return `${head}<p class="ap-empty">У реєстрі скарг за ${d.years[0]}–${d.years[d.years.length - 1]} роки скарг на заклад за цим пакетом немає${it.q[P.OWN] === "ФОП" ? " (ФОП зшиваємо за ПІБ)" : ""}.</p></section>`;
+  }
+  const cats = complRecent(d, e.cat), ress = complRecent(d, e.res);
+  return `${head}
+      <p class="ap-zoz-lead">${d.years.map((y, i) => `${y}${i === d.years.length - 1 ? "*" : ""} — <b>${esc(num(e.t[i]))}</b>`).join(" · ")}</p>
+      <p class="ap-sub">На що скаржаться, 2025–2026</p>${complBars(COMPL_CAT, cats, "is-cat")}
+      <p class="ap-sub">Чим закінчився розгляд, 2025–2026</p>${complBars(COMPL_RES, ress, "is-res")}
+      <p class="ap-sub">Реєстр скарг НСЗУ, скарги до ${esc(d.src.last || "—")}; * поточний рік неповний.</p>
+    </section>`;
+}
+
+function refreshZozCompl(pi) {
+  const node = document.querySelector("[data-ap-zoz-compl]");
+  if (!node || A.zozPi !== pi) return;
+  const q = A.panel.providers[pi];
+  const it = A.items.find((x) => x.pi === pi) || { pi, sum: 0, q };
+  node.outerHTML = zozComplHtml(it);
 }
 
 /* ── Робота в часі ─────────────────────────────────────────────── */
@@ -1703,6 +1941,7 @@ async function openZoz(pi) {
     return;
   }
   renderZoz(pi);
+  ensureProvCompl();
   loadZozAllPackages(pi);
   fillZozContacts(pi);
 }
@@ -1776,6 +2015,8 @@ function renderZoz(pi) {
     </section>
 
     ${zozPayHtml(it, inObl)}
+
+    ${zozComplHtml(it)}
 
     <section class="ap-zoz-sec">
       <h4>Робота за пакетом</h4>
@@ -1994,6 +2235,7 @@ function draw() {
   safe(renderChain, list, st, srcs);
   safe(renderKids, list, st);
   safe(renderPay, list);
+  safe(renderCompl, list);
   safe(renderCases);
   safe(renderMoney, list, st);
   safe(renderWork, list, st);
@@ -2005,7 +2247,7 @@ function draw() {
 function skeleton() {
   const chain = $("apChain");
   if (chain) chain.innerHTML = Array.from({ length: 5 }, () => '<article class="ap-link is-skel"><i></i><i></i><i></i></article>').join("");
-  ["apKids", "apPay", "apCases", "apMoney", "apWork", "apAccess"].forEach((id) => { const b = $(id); if (b) b.innerHTML = '<div class="ap-skel"><i></i><i></i><i></i></div>'; });
+  ["apKids", "apPay", "apCompl", "apCases", "apMoney", "apWork", "apAccess"].forEach((id) => { const b = $(id); if (b) b.innerHTML = '<div class="ap-skel"><i></i><i></i><i></i></div>'; });
 }
 
 async function render(pkgNum) {
@@ -2018,12 +2260,18 @@ async function render(pkgNum) {
   A.pay = null;
   A.payPkg = null;
   A.payTried = null;
+  A.compl = null;
+  A.complPkg = null;
+  A.complTried = null;
   A.cases = null;
   A.casesPkg = null;
   A.casesTried = null;
+  A.pcompl = null;
+  A.pcomplPkg = null;
   closeZoz();
   skeleton();
   loadPay(A.pkg);                   // окремо: панель не чекає на оплати
+  loadCompl(A.pkg);
   loadCases(A.pkg);
   const [panel] = await Promise.all([ensurePanel(), ensureExtras()]);
   if (A.pkg !== String(pkgNum)) return;

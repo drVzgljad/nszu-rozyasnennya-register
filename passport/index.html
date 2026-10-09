@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="../portal.css?v=20260808c">
   <link rel="stylesheet" href="../styles.css?v=20260808b">
   <link rel="stylesheet" href="passport.css?v=20260921c">
-  <link rel="stylesheet" href="analytics-panel.css?v=20260921b">
+  <link rel="stylesheet" href="analytics-panel.css?v=20261009a">
   <link rel="stylesheet" href="signals.css?v=20260921a">
   <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -162,6 +162,10 @@
               <!-- Фактичні оплати рік до року — таблиця ДІТ (tools/build_payments_it.py), 15.09.2026 -->
               <div class="ap-row">
                 <section class="ap-card ap-pay-card" id="apPay" aria-label="Фактичні оплати"></section>
+              </div>
+              <!-- Скарги пацієнтів — реєстр скарг НСЗУ (tools/build_complaints.py), 15.09.2026 -->
+              <div class="ap-row">
+                <section class="ap-card ap-compl-card" id="apCompl" aria-label="Скарги пацієнтів"></section>
               </div>
               <!-- Випадки ЕСОЗ (пілот, 21.09.2026) — 30_випадки_ЕСОЗ/build_cases.py; ряд ховається, коли файлу за пакетом немає -->
               <div class="ap-row" hidden>
@@ -511,7 +515,7 @@
 <script src="../provider-private.js?v=20260913a" defer></script>
 <script src="passport.js?v=20260921a" defer></script>
 <script src="map-drill.js?v=20260921d" defer></script>
-<script src="analytics-panel.js?v=20260921d" defer></script>
+<script src="analytics-panel.js?v=20261009a" defer></script>
 <script src="kpi-drill.js?v=20260918c" defer></script>
 <script src="signals.js?v=20260921b" defer></script>
 </body>
