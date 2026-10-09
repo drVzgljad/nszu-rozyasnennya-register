@@ -56,7 +56,7 @@
           ],
         },
         {
-          icon: "🪪", title: "Паспорт пакета", path: "passport/index.html", role: "guest", mission: "science",
+          icon: "🪪", title: "Паспорт пакета", path: "passport/index.html", role: "expert", mission: "science",
           desc: "Повний паспорт обраного пакета: специфікації, тарифи, роз'яснення, договори, протоколи ДЕЦ.",
           tags: "паспорт пакет тарифи договори протоколи аналітика",
           guide: [

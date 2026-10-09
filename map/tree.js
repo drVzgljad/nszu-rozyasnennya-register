@@ -22,7 +22,7 @@
           { name: "Роз'яснення НСЗУ", icon: "📄", path: "rozjasnennya.html", role: "guest" },
           { name: "Семантичний AI-пошук", icon: "💡", path: "rozjasnennya_semantic.html", role: "guest" },
           { name: "Пакетний навігатор 2026", icon: "📦", path: "pakety/index.html", role: "guest" },
-          { name: "Паспорт пакета", icon: "🪪", path: "passport/index.html", role: "guest" },
+          { name: "Паспорт пакета", icon: "🪪", path: "passport/index.html", role: "expert" },
           { name: "Пілотні проєкти", icon: "🧪", path: "pilots/index.html", role: "guest" },
           { name: "Постанова № 1808", icon: "📜", path: "postanova/index.html", role: "guest" },
           { name: "Алгоритми (Наказ 377)", icon: "🧮", path: "algorithms/index.html", role: "expert" },

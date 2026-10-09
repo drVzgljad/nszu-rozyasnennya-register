@@ -448,7 +448,7 @@ function applyAccess() {
     // різних місцях меню, хоча шукають їх там само, де й пакет.
     const packagesItems = [
       { text: '📗 Пакети ПМГ 2026', path: 'pakety/index.html' },
-      { text: '🪪 Паспорт пакета', path: 'passport/index.html' },
+      { text: '🪪 Паспорт пакета', path: 'passport/index.html', role: 'expert' },
       { text: '📄 Роз\'яснення', path: 'rozjasnennya/index.html' },
       { text: '🧪 Пілотні проєкти', path: 'pilots/index.html' },
       { text: '🗃️ Архів пакетів ПМГ', path: 'pakety/collector.html' }
@@ -2649,7 +2649,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '📄', label: 'Роз\'яснення', path: 'rozjasnennya/index.html' },
     { icon: '💡', label: 'AI-пошук', path: 'rozjasnennya_semantic.html' },
     { icon: '📦', label: 'Пакети 2026', path: 'pakety/index.html' },
-    { icon: '🪪', label: 'Паспорт пакета', path: 'passport/index.html' },
+    { icon: '🪪', label: 'Паспорт пакета', path: 'passport/index.html', role: 'expert' },
     { icon: '🧪', label: 'Пілотні проєкти', path: 'pilots/index.html' },
     { icon: '📜', label: 'Постанова 1808', path: 'postanova/index.html' },
     { icon: '↔️', label: 'Тарифи 2025 ↔ 2026', path: 'postanova/porivnyannya.html' },
