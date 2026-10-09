@@ -430,7 +430,7 @@
 
       <line x1="${L}" y1="${T}" x2="${L}" y2="${T + ph}" class="dr-axis"/>
       <line x1="${L}" y1="${T + ph}" x2="${L + pw}" y2="${T + ph}" class="dr-axis"/>
-      <text x="${L}" y="${H - (compact ? 12 : 8)}" class="dr-axname" text-anchor="start">закладів на 10 тис. цільової групи →</text>
+      <text x="${L}" y="${H - (compact ? 12 : 8)}" class="dr-axname" text-anchor="start">закладів на 10 тис. розрахункової групи →</text>
       <text x="0" y="0" class="dr-axname" transform="translate(${compact ? 22 : 15} ${T + ph / 2}) rotate(-90)" text-anchor="middle">послуг на один заклад</text>
     </svg>`;
   }
@@ -444,7 +444,7 @@
 
     if (net.length) {
       items.push(["🏥", `Мало закладів — ${uaPlural(net.length, "регіон", "регіони", "регіонів")}`,
-        `${nameList(net)}. Наявні заклади працюють не менше за середні по країні, але їх просто мало на цільову групу. ` +
+        `${nameList(net)}. Наявні заклади працюють не менше за середні по країні, але їх просто мало на розрахункову групу. ` +
         `Це питання контрактування й доступності, а не роботи надавачів.`]);
     }
     if (work.length) {
@@ -897,7 +897,7 @@
             </p>
             <p class="dr-lede-b">${escapeHtml(f.num(sp.s))} послуг за ${sp.months} міс. у
               ${escapeHtml(uaPlural(sp.net, "закладі", "закладах", "закладах"))};
-              цільова група — ${escapeHtml(sp.target)}, ${escapeHtml(f.shortNum(sp.den))} осіб.
+              розрахункова група — ${escapeHtml(sp.target)}, ${escapeHtml(f.shortNum(sp.den))} осіб.
               Пакет на ${sp.rank}-му місці з ${sp.total} за інтенсивністю.</p>
           </div>
           <div class="dr-lede-badge">

@@ -387,10 +387,10 @@ function sources() {
       note: cm ? `Реєстр скарг НСЗУ (вивантажка ${cm.src.export || "—"}). Персональні поля не читаються. Класифікатор категорій змінився у 2025 році, тому частки показано за 2025–2026.` : "" },
     { id: "vol", title: "Обсяги ЕСОЗ (по областях)", date: volEnd, state: meta ? byMonths(volEnd) : "na",
       slice: lastFull ? `повні місяці до ${lastFull.slice(5)}.${lastFull.slice(0, 4)}` : "—",
-      affects: "Робота, Доступ", fix: "запит аналітикам за наступний місяць → 23_обсяги_демографія",
+      affects: "Робота, територіальна інтенсивність", fix: "запит аналітикам за наступний місяць → 23_обсяги_демографія",
       note: meta ? `Вивантажку зібрано ${meta.generated}; вік рахується від кінця останнього повного місяця; обрізаний місяць викинуто з усіх підсумків.` : "" },
     { id: "decl", title: "Декларації ПМД (знаменник)", slice: dmy(decl), date: decl, state: demo ? byMonths(decl) : "na",
-      affects: "Доступ (на населення)", fix: "23_обсяги_демографія/build_demography.py" },
+      affects: "Територіальна інтенсивність (на населення)", fix: "23_обсяги_демографія/build_demography.py" },
     { id: "rates", title: "Ставки й коефіцієнти (постанова 1808)", slice: rates.slice, date: rates.date,
       state: byMonths(rates.date), affects: "Умови", fix: "звірити зміни → postanova/build_comparison.py", note: rates.note },
     { id: "spec", title: "Специфікації пакетів", slice: dmy(spec), date: spec, state: byMonths(spec),
@@ -832,7 +832,7 @@ function renderHead(srcs) {
   box.innerHTML = `
     <div class="ap-titlebox">
       <h3>Як працює пакет ${esc(pkg.number || A.pkg)}</h3>
-      <p class="ap-lead">Умови → мережа → гроші → робота → доступ. Клік по карті чи стовпчику — крок униз, до закладу; дані розкриваються нижче за потреби.</p>
+      <p class="ap-lead">Умови → мережа → гроші → робота → територіальна інтенсивність. Клік по карті чи стовпчику — крок униз, до закладу; дані розкриваються нижче за потреби.</p>
     </div>
     <button type="button" class="ap-pill" data-ap-open="apQualityDetails" title="Якість даних: ${esc(LAMP_RULE)}">
       <span class="ap-pill-h">Якість даних</span>${lampSummary(srcs)}
@@ -1104,7 +1104,7 @@ function accessCard(list, st, srcs) {
   const m = volMetric("rate");
   const lamp = worst(srcState(srcs, "vol"), srcState(srcs, "decl"));
   if (!m) {
-    return card({ step: "5", name: "Доступ", lamp: "na", go: "apAccess", value: "—",
+    return card({ step: "5", name: "Територіальна інтенсивність", lamp: "na", go: "apAccess", value: "—",
       base: "без обсягів послуг показник «на населення» не рахується", plain: "не рахується" });
   }
   const oblasts = [...new Set(A.items.map((it) => it.q[P.OBL]))];
@@ -1113,7 +1113,7 @@ function accessCard(list, st, srcs) {
   // Точкова мережа: обсяг кількох центрів ділиться на населення їхніх областей,
   // а лікують вони всю країну — «розрив між областями» тут не читається взагалі
   if (vals.length < 15) {
-    return card({ step: "5", name: "Доступ", lamp, go: "apAccess",
+    return card({ step: "5", name: "Територіальна інтенсивність", lamp, go: "apAccess",
       value: `${vals.length} <small>${plural(vals.length, "регіон", "регіони", "регіонів")} з обсягами — мережа точкова</small>`,
       base: "показник «на населення» не читається: центри лікують пацієнтів з усієї країни",
       plain: `${vals.length} регіонів` });
@@ -1130,8 +1130,8 @@ function accessCard(list, st, srcs) {
   const mine = A.scope.obl ? vals.find((x) => x.o === A.scope.obl) : null;
   if (A.scope.obl) {
     const r = mine ? mine.v / med : null;
-    return card({ step: "5", name: "Доступ", lamp, go: "apAccess",
-      value: mine ? `${esc(m.txt(A.scope.obl))} <small>послуг ${esc(unit)} цільової групи</small>` : "—",
+    return card({ step: "5", name: "Територіальна інтенсивність", lamp, go: "apAccess",
+      value: mine ? `${esc(m.txt(A.scope.obl))} <small>послуг ${esc(unit)} розрахункової групи</small>` : "—",
       gauge: r != null ? gaugeSvg({ value: r, min: 0, max: 2, target: 1, targetLabel: "медіана областей",
         fmt: (v) => "×" + dec(v, 0), zones: [[0, 0.8, "нижче за типову область"], [0.8, 1.2, "як типова область"], [1.2, 2, "вище за типову"]],
         zoneCls: [0, 2, 1], valueText: `×${dec(r, 2)}`, aria: `інтенсивність до медіани областей ${dec(r, 2)}`,
@@ -1141,8 +1141,8 @@ function accessCard(list, st, srcs) {
       more: `<p>Область — місце надавача, а не проживання пацієнта.${level() === "hromada" || level() === "place" ? " Знаменник є лише по областях, тому показано область." : ""}</p>`,
       plain: mine ? `${m.txt(A.scope.obl)} ${unit}` : "—" });
   }
-  return card({ step: "5", name: "Доступ", lamp, go: "apAccess",
-    value: `×${esc(dec(eq, 1))} <small>верхня чверть областей проти нижньої</small>`,
+  return card({ step: "5", name: "Територіальна інтенсивність", lamp, go: "apAccess",
+    value: `×${esc(dec(eq, 1))} <small>75-й проти 25-го перцентиля областей</small>`,
     gauge: gaugeSvg({ value: eq, min: 1, max: 3, fmt: (v) => "×" + dec(v, 0), minLabel: "×1", maxLabel: "×3+",
       zones: [[1, 1.3, "майже рівно"], [1.3, 2, "помірний розрив"], [2, 3, "великий розрив"]], zoneCls: [0, 1, 2],
       valueText: `×${dec(eq, 1)}`, aria: `розрив між областями ${dec(eq, 1)}`,
@@ -1253,7 +1253,7 @@ function renderSteps(list, st) {
     head = `<th scope="col">${what}</th><th scope="col" class="n">Надавачів</th><th scope="col" class="n">Сума договорів</th>
       <th scope="col" class="n" title="Медіанний договір і його відношення до медіани рівня вище">Медіанний договір</th>
       ${payHead}<th scope="col" class="n">У спроможній мережі</th><th scope="col" class="n">${svcHead}</th>` +
-      (rate ? `<th scope="col" class="n" title="${esc("послуг " + ((rate.unit && rate.unit.short) || "") + " цільової групи")}">На населення</th>` : "");
+      (rate ? `<th scope="col" class="n" title="${esc("послуг " + ((rate.unit && rate.unit.short) || "") + " розрахункової групи")}">На населення</th>` : "");
     const shown = A.showAll ? rows : rows.slice(0, TOP_ROWS);
     body = shown.map((r) => {
       const sv = servicesOf(r.list, lvl === "country" ? "oblast-row" : "below", r.key);
@@ -1832,7 +1832,7 @@ function renderAccess() {
   if (!box) return;
   const m = volMetric("rate");
   if (!m) {
-    box.innerHTML = `<header class="ap-card-h"><h4>Доступ по країні</h4></header>
+    box.innerHTML = `<header class="ap-card-h"><h4>Територіальна інтенсивність послуг по країні</h4></header>
       <p class="ap-empty">Без обсягів послуг показник «на населення» не рахується.</p>`;
     return;
   }
@@ -1840,7 +1840,7 @@ function renderAccess() {
   const vals = obls.map((o) => ({ o, v: m.val(o) })).filter((x) => x.v > 0).sort((a, b) => b.v - a.v);
   const unit = (m.unit && m.unit.short) || "";
   if (vals.length < 2) {
-    box.innerHTML = `<header class="ap-card-h"><h4>Доступ по країні</h4></header><p class="ap-empty">Обсяги лише в одній області.</p>`;
+    box.innerHTML = `<header class="ap-card-h"><h4>Територіальна інтенсивність послуг по країні</h4></header><p class="ap-empty">Обсяги лише в одній області.</p>`;
     return;
   }
   const max = vals[0].v, med = median(vals.map((x) => x.v).sort((a, b) => a - b));
@@ -1850,6 +1850,8 @@ function renderAccess() {
   const q1 = quantile(ascV, 0.25), q3 = quantile(ascV, 0.75);
   const eq = q1 > 0 ? q3 / q1 : ascV[ascV.length - 1] / ascV[0];
   const nLow = vals.length - reliable.length;
+  const demoMeta = window.Volumes && window.Volumes.demo ? window.Volumes.demo() : null;
+  const decDate = demoMeta && demoMeta.declarations_updated ? dmy(parseDate(demoMeta.declarations_updated)) : "невідомої дати";
   // Загальний графік: усі області точками на одній осі; підписані лише крайні
   // й вибрана — повний перелік розкривається нижче
   const W = 520, H = 70, L = 10, R = 10, y0 = 34;
@@ -1865,9 +1867,10 @@ function renderAccess() {
   box.innerHTML = `
     <header class="ap-card-h">
       <h4>${vals.length < 15 ? `Обсяги лише у ${vals.length} ${plural(vals.length, "регіоні", "регіонах", "регіонах")}`
-        : `Типова область верхньої чверті надає в ${esc(dec(eq, 1))} раза більше послуг на населення, ніж нижньої`}</h4>
-      <p class="ap-prov">послуг ${esc(unit)} цільової групи · медіана ${esc(dec(med, med < 10 ? 1 : 0))}${nLow && base === reliable ? ` · розрив без ${nLow} ${plural(nLow, "області", "областей", "областей")} з *` : ""} · область — місце надавача</p>
+        : `Інтенсивність послуг по областях: 75-й перцентиль у ${esc(dec(eq, 1))} раза вищий за 25-й`}</h4>
+      <p class="ap-prov">послуг ${esc(unit)} розрахункової групи · медіана ${esc(dec(med, med < 10 ? 1 : 0))}${nLow && base === reliable ? ` · розрив без ${nLow} ${plural(nLow, "області", "областей", "областей")} з *` : ""} · область — місце надавача</p>
     </header>
+    <p class="ap-sub">Область — місце надавача, а не проживання пацієнта. Одиниця — послуги, а не унікальні пацієнти. Знаменник — декларації з лікарем ПМД як наближення до населення (дані від ${esc(decDate)}). Відсутність надавача в області не означає відсутності допомоги її мешканцям.</p>
     ${warn}
     <svg class="ap-strip-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(`області за інтенсивністю від ${m.txt(vals[vals.length - 1].o)} до ${m.txt(vals[0].o)} ${unit}`)}">
       <line x1="${L}" x2="${W - R}" y1="${y0}" y2="${y0}" class="ap-grid"/>
@@ -1886,19 +1889,20 @@ function renderAccess() {
 function renderQuality(srcs) {
   const box = $("apQuality");
   if (!box) return;
+  const adm = Boolean(A.access && A.access.signedIn && A.access.role === "admin"); // команди перезбирання — лише адміну
   box.innerHTML = `
     <p class="ap-prov">${lampHtml("ok", "до 1 місяця")} ${lampHtml("warn", "до 3 місяців")} ${lampHtml("bad", "старші за 3 місяці")} ${lampHtml("na", "немає даних")}
       Колір — вік даних. Лампочка картки вгорі — найгірша з її джерел.</p>
     <div class="ap-table-wrap"><table class="ap-table ap-qtable">
       <thead><tr><th scope="col">Стан</th><th scope="col">Джерело</th><th scope="col">Дата даних</th><th scope="col" class="n">Вік</th>
-        <th scope="col">На що впливає</th><th scope="col">Що зробити</th></tr></thead>
+        <th scope="col">На що впливає</th>${adm ? `<th scope="col">Що зробити</th>` : ""}</tr></thead>
       <tbody>${srcs.map((s) => `<tr>
         <td>${lampHtml(s.state)}</td>
         <th scope="row">${esc(s.title)}${s.note ? `<small>${esc(s.note)}</small>` : ""}</th>
         <td>${esc(s.slice)}</td>
         <td class="n">${esc(s.ageText || ageText(s.date))}</td>
         <td>${esc(s.affects)}</td>
-        <td><code>${esc(s.fix)}</code></td></tr>`).join("")}</tbody>
+        ${adm ? `<td><code>${esc(s.fix)}</code></td>` : ""}</tr>`).join("")}</tbody>
     </table></div>`;
 }
 
