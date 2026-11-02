@@ -581,3 +581,76 @@
 .sp-more { margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 8px; }
 .sp-more > summary { cursor: pointer; font-weight: 700; font-size: 13px; color: var(--muted); padding: 4px 0 8px; }
 .sp-more[open] > summary { color: var(--accent-dark); }
+
+/* ---------- крок 4: вигляди «Список» і «За виконавцями» ---------- */
+.sp-view {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.sp-view button {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.sp-view button + button { border-left: 1px solid var(--line); }
+.sp-view button[aria-pressed="true"] { background: var(--accent-fill); color: #fff; }
+.sp-stage-tabs[hidden] { display: none !important; }
+
+.sp-board.is-list { display: block; overflow: visible; }
+.sp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.sp-row {
+  display: grid;
+  grid-template-columns: 190px 120px minmax(0, 1fr) 170px 170px;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 12px;
+  border: 1px solid var(--sp-card-line);
+  border-radius: 10px;
+  background: var(--sp-card-bg);
+  cursor: pointer;
+  font-size: 14px;
+  min-width: 0;
+}
+.sp-person .sp-row { grid-template-columns: 190px 120px minmax(0, 1fr) 170px; }
+.sp-row:hover, .sp-row:focus-visible { box-shadow: var(--shadow); outline: none; }
+.sp-row-no { font-weight: 800; color: var(--accent-dark); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.sp-row-subj { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+.sp-row-subj i { font-style: normal; color: var(--muted); margin-left: 8px; font-size: 13px; }
+.sp-row-ex { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-row-stage { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-stage-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--sp-new); }
+.sp-row-work .sp-stage-dot { background: var(--sp-work); }
+.sp-row-review .sp-stage-dot { background: var(--sp-review); }
+.sp-row-signing .sp-stage-dot { background: var(--sp-signing); }
+.sp-row-sz_sent .sp-stage-dot { background: var(--sp-sz); }
+.sp-row-done { opacity: .65; }
+.sp-row-done .sp-stage-dot { background: var(--sp-done); }
+.sp-rem-mini { color: var(--sp-rem-ink); font-weight: 700; }
+
+.sp-person { margin-bottom: 18px; }
+.sp-person-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 8px; }
+.sp-person-head b { color: var(--ink); font-size: 15px; }
+.sp-person-stats { color: var(--muted); font-size: 13px; }
+
+@media (max-width: 1180px) {
+  .sp-row, .sp-person .sp-row { grid-template-columns: 170px 110px minmax(0, 1fr); }
+  .sp-row-ex, .sp-row-stage { grid-column: 3; }
+}
+@media (max-width: 760px) {
+  .sp-view { flex: 1 1 100%; }
+  .sp-view button { flex: 1; padding: 8px 4px; }
+  .sp-row, .sp-person .sp-row { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 8px; }
+  .sp-row-dl { grid-column: 1; }
+  .sp-row-no { grid-column: 2; grid-row: 1; text-align: right; }
+  .sp-row-subj, .sp-row-ex, .sp-row-stage { grid-column: 1 / -1; }
+  .sp-row-subj { white-space: normal; }
+}

@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Справи відділу</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="spravy.css?v=20261102e">
+  <link rel="stylesheet" href="spravy.css?v=20261102f">
   <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
   <script type="module" src="../auth-v2.js?v=20261102b"></script>
 </head>
@@ -66,6 +66,11 @@
         <option value="remind">Нагадування настали</option>
       </select>
       <select id="spDept" class="sp-dept-pick" aria-label="Відділ" hidden></select>
+      <div class="sp-view" id="spView" role="group" aria-label="Вигляд">
+        <button type="button" data-view="board" aria-pressed="true">Дошка</button>
+        <button type="button" data-view="list" aria-pressed="false">Список</button>
+        <button type="button" data-view="people" aria-pressed="false">За виконавцями</button>
+      </div>
       <button type="button" class="sp-btn sp-btn-primary" id="spAdd">+ Справа</button>
     </div>
 
@@ -209,6 +214,6 @@
   </footer>
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
-  <script type="module" src="spravy.js?v=20261102h"></script>
+  <script type="module" src="spravy.js?v=20261102i"></script>
 </body>
 </html>

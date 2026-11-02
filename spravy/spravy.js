@@ -105,6 +105,7 @@ const state = {
   q: '',
   mine: false,
   f: 'all',           // фільтр: all / hot (строк ≤ 3 дн.) / overdue / remind (нагадування настали)
+  view: 'board',      // board — дошка; list — список за строками; people — за виконавцями
   mobileStage: 'work',
   openId: null,
   demoEvents: {}
@@ -452,6 +453,11 @@ function render() {
   renderStats();
   const board = $('spBoard');
   board.classList.remove('is-empty');
+  board.classList.toggle('is-list', state.view !== 'board');
+  $('spStageTabs').hidden = state.view !== 'board';
+  document.querySelectorAll('#spView [data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === state.view)));
+  if (state.view === 'list') { board.innerHTML = listHTML(list); renderReminderStrip(); return; }
+  if (state.view === 'people') { board.innerHTML = peopleHTML(list); renderReminderStrip(); return; }
   board.innerHTML = STAGES.map((s) => {
     const items = sortCol(list.filter((c) => c.stage === s.key), s.key);
     const shown = s.key === 'done' ? items.slice(0, 30) : items;
@@ -469,6 +475,59 @@ function render() {
   }).join('');
   renderMobileTabs(list);
   renderReminderStrip();
+}
+
+/* ── Вигляд «Список»: усе одним списком, найгарячіше зверху ── */
+
+/** Порядок за строком: прострочене й найближче зверху, без строку — внизу, закрите — в кінці. */
+function byDeadline(a, b) {
+  const done = (c) => (c.stage === 'done' ? 1 : 0);
+  return (done(a) - done(b)) || String(a.deadline || '9999').localeCompare(String(b.deadline || '9999'));
+}
+
+function rowHTML(c, withExecutor = true) {
+  const dl = deadlineInfo(c);
+  const rem = state.remarkCounts[c.id] || 0;
+  const bell = nextReminder(c.id);
+  return `<li class="sp-row sp-row-${c.stage}" data-id="${c.id}" tabindex="0" role="button">
+    <span class="sp-row-dl">${dl ? `<span class="sp-dl ${dl.cls}">${esc(dl.text)}</span>` : '<span class="sp-muted">без строку</span>'}</span>
+    <span class="sp-row-no">${esc(c.in_no || 'без вх. №')}</span>
+    <span class="sp-row-subj">${esc(c.subject)}${c.correspondent ? `<i>${esc(c.correspondent)}</i>` : ''}</span>
+    ${withExecutor ? `<span class="sp-row-ex">${esc(c.executor_name || '—')}</span>` : ''}
+    <span class="sp-row-stage"><b class="sp-stage-dot"></b>${STAGE_LABEL[c.stage]}${c.version ? ` · v${c.version}` : ''}${rem ? ` <span class="sp-rem-mini">⚑ ${rem}</span>` : ''}${bell ? ' 🔔' : ''}</span>
+  </li>`;
+}
+
+function listHTML(list) {
+  const rows = list.slice().sort(byDeadline);
+  const shown = rows.filter((c) => c.stage !== 'done').concat(rows.filter((c) => c.stage === 'done').slice(0, 30));
+  return rows.length ? `<ul class="sp-list">${shown.map((c) => rowHTML(c)).join('')}</ul>`
+    : '<div class="sp-notice">Справ за цим фільтром немає.</div>';
+}
+
+/* ── Вигляд «За виконавцями»: хто що тримає ── */
+function peopleHTML(list) {
+  const groups = new Map();
+  list.filter((c) => c.stage !== 'done').forEach((c) => {
+    const k = c.executor_name || '';
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(c);
+  });
+  if (!groups.size) return '<div class="sp-notice">Відкритих справ немає.</div>';
+  const keys = [...groups.keys()].sort((a, b) => (a === '' ? -1 : b === '' ? 1 : a.localeCompare(b, 'uk')));
+  return keys.map((k) => {
+    const items = groups.get(k).sort(byDeadline);
+    const over = items.filter((c) => { const n = daysLeft(c.deadline); return n !== null && n < 0 && c.stage !== 'sz_sent'; }).length;
+    const hot = items.filter((c) => { const n = daysLeft(c.deadline); return n !== null && n >= 0 && n <= 3 && c.stage !== 'sz_sent'; }).length;
+    return `<section class="sp-person">
+      <header class="sp-person-head">
+        <span class="sp-ava${k ? '' : ' is-none'}">${k ? esc(initials(k)) : '?'}</span>
+        <b>${esc(k || 'Без виконавця')}</b>
+        <span class="sp-person-stats">${items.length} у роботі${hot ? ` · <span class="sp-dl is-hot">горить ${hot}</span>` : ''}${over ? ` · <span class="sp-dl is-over">прострочено ${over}</span>` : ''}</span>
+      </header>
+      <ul class="sp-list">${items.map((c) => rowHTML(c, false)).join('')}</ul>
+    </section>`;
+  }).join('');
 }
 
 /** Найближче невиконане нагадування справи. */
@@ -842,6 +901,14 @@ function wireStatic() {
   $('spSearch').addEventListener('input', (e) => { state.q = e.target.value; render(); });
   $('spMine').addEventListener('change', (e) => { state.mine = e.target.checked; lsSet('spravy-mine', state.mine ? '1' : '0'); render(); });
   $('spFilter').addEventListener('change', (e) => { state.f = e.target.value; render(); });
+  if (['board', 'list', 'people'].includes(lsGet('spravy-view'))) state.view = lsGet('spravy-view');
+  $('spView').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-view]');
+    if (!b) return;
+    state.view = b.dataset.view;
+    lsSet('spravy-view', state.view);
+    render();
+  });
 
   $('spAdd').addEventListener('click', () => {
     const sel = $('spNewExecutor');
@@ -874,11 +941,11 @@ function wireStatic() {
       saveCase(c.id, patch).then((ok) => ok !== false && toast(`${c.in_no || 'Справа'} → ${STAGE_LABEL[to]}`));
       return;
     }
-    const card = e.target.closest('.sp-card');
+    const card = e.target.closest('.sp-card, .sp-row');
     if (card) openCase(card.dataset.id);
   });
   board.addEventListener('keydown', (e) => {
-    const card = e.target.closest('.sp-card');
+    const card = e.target.closest('.sp-card, .sp-row');
     if (card && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openCase(card.dataset.id); }
   });
   // Перетягування між колонками (десктоп)
