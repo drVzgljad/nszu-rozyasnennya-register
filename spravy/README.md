@@ -8,13 +8,25 @@
 | `work` | Готуємо | є виконавець і чернетка v1…vN |
 | `review` | Погодження | рецензія, керівник; зауваження — окремими пунктами |
 | `signing` | На підписі | файл у `10_НА_ПІДПИС\ДД.ММ.РР` |
+| `sz_sent` | СЗ надано | ми співвиконавці: СЗ у робочому порядку передано головному виконавцю |
 | `done` | Закрито | вих. № є, резолюцію закрито (або «не наше» / «до відома») |
 
-Повернули на доопрацювання — картка йде назад у «Готуємо», незакриті зауваження видно лічильником.
+Угорі картки — **головний виконавець** (`lead_unit`: департамент / управління / відділ) і **наша роль**
+(`our_role`: `lead` головні, `co` співвиконавці, `info` до відома).
+
+Кнопки картки пишуть в **історію справи** з датами:
+- **⏱ Продовжити строк**: новий строк і підстава. Первинний строк лишається в `deadline_original`, на дошці
+  такий строк позначено ↻.
+- **↩ Повернуто на доопрацювання**: хто повернув і що сказав. Картка йде в «Готуємо», а сказане
+  потрапляє в «Зауваження» як невраховане.
+- **📤 Відправлено документ**: лист, СЗ чи СЗ у робочому порядку, з №, датою й адресатом. Тут же можна
+  перевести справу в «СЗ надано» чи «Закрито».
+- **🔔 Нагадування**: дата й текст. Коли день настає, нагадування з'являється в смузі над дошкою.
 
 ## Дані
 
-Supabase, міграція `../migration_2026-11-02_dept_cases.sql` (застосовує власник):
+Supabase, міграції `../migration_2026-11-02_dept_cases.sql` і `../migration_2026-11-02b_dept_cases_history.sql`
+(застосовує власник, по черзі):
 
 - `dept_cases` — картка: реквізити вхідного, строк, резолюція, тип відповіді, етап, виконавець,
   версія, шлях до файлу в обміннику, посилання (Google Doc), нюанси, рецензія, вих. №.
@@ -23,6 +35,10 @@ Supabase, міграція `../migration_2026-11-02_dept_cases.sql` (засто�
   open/done/rejected, `remark_answer` — як враховано, `remark_version`) і автоматичні записи
   `stage` / `version` / `executor` / `review` / `system`, які пише **тригер бази**. Тому стрічка
   повна, хоч би хто змінив картку: сторінка, скрипт чи Claude напряму через SQL.
+- Історія (міграція b): тригер сам пише `deadline` (зміна строку) і `returned` (етап назад). Підставу
+  зміни передають у `dept_cases.change_note` тим самим `update`: тригер дописує її в подію й
+  очищає поле. Вручну додаються `outgoing` (`doc_kind`, `doc_no`, `addressee`, `event_date`) і
+  `reminder` (`due_date`, `done`). `event_date` — дата документа, якщо його вносять пізніше.
 - RLS: читає свій відділ (`profiles."Section"`), керівництво департаменту і діловод (`is_clerk`);
   пише свій відділ і керівництво; видаляє керівник відділу або керівництво. Гостям — нічого.
 
@@ -88,6 +104,33 @@ where department = '…' and in_no = '10001-08-26';
 -- коментар у стрічку
 insert into dept_case_events (case_id, author_name, kind, body)
 select id, 'Claude', 'comment', 'Чекаємо дані ДІТ щодо оплат' from dept_cases where …;
+
+-- головний виконавець і наша роль
+update dept_cases set lead_unit = 'Юридичний департамент', our_role = 'co', updated_by_name = 'Claude'
+where …;
+
+-- строк продовжено (тригер запише «Строк: 28.10 → 15.11 — продовжено: …», первинний збережеться)
+update dept_cases set deadline = '2026-11-15', change_note = 'продовжено: лист кореспондента від … № …',
+       updated_by_name = 'Claude' where …;
+
+-- повернули на доопрацювання (тригер запише «Повернуто: Погодження → Готуємо — …»)
+update dept_cases set stage = 'work', change_note = 'Директор департаменту: скоротити вступ',
+       updated_by_name = 'Claude' where …;
+
+-- відправлено СЗ у робочому порядку → «СЗ надано»
+insert into dept_case_events (case_id, author_name, kind, body, doc_kind, doc_no, addressee, event_date)
+select id, 'Claude', 'outgoing', 'Позиція відділу', 'sz_work', '3-19/60-26', 'Юридичний департамент', '2026-11-02'
+from dept_cases where …;
+update dept_cases set stage = 'sz_sent', updated_by_name = 'Claude' where …;
+
+-- нагадування
+insert into dept_case_events (case_id, author_name, kind, body, due_date, done)
+select id, 'Claude', 'reminder', 'Перевірити, чи головний виконавець відповів', '2026-11-10', false
+from dept_cases where …;
+
+-- нагадування на сьогодні (на початку сесії)
+select c.in_no, e.due_date, e.body from dept_case_events e join dept_cases c on c.id = e.case_id
+where e.kind = 'reminder' and e.done is not true and e.due_date <= current_date order by e.due_date;
 ```
 
 Ініціативний лист без вхідного — `in_no` порожній, `source = 'claude'`.

@@ -29,7 +29,14 @@
   --sp-work: #4a8fc7;
   --sp-review: #c58a12;
   --sp-signing: #7a5bc7;
+  --sp-sz: #2a8a8a;
   --sp-done: #3a8462;
+  --sp-co-bg: #e2f2f2;
+  --sp-co-ink: #1d6464;
+  --sp-lead-bg: #e8e4f8;
+  --sp-lead-ink: #4a3a8f;
+  --sp-bell-bg: #fff4d6;
+  --sp-bell-ink: #7a5000;
 }
 :root.dark-theme {
   --sp-col-bg: #131c2b;
@@ -52,7 +59,14 @@
   --sp-work: #38bdf8;
   --sp-review: #fbbf24;
   --sp-signing: #c4b5fd;
+  --sp-sz: #5eead4;
   --sp-done: #4ade80;
+  --sp-co-bg: #12302f;
+  --sp-co-ink: #5eead4;
+  --sp-lead-bg: #2a2350;
+  --sp-lead-ink: #c4b5fd;
+  --sp-bell-bg: #3d2c08;
+  --sp-bell-ink: #fbbf24;
 }
 
 .sp-hero h1 { margin-bottom: 6px; }
@@ -133,8 +147,8 @@
 /* ---------- дошка ---------- */
 .sp-board {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
   align-items: start;
 }
 .sp-board.is-empty { display: block; }
@@ -158,6 +172,7 @@
 .sp-col[data-stage="work"] { border-top-color: var(--sp-work); }
 .sp-col[data-stage="review"] { border-top-color: var(--sp-review); }
 .sp-col[data-stage="signing"] { border-top-color: var(--sp-signing); }
+.sp-col[data-stage="sz_sent"] { border-top-color: var(--sp-sz); }
 .sp-col[data-stage="done"] { border-top-color: var(--sp-done); }
 
 .sp-col-head {
@@ -241,6 +256,39 @@
 .sp-badges .sp-ver { background: var(--sp-ver-bg); color: var(--sp-ver-ink); }
 .sp-badges .sp-ok { background: var(--sp-ok-bg); color: var(--sp-ok-ink); }
 .sp-badges .sp-rem { background: var(--sp-rem-bg); color: var(--sp-rem-ink); }
+.sp-badges .sp-role-lead { background: var(--sp-lead-bg); color: var(--sp-lead-ink); }
+.sp-badges .sp-role-co { background: var(--sp-co-bg); color: var(--sp-co-ink); }
+.sp-badges .sp-bell { background: var(--sp-chip-bg); color: var(--sp-chip-ink); }
+.sp-badges .sp-bell.is-due { background: var(--sp-bell-bg); color: var(--sp-bell-ink); }
+
+/* ---------- смуга нагадувань ---------- */
+.sp-reminders {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--sp-bell-bg);
+  color: var(--sp-bell-ink);
+}
+.sp-reminders[hidden] { display: none; }
+.sp-remind {
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 4px 8px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.sp-remind:hover { border-color: var(--sp-bell-ink); }
+.sp-remind span { font-weight: 800; color: var(--sp-bell-ink); font-variant-numeric: tabular-nums; }
 .sp-ava {
   flex: none;
   width: 26px;
@@ -315,7 +363,23 @@
 .sp-x:hover { background: var(--soft); color: var(--ink); }
 .sp-drawer-body { flex: 1; overflow-y: auto; padding: 14px 18px 24px; }
 
-.sp-stepper { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; margin-bottom: 16px; }
+.sp-stepper { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; margin-bottom: 10px; }
+.sp-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+.sp-actions .sp-btn { font-size: 13px; padding: 7px 10px; }
+
+/* головний виконавець і наша роль — першими в картці */
+.sp-lead {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 10px 12px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  border-radius: 10px;
+  background: var(--sp-lead-bg);
+}
+.sp-lead .sp-f > span { color: var(--sp-lead-ink); }
+.sp-lead input, .sp-lead select { background: var(--surface); }
+.sp-orig { font-style: normal; font-weight: 600; color: var(--sp-hot-ink); }
 .sp-step {
   font: inherit;
   font-size: 12.5px;
@@ -390,7 +454,7 @@
 
 .sp-ev {
   display: grid;
-  grid-template-columns: 82px minmax(0, 140px) minmax(0, 1fr);
+  grid-template-columns: 20px 82px minmax(0, 130px) minmax(0, 1fr);
   gap: 8px;
   font-size: 13.5px;
   padding: 6px 0;
@@ -401,6 +465,14 @@
 .sp-ev-what { overflow-wrap: anywhere; color: var(--ink); }
 .sp-ev-comment .sp-ev-what { font-style: italic; }
 .sp-ev-stage .sp-ev-what { color: var(--accent-dark); font-weight: 700; }
+.sp-ev-ico { text-align: center; }
+.sp-ev-returned .sp-ev-what, .sp-ev-remark .sp-ev-what { color: var(--sp-rem-ink); }
+.sp-ev-deadline .sp-ev-what { color: var(--sp-hot-ink); font-weight: 600; }
+.sp-ev-outgoing .sp-ev-what { color: var(--sp-ok-ink); }
+.sp-ev.is-done { opacity: .6; }
+.sp-ev.is-done .sp-ev-what span { text-decoration: line-through; }
+.sp-rem-check { display: flex; gap: 6px; align-items: flex-start; cursor: pointer; }
+.sp-rem-check input { margin-top: 3px; }
 
 .sp-drawer-foot { margin-top: 26px; display: flex; justify-content: flex-end; }
 
@@ -415,6 +487,7 @@
   box-shadow: var(--shadow);
 }
 .sp-new h2 { margin: 0 0 12px; font-size: 18px; }
+.sp-act .sp-check { align-self: start; padding-bottom: 0; }
 .sp-new .sp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .sp-new-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 
@@ -438,7 +511,7 @@
 @media (max-width: 1180px) {
   /* П'ять колонок у ряд стають завузькими: горизонтальна прокрутка дошки,
      а не сторінки (сама сторінка ширшою за екран не стає). */
-  .sp-board { grid-template-columns: repeat(5, minmax(220px, 1fr)); overflow-x: auto; padding-bottom: 8px; }
+  .sp-board { grid-template-columns: repeat(6, minmax(210px, 1fr)); overflow-x: auto; padding-bottom: 8px; }
 }
 
 @media (max-width: 760px) {
@@ -449,7 +522,7 @@
 
   .sp-stage-tabs {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 4px;
     margin-bottom: 10px;
   }
@@ -480,11 +553,13 @@
   .sp-drawer { width: 100vw; border-left: 0; }
   .sp-drawer-head { padding: 12px 14px 10px; }
   .sp-drawer-body { padding: 12px 14px 24px; }
-  .sp-stepper { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .sp-stepper { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .sp-lead { grid-template-columns: minmax(0, 1fr); }
+  .sp-actions .sp-btn { flex: 1 1 calc(50% - 6px); white-space: normal; }
   .sp-step { font-size: 11px; padding: 7px 2px; }
   .sp-grid, .sp-new .sp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .sp-ev { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .sp-ev-what { grid-column: 1 / -1; }
+  .sp-ev { grid-template-columns: 20px minmax(0, 1fr) minmax(0, 1fr); }
+  .sp-ev-what { grid-column: 2 / -1; }
   .sp-remark-form { flex-wrap: wrap; }
   .sp-remark-form select { max-width: none; flex: 1 1 100%; }
 }

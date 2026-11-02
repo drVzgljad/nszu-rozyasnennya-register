@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Справи відділу</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="spravy.css?v=20261102c">
+  <link rel="stylesheet" href="spravy.css?v=20261102d">
   <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
   <script type="module" src="../auth-v2.js?v=20261102a"></script>
 </head>
@@ -47,6 +47,7 @@
       <div class="stat"><strong id="statHot">—</strong><span>строк за ≤ 3 дні</span></div>
       <div class="stat"><strong id="statOver">—</strong><span>прострочено</span></div>
       <div class="stat"><strong id="statRemarks">—</strong><span>незакритих зауважень</span></div>
+      <div class="stat"><strong id="statReminders">—</strong><span>нагадувань на сьогодні</span></div>
     </div>
   </header>
 
@@ -65,6 +66,9 @@
     <!-- На вузькому екрані колонки йдуть по одній: перемикач етапів -->
     <div class="sp-stage-tabs" id="spStageTabs" role="tablist" aria-label="Етап"></div>
 
+    <!-- Нагадування, чий день настав: клік відкриває справу -->
+    <div class="sp-reminders" id="spReminders" hidden></div>
+
     <div class="sp-board" id="spBoard"><div class="sp-notice">Завантаження…</div></div>
 
     <details class="sp-help">
@@ -79,7 +83,14 @@
           й позначайте, як кожне враховано і в якій версії. Повернули на доопрацювання —
           перетягніть картку назад у «Готуємо»: незакриті зауваження видно червоним лічильником.</li>
         <li><b>На підписі</b> — файл лежить у <code>10_НА_ПІДПИС\ДД.ММ.РР</code>.</li>
+        <li><b>СЗ надано</b> — ми співвиконавці: службову в робочому порядку передано
+          головному виконавцю, чекаємо, поки він відповість.</li>
         <li><b>Закрито</b> — є вих. № і резолюцію в АСКОД закрито.</li>
+        <li>Угорі картки — <b>головний виконавець</b> (департамент, управління чи відділ)
+          і наша роль: головні, співвиконавці чи до відома.</li>
+        <li>Кнопки в картці записують у <b>історію справи</b> з датами: продовження строку
+          (первинний строк зберігається), повернення на доопрацювання з причиною,
+          відправлені листи й службові з номерами, нагадування.</li>
         <li>Картку пересувають перетягуванням або кроками вгорі картки справи.
           Claude бачить ту саму дошку й оновлює її під час роботи над листом.</li>
       </ul>
@@ -97,6 +108,12 @@
     </div>
     <div class="sp-drawer-body" id="spDrawerBody">
       <div class="sp-stepper" id="spStepper" aria-label="Етап справи"></div>
+      <div class="sp-actions" id="spActions">
+        <button type="button" class="sp-btn" data-act="prolong">⏱ Продовжити строк</button>
+        <button type="button" class="sp-btn" data-act="returned">↩ Повернуто на доопрацювання</button>
+        <button type="button" class="sp-btn" data-act="outgoing">📤 Відправлено документ</button>
+        <button type="button" class="sp-btn" data-act="reminder">🔔 Нагадування</button>
+      </div>
       <div id="spFields"></div>
 
       <section class="sp-block">
@@ -110,7 +127,7 @@
       </section>
 
       <section class="sp-block">
-        <h3>Стрічка</h3>
+        <h3>Історія справи</h3>
         <form class="sp-comment-form" id="spCommentForm">
           <input id="spComment" placeholder="Коментар: що зроблено, кого чекаємо" autocomplete="off">
           <button type="submit" class="sp-btn">Написати</button>
@@ -122,6 +139,18 @@
         <button type="button" class="sp-btn sp-btn-danger" id="spDelete" hidden>Видалити справу</button>
       </div>
     </div>
+  </dialog>
+
+  <!-- Дія в картці справи: форма будується з ACTIONS у spravy.js -->
+  <dialog class="sp-new sp-act" id="spAct" aria-labelledby="spActTitle">
+    <form id="spActForm">
+      <h2 id="spActTitle"></h2>
+      <div class="sp-grid" id="spActFields"></div>
+      <div class="sp-new-foot">
+        <button type="button" class="sp-btn sp-btn-ghost" id="spActCancel">Скасувати</button>
+        <button type="submit" class="sp-btn sp-btn-primary">Записати</button>
+      </div>
+    </form>
   </dialog>
 
   <!-- Нова справа -->
@@ -136,9 +165,22 @@
         <label class="sp-f"><span>Тип відповіді</span>
           <select name="reply_kind">
             <option value="letter">Лист</option><option value="sz">СЗ</option>
+            <option value="sz_work">СЗ (робочий порядок)</option>
             <option value="pi">ПІ</option><option value="info">До відома</option><option value="other">Інше</option>
           </select></label>
         <label class="sp-f"><span>Виконавець</span><select name="executor_name" id="spNewExecutor"></select></label>
+        <label class="sp-f sp-wide"><span>Головний виконавець (департамент / управління / відділ)</span>
+          <input name="lead_unit" list="spNewLeadUnits"></label>
+        <datalist id="spNewLeadUnits">
+          <option value="Департамент стратегії універсального охоплення населення медичними послугами">
+          <option value="Юридичний департамент"><option value="Департамент інформаційних технологій">
+          <option value="Департамент моніторингу"><option value="Управління комунікацій"><option value="Управління справами">
+        </datalist>
+        <label class="sp-f"><span>Наша роль</span>
+          <select name="our_role">
+            <option value="">— не визначено —</option><option value="lead">Ми — головний виконавець</option>
+            <option value="co">Ми — співвиконавці</option><option value="info">Нам — до відома</option>
+          </select></label>
       </div>
       <div class="sp-new-foot">
         <button type="button" class="sp-btn sp-btn-ghost" id="spNewCancel">Скасувати</button>
@@ -160,6 +202,6 @@
   </footer>
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
-  <script type="module" src="spravy.js?v=20261102c"></script>
+  <script type="module" src="spravy.js?v=20261102e"></script>
 </body>
 </html>

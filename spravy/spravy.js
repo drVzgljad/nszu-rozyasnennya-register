@@ -12,6 +12,12 @@
  * так у стрічку потрапляє й те, що Claude змінює напряму через SQL
  * (migration_2026-11-02_dept_cases.sql).
  *
+ * Повна історія справи (migration_2026-11-02b_dept_cases_history.sql):
+ * головний виконавець і наша роль, продовження строку з підставою (первинний
+ * строк зберігається), повернення на доопрацювання з причиною, відправлені
+ * документи (листи, СЗ у робочому порядку), нагадування з датою. Підставу
+ * зміни сторінка передає в полі change_note — тригер переносить її в історію.
+ *
  * Персональних даних у файлі немає й не може бути — репозиторій публічний.
  * Демо-картки режиму ?demo=1 вигадані.
  */
@@ -22,10 +28,26 @@ const STAGES = [
   { key: 'work',    label: 'Готуємо',    hint: 'виконавець, чернетка vN' },
   { key: 'review',  label: 'Погодження', hint: 'рецензія, керівник' },
   { key: 'signing', label: 'На підписі', hint: '10_НА_ПІДПИС' },
+  { key: 'sz_sent', label: 'СЗ надано',  hint: 'робочий порядок, головному виконавцю' },
   { key: 'done',    label: 'Закрито',    hint: 'вих. №, резолюцію закрито' }
 ];
 const STAGE_LABEL = Object.fromEntries(STAGES.map((s) => [s.key, s.label]));
-const KIND_LABEL = { letter: 'Лист', sz: 'СЗ', pi: 'ПІ', info: 'До відома', other: 'Інше' };
+const KIND_LABEL = { letter: 'Лист', sz: 'СЗ', sz_work: 'СЗ (робочий порядок)', pi: 'ПІ', info: 'До відома', other: 'Інше' };
+const KIND_SHORT = { letter: 'Лист', sz: 'СЗ', sz_work: 'СЗ роб.', pi: 'ПІ', info: 'До відома', other: 'Інше' };
+const ROLE_LABEL = { lead: 'Ми — головний виконавець', co: 'Ми — співвиконавці', info: 'Нам — до відома' };
+const ROLE_SHORT = { lead: 'Гол.', co: 'Співвик.', info: 'До відома' };
+const DOC_KIND = { letter: 'Лист', sz: 'Службова записка', sz_work: 'СЗ у робочому порядку', other: 'Інший документ' };
+// Значок події в історії справи
+const EV_ICON = {
+  system: '•', stage: '→', version: '✎', executor: '👤', review: '✓', comment: '💬', remark: '⚑',
+  deadline: '⏱', returned: '↩', outgoing: '📤', reminder: '🔔'
+};
+// Підказки для поля «Головний виконавець» — лише назви підрозділів, без прізвищ
+const LEAD_UNITS = [
+  'Департамент стратегії універсального охоплення населення медичними послугами',
+  'Юридичний департамент', 'Департамент інформаційних технологій', 'Департамент моніторингу',
+  'Управління комунікацій', 'Управління справами'
+];
 // Чиє зауваження: керівництво департаменту підтягується з profiles (під RLS) —
 // прізвищ у публічному репозиторії бути не повинно.
 const REMARK_ROLES = ['Керівник відділу', 'Рецензент', 'Інше'];
@@ -51,6 +73,7 @@ const state = {
   cases: [],
   events: [],         // події відкритої справи
   remarkCounts: {},   // case_id → кількість незакритих зауважень
+  reminders: {},      // case_id → [{ id, due_date, body }] невиконані нагадування
   people: [],         // співробітники відділу для поля «Виконавець»
   leaders: [],        // керівництво департаменту для поля «Чиє зауваження»
   q: '',
@@ -144,9 +167,10 @@ function bootDemo() {
   const d = (n) => { const x = new Date(); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };
   const mk = (o) => ({ id: crypto.randomUUID(), department: 'демо-відділ', reply_kind: 'letter', review_passed: false, priority: 0, source: 'manual', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), ...o });
   state.cases = [
-    mk({ in_no: '10001-08-26', in_date: d(-6), correspondent: 'Міністерство (демо)', subject: 'Погодження проєкту наказу про зміни до переліку обладнання — п\'ятиденний строк', deadline: d(-1), stage: 'new', resolution: 'Керівник скл., відділ А, відділ Б', askod_state: 'До виконання', source: 'askod' }),
+    mk({ in_no: '10001-08-26', in_date: d(-6), correspondent: 'Міністерство (демо)', subject: 'Погодження проєкту наказу про зміни до переліку обладнання — п\'ятиденний строк', deadline: d(-1), deadline_original: d(-1), stage: 'new', resolution: 'Керівник скл., відділ А, відділ Б', askod_state: 'До виконання', source: 'askod', our_role: 'lead', lead_unit: 'Департамент стратегії універсального охоплення населення медичними послугами' }),
     mk({ in_no: 'Д-1002-26', in_date: d(-3), correspondent: 'Громадянин (демо)', subject: 'Чи покриває програма медичних гарантій обстеження за направленням лікаря ПМД', deadline: d(2), stage: 'work', executor_name: 'Олена Приклад', version: 2, draft_path: '19_службові_записки\\letter_demo_v2.json', reply_kind: 'sz', nuances: 'Нових умов не вигадувати — лише специфікація пакета.' }),
-    mk({ in_no: '10003-12-26', in_date: d(-10), correspondent: 'Обласна адміністрація (демо)', subject: 'Впровадження нових вагових коефіцієнтів з 01.01.2027', deadline: d(9), stage: 'review', executor_name: 'Петро Зразок', version: 3, draft_url: 'https://docs.google.com/', nuances: 'Проєкт наступного року не тлумачимо.' }),
+    mk({ in_no: '10003-12-26', in_date: d(-10), correspondent: 'Обласна адміністрація (демо)', subject: 'Впровадження нових вагових коефіцієнтів з 01.01.2027', deadline: d(9), deadline_original: d(-2), stage: 'review', executor_name: 'Петро Зразок', version: 3, draft_url: 'https://docs.google.com/', nuances: 'Проєкт наступного року не тлумачимо.', our_role: 'lead', lead_unit: 'Департамент стратегії універсального охоплення населення медичними послугами' }),
+    mk({ in_no: '10006-11-26', in_date: d(-5), correspondent: 'Слідчий орган (демо)', subject: 'Запит про надання відомостей щодо оплати послуг закладу', deadline: d(4), deadline_original: d(4), stage: 'sz_sent', executor_name: 'Олена Приклад', reply_kind: 'sz_work', our_role: 'co', lead_unit: 'Юридичний департамент', resolution: 'Юридичний департамент скл., наш департамент' }),
     mk({ in_no: 'ПІ-104-26', in_date: d(-4), correspondent: 'Запитувач (демо)', subject: 'Запит на інформацію: тарифи та кількість закладів за пакетом', deadline: d(1), stage: 'signing', executor_name: 'Демо-користувач', version: 2, reply_kind: 'pi', review_passed: true, draft_path: '10_НА_ПІДПИС\\02.11.26\\lyst_demo_v2.docx' }),
     mk({ in_no: '10005-06-26', in_date: d(-20), correspondent: 'Комітет (демо)', subject: 'Інформація щодо оплати медичних послуг у 2026 році', deadline: d(-5), stage: 'done', executor_name: 'Олена Приклад', version: 4, review_passed: true, out_no: '24001/8-15-26', out_date: d(-6) }),
     mk({ in_no: null, subject: 'Ініціативний лист: роз\'яснення закладам щодо обліку послуг', stage: 'work', executor_name: 'Петро Зразок', version: 1, deadline: d(14), source: 'claude' })
@@ -158,7 +182,21 @@ function bootDemo() {
     { id: 'e3', case_id: c3, created_at: new Date(Date.now() - 864e5).toISOString(), author_name: 'Петро Зразок', kind: 'remark', remark_from: 'Директор департаменту', remark_status: 'done', remark_answer: 'Терміни взято з постанови, заголовки без двокрапки', remark_version: 3, body: 'Регістр: «як правило» прибрати, терміни — з норми' },
     { id: 'e4', case_id: c3, created_at: new Date().toISOString(), author_name: 'Claude', kind: 'remark', remark_from: 'Керівник відділу', remark_status: 'open', body: 'Другий абзац скоротити до однієї тези' }
   ];
+  const c6 = state.cases[3].id;
+  const ago = (n) => new Date(Date.now() - 864e5 * n).toISOString();
+  state.demoEvents[c3].push(
+    { id: 'e5', case_id: c3, created_at: ago(1.5), author_name: 'Петро Зразок', kind: 'returned', body: 'Повернуто: Погодження → Готуємо — Директор департаменту: прибрати оцінки' },
+    { id: 'e6', case_id: c3, created_at: ago(1.2), author_name: 'Петро Зразок', kind: 'deadline', body: `Строк: ${fmtDate(d(-2))} → ${fmtDate(d(9))} — лист кореспондента про продовження`, due_date: d(9) },
+    { id: 'e7', case_id: c3, created_at: ago(0), author_name: 'Петро Зразок', kind: 'reminder', body: 'Нагадати керівнику про погодження v3', due_date: d(0), done: false }
+  );
+  state.demoEvents[c6] = [
+    { id: 'f1', case_id: c6, created_at: ago(5), author_name: 'Claude', kind: 'system', body: 'Справу заведено з журналу АСКОД' },
+    { id: 'f2', case_id: c6, created_at: ago(2), author_name: 'Олена Приклад', kind: 'outgoing', body: 'Дані щодо оплат закладу за 2025–2026', doc_kind: 'sz_work', doc_no: '3-19/60-26', addressee: 'Юридичний департамент', event_date: d(-2) },
+    { id: 'f3', case_id: c6, created_at: ago(2), author_name: 'Олена Приклад', kind: 'stage', body: 'Готуємо → СЗ надано' },
+    { id: 'f4', case_id: c6, created_at: ago(1), author_name: 'Олена Приклад', kind: 'reminder', body: 'Перевірити, чи головний виконавець відправив відповідь', due_date: d(3), done: false }
+  ];
   state.remarkCounts = { [c3]: 1 };
+  Object.keys(state.demoEvents).forEach(recountDemo);
   $('spDeptName').textContent = 'Демо-режим: картки вигадані, нічого не зберігається в базі';
   render();
 }
@@ -208,18 +246,23 @@ async function loadCases() {
     return showNotice('Не вдалося завантажити справи: ' + (error.message || error.code));
   }
   state.cases = data || [];
-  await loadRemarkCounts();
+  await loadCounts();
   render();
   if (state.openId) openCase(state.openId, true);
 }
 
-async function loadRemarkCounts() {
+/** Незакриті зауваження й невиконані нагадування — для бейджів на дошці. */
+async function loadCounts() {
   state.remarkCounts = {};
+  state.reminders = {};
   const ids = state.cases.filter((c) => c.stage !== 'done').map((c) => c.id);
   if (!ids.length) return;
-  const { data } = await state.sb.from('dept_case_events').select('case_id')
-    .eq('kind', 'remark').eq('remark_status', 'open').in('case_id', ids);
-  (data || []).forEach((r) => { state.remarkCounts[r.case_id] = (state.remarkCounts[r.case_id] || 0) + 1; });
+  const { data } = await state.sb.from('dept_case_events').select('id, case_id, kind, remark_status, due_date, done, body')
+    .in('kind', ['remark', 'reminder']).in('case_id', ids);
+  (data || []).forEach((r) => {
+    if (r.kind === 'remark' && r.remark_status === 'open') state.remarkCounts[r.case_id] = (state.remarkCounts[r.case_id] || 0) + 1;
+    if (r.kind === 'reminder' && !r.done && r.due_date) (state.reminders[r.case_id] ||= []).push(r);
+  });
 }
 
 function subscribe() {
@@ -239,11 +282,13 @@ async function saveCase(id, patch) {
   Object.assign(c, patch, { updated_by_name: myName() });
   if (DEMO) {
     demoLog(c, prev);
+    c.change_note = null;
     render();
     if (state.openId === id) { renderDrawerHead(c); loadEvents(id); }
     return true;
   }
   const { error } = await state.sb.from('dept_cases').update({ ...patch, updated_by_name: myName() }).eq('id', id);
+  c.change_note = null;
   if (error) {
     Object.assign(c, prev);
     render();
@@ -257,8 +302,18 @@ async function saveCase(id, patch) {
 
 /** Демо-імітація тригера бази. */
 function demoLog(c, prev) {
-  const ev = (kind, body) => (state.demoEvents[c.id] ||= []).push({ id: crypto.randomUUID(), case_id: c.id, created_at: new Date().toISOString(), author_name: myName(), kind, body });
-  if (c.stage !== prev.stage) ev('stage', `${STAGE_LABEL[prev.stage]} → ${STAGE_LABEL[c.stage]}`);
+  const ev = (kind, body, extra) => (state.demoEvents[c.id] ||= []).push({ id: crypto.randomUUID(), case_id: c.id, created_at: new Date().toISOString(), author_name: myName(), kind, body, ...extra });
+  const tail = c.change_note ? ` — ${c.change_note}` : '';
+  const rank = (k) => STAGES.findIndex((s) => s.key === k);
+  if (c.deadline !== prev.deadline) {
+    if (!c.deadline_original) c.deadline_original = prev.deadline || c.deadline;
+    ev('deadline', `Строк: ${fmtDate(prev.deadline) || '—'} → ${fmtDate(c.deadline) || '—'}${tail}`, { due_date: c.deadline });
+  }
+  if (c.stage !== prev.stage) {
+    const back = rank(c.stage) < rank(prev.stage) && prev.stage !== 'new';
+    ev(back ? 'returned' : 'stage', `${back ? 'Повернуто: ' : ''}${STAGE_LABEL[prev.stage]} → ${STAGE_LABEL[c.stage]}${tail}`);
+  }
+  if (c.lead_unit !== prev.lead_unit || c.our_role !== prev.our_role) ev('system', `Головний виконавець: ${c.lead_unit || '—'}${c.our_role ? ` (${ROLE_LABEL[c.our_role].toLowerCase()})` : ''}`);
   if (c.version !== prev.version && c.version) ev('version', `Чернетка v${c.version}`);
   if (c.executor_name !== prev.executor_name) ev('executor', `Виконавець: ${c.executor_name || '—'}`);
   if (c.review_passed !== prev.review_passed) ev('review', c.review_passed ? 'Рецензію пройдено' : 'Рецензію знято');
@@ -274,7 +329,7 @@ async function addEvent(caseId, row) {
   const { error } = await state.sb.from('dept_case_events').insert({ case_id: caseId, author_id: state.me.id, author_name: myName(), ...row });
   if (error) return toast('Не збережено: ' + error.message, true);
   await loadEvents(caseId);
-  await loadRemarkCounts();
+  await loadCounts();
   render();
 }
 
@@ -288,12 +343,14 @@ async function updateEvent(caseId, evId, patch) {
   const { error } = await state.sb.from('dept_case_events').update(patch).eq('id', evId);
   if (error) return toast('Не збережено: ' + error.message, true);
   await loadEvents(caseId);
-  await loadRemarkCounts();
+  await loadCounts();
   render();
 }
 
 function recountDemo(caseId) {
-  state.remarkCounts[caseId] = (state.demoEvents[caseId] || []).filter((e) => e.kind === 'remark' && e.remark_status === 'open').length;
+  const evs = state.demoEvents[caseId] || [];
+  state.remarkCounts[caseId] = evs.filter((e) => e.kind === 'remark' && e.remark_status === 'open').length;
+  state.reminders[caseId] = evs.filter((e) => e.kind === 'reminder' && !e.done && e.due_date);
 }
 
 async function loadEvents(caseId) {
@@ -311,7 +368,7 @@ function visibleCases() {
   return state.cases.filter((c) => {
     if (state.mine && c.executor_name !== me) return false;
     if (!q) return true;
-    return [c.in_no, c.subject, c.correspondent, c.executor_name, c.resolution, c.out_no, c.nuances]
+    return [c.in_no, c.subject, c.correspondent, c.executor_name, c.resolution, c.out_no, c.nuances, c.lead_unit]
       .some((v) => v && String(v).toLowerCase().includes(q));
   });
 }
@@ -343,22 +400,49 @@ function render() {
     </section>`;
   }).join('');
   renderMobileTabs(list);
+  renderReminderStrip();
+}
+
+/** Найближче невиконане нагадування справи. */
+function nextReminder(id) {
+  const list = (state.reminders[id] || []).slice().sort((a, b) => String(a.due_date).localeCompare(String(b.due_date)));
+  return list[0] || null;
+}
+
+/** Смуга «Нагадування»: усе, чий день настав або минув. */
+function renderReminderStrip() {
+  const due = [];
+  Object.entries(state.reminders).forEach(([id, list]) => list.forEach((r) => {
+    if (daysLeft(r.due_date) <= 0) {
+      const c = state.cases.find((x) => x.id === id);
+      if (c && c.stage !== 'done') due.push({ c, r });
+    }
+  }));
+  due.sort((a, b) => String(a.r.due_date).localeCompare(String(b.r.due_date)));
+  const box = $('spReminders');
+  box.hidden = !due.length;
+  box.innerHTML = due.length ? '<b>🔔 Нагадування</b>' + due.map(({ c, r }) =>
+    `<button type="button" class="sp-remind" data-open="${c.id}"><span>${fmtDate(r.due_date)}</span> ${esc(c.in_no || 'без вх. №')}: ${esc(r.body)}</button>`).join('') : '';
 }
 
 function cardHTML(c) {
   const dl = deadlineInfo(c);
   const remarks = state.remarkCounts[c.id] || 0;
+  const rem = nextReminder(c.id);
+  const prolonged = c.deadline && c.deadline_original && c.deadline !== c.deadline_original;
   const badges = [
-    `<span class="sp-kind">${KIND_LABEL[c.reply_kind] || ''}</span>`,
+    c.our_role ? `<span class="sp-role sp-role-${c.our_role}" title="${esc(ROLE_LABEL[c.our_role] + (c.lead_unit ? ' · головний: ' + c.lead_unit : ''))}">${ROLE_SHORT[c.our_role]}</span>` : '',
+    `<span class="sp-kind">${KIND_SHORT[c.reply_kind] || ''}</span>`,
     c.version ? `<span class="sp-ver" title="Поточна версія чернетки">v${c.version}</span>` : '',
     c.review_passed ? '<span class="sp-ok" title="Рецензію пройдено">✓ рецензія</span>' : '',
     remarks ? `<span class="sp-rem" title="Незакриті зауваження">⚑ ${remarks}</span>` : '',
+    rem ? `<span class="sp-bell${daysLeft(rem.due_date) <= 0 ? ' is-due' : ''}" title="${esc('Нагадування: ' + rem.body)}">🔔 ${fmtDate(rem.due_date).slice(0, 5)}</span>` : '',
     c.source === 'claude' ? '<span class="sp-src" title="Справу завів Claude">Claude</span>' : ''
   ].join('');
   return `<article class="sp-card" draggable="true" data-id="${c.id}" tabindex="0" role="button" aria-label="${esc((c.in_no || 'Без вх. №') + ': ' + c.subject)}">
     <div class="sp-card-top">
       <span class="sp-inno">${esc(c.in_no || 'без вх. №')}</span>
-      ${dl ? `<span class="sp-dl ${dl.cls}">${esc(dl.text)}</span>` : ''}
+      ${dl ? `<span class="sp-dl ${dl.cls}"${prolonged ? ` title="Продовжено; первинний строк ${fmtDate(c.deadline_original)}"` : ''}>${prolonged ? '↻ ' : ''}${esc(dl.text)}</span>` : ''}
     </div>
     <div class="sp-subj">${esc(c.subject)}</div>
     ${c.correspondent ? `<div class="sp-corr">${esc(c.correspondent)}</div>` : ''}
@@ -375,6 +459,8 @@ function renderStats() {
   const over = active.filter((c) => { const n = daysLeft(c.deadline); return n !== null && n < 0; }).length;
   const hot = active.filter((c) => { const n = daysLeft(c.deadline); return n !== null && n >= 0 && n <= 3; }).length;
   const rem = Object.values(state.remarkCounts).reduce((a, b) => a + b, 0);
+  const dueRem = Object.values(state.reminders).flat().filter((r) => daysLeft(r.due_date) <= 0).length;
+  $('statReminders').textContent = dueRem;
   $('statActive').textContent = active.length;
   $('statHot').textContent = hot;
   $('statOver').textContent = over;
@@ -394,11 +480,18 @@ function fieldsHTML(c) {
   const people = state.people.map((p) => p.full_name).filter(Boolean);
   if (c.executor_name && !people.includes(c.executor_name)) people.unshift(c.executor_name);
   const opt = (v, cur, label) => `<option value="${esc(v)}"${v === (cur ?? '') ? ' selected' : ''}>${esc(label ?? v)}</option>`;
+  const prolonged = c.deadline && c.deadline_original && c.deadline !== c.deadline_original;
   return `
+  <div class="sp-lead">
+    <label class="sp-f sp-lead-unit"><span>Головний виконавець (департамент / управління / відділ)</span>
+      <input data-f="lead_unit" list="spLeadUnits" value="${esc(c.lead_unit)}" placeholder="Хто відповідає за документ у цілому"></label>
+    <label class="sp-f"><span>Наша роль</span><select data-f="our_role">${opt('', c.our_role, '— не визначено —')}${Object.entries(ROLE_LABEL).map(([k, v]) => opt(k, c.our_role, v)).join('')}</select></label>
+  </div>
+  <datalist id="spLeadUnits">${LEAD_UNITS.map((u) => `<option value="${esc(u)}">`).join('')}</datalist>
   <div class="sp-grid">
     <label class="sp-f"><span>Вх. №</span><input data-f="in_no" value="${esc(c.in_no)}" placeholder="10001-08-26"></label>
     <label class="sp-f"><span>Дата реєстрації</span><input type="date" data-f="in_date" value="${esc(c.in_date)}"></label>
-    <label class="sp-f"><span>Строк</span><input type="date" data-f="deadline" value="${esc(c.deadline)}"></label>
+    <label class="sp-f"><span>Строк${prolonged ? ` <i class="sp-orig">первинний ${fmtDate(c.deadline_original)}</i>` : ''}</span><input type="date" data-f="deadline" value="${esc(c.deadline)}"></label>
     <label class="sp-f sp-wide"><span>Суть</span><textarea data-f="subject" rows="2">${esc(c.subject)}</textarea></label>
     <label class="sp-f sp-wide"><span>Кореспондент</span><input data-f="correspondent" value="${esc(c.correspondent)}"></label>
     <label class="sp-f"><span>Його вих. №</span><input data-f="corr_out_no" value="${esc(c.corr_out_no)}"></label>
@@ -456,7 +549,10 @@ function canDelete() {
 
 function renderEvents() {
   const remarks = state.events.filter((e) => e.kind === 'remark');
-  const feed = state.events.filter((e) => e.kind !== 'remark').slice().reverse();
+  // Повна історія: усе разом, включно із зауваженнями; найсвіжіше зверху.
+  // Дата події (event_date) — коли документ справді датовано, інакше — коли внесли.
+  const when = (e) => (datedApart(e) ? e.event_date + 'T12:00:00' : e.created_at);
+  const feed = state.events.slice().sort((a, b) => String(when(b)).localeCompare(String(when(a))));
   const open = remarks.filter((r) => r.remark_status === 'open').length;
   $('spRemarksCount').textContent = remarks.length ? `${open} з ${remarks.length} не враховано` : '';
   $('spRemarks').innerHTML = remarks.length ? remarks.map((r) => `
@@ -472,12 +568,94 @@ function renderEvents() {
         <input class="sp-remark-ver" type="number" min="1" value="${esc(r.remark_version)}" placeholder="у v…" aria-label="У якій версії враховано">
       </div>
     </li>`).join('') : '<li class="sp-muted sp-none">Зауважень немає.</li>';
-  $('spFeed').innerHTML = feed.length ? feed.map((e) => `
-    <li class="sp-ev sp-ev-${e.kind}">
-      <span class="sp-ev-when">${fmtStamp(e.created_at)}</span>
+  $('spFeed').innerHTML = feed.length ? feed.map(historyHTML).join('') : '<li class="sp-muted sp-none">Подій ще немає.</li>';
+}
+
+/** Подія датована іншим днем, ніж її внесли (СЗ від 28.10, внесена 02.11). */
+const datedApart = (e) => e.event_date && e.event_date !== String(e.created_at).slice(0, 10);
+
+function historyHTML(e) {
+  const date = datedApart(e) ? fmtDate(e.event_date) : fmtStamp(e.created_at);
+  let what = esc(e.body);
+  if (e.kind === 'remark') what = `<b>${esc(e.remark_from || 'Зауваження')}:</b> ${what} <i class="sp-muted">(${REMARK_STATUS[e.remark_status || 'open'].toLowerCase()})</i>`;
+  if (e.kind === 'outgoing') {
+    const head = [DOC_KIND[e.doc_kind] || 'Документ', e.doc_no ? '№ ' + e.doc_no : '', e.addressee ? '→ ' + e.addressee : ''].filter(Boolean).join(' ');
+    what = `<b>${esc(head)}</b>${e.body ? ' — ' + what : ''}`;
+  }
+  if (e.kind === 'reminder') {
+    what = `<label class="sp-rem-check"><input type="checkbox" data-remind="${e.id}"${e.done ? ' checked' : ''}>
+      <span><b>${fmtDate(e.due_date)}</b> — ${what}</span></label>`;
+  }
+  return `<li class="sp-ev sp-ev-${e.kind}${e.kind === 'reminder' && e.done ? ' is-done' : ''}">
+      <span class="sp-ev-ico" aria-hidden="true">${EV_ICON[e.kind] || '•'}</span>
+      <span class="sp-ev-when">${date}</span>
       <span class="sp-ev-who">${esc(e.author_name || '—')}</span>
-      <span class="sp-ev-what">${esc(e.body)}</span>
-    </li>`).join('') : '<li class="sp-muted sp-none">Подій ще немає.</li>';
+      <span class="sp-ev-what">${what}</span>
+    </li>`;
+}
+
+/* ───────────────────────── дії в картці справи ───────────────────────── */
+
+const ACTIONS = {
+  prolong: {
+    title: 'Продовжити строк',
+    fields: () => `
+      <label class="sp-f"><span>Новий строк *</span><input type="date" name="deadline" required></label>
+      <label class="sp-f sp-wide"><span>Підстава</span><input name="note" placeholder="лист кореспондента / резолюція від … № …"></label>`,
+    run: (id, fd) => saveCase(id, { deadline: fd.get('deadline'), change_note: 'продовжено' + (fd.get('note') ? ': ' + fd.get('note') : '') })
+  },
+  returned: {
+    title: 'Повернуто на доопрацювання',
+    fields: () => `
+      <label class="sp-f"><span>Хто повернув</span><select name="from">${[...state.leaders, ...REMARK_ROLES].map((r) => `<option>${esc(r)}</option>`).join('')}</select></label>
+      <label class="sp-f"><span>Дата</span><input type="date" name="date" value="${todayISO()}"></label>
+      <label class="sp-f sp-wide"><span>Що сказали *</span><textarea name="note" rows="3" required placeholder="Суть зауваження — воно ж піде в «Зауваження» як невраховане"></textarea></label>`,
+    run: async (id, fd) => {
+      const from = fd.get('from'), note = fd.get('note').trim();
+      const ok = await saveCase(id, { stage: 'work', change_note: `${from}: ${note}` });
+      if (ok) await addEvent(id, { kind: 'remark', body: note, remark_from: from, remark_status: 'open', event_date: fd.get('date') || null });
+    }
+  },
+  outgoing: {
+    title: 'Відправлено документ',
+    fields: (c) => `
+      <label class="sp-f"><span>Що відправлено</span><select name="doc_kind">${Object.entries(DOC_KIND).map(([k, v]) => `<option value="${k}"${k === (c.our_role === 'co' ? 'sz_work' : 'letter') ? ' selected' : ''}>${v}</option>`).join('')}</select></label>
+      <label class="sp-f"><span>№</span><input name="doc_no" placeholder="вих. № або № СЗ"></label>
+      <label class="sp-f"><span>Дата</span><input type="date" name="date" value="${todayISO()}"></label>
+      <label class="sp-f"><span>Кому</span><input name="addressee" list="spLeadUnits" placeholder="адресат"></label>
+      <label class="sp-f sp-wide"><span>Коротко про зміст</span><input name="note"></label>
+      <label class="sp-f sp-check sp-wide"><input type="checkbox" name="move" checked><span>Перевести справу в «СЗ надано» (для СЗ у робочому порядку) або «Закрито»</span></label>`,
+    run: async (id, fd) => {
+      const kind = fd.get('doc_kind');
+      const no = fd.get('doc_no').trim();
+      await addEvent(id, { kind: 'outgoing', body: fd.get('note').trim() || '', doc_kind: kind, doc_no: no || null,
+        addressee: fd.get('addressee').trim() || null, event_date: fd.get('date') || null });
+      if (fd.get('move')) {
+        const patch = { stage: kind === 'sz_work' ? 'sz_sent' : 'done' };
+        if (kind === 'letter' && no) Object.assign(patch, { out_no: no, out_date: fd.get('date') || null });
+        await saveCase(id, patch);
+      }
+    }
+  },
+  reminder: {
+    title: 'Нагадування',
+    fields: () => `
+      <label class="sp-f"><span>Коли нагадати *</span><input type="date" name="date" required></label>
+      <label class="sp-f sp-wide"><span>Про що *</span><input name="note" required placeholder="перевірити, чи головний виконавець відправив відповідь"></label>`,
+    run: (id, fd) => addEvent(id, { kind: 'reminder', body: fd.get('note').trim(), due_date: fd.get('date'), done: false })
+  }
+};
+
+function openAction(name) {
+  const c = state.cases.find((x) => x.id === state.openId);
+  const a = ACTIONS[name];
+  if (!c || !a) return;
+  const dlg = $('spAct');
+  dlg.dataset.action = name;
+  $('spActTitle').textContent = a.title;
+  $('spActFields').innerHTML = a.fields(c);
+  dlg.showModal();
+  dlg.querySelector('input, select, textarea')?.focus();
 }
 
 /* ───────────────────────── нова справа ───────────────────────── */
@@ -492,6 +670,8 @@ async function createCase(form) {
     deadline: fd.get('deadline') || null,
     reply_kind: fd.get('reply_kind') || 'letter',
     executor_name: fd.get('executor_name') || null,
+    our_role: fd.get('our_role') || null,
+    lead_unit: (fd.get('lead_unit') || '').trim() || null,
     stage: fd.get('executor_name') ? 'work' : 'new',
     source: 'manual',
     created_by_name: myName()
@@ -624,6 +804,33 @@ function wireStatic() {
     if (e.target.classList.contains('sp-remark-status')) updateEvent(state.openId, li.dataset.ev, { remark_status: e.target.value });
     if (e.target.classList.contains('sp-remark-ans')) updateEvent(state.openId, li.dataset.ev, { remark_answer: e.target.value.trim() || null });
     if (e.target.classList.contains('sp-remark-ver')) updateEvent(state.openId, li.dataset.ev, { remark_version: e.target.value ? parseInt(e.target.value, 10) : null });
+  });
+
+  // Дії: продовжити строк, повернуто, відправлено документ, нагадування
+  $('spActions').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-act]');
+    if (b) openAction(b.dataset.act);
+  });
+  $('spActCancel').addEventListener('click', () => $('spAct').close());
+  $('spActForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const a = ACTIONS[$('spAct').dataset.action];
+    if (!a || !state.openId) return;
+    const fd = new FormData(e.target);
+    $('spAct').close();
+    await a.run(state.openId, fd);
+    openCase(state.openId, true);       // поля картки (строк, етап, вих. №) — свіжі
+    toast('Записано в історію справи');
+  });
+  // Нагадування: позначити виконаним прямо в історії
+  $('spFeed').addEventListener('change', (e) => {
+    const cb = e.target.closest('[data-remind]');
+    if (cb && state.openId) updateEvent(state.openId, cb.dataset.remind, { done: cb.checked });
+  });
+  // Смуга нагадувань над дошкою відкриває справу
+  $('spReminders').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-open]');
+    if (b) openCase(b.dataset.open);
   });
 
   // Коментар у стрічку
