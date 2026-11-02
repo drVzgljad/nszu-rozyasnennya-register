@@ -474,7 +474,7 @@
 .sp-rem-check { display: flex; gap: 6px; align-items: flex-start; cursor: pointer; }
 .sp-rem-check input { margin-top: 3px; }
 
-.sp-drawer-foot { margin-top: 26px; display: flex; justify-content: flex-end; }
+.sp-drawer-foot { margin-top: 26px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 
 /* ---------- нова справа ---------- */
 .sp-new {

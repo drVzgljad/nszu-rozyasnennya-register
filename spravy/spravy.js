@@ -685,7 +685,11 @@ function openCase(id, refresh) {
   if (!refresh || !dlg.contains(document.activeElement) || !document.activeElement.matches('input, textarea, select')) {
     $('spFields').innerHTML = fieldsHTML(c);
   }
-  $('spDelete').hidden = !canDelete();
+  // Справу з журналу АСКОД не видаляємо: синхронізація завела б її знову, поки
+  // резолюція відкрита. Замість цього — «Закрити як не наше» (етап «Закрито» з причиною).
+  const fromAskod = c.source === 'askod';
+  $('spDelete').hidden = fromAskod || !canDelete();
+  $('spNotOurs').hidden = !fromAskod || c.stage === 'done';
   if (!dlg.open) dlg.showModal();
   loadEvents(id).then(() => { $('spDrawerBody').scrollTop = scroll; });
 }
@@ -827,6 +831,20 @@ const ACTIONS = {
       }
       await addEvent(id, { kind: 'system', body: `Зараховано в СКО-Д: ${minutes < 60 ? minutes + ' хв' : (minutes / 60) + ' год'}, ${row.category.split(' — ')[0]}` });
     }
+  },
+  notours: {
+    title: 'Закрити як не наше',
+    fields: () => `
+      <p class="sp-f sp-wide sp-muted">Справа піде в «Закрито» з причиною в історії. Синхронізація з АСКОД її більше не відкриє:
+        вона оновлює лише строк і резолюцію, а етап не чіпає.</p>
+      <label class="sp-f sp-wide"><span>Чому</span><select name="why">
+        <option>Не наше — головний виконавець інший підрозділ</option>
+        <option>До відома — дій від нас не потрібно</option>
+        <option>Виконано в іншій справі</option>
+        <option>Помилково розписано на нас</option>
+      </select></label>
+      <label class="sp-f sp-wide"><span>Примітка</span><input name="note" placeholder="необовʼязково: кому передали, де відповідь"></label>`,
+    run: (id, fd) => saveCase(id, { stage: 'done', change_note: 'знято: ' + fd.get('why') + (fd.get('note').trim() ? ' — ' + fd.get('note').trim() : '') })
   },
   reminder: {
     title: 'Нагадування',
@@ -1001,6 +1019,7 @@ function wireStatic() {
     if (f === 'executor_name' && !DEMO) patch.executor_id = state.people.find((p) => p.full_name === v)?.id || null;
     saveCase(state.openId, patch);
   });
+  $('spNotOurs').addEventListener('click', () => openAction('notours'));
   $('spDelete').addEventListener('click', async () => {
     const c = state.cases.find((x) => x.id === state.openId);
     if (!c || !confirm(`Видалити справу ${c.in_no || ''} разом зі стрічкою подій? Цю дію не можна скасувати.`)) return;
