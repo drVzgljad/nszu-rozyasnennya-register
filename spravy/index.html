@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>НавігаторПМГ26 | Справи відділу</title>
+  <link rel="stylesheet" href="../styles.css?v=20260808b">
+  <link rel="stylesheet" href="spravy.css?v=20261102c">
+  <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
+  <script type="module" src="../auth-v2.js?v=20261102a"></script>
+</head>
+<!-- Розділ закритий: справи відділу. Оверлей «Доступ обмежено» вставляє сам
+     auth-v2.js. Самі справи — у Supabase під RLS (свій відділ + керівництво),
+     у файлах репозиторію даних немає. -->
+<body id="top" data-required-role="expert">
+
+  <header class="hero sp-hero">
+    <div class="hero-copy">
+      <div class="overline">Робочий простір</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів і постанови</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Справи відділу</h1>
+      <p class="sp-sub">Усі доручення відділу на одній дошці: від вхідного з АСКОД до
+        вих. № — хто виконує, яка версія, що сказали керівники і як це враховано.</p>
+      <p class="sp-dept" id="spDeptName"></p>
+    </div>
+    <div class="stats" aria-label="Стан справ">
+      <div class="stat"><strong id="statActive">—</strong><span>справ у роботі</span></div>
+      <div class="stat"><strong id="statHot">—</strong><span>строк за ≤ 3 дні</span></div>
+      <div class="stat"><strong id="statOver">—</strong><span>прострочено</span></div>
+      <div class="stat"><strong id="statRemarks">—</strong><span>незакритих зауважень</span></div>
+    </div>
+  </header>
+
+  <main class="layout sp-layout">
+    <div class="sp-toolbar">
+      <div class="sp-search">
+        <span aria-hidden="true">🔍</span>
+        <input id="spSearch" type="search" autocomplete="off"
+               placeholder="Вх. №, кореспондент, суть, виконавець">
+      </div>
+      <label class="sp-toggle"><input type="checkbox" id="spMine"><span>лише мої</span></label>
+      <select id="spDept" class="sp-dept-pick" aria-label="Відділ" hidden></select>
+      <button type="button" class="sp-btn sp-btn-primary" id="spAdd">+ Справа</button>
+    </div>
+
+    <!-- На вузькому екрані колонки йдуть по одній: перемикач етапів -->
+    <div class="sp-stage-tabs" id="spStageTabs" role="tablist" aria-label="Етап"></div>
+
+    <div class="sp-board" id="spBoard"><div class="sp-notice">Завантаження…</div></div>
+
+    <details class="sp-help">
+      <summary>Як працює дошка</summary>
+      <ul>
+        <li><b>Нове</b> — документ зареєстровано в АСКОД, до роботи ще не взялися.
+          Нові справи з журналу АСКОД заводить скрипт <code>tools/spravy_sync.py</code>;
+          «не наше» або «до відома» — просто перетягніть у «Закрито».</li>
+        <li><b>Готуємо</b> — є виконавець і чернетка. Номер версії (v1…vN) ставте в картці:
+          кожна зміна потрапляє в стрічку подій.</li>
+        <li><b>Погодження</b> — рецензія і керівник. Зауваження вносьте окремими пунктами
+          й позначайте, як кожне враховано і в якій версії. Повернули на доопрацювання —
+          перетягніть картку назад у «Готуємо»: незакриті зауваження видно червоним лічильником.</li>
+        <li><b>На підписі</b> — файл лежить у <code>10_НА_ПІДПИС\ДД.ММ.РР</code>.</li>
+        <li><b>Закрито</b> — є вих. № і резолюцію в АСКОД закрито.</li>
+        <li>Картку пересувають перетягуванням або кроками вгорі картки справи.
+          Claude бачить ту саму дошку й оновлює її під час роботи над листом.</li>
+      </ul>
+    </details>
+  </main>
+
+  <!-- Картка справи -->
+  <dialog class="sp-drawer" id="spDrawer" aria-labelledby="spDrawerTitle">
+    <div class="sp-drawer-head">
+      <div class="sp-drawer-titles">
+        <h2 id="spDrawerTitle"></h2>
+        <p id="spDrawerSub"></p>
+      </div>
+      <button type="button" class="sp-x" id="spClose" aria-label="Закрити">✕</button>
+    </div>
+    <div class="sp-drawer-body" id="spDrawerBody">
+      <div class="sp-stepper" id="spStepper" aria-label="Етап справи"></div>
+      <div id="spFields"></div>
+
+      <section class="sp-block">
+        <h3>Зауваження <span class="sp-muted" id="spRemarksCount"></span></h3>
+        <ul class="sp-remarks" id="spRemarks"></ul>
+        <form class="sp-remark-form" id="spRemarkForm">
+          <select id="spRemarkFrom" aria-label="Чиє зауваження"></select>
+          <input id="spRemarkText" placeholder="Текст зауваження" autocomplete="off">
+          <button type="submit" class="sp-btn">Додати</button>
+        </form>
+      </section>
+
+      <section class="sp-block">
+        <h3>Стрічка</h3>
+        <form class="sp-comment-form" id="spCommentForm">
+          <input id="spComment" placeholder="Коментар: що зроблено, кого чекаємо" autocomplete="off">
+          <button type="submit" class="sp-btn">Написати</button>
+        </form>
+        <ul class="sp-feed" id="spFeed"></ul>
+      </section>
+
+      <div class="sp-drawer-foot">
+        <button type="button" class="sp-btn sp-btn-danger" id="spDelete" hidden>Видалити справу</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Нова справа -->
+  <dialog class="sp-new" id="spNew" aria-labelledby="spNewTitle">
+    <form id="spNewForm">
+      <h2 id="spNewTitle">Нова справа</h2>
+      <div class="sp-grid">
+        <label class="sp-f"><span>Вх. №</span><input name="in_no" placeholder="10001-08-26 (може бути порожнім)"></label>
+        <label class="sp-f"><span>Строк</span><input name="deadline" type="date"></label>
+        <label class="sp-f sp-wide"><span>Суть *</span><textarea name="subject" rows="2" required></textarea></label>
+        <label class="sp-f sp-wide"><span>Кореспондент</span><input name="correspondent"></label>
+        <label class="sp-f"><span>Тип відповіді</span>
+          <select name="reply_kind">
+            <option value="letter">Лист</option><option value="sz">СЗ</option>
+            <option value="pi">ПІ</option><option value="info">До відома</option><option value="other">Інше</option>
+          </select></label>
+        <label class="sp-f"><span>Виконавець</span><select name="executor_name" id="spNewExecutor"></select></label>
+      </div>
+      <div class="sp-new-foot">
+        <button type="button" class="sp-btn sp-btn-ghost" id="spNewCancel">Скасувати</button>
+        <button type="submit" class="sp-btn sp-btn-primary">Завести</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="sp-toast" id="spToast" role="status" hidden></div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-copy">
+        <p>Справи бачать співробітники відділу, керівництво департаменту і діловод.
+          Строк — з реєстраційної картки АСКОД; файли листів лишаються в обміннику,
+          тут — лише шлях до них і стан роботи.</p>
+      </div>
+    </div>
+  </footer>
+
+  <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
+  <script type="module" src="spravy.js?v=20261102c"></script>
+</body>
+</html>

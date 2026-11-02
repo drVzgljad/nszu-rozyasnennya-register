@@ -1,0 +1,490 @@
+/* ============================================================
+   Розділ «Справи відділу» — дошка вхідних і відповідей
+
+   Базові кольори — ролі теми (--ink, --muted, --line, --surface, --soft,
+   --accent, --accent-dark, --accent-fill). Сигнальні кольори дошки (строк,
+   зауваження, рецензія, колонки) — власний шар --sp-*, перевизначений нижче
+   під :root.dark-theme. Неіснуючих токенів із фолбеками (var(--border, #fff))
+   тут немає: так свого часу назавжди засвітлили «Роз'яснення».
+   ============================================================ */
+
+:root {
+  --sp-col-bg: #eef4f8;
+  --sp-card-bg: #ffffff;
+  --sp-card-line: #dbe6ee;
+  --sp-hot-bg: #fff4d6;
+  --sp-hot-ink: #7a5000;
+  --sp-over-bg: #fde4e4;
+  --sp-over-ink: #a11d1d;
+  --sp-ok-bg: #e3f4ea;
+  --sp-ok-ink: #1f6b43;
+  --sp-rem-bg: #fde4e4;
+  --sp-rem-ink: #a11d1d;
+  --sp-ver-bg: #e6eefc;
+  --sp-ver-ink: #23479a;
+  --sp-chip-bg: #eef2f6;
+  --sp-chip-ink: #48596a;
+  --sp-drop: #cfe3f3;
+  --sp-new: #8a9aab;
+  --sp-work: #4a8fc7;
+  --sp-review: #c58a12;
+  --sp-signing: #7a5bc7;
+  --sp-done: #3a8462;
+}
+:root.dark-theme {
+  --sp-col-bg: #131c2b;
+  --sp-card-bg: #1e293b;
+  --sp-card-line: #334155;
+  --sp-hot-bg: #3d2c08;
+  --sp-hot-ink: #fbbf24;
+  --sp-over-bg: #3f1416;
+  --sp-over-ink: #fca5a5;
+  --sp-ok-bg: #12321f;
+  --sp-ok-ink: #86efac;
+  --sp-rem-bg: #3f1416;
+  --sp-rem-ink: #fca5a5;
+  --sp-ver-bg: #1d2a4a;
+  --sp-ver-ink: #a5c0ff;
+  --sp-chip-bg: #273449;
+  --sp-chip-ink: #cbd5e1;
+  --sp-drop: #1d3a55;
+  --sp-new: #94a3b8;
+  --sp-work: #38bdf8;
+  --sp-review: #fbbf24;
+  --sp-signing: #c4b5fd;
+  --sp-done: #4ade80;
+}
+
+.sp-hero h1 { margin-bottom: 6px; }
+.sp-sub { max-width: 70ch; }
+.sp-dept { margin: 6px 0 0; font-weight: 700; color: var(--accent-dark); }
+.sp-dept:empty { display: none; }
+
+.sp-layout {
+  /* Портальний .layout — двоколонковий grid: скидаємо, інакше дошка ляже в одну колонку */
+  display: block;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 16px 20px 48px;
+}
+
+/* ---------- панель інструментів ---------- */
+.sp-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.sp-search {
+  flex: 1 1 280px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0 12px;
+}
+.sp-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  padding: 10px 0;
+  outline: none;
+}
+.sp-toggle { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-weight: 600; cursor: pointer; }
+.sp-dept-pick[hidden] { display: none; }
+.sp-dept-pick {
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  font: inherit;
+  padding: 9px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.sp-btn {
+  font: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.sp-btn:hover { background: var(--soft); }
+.sp-btn-primary { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
+.sp-btn-primary:hover { background: var(--accent-dark); }
+.sp-btn-ghost { background: transparent; }
+.sp-btn-danger { color: var(--sp-over-ink); border-color: var(--sp-over-ink); background: transparent; }
+
+/* ---------- дошка ---------- */
+.sp-board {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.sp-board.is-empty { display: block; }
+.sp-notice {
+  padding: 28px;
+  border: 1px dashed var(--line);
+  border-radius: 14px;
+  color: var(--muted);
+  background: var(--surface);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.sp-col {
+  background: var(--sp-col-bg);
+  border-radius: 14px;
+  padding: 10px;
+  min-width: 0;
+  border-top: 4px solid var(--sp-new);
+}
+.sp-col[data-stage="work"] { border-top-color: var(--sp-work); }
+.sp-col[data-stage="review"] { border-top-color: var(--sp-review); }
+.sp-col[data-stage="signing"] { border-top-color: var(--sp-signing); }
+.sp-col[data-stage="done"] { border-top-color: var(--sp-done); }
+
+.sp-col-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  padding: 2px 4px 10px;
+}
+.sp-col-title { font-weight: 800; color: var(--ink); }
+.sp-col-count {
+  font-size: 12px;
+  font-weight: 800;
+  padding: 1px 8px;
+  border-radius: 99px;
+  background: var(--surface);
+  color: var(--muted);
+}
+.sp-col-hint { flex-basis: 100%; font-size: 12px; color: var(--muted); }
+.sp-col-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 80px;
+  border-radius: 10px;
+  transition: background-color .15s;
+}
+.sp-col-body.is-over { background: var(--sp-drop); }
+.sp-col-empty, .sp-col-more { font-size: 13px; color: var(--muted); text-align: center; padding: 14px 4px; }
+
+.sp-card {
+  background: var(--sp-card-bg);
+  border: 1px solid var(--sp-card-line);
+  border-radius: 12px;
+  padding: 10px 11px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  transition: box-shadow .15s, transform .15s;
+}
+.sp-card:hover, .sp-card:focus-visible { box-shadow: var(--shadow); outline: none; }
+.sp-card:focus-visible { border-color: var(--accent); }
+.sp-card.is-dragging { opacity: .45; }
+.sp-card-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 6px; align-items: center; }
+.sp-inno { font-weight: 800; font-size: 13px; color: var(--accent-dark); font-variant-numeric: tabular-nums; }
+.sp-dl {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--sp-chip-bg);
+  color: var(--sp-chip-ink);
+  font-variant-numeric: tabular-nums;
+}
+.sp-dl.is-hot { background: var(--sp-hot-bg); color: var(--sp-hot-ink); }
+.sp-dl.is-over { background: var(--sp-over-bg); color: var(--sp-over-ink); }
+.sp-dl.is-closed { opacity: .75; }
+.sp-subj {
+  font-size: 14px;
+  line-height: 1.35;
+  color: var(--ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.sp-corr { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-card-foot { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.sp-badges { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.sp-badges > span {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--sp-chip-bg);
+  color: var(--sp-chip-ink);
+}
+.sp-badges .sp-ver { background: var(--sp-ver-bg); color: var(--sp-ver-ink); }
+.sp-badges .sp-ok { background: var(--sp-ok-bg); color: var(--sp-ok-ink); }
+.sp-badges .sp-rem { background: var(--sp-rem-bg); color: var(--sp-rem-ink); }
+.sp-ava {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  background: var(--accent-fill);
+  color: #fff;
+}
+.sp-ava.is-none { background: var(--sp-chip-bg); color: var(--muted); }
+.sp-out { font-size: 12px; color: var(--sp-ok-ink); font-weight: 700; }
+
+/* перемикач етапів — лише на вузькому екрані */
+.sp-stage-tabs { display: none; }
+
+/* ---------- довідка ---------- */
+.sp-help {
+  margin-top: 22px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 16px;
+  color: var(--ink);
+}
+.sp-help summary { cursor: pointer; font-weight: 700; color: var(--accent-dark); }
+.sp-help ul { margin: 10px 0 4px; padding-left: 20px; line-height: 1.55; }
+.sp-help code { overflow-wrap: anywhere; }
+
+/* ---------- картка справи (діалог збоку) ---------- */
+.sp-drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  margin: 0;
+  width: min(720px, 100vw);
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  border: 0;
+  border-left: 1px solid var(--line);
+  padding: 0;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  display: none;
+  flex-direction: column;
+}
+.sp-drawer[open] { display: flex; }
+.sp-drawer::backdrop, .sp-new::backdrop { background: rgba(15, 23, 42, .45); }
+.sp-drawer-head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.sp-drawer-titles { flex: 1; min-width: 0; }
+.sp-drawer-titles h2 { margin: 0 0 4px; font-size: 19px; color: var(--accent-dark); }
+.sp-drawer-titles p { margin: 0; color: var(--ink); line-height: 1.4; overflow-wrap: anywhere; }
+.sp-x {
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+.sp-x:hover { background: var(--soft); color: var(--ink); }
+.sp-drawer-body { flex: 1; overflow-y: auto; padding: 14px 18px 24px; }
+
+.sp-stepper { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; margin-bottom: 16px; }
+.sp-step {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 8px 4px;
+  border: 1px solid var(--line);
+  background: var(--soft);
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sp-step.is-past { color: var(--ink); }
+.sp-step.is-current { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
+
+.sp-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 12px; }
+.sp-f { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sp-f > span { font-size: 12px; font-weight: 700; color: var(--muted); }
+.sp-wide { grid-column: 1 / -1; }
+.sp-f input, .sp-f select, .sp-f textarea,
+.sp-remark-form input, .sp-remark-form select, .sp-comment-form input,
+.sp-remark-answer input, .sp-remark-status {
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 9px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+.sp-f textarea { resize: vertical; line-height: 1.4; }
+.sp-f input:focus, .sp-f select:focus, .sp-f textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.sp-check { flex-direction: row; align-items: center; gap: 8px; align-self: end; padding-bottom: 8px; }
+.sp-check input { width: auto; }
+.sp-check > span { font-size: 14px; color: var(--ink); }
+.sp-ro b { font-weight: 700; color: var(--ink); padding: 7px 0; }
+.sp-linkrow { display: flex; gap: 6px; }
+.sp-linkrow input { flex: 1; }
+
+.sp-block { margin-top: 22px; }
+.sp-block h3 { font-size: 15px; margin: 0 0 8px; color: var(--ink); }
+.sp-muted { color: var(--muted); font-weight: 500; font-size: 13px; }
+.sp-none { list-style: none; padding: 6px 0; }
+
+.sp-remarks, .sp-feed { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.sp-remark {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--sp-rem-ink);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: var(--soft);
+}
+.sp-remark.is-done { border-left-color: var(--sp-ok-ink); }
+.sp-remark.is-rejected { border-left-color: var(--muted); }
+.sp-remark-head { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+.sp-remark-head b { color: var(--ink); }
+.sp-remark-status { width: auto; margin-left: auto; padding: 4px 6px; font-size: 13px; }
+.sp-remark-body { margin: 6px 0; line-height: 1.45; overflow-wrap: anywhere; }
+.sp-remark.is-done .sp-remark-body { color: var(--muted); }
+.sp-remark-answer { display: grid; grid-template-columns: minmax(0, 1fr) 72px; gap: 6px; }
+.sp-remark-answer input { background: var(--surface); }
+
+.sp-remark-form, .sp-comment-form { display: flex; gap: 6px; margin-top: 8px; }
+.sp-remark-form select { width: auto; flex: none; max-width: 40%; }
+.sp-remark-form input, .sp-comment-form input { flex: 1; }
+.sp-comment-form { margin: 0 0 10px; }
+
+.sp-ev {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 140px) minmax(0, 1fr);
+  gap: 8px;
+  font-size: 13.5px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.sp-ev-when { color: var(--muted); font-variant-numeric: tabular-nums; }
+.sp-ev-who { font-weight: 700; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-ev-what { overflow-wrap: anywhere; color: var(--ink); }
+.sp-ev-comment .sp-ev-what { font-style: italic; }
+.sp-ev-stage .sp-ev-what { color: var(--accent-dark); font-weight: 700; }
+
+.sp-drawer-foot { margin-top: 26px; display: flex; justify-content: flex-end; }
+
+/* ---------- нова справа ---------- */
+.sp-new {
+  width: min(560px, calc(100vw - 32px));
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 18px;
+  box-shadow: var(--shadow);
+}
+.sp-new h2 { margin: 0 0 12px; font-size: 18px; }
+.sp-new .sp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sp-new-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+.sp-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 1000;
+  max-width: calc(100vw - 32px);
+  background: var(--ink);
+  color: var(--surface);
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  box-shadow: var(--shadow);
+}
+.sp-toast.is-bad { background: var(--sp-over-ink); color: #fff; }
+
+/* ---------- адаптивність ---------- */
+@media (max-width: 1180px) {
+  /* П'ять колонок у ряд стають завузькими: горизонтальна прокрутка дошки,
+     а не сторінки (сама сторінка ширшою за екран не стає). */
+  .sp-board { grid-template-columns: repeat(5, minmax(220px, 1fr)); overflow-x: auto; padding-bottom: 8px; }
+}
+
+@media (max-width: 760px) {
+  .sp-layout { padding: 12px 16px 40px; }
+  .sp-toolbar .sp-search { flex-basis: 100%; }
+  .sp-dept-pick { flex: 1 1 100%; }
+  .sp-toolbar .sp-btn-primary { margin-left: auto; }
+
+  .sp-stage-tabs {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+  .sp-stab {
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 7px 2px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+    min-width: 0;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+  .sp-stab b { display: block; font-size: 15px; color: var(--ink); }
+  .sp-stab.is-active { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
+  .sp-stab.is-active b { color: #fff; }
+
+  /* Одна колонка за раз — та, що обрана в перемикачі */
+  .sp-board { display: block; overflow: visible; }
+  .sp-col { display: none; }
+  .sp-col.is-mobile-active { display: block; }
+  .sp-col-head { display: none; }
+
+  .sp-drawer { width: 100vw; border-left: 0; }
+  .sp-drawer-head { padding: 12px 14px 10px; }
+  .sp-drawer-body { padding: 12px 14px 24px; }
+  .sp-stepper { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .sp-step { font-size: 11px; padding: 7px 2px; }
+  .sp-grid, .sp-new .sp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sp-ev { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .sp-ev-what { grid-column: 1 / -1; }
+  .sp-remark-form { flex-wrap: wrap; }
+  .sp-remark-form select { max-width: none; flex: 1 1 100%; }
+}

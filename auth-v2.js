@@ -108,7 +108,7 @@ const PORTAL_SUBDIRS = [
   'algorithms', 'bloknot', 'cabinet', 'chat', 'classifiers', 'dec', 'drg', 'expert-proposals',
   'gospitalizatsiya', 'infocenter',
   'koduvannia', 'map', 'mapping', 'news', 'pakety', 'passport', 'pilots', 'pmg-proposals', 'postanova',
-  'regulatory', 'relax', 'reminders', 'rentgen', 'rozjasnennya', 'skod', 'vnutrishni-akty',
+  'regulatory', 'relax', 'reminders', 'rentgen', 'rozjasnennya', 'skod', 'spravy', 'vnutrishni-akty',
   'zoz-dogovr', 'zoz-poshuk', 'zoz-questions'
 ];
 
@@ -562,6 +562,9 @@ function applyAccess() {
       // Розбори кейсів: питання → з'ясоване → рішення → хвости, з посиланнями
       // в розділи порталу. Заведено 24.08.2026 (перший кейс — 90724-00/31548-00).
       { text: '🗒️ Робочий блокнот', path: 'bloknot/index.html', role: 'expert' },
+      // Дошка справ відділу: вхідне АСКОД → чернетка vN → зауваження → на підписі →
+      // вих. №. Заведено 02.11.2026; дані — Supabase dept_cases під RLS.
+      { text: '📋 Справи відділу', path: 'spravy/index.html', role: 'expert' },
       {
         text: '🧭 СКО-Д', items: [
           { text: 'Внесення роботи', path: 'cabinet/index.html', role: 'expert' },
@@ -2646,6 +2649,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
   // Повний список розділів для шторки «Ще»
   const moreSections = [
     { icon: '🗺️', label: 'Карта порталу', path: 'map/index.html' },
+    { icon: '📋', label: 'Справи відділу', path: 'spravy/index.html', role: 'expert' },
     { icon: '📄', label: 'Роз\'яснення', path: 'rozjasnennya/index.html' },
     { icon: '💡', label: 'AI-пошук', path: 'rozjasnennya_semantic.html' },
     { icon: '📦', label: 'Пакети 2026', path: 'pakety/index.html' },
