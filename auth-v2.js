@@ -219,17 +219,18 @@ function applyAccess() {
     }
   }
 
-  // Update standalone SKOD Tasks button in top nav
+  // Кнопка вгорі — «Справи відділу» (з 02.11.2026). Раніше тут були «Доручення»
+  // СКО-Д лише для керівників; тепер доручення = справа з виконавцем, і вхід
+  // потрібен кожному співробітнику. Старий реєстр доручень — у «Сервісах» як архів.
   const tasksBtn = document.getElementById('auth-tasks-btn');
   if (tasksBtn) {
-    tasksBtn.href = prefix + 'skod/tasks.html';
-    const hasTasksAccess = hasAccess('manager');
-    if (!hasTasksAccess) {
+    tasksBtn.href = prefix + 'spravy/index.html';
+    if (!hasAccess('expert')) {
       tasksBtn.style.display = 'none';
     } else {
       tasksBtn.style.display = '';
       tasksBtn.classList.remove('is-locked');
-      tasksBtn.innerHTML = `Доручення`;
+      tasksBtn.innerHTML = `📋 Справи`;
       tasksBtn.onclick = null;
     }
   }
@@ -570,7 +571,7 @@ function applyAccess() {
           { text: 'Внесення роботи', path: 'cabinet/index.html', role: 'expert' },
           { text: 'Планувальник', path: 'cabinet/planner.html', role: 'expert' },
           { text: 'Звіти та аналітика', path: 'skod/reports.html', role: 'expert' },
-          { text: 'Доручення', path: 'skod/tasks.html', role: 'manager' }
+          { text: 'Доручення (архів)', path: 'skod/tasks.html', role: 'manager' }
         ]
       },
       {
@@ -1170,7 +1171,7 @@ function inject() {
     const topTasksBtn = document.createElement('a');
     topTasksBtn.id = 'auth-tasks-btn';
     topTasksBtn.className = 'auth-tasks-btn';
-    topTasksBtn.textContent = 'Доручення';
+    topTasksBtn.textContent = 'Справи';
     container.appendChild(topTasksBtn);
 
     // Standalone Regulatory Admin button in top nav
@@ -1311,15 +1312,34 @@ async function renderDashboard(dashboardEl, prefix) {
     userDept = prof?.Section || prof?.department || '';
   } catch(e) {}
 
+  // Мої справи (Справи відділу, де я виконавець і справа не закрита). Поля
+  // зводимо до форми старих доручень, щоб не переписувати розмітку смуги:
+  // «прогрес» — це етап справи.
+  const STAGE_PROGRESS = { new: 0, work: 30, review: 60, signing: 85, sz_sent: 90 };
+  const STAGE_NAME = { new: 'Нове', work: 'Готуємо', review: 'Погодження', signing: 'На підписі', sz_sent: 'СЗ надано' };
   let userTasks = [];
   try {
     const { data } = await sb
-      .from('assigned_tasks')
-      .select('id, title, deadline, progress, status, description, importance, task_type, askod_number, askod_sender')
-      .eq('responsible_id', user.id)
-      .neq('status', 'completed')
-      .order('deadline', { ascending: true });
-    userTasks = (data || []).filter(t => t.status !== 'completed' && t.progress < 100);
+      .from('dept_cases')
+      .select('id, in_no, subject, deadline, stage, correspondent, nuances, department, resolution')
+      .eq('executor_id', user.id)
+      .neq('stage', 'done')
+      .order('deadline', { ascending: true, nullsFirst: false });
+    // Текст справ вносять люди й скрипт — у розмітку смуги лише екранований
+    const h = (v) => String(v ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+    userTasks = (data || []).map(c => ({
+      id: c.id,
+      title: h(c.subject),
+      deadline: c.deadline,
+      progress: STAGE_PROGRESS[c.stage] ?? 0,
+      stageName: STAGE_NAME[c.stage] || c.stage,
+      description: h([c.resolution, c.nuances].filter(Boolean).join('\n')),
+      importance: 'normal',
+      task_type: c.in_no ? 'askod' : 'own',
+      askod_number: h(c.in_no),
+      askod_sender: h(c.correspondent),
+      department: h(c.department)
+    }));
   } catch(e) {}
 
   // Load active reporting reminders with warnings for the current user
@@ -1421,14 +1441,15 @@ async function renderDashboard(dashboardEl, prefix) {
       <div class="tasks-summary-section">
         ${userTasks.length > 0 ? `
           <div class="tasks-summary-header">
-            <span class="tasks-summary-lbl">📋 Активні доручення на виконанні (всього: <strong>${userTasks.length}</strong>):</span>
+            <span class="tasks-summary-lbl">📋 Мої справи в роботі (всього: <strong>${userTasks.length}</strong>) · <a href="${prefix}spravy/index.html?mine=1">усі на дошці →</a></span>
           </div>
           <div class="tasks-brief-list">
             ${userTasks.map((t, index) => {
-              const daysLeft = Math.ceil((new Date(t.deadline) - new Date()) / (1000 * 60 * 60 * 24));
-              const dateStr = new Date(t.deadline).toLocaleDateString('uk-UA');
+              // Справа без строку не «горить»: daysLeft = 99
+              const daysLeft = t.deadline ? Math.ceil((new Date(t.deadline) - new Date()) / (1000 * 60 * 60 * 24)) : 99;
+              const dateStr = t.deadline ? new Date(t.deadline).toLocaleDateString('uk-UA') : 'без строку';
               const dateClass = daysLeft < 0 ? 'overdue' : (daysLeft <= 3 ? 'urgent' : 'normal');
-              const daysText = daysLeft < 0 ? `(Протерміновано)` : (daysLeft === 0 ? `(Сьогодні!)` : `(залишилось ${daysLeft} дн.)`);
+              const daysText = !t.deadline ? '(без строку)' : daysLeft < 0 ? `(Протерміновано)` : (daysLeft === 0 ? `(Сьогодні!)` : `(залишилось ${daysLeft} дн.)`);
               const collapsedAttr = index >= 3 ? 'class="task-brief-item is-collapsed-hidden" style="display: none;"' : 'class="task-brief-item"';
               
               const bulbColor = daysLeft < 0 ? 'red' : (daysLeft <= 3 ? 'yellow' : 'green');
@@ -1450,7 +1471,7 @@ async function renderDashboard(dashboardEl, prefix) {
                     </div>
                     
                     <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
-                      <span style="font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px;" class="task-brief-deadline ${dateClass}">до ${dateStr}</span>
+                      <span style="font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px;" class="task-brief-deadline ${dateClass}">${t.deadline ? 'до ' : ''}${dateStr}</span>
                       <div class="task-brief-progress-wrapper" style="width: 80px; margin: 0; gap: 6px;">
                         <div class="task-brief-progress-bg" style="height: 5px; margin: 0;">
                           <div class="task-brief-progress-bar" style="width: ${t.progress}%"></div>
@@ -1469,19 +1490,19 @@ async function renderDashboard(dashboardEl, prefix) {
                   <!-- Expanded Details Panel -->
                   <div class="task-brief-details" style="display: none; padding-top: 10px; margin-top: 8px; border-top: 1px dashed var(--p-line, #e2e8f0); font-size: 12px; color: var(--p-ink);">
                     <div style="margin-bottom: 8px; line-height: 1.4;">
-                      <strong>📝 Опис доручення:</strong> 
+                      <strong>📝 Резолюція й нюанси:</strong> 
                       <div style="margin-top: 4px; background: var(--p-soft, #f7fafc); padding: 8px 12px; border-radius: 6px; color: var(--p-ink); font-size: 11.5px; border-left: 3px solid var(--accent); white-space: pre-line;">
-                        ${t.description || 'Детальний опис доручення відсутній.'}
+                        ${t.description || 'Резолюції й нюансів у справі ще немає.'}
                       </div>
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; flex-wrap: wrap; gap: 8px;">
                       <span style="font-size: 11px; color: var(--p-muted);">
-                        Важливість: <strong>${t.importance === 'critical' ? '🔴 Термінова' : (t.importance === 'important' ? '🟡 Висока' : '🟢 Звичайна')}</strong>
+                        Етап: <strong>${t.stageName || '—'}</strong>
                         ${t.department ? ` | Підрозділ: <strong>${t.department}</strong>` : ''}
                         ${t.askod_sender ? ` | Відправник: <strong>${t.askod_sender}</strong>` : ''}
                       </span>
-                      <a href="${prefix}skod/task-detail.html?id=${t.id}" class="dashboard-action-btn primary" style="padding: 5px 12px; font-size: 11px; text-decoration: none; border-radius: 6px; background: var(--accent); color: white; display: inline-flex; align-items: center; gap: 4px; font-weight: 700;">
-                        🔗 Відкрити картку доручення
+                      <a href="${prefix}spravy/index.html?case=${t.id}" class="dashboard-action-btn primary" style="padding: 5px 12px; font-size: 11px; text-decoration: none; border-radius: 6px; background: var(--accent); color: white; display: inline-flex; align-items: center; gap: 4px; font-weight: 700;">
+                        🔗 Відкрити справу
                       </a>
                     </div>
                   </div>
@@ -2028,56 +2049,49 @@ function setupTasksRealtime() {
     tasksSubscription = null;
   }
 
+  // Призначення бачимо двома шляхами: нова справа одразу з моїм executor_id
+  // або подія «Виконавець: <моє ім'я>» у наявній справі (realtime UPDATE не
+  // віддає старого значення, тож саму зміну виконавця ловимо через історію).
+  const myName = user.user_metadata?.full_name || '';
+  const refreshDashboard = () => {
+    const dashboardEl = document.getElementById('user-task-dashboard');
+    if (dashboardEl) renderDashboard(dashboardEl, getPathPrefix());
+  };
   tasksSubscription = sb.channel('realtime_tasks_alerts')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'assigned_tasks' }, payload => {
-      const newTask = payload.new;
-      if (newTask && newTask.responsible_id === user.id) {
-        triggerTaskAlertNotification(newTask);
-
-        // Dynamically re-render dashboard list if present on the page
-        const dashboardEl = document.getElementById('user-task-dashboard');
-        if (dashboardEl) {
-          renderDashboard(dashboardEl, getPathPrefix());
-        }
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'dept_cases' }, payload => {
+      const c = payload.new;
+      if (c && c.executor_id === user.id && c.created_by !== user.id) {
+        triggerCaseAlertNotification(c.id, c.in_no, c.subject);
+        refreshDashboard();
       }
+    })
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'dept_case_events' }, async payload => {
+      const ev = payload.new;
+      if (!ev || ev.kind !== 'executor' || ev.author_id === user.id) return;
+      let me = myName;
+      if (!me) {
+        const { data } = await sb.from('profiles').select('full_name').eq('id', user.id).single();
+        me = data?.full_name || '';
+      }
+      if (!me || ev.body !== 'Виконавець: ' + me) return;
+      const { data: c } = await sb.from('dept_cases').select('id, in_no, subject').eq('id', ev.case_id).single();
+      if (c) triggerCaseAlertNotification(c.id, c.in_no, c.subject);
+      refreshDashboard();
     })
     .subscribe();
 }
 
-function triggerTaskAlertNotification(task) {
-  const notificationsEnabled = localStorage.getItem('news_notifications_enabled') !== 'false';
-  if (!notificationsEnabled) return;
-
+function triggerCaseAlertNotification(id, inNo, subject) {
+  if (localStorage.getItem('news_notifications_enabled') === 'false') return;
   playNewsAlertSound();
-
-  const importanceLabels = {
-    normal: '🟢 Звичайна важливість',
-    important: '🟡 Висока важливість',
-    critical: '🔴 Термінова важливість'
-  };
-  const impText = importanceLabels[task.importance] || 'Звичайна важливість';
-  const title = `Нове доручення (${impText})`;
-
-  const prefix = getPathPrefix();
-  const targetUrl = prefix + "skod/task-detail.html?id=" + task.id;
-
+  const title = 'Вам призначено справу' + (inNo ? ` № ${inNo}` : '');
+  const url = getPathPrefix() + 'spravy/index.html?case=' + id;
   const isTabHidden = document.hidden || !document.hasFocus();
   if (isTabHidden && 'Notification' in window && Notification.permission === 'granted') {
-    const notification = new Notification(title, {
-      body: task.title,
-      icon: prefix + "assets/nszu-shield.svg",
-      tag: "task-alert",
-      renotify: true
-    });
-
-    notification.onclick = () => {
-      window.focus();
-      window.open(targetUrl, "_blank");
-      notification.close();
-    };
+    const n = new Notification(title, { body: subject, icon: getPathPrefix() + 'assets/nszu-shield.svg', tag: 'case-alert', renotify: true });
+    n.onclick = () => { window.focus(); window.open(url, '_blank'); n.close(); };
   } else {
-    // Show premium on-screen toast notification when page is active or permissions are not set
-    showOnScreenToast(title, task.title, targetUrl);
+    showOnScreenToast(title, subject, url);
   }
 }
 
@@ -2635,8 +2649,8 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
   const tabs = isExpert ? [
     { icon: '🏠', label: 'Головна', path: 'index.html' },
     { icon: '🔍', label: 'Пошук', action: 'search' },
-    { icon: '📋', label: 'Кабінет', path: 'cabinet/index.html' },
-    { icon: '🗓️', label: 'План', path: 'cabinet/planner.html' },
+    { icon: '📋', label: 'Справи', path: 'spravy/index.html' },
+    { icon: '👤', label: 'Кабінет', path: 'cabinet/index.html' },
     { icon: '☰', label: 'Ще', action: 'more' }
   ] : [
     { icon: '🏠', label: 'Головна', path: 'index.html' },
@@ -2683,7 +2697,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '👤', label: 'Кабінет', path: 'cabinet/index.html', role: 'expert' },
     { icon: '🗓️', label: 'Планувальник', path: 'cabinet/planner.html', role: 'expert' },
     { icon: '📊', label: 'Звіти СКО-Д', path: 'skod/reports.html', role: 'expert' },
-    { icon: '✅', label: 'Доручення', path: 'skod/tasks.html', role: 'manager' },
+    { icon: '✅', label: 'Доручення (архів)', path: 'skod/tasks.html', role: 'manager' },
     { icon: '👥', label: 'Структура Департаменту', path: 'dept-tree.html', role: 'expert' },
     { icon: '💬', label: 'Робочий чат', path: 'chat/index.html', role: 'expert' },
     { icon: '📰', label: 'Новини', path: 'news/index.html', role: 'expert' },

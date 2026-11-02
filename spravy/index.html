@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="../styles.css?v=20260808b">
   <link rel="stylesheet" href="spravy.css?v=20261102d">
   <link rel="stylesheet" href="../auth-v2.css?v=20260824a">
-  <script type="module" src="../auth-v2.js?v=20261102a"></script>
+  <script type="module" src="../auth-v2.js?v=20261102b"></script>
 </head>
 <!-- Розділ закритий: справи відділу. Оверлей «Доступ обмежено» вставляє сам
      auth-v2.js. Самі справи — у Supabase під RLS (свій відділ + керівництво),
@@ -59,6 +59,12 @@
                placeholder="Вх. №, кореспондент, суть, виконавець">
       </div>
       <label class="sp-toggle"><input type="checkbox" id="spMine"><span>лише мої</span></label>
+      <select id="spFilter" class="sp-dept-pick" aria-label="Фільтр справ">
+        <option value="all">Усі справи</option>
+        <option value="hot">Горить: строк ≤ 3 дн.</option>
+        <option value="overdue">Прострочено</option>
+        <option value="remind">Нагадування настали</option>
+      </select>
       <select id="spDept" class="sp-dept-pick" aria-label="Відділ" hidden></select>
       <button type="button" class="sp-btn sp-btn-primary" id="spAdd">+ Справа</button>
     </div>
@@ -202,6 +208,6 @@
   </footer>
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
-  <script type="module" src="spravy.js?v=20261102e"></script>
+  <script type="module" src="spravy.js?v=20261102f"></script>
 </body>
 </html>

@@ -25,7 +25,7 @@
   <link rel="stylesheet" href="portal.css?v=20260808c">
   <link rel="stylesheet" href="brand.css?v=20260826a">
   <link rel="stylesheet" href="auth-v2.css?v=20260824a">
-  <script type="module" src="auth-v2.js?v=20261102a"></script>
+  <script type="module" src="auth-v2.js?v=20261102b"></script>
   <style>
     /* Знак проєкту в шапці. Правила тримаємо тут, а не в спільному portal.css:
        правка спільного файлу потягла б за собою бамп мітки на всіх сторінках */
@@ -614,7 +614,7 @@
           </span>
         </a>
         <div class="top-row-1-right">
-          <!-- auth-v2.js?v=20261102a inject point -->
+          <!-- auth-v2.js?v=20261102b inject point -->
           <nav class="section-switch top-auth" aria-label="Авторизація"></nav>
         </div>
       </div>
@@ -636,35 +636,35 @@
         <div>
           <span class="home-work-kicker" id="home-work-kicker">Моя робота</span>
           <h2 class="home-work-title" id="home-work-title">Мій робочий стан</h2>
-          <p class="home-work-subtitle" id="home-work-subtitle">Експрес-огляд доручень і списаного робочого часу</p>
+          <p class="home-work-subtitle" id="home-work-subtitle">Мої справи, строки й списаний робочий час</p>
         </div>
         <div class="home-work-actions">
-          <a class="home-work-action primary" id="home-work-primary" href="cabinet/index.html">Відкрити кабінет</a>
+          <a class="home-work-action primary" id="home-work-primary" href="spravy/index.html?mine=1">📋 Мої справи</a>
           <a class="home-work-action secondary" id="home-work-secondary" href="skod/reports.html" hidden>Огляд команди</a>
           <a class="home-work-action log-work" id="home-work-log" href="cabinet/index.html#cabinet-log-form">＋ Виконане завдання</a>
         </div>
       </div>
       <div class="home-panel-search" id="home-panel-search" hidden aria-label="Пошук у порталі"></div>
       <div class="home-metrics-grid">
-        <a class="home-metric-card active" href="cabinet/index.html?filter=active">
+        <a class="home-metric-card active" href="spravy/index.html?mine=1">
           <div class="home-metric-icon">📋</div>
           <div class="home-metric-details">
             <span class="home-metric-num" id="home-metric-active">0</span>
-            <span class="home-metric-lbl">Активні доручення</span>
+            <span class="home-metric-lbl">Мої справи в роботі</span>
           </div>
         </a>
-        <a class="home-metric-card warning" href="cabinet/index.html?filter=hot">
+        <a class="home-metric-card warning" href="spravy/index.html?mine=1&amp;f=hot">
           <div class="home-metric-icon">🔥</div>
           <div class="home-metric-details">
             <span class="home-metric-num" id="home-metric-hot">0</span>
             <span class="home-metric-lbl">Гарячі (≤2 дн.)</span>
           </div>
         </a>
-        <a class="home-metric-card danger" href="cabinet/index.html?filter=overdue">
+        <a class="home-metric-card danger" href="spravy/index.html?mine=1&amp;f=overdue">
           <div class="home-metric-icon">🚨</div>
           <div class="home-metric-details">
             <span class="home-metric-num" id="home-metric-overdue">0</span>
-            <span class="home-metric-lbl">Прострочені завдання</span>
+            <span class="home-metric-lbl">Прострочені справи</span>
           </div>
         </a>
         <a class="home-metric-card success" href="cabinet/index.html">
@@ -1219,28 +1219,28 @@
       const rolePanels = {
         expert: {
           kicker: 'Моя робота', title: 'Мій робочий стан', role: 'Експерт',
-          subtitle: 'Експрес-огляд доручень і списаного робочого часу',
-          primary: ['Відкрити кабінет', 'cabinet/index.html'], secondary: null
+          subtitle: 'Мої справи, строки й списаний робочий час',
+          primary: ['📋 Мої справи', 'spravy/index.html?mine=1'], secondary: null
         },
         manager: {
           kicker: 'Мій відділ', title: 'Команда й доручення', role: 'Керівник відділу',
           subtitle: 'Особисті завдання, контроль команди та швидке створення доручень',
-          primary: ['＋ Створити доручення', 'skod/tasks.html'], secondary: ['Огляд команди', 'skod/reports.html']
+          primary: ['＋ Доручити справу', 'spravy/index.html?new=1'], secondary: ['Огляд команди', 'skod/reports.html']
         },
         deputy_director: {
           kicker: 'Управлінський огляд', title: 'Напрями під контролем', role: 'Заступник директора',
           subtitle: 'Контроль доручень за напрямами та робота з виконавцями',
-          primary: ['＋ Створити доручення', 'skod/tasks.html'], secondary: ['Огляд напрямів', 'skod/reports.html']
+          primary: ['＋ Доручити справу', 'spravy/index.html?new=1'], secondary: ['Огляд напрямів', 'skod/reports.html']
         },
         director: {
           kicker: 'Керівництво', title: 'Управлінська панель', role: 'Директор',
           subtitle: 'Доручення, строки та контроль роботи структурних підрозділів',
-          primary: ['＋ Створити доручення', 'skod/tasks.html'], secondary: ['Звітність команди', 'skod/reports.html']
+          primary: ['＋ Доручити справу', 'spravy/index.html?new=1'], secondary: ['Звітність команди', 'skod/reports.html']
         },
         admin: {
           kicker: 'Повний доступ', title: 'Особистий кабінет', role: 'Адміністратор',
           subtitle: 'Доручення та контроль робочих сервісів',
-          primary: ['＋ Створити доручення', 'skod/tasks.html'], secondary: null
+          primary: ['＋ Доручити справу', 'spravy/index.html?new=1'], secondary: null
         }
       };
       const panel = rolePanels[profile.role] || rolePanels.expert;
@@ -1264,9 +1264,11 @@
       const todayStr = new Date().toISOString().split('T')[0];
 
       const [{ data: tasks }, { data: logs }, { data: plannerEvents }] = await Promise.all([
-        sb.from('assigned_tasks')
-          .select('status, deadline')
-          .eq('responsible_id', session.user.id),
+        // Мої справи (Справи відділу) — з 02.11.2026 замість доручень СКО-Д
+        sb.from('dept_cases')
+          .select('stage, deadline')
+          .eq('executor_id', session.user.id)
+          .neq('stage', 'done'),
         sb.from('skod_logs')
           .select('duration_minutes')
           .eq('user_id', session.user.id)
@@ -1281,15 +1283,15 @@
           .limit(8)
       ]);
 
-      // Та сама логіка підрахунку, що і в cabinet.js
-      const activeTasks = (tasks || []).filter(t => t.status !== 'completed' && t.status !== 'rejected');
+      // «СЗ надано» — чекаємо на головного виконавця: справа жива, але не горить у нас
+      const activeTasks = tasks || [];
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
       let hotCount = 0;
       let overdueCount = 0;
       activeTasks.forEach(t => {
-        if (!t.deadline) return;
+        if (!t.deadline || t.stage === 'sz_sent') return;
         const dl = new Date(t.deadline);
         dl.setHours(0, 0, 0, 0);
         const diffDays = Math.ceil((dl - today) / (1000 * 60 * 60 * 24));

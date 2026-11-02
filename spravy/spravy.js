@@ -78,6 +78,7 @@ const state = {
   leaders: [],        // керівництво департаменту для поля «Чиє зауваження»
   q: '',
   mine: false,
+  f: 'all',           // фільтр: all / hot (строк ≤ 3 дн.) / overdue / remind (нагадування настали)
   mobileStage: 'work',
   openId: null,
   demoEvents: {}
@@ -155,7 +156,23 @@ async function boot() {
   await loadLeaders();
   await loadPeople();
   await loadCases();
+  applyUrlParams();
   subscribe();
+}
+
+/**
+ * Посилання з головної, смуги «мої справи» й сповіщень:
+ * ?mine=1 — лише мої; ?f=hot|overdue|remind — фільтр; ?case=<id> — відкрити справу;
+ * ?new=1 — одразу форма нової справи (кнопка «Доручити справу»).
+ */
+function applyUrlParams() {
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('mine') === '1') { state.mine = true; $('spMine').checked = true; }
+  if (['hot', 'overdue', 'remind'].includes(qs.get('f'))) { state.f = qs.get('f'); $('spFilter').value = state.f; }
+  if (state.mine || state.f !== 'all') render();
+  const id = qs.get('case');
+  if (id && state.cases.some((c) => c.id === id)) openCase(id);
+  if (qs.get('new') === '1') $('spAdd').click();
 }
 
 function bootDemo() {
@@ -199,6 +216,7 @@ function bootDemo() {
   Object.keys(state.demoEvents).forEach(recountDemo);
   $('spDeptName').textContent = 'Демо-режим: картки вигадані, нічого не зберігається в базі';
   render();
+  applyUrlParams();
 }
 
 function showNotice(text) {
@@ -362,11 +380,27 @@ async function loadEvents(caseId) {
 
 /* ───────────────────────── дошка ───────────────────────── */
 
+/** Моя справа: за id виконавця, а для справ без id — за ПІБ. */
+function isMine(c) {
+  if (c.executor_id && state.me) return c.executor_id === state.me.id;
+  return !!c.executor_name && c.executor_name === myName();
+}
+
+function passesFilter(c) {
+  if (state.f === 'all') return true;
+  if (c.stage === 'done') return false;
+  const n = daysLeft(c.deadline);
+  if (state.f === 'hot') return n !== null && n >= 0 && n <= 3 && c.stage !== 'sz_sent';
+  if (state.f === 'overdue') return n !== null && n < 0 && c.stage !== 'sz_sent';
+  if (state.f === 'remind') return (state.reminders[c.id] || []).some((r) => daysLeft(r.due_date) <= 0);
+  return true;
+}
+
 function visibleCases() {
   const q = state.q.trim().toLowerCase();
-  const me = myName();
   return state.cases.filter((c) => {
-    if (state.mine && c.executor_name !== me) return false;
+    if (state.mine && !isMine(c)) return false;
+    if (!passesFilter(c)) return false;
     if (!q) return true;
     return [c.in_no, c.subject, c.correspondent, c.executor_name, c.resolution, c.out_no, c.nuances, c.lead_unit]
       .some((v) => v && String(v).toLowerCase().includes(q));
@@ -702,6 +736,7 @@ async function createCase(form) {
 function wireStatic() {
   $('spSearch').addEventListener('input', (e) => { state.q = e.target.value; render(); });
   $('spMine').addEventListener('change', (e) => { state.mine = e.target.checked; render(); });
+  $('spFilter').addEventListener('change', (e) => { state.f = e.target.value; render(); });
 
   $('spAdd').addEventListener('click', () => {
     const sel = $('spNewExecutor');
