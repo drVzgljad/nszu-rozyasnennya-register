@@ -115,6 +115,8 @@ function deadlineInfo(c) {
   return { cls: 'is-ok', text: date };
 }
 const initials = (name) => (name || '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+const lsGet = (k) => { try { return localStorage.getItem(k); } catch (_) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (_) { /* приватний режим */ } };
 const myName = () => (DEMO ? 'Демо-користувач' : (state.profile?.full_name || state.me?.email || ''));
 
 function toast(text, bad) {
@@ -152,6 +154,12 @@ async function boot() {
   if (!state.dept || !DEPARTMENTS.includes(state.dept)) {
     state.dept = state.canPickDept ? DEPARTMENTS[0] : state.dept;
   }
+  // «Лише мої» за замовчуванням: виконавцям — так, керівництву й діловоду — ні
+  const pr = state.profile;
+  const overseer = LEADERSHIP.includes(pr.role) || pr.role === 'manager' || pr.is_head === true || pr.is_clerk === true;
+  const saved = lsGet('spravy-mine');
+  state.mine = saved !== null ? saved === '1' : !overseer;
+  $('spMine').checked = state.mine;
   setupDeptPicker();
   await loadLeaders();
   await loadPeople();
@@ -459,8 +467,24 @@ function renderReminderStrip() {
     `<button type="button" class="sp-remind" data-open="${c.id}"><span>${fmtDate(r.due_date)}</span> ${esc(c.in_no || 'без вх. №')}: ${esc(r.body)}</button>`).join('') : '';
 }
 
+/**
+ * Наступний етап для кнопки «далі →». Співвиконавці після «Готуємо» передають
+ * СЗ головному, а не несуть лист на підпис.
+ */
+function nextStage(c) {
+  const co = c.our_role === 'co';
+  return {
+    new: 'work',
+    work: co ? 'sz_sent' : 'review',
+    review: co ? 'sz_sent' : 'signing',
+    signing: 'done',
+    sz_sent: 'done'
+  }[c.stage] || null;
+}
+
 function cardHTML(c) {
   const dl = deadlineInfo(c);
+  const next = nextStage(c);
   const remarks = state.remarkCounts[c.id] || 0;
   const rem = nextReminder(c.id);
   const prolonged = c.deadline && c.deadline_original && c.deadline !== c.deadline_original;
@@ -485,6 +509,7 @@ function cardHTML(c) {
       ${c.executor_name ? `<span class="sp-ava" title="${esc(c.executor_name)}">${esc(initials(c.executor_name))}</span>` : '<span class="sp-ava is-none" title="Виконавця не призначено">?</span>'}
     </div>
     ${c.out_no ? `<div class="sp-out">вих. № ${esc(c.out_no)}${c.out_date ? ' від ' + fmtDate(c.out_date) : ''}</div>` : ''}
+    ${next ? `<button type="button" class="sp-next" data-next="${c.id}" title="Перевести в «${STAGE_LABEL[next]}»">${STAGE_LABEL[next]} →</button>` : ''}
   </article>`;
 }
 
@@ -524,25 +549,30 @@ function fieldsHTML(c) {
   <datalist id="spLeadUnits">${LEAD_UNITS.map((u) => `<option value="${esc(u)}">`).join('')}</datalist>
   <div class="sp-grid">
     <label class="sp-f"><span>Вх. №</span><input data-f="in_no" value="${esc(c.in_no)}" placeholder="10001-08-26"></label>
-    <label class="sp-f"><span>Дата реєстрації</span><input type="date" data-f="in_date" value="${esc(c.in_date)}"></label>
     <label class="sp-f"><span>Строк${prolonged ? ` <i class="sp-orig">первинний ${fmtDate(c.deadline_original)}</i>` : ''}</span><input type="date" data-f="deadline" value="${esc(c.deadline)}"></label>
     <label class="sp-f sp-wide"><span>Суть</span><textarea data-f="subject" rows="2">${esc(c.subject)}</textarea></label>
     <label class="sp-f sp-wide"><span>Кореспондент</span><input data-f="correspondent" value="${esc(c.correspondent)}"></label>
-    <label class="sp-f"><span>Його вих. №</span><input data-f="corr_out_no" value="${esc(c.corr_out_no)}"></label>
-    <label class="sp-f"><span>від</span><input type="date" data-f="corr_out_date" value="${esc(c.corr_out_date)}"></label>
     <label class="sp-f"><span>Тип відповіді</span><select data-f="reply_kind">${Object.entries(KIND_LABEL).map(([k, v]) => opt(k, c.reply_kind, v)).join('')}</select></label>
     <label class="sp-f sp-wide"><span>Резолюція (хто скл., співвиконавці)</span><input data-f="resolution" value="${esc(c.resolution)}" placeholder="Прізвище скл., Прізвище, Прізвище"></label>
     <label class="sp-f"><span>Виконавець у відділі</span><select data-f="executor_name">${opt('', c.executor_name, '— не призначено —')}${people.map((p) => opt(p, c.executor_name)).join('')}</select></label>
     <label class="sp-f"><span>Версія чернетки</span><input type="number" min="1" data-f="version" value="${esc(c.version)}" placeholder="1"></label>
     <label class="sp-f sp-check"><input type="checkbox" data-f="review_passed"${c.review_passed ? ' checked' : ''}><span>Рецензію пройдено</span></label>
-    <label class="sp-f sp-wide"><span>Файл в обміннику</span><input data-f="draft_path" value="${esc(c.draft_path)}" placeholder="10_НА_ПІДПИС\\02.11.26\\lyst_…_v2.docx"></label>
     <label class="sp-f sp-wide"><span>Посилання (Google Doc із зауваженнями, OneDrive)</span>
       <span class="sp-linkrow"><input data-f="draft_url" value="${esc(c.draft_url)}" placeholder="https://docs.google.com/…">${/^https?:\/\//.test(c.draft_url || '') ? `<a class="sp-btn sp-btn-ghost" href="${esc(c.draft_url)}" target="_blank" rel="noopener">Відкрити</a>` : ''}</span></label>
     <label class="sp-f sp-wide"><span>Нюанси — на що зважати</span><textarea data-f="nuances" rows="3" placeholder="Що не можна писати, з чим звірити, хто вже відповідав">${esc(c.nuances)}</textarea></label>
-    <label class="sp-f"><span>Вих. № НСЗУ</span><input data-f="out_no" value="${esc(c.out_no)}"></label>
-    <label class="sp-f"><span>Дата відправлення</span><input type="date" data-f="out_date" value="${esc(c.out_date)}"></label>
-    ${c.askod_state ? `<div class="sp-f sp-ro"><span>Стан резолюції в АСКОД</span><b>${esc(c.askod_state)}</b></div>` : ''}
-  </div>`;
+  </div>
+  <details class="sp-more"${lsGet('spravy-more') === '1' ? ' open' : ''}>
+    <summary>Більше полів: реквізити, файл, вих. №</summary>
+    <div class="sp-grid">
+      <label class="sp-f"><span>Дата реєстрації</span><input type="date" data-f="in_date" value="${esc(c.in_date)}"></label>
+      <label class="sp-f"><span>Його вих. №</span><input data-f="corr_out_no" value="${esc(c.corr_out_no)}"></label>
+      <label class="sp-f"><span>від</span><input type="date" data-f="corr_out_date" value="${esc(c.corr_out_date)}"></label>
+      <label class="sp-f sp-wide"><span>Файл в обміннику</span><input data-f="draft_path" value="${esc(c.draft_path)}" placeholder="10_НА_ПІДПИС\\02.11.26\\lyst_…_v2.docx"></label>
+      <label class="sp-f"><span>Вих. № НСЗУ</span><input data-f="out_no" value="${esc(c.out_no)}"></label>
+      <label class="sp-f"><span>Дата відправлення</span><input type="date" data-f="out_date" value="${esc(c.out_date)}"></label>
+      ${c.askod_state ? `<div class="sp-f sp-ro"><span>Стан резолюції в АСКОД</span><b>${esc(c.askod_state)}</b></div>` : ''}
+    </div>
+  </details>`;
 }
 
 function renderDrawerHead(c) {
@@ -735,7 +765,7 @@ async function createCase(form) {
 
 function wireStatic() {
   $('spSearch').addEventListener('input', (e) => { state.q = e.target.value; render(); });
-  $('spMine').addEventListener('change', (e) => { state.mine = e.target.checked; render(); });
+  $('spMine').addEventListener('change', (e) => { state.mine = e.target.checked; lsSet('spravy-mine', state.mine ? '1' : '0'); render(); });
   $('spFilter').addEventListener('change', (e) => { state.f = e.target.value; render(); });
 
   $('spAdd').addEventListener('click', () => {
@@ -755,6 +785,20 @@ function wireStatic() {
 
   const board = $('spBoard');
   board.addEventListener('click', (e) => {
+    const nx = e.target.closest('[data-next]');
+    if (nx) {
+      // «далі →»: справу без виконавця беру на себе
+      const c = state.cases.find((x) => x.id === nx.dataset.next);
+      const to = c && nextStage(c);
+      if (!to) return;
+      const patch = { stage: to };
+      if (to === 'work' && !c.executor_name) {
+        patch.executor_name = myName();
+        if (!DEMO && state.me) patch.executor_id = state.me.id;
+      }
+      saveCase(c.id, patch).then((ok) => ok !== false && toast(`${c.in_no || 'Справа'} → ${STAGE_LABEL[to]}`));
+      return;
+    }
     const card = e.target.closest('.sp-card');
     if (card) openCase(card.dataset.id);
   });
@@ -800,6 +844,9 @@ function wireStatic() {
     const b = e.target.closest('[data-stage]');
     if (b && state.openId) saveCase(state.openId, { stage: b.dataset.stage });
   });
+  $('spFields').addEventListener('toggle', (e) => {
+    if (e.target.classList?.contains('sp-more')) lsSet('spravy-more', e.target.open ? '1' : '0');
+  }, true);
   $('spFields').addEventListener('change', (e) => {
     const el = e.target.closest('[data-f]');
     if (!el || !state.openId) return;

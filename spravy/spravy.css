@@ -563,3 +563,21 @@
   .sp-remark-form { flex-wrap: wrap; }
   .sp-remark-form select { max-width: none; flex: 1 1 100%; }
 }
+
+/* ---------- крок 2 спрощення: «далі →» і «Більше полів» ---------- */
+.sp-next {
+  align-self: flex-end;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--accent-dark);
+  cursor: pointer;
+}
+.sp-next:hover { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
+.sp-more { margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 8px; }
+.sp-more > summary { cursor: pointer; font-weight: 700; font-size: 13px; color: var(--muted); padding: 4px 0 8px; }
+.sp-more[open] > summary { color: var(--accent-dark); }
