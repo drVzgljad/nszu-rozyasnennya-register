@@ -42,6 +42,32 @@ const EV_ICON = {
   system: '•', stage: '→', version: '✎', executor: '👤', review: '✓', comment: '💬', remark: '⚑',
   deadline: '⏱', returned: '↩', outgoing: '📤', reminder: '🔔'
 };
+// СКО-Д (облік роботи): гілка «Робота в АСКОД» особистого кабінету. Перелік типів і
+// справ номенклатури — з cabinet/cabinet.js (BRANCH_CONFIG.askod): змінюєте там —
+// змініть і тут. Коефіцієнти складності — звідти ж (COEFFICIENTS).
+const SKOD_TYPES = ['01 — Лист', '22 — Судові документи', '44 — Претензія', '45 — Нормативно-правові акти',
+  '46 — Запрошення', '47 — Лист-запит', '49 — Проект розпорядження КМУ', '50 — Проект ЗУ',
+  '51 — Проект указу Президента України', '52 — Проект постанови КМУ', 'Інше (вказати в описі)'];
+const SKOD_CATEGORIES = ['8-01 — Закони, укази, акти ВРУ та Президента', '8-02 — Постанови, розпорядження КМУ',
+  '8-03 — Доручення Верховної Ради України', '8-04 — Доручення Офісу Президента України',
+  '8-05 — Доручення Кабінету Міністрів України', '8-06 — Доручення (листи) МОЗ України',
+  '8-07 — Доручення Голови НСЗУ та заступників', '8-08 — Накази НСЗУ з основної діяльності',
+  '8-09 — Депутатські запити та звернення', '8-10 — Запити на публічну інформацію', '8-11 — Звернення громадян',
+  '8-12 — Службові записки, довідки з основної діяльності', '8-14 — Листування з ЦОВВ та місцевими органами влади',
+  '8-15 — Листування з підприємствами та установами', '8-16 — Доручення директора департаменту',
+  '8-17 — Рішення колегії НСЗУ', '8.2-02 — Службові записки відділу', 'Інше'];
+const SKOD_COEF = { easy: 1.0, medium: 1.3, hard: 1.8, expert: 2.5 };
+
+/** Справа номенклатури за замовчуванням — з вх. № і типу відповіді; людина може змінити. */
+function guessCategory(c) {
+  const no = c.in_no || '';
+  if (c.reply_kind === 'pi' || /^ПІ-/.test(no)) return '8-10 — Запити на публічну інформацію';
+  if (/^[А-ЯІЇЄҐ]{1,2}-\d/.test(no)) return '8-11 — Звернення громадян';
+  if (c.reply_kind === 'sz' || c.reply_kind === 'sz_work') return '8-12 — Службові записки, довідки з основної діяльності';
+  if (/-08-\d{2}$/.test(no)) return '8-06 — Доручення (листи) МОЗ України';
+  return '8-15 — Листування з підприємствами та установами';
+}
+
 // Підказки для поля «Головний виконавець» — лише назви підрозділів, без прізвищ
 const LEAD_UNITS = [
   'Департамент стратегії універсального охоплення населення медичними послугами',
@@ -699,6 +725,48 @@ const ACTIONS = {
         if (kind === 'letter' && no) Object.assign(patch, { out_no: no, out_date: fd.get('date') || null });
         await saveCase(id, patch);
       }
+      state.followUp = 'skod';       // одразу запропонувати зарахувати роботу в СКО-Д
+    }
+  },
+  skod: {
+    title: 'Зарахувати в СКО-Д',
+    fields: (c) => `
+      <p class="sp-f sp-wide sp-muted">Запис обліку роботи (особистий кабінет → «Робота в АСКОД»). Номер, суть і вих. № — зі справи.</p>
+      <label class="sp-f"><span>Дата роботи *</span><input type="date" name="date" value="${todayISO()}" max="${todayISO()}" required></label>
+      <label class="sp-f"><span>Скільки часу *</span><select name="minutes">${[30, 60, 90, 120, 180, 240, 360, 480].map((m) => `<option value="${m}"${m === 120 ? ' selected' : ''}>${m < 60 ? m + ' хв' : (m / 60) + ' год'}</option>`).join('')}</select></label>
+      <label class="sp-f"><span>Складність</span><select name="severity">
+        <option value="easy">Легка (1,0)</option><option value="medium" selected>Середня (1,3)</option>
+        <option value="hard">Складна (1,8)</option><option value="expert">Експертна (2,5)</option></select></label>
+      <label class="sp-f"><span>Тип документа</span><select name="type">${SKOD_TYPES.map((t) => `<option${t === (c.reply_kind === 'pi' ? '47 — Лист-запит' : '01 — Лист') ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>
+      <label class="sp-f sp-wide"><span>Справа номенклатури</span><select name="category">${SKOD_CATEGORIES.map((t) => `<option${t === guessCategory(c) ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select></label>
+      <label class="sp-f sp-wide"><span>Що зроблено *</span><textarea name="desc" rows="3" required>${esc(skodDescription(c))}</textarea></label>`,
+    run: async (id, fd) => {
+      const c = state.cases.find((x) => x.id === id);
+      const minutes = parseInt(fd.get('minutes'), 10);
+      const sev = fd.get('severity');
+      const row = {
+        user_name: myName(),
+        department: state.profile?.Section || state.dept,
+        log_date: fd.get('date'),
+        start_time: '09:00:00',
+        duration_minutes: minutes,
+        branch: 'askod',
+        task_type: fd.get('type'),
+        category: fd.get('category'),
+        severity_level: sev,
+        complexity_coefficient: SKOD_COEF[sev],
+        score: parseFloat(((minutes / 60) * SKOD_COEF[sev]).toFixed(2)),
+        status: 'completed',
+        description: fd.get('desc').trim(),
+        askod_reg_number: c.in_no || null,
+        reply_to_number: c.out_no || null,
+        include_37d: false
+      };
+      if (!DEMO) {
+        const { error } = await state.sb.from('skod_logs').insert([{ ...row, user_id: state.me.id }]);
+        if (error) return toast('СКО-Д не збережено: ' + error.message, true);
+      }
+      await addEvent(id, { kind: 'system', body: `Зараховано в СКО-Д: ${minutes < 60 ? minutes + ' хв' : (minutes / 60) + ' год'}, ${row.category.split(' — ')[0]}` });
     }
   },
   reminder: {
@@ -709,6 +777,13 @@ const ACTIONS = {
     run: (id, fd) => addEvent(id, { kind: 'reminder', body: fd.get('note').trim(), due_date: fd.get('date'), done: false })
   }
 };
+
+function skodDescription(c) {
+  const out = state.events.filter((e) => e.kind === 'outgoing').slice(-1)[0];
+  const done = out ? ` — ${(DOC_KIND[out.doc_kind] || 'документ').toLowerCase()}${out.doc_no ? ' № ' + out.doc_no : ''}${out.addressee ? ' → ' + out.addressee : ''}`
+    : (c.out_no ? ` — лист вих. № ${c.out_no}` : '');
+  return `${c.in_no ? 'Вх. № ' + c.in_no + ': ' : ''}${c.subject}${done}`;
+}
 
 function openAction(name) {
   const c = state.cases.find((x) => x.id === state.openId);
@@ -903,6 +978,7 @@ function wireStatic() {
     await a.run(state.openId, fd);
     openCase(state.openId, true);       // поля картки (строк, етап, вих. №) — свіжі
     toast('Записано в історію справи');
+    if (state.followUp) { const next = state.followUp; state.followUp = null; setTimeout(() => openAction(next), 250); }
   });
   // Нагадування: позначити виконаним прямо в історії
   $('spFeed').addEventListener('change', (e) => {
