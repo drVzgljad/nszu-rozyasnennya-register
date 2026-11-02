@@ -71,9 +71,10 @@ Supabase, міграції `../migration_2026-11-02_dept_cases.sql` і `../migra
   а позначає в «Стан АСКОД».
 
 Щоденно — само: один раз `python tools/spravy_sync.py --login` (пароль вводить власник; зберігається
-refresh-токен, зашифрований DPAPI Windows, у `%LOCALAPPDATA%\pmg\`), далі завдання планувальника
-`PMG_Spravy_Sync` запускає `tools/spravy_sync_hidden.vbs` → `spravy_sync.py --auto`. Підсумок —
-у `%LOCALAPPDATA%\pmg\spravy_sync.log`; «потрібен --login» там означає, що вхід треба повторити.
+refresh-токен, зашифрований DPAPI Windows, у `~/.pmg/`), далі завдання планувальника `PMG_Spravy_Sync`
+(будні, 09:30) запускає `pythonw tools/spravy_sync.py --auto`. Підсумок — у `~/.pmg/spravy_sync.log`;
+«потрібен --login» там означає, що вхід треба повторити. Не `%LOCALAPPDATA%`: термінал Claude Desktop
+працює в пакеті, і Windows перенаправила б туди AppData — планувальник токена не побачив би.
 
 ```
 python tools/spravy_sync.py            # холостий прогін
