@@ -3352,3 +3352,57 @@ body.status-nag-open { overflow: hidden; }
   }
   .nag-mode .status-options-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Хтось у голосі департаменту: кнопка «Чат департаменту» повільно «дихає» ──
+   Клас .pmg-voice-live на <html> ставить auth-v2.js (watchDeptVoice) — лише якщо
+   в 'voice:all' хтось є і в чаті не знято галочку «Підсвічувати…». Без руху
+   (prefers-reduced-motion) — лише зелена крапка. */
+:root {
+  --pmg-voice-a: #eef8f1;
+  --pmg-voice-b: #bfead0;
+  --pmg-voice-ring: rgba(47, 158, 107, 0.45);
+  --pmg-voice-dot: #2f9e6b;
+}
+:root.dark-theme {
+  --pmg-voice-a: rgba(74, 222, 128, 0.08);
+  --pmg-voice-b: rgba(74, 222, 128, 0.30);
+  --pmg-voice-ring: rgba(74, 222, 128, 0.45);
+  --pmg-voice-dot: #4ade80;
+}
+@keyframes pmg-voice-breathe {
+  0%, 100% { background-color: var(--pmg-voice-a); box-shadow: 0 0 0 0 transparent; }
+  50% { background-color: var(--pmg-voice-b); box-shadow: 0 0 0 4px var(--pmg-voice-ring); }
+}
+@keyframes pmg-voice-breathe-ink {
+  0%, 100% { color: var(--muted, #647688); }
+  50% { color: var(--pmg-voice-dot); }
+}
+.pmg-voice-live #auth-chat-btn,
+.pmg-voice-live .nav-chat-btn:not(.active) {
+  position: relative;
+  border-color: var(--pmg-voice-dot) !important;
+  animation: pmg-voice-breathe 3s ease-in-out infinite;
+}
+.pmg-voice-live #mobile-tabbar a.mtab[href*="zviazok/"] {
+  position: relative;
+  animation: pmg-voice-breathe-ink 3s ease-in-out infinite;
+}
+.pmg-voice-live #auth-chat-btn::after,
+.pmg-voice-live .nav-chat-btn:not(.active)::after,
+.pmg-voice-live #mobile-tabbar a.mtab[href*="zviazok/"]::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--pmg-voice-dot);
+  box-shadow: 0 0 0 2px var(--surface, #fff);
+}
+.pmg-voice-live #mobile-tabbar a.mtab[href*="zviazok/"]::after { top: 7px; right: calc(50% - 16px); }
+@media (prefers-reduced-motion: reduce) {
+  .pmg-voice-live #auth-chat-btn,
+  .pmg-voice-live .nav-chat-btn:not(.active),
+  .pmg-voice-live #mobile-tabbar a.mtab[href*="zviazok/"] { animation: none; }
+}

@@ -195,7 +195,7 @@ function skeleton() {
         <textarea rows="1" placeholder="Повідомлення відділу… Enter — надіслати, Shift+Enter — новий рядок" aria-label="Повідомлення"></textarea>
         <button type="submit" class="spv-btn spv-join">Надіслати</button>
       </form>
-      <div class="spc-foot">Ті самі повідомлення — у розділі <a href="../zviazok/">Чат департаменту</a>, кімната відділу.</div>
+      <div class="spc-foot"></div>
       <div class="spc-drop" hidden>Відпустіть, щоб надіслати файл</div>
     </div>`;
 }
@@ -286,7 +286,10 @@ function renderHead() {
   q('.spc-last').textContent = !c.open && last ? `${shortName(last.user_name)}: ${preview(last.message_text)}` : '';
   const all = c.dept === ALL;
   q('.spc-title').textContent = all ? '💬 Чат департаменту' : '💬 Чат відділу';
-  q('.spc-foot').innerHTML = `Ті самі повідомлення — у розділі <a href="../zviazok/">Чат департаменту</a>, ${all ? 'головна стрічка «Робочий чат департаменту»' : 'кімната відділу'}.`;
+  // «Чат департаменту» з 03.11.2026 показує лише головну стрічку: чат відділу живе тільки тут
+  q('.spc-foot').innerHTML = all
+    ? 'Ті самі повідомлення — у розділі <a href="../zviazok/">Чат департаменту</a>.'
+    : 'Чат відділу — лише тут, у «Справах». Спільна розмова — <a href="../zviazok/">Чат департаменту</a>.';
   c.root.setAttribute('aria-label', all ? 'Чат департаменту' : 'Чат відділу');
 }
 

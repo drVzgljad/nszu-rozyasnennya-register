@@ -551,7 +551,7 @@ function applyAccess() {
     const tailItems = [
       { text: '📡 Інфоцентр', path: 'infocenter/index.html', role: 'expert' },
       { text: 'Структура Департаменту', path: 'dept-tree.html', role: 'expert' },
-      // Чат департаменту (zviazok/): текст і голос у кожній кімнаті. З 03.11.2026
+      // Чат департаменту (zviazok/): одна стрічка департаменту, текст і голос. З 03.11.2026
       // замінив старий chat/ — той лишився перенаправленням сюди.
       { text: 'Чат департаменту', path: 'zviazok/index.html', isChat: true, role: 'expert' }
     ];
@@ -1647,6 +1647,7 @@ async function init() {
   applyAccess();
 
   trackGlobalPresence();
+  watchDeptVoice();
   setupNewsRealtime();
   setupTasksRealtime();
   startMeetingReminders();
@@ -1667,6 +1668,7 @@ async function init() {
     saveBoot();
     applyAccess();
     trackGlobalPresence();
+    watchDeptVoice();
     setupNewsRealtime();
     setupTasksRealtime();
     startMeetingReminders();
@@ -1744,6 +1746,48 @@ async function renderAlertBanner(alertBanner, prefix) {
     alertBanner.style.display = 'none';
   }
 }
+
+/* ── «Хтось у голосі департаменту» → кнопка «Чат департаменту» повільно «дихає» ──
+   Дивимось присутність каналу голосу 'voice:all' (той самий, що в чаті й у «Справах»
+   → «Департамент»), нічого в ньому не оголошуючи: нас там не видно й не чути.
+   Канал відкритий міграцією 03b, тож 03d для цього не потрібна.
+   На сторінках чату й «Справ» канал тримає сам рушій голосу (zviazok/voice.js):
+   другий такий канал із того самого клієнта Realtime закрив би перший — там не дивимось.
+   Галочка «Підсвічувати…» в колонці «У мережі» чату — localStorage 'pmg-voice-glow'. */
+let deptVoiceChannel = null;
+let deptVoiceFor = null;
+let deptVoiceCount = 0;
+
+function watchDeptVoice() {
+  const uid = user && hasAccess('expert') ? user.id : null;
+  if (uid && uid === deptVoiceFor && deptVoiceChannel) return; // оновлення токена — канал той самий
+  if (deptVoiceChannel) { sb.removeChannel(deptVoiceChannel); deptVoiceChannel = null; }
+  deptVoiceFor = uid;
+  setDeptVoiceGlow(0);
+  const path = window.location.pathname.toLowerCase();
+  if (!uid || path.includes('/zviazok/') || path.includes('/spravy/')) return;
+  const ch = sb.channel('voice:all', { config: { private: true } });
+  deptVoiceChannel = ch;
+  ch.on('presence', { event: 'sync' }, () => {
+    if (ch !== deptVoiceChannel) return;
+    // Одна людина з двома вкладками — один учасник
+    const uids = new Set(Object.values(ch.presenceState() || {}).map((a) => a?.[a.length - 1]?.uid).filter(Boolean));
+    setDeptVoiceGlow(uids.size);
+  }).subscribe();
+}
+
+function setDeptVoiceGlow(n) {
+  deptVoiceCount = n;
+  let on = n > 0;
+  try { if (localStorage.getItem('pmg-voice-glow') === '0') on = false; } catch (_) { /* приватний режим */ }
+  document.documentElement.classList.toggle('pmg-voice-live', on);
+  document.querySelectorAll('#auth-chat-btn, .nav-chat-btn, #mobile-tabbar a[href*="zviazok/"]').forEach((el) => {
+    if (on) el.title = `Зараз у голосі департаменту: ${n}. Відкрити чат`;
+    else el.removeAttribute('title');
+  });
+}
+// Галочку перемкнули в чаті (інша вкладка) — одразу тут
+window.addEventListener('storage', (e) => { if (e.key === 'pmg-voice-glow') setDeptVoiceGlow(deptVoiceCount); });
 
 let globalPresenceChannel = null;
 

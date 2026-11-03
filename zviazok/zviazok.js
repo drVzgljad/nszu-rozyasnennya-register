@@ -1,51 +1,55 @@
 /**
- * «Чат департаменту» — текст і голос у кожній кімнаті (замість старого chat/).
+ * «Чат департаменту» — одна розмова на весь департамент: текст і голос.
  *
- * Дані — ті самі таблиці, що й у старому чаті, тож уся історія на місці:
- *   chat_messages  — повідомлення: головна стрічка (room_id і recipient_id порожні),
- *                    кімната (room_id), особистий діалог (recipient_id);
- *   chat_rooms     — кімнати: відкриті (is_public, з категорією) і закриті (member_ids);
- *   chat_reactions — реакції; chat_pings — «покличи в голос».
- * Ті самі повідомлення видно й у «Справах відділу» (spravy/room-chat.js): кімната
- * відділу і головна стрічка — одна розмова, а не копія. Формат файлового
- * повідомлення спільний: `📎 [Файл: назва (розмір)](URL сховища)`, бакет приватний.
+ * З 03.11.2026 (рішення власника) — лише головна стрічка «Робочий чат департаменту».
+ * Кімнати й особисті діалоги з інтерфейсу прибрано: чати відділів живуть у «Справах»
+ * (spravy/room-chat.js), а тут — максимально просто: стрічка, «У мережі» і одна
+ * кнопка «🎙 Голос». Рядки кімнат і діалогів у базі лишилися, їх ніхто не видаляв.
  *
- * Голос — voice.js (WebRTC + Cloudflare TURN, той самий механізм, що в «Справах»).
- * Хто в голосі якої відкритої кімнати — канал присутності 'voice:lobby'.
- * Хто взагалі в мережі — присутність порталу, яку веде auth-v2.js (подія pmg:presence).
+ * Дані — ті самі таблиці, що й у старому чаті:
+ *   chat_messages  — головна стрічка = room_id і recipient_id порожні;
+ *   chat_reactions — реакції.
+ * Ту саму стрічку видно й у «Справах» → кімната «Департамент» (spravy/room-chat.js):
+ * одна розмова, а не копія. Формат файлового повідомлення спільний:
+ * `📎 [Файл: назва (розмір)](URL сховища)`, бакет приватний.
+ *
+ * Голос — voice.js, канал 'voice:all' (той самий, що «Департамент» у «Справах»).
+ * На сторінці канал відкрито в режимі «лише дивлюся»: видно, хто в голосі, тебе — ні.
+ * «🎙 Голос» = зайти й одразу говорити (мікрофон умикаємо, бо це свідома дія);
+ * ще раз — вийти. Звук входу/виходу колег дає рушій.
+ *
+ * Галочка в «У мережі» (localStorage 'pmg-voice-glow') — чи «дихає» кнопка
+ * «Чат департаменту» на інших сторінках порталу, коли хтось у голосі (auth-v2.js).
  *
  * Права — RLS (schema.sql, migration_2026-07-23c_chat_channels.sql,
  * migration_2026-11-03d_chat_voice_rooms.sql): читати й писати — співробітники,
- * змінювати й видаляти — своє; кімнату — творець або адмін/директор; закріплювати —
- * функція chat_set_pin. Без міграції 03d сторінка працює, лише без відповідей,
- * позначки «змінено» і голосу в кімнатах — і каже про це, а не мовчить.
+ * змінювати й видаляти — своє; закріплювати — функція chat_set_pin. Голос головної
+ * стрічки відкритий уже міграцією 03b. Без 03d сторінка працює, лише без відповідей
+ * (вони стають цитатою в тексті) і позначки «змінено».
  *
  * ?demo=1 — демо без бази (вигадані люди й повідомлення) для перевірки вигляду.
- * ?c=main | room:<uuid> | dm:<uuid> — відкрити розмову. ?mode=popup — плаваюче вікно.
+ * ?mode=popup — плаваюче вікно.
  */
 
-import { createVoice, voiceTopic, MANY } from './voice.js?v=20261103e';
+import { createVoice, MANY } from './voice.js?v=20261103e';
 import { QUICK, buildPicker, emojiOnly } from './emoji.js?v=20261103a';
 
 const QS = new URLSearchParams(location.search);
 const DEMO = QS.get('demo') === '1';
 const POPUP = QS.get('mode') === 'popup';
-const PAGE = 500;              // скільки останніх повідомлень (усіх розмов) беремо на старті
-const OLDER = 100;             // догрузка «раніші» в одній розмові
+const TOPIC = 'voice:all';
+const TITLE = 'Робочий чат департаменту';
+const PAGE = 300;              // скільки останніх повідомлень беремо на старті
+const OLDER = 100;             // догрузка «раніші»
 const FILE_LIMIT = 10 * 1024 * 1024;
 const BUCKET = 'chat-attachments';
 const FILE_RE = /^📎 \[Файл:\s*([^\]]+)\]\(([^)]+)\)/;
 const STORAGE_RE = /\/storage\/v1\/object\/public\/([^/]+)\/([^?]+)/;
 const IMG_EXT = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-const CATS = ['📢 Загальне', '📁 Відділи', '📋 Робота', '❓ Взаємодія', '☕ Позаробоче'];
 const LEADERS = ['manager', 'deputy_director', 'director', 'admin'];
-const ROOM_ADMINS = ['admin', 'director'];   // так у RLS chat_rooms (update/delete)
-const ROOM_ICONS = ['💬', '📋', '📦', '⚖️', '📊', '🩺', '🧪', '💊', '🏥', '🎯', '💡', '🛠️', '📣', '🤝', '☕', '🌿', '🔬', '🗂️'];
 const LS_READ = 'zv-read';
-const LS_MUTE = 'zv-muted';
 const LS_NOTIF = 'chat_notifications_enabled'; // ключ старого чату — щоб вимкнене лишилося вимкненим
-const LS_LAST = 'zv-last';
-const LS_FOLD = 'zv-fold';
+const LS_GLOW = 'pmg-voice-glow';              // '0' — не підсвічувати кнопку чату (читає auth-v2.js)
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -55,32 +59,25 @@ const initials = (n) => (n || '').split(/\s+/).filter(Boolean).slice(0, 2).map((
 const shortName = (n) => { const p = (n || '').split(/\s+/).filter(Boolean); return p.length > 1 ? `${p[0]} ${p[1][0]}.` : (p[0] || 'Колега'); };
 const hhmm = (d) => d.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
 const missingCol = (e) => e && (e.code === '42703' || e.code === 'PGRST204' || /column|schema cache/i.test(e.message || ''));
+const isMain = (m) => !m.room_id && !m.recipient_id;
+const wide = () => matchMedia('(min-width: 981px)').matches && !POPUP;
 
 const S = {
   sb: null,
   me: null,
   name: '',
   role: 'expert',
-  dept: '',
-  rooms: [],
-  people: [],             // співробітники (profiles без гостей) — для діалогів і учасників
-  msgs: [],               // усі завантажені повідомлення, за часом
+  msgs: [],               // повідомлення головної стрічки, за часом
   byId: new Map(),
   rx: new Map(),          // id повідомлення → [реакції]
   rxMsg: new Map(),       // id реакції → id повідомлення (DELETE з Realtime несе лише id)
-  chan: { kind: 'main' },
   read: lsGet(LS_READ, null),
-  muted: new Set(lsGet(LS_MUTE, [])),
-  fold: new Set(lsGet(LS_FOLD, [])),
   online: new Map(),      // uid → ім'я
-  lobby: new Map(),       // канал голосу → [{ uid, name, muted }]
-  lobbyCh: null,
-  lobbyKey: crypto.randomUUID().slice(0, 12),
   editing: null,
   replyTo: null,
   hasReply: true,         // чи є колонки міграції 03d (з'ясовується з першої помилки)
   hasEdited: true,
-  exhausted: new Set(),   // розмови, де раніших повідомлень уже немає
+  exhausted: false,       // раніших повідомлень уже немає
   voice: null,
   vs: null,               // стан голосу (знімок із voice.js)
   pinsOpen: false,
@@ -88,85 +85,35 @@ const S = {
   dbStatus: 'connecting',
   signed: new Map(),
   pickerFor: null,        // 'input' або id повідомлення (реакція)
-  firstBoot: false
+  busyVoice: false
 };
-
-/* ───────────────────────── розмови ───────────────────────── */
-
-const keyOf = (c) => (c.kind === 'room' ? 'room:' + c.id : c.kind === 'dm' ? 'dm:' + c.uid : 'main');
-function parseKey(k) {
-  if (!k || k === 'main') return { kind: 'main' };
-  const [kind, id] = [k.slice(0, k.indexOf(':')), k.slice(k.indexOf(':') + 1)];
-  if (kind === 'room') return { kind: 'room', id };
-  if (kind === 'dm') return { kind: 'dm', uid: id };
-  return { kind: 'main' };
-}
-function msgKey(m) {
-  if (m.room_id) return 'room:' + m.room_id;
-  if (m.recipient_id) return 'dm:' + (m.user_id === S.me?.id ? m.recipient_id : m.user_id);
-  return 'main';
-}
-const roomOf = (id) => S.rooms.find((r) => r.id === id);
-function nameOf(uid) {
-  if (!uid) return 'Колега';
-  if (uid === S.me?.id) return S.name;
-  const p = S.people.find((x) => x.id === uid);
-  if (p?.full_name) return p.full_name;
-  const m = S.msgs.find((x) => x.user_id === uid && x.user_name);
-  return m?.user_name || S.online.get(uid) || 'Колега';
-}
-function chanInfo(c) {
-  if (c.kind === 'room') {
-    const r = roomOf(c.id);
-    if (!r) return { icon: '#', title: 'Кімната', topic: '' };
-    return { icon: r.is_public ? (r.icon || '#') : '🔒', title: r.name, topic: r.topic || (r.is_public ? '' : `Закрита кімната · ${(r.member_ids || []).length} учасн.`), room: r };
-  }
-  if (c.kind === 'dm') return { icon: '👤', title: nameOf(c.uid), topic: 'Особистий діалог — бачите лише ви двоє' };
-  return { icon: '💬', title: 'Робочий чат департаменту', topic: 'Головна стрічка для всіх співробітників' };
-}
-const msgsOf = (key) => S.msgs.filter((m) => msgKey(m) === key);
-const topicOf = (c) => voiceTopic(c, S.me?.id);
-/** Канал голосу видно в «лобі» лише для відкритих розмов: закрита кімната і діалог — не для всіх очей. */
-const lobbyTopic = (c) => (c.kind === 'main' || (c.kind === 'room' && roomOf(c.id)?.is_public) ? topicOf(c) : null);
 
 /* ───────────────────────── непрочитане ───────────────────────── */
 
-function lastAt(key) {
-  const list = msgsOf(key);
-  return list.length ? list[list.length - 1].created_at : null;
-}
-function unread(key) {
-  const since = S.read?.[key];
-  return S.msgs.filter((m) => msgKey(m) === key && m.user_id !== S.me?.id && (!since || m.created_at > since)).length;
-}
-function markRead(key) {
-  const at = lastAt(key);
-  if (!at || S.read[key] === at) return;
-  S.read[key] = at;
-  lsSet(LS_READ, S.read);
-  renderSide();
+const lastAt = () => S.msgs[S.msgs.length - 1]?.created_at || null;
+const unread = () => S.msgs.filter((m) => m.user_id !== S.me?.id && (!S.read || m.created_at > S.read)).length;
+function markRead() {
+  const at = lastAt();
+  if (!at || S.read === at) return;
+  S.read = at;
+  lsSet(LS_READ, at);
   renderTitle();
 }
 function renderTitle() {
-  const keys = new Set(S.msgs.map(msgKey));
-  let n = 0;
-  keys.forEach((k) => { if (!S.muted.has(k)) n += unread(k); });
+  const n = unread();
   document.title = `${n ? `(${n}) ` : ''}Чат департаменту | НавігаторПМГ26`;
 }
 
 /* ───────────────────────── дані: справжня база ───────────────────────── */
 
+const mainOnly = (q) => q.is('room_id', null).is('recipient_id', null);
+
 const api = {
   async loadAll() {
-    const [rooms, people, msgs] = await Promise.all([
-      S.sb.from('chat_rooms').select('*'),
-      S.sb.from('profiles').select('id, full_name, role, Section').neq('role', 'guest'),
-      S.sb.from('chat_messages').select('*').order('created_at', { ascending: false }).limit(PAGE)
-    ]);
-    if (msgs.error) throw msgs.error;
-    S.rooms = rooms.data || [];
-    S.people = (people.data || []).filter((p) => p.full_name).sort((a, b) => a.full_name.localeCompare(b.full_name, 'uk'));
-    (msgs.data || []).reverse().forEach(addMsg);
+    const { data, error } = await mainOnly(S.sb.from('chat_messages').select('*')).order('created_at', { ascending: false }).limit(PAGE);
+    if (error) throw error;
+    (data || []).reverse().forEach(addMsg);
+    if ((data || []).length < PAGE) S.exhausted = true;
     await api.loadRx(S.msgs.map((m) => m.id));
   },
   async loadRx(ids) {
@@ -175,13 +122,8 @@ const api = {
       (data || []).forEach(addRx);
     }
   },
-  async older(key, before) {
-    const c = parseKey(key);
-    let q = S.sb.from('chat_messages').select('*').lt('created_at', before);
-    if (c.kind === 'room') q = q.eq('room_id', c.id);
-    else if (c.kind === 'dm') q = q.is('room_id', null).or(`and(user_id.eq.${S.me.id},recipient_id.eq.${c.uid}),and(user_id.eq.${c.uid},recipient_id.eq.${S.me.id})`);
-    else q = q.is('room_id', null).is('recipient_id', null);
-    const { data, error } = await q.order('created_at', { ascending: false }).limit(OLDER);
+  async older(before) {
+    const { data, error } = await mainOnly(S.sb.from('chat_messages').select('*').lt('created_at', before)).order('created_at', { ascending: false }).limit(OLDER);
     if (error) throw error;
     (data || []).forEach(addMsg);
     await api.loadRx((data || []).map((m) => m.id));
@@ -238,21 +180,6 @@ const api = {
     }
     throw error;
   },
-  async createRoom(row) {
-    const { data, error } = await S.sb.from('chat_rooms').insert(row).select();
-    if (error) throw error;
-    return data?.[0];
-  },
-  async updateRoom(id, patch) {
-    const { data, error } = await S.sb.from('chat_rooms').update(patch).eq('id', id).select();
-    if (error) throw error;
-    if (!data?.length) throw new Error('змінювати кімнату може її творець або адміністратор');
-    return data[0];
-  },
-  async deleteRoom(id) {
-    const { error } = await S.sb.from('chat_rooms').delete().eq('id', id);
-    if (error) throw error;
-  },
   async upload(file, name) {
     const ext = (name.split('.').pop() || 'bin').toLowerCase();
     const path = `${crypto.randomUUID()}.${ext}`;
@@ -271,24 +198,13 @@ const api = {
     if (!data?.signedUrl) return url;
     S.signed.set(key, { url: data.signedUrl, until: Date.now() + 55 * 60000 });
     return data.signedUrl;
-  },
-  async ping(uids, c, label) {
-    const rows = uids.map((uid) => ({
-      sender_id: S.me.id, sender_name: S.name, recipient_id: uid,
-      room_id: c.kind === 'room' ? c.id : null, room_name: label, note: 'voice|' + keyOf(c)
-    }));
-    const { error } = await S.sb.from('chat_pings').insert(rows);
-    if (error) throw error;
-  },
-  async seen(id) {
-    await S.sb.from('chat_pings').update({ seen: true }).eq('id', id);
   }
 };
 
 /* ───────────────────────── стан повідомлень ───────────────────────── */
 
 function addMsg(m) {
-  if (!m?.id || S.byId.has(m.id)) return false;
+  if (!m?.id || !isMain(m) || S.byId.has(m.id)) return false;
   S.byId.set(m.id, m);
   // Вставляємо на своє місце за часом (догрузка «раніших» приходить зверху)
   let i = S.msgs.length;
@@ -302,10 +218,11 @@ function patchMsg(n) {
   return m;
 }
 function dropMsg(id) {
-  if (!S.byId.has(id)) return;
+  if (!S.byId.has(id)) return false;
   S.byId.delete(id);
   S.msgs = S.msgs.filter((m) => m.id !== id);
   S.rx.delete(id);
+  return true;
 }
 function addRx(r) {
   if (!r?.id || S.rxMsg.has(r.id)) return;
@@ -329,28 +246,18 @@ function subscribe() {
       if (eventType === 'INSERT') {
         if (addMsg(n)) onIncoming(n);
       } else if (eventType === 'UPDATE') {
-        if (patchMsg(n)) refreshFor(msgKey(n));
+        if (patchMsg(n)) renderLog();
       } else if (eventType === 'DELETE') {
-        const m = S.byId.get(o.id);
-        if (!m) return;
-        dropMsg(o.id);
-        refreshFor(msgKey(m));
+        if (dropMsg(o.id)) { renderLog(); renderTitle(); }
       }
     })
     .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_reactions' }, ({ eventType, new: n, old: o }) => {
-      if (eventType === 'INSERT' && S.byId.has(n.message_id)) { addRx(n); refreshFor(msgKey(S.byId.get(n.message_id))); }
-      if (eventType === 'DELETE') { const mid = dropRx(o.id); if (mid && S.byId.has(mid)) refreshFor(msgKey(S.byId.get(mid))); }
+      if (eventType === 'INSERT' && S.byId.has(n.message_id)) { addRx(n); renderLog(); }
+      if (eventType === 'DELETE') { const mid = dropRx(o.id); if (mid && S.byId.has(mid)) renderLog(); }
     })
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_rooms' }, async () => {
-      const { data } = await S.sb.from('chat_rooms').select('*');
-      if (data) S.rooms = data;
-      if (S.chan.kind === 'room' && !roomOf(S.chan.id)) openChan({ kind: 'main' });
-      renderAll();
-    })
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_pings', filter: `recipient_id=eq.${S.me.id}` }, ({ new: p }) => onPing(p))
     .subscribe((status) => {
       S.dbStatus = status === 'SUBSCRIBED' ? 'live' : status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' ? 'error' : 'connecting';
-      renderMe();
+      renderStatus();
       // Після обриву зв'язку могли загубитися повідомлення — дочитуємо пропущене
       if (status === 'SUBSCRIBED' && S.msgs.length) catchUp();
     });
@@ -358,35 +265,28 @@ function subscribe() {
 }
 
 async function catchUp() {
-  const last = S.msgs[S.msgs.length - 1]?.created_at;
+  const last = lastAt();
   if (!last) return;
-  const { data } = await S.sb.from('chat_messages').select('*').gt('created_at', last).order('created_at').limit(200);
+  const { data } = await mainOnly(S.sb.from('chat_messages').select('*').gt('created_at', last)).order('created_at').limit(200);
   let any = false;
   (data || []).forEach((m) => { if (addMsg(m)) any = true; });
-  if (any) renderAll(true);
-}
-
-function refreshFor(key) {
-  if (key === keyOf(S.chan)) renderLog();
-  renderSide();
-  renderTitle();
+  if (any) { renderLog(); renderTitle(); }
 }
 
 function onIncoming(m) {
-  const key = msgKey(m);
-  const here = key === keyOf(S.chan) && !document.hidden && isChatVisible();
-  refreshFor(key);
+  renderLog();
+  renderTitle();
   if (m.user_id === S.me?.id) return;
-  if (here && nearBottom()) { markRead(key); return; }
-  if (S.muted.has(key)) return;
-  // Особисте й головна стрічка — завжди; кімнати — як у старому чаті, теж усі
-  alertIncoming(m, chanInfo(parseKey(key)).title);
+  if (!document.hidden && nearBottom()) { markRead(); return; }
+  sound();
+  notify(m.user_name || 'Колега', preview(m.message_text, 120));
 }
 
 /* ───────────────────────── присутність ───────────────────────── */
 
 /** Хто на порталі — з присутності auth-v2.js (той самий канал, що «в мережі» в шапці). */
 function readPresence(state) {
+  if (DEMO) return; // у демо люди вигадані — справжня присутність їх не перетирає
   S.online = new Map();
   Object.values(state || {}).forEach((arr) => {
     const p = arr?.[0];
@@ -394,75 +294,53 @@ function readPresence(state) {
   });
   if (S.me) S.online.set(S.me.id, S.name);
   renderAside();
-  renderSide();
-}
-
-/** «Лобі» голосу: хто в голосі якої відкритої розмови (для списку кімнат і шапки). */
-function openLobby() {
-  const ch = S.sb.channel('voice:lobby', { config: { private: true, presence: { key: S.lobbyKey } } });
-  S.lobbyCh = ch;
-  ch.on('presence', { event: 'sync' }, () => {
-    S.lobby = new Map();
-    Object.values(ch.presenceState() || {}).forEach((arr) => {
-      const p = arr?.[arr.length - 1];
-      if (!p?.topic) return;
-      if (!S.lobby.has(p.topic)) S.lobby.set(p.topic, []);
-      S.lobby.get(p.topic).push(p);
-    });
-    renderSide();
-    renderVoice();
-  }).subscribe((status) => { if (status === 'SUBSCRIBED') trackLobby(); });
-}
-
-function trackLobby() {
-  if (!S.lobbyCh) return;
-  const vs = S.vs;
-  const c = vs?.chan;
-  const topic = vs && vs.status !== 'idle' && c ? lobbyTopic(c) : null;
-  if (topic) S.lobbyCh.track({ uid: S.me.id, name: S.name, topic, muted: vs.muted }).catch(() => {});
-  else S.lobbyCh.untrack().catch(() => {});
-}
-
-/** Хто в голосі розмови c: якщо ми там — точний список із голосового каналу, інакше — з лобі. */
-function voiceMembers(c) {
-  const t = topicOf(c);
-  if (S.vs?.topic === t) return S.vs.members;
-  const seen = new Set();
-  return (S.lobby.get(t) || []).filter((p) => !seen.has(p.uid) && seen.add(p.uid)).map((p) => ({ ...p, key: p.uid }));
 }
 
 /* ───────────────────────── голос ───────────────────────── */
 
-/** quiet — не кликати співрозмовника в діалозі (уже покликаний). */
-async function joinVoice(c = S.chan, quiet) {
-  const info = chanInfo(c);
-  S.vsChan = c;
-  await S.voice.join(topicOf(c), info.title);
-  // Діалог 1:1 у «лобі» не світимо, тож співрозмовника кличемо напряму (chat_pings)
-  if (c.kind === 'dm' && !DEMO && !quiet) api.ping([c.uid], c, S.name).catch(() => {});
+const inVoice = () => !!(S.vs && S.vs.inRoom && S.vs.status !== 'idle');
+
+/** Хто в голосі: одна людина — один рядок, навіть якщо в неї відкрито дві вкладки. */
+function voicePeople() {
+  const byUid = new Map();
+  (S.vs?.status === 'idle' ? [] : S.vs?.members || []).forEach((m) => {
+    const id = m.uid || m.key;
+    const had = byUid.get(id);
+    if (!had || (m.me && !had.me)) byUid.set(id, m);
+  });
+  return [...byUid.values()].sort((a, b) => (b.me - a.me) || (a.name || '').localeCompare(b.name || '', 'uk'));
+}
+
+/** Одна кнопка: не в голосі — зайти й говорити; у голосі — вийти (лишаємось «дивитися»). */
+async function toggleVoice() {
+  if (S.busyVoice) return;
+  S.busyVoice = true;
+  renderVoice();
+  try {
+    if (inVoice()) {
+      await S.voice.exit();
+    } else {
+      // Канал упав (мережа) — не чекаємо хвилину до повтору, перепідключаємось одразу
+      if (S.voice.state.status === 'error') await S.voice.leave(true);
+      if (!S.voice.topic) await S.voice.join(TOPIC, TITLE);
+      else await S.voice.enter();
+      if (S.voice.state.muted) await S.voice.toggleMic();
+    }
+  } catch (e) {
+    toast('Голос: ' + (e.message || e), true);
+  }
+  S.busyVoice = false;
+  renderVoice();
 }
 
 function onVoice(vs) {
-  S.vs = { ...vs, chan: vs.status === 'idle' ? null : S.vsChan };
-  trackLobby();
+  const n = voicePeople().length;
+  S.vs = vs;
   renderVoice();
-  renderSide();
-  if (vs.members.length >= MANY && vs.status === 'live') toast(`У голосі ${vs.members.length} — пряма схема може не витягнути, звук може рватися.`);
-}
-
-function onPing(p) {
-  if (!p || p.seen) return;
-  const [kind, key] = String(p.note || '').split('|');
-  if (kind !== 'voice') return;
-  const c = parseKey(key === 'dm:' + p.recipient_id ? 'dm:' + p.sender_id : key);
-  const where = c.kind === 'dm' ? 'на розмову' : `у голос «${p.room_name || chanInfo(c).title}»`;
-  sound();
-  notify(`${p.sender_name} кличе ${where}`, 'Натисніть, щоб приєднатися', () => { openChan(c); joinVoice(c); });
-  toast(`📣 ${p.sender_name} кличе ${where}`, false, {
-    label: 'Приєднатися',
-    run: () => { openChan(c); joinVoice(c); }
-  });
-  if (!DEMO) api.seen(p.id).catch(() => {});
+  renderAside();
+  if (vs.inRoom && vs.status === 'live' && vs.members.length >= MANY && n < MANY) {
+    toast(`У голосі ${vs.members.length} — пряма схема може не витягнути, звук може рватися.`);
+  }
 }
 
 /* ───────────────────────── сповіщення ───────────────────────── */
@@ -491,19 +369,13 @@ function sound() {
   } catch (_) { /* без звуку */ }
 }
 
-function notify(title, body, onClick) {
+function notify(title, body) {
   if (!notifOn() || !('Notification' in window) || Notification.permission !== 'granted') return;
   if (!document.hidden && document.hasFocus()) return;
   try {
-    const n = new Notification(title, { body, icon: '../assets/icon-192.png', tag: 'zv-' + title, renotify: true });
-    n.onclick = () => { window.focus(); n.close(); onClick?.(); };
+    const n = new Notification(`${title} · Чат департаменту`, { body, icon: '../assets/icon-192.png', tag: 'zv-main', renotify: true });
+    n.onclick = () => { window.focus(); n.close(); };
   } catch (_) { /* мобільний Chrome вимагає SW для сповіщень — лишається звук */ }
-}
-
-function alertIncoming(m, where) {
-  sound();
-  const c = parseKey(msgKey(m));
-  notify(c.kind === 'dm' ? `${m.user_name}` : `${m.user_name} · ${where}`, preview(m.message_text, 120), () => openChan(c));
 }
 
 async function toggleNotif() {
@@ -518,17 +390,14 @@ async function toggleNotif() {
     lsSet(LS_NOTIF, !notifOn());
     if (notifOn()) sound();
   }
-  renderMe();
+  renderHead();
 }
 
 /* ───────────────────────── дії з повідомленнями ───────────────────────── */
 
-/** Нове повідомлення в поточну розмову (з відповіддю, якщо її вибрано). */
+/** Нове повідомлення (з відповіддю, якщо її вибрано). */
 async function post(text) {
-  const c = S.chan;
   const row = { user_id: S.me.id, user_name: S.name, message_text: text };
-  if (c.kind === 'room') row.room_id = c.id;
-  if (c.kind === 'dm') row.recipient_id = c.uid;
   if (S.replyTo && S.hasReply) row.reply_to = S.replyTo;
   else if (S.replyTo) {
     const src = S.byId.get(S.replyTo);
@@ -538,8 +407,7 @@ async function post(text) {
   if (m) addMsg(m);
   setReply(null);
   renderLog(true);
-  renderSide();
-  markRead(keyOf(c));
+  markRead();
 }
 
 async function send() {
@@ -597,17 +465,12 @@ async function removeMsg(id) {
     await api.remove(id);
     dropMsg(id);
     renderLog();
-    renderSide();
   } catch (e) {
     toast('Не видалено: ' + (e.message || e), true);
   }
 }
 
-const canPin = (m) => {
-  if (m.recipient_id) return false;
-  const r = m.room_id ? roomOf(m.room_id) : null;
-  return m.user_id === S.me.id || LEADERS.includes(S.role) || (r && (r.created_by === S.me.id || !r.is_public));
-};
+const canPin = (m) => m.user_id === S.me.id || LEADERS.includes(S.role);
 
 async function togglePin(id) {
   const m = S.byId.get(id);
@@ -616,7 +479,7 @@ async function togglePin(id) {
     await api.pin(id, !m.is_top);
     m.is_top = !m.is_top;
     renderLog();
-    renderPins();
+    renderHead();
   } catch (e) {
     toast('Не закріплено: ' + (e.message || e), true);
   }
@@ -644,32 +507,14 @@ function setEditing(id) {
   renderBanner();
 }
 
-/* ───────────────────────── перемикання розмов ───────────────────────── */
-
-function openChan(c, fromUrl) {
-  if (c.kind === 'room' && !roomOf(c.id)) c = { kind: 'main' };
-  if (c.kind === 'dm' && c.uid === S.me?.id) c = { kind: 'main' };
-  S.chan = c;
-  S.pinsOpen = false;
-  setEditing(null);
-  setReply(null);
-  lsSet(LS_LAST, keyOf(c));
-  if (!fromUrl && !POPUP) history.replaceState(null, '', `?${DEMO ? 'demo=1&' : ''}c=${encodeURIComponent(keyOf(c))}`);
-  document.body.classList.add('zv-in-chat');
-  renderAll(true);
-  if (nearBottom()) markRead(keyOf(c));
-  if (matchMedia('(min-width: 981px)').matches) $('zvInput').focus({ preventScroll: true });
-}
-
 async function loadOlder() {
-  const key = keyOf(S.chan);
-  const first = msgsOf(key)[0];
+  const first = S.msgs[0];
   if (!first) return;
   const log = $('zvLog');
   const h = log.scrollHeight;
   try {
-    const n = DEMO ? 0 : await api.older(key, first.created_at);
-    if (n < OLDER) S.exhausted.add(key);
+    const n = DEMO ? 0 : await api.older(first.created_at);
+    if (n < OLDER) S.exhausted = true;
   } catch (e) {
     toast('Не вдалося догрузити: ' + (e.message || e), true);
   }
@@ -677,297 +522,100 @@ async function loadOlder() {
   log.scrollTop = log.scrollHeight - h;
 }
 
-/* ───────────────────────── кімнати: створення й налаштування ───────────────────────── */
+/* ───────────────────────── вигляд: шапка й голос ───────────────────────── */
 
-const canManage = (r) => r && (r.created_by === S.me?.id || ROOM_ADMINS.includes(S.role));
-
-function roomDialog(room) {
-  const dlg = $('zvDialog');
-  const isNew = !room;
-  const r = room || { name: '', icon: '💬', category: '📋 Робота', topic: '', is_public: true, member_ids: [S.me.id] };
-  const members = new Set(r.member_ids || []);
-  members.add(S.me.id);
-  dlg.innerHTML = `
-    <form method="dialog" class="zv-form-room">
-      <h2>${isNew ? 'Нова кімната' : 'Налаштування кімнати'}</h2>
-      <p class="zv-dlg-lead">У кожній кімнаті є текст і голос. ${isNew ? 'Створити кімнату може будь-який співробітник.' : ''}</p>
-      <label class="zv-field"><span>Назва</span>
-        <input name="name" required maxlength="60" value="${esc(r.name)}" placeholder="Напр.: Пакет 9 — робоча група"></label>
-      <div class="zv-field"><span>Значок</span>
-        <div class="zv-icons" role="radiogroup" aria-label="Значок кімнати">${ROOM_ICONS.map((i) =>
-          `<label><input type="radio" name="icon" value="${i}" ${i === (r.icon || '💬') ? 'checked' : ''}><span>${i}</span></label>`).join('')}</div></div>
-      <label class="zv-field"><span>Про що кімната <i>(необов'язково)</i></span>
-        <input name="topic" maxlength="140" value="${esc(r.topic || '')}" placeholder="Одним рядком — видно в шапці кімнати"></label>
-      <fieldset class="zv-field zv-vis"><legend>Хто бачить</legend>
-        <label><input type="radio" name="vis" value="public" ${r.is_public ? 'checked' : ''}> <b>Відкрита</b> — увесь департамент</label>
-        <label><input type="radio" name="vis" value="private" ${r.is_public ? '' : 'checked'}> <b>Закрита</b> — лише вибрані люди</label>
-      </fieldset>
-      <label class="zv-field zv-cat"><span>Розділ у списку</span>
-        <select name="category">${CATS.map((c) => `<option ${c === (r.category || '📋 Робота') ? 'selected' : ''}>${c}</option>`).join('')}</select></label>
-      <div class="zv-field zv-members-pick"><span>Учасники <i>(ви — завжди)</i></span>
-        <input type="search" class="zv-people-q" placeholder="Знайти колегу…" aria-label="Пошук колеги">
-        <div class="zv-people">${S.people.filter((p) => p.id !== S.me.id).map((p) =>
-          `<label data-n="${esc(p.full_name.toLowerCase())}"><input type="checkbox" name="m" value="${p.id}" ${members.has(p.id) ? 'checked' : ''}> ${esc(p.full_name)}</label>`).join('') || '<p class="zv-muted">Список колег недоступний.</p>'}</div></div>
-      <div class="zv-dlg-actions">
-        ${!isNew && canManage(room) ? '<button type="button" class="zv-btn zv-danger" data-act="del">Видалити кімнату</button>' : ''}
-        <span class="zv-grow"></span>
-        <button type="button" class="zv-btn" data-act="close">Скасувати</button>
-        <button type="submit" class="zv-btn zv-primary">${isNew ? 'Створити' : 'Зберегти'}</button>
-      </div>
-    </form>`;
-  const form = dlg.querySelector('form');
-  const syncVis = () => {
-    const pub = form.vis.value === 'public';
-    form.querySelector('.zv-cat').hidden = !pub;
-    form.querySelector('.zv-members-pick').hidden = pub;
-  };
-  form.addEventListener('change', syncVis);
-  syncVis();
-  form.querySelector('.zv-people-q').addEventListener('input', (e) => {
-    const s = e.target.value.trim().toLowerCase();
-    form.querySelectorAll('.zv-people label').forEach((l) => { l.hidden = s && !l.dataset.n.includes(s); });
-  });
-  form.addEventListener('click', async (e) => {
-    const a = e.target.closest('[data-act]')?.dataset.act;
-    if (a === 'close') dlg.close();
-    if (a === 'del') {
-      if (!confirm(`Видалити кімнату «${room.name}»? Усі її повідомлення зникнуть назавжди.`)) return;
-      try {
-        await api.deleteRoom(room.id);
-        S.rooms = S.rooms.filter((x) => x.id !== room.id);
-        S.msgs = S.msgs.filter((m) => m.room_id !== room.id);
-        dlg.close();
-        openChan({ kind: 'main' });
-      } catch (err) { toast('Не видалено: ' + (err.message || err), true); }
-    }
-  });
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const pub = form.vis.value === 'public';
-    const row = {
-      name: form.name.value.trim(),
-      icon: form.icon.value || '💬',
-      topic: form.topic.value.trim() || null,
-      is_public: pub,
-      category: pub ? form.category.value : null,
-      member_ids: pub ? (r.member_ids?.length ? r.member_ids : [S.me.id]) : [S.me.id, ...[...form.querySelectorAll('[name=m]:checked')].map((x) => x.value)]
-    };
-    if (!row.name) return;
-    try {
-      let saved;
-      if (isNew) saved = await api.createRoom({ ...row, created_by: S.me.id, sort_order: 100 });
-      else saved = await api.updateRoom(room.id, row);
-      S.rooms = S.rooms.filter((x) => x.id !== saved.id).concat(saved);
-      dlg.close();
-      openChan({ kind: 'room', id: saved.id });
-      toast(isNew ? `Кімнату «${saved.name}» створено.` : 'Збережено.');
-    } catch (err) {
-      toast('Не збережено: ' + (err.message || err), true);
-    }
-  });
-  dlg.showModal();
-  form.name.focus();
+function renderHead() {
+  const pins = S.msgs.filter((m) => m.is_top).length;
+  const pb = $('zvPinsBtn');
+  pb.innerHTML = `📌${pins ? `<span>${pins}</span>` : ''}`;
+  pb.setAttribute('aria-expanded', String(S.pinsOpen));
+  const nb = $('zvNotifBtn');
+  const denied = 'Notification' in window && Notification.permission === 'denied';
+  nb.textContent = notifOn() ? '🔔' : '🔕';
+  nb.setAttribute('aria-pressed', String(notifOn()));
+  nb.title = notifOn()
+    ? `Звук${denied ? '' : ' і сповіщення'} про нові повідомлення увімкнено — вимкнути`
+    : 'Увімкнути звук і сповіщення про нові повідомлення';
+  $('zvPeopleBtn').querySelector('span').textContent = S.online.size || '';
+  $('zvPopupBtn').hidden = POPUP;
+  $('zvInput').placeholder = matchMedia('(max-width: 600px)').matches ? 'Повідомлення…' : 'Повідомлення всьому департаменту…';
 }
 
-/** Новий особистий діалог: вибір колеги. */
-function peopleDialog() {
-  const dlg = $('zvDialog');
-  const list = S.people.filter((p) => p.id !== S.me.id)
-    .sort((a, b) => (S.online.has(b.id) - S.online.has(a.id)) || a.full_name.localeCompare(b.full_name, 'uk'));
-  dlg.innerHTML = `
-    <form method="dialog" class="zv-form-people">
-      <h2>Новий особистий діалог</h2>
-      <p class="zv-dlg-lead">Повідомлення бачите лише ви двоє.</p>
-      <input type="search" class="zv-people-q" placeholder="Знайти колегу…" aria-label="Пошук колеги">
-      <div class="zv-people zv-people-pick">${list.map((p) => `
-        <button type="button" class="zv-person" data-uid="${p.id}" data-n="${esc(p.full_name.toLowerCase())}">
-          <span class="zv-ava" aria-hidden="true">${esc(initials(p.full_name))}</span>
-          <span class="zv-person-name">${esc(p.full_name)}</span>
-          ${S.online.has(p.id) ? '<span class="zv-on" title="у мережі"></span>' : ''}
-        </button>`).join('') || '<p class="zv-muted">Немає кого показати.</p>'}</div>
-      <div class="zv-dlg-actions"><span class="zv-grow"></span><button type="button" class="zv-btn" data-act="close">Скасувати</button></div>
-    </form>`;
-  const form = dlg.querySelector('form');
-  filterPeople(form);
-  form.addEventListener('click', (e) => {
-    if (e.target.closest('[data-act=close]')) return dlg.close();
-    const b = e.target.closest('.zv-person');
-    if (b) { dlg.close(); openChan({ kind: 'dm', uid: b.dataset.uid }); }
-  });
-  dlg.showModal();
-  form.querySelector('.zv-people-q').focus();
-}
-
-function filterPeople(form) {
-  form.querySelector('.zv-people-q').addEventListener('input', (e) => {
-    const s = e.target.value.trim().toLowerCase();
-    form.querySelectorAll('.zv-person').forEach((l) => { l.hidden = s && !l.dataset.n.includes(s); });
-  });
-}
-
-/* ───────────────────────── вигляд: список розмов ───────────────────────── */
-
-function sideItem(c, { icon, title, sub, lock }) {
-  const key = keyOf(c);
-  const n = unread(key);
-  const mute = S.muted.has(key);
-  const active = key === keyOf(S.chan);
-  const vm = voiceMembers(c);
-  return `<li>
-    <button type="button" class="zv-item${active ? ' is-active' : ''}${n && !mute ? ' is-unread' : ''}" data-key="${esc(key)}"${active ? ' aria-current="true"' : ''}>
-      <span class="zv-item-ico" aria-hidden="true">${esc(icon)}</span>
-      <span class="zv-item-name">${esc(title)}${lock ? ' <i class="zv-lock" title="Закрита кімната">🔒</i>' : ''}</span>
-      ${sub ? `<span class="zv-item-sub">${sub}</span>` : ''}
-      ${vm.length ? `<span class="zv-item-voice" title="У голосі: ${esc(vm.map((m) => m.name).join(', '))}">🔊 ${vm.length}</span>` : ''}
-      ${mute ? '<span class="zv-item-mute" title="Сповіщення вимкнено">🔕</span>' : n ? `<span class="zv-badge" aria-label="непрочитаних: ${n}">${n > 99 ? '99+' : n}</span>` : ''}
-    </button>
-    ${vm.length ? `<ul class="zv-item-people" aria-label="У голосі">${vm.slice(0, 6).map((m) =>
-      `<li data-vk="${esc(m.key)}"><span class="zv-ava zv-ava-xs" aria-hidden="true">${esc(initials(m.name))}</span>${esc(shortName(m.name))}${m.muted ? ' <i aria-label="мікрофон вимкнено">🔇</i>' : ''}</li>`).join('')}${vm.length > 6 ? `<li class="zv-muted">ще ${vm.length - 6}</li>` : ''}</ul>` : ''}
+/** Учасник голосу — однаково і в колонці, і в смузі на телефоні. */
+function vpHtml(m) {
+  const state = m.deaf ? 'звук вимкнено' : m.muted ? 'мікрофон вимкнено' : 'мікрофон увімкнено';
+  const link = m.state === 'bad' ? ' · немає з\'єднання' : m.state === 'wait' ? ' · з\'єднуємо…' : '';
+  return `<li class="zv-vp${m.muted ? ' is-muted' : ''}${m.state === 'bad' ? ' is-bad' : ''}${m.state === 'wait' ? ' is-wait' : ''}" data-vk="${esc(m.key)}" title="${esc(m.name)}${m.me ? ' (ви)' : ''} — ${state}${inVoice() ? link : ''}">
+    <span class="zv-ava" aria-hidden="true">${esc(initials(m.name))}</span>
+    <span class="zv-vp-name">${esc(m.name || 'Колега')}${m.me ? ' <i>(ви)</i>' : ''}</span>
+    <span class="zv-vp-st">${m.deaf ? '<span aria-label="звук вимкнено">🔕</span>' : m.muted ? '<span aria-label="мікрофон вимкнено">🔇</span>' : '<span aria-label="мікрофон увімкнено">🎙</span>'}${inVoice() && m.state === 'bad' ? '<span aria-label="немає з\'єднання">⚠</span>' : ''}</span>
   </li>`;
 }
 
-function renderSide() {
-  const box = $('zvList');
-  if (!box || !S.me) return;
-  const q = ($('zvFilter')?.value || '').trim().toLowerCase();
-  const hit = (t) => !q || t.toLowerCase().includes(q);
-  const myDept = (S.dept || '').toLowerCase();
-  let html = '';
-  // Головна стрічка — перша, як «Загальний» у старому чаті
-  if (hit('Робочий чат департаменту загальний')) {
-    html += `<ul class="zv-group">${sideItem({ kind: 'main' }, { icon: '💬', title: 'Робочий чат департаменту' })}</ul>`;
-  }
-
-  // Відкриті кімнати за категоріями. Відкрита «Загальний» — порожній дублікат головної стрічки
-  const pub = S.rooms.filter((r) => r.is_public && r.name !== 'Загальний');
-  const byCat = {};
-  pub.forEach((r) => { const c = CATS.includes(r.category) ? r.category : '📋 Робота'; (byCat[c] = byCat[c] || []).push(r); });
-  CATS.forEach((cat) => {
-    const list = (byCat[cat] || []).filter((r) => hit(r.name)).sort((a, b) => (a.sort_order ?? 100) - (b.sort_order ?? 100) || a.name.localeCompare(b.name, 'uk'));
-    if (!list.length) return;
-    const folded = S.fold.has(cat) && !q;
-    html += `<div class="zv-cat-head"><button type="button" data-fold="${esc(cat)}" aria-expanded="${!folded}">${esc(cat)}<span aria-hidden="true">${folded ? '▸' : '▾'}</span></button></div>`;
-    if (!folded) {
-      html += `<ul class="zv-group">${list.map((r) => sideItem({ kind: 'room', id: r.id }, {
-        icon: r.icon || '#', title: r.name, sub: r.dept && myDept && r.dept.toLowerCase() === myDept ? '<b class="zv-mine" title="Ваш відділ">● ваш відділ</b>' : ''
-      })).join('')}</ul>`;
-    }
-  });
-
-  // Закриті кімнати й особисті діалоги
-  const priv = S.rooms.filter((r) => !r.is_public && hit(r.name));
-  const dms = new Map();
-  S.msgs.forEach((m) => {
-    if (m.room_id || !m.recipient_id) return;
-    const other = m.user_id === S.me.id ? m.recipient_id : m.user_id;
-    if (other !== S.me.id) dms.set(other, m.created_at);
-  });
-  if (S.chan.kind === 'dm' && !dms.has(S.chan.uid)) dms.set(S.chan.uid, '');
-  const dmList = [...dms.entries()].sort((a, b) => (b[1] || '').localeCompare(a[1] || '')).map(([uid]) => uid).filter((uid) => hit(nameOf(uid)));
-  html += `<div class="zv-cat-head"><span>👤 Особисті</span><button type="button" class="zv-mini" data-act="new-dm" title="Новий особистий діалог" aria-label="Новий особистий діалог">＋</button></div>`;
-  html += `<ul class="zv-group">${priv.map((r) => sideItem({ kind: 'room', id: r.id }, { icon: r.icon || '👥', title: r.name, lock: true })).join('')}${
-    dmList.map((uid) => sideItem({ kind: 'dm', uid }, { icon: S.online.has(uid) ? '🟢' : '👤', title: nameOf(uid) })).join('')}</ul>`;
-  if (!priv.length && !dmList.length) html += '<p class="zv-side-empty">Натисніть ＋ або на колегу в списку «У мережі», щоб написати особисто.</p>';
-  box.innerHTML = html;
-}
-
-/* ───────────────────────── вигляд: шапка, голос, закріплене ───────────────────────── */
-
-function renderHead() {
-  const c = S.chan;
-  const info = chanInfo(c);
-  const pins = msgsOf(keyOf(c)).filter((m) => m.is_top).length;
-  const inHere = S.vs?.topic === topicOf(c) && S.vs.status !== 'idle';
-  const vm = voiceMembers(c);
-  $('zvHeadIco').textContent = info.icon;
-  $('zvHeadTitle').textContent = info.title;
-  $('zvHeadTopic').textContent = info.topic || '';
-  $('zvHeadTopic').hidden = !info.topic;
-  const vb = $('zvVoiceBtn');
-  vb.classList.toggle('is-on', inHere);
-  vb.setAttribute('aria-pressed', String(inHere));
-  vb.innerHTML = inHere ? '🔊 <span>У голосі</span>' : `🎙 <span>Голос${vm.length ? ` · ${vm.length}` : ''}</span>`;
-  vb.title = inHere ? 'Ви в голосі цієї розмови' : c.kind === 'dm' ? 'Голосова розмова з колегою' : 'Приєднатися до голосу цієї кімнати';
-  const pb = $('zvPinsBtn');
-  pb.hidden = c.kind === 'dm';
-  pb.innerHTML = `📌${pins ? `<span>${pins}</span>` : ''}`;
-  pb.setAttribute('aria-expanded', String(S.pinsOpen));
-  $('zvSettingsBtn').hidden = !(c.kind === 'room' && canManage(roomOf(c.id)));
-  const key = keyOf(c);
-  const mb = $('zvMuteBtn');
-  mb.textContent = S.muted.has(key) ? '🔕' : '🔔';
-  mb.title = S.muted.has(key) ? 'Сповіщення з цієї розмови вимкнено — увімкнути' : 'Вимкнути сповіщення з цієї розмови';
-  mb.setAttribute('aria-pressed', String(S.muted.has(key)));
-  $('zvPopupBtn').hidden = POPUP;
-  const ta = $('zvInput');
-  // На телефоні довгий підпис переноситься й вилазить за однорядкове поле
-  ta.placeholder = matchMedia('(max-width: 600px)').matches ? 'Повідомлення…' : c.kind === 'dm' ? `Повідомлення для ${shortName(info.title)}…` : c.kind === 'room' ? `Повідомлення в «${info.title}»…` : 'Повідомлення всьому департаменту…';
-}
-
-function voiceBtns(compact) {
+function ctlHtml() {
   const vs = S.vs;
-  return `<button type="button" class="zv-btn zv-vbtn${vs.muted ? '' : ' is-on'}" data-act="mic" aria-pressed="${!vs.muted}" title="${vs.muted ? 'Увімкнути мікрофон — вас почують' : 'Вимкнути мікрофон'}">${vs.muted ? '🎙' : '🎙'}${compact ? '' : `<span>${vs.muted ? 'Говорити' : 'Мікрофон увімк.'}</span>`}</button>
-    <button type="button" class="zv-btn zv-vbtn${vs.deaf ? ' is-off' : ''}" data-act="deaf" aria-pressed="${vs.deaf}" title="${vs.deaf ? 'Увімкнути звук' : 'Вимкнути звук (і мікрофон)'}">${vs.deaf ? '🔕' : '🎧'}</button>
-    <button type="button" class="zv-btn zv-vbtn zv-leave" data-act="leave-voice" title="Вийти з голосу">✕${compact ? '' : '<span>Вийти</span>'}</button>`;
+  return `<div class="zv-vctl">
+    <button type="button" class="zv-btn zv-vbtn${vs.muted ? '' : ' is-on'}" data-act="mic" aria-pressed="${!vs.muted}" title="${vs.muted ? 'Увімкнути мікрофон' : 'Вимкнути мікрофон — вас не чутимуть'}">${vs.muted ? '🔇' : '🎙'}<span>${vs.muted ? 'Мікрофон вимк.' : 'Мікрофон'}</span></button>
+    <button type="button" class="zv-btn zv-vbtn${vs.deaf ? ' is-off' : ''}" data-act="deaf" aria-pressed="${vs.deaf}" title="${vs.deaf ? 'Увімкнути звук' : 'Вимкнути звук (і мікрофон)'}">${vs.deaf ? '🔕' : '🎧'}<span>${vs.deaf ? 'Звук вимк.' : 'Звук'}</span></button>
+  </div>`;
+}
+
+function voiceNote() {
+  const vs = S.vs;
+  if (!vs) return '';
+  if (vs.status === 'error') return `<p class="zv-vnote is-bad">${esc(vs.error)}</p>`;
+  if (inVoice() && vs.status === 'joining') return '<p class="zv-vnote">Заходимо в голос…</p>';
+  if (inVoice() && voicePeople().length < 2) return '<p class="zv-vnote">Поки що ви тут самі — колеги почують сигнал, коли зайдуть.</p>';
+  return '';
 }
 
 function renderVoice() {
-  renderHead();
-  const c = S.chan;
+  const people = voicePeople();
+  const on = inVoice();
+  const n = people.length;
+
+  // Велика кнопка в шапці
+  const vb = $('zvVoiceBtn');
+  vb.classList.toggle('is-on', on);
+  vb.classList.toggle('has-people', !on && n > 0);
+  vb.setAttribute('aria-pressed', String(on));
+  vb.disabled = S.busyVoice;
+  vb.innerHTML = S.busyVoice
+    ? '⏳ <span>Зачекайте…</span>'
+    : on ? '📴 <span>Вийти з голосу</span>' : `🎙 <span>Голос</span>${n ? `<b class="zv-vcount">${n}</b>` : ''}`;
+  vb.title = on ? 'Ви в ефірі. Натисніть, щоб вийти з голосу' : n ? `Зараз у голосі: ${n}. Натисніть — і ви в ефірі` : 'Натисніть — і ви в ефірі (мікрофон увімкнеться)';
+
+  // Блок «Хто в голосі» вгорі колонки
+  const box = $('zvVoiceBox');
+  box.classList.toggle('is-live', n > 0);
+  box.classList.toggle('is-in', on);
+  box.innerHTML = `
+    <h2><span class="zv-dot${n ? ' is-live' : ''}" aria-hidden="true"></span>У голосі${n ? ` · ${n}` : ''}</h2>
+    ${n ? `<ul class="zv-vpeople" aria-label="Хто в голосі">${people.map(vpHtml).join('')}</ul>` : '<p class="zv-vnote">Зараз у голосі нікого. Натисніть «🎙 Голос» — і ви в ефірі.</p>'}
+    ${voiceNote()}
+    ${on && S.vs.needGesture ? '<button type="button" class="zv-btn" data-act="sound">🔊 Натисніть, щоб чути колег</button>' : ''}
+    ${on ? ctlHtml() : ''}`;
+
+  // Смуга під шапкою — на вузькому екрані, де колонка «У мережі» висувна
   const strip = $('zvStrip');
-  const vs = S.vs;
-  const inHere = vs && vs.status !== 'idle' && vs.topic === topicOf(c);
-  const vm = voiceMembers(c);
-  if (inHere) {
-    const people = vs.members.slice().sort((a, b) => (b.me - a.me) || (a.name || '').localeCompare(b.name || '', 'uk'));
+  if (!wide() && (on || n)) {
     strip.hidden = false;
-    strip.innerHTML = `
-      <ul class="zv-vpeople" aria-label="У голосі">${people.map((m) => `
-        <li class="zv-vp${m.muted ? ' is-muted' : ''}${m.state === 'bad' ? ' is-bad' : ''}${m.state === 'wait' ? ' is-wait' : ''}" data-vk="${esc(m.key)}"
-            title="${esc(m.name)}${m.me ? ' (ви)' : ''} — ${m.deaf ? 'звук вимкнено' : m.muted ? 'мікрофон вимкнено' : 'говорить'}${m.state === 'bad' ? ' · немає з\'єднання' : m.state === 'wait' ? ' · з\'єднуємо…' : ''}">
-          <span class="zv-ava" aria-hidden="true">${esc(initials(m.name))}</span>
-          <span class="zv-vp-name">${esc(shortName(m.name))}${m.me ? ' <i>(ви)</i>' : ''}</span>
-          ${m.deaf ? '<span aria-label="звук вимкнено">🔕</span>' : m.muted ? '<span aria-label="мікрофон вимкнено">🔇</span>' : ''}${m.state === 'bad' ? '<span aria-label="немає з\'єднання">⚠</span>' : ''}
-        </li>`).join('')}</ul>
-      ${vs.status === 'joining' ? '<p class="zv-vnote">Заходимо в голос…</p>' : ''}
-      ${vs.status === 'error' ? `<p class="zv-vnote is-bad">${esc(vs.error)}</p>` : ''}
-      ${vs.status === 'live' && people.length < 2 ? `<p class="zv-vnote">Поки що ви тут самі. ${c.kind === 'dm' ? 'Колезі надіслано запрошення.' : ''}</p>` : ''}
-      ${vs.needGesture ? '<button type="button" class="zv-btn" data-act="sound">🔊 Натисніть, щоб чути колег</button>' : ''}
-      <div class="zv-vctl">${voiceBtns(false)}</div>`;
-  } else if (vm.length) {
-    strip.hidden = false;
-    strip.innerHTML = `
-      <ul class="zv-vpeople is-peek" aria-label="Зараз у голосі">${vm.map((m) => `
-        <li class="zv-vp${m.muted ? ' is-muted' : ''}" data-vk="${esc(m.key)}" title="${esc(m.name)}"><span class="zv-ava" aria-hidden="true">${esc(initials(m.name))}</span><span class="zv-vp-name">${esc(shortName(m.name))}</span></li>`).join('')}</ul>
-      <div class="zv-vctl"><span class="zv-vnote">Зараз у голосі: ${vm.length}</span><button type="button" class="zv-btn zv-primary" data-act="join-voice">🎙 Приєднатися</button></div>`;
+    strip.innerHTML = `<ul class="zv-vpeople" aria-label="Хто в голосі">${people.map(vpHtml).join('')}</ul>
+      ${voiceNote()}
+      ${on && S.vs.needGesture ? '<button type="button" class="zv-btn" data-act="sound">🔊 Чути колег</button>' : ''}
+      ${on ? ctlHtml() : ''}`;
   } else {
     strip.hidden = true;
     strip.innerHTML = '';
   }
-
-  // Док голосу внизу списку розмов — видно, де ми в голосі, навіть з іншої кімнати
-  const dock = $('zvDock');
-  if (vs && vs.status !== 'idle') {
-    dock.hidden = false;
-    dock.innerHTML = `
-      <button type="button" class="zv-dock-where" data-act="goto-voice" title="Перейти до розмови">
-        <span class="zv-dot${vs.status === 'live' ? ' is-live' : ''}${vs.status === 'error' ? ' is-bad' : ''}" aria-hidden="true"></span>
-        <span><b>${vs.status === 'error' ? 'Голос: помилка' : vs.status === 'joining' ? 'З\'єднуємо…' : 'У голосі'}</b><small>${esc(vs.label)} · ${vs.members.length}</small></span>
-      </button>
-      <div class="zv-dock-ctl">${voiceBtns(true)}</div>`;
-  } else {
-    dock.hidden = true;
-    dock.innerHTML = '';
-  }
-  document.body.classList.toggle('zv-has-dock', !!(vs && vs.status !== 'idle'));
 }
 
 function renderPins() {
   const box = $('zvPins');
-  const list = msgsOf(keyOf(S.chan)).filter((m) => m.is_top);
+  const list = S.msgs.filter((m) => m.is_top);
   box.hidden = !S.pinsOpen;
   if (!S.pinsOpen) return;
-  box.innerHTML = `<h3>📌 Важливе в цій розмові</h3>${list.length ? `<ul>${list.map((m) => `
+  box.innerHTML = `<h3>📌 Важливе</h3>${list.length ? `<ul>${list.map((m) => `
     <li><button type="button" class="zv-pin" data-goto="${m.id}"><b>${esc(shortName(m.user_name))}</b> ${esc(preview(m.message_text, 90))}</button>
     ${canPin(m) ? `<button type="button" class="zv-mini" data-unpin="${m.id}" title="Відкріпити" aria-label="Відкріпити">✕</button>` : ''}</li>`).join('')}</ul>`
     : '<p class="zv-muted">Нічого не закріплено. Наведіть на повідомлення й натисніть 📌.</p>'}`;
@@ -989,26 +637,21 @@ function nearBottom() {
   const log = $('zvLog');
   return log.scrollHeight - log.scrollTop - log.clientHeight < 90;
 }
-function isChatVisible() {
-  return matchMedia('(min-width: 981px)').matches || document.body.classList.contains('zv-in-chat');
-}
 
 function renderLog(stick) {
   const log = $('zvLog');
-  const key = keyOf(S.chan);
-  const list = msgsOf(key);
+  const list = S.msgs;
   const wasNear = nearBottom();
   if (!list.length) {
-    log.innerHTML = `<div class="zv-empty"><span aria-hidden="true">${esc(chanInfo(S.chan).icon)}</span>
-      <p>${S.chan.kind === 'dm' ? 'Напишіть перше повідомлення — бачите лише ви двоє.' : 'Тут ще тихо. Напишіть першим або зайдіть у голос.'}</p></div>`;
+    log.innerHTML = '<div class="zv-empty"><span aria-hidden="true">💬</span><p>Тут ще тихо. Напишіть першим або натисніть «🎙 Голос».</p></div>';
     renderPins();
     return;
   }
-  const since = S.read?.[key];
+  const since = S.read;
   let day = '';
   let prev = null;
   let newMark = false;
-  let html = S.exhausted.has(key) || DEMO
+  let html = S.exhausted || DEMO
     ? '<p class="zv-start">Початок розмови</p>'
     : '<button type="button" class="zv-btn zv-older" data-act="older">Показати раніші повідомлення</button>';
   list.forEach((m) => {
@@ -1026,7 +669,7 @@ function renderLog(stick) {
     html += msgHtml(m, cont);
   });
   log.innerHTML = html;
-  // Відкрили розмову з непрочитаним, якого більше за екран — стаємо на позначку «Нові»
+  // Відкрили з непрочитаним, якого більше за екран — стаємо на позначку «Нові»
   const mark = stick && log.querySelector('.zv-new');
   if (mark && log.scrollHeight - mark.offsetTop > log.clientHeight) log.scrollTop = mark.offsetTop - 48;
   else if (stick || wasNear) log.scrollTop = log.scrollHeight;
@@ -1104,67 +747,50 @@ function bytes(n) {
   return parseFloat((n / 1024 ** i).toFixed(1)) + ' ' + ['B', 'KB', 'MB', 'GB'][i];
 }
 
-/* ───────────────────────── вигляд: хто тут ───────────────────────── */
+/* ───────────────────────── вигляд: колонка «У мережі» ───────────────────────── */
 
 function renderAside() {
   const box = $('zvAsideList');
   if (!box || !S.me) return;
-  const c = S.chan;
-  const r = c.kind === 'room' ? roomOf(c.id) : null;
-  let people;
-  let title;
-  if (r && !r.is_public) {
-    title = `Учасники · ${(r.member_ids || []).length}`;
-    people = (r.member_ids || []).map((uid) => ({ uid, name: nameOf(uid) }));
-  } else {
-    title = `У мережі · ${S.online.size}`;
-    people = [...S.online.entries()].map(([uid, name]) => ({ uid, name }));
-  }
-  people.sort((a, b) => (b.uid === S.me.id) - (a.uid === S.me.id) || (S.online.has(b.uid) - S.online.has(a.uid)) || a.name.localeCompare(b.name, 'uk'));
-  $('zvAsideTitle').textContent = title;
-  box.innerHTML = people.map((p) => {
-    const me = p.uid === S.me.id;
-    return `<li><button type="button" class="zv-person" data-dm="${me ? '' : p.uid}" ${me ? 'disabled' : `title="Написати особисто: ${esc(p.name)}"`}>
+  const talking = new Set(voicePeople().map((m) => m.uid));
+  const people = [...S.online.entries()].map(([uid, name]) => ({ uid, name }))
+    .sort((a, b) => (b.uid === S.me.id) - (a.uid === S.me.id) || (talking.has(b.uid) - talking.has(a.uid)) || a.name.localeCompare(b.name, 'uk'));
+  $('zvAsideTitle').textContent = `У мережі · ${S.online.size}`;
+  box.innerHTML = people.map((p) => `<li class="zv-person">
       <span class="zv-ava" aria-hidden="true">${esc(initials(p.name))}</span>
-      <span class="zv-person-name">${esc(p.name)}${me ? ' <i>(ви)</i>' : ''}</span>
-      ${S.online.has(p.uid) ? '<span class="zv-on" title="у мережі"></span>' : ''}
-    </button></li>`;
-  }).join('') || '<li class="zv-muted">Нікого не видно.</li>';
+      <span class="zv-person-name">${esc(p.name)}${p.uid === S.me.id ? ' <i>(ви)</i>' : ''}</span>
+      ${talking.has(p.uid) ? '<span class="zv-person-voice" title="У голосі">🎙</span>' : '<span class="zv-on" title="у мережі"></span>'}
+    </li>`).join('') || '<li class="zv-muted">Нікого не видно.</li>';
   $('zvAside').classList.toggle('is-open', S.asideOpen);
   $('zvPeopleBtn').setAttribute('aria-expanded', String(S.asideOpen));
+  $('zvPeopleBtn').querySelector('span').textContent = S.online.size || '';
 }
 
-function renderMe() {
+function renderStatus() {
   const st = $('zvStatus');
-  if (!st) return;
   const ok = S.dbStatus === 'live';
   st.innerHTML = `<span class="zv-dot${ok ? ' is-live' : S.dbStatus === 'error' ? ' is-bad' : ''}" aria-hidden="true"></span>${ok ? 'На зв\'язку' : S.dbStatus === 'error' ? 'Немає зв\'язку' : 'Підключення…'}`;
-  const nb = $('zvNotifBtn');
-  const denied = 'Notification' in window && Notification.permission === 'denied';
-  nb.textContent = notifOn() ? (denied ? '🔔 Лише звук' : '🔔 Сповіщення') : '🔕 Без сповіщень';
-  nb.setAttribute('aria-pressed', String(notifOn()));
-  nb.title = notifOn() ? 'Звук і сповіщення про нові повідомлення увімкнено — вимкнути' : 'Увімкнути звук і сповіщення';
 }
 
 function renderAll(stick) {
-  renderSide();
+  renderHead();
   renderVoice();
   renderLog(stick);
   renderAside();
   renderBanner();
   renderTitle();
+  renderStatus();
 }
 
 /* ───────────────────────── дрібниці інтерфейсу ───────────────────────── */
 
-function toast(text, bad, action) {
+function toast(text, bad) {
   const t = $('zvToast');
-  t.innerHTML = `<span>${esc(text)}</span>${action ? `<button type="button" class="zv-btn zv-primary">${esc(action.label)}</button>` : ''}`;
+  t.innerHTML = `<span>${esc(text)}</span>`;
   t.classList.toggle('is-bad', !!bad);
   t.hidden = false;
-  if (action) t.querySelector('button').onclick = () => { t.hidden = true; action.run(); };
   clearTimeout(toast._t);
-  toast._t = setTimeout(() => { t.hidden = true; }, action ? 20000 : 3600);
+  toast._t = setTimeout(() => { t.hidden = true; }, 3600);
 }
 
 function busy(text) {
@@ -1225,7 +851,6 @@ function openPopup() {
   url.search = '';
   if (DEMO) url.searchParams.set('demo', '1');
   url.searchParams.set('mode', 'popup');
-  url.searchParams.set('c', keyOf(S.chan));
   const w = 440;
   const h = 680;
   const win = window.open(url.toString(), 'zv_popup', `width=${w},height=${h},left=${screen.width - w - 40},top=80,menubar=no,status=no,toolbar=no,location=no,resizable=yes`);
@@ -1242,7 +867,7 @@ function wire() {
     if (e.key === 'Escape' && (S.editing || S.replyTo)) { setEditing(null); setReply(null); }
     // ↑ у порожньому полі — редагувати своє останнє (як у Slack/Discord)
     if (e.key === 'ArrowUp' && !ta.value) {
-      const last = msgsOf(keyOf(S.chan)).filter((m) => m.user_id === S.me.id && !FILE_RE.test(m.message_text)).pop();
+      const last = S.msgs.filter((m) => m.user_id === S.me.id && !FILE_RE.test(m.message_text)).pop();
       if (last) { e.preventDefault(); setEditing(last.id); }
     }
   });
@@ -1270,46 +895,17 @@ function wire() {
     sendFiles([...e.dataTransfer.files]);
   });
 
-  $('zvSide').addEventListener('click', (e) => {
-    const it = e.target.closest('[data-key]');
-    if (it) return openChan(parseKey(it.dataset.key));
-    const f = e.target.closest('[data-fold]');
-    if (f) {
-      const cat = f.dataset.fold;
-      S.fold.has(cat) ? S.fold.delete(cat) : S.fold.add(cat);
-      lsSet(LS_FOLD, [...S.fold]);
-      return renderSide();
-    }
-    const a = e.target.closest('[data-act]')?.dataset.act;
-    if (a === 'new-dm') peopleDialog();
-    if (a === 'new-room') roomDialog(null);
-    if (a === 'notif') toggleNotif();
-    voiceAct(a);
-  });
-  $('zvFilter').addEventListener('input', renderSide);
-
   document.querySelector('.zv-head').addEventListener('click', (e) => {
     const a = e.target.closest('[data-act]')?.dataset.act;
-    if (a === 'back') { document.body.classList.remove('zv-in-chat'); renderSide(); }
-    if (a === 'voice') {
-      const inHere = S.vs?.topic === topicOf(S.chan) && S.vs.status !== 'idle';
-      if (inHere) S.voice.leave(); else joinVoice();
-    }
+    if (a === 'voice') toggleVoice();
     if (a === 'pins') { S.pinsOpen = !S.pinsOpen; renderHead(); renderPins(); }
     if (a === 'people') { S.asideOpen = !S.asideOpen; renderAside(); }
-    if (a === 'settings') roomDialog(roomOf(S.chan.id));
-    if (a === 'mute') {
-      const k = keyOf(S.chan);
-      S.muted.has(k) ? S.muted.delete(k) : S.muted.add(k);
-      lsSet(LS_MUTE, [...S.muted]);
-      renderHead();
-      renderSide();
-      renderTitle();
-    }
+    if (a === 'notif') toggleNotif();
     if (a === 'popup') openPopup();
   });
 
   $('zvStrip').addEventListener('click', (e) => voiceAct(e.target.closest('[data-act]')?.dataset.act));
+  $('zvVoiceBox').addEventListener('click', (e) => voiceAct(e.target.closest('[data-act]')?.dataset.act));
 
   $('zvPins').addEventListener('click', (e) => {
     const g = e.target.closest('[data-goto]');
@@ -1352,12 +948,17 @@ function wire() {
       art.classList.toggle('is-touched');
     }
   });
-  $('zvLog').addEventListener('scroll', () => { if (nearBottom() && !document.hidden) markRead(keyOf(S.chan)); }, { passive: true });
+  $('zvLog').addEventListener('scroll', () => { if (nearBottom() && !document.hidden) markRead(); }, { passive: true });
 
   $('zvAside').addEventListener('click', (e) => {
-    const p = e.target.closest('[data-dm]');
-    if (p?.dataset.dm) { S.asideOpen = false; openChan({ kind: 'dm', uid: p.dataset.dm }); }
     if (e.target.closest('[data-act=close-aside]')) { S.asideOpen = false; renderAside(); }
+  });
+  // Галочка: підсвічувати «Чат департаменту» на інших сторінках, коли хтось у голосі
+  const glow = $('zvGlow');
+  glow.checked = localStorage.getItem(LS_GLOW) !== '0';
+  glow.addEventListener('change', () => {
+    try { localStorage.setItem(LS_GLOW, glow.checked ? '1' : '0'); } catch (_) { /* приватний режим */ }
+    toast(glow.checked ? 'Кнопка «Чат департаменту» світитиметься, коли хтось у голосі.' : 'Кнопку чату більше не підсвічуємо.');
   });
 
   document.addEventListener('click', (e) => {
@@ -1367,20 +968,18 @@ function wire() {
     if (e.key === 'Escape' && picker && !picker.hidden) picker.hidden = true;
   });
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && nearBottom()) markRead(keyOf(S.chan));
+    if (!document.hidden && nearBottom()) markRead();
   });
+  // Смуга голосу є лише на вузькому екрані — перемальовуємо, коли ширина перетинає межу
+  matchMedia('(min-width: 981px)').addEventListener('change', () => { renderVoice(); renderHead(); });
   window.addEventListener('pmg:presence', (e) => readPresence(e.detail));
-  // Підпис колонки ще не має сенсу без входу — нижче він з'явиться
 }
 
 function voiceAct(a) {
   if (!a) return;
-  if (a === 'join-voice') joinVoice();
-  if (a === 'leave-voice') S.voice.leave();
   if (a === 'mic') S.voice.toggleMic();
   if (a === 'deaf') S.voice.toggleDeaf();
   if (a === 'sound') S.voice.unlock();
-  if (a === 'goto-voice' && S.vs?.chan) openChan(S.vs.chan);
 }
 
 /* ───────────────────────── старт ───────────────────────── */
@@ -1395,11 +994,6 @@ function notice(text) {
   $('zvLog').innerHTML = `<div class="zv-empty"><span aria-hidden="true">💬</span><p>${esc(text)}</p></div>`;
 }
 
-function firstChan() {
-  const want = QS.get('c') || lsGet(LS_LAST, 'main');
-  return parseKey(want);
-}
-
 async function boot() {
   if (POPUP) document.body.classList.add('is-popup');
   wire();
@@ -1410,11 +1004,10 @@ async function boot() {
   const { data: { session } } = await S.sb.auth.getSession();
   S.me = session?.user ?? null;
   if (!S.me) return notice('Увійдіть, щоб відкрити чат департаменту.');
-  const { data: prof } = await S.sb.from('profiles').select('full_name, role, Section, department').eq('id', S.me.id).single();
+  const { data: prof } = await S.sb.from('profiles').select('full_name, role').eq('id', S.me.id).single();
   S.role = prof?.role || 'guest';
   if (S.role === 'guest') return notice('Чат доступний лише співробітникам департаменту.');
   S.name = prof?.full_name || S.me.user_metadata?.full_name || S.me.email.split('@')[0];
-  S.dept = prof?.Section || prof?.department || '';
   document.body.classList.add('zv-ready');
 
   try {
@@ -1422,25 +1015,20 @@ async function boot() {
   } catch (e) {
     return notice('Не вдалося завантажити чат: ' + (e.message || e));
   }
-  // Перший захід: усе, що було до нього, вважаємо прочитаним — інакше стіна «непрочитаних»
-  if (!S.read) {
-    S.read = {};
-    new Set(S.msgs.map(msgKey)).forEach((k) => { S.read[k] = lastAt(k); });
-    lsSet(LS_READ, S.read);
-  }
+  // Перший захід: усе, що було до нього, вважаємо прочитаним — інакше стіна «непрочитаних».
+  // Старий формат (об'єкт по розмовах) — беремо мітку головної стрічки
+  if (S.read && typeof S.read === 'object') S.read = S.read.main || null;
+  if (!S.read) { S.read = lastAt(); lsSet(LS_READ, S.read); }
   S.online.set(S.me.id, S.name);
   if (window.__pmgPresence) readPresence(window.__pmgPresence);
 
   S.voice = createVoice({ sb: S.sb, me: S.me, name: S.name, toast, onChange: onVoice });
   subscribe();
-  openLobby();
-  renderMe();
-  openChan(firstChan(), true);
-  if (!matchMedia('(min-width: 981px)').matches && !QS.get('c')) document.body.classList.remove('zv-in-chat');
-  // Дзвінки в особистому діалозі, що прийшли, поки сторінка була закрита (за останні 10 хв)
-  const { data: pings } = await S.sb.from('chat_pings').select('*').eq('recipient_id', S.me.id).eq('seen', false)
-    .gt('created_at', new Date(Date.now() - 10 * 60000).toISOString()).order('created_at', { ascending: false }).limit(1);
-  (pings || []).forEach(onPing);
+  // Канал голосу — одразу «лише дивлюся»: видно, хто в ефірі, ще до натискання «Голос»
+  S.voice.join(TOPIC, TITLE, { listen: true });
+  renderAll(true);
+  if (nearBottom()) markRead();
+  if (wide()) $('zvInput').focus({ preventScroll: true });
 }
 
 /* ───────────────────────── демо (?demo=1) ───────────────────────── */
@@ -1450,23 +1038,7 @@ function bootDemo() {
   S.me = { id: 'me' };
   S.name = 'Демо-користувач';
   S.role = 'expert';
-  S.dept = 'демо-відділ';
-  S.read = {};
   const ago = (min) => new Date(Date.now() - min * 60000).toISOString();
-  S.people = [
-    { id: 'me', full_name: 'Демо-користувач' },
-    { id: 'u1', full_name: 'Олена Приклад' },
-    { id: 'u2', full_name: 'Петро Зразок', Section: 'демо-відділ' },
-    { id: 'u3', full_name: 'Ірина Вигадана', Section: 'демо-відділ' },
-    { id: 'u4', full_name: 'Андрій Тестовий' }
-  ];
-  S.rooms = [
-    { id: 'r1', name: 'Оголошення', category: '📢 Загальне', icon: '📣', is_public: true, sort_order: 2, created_by: 'u1', member_ids: [] },
-    { id: 'r2', name: 'Демо-відділ', category: '📁 Відділи', icon: '🔬', is_public: true, dept: 'демо-відділ', sort_order: 1, member_ids: [] },
-    { id: 'r3', name: 'Пакети ПМГ-2026', category: '📋 Робота', icon: '📦', is_public: true, sort_order: 1, topic: 'Специфікації, тарифи, зміни до пакетів', member_ids: [] },
-    { id: 'r4', name: 'Флуд / позаробоче', category: '☕ Позаробоче', icon: '☕', is_public: true, sort_order: 1, member_ids: [] },
-    { id: 'r5', name: 'Робоча група (демо)', icon: '🤝', is_public: false, created_by: 'me', member_ids: ['me', 'u1', 'u3'] }
-  ];
   const msgs = [
     ['m1', 60 * 26, 'u1', 'Олена Приклад', 'Колеги, доброго ранку! Нагадую про нараду о 14:00 👋'],
     ['m2', 60 * 25, 'u2', 'Петро Зразок', 'Буду, дякую 👍'],
@@ -1477,63 +1049,53 @@ function bootDemo() {
     ['m7', 2, 'u1', 'Олена Приклад', '🎉🎉'],
     ['m8', 1, 'u4', 'Андрій Тестовий', 'Хтось бачив нову редакцію специфікації?']
   ];
-  msgs.forEach(([id, min, uid, name, text, reply]) => addMsg({ id, created_at: ago(min), user_id: uid, user_name: name, message_text: text, reply_to: reply || null, room_id: id === 'm8' ? 'r3' : null }));
-  addMsg({ id: 'd1', created_at: ago(5), user_id: 'u1', user_name: 'Олена Приклад', message_text: 'Можна тебе на хвилинку в голос?', recipient_id: 'me' });
+  msgs.forEach(([id, min, uid, name, text, reply]) => addMsg({ id, created_at: ago(min), user_id: uid, user_name: name, message_text: text, reply_to: reply || null, room_id: null, recipient_id: null }));
   S.byId.get('m1').is_top = true;
   S.byId.get('m4').edited_at = ago(50);
   [['x1', 'm2', 'u1', 'Олена Приклад', '👍'], ['x2', 'm2', 'u3', 'Ірина Вигадана', '👍'], ['x3', 'm4', 'me', 'Демо-користувач', '✅'], ['x4', 'm7', 'u2', 'Петро Зразок', '❤️']]
     .forEach(([id, mid, uid, name, emoji]) => addRx({ id, message_id: mid, user_id: uid, user_name: name, emoji }));
-  S.msgs.forEach((m) => { if (m.id !== 'm8' && m.id !== 'd1') S.read[msgKey(m)] = m.created_at; });
-  S.read.main = ago(2.5);
-  S.online = new Map([['me', S.name], ['u1', 'Олена Приклад'], ['u2', 'Петро Зразок'], ['u3', 'Ірина Вигадана']]);
-  S.lobby = new Map([['voice:room:r2', [{ uid: 'u2', name: 'Петро Зразок', muted: false, topic: 'voice:room:r2' }, { uid: 'u3', name: 'Ірина Вигадана', muted: true, topic: 'voice:room:r2' }]]]);
+  S.read = ago(2.5);
+  S.online = new Map([['me', S.name], ['u1', 'Олена Приклад'], ['u2', 'Петро Зразок'], ['u3', 'Ірина Вигадана'], ['u4', 'Андрій Тестовий']]);
   S.dbStatus = 'live';
 
   // Дані — у пам'яті: ті самі обробники, що й для бази
   let n = 100;
   const now = () => new Date().toISOString();
   Object.assign(api, {
-    insert: async (row) => ({ ...row, id: 'n' + n++, created_at: now() }),
+    insert: async (row) => ({ ...row, id: 'n' + n++, created_at: now(), room_id: null, recipient_id: null }),
     update: async (id, text) => ({ id, message_text: text, edited_at: now() }),
     remove: async () => {},
     react: async (mid, emoji) => ({ id: 'r' + n++, message_id: mid, user_id: 'me', user_name: S.name, emoji }),
     unreact: async () => {},
     pin: async () => {},
-    createRoom: async (row) => ({ ...row, id: 'room' + n++ }),
-    updateRoom: async (id, patch) => ({ ...roomOf(id), ...patch }),
-    deleteRoom: async () => {},
     upload: async () => '#demo',
     signed: async (u) => u
   });
 
-  // Голос у демо: учасники вигадані, звуку немає
-  const demoVoice = { topic: '', label: '', status: 'idle', muted: true, deaf: false, members: [], key: 'me' };
-  const emitV = () => onVoice({ ...demoVoice, members: demoVoice.members.map((m) => ({ ...m })) });
+  // Голос у демо: двоє колег уже в ефірі, звуку немає
+  const others = [
+    { key: 'u2', uid: 'u2', name: 'Петро Зразок', muted: false, deaf: false, state: 'ok' },
+    { key: 'u3', uid: 'u3', name: 'Ірина Вигадана', muted: true, deaf: false, state: 'ok' }
+  ];
+  const dv = { topic: TOPIC, label: TITLE, status: 'live', error: '', key: 'me', muted: true, deaf: false, needGesture: false, inRoom: false };
+  const emitV = () => onVoice({ ...dv, members: [...(dv.inRoom ? [{ key: 'me', uid: 'me', name: S.name, muted: dv.muted, deaf: dv.deaf, me: true, state: 'ok' }] : []), ...others.map((m) => ({ ...m }))] });
   S.voice = {
-    async join(topic, label) {
-      Object.assign(demoVoice, { topic, label, status: 'live', muted: true, deaf: false });
-      const others = (S.lobby.get(topic) || []).map((p) => ({ key: p.uid, uid: p.uid, name: p.name, muted: p.muted, state: 'ok' }));
-      demoVoice.members = [{ key: 'me', uid: 'me', name: S.name, muted: true, deaf: false, me: true, state: 'ok' }, ...others];
-      S.lobby.delete(topic);
-      emitV();
-    },
-    async leave() { Object.assign(demoVoice, { topic: '', label: '', status: 'idle', members: [] }); emitV(); },
-    toggleMic() { demoVoice.muted = !demoVoice.muted; if (!demoVoice.muted) demoVoice.deaf = false; syncMe(); },
-    toggleDeaf() { demoVoice.deaf = !demoVoice.deaf; if (demoVoice.deaf) demoVoice.muted = true; syncMe(); },
+    get topic() { return dv.topic; },
+    get state() { return { ...dv }; },
+    async join() { dv.inRoom = true; emitV(); },
+    async enter() { dv.inRoom = true; emitV(); },
+    async exit() { Object.assign(dv, { inRoom: false, muted: true, deaf: false }); emitV(); },
+    async leave() { Object.assign(dv, { inRoom: false, muted: true }); emitV(); },
+    async toggleMic() { dv.muted = !dv.muted; if (!dv.muted) dv.deaf = false; emitV(); },
+    async toggleDeaf() { dv.deaf = !dv.deaf; if (dv.deaf) dv.muted = true; emitV(); },
     unlock() {}
   };
-  function syncMe() {
-    const me = demoVoice.members.find((m) => m.me);
-    if (me) Object.assign(me, { muted: demoVoice.muted, deaf: demoVoice.deaf });
-    emitV();
-  }
   setInterval(() => {
     document.querySelectorAll('[data-vk="u2"]').forEach((el) => el.classList.toggle('is-speaking', Math.random() > 0.5));
   }, 700);
 
-  renderMe();
-  openChan(firstChan(), true);
-  if (!matchMedia('(min-width: 981px)').matches && !QS.get('c')) document.body.classList.remove('zv-in-chat');
+  emitV();
+  renderAll(true);
 }
 
 boot();

@@ -26,7 +26,7 @@
  * room-chat.js (кімната відділу з чату порталу). Версії ?v= обох піднімати тут.
  */
 import { initVoice, setVoiceDept } from './voice.js?v=20261103k';
-import { initRoomChat, setRoomChatDept } from './room-chat.js?v=20261103d';
+import { initRoomChat, setRoomChatDept } from './room-chat.js?v=20261103e';
 
 const $ = (id) => document.getElementById(id);
 
