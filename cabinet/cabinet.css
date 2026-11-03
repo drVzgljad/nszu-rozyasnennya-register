@@ -1301,3 +1301,9 @@
   .cabinet-spravy-cta strong { font-size: 19px; }
   .cabinet-spravy-cta .cta-icon { font-size: 28px; }
 }
+
+/* «Робота за справою» — підказка під вибором справи (кореспондент і суть) */
+.case-desc-hint { margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: var(--p-soft, #f1f5f9);
+  border: 1px solid var(--p-line, #e2e8f0); font-size: 12.5px; line-height: 1.5; color: var(--p-ink, #1e293b); }
+.case-desc-hint[hidden] { display: none; }
+#link_case { width: 100%; }

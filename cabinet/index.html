@@ -11,10 +11,10 @@
   <title>Особистий кабінет експерта — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260808c">
   <link rel="stylesheet" href="../auth-v2.css?v=20261103b">
-  <link rel="stylesheet" href="cabinet.css?v=20261103a">
+  <link rel="stylesheet" href="cabinet.css?v=20261103b">
   <link rel="stylesheet" href="workspace.css?v=20260722f">
   <script type="module" src="../auth-v2.js?v=20261103l"></script>
-  <script type="module" src="cabinet.js?v=20261103a"></script>
+  <script type="module" src="cabinet.js?v=20261103b"></script>
   <script type="module" src="workspace.js?v=20260903a"></script>
 </head>
 <body data-required-role="expert">
@@ -170,10 +170,20 @@
             <div class="form-group">
               <label for="task_branch">Гілка діяльності *</label>
               <select id="task_branch" required>
-                <option value="tasks" selected>Виконання доручення керівника</option>
+                <option value="case" selected>Робота за справою</option>
                 <option value="department">Внутрішня робота відділу</option>
-                <option value="askod">Робота в АСКОД</option>
+                <option value="askod">Робота в АСКОД (документ поза «Справами»)</option>
               </select>
+            </div>
+
+            <!-- Справа з «Справ відділу» (dept_cases): запис іде в СКО-Д гілкою «Робота в АСКОД»
+                 з вх. № справи, а в історію справи — «Зараховано в СКО-Д» (як кнопка 🕒 у «Справах») -->
+            <div class="form-group" id="form-case-group">
+              <label for="link_case">Оберіть справу *</label>
+              <select id="link_case">
+                <option value="" selected disabled>-- Завантаження справ... --</option>
+              </select>
+              <div id="case-desc-hint" class="case-desc-hint" hidden></div>
             </div>
 
             <!-- Linked Task Selector -->

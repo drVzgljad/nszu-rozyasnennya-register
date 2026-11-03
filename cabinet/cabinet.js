@@ -108,6 +108,10 @@ const BRANCH_CONFIG = {
   }
 };
 
+// «Робота за справою» пишеться в СКО-Д гілкою «Робота в АСКОД» (як кнопка 🕒 у «Справах»),
+// тож типи й справи номенклатури — ті самі
+BRANCH_CONFIG.case = BRANCH_CONFIG.askod;
+
 // Start initialization on DOM content load
 document.addEventListener('DOMContentLoaded', init);
 
@@ -237,9 +241,10 @@ async function loadDatabaseData() {
   // архівні доручення СКО-Д (з 03.11.2026, як головна сторінка)
   const { data: cases, error: casesErr } = await sb
     .from('dept_cases')
-    .select('stage, deadline')
+    .select('id, in_no, subject, correspondent, reply_kind, stage, deadline, out_no')
     .eq('executor_id', currentUser.id)
-    .neq('stage', 'done');
+    .neq('stage', 'done')
+    .order('deadline', { ascending: true, nullsFirst: false });
   if (casesErr) console.error("Error loading cases:", casesErr);
   myCases = cases || [];
 
@@ -272,6 +277,7 @@ async function loadDatabaseData() {
   renderMetrics();
   renderTasksList();
   populateTaskDropdown();
+  populateCaseDropdown();
   renderTodayLogsFeed();
   populateContactPersonDropdown();
 }
@@ -536,8 +542,63 @@ function populateContactPersonDropdown() {
   });
 }
 
+/* ── «Робота за справою»: мої відкриті справи з «Справ відділу» ── */
+
+// Справа номенклатури за вх. № і типом відповіді — та сама логіка, що guessCategory()
+// у spravy/spravy.js (кнопка 🕒): змінюєте там — змініть і тут
+function guessCaseCategory(c) {
+  const no = c.in_no || '';
+  if (c.reply_kind === 'pi' || /^ПІ-/.test(no)) return '8-10 — Запити на публічну інформацію';
+  if (/^[А-ЯІЇЄҐ]{1,2}-\d/.test(no)) return '8-11 — Звернення громадян';
+  if (c.reply_kind === 'sz' || c.reply_kind === 'sz_work') return '8-12 — Службові записки, довідки з основної діяльності';
+  if (/-08-\d{2}$/.test(no)) return '8-06 — Доручення (листи) МОЗ України';
+  return '8-15 — Листування з підприємствами та установами';
+}
+
+const fmtShortDate = (iso) => (iso ? iso.slice(8, 10) + '.' + iso.slice(5, 7) : '');
+
+function populateCaseDropdown() {
+  const select = document.getElementById('link_case');
+  if (!select) return;
+  const keep = select.value;
+  if (!myCases.length) {
+    select.innerHTML = '<option value="" disabled selected>У вас немає відкритих справ</option>';
+    return;
+  }
+  // Найгарячіші — вгорі (запит уже відсортовано за строком)
+  select.innerHTML = '<option value="" disabled selected>-- Оберіть справу --</option>' + myCases.map((c) => {
+    const subj = (c.subject || '').length > 70 ? c.subject.slice(0, 70) + '…' : (c.subject || '');
+    const dl = c.deadline ? ` (до ${fmtShortDate(c.deadline)})` : '';
+    return `<option value="${escapeHtml(c.id)}">${escapeHtml(c.in_no ? 'Вх. № ' + c.in_no + ' — ' : '')}${escapeHtml(subj)}${dl}</option>`;
+  }).join('');
+  if (keep && myCases.some((c) => c.id === keep)) select.value = keep;
+}
+
+function handleCaseChange() {
+  const c = myCases.find((x) => x.id === document.getElementById('link_case')?.value);
+  const hint = document.getElementById('case-desc-hint');
+  if (!c) { if (hint) hint.hidden = true; return; }
+  if (hint) {
+    hint.textContent = `${c.correspondent ? c.correspondent + ' · ' : ''}${c.subject || ''}`;
+    hint.hidden = false;
+  }
+  // Тип документа і справа номенклатури — з самої справи (людина може змінити)
+  const type = c.reply_kind === 'pi' ? '47 — Лист-запит' : '01 — Лист';
+  const cat = guessCaseCategory(c);
+  document.querySelectorAll('.task-type-cb').forEach((i) => { i.checked = i.value === type; });
+  document.querySelectorAll('.task-category-cb').forEach((i) => { i.checked = i.value === cat; });
+  // Вх. № і вих. № — у ті самі поля, що в гілці «Робота в АСКОД»
+  document.getElementById('askod_reg_number').value = c.in_no || '';
+  document.getElementById('askod_reply_number').value = c.out_no || '';
+  const desc = document.getElementById('description');
+  if (desc && !desc.value.trim()) desc.value = `${c.in_no ? 'Вх. № ' + c.in_no + ': ' : ''}${c.subject || ''}${c.out_no ? ' — лист вих. № ' + c.out_no : ''}`;
+  updateLiveScore();
+}
+
 function handleBranchChange() {
   const branch = document.getElementById('task_branch').value;
+  const caseGroup = document.getElementById('form-case-group');
+  if (caseGroup) caseGroup.style.display = branch === 'case' ? 'block' : 'none';
   const taskSelectorGroup = document.getElementById('form-assigned-task-group');
   const checklistGroup = document.getElementById('subtask-checklist-group');
   const progressGroup = document.getElementById('task-progress-group');
@@ -574,14 +635,21 @@ function handleBranchChange() {
       if (regLabel) regLabel.textContent = 'Реєстраційний номер в АСКОД *';
       const replyInput = document.getElementById('askod_reply_number');
       if (replyInput) replyInput.value = '';
+    } else if (branch === 'case') {
+      // Номери підставляє справа; поля лишаємо видимими — їх можна виправити
+      askodGroup.style.display = 'block';
+      askodReplyGroup.style.display = 'block';
+      const regLabel = askodGroup.querySelector('label');
+      if (regLabel) regLabel.textContent = 'Вх. № справи (з «Справ відділу»)';
     } else {
       askodGroup.style.display = 'none';
       askodReplyGroup.style.display = 'none';
     }
 
     populateTypesAndCategories(branch);
+    if (branch === 'case') handleCaseChange();   // тип і справу номенклатури — з обраної справи
   }
-  
+
   updateLiveScore();
 }
 
@@ -1061,8 +1129,19 @@ async function handleLogFormSubmit(e) {
     let askodReplyNum = null;
     let assignedTaskId = null;
     let closeTaskOnLog = false;
+    let caseForLog = null;
 
-    if (branch === 'askod') {
+    if (branch === 'case') {
+      caseForLog = myCases.find((c) => c.id === document.getElementById('link_case')?.value) || null;
+      if (!caseForLog) {
+        alert("Оберіть справу зі списку.");
+        btn.disabled = false;
+        btn.textContent = '💾 Зберегти виконану роботу';
+        return;
+      }
+      askodNum = document.getElementById('askod_reg_number').value.trim() || null;
+      askodReplyNum = document.getElementById('askod_reply_number').value.trim() || null;
+    } else if (branch === 'askod') {
       askodNum = document.getElementById('askod_reg_number').value.trim();
       askodReplyNum = document.getElementById('askod_reply_number').value.trim() || null;
       if (!askodNum) {
@@ -1097,7 +1176,8 @@ async function handleLogFormSubmit(e) {
       log_date: workDate,
       start_time: startVal + ':00',
       duration_minutes: duration,
-      branch: branch,
+      // Робота за справою — у звітах СКО-Д це «Робота в АСКОД» з вх. № справи (як кнопка 🕒 у «Справах»)
+      branch: branch === 'case' ? 'askod' : branch,
       task_type: taskType,
       category: taskCategory,
       severity_level: severity,
@@ -1143,6 +1223,17 @@ async function handleLogFormSubmit(e) {
     // 1. Save Log Entry
     const { error: logErr } = await sb.from('skod_logs').insert([logData]);
     if (logErr) throw logErr;
+
+    // 1b. Робота за справою — запис в історії справи (той самий текст, що в «Справах»)
+    if (caseForLog) {
+      const { error: evErr } = await sb.from('dept_case_events').insert([{
+        case_id: caseForLog.id,
+        author_name: userProfile.full_name,
+        kind: 'system',
+        body: `Зараховано в СКО-Д: ${duration < 60 ? duration + ' хв' : (duration / 60) + ' год'}, ${taskCategory.split(' — ')[0]} (з кабінету)`
+      }]);
+      if (evErr) console.error("Failed to log case event:", evErr);
+    }
 
     // 2. If branch is Tasks, update progress, subtasks & comments of the task
     if (branch === 'tasks' && activeTaskForLog) {
@@ -1504,6 +1595,10 @@ function setupUIEvents() {
   const taskSel = document.getElementById('link_assigned_task');
   if (taskSel) {
     taskSel.addEventListener('change', handleTaskChange);
+  }
+  const caseSel = document.getElementById('link_case');
+  if (caseSel) {
+    caseSel.addEventListener('change', handleCaseChange);
   }
 
   // 3b. «Робота в АСКОД за цим дорученням» toggle
