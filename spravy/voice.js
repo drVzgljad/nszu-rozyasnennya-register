@@ -160,8 +160,8 @@ function render() {
        ${s.canShare ? `<button type="button" class="spv-btn spv-icon${s.sharing ? ' is-on' : ''}" data-act="screen" aria-pressed="${!!s.sharing}"
          title="${s.sharing ? 'Зупинити показ екрана' : 'Показати колегам свій екран або вікно'}">🖥</button>` : ''}
        ${s.canRecord && !(s.recording && !s.recording.me) ? (s.recording?.me
-         ? '<button type="button" class="spv-btn spv-rec is-on" data-act="meetend" title="Зупинити запис і зберегти нараду — протокол підготує Claude">⏹ Кінець наради</button>'
-         : '<button type="button" class="spv-btn spv-rec" data-act="meet" title="Почати нараду: увімкнеться запис, усіх у кімнаті буде попереджено">🔴 Нарада</button>') : ''}
+         ? '<button type="button" class="spv-btn spv-rec is-on" data-act="meetend" aria-pressed="true" title="Іде запис. Натисніть, щоб зупинити й зберегти нараду — протокол підготує Claude"><i class="rec-dot" aria-hidden="true"></i>Кінець наради</button>'
+         : '<button type="button" class="spv-btn spv-rec" data-act="meet" aria-pressed="false" title="Почати нараду: увімкнеться запис, усіх у кімнаті буде попереджено"><i class="rec-dot" aria-hidden="true"></i>Нарада</button>') : ''}
        <button type="button" class="spv-btn spv-ghost" data-act="leave" title="Вийти з кімнати; запамʼятаємо до наступного «Увійти»">Вийти</button>`
     : s.status === 'live'
       ? '<button type="button" class="spv-btn spv-join" data-act="join">Увійти в кімнату</button>'

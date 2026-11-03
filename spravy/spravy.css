@@ -1061,8 +1061,15 @@
 .sp-jr-subj { color: var(--muted); font-size: 13px; }
 
 /* Нарада із записом (03.11.2026): кнопка й смуга «іде запис» у голосовій кімнаті */
-.spv-btn.spv-rec { border-color: #c0392b; color: #c0392b; }
-.spv-btn.spv-rec.is-on { background: #c0392b; color: #fff; }
+.spv-btn.spv-rec.is-on { background: #c0392b; border-color: #c0392b; color: #fff; }
 .spv-recbar { margin: 6px 0 0; padding: 6px 10px; border-radius: 8px; font-size: 12.5px; font-weight: 700;
   background: color-mix(in srgb, #c0392b 12%, transparent); color: #c0392b; }
-:root.dark-theme .spv-recbar, :root.dark-theme .spv-btn.spv-rec:not(.is-on) { color: #ff8a80; border-color: #ff8a80; }
+:root.dark-theme .spv-recbar { color: #ff8a80; }
+
+/* Кнопка «Нарада» (03.11.2026, правка): у спокої — звичайна кнопка з сірою крапкою;
+   під час запису — червона, крапка біла й «дихає». Раніше була червоною завжди */
+.rec-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px;
+  border: 2px solid currentColor; box-sizing: border-box; opacity: .7; }
+.is-on > .rec-dot { background: #fff; border-color: #fff; opacity: 1; animation: rec-pulse 1.2s ease-in-out infinite; }
+@keyframes rec-pulse { 50% { opacity: .25; transform: scale(.75); } }
+@media (prefers-reduced-motion: reduce) { .is-on > .rec-dot { animation: none; } }

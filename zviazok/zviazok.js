@@ -572,9 +572,9 @@ function ctlHtml() {
 // «🔴 Нарада» — запис для протоколу (zviazok/meeting.js); поки пише хтось інший, кнопки немає
 function meetBtn(vs) {
   if (!vs.canRecord) return '';
-  if (vs.recording?.me) return '<button type="button" class="zv-btn zv-vbtn zv-rec is-on" data-act="meetend" title="Зупинити запис і зберегти нараду — протокол підготує Claude">⏹<span>Кінець наради</span></button>';
+  if (vs.recording?.me) return '<button type="button" class="zv-btn zv-vbtn zv-rec is-on" data-act="meetend" aria-pressed="true" title="Іде запис. Натисніть, щоб зупинити й зберегти нараду — протокол підготує Claude"><i class="rec-dot" aria-hidden="true"></i><span>Кінець наради</span></button>';
   if (vs.recording) return '';
-  return '<button type="button" class="zv-btn zv-vbtn zv-rec" data-act="meet" title="Почати нараду: увімкнеться запис, усіх у кімнаті буде попереджено">🔴<span>Нарада</span></button>';
+  return '<button type="button" class="zv-btn zv-vbtn zv-rec" data-act="meet" aria-pressed="false" title="Почати нараду: увімкнеться запис, усіх у кімнаті буде попереджено"><i class="rec-dot" aria-hidden="true"></i><span>Нарада</span></button>';
 }
 
 function recNote(vs) {

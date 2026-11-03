@@ -641,7 +641,14 @@ body.is-popup .zv-aside-head { display: flex; }
 }
 
 /* Нарада із записом (03.11.2026) */
-.zv-vbtn.zv-rec { border-color: #c0392b; color: #c0392b; }
 .zv-vbtn.zv-rec.is-on { background: #c0392b; border-color: #c0392b; color: #fff; }
 .zv-vnote.zv-recnote { flex-basis: 100%; font-weight: 700; color: #c0392b; }
-:root.dark-theme .zv-vnote.zv-recnote, :root.dark-theme .zv-vbtn.zv-rec:not(.is-on) { color: #ff8a80; border-color: #ff8a80; }
+:root.dark-theme .zv-vnote.zv-recnote { color: #ff8a80; }
+
+/* Кнопка «Нарада» (03.11.2026, правка): у спокої — звичайна кнопка з сірою крапкою;
+   під час запису — червона, крапка біла й «дихає». Раніше була червоною завжди */
+.rec-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px;
+  border: 2px solid currentColor; box-sizing: border-box; opacity: .7; }
+.is-on > .rec-dot { background: #fff; border-color: #fff; opacity: 1; animation: rec-pulse 1.2s ease-in-out infinite; }
+@keyframes rec-pulse { 50% { opacity: .25; transform: scale(.75); } }
+@media (prefers-reduced-motion: reduce) { .is-on > .rec-dot { animation: none; } }
