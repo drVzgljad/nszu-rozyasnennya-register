@@ -24,7 +24,7 @@
  * Голосова кімната відділу — окремий модуль voice.js (WebRTC + приватний канал
  * Realtime, migration_2026-11-03_voice_room.sql). Версію ?v= піднімати тут.
  */
-import { initVoice, setVoiceDept } from './voice.js?v=20261103a';
+import { initVoice, setVoiceDept } from './voice.js?v=20261103b';
 
 const $ = (id) => document.getElementById(id);
 

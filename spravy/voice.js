@@ -21,7 +21,7 @@
  */
 
 // Адреса воркера tools/voice-turn після `wrangler deploy`. Порожньо — без ретранслятора.
-const VOICE_TURN_URL = '';
+const VOICE_TURN_URL = 'https://pmg-voice-turn.doktorvzgljad.workers.dev';
 const STUN = [{ urls: ['stun:stun.cloudflare.com:3478', 'stun:stun.l.google.com:19302'] }];
 const MANY = 10;               // з такої кількості попереджаємо: пряма схема важчає
 const RETRIES = 3;             // скільки разів перепідключати зірване з'єднання
