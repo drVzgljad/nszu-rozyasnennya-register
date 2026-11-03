@@ -76,6 +76,9 @@ export function initVoice(opts) {
   v.root.addEventListener('click', onClick);
   document.addEventListener('pointerdown', unlockAudio, true);
   document.addEventListener('keydown', unlockAudio, true);
+  // Кнопки з текстового каналу під кімнатою (room-chat.js)
+  document.addEventListener('spravy:invite', () => openInviteDialog());
+  document.addEventListener('spravy:join-voice', () => joinRoom());
   if (v.demo) return demo();
   window.addEventListener('pagehide', () => leaveChannel(true));
   // Прийшли за запрошенням (?voice=1) — заходимо, навіть якщо раніше натискали «Вийти»
@@ -427,17 +430,26 @@ async function onClick(e) {
     chime(false);
     render();
   } else if (act === 'join') {
-    v.inRoom = true;
-    lsSet(LS_OFF, null);
-    if (v.status === 'live') await v.ch.track(meta());
-    else if (!v.ch) openChannel();
-    chime(true);
-    render();
+    await joinRoom();
   } else if (act === 'sound') {
     unlockAudio();
   } else if (act === 'invite') {
     openInviteDialog();
   }
+}
+
+/** Зайти в кімнату (кнопка «Увійти» або «Приєднатися» на картці збору в чаті). */
+async function joinRoom() {
+  audioCtx();
+  unlockAudio();
+  if (v.demo) return v.inRoom ? null : demoAct('join');
+  if (v.inRoom) return;
+  v.inRoom = true;
+  lsSet(LS_OFF, null);
+  if (v.status === 'live') await v.ch.track(meta());
+  else if (!v.ch) openChannel();
+  chime(true);
+  render();
 }
 
 /** «📣 Запросити» / «Загальний збір» — діалог спільний із «Чатом департаменту». */
