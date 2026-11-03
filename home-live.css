@@ -97,6 +97,27 @@
   font-size: 13px; font-weight: 800; cursor: pointer;
 }
 .hl-place:hover { border-color: var(--hl-accent); }
+.hl-head { justify-content: flex-end; }
+.hl-place-in { display: none; min-height: 28px; padding: 3px 10px; font-size: 12px; text-transform: none; letter-spacing: normal; }
+.hl-alert-tools { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+
+/* Тривога у своїй області: червоний вогник біжить по краю картки.
+   Кут конічного градієнта анімуємо через @property, маска лишає видимим лише обідок */
+@property --hl-run { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+.hl-alert.is-alarm { border-color: color-mix(in srgb, var(--hl-alert) 30%, var(--hl-line)); animation: hl-alarm-glow 2.6s ease-in-out infinite; }
+.hl-alert.is-alarm::after {
+  content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none;
+  border-radius: inherit; padding: 3px;
+  background: conic-gradient(from var(--hl-run), transparent 0deg 220deg,
+    color-mix(in srgb, var(--hl-alert) 35%, transparent) 280deg, var(--hl-alert) 335deg, #ffe4e4 350deg, transparent 358deg);
+  filter: drop-shadow(0 0 4px var(--hl-alert));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  animation: hl-run 3.2s linear infinite;
+}
+@keyframes hl-run { to { --hl-run: 360deg; } }
+@keyframes hl-alarm-glow { 50% { box-shadow: var(--hl-shadow), 0 0 22px color-mix(in srgb, var(--hl-alert) 28%, transparent); } }
 
 .hl-grid {
   display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px;
@@ -337,21 +358,21 @@
 .hl-btn.primary { border-color: transparent; background: linear-gradient(135deg, #2f6b9e, #3a8462); color: #fff; }
 
 @media (prefers-reduced-motion: reduce) {
-  .hl *, .hl *::before { animation: none !important; transition: none !important; }
+  .hl *, .hl *::before, .hl *::after { animation: none !important; transition: none !important; }
+  .hl-alert.is-alarm::after { background: var(--hl-alert); }
 }
 
 /* ── Розкладка ── */
 /* Залогінений десктоп, «усе в одному вікні» (шел — index.html): ліворуч кабінет,
    далі тривога з мапою на всю висоту, праворуч стовпчик годинник/погода/світло.
    На невисокому екрані годинник-картка поступається компактному в заголовку. */
-.hl-hclock { display: none; align-items: baseline; gap: 8px; font-size: 13px; color: var(--hl-muted); font-weight: 700; }
-.hl-hclock b { font-family: var(--p-display); font-size: 22px; color: var(--hl-ink); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.hl-hclock { display: none; align-items: baseline; gap: 6px; font-size: 12px; color: var(--hl-muted); font-weight: 700; text-transform: none; letter-spacing: normal; }
+.hl-hclock b { font-family: var(--p-display); font-size: 18px; color: var(--hl-ink); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
 @media (min-width: 1181px) and (min-height: 600px) {
   body.home-logged-in .hl { display: flex; flex-direction: column; height: 100%; }
-  body.home-logged-in .hl-head { margin-bottom: 8px; flex-wrap: nowrap; }
-  body.home-logged-in .hl-head > :first-child { display: flex; align-items: baseline; gap: 16px; min-width: 0; }
-  body.home-logged-in .hl-title { font-size: 16px; }
-  body.home-logged-in .hl-place { min-height: 30px; padding: 4px 10px; }
+  /* Вибір місця — у заголовку картки тривоги, тож картки стають урівень із кабінетом */
+  body.home-logged-in .hl-head { display: none; }
+  body.home-logged-in .hl-place-in { display: inline-flex; }
   body.home-logged-in .hl-grid {
     flex: 1; min-height: 0; gap: 12px;
     grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
@@ -386,6 +407,11 @@
   body.home-logged-in .hl-map svg { flex: 1; min-height: 0; height: 100%; }
   body.home-logged-in .hl-aside { min-height: 0; overflow-y: auto; padding-right: 4px; scrollbar-width: thin; }
   body.home-logged-in .hl-me { padding: 10px 12px; }
+}
+/* Вузький десктоп: картці тривоги не вистачає ширини на дві колонки — мапа над стрічкою */
+@media (min-width: 1181px) and (max-width: 1299px) and (min-height: 600px) {
+  body.home-logged-in .hl-alert-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+  body.home-logged-in .hl-map .hl-legend { display: none; }
 }
 @media (min-width: 1181px) and (min-height: 600px) and (max-height: 819px) {
   body.home-logged-in .hl-clock { display: none; }

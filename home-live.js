@@ -193,7 +193,6 @@ const state = { weather: null, alerts: null, map: null, power: {} };
 function skeleton() {
   root.innerHTML = `
     <div class="hl-head">
-      <div><h2 class="hl-title">Обстановка</h2><span class="hl-hclock" aria-hidden="true"><b data-f="htime"></b><span data-f="hdate"></span></span></div>
       <button type="button" class="hl-place" data-act="place" title="Змінити область і чергу">📍 <span data-f="place"></span> ▾</button>
     </div>
     <div class="hl-grid">
@@ -221,7 +220,7 @@ function skeleton() {
       </article>
 
       <article class="hl-card hl-weather" aria-label="Погода">
-        <h3><span>Погода · <span data-f="city"></span></span></h3>
+        <h3><span>Погода · <span data-f="city"></span></span><span class="hl-hclock" aria-hidden="true"><b data-f="htime"></b><span data-f="hdate"></span></span></h3>
         <div data-f="wx"><div class="hl-muted">Завантажую прогноз…</div></div>
       </article>
 
@@ -231,7 +230,7 @@ function skeleton() {
       </article>
 
       <article class="hl-card hl-alert" aria-label="Повітряна тривога">
-        <h3><span>Повітряна тривога</span><span class="hl-muted" data-f="aupd"></span></h3>
+        <h3><span>Повітряна тривога</span><span class="hl-alert-tools"><span class="hl-muted" data-f="aupd"></span><button type="button" class="hl-place hl-place-in" data-act="place" title="Змінити область і чергу">📍 <span data-f="place"></span> ▾</button></span></h3>
         <div class="hl-alert-body">
           <div class="hl-map" data-f="map"><div class="hl-muted">Завантажую мапу…</div></div>
           <div class="hl-aside" data-f="aside"><div class="hl-muted">Завантажую стан тривог…</div></div>
@@ -267,7 +266,7 @@ function setPlace(p) {
   renderAlerts();
 }
 function renderPlace() {
-  $(root, '[data-f="place"]').textContent = PLACES[place.oblast][0];
+  root.querySelectorAll('[data-f="place"]').forEach((el) => { el.textContent = PLACES[place.oblast][0]; });
   $(root, '[data-f="city"]').textContent = PLACES[place.oblast][1];
 }
 
@@ -328,7 +327,7 @@ function tick() {
     const wd = now.toLocaleDateString('uk-UA', { timeZone: TZ, weekday: 'long' });
     const dm = now.toLocaleDateString('uk-UA', { timeZone: TZ, day: 'numeric', month: 'long', year: 'numeric' });
     $(root, '[data-f="date"]').textContent = `${wd[0].toUpperCase()}${wd.slice(1)}, ${dm}`;
-    $(root, '[data-f="hdate"]').textContent = `${wd}, ${now.toLocaleDateString('uk-UA', { timeZone: TZ, day: 'numeric', month: 'long' })} · Київ`;
+    $(root, '[data-f="hdate"]').textContent = `${now.toLocaleDateString('uk-UA', { timeZone: TZ, weekday: 'short' })}, ${now.toLocaleDateString('uk-UA', { timeZone: TZ, day: 'numeric', month: 'long' })}`;
     const utc = Date.UTC(k.y, k.mo - 1, k.d);
     const doy = Math.round((utc - Date.UTC(k.y, 0, 1)) / 864e5) + 1;
     const th = new Date(utc + (4 - k.dow) * 864e5); // ISO-тиждень: четвер того ж тижня
@@ -648,6 +647,9 @@ function renderAlerts() {
     part: 'Тривога в частині області',
     none: mine.types?.length ? 'Повітряної тривоги немає' : 'Тривоги немає'
   }[lvl];
+  // Тривога у своїй області — вогник біжить по краю картки (home-live.css, .is-alarm).
+  // Тривалий фон окупованих територій вогника не вмикає: це не подія
+  $(root, '.hl-alert').classList.toggle('is-alarm', lvl === 'full' || lvl === 'part');
   const otherTypes = (mine.types || []).filter((t) => t !== 'AIR');
   const myThreats = (a.threats || []).filter((t) => t.oblasts.includes(place.oblast) && Date.now() - new Date(t.at) < 90 * 60000);
   const myKinds = [...new Set(myThreats.map((t) => t.kind))];
