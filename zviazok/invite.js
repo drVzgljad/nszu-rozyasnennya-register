@@ -15,7 +15,7 @@
  * додатково підключати не треба.
  */
 
-import { sendPushInvite } from './push.js?v=20261103a';
+import { sendPushInvite } from './push.js?v=20261103b';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const initials = (n) => (n || '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';

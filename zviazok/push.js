@@ -13,7 +13,7 @@
  * (Safari → «Поділитися» → «На екран „Додому“»), з iOS 16.4.
  */
 
-import { VOICE_TURN_URL } from './voice.js?v=20261103b';
+import { VOICE_TURN_URL } from './voice.js?v=20261103c';
 
 const KEY_URL = VOICE_TURN_URL + '/push/key';
 const SEND_URL = VOICE_TURN_URL + '/push/send';

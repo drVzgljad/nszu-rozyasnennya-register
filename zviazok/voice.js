@@ -1,9 +1,13 @@
 /**
- * Голос у кімнатах «Чату департаменту» — той самий механізм, що в «Справах»
- * (spravy/voice.js): WebRTC кожен з кожним, рукостискання й присутність — через
- * приватний канал Supabase Realtime, запасний шлях — Cloudflare TURN (воркер
- * tools/voice-turn). Відмінність одна: тут кімнат багато, і людина сама вирішує,
- * у яку зайти (як у Discord). Одночасно — лише в одну.
+ * Рушій голосових кімнат порталу — ОДИН на два розділи: «Чат департаменту»
+ * (zviazok.js) і кімнату відділу в «Справах» (spravy/voice.js — там лише панель).
+ * WebRTC кожен з кожним, рукостискання й присутність — через приватний канал
+ * Supabase Realtime, запасний шлях — Cloudflare TURN (воркер tools/voice-turn).
+ * Одночасно — лише в одній кімнаті.
+ *
+ * Два режими в каналі кімнати: «у кімнаті» (присутність + звук) і «лише дивлюся»
+ * (бачиш, хто там, тебе не видно й не чути) — join(…, { listen: true }), а далі
+ * enter() / exit(). «Справи» відкривають кімнату відділу так одразу при вході.
  *
  * Канали (RLS — migration_2026-11-03d_chat_voice_rooms.sql):
  *   'voice:all'               — головна стрічка департаменту (та сама, що в «Справах»);
@@ -45,7 +49,8 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     meters: new Map(),
     needGesture: false,
     timer: null,
-    sink: null
+    sink: null,
+    inRoom: true          // false — «лише дивлюся»: підписані на канал, але без присутності й звуку
   };
 
   const emit = () => onChange(snapshot());
@@ -60,6 +65,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
       muted: v.muted,
       deaf: v.deaf,
       needGesture: v.needGesture,
+      inRoom: v.inRoom,
       members: [...v.members.entries()].map(([k, m]) => ({ key: k, ...m, me: k === v.key, state: k === v.key ? 'ok' : peerState(k) }))
     };
   }
@@ -75,9 +81,17 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
 
   /* ───────── вхід / вихід ───────── */
 
-  async function join(topic, label) {
-    if (v.topic === topic && v.ch) return;
-    if (v.ch) await leave(true);
+  /**
+   * Відкрити канал кімнати. opts.listen — лише дивитися (без присутності й звуку);
+   * без opts — зайти. Уже в іншій кімнаті — перемикаємось, мікрофон і звук лишаються як були.
+   */
+  async function join(topic, label, opts = {}) {
+    if (v.topic === topic && v.ch) {
+      if ('listen' in opts) await (opts.listen ? exit() : enter());
+      return;
+    }
+    if (v.ch) await closeChannel();
+    v.inRoom = !opts.listen;
     v.topic = topic;
     v.label = label || '';
     v.status = 'joining';
@@ -85,52 +99,88 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     emit();
     v.key = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
     await ensureIce();
-    if (v.topic !== topic) return; // поки чекали ключі TURN, людина вже пішла
+    if (v.topic !== topic || v.ch) return; // поки чекали ключі TURN, людина вже пішла або перемкнулась
     const ch = sb.channel(topic, { config: { private: true, broadcast: { self: false }, presence: { key: v.key } } });
     v.ch = ch;
     ch.on('presence', { event: 'sync' }, () => onSync(ch))
-      .on('presence', { event: 'join' }, ({ key }) => { if (key !== v.key) chime(true); })
-      .on('presence', { event: 'leave' }, ({ key }) => { if (key !== v.key) chime(false); })
+      .on('presence', { event: 'join' }, ({ key }) => { if (key !== v.key && v.inRoom) chime(true); })
+      .on('presence', { event: 'leave' }, ({ key }) => { if (key !== v.key && v.inRoom) chime(false); })
       .on('broadcast', { event: 'sig' }, ({ payload }) => onSignal(payload))
       .subscribe(async (status, err) => {
         if (ch !== v.ch) return;
         if (status === 'SUBSCRIBED') {
           v.status = 'live';
-          await ch.track(meta());
+          if (v.inRoom) await ch.track(meta());
           emit();
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           const m = String(err?.message || err || '');
+          const closed = /unauthori|permission|denied/i.test(m);
           v.status = 'error';
-          v.error = /unauthori|permission|denied/i.test(m)
-            ? 'Голос цієї кімнати ще закритий: потрібна міграція migration_2026-11-03d_chat_voice_rooms.sql.'
-            : 'Немає зв\'язку з голосовою кімнатою.';
+          v.error = closed
+            ? 'Голосова кімната ще закрита: потрібна міграція (migration_2026-11-03*.sql).'
+            : 'Немає зв\'язку з кімнатою. Спробуємо ще раз за хвилину.';
           emit();
+          // Обрив мережі — пробуємо знову; закрита політиками кімната сама не відкриється
+          if (!closed) {
+            setTimeout(() => {
+              if (v.ch !== ch) return;
+              const [t, l, listen] = [v.topic, v.label, !v.inRoom];
+              closeChannel().then(() => join(t, l, { listen }));
+            }, 60000);
+          }
         }
       });
     clearInterval(v.timer);
     v.timer = setInterval(tick, 150);
-    chime(true);
+    if (v.inRoom) chime(true);
   }
 
-  /** quiet — без звуку виходу (перемикання між кімнатами, закриття вкладки). */
-  async function leave(quiet) {
+  /** Закрити канал (перемикання кімнати, перепідключення): мікрофон і звук не чіпаємо. */
+  async function closeChannel() {
     clearInterval(v.timer);
     for (const k of [...v.peers.keys()]) dropPeer(k, true);
-    if (v.mic) { v.mic.stop(); v.mic = null; v.meters.delete('me'); }
-    v.muted = true;
     const ch = v.ch;
     v.ch = null;
     v.members.clear();
     v.topic = '';
-    v.label = '';
-    v.status = 'idle';
-    v.error = '';
-    if (!quiet) chime(false);
-    emit();
     if (ch) {
       try { await ch.untrack(); } catch (_) { /* канал уже закрито */ }
       try { await sb.removeChannel(ch); } catch (_) { /* те саме */ }
     }
+  }
+
+  /** Вийти з голосу зовсім. quiet — без звуку виходу (закриття вкладки). */
+  async function leave(quiet) {
+    const was = v.inRoom && v.status !== 'idle';
+    await closeChannel();
+    if (v.mic) { v.mic.stop(); v.mic = null; v.meters.delete('me'); }
+    v.muted = true;
+    v.label = '';
+    v.status = 'idle';
+    v.error = '';
+    if (!quiet && was) chime(false);
+    emit();
+  }
+
+  /** «Лише дивлюся» → у кімнату. */
+  async function enter() {
+    if (!v.ch || v.inRoom) return;
+    v.inRoom = true;
+    if (v.status === 'live') await v.ch.track(meta());
+    chime(true);
+    emit();
+  }
+
+  /** З кімнати → «лише дивлюся»: канал лишається, видно, хто там. */
+  async function exit() {
+    if (!v.inRoom) return;
+    v.inRoom = false;
+    if (v.mic) { v.mic.stop(); v.mic = null; v.meters.delete('me'); }
+    v.muted = true;
+    for (const k of [...v.peers.keys()]) dropPeer(k, true);
+    try { await v.ch?.untrack(); } catch (_) { /* канал закрито */ }
+    chime(false);
+    emit();
   }
 
   const meta = () => ({ uid: me?.id, name, muted: v.muted, deaf: v.deaf });
@@ -139,7 +189,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     if (ch !== v.ch) return;
     const st = ch.presenceState() || {};
     v.members = new Map(Object.entries(st).map(([k, arr]) => [k, arr[arr.length - 1] || {}]));
-    if (v.members.has(v.key)) {
+    if (v.inRoom && v.members.has(v.key)) {
       // Дзвонить той, у кого ключ менший; другий чекає пропозиції — так двоє
       // ніколи не дзвонять одне одному одночасно
       for (const k of v.members.keys()) if (k !== v.key && !v.peers.has(k) && v.key < k) callPeer(k);
@@ -153,7 +203,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
   }
 
   async function onSignal(m) {
-    if (!m || m.to !== v.key || !v.ch) return;
+    if (!m || m.to !== v.key || !v.ch || !v.inRoom) return;
     const k = m.from;
     try {
       if (m.type === 'offer') {
@@ -230,7 +280,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     if (p.tries >= RETRIES) { p.gaveUp = true; emit(); return; }
     const tries = p.tries + 1;
     setTimeout(async () => {
-      if (!v.ch || !v.members.has(k) || v.peers.get(k) !== p) return;
+      if (!v.ch || !v.inRoom || !v.members.has(k) || v.peers.get(k) !== p) return;
       dropPeer(k);
       await ensureIce();
       await callPeer(k);
@@ -251,7 +301,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
 
   function peerState(k) {
     const p = v.peers.get(k);
-    if (!p) return 'wait';
+    if (!p) return v.inRoom ? 'wait' : 'off';
     if (p.gaveUp) return 'bad';
     const s = p.pc.connectionState;
     if (s === 'connected') return 'ok';
@@ -278,7 +328,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
   /* ───────── мікрофон і звук ───────── */
 
   async function setMuted(muted, quiet) {
-    if (!v.ch) return;
+    if (!v.ch || !v.inRoom) return;
     if (!muted && !v.mic) {
       try {
         const s = await navigator.mediaDevices.getUserMedia({
@@ -310,7 +360,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
 
   /** «Вимкнути звук» глушить і мікрофон, «Увімкнути» повертає його, як було (як у Discord). */
   async function setDeaf(deaf) {
-    if (!v.ch) return;
+    if (!v.ch || !v.inRoom) return;
     if (deaf) {
       v.micBeforeDeaf = !v.muted;
       hear(false);
@@ -324,7 +374,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
   }
 
   function retrack() {
-    if (v.ch && v.status === 'live') v.ch.track(meta());
+    if (v.ch && v.inRoom && v.status === 'live') v.ch.track(meta());
     emit();
   }
 
@@ -399,11 +449,15 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
   return {
     join,
     leave,
+    enter,
+    exit,
     toggleMic: () => setMuted(!v.muted),
     toggleDeaf: () => setDeaf(!v.deaf),
     unlock,
     get topic() { return v.topic; },
-    get state() { return snapshot(); }
+    get state() { return snapshot(); },
+    // Для перевірок (два екземпляри на одній сторінці): з'єднання й лічильники байтів
+    get debug() { return v; }
   };
 }
 

@@ -24,10 +24,10 @@
  * ?c=main | room:<uuid> | dm:<uuid> — відкрити розмову. ?mode=popup — плаваюче вікно.
  */
 
-import { createVoice, voiceTopic, MANY } from './voice.js?v=20261103b';
+import { createVoice, voiceTopic, MANY } from './voice.js?v=20261103c';
 import { QUICK, buildPicker, emojiOnly } from './emoji.js?v=20261103a';
-import { pushState, enablePush, disablePush, sendPushInvite } from './push.js?v=20261103a';
-import { openInvite, GATHER, GATHER_TEXT } from './invite.js?v=20261103a';
+import { pushState, enablePush, disablePush, sendPushInvite } from './push.js?v=20261103b';
+import { openInvite, GATHER, GATHER_TEXT } from './invite.js?v=20261103b';
 
 const QS = new URLSearchParams(location.search);
 const DEMO = QS.get('demo') === '1';
