@@ -18,6 +18,9 @@
  *   Вимкнений мікрофон зупиняється зовсім — індикатор запису в браузері гасне.
  * - Якщо мережа не пускає пряме з'єднання, звук іде через Cloudflare TURN. Тимчасові
  *   ключі видає воркер tools/voice-turn (VOICE_TURN_URL нижче). Без нього — лише STUN.
+ * - «📣 Запросити» і «Загальний збір» — спільний діалог ../zviazok/invite.js (той самий,
+ *   що в «Чаті департаменту»): запрошення в чат і Web Push на телефон. Посилання з
+ *   запрошення — ?room=dept|all&voice=1: відкриває цю кімнату й заходить у неї.
  */
 
 // Адреса воркера tools/voice-turn після `wrangler deploy`. Порожньо — без ретранслятора.
@@ -75,6 +78,8 @@ export function initVoice(opts) {
   document.addEventListener('keydown', unlockAudio, true);
   if (v.demo) return demo();
   window.addEventListener('pagehide', () => leaveChannel(true));
+  // Прийшли за запрошенням (?voice=1) — заходимо, навіть якщо раніше натискали «Вийти»
+  if (new URLSearchParams(location.search).get('voice') === '1') lsSet(LS_OFF, null);
   v.inRoom = lsGet(LS_OFF) !== '1';
   openChannel();
 }
@@ -430,7 +435,37 @@ async function onClick(e) {
     render();
   } else if (act === 'sound') {
     unlockAudio();
+  } else if (act === 'invite') {
+    openInviteDialog();
   }
+}
+
+/** «📣 Запросити» / «Загальний збір» — діалог спільний із «Чатом департаменту». */
+async function openInviteDialog() {
+  const { openInvite, GATHER_TEXT } = await import('../zviazok/invite.js?v=20261103a');
+  const all = v.dept === ALL;
+  const where = all ? 'all' : 'dept';
+  openInvite({
+    sb: v.sb, me: v.me || { id: 'me' }, name: v.name, demo: v.demo,
+    title: all ? 'Кімната департаменту' : v.dept ? `Кімната відділу (${v.dept})` : 'Кімната відділу',
+    scope: all ? { kind: 'all' } : { kind: 'dept', dept: v.dept },
+    here: new Set([...v.members.values()].map((m) => m.uid)),
+    url: `${location.origin}/spravy/index.html?room=${where}&voice=1`,
+    pushKey: 'spravy:' + where,
+    pingKey: 'spravy:' + where,
+    // Оголошення збору — у текстовий канал під кімнатою (room-chat.js покаже його сам)
+    onGather: async () => {
+      if (v.demo) return;
+      let roomId = null;
+      if (!all) {
+        const { data } = await v.sb.from('chat_rooms').select('id').eq('dept', v.dept).limit(1).maybeSingle();
+        if (!data) return;
+        roomId = data.id;
+      }
+      await v.sb.from('chat_messages').insert({ user_id: v.me.id, user_name: v.name, message_text: GATHER_TEXT, room_id: roomId });
+    },
+    toast: v.toast
+  });
 }
 
 function peerState(k) {
@@ -479,7 +514,8 @@ function render() {
          title="${v.muted ? 'Увімкнути мікрофон — вас почують' : 'Вимкнути мікрофон'}">${v.muted ? '🎙 Говорити' : '🎙 Мікрофон увімк.'}</button>
        <button type="button" class="spv-btn spv-icon${v.deaf ? ' is-off' : ''}" data-act="deaf" aria-pressed="${v.deaf}"
          title="${v.deaf ? 'Увімкнути звук' : 'Вимкнути звук (і мікрофон)'}">${v.deaf ? '🔕' : '🎧'}</button>
-       <button type="button" class="spv-btn spv-ghost" data-act="leave" title="Вийти з кімнати; запамʼятаємо до наступного «Увійти»">Вийти</button>`
+       <button type="button" class="spv-btn spv-ghost" data-act="leave" title="Вийти з кімнати; запамʼятаємо до наступного «Увійти»">Вийти</button>
+       <button type="button" class="spv-btn spv-ghost" data-act="invite" title="Покликати колег у голос або оголосити загальний збір">📣 Запросити</button>`
     : v.status === 'live'
       ? '<button type="button" class="spv-btn spv-join" data-act="join">Увійти в кімнату</button>'
       : '';
@@ -533,5 +569,6 @@ function demoAct(act) {
   }
   if (act === 'leave') { v.inRoom = false; v.members.delete('me'); }
   if (act === 'join') { v.inRoom = true; v.members.set('me', { name: v.name || 'Демо-користувач', muted: v.muted, deaf: v.deaf }); }
+  if (act === 'invite') openInviteDialog();
   render();
 }

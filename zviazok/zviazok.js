@@ -27,6 +27,7 @@
 import { createVoice, voiceTopic, MANY } from './voice.js?v=20261103b';
 import { QUICK, buildPicker, emojiOnly } from './emoji.js?v=20261103a';
 import { pushState, enablePush, disablePush, sendPushInvite } from './push.js?v=20261103a';
+import { openInvite, GATHER, GATHER_TEXT } from './invite.js?v=20261103a';
 
 const QS = new URLSearchParams(location.search);
 const DEMO = QS.get('demo') === '1';
@@ -459,6 +460,15 @@ function onPing(p) {
   if (!p || p.seen) return;
   const [kind, key] = String(p.note || '').split('|');
   if (kind !== 'voice') return;
+  // Кличуть у кімнату відділу «Справ» — туди й ведемо (spravy/voice.js, ?room=dept|all)
+  if (key?.startsWith('spravy:')) {
+    const to = `../spravy/index.html?room=${key === 'spravy:all' ? 'all' : 'dept'}&voice=1`;
+    sound();
+    notify(`${p.sender_name} кличе в голос «${p.room_name || 'Справи'}»`, 'Натисніть, щоб приєднатися', () => { location.href = to; });
+    toast(`📣 ${p.sender_name} кличе в голос «${p.room_name || 'Справи'}»`, false, { label: 'Приєднатися', run: () => { location.href = to; } });
+    if (!DEMO) api.seen(p.id).catch(() => {});
+    return;
+  }
   const c = parseKey(key === 'dm:' + p.recipient_id ? 'dm:' + p.sender_id : key);
   const where = c.kind === 'dm' ? 'на розмову' : `у голос «${p.room_name || chanInfo(c).title}»`;
   sound();
@@ -812,128 +822,33 @@ function filterPeople(form) {
 
 /* ───────────────────────── «Запросити» і «Загальний збір» ───────────────────────── */
 
-const GATHER = '📢 Загальний збір';
-const norm = (s) => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
-/** Відділ у кімнаті (chat_rooms.dept) і в профілі (Section) записано не завжди
- *  однаково («стратегічного розвитку ПМГ» / «…програми медичних гарантій») —
- *  звіряємо за першими двома словами. */
-const sameDept = (a, b) => !!a && !!b && norm(a).split(' ').slice(0, 2).join(' ') === norm(b).split(' ').slice(0, 2).join(' ');
-
 /** Посилання на розмову з пропозицією зайти в голос — для «поділитися». */
 function inviteUrl(c) {
   const key = c.kind === 'dm' ? 'dm:' + S.me.id : keyOf(c);
   return `${location.origin}/zviazok/index.html?c=${encodeURIComponent(key)}&voice=1`;
 }
 
-/** Кого кличе «Загальний збір» у цій розмові. Оголосити може будь-хто (рішення власника). */
-function gatherScope(c) {
-  const r = c.kind === 'room' ? roomOf(c.id) : null;
-  if (r && !r.is_public) {
-    const uids = (r.member_ids || []).filter((u) => u !== S.me.id);
-    return { label: `усіх учасників кімнати (${uids.length})`, uids, body: { uids } };
-  }
-  if (r?.dept) {
-    const uids = S.people.filter((p) => p.id !== S.me.id && sameDept(p.Section, r.dept)).map((p) => p.id);
-    return { label: `увесь відділ (${uids.length})`, uids, body: { uids } };
-  }
-  const uids = S.people.filter((p) => p.id !== S.me.id).map((p) => p.id);
-  return { label: `увесь департамент (${uids.length})`, uids, body: { all: true } };
-}
-
-/** Запрошення: у самому чаті (chat_pings) і поза ним (Web Push). */
-async function invite(c, uids, pushBody, kind) {
-  if (DEMO) return { people: uids.length, pushed: null };
-  if (uids.length) await api.ping(uids, c, chanInfo(c).title);
-  const pushed = await sendPushInvite(S.sb, { ...pushBody, kind, room: chanInfo(c).title, key: keyOf(c) });
-  return { people: uids.length, pushed };
-}
-
+/** Діалог спільний із «Справами» (invite.js); тут — лише що це за розмова. */
 function inviteDialog(c = S.chan) {
-  const dlg = $('zvDialog');
-  const info = chanInfo(c);
-  const here = new Set(voiceMembers(c).map((m) => m.uid));
   const r = c.kind === 'room' ? roomOf(c.id) : null;
-  // У закриту кімнату кличемо лише її учасників — інші її не побачать
-  const pool = r && !r.is_public ? S.people.filter((p) => (r.member_ids || []).includes(p.id)) : S.people;
-  const list = pool.filter((p) => p.id !== S.me.id && !here.has(p.id))
-    .sort((a, b) => (S.online.has(b.id) - S.online.has(a.id)) || a.full_name.localeCompare(b.full_name, 'uk'));
-  const scope = gatherScope(c);
-  const url = inviteUrl(c);
-  const text = `Зайди в голос: «${info.title}» — ${url}`;
-  dlg.innerHTML = `
-    <form method="dialog" class="zv-form-invite">
-      <h2>📣 Запросити в голос</h2>
-      <p class="zv-dlg-lead">«${esc(info.title)}». Запрошення прийде в чат і сповіщенням на телефон чи комп'ютер тим, хто їх увімкнув. Ви одразу зайдете в голос.</p>
-      <button type="button" class="zv-gather" data-act="gather">
-        <span aria-hidden="true">📢</span>
-        <span><b>Загальний збір</b><small>Покликати ${esc(scope.label)}. У розмові з'явиться оголошення з кнопкою «Приєднатися».</small></span>
-      </button>
-      <div class="zv-field"><span>Або вибрати колег</span>
-        <input type="search" class="zv-people-q" placeholder="Знайти колегу…" aria-label="Пошук колеги">
-        <div class="zv-people zv-people-pick">${list.map((p) => `
-          <label class="zv-person" data-n="${esc(p.full_name.toLowerCase())}">
-            <input type="checkbox" name="m" value="${p.id}">
-            <span class="zv-ava" aria-hidden="true">${esc(initials(p.full_name))}</span>
-            <span class="zv-person-name">${esc(p.full_name)}</span>
-            ${S.online.has(p.id) ? '<span class="zv-on" title="у мережі"></span>' : ''}
-          </label>`).join('') || '<p class="zv-muted">Усі вже тут.</p>'}</div></div>
-      <div class="zv-share">
-        <span>Або надіслати посилання самому:</span>
-        <a class="zv-btn" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">WhatsApp</a>
-        <a class="zv-btn" href="https://teams.microsoft.com/share?href=${encodeURIComponent(url)}&amp;msgText=${encodeURIComponent(`Зайди в голос: «${info.title}»`)}" target="_blank" rel="noopener">Teams</a>
-        ${navigator.share ? '<button type="button" class="zv-btn" data-act="share">📱 Інше…</button>' : ''}
-        <button type="button" class="zv-btn" data-act="copy">Копіювати</button>
-      </div>
-      <div class="zv-dlg-actions"><span class="zv-grow"></span>
-        <button type="button" class="zv-btn" data-act="close">Скасувати</button>
-        <button type="submit" class="zv-btn zv-primary">Покликати вибраних</button>
-      </div>
-    </form>`;
-  const form = dlg.querySelector('form');
-  filterPeople(form);
-  const done = (res, what) => {
-    const p = res.pushed;
-    toast(`${what}: ${res.people}. ${p ? `Сповіщення на пристрій отримали ${p.people}.` : DEMO ? '' : 'Поза порталом сповіщення поки не пішли — лише в чаті.'}`);
-  };
+  // Збір: закрита кімната — її учасники; кімната відділу — відділ; решта — увесь департамент
+  const scope = r && !r.is_public ? { kind: 'members', uids: r.member_ids || [] } : r?.dept ? { kind: 'dept', dept: r.dept } : { kind: 'all' };
   const inVoiceHere = () => S.vs?.topic === topicOf(c) && S.vs.status !== 'idle';
-  form.addEventListener('click', async (e) => {
-    const btn = e.target.closest('[data-act]');
-    const a = btn?.dataset.act;
-    if (a === 'close') return dlg.close();
-    if (a === 'copy') {
-      try { await navigator.clipboard.writeText(text); toast('Посилання скопійовано.'); } catch (_) { prompt('Скопіюйте посилання:', url); }
-    }
-    if (a === 'share') navigator.share({ title: 'Зайди в голос', text: `Зайди в голос: «${info.title}»`, url }).catch(() => {});
-    if (a === 'gather') {
-      if (!confirm(`Оголосити загальний збір у «${info.title}»? Покличемо ${scope.label}.`)) return;
-      btn.disabled = true;
-      try {
-        if (S.chan !== c) openChan(c);
-        await post(`${GATHER} у голосі — приєднуйтесь! 🎙`);
-        if (!inVoiceHere()) await joinVoice(c, true);
-        const res = await invite(c, scope.uids, scope.body, 'gather');
-        dlg.close();
-        done(res, 'Збір оголошено, покликано');
-      } catch (err) {
-        toast('Не вдалося: ' + (err.message || err), true);
-        btn.disabled = false;
-      }
-    }
+  openInvite({
+    sb: S.sb, me: S.me, name: S.name, demo: DEMO,
+    title: chanInfo(c).title,
+    scope,
+    here: new Set(voiceMembers(c).map((m) => m.uid)),
+    people: S.people,
+    online: new Set(S.online.keys()),
+    url: inviteUrl(c),
+    pushKey: keyOf(c),
+    pingKey: keyOf(c),
+    roomId: c.kind === 'room' ? c.id : null,
+    onJoin: () => (inVoiceHere() ? null : joinVoice(c, true)),
+    onGather: () => { if (keyOf(S.chan) !== keyOf(c)) openChan(c); return post(GATHER_TEXT); },
+    toast
   });
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const uids = [...form.querySelectorAll('[name=m]:checked')].map((x) => x.value);
-    if (!uids.length) return toast('Позначте, кого покликати, або натисніть «Загальний збір».');
-    try {
-      if (!inVoiceHere()) await joinVoice(c, true);
-      const res = await invite(c, uids, { uids }, 'invite');
-      dlg.close();
-      done(res, 'Покликано');
-    } catch (err) {
-      toast('Не надіслано: ' + (err.message || err), true);
-    }
-  });
-  dlg.showModal();
 }
 
 /* ───────────────────────── сповіщення поза порталом (Web Push) ───────────────────────── */

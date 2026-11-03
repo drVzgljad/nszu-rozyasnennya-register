@@ -25,7 +25,7 @@
  * Realtime, migration_2026-11-03_voice_room.sql), текстовий канал під нею —
  * room-chat.js (кімната відділу з чату порталу). Версії ?v= обох піднімати тут.
  */
-import { initVoice, setVoiceDept } from './voice.js?v=20261103d';
+import { initVoice, setVoiceDept } from './voice.js?v=20261103e';
 import { initRoomChat, setRoomChatDept } from './room-chat.js?v=20261103b';
 
 const $ = (id) => document.getElementById(id);
@@ -220,7 +220,9 @@ const roomTarget = () => (state.roomScope === 'all' || !DEPARTMENTS.includes(sta
 function setupRoomScope() {
   const box = $('spScope');
   if (!box) return;
-  const saved = lsGet('spravy-room-scope');
+  // ?room=dept|all — посилання із запрошення «📣 Запросити» (voice.js) веде саме в ту кімнату
+  const want = new URLSearchParams(location.search).get('room');
+  const saved = want === 'all' || want === 'dept' ? want : lsGet('spravy-room-scope');
   state.roomScope = saved === 'all' || !DEPARTMENTS.includes(state.dept) ? 'all' : 'dept';
   const paint = () => box.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.scope === state.roomScope)));
   paint();
