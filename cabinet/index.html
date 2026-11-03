@@ -11,10 +11,10 @@
   <title>Особистий кабінет експерта — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260808c">
   <link rel="stylesheet" href="../auth-v2.css?v=20261103b">
-  <link rel="stylesheet" href="cabinet.css?v=20261103d">
+  <link rel="stylesheet" href="cabinet.css?v=20261103e">
   <link rel="stylesheet" href="workspace.css?v=20260722f">
   <script type="module" src="../auth-v2.js?v=20261103l"></script>
-  <script type="module" src="cabinet.js?v=20261103g"></script>
+  <script type="module" src="cabinet.js?v=20261103h"></script>
   <script type="module" src="workspace.js?v=20260903a"></script>
 </head>
 <body data-required-role="expert">
@@ -172,7 +172,7 @@
               <select id="task_branch" required>
                 <option value="case" selected>Робота за справою</option>
                 <option value="department">Внутрішня робота відділу</option>
-                <option value="askod">Робота в АСКОД (документ поза «Справами»)</option>
+                <option value="askod">Робота в АСКОД за номером документа</option>
               </select>
             </div>
 
@@ -238,6 +238,25 @@
             <div class="form-group" id="form-askod-reply-group" style="display: none;">
               <label for="askod_reply_number">Відповідь на лист № (необов'язково)</label>
               <input type="text" id="askod_reply_number" placeholder="номер вхідного листа, на який надається відповідь">
+            </div>
+
+            <!-- Зв'язок зі «Справами відділу» для двох інших гілок (03.11.2026):
+                 «Внутрішня робота» — обрати справу відділу або завести нове завдання;
+                 «Робота в АСКОД» — справу знаходимо за номером, нема — заводимо -->
+            <div class="form-group" id="form-sync-group" style="display: none;">
+              <div id="sync-case-wrap">
+                <label for="sync_case">Справа у «Справах відділу»</label>
+                <select id="sync_case"></select>
+              </div>
+              <div id="sync-hint" class="case-desc-hint" hidden></div>
+              <div class="form-group-checkbox sync-check" id="sync-new-wrap" hidden>
+                <input type="checkbox" id="sync_new" checked>
+                <label for="sync_new">📋 Завести справу в «Справах відділу»</label>
+              </div>
+              <div class="form-group-checkbox sync-check" id="sync-done-wrap" hidden>
+                <input type="checkbox" id="sync_done">
+                <label for="sync_done">✔ Роботу завершено — справу одразу в «Закрито»</label>
+              </div>
             </div>
 
             <div class="form-row">

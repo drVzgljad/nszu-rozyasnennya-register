@@ -1311,3 +1311,8 @@
 .case-project-label { display: block; margin-top: 10px; }
 #case_project_no { width: 100%; }
 .case-project-hint { margin-top: 4px; font-size: 11.5px; color: var(--p-muted, #64748b); }
+
+/* «Внутрішня робота» і «Робота в АСКОД» ↔ «Справи відділу» (03.11.2026) */
+#sync_case { width: 100%; }
+#form-sync-group .sync-check { margin-top: 8px; }
+#form-sync-group .sync-check[hidden], #sync-case-wrap[hidden] { display: none; }

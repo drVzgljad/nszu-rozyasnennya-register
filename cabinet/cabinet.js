@@ -9,6 +9,7 @@ let currentUser = null;
 let userProfile = null;
 let allTasks = [];
 let myCases = [];       // мої незакриті справи (Справи відділу) — для плиток угорі
+let deptCases = [];     // усі справи відділу — зв'язок гілок «Внутрішня робота» і «Робота в АСКОД» зі «Справами»
 let todayLogs = [];
 let departmentProfiles = [];
 let activeTaskForLog = null;
@@ -248,6 +249,18 @@ async function loadDatabaseData() {
   if (casesErr) console.error("Error loading cases:", casesErr);
   myCases = cases || [];
 
+  // 1b. Справи відділу — для двох інших гілок форми: обрати справу або знайти її за № АСКОД
+  deptCases = [];
+  if (userProfile?.Section) {
+    const { data: dc, error: dcErr } = await sb
+      .from('dept_cases')
+      .select('id, in_no, subject, stage, case_kind, executor_id, executor_name, project_no, out_no, deadline')
+      .eq('department', userProfile.Section)
+      .order('deadline', { ascending: true, nullsFirst: false });
+    if (dcErr) console.error("Error loading department cases:", dcErr);
+    deptCases = dc || [];
+  }
+
   // 2. Fetch today's skod logs
   const { data: logs, error: logsErr } = await sb
     .from('skod_logs')
@@ -278,6 +291,8 @@ async function loadDatabaseData() {
   renderTasksList();
   populateTaskDropdown();
   populateCaseDropdown();
+  populateSyncCases();
+  renderSync();
   renderTodayLogsFeed();
   populateContactPersonDropdown();
 }
@@ -722,7 +737,110 @@ function handleBranchChange() {
     if (branch === 'case') handleCaseChange();   // тип і справу номенклатури — з обраної справи
   }
 
+  // Внутрішня робота здебільшого вже зроблена — нове завдання одразу закриваємо;
+  // документ АСКОД іде етапами, тож його лишаємо «в роботі»
+  const syncDone = document.getElementById('sync_done');
+  if (syncDone) syncDone.checked = branch === 'department';
+  const syncSel = document.getElementById('sync_case');
+  if (syncSel && branch === 'department') syncSel.value = 'new';
+  renderSync();
+
   updateLiveScore();
+}
+
+/* ── «Внутрішня робота відділу» і «Робота в АСКОД» ↔ «Справи відділу» ── */
+
+const CASE_STAGE_LABEL = { new: 'Нове', work: 'В роботі', review: 'Погодження', signing: 'На підписі', sz_sent: 'СЗ надано', done: 'Закрито' };
+
+// Справа за номером АСКОД: вх. №, № проєкту відповіді або вих. № (без дефісів і пробілів)
+function findCaseByNo(no) {
+  const n = normNo(no);
+  if (!n) return null;
+  return deptCases.find((c) => [c.in_no, c.project_no, c.out_no].some((x) => x && normNo(x) === n)) || null;
+}
+
+// Номер, за яким шукаємо справу: «Відповідь на лист №» — це і є вхідний справи
+function syncAskodNo() {
+  return (document.getElementById('askod_reply_number')?.value || '').trim()
+    || (document.getElementById('askod_reg_number')?.value || '').trim();
+}
+function syncAskodMatch() {
+  return findCaseByNo(document.getElementById('askod_reply_number')?.value)
+    || findCaseByNo(document.getElementById('askod_reg_number')?.value);
+}
+
+function populateSyncCases() {
+  const select = document.getElementById('sync_case');
+  if (!select) return;
+  const keep = select.value || 'new';
+  const open = deptCases.filter((c) => c.stage !== 'done' && (c.case_kind || 'askod') !== 'askod');
+  const mine = open.filter((c) => c.executor_id === currentUser?.id);
+  const others = open.filter((c) => c.executor_id !== currentUser?.id);
+  const optHTML = (c) => {
+    const k = CASE_KIND_INFO[c.case_kind] || CASE_KIND_INFO.task;
+    const subj = (c.subject || '').length > 70 ? c.subject.slice(0, 70) + '…' : (c.subject || '');
+    const who = c.executor_id === currentUser?.id || !c.executor_name ? '' : ` · ${c.executor_name}`;
+    return `<option value="${c.id}">${k.icon} ${escapeHtml(subj)}${escapeHtml(who)}</option>`;
+  };
+  select.innerHTML = `<option value="new">＋ Нове завдання в «Справах» (суть — з опису роботи)</option>
+    <option value="">— не повʼязувати зі справою —</option>`
+    + (mine.length ? `<optgroup label="Мої справи поза АСКОД">${mine.map(optHTML).join('')}</optgroup>` : '')
+    + (others.length ? `<optgroup label="Напрями й справи відділу">${others.map(optHTML).join('')}</optgroup>` : '');
+  select.value = [...select.options].some((o) => o.value === keep) ? keep : 'new';
+}
+
+// Що станеться зі «Справами» після збереження — показуємо до натискання кнопки
+function renderSync() {
+  const group = document.getElementById('form-sync-group');
+  if (!group) return;
+  const branch = document.getElementById('task_branch')?.value;
+  const on = (branch === 'department' || branch === 'askod') && !!userProfile?.Section;
+  group.style.display = on ? 'block' : 'none';
+  if (!on) return;
+  const hint = document.getElementById('sync-hint');
+  const newWrap = document.getElementById('sync-new-wrap');
+  const doneWrap = document.getElementById('sync-done-wrap');
+  document.getElementById('sync-case-wrap').hidden = branch !== 'department';
+  let text = '', showNew = false, showDone = false;
+  if (branch === 'department') {
+    const v = document.getElementById('sync_case').value;
+    const c = deptCases.find((x) => x.id === v);
+    if (v === 'new') {
+      text = 'У «Справах відділу» зʼявиться завдання з вами як виконавцем, а цей запис — у його історії.';
+      showDone = true;
+    } else if (c) {
+      text = `Роботу буде записано в історію справи «${escapeHtml(c.subject)}» (${CASE_STAGE_LABEL[c.stage] || c.stage}${c.executor_name ? ' · ' + escapeHtml(c.executor_name) : ''}).`;
+    } else {
+      text = 'Запис буде лише в СКО-Д, у «Справах відділу» його не буде видно.';
+    }
+  } else {
+    const no = syncAskodNo();
+    const c = no ? syncAskodMatch() : null;
+    if (!no) {
+      text = 'Справу у «Справах відділу» знайдемо за цим номером.';
+    } else if (c) {
+      text = `📋 У «Справах відділу»: <b>${escapeHtml(c.in_no || c.project_no || c.out_no)}</b> — ${escapeHtml(c.subject)} (${CASE_STAGE_LABEL[c.stage] || c.stage}${c.executor_name ? ' · ' + escapeHtml(c.executor_name) : ''}). Роботу буде записано в історію цієї справи.`;
+    } else {
+      text = `Документа № ${escapeHtml(no)} у «Справах відділу» немає.`;
+      showNew = true;
+      showDone = document.getElementById('sync_new').checked;
+    }
+  }
+  hint.innerHTML = text;
+  hint.hidden = !text;
+  newWrap.hidden = !showNew;
+  doneWrap.hidden = !showDone;
+}
+
+// Рядок «Зараховано в СКО-Д» в історії справи — той самий текст, що кнопка 🕒 у «Справах»
+async function logCaseEvent(caseId, duration, category, extra) {
+  const { error } = await sb.from('dept_case_events').insert([{
+    case_id: caseId,
+    author_name: userProfile.full_name,
+    kind: 'system',
+    body: `Зараховано в СКО-Д: ${duration < 60 ? duration + ' хв' : (duration / 60) + ' год'}, ${category.split(' — ')[0]} (з кабінету${extra ? ', ' + extra : ''})`
+  }]);
+  if (error) console.error("Failed to log case event:", error);
 }
 
 // ── Запам'ятовування вибраних типів і категорій ──────────────
@@ -1310,14 +1428,51 @@ async function handleLogFormSubmit(e) {
         .eq('id', caseForLog.id);
       if (pErr) console.error("Failed to save project number to case:", pErr);
     }
-    if (caseForLog) {
-      const { error: evErr } = await sb.from('dept_case_events').insert([{
-        case_id: caseForLog.id,
-        author_name: userProfile.full_name,
-        kind: 'system',
-        body: `Зараховано в СКО-Д: ${duration < 60 ? duration + ' хв' : (duration / 60) + ' год'}, ${taskCategory.split(' — ')[0]} (з кабінету)`
-      }]);
-      if (evErr) console.error("Failed to log case event:", evErr);
+    if (caseForLog) await logCaseEvent(caseForLog.id, duration, taskCategory);
+
+    // 1c. Дві інші гілки — теж у «Справи відділу»: обрана / знайдена за № справа
+    // отримує рядок в історії, а нова заводиться з вами як виконавцем
+    let syncNote = '';
+    if ((branch === 'department' || branch === 'askod') && userProfile?.Section) {
+      let target = null, create = false;
+      if (branch === 'department') {
+        const v = document.getElementById('sync_case').value;
+        target = deptCases.find((c) => c.id === v) || null;
+        create = v === 'new';
+      } else {
+        target = syncAskodMatch();
+        create = !target && document.getElementById('sync_new').checked;
+      }
+      if (create) {
+        const done = document.getElementById('sync_done').checked;
+        const inNo = branch === 'askod' ? (askodReplyNum || askodNum) : null;
+        const row = {
+          department: userProfile.Section,
+          case_kind: branch === 'askod' ? 'askod' : 'task',
+          in_no: inNo,
+          subject: (desc.split('\n')[0] || desc).slice(0, 300),
+          reply_kind: branch === 'askod' ? (/^ПІ-/i.test(inNo || '') ? 'pi' : 'letter') : 'other',
+          executor_id: currentUser.id,
+          executor_name: userProfile.full_name,
+          stage: done ? 'done' : 'work',
+          source: 'manual',
+          created_by: currentUser.id,
+          created_by_name: userProfile.full_name
+        };
+        const { data: nc, error: ncErr } = await sb.from('dept_cases').insert(row).select('id').single();
+        if (ncErr) {
+          console.error("Failed to create case:", ncErr);
+          syncNote = /duplicate|23505/.test(ncErr.message || ncErr.code || '')
+            ? `\nСправа з № ${inNo} у «Справах відділу» вже є, але вам вона не видна — перевірте відділ у профілі.`
+            : '\nСправу в «Справах відділу» не заведено: ' + ncErr.message;
+        } else {
+          target = { id: nc.id };
+          syncNote = `\nУ «Справах відділу» заведено ${branch === 'askod' ? 'справу' : 'завдання'}${done ? ' (одразу закрите)' : ''}.`;
+        }
+      } else if (target) {
+        syncNote = '\nРядок додано в історію справи у «Справах відділу».';
+      }
+      if (target) await logCaseEvent(target.id, duration, taskCategory, branch === 'askod' && askodNum ? '№ ' + askodNum : '');
     }
 
     // 2. If branch is Tasks, update progress, subtasks & comments of the task
@@ -1399,9 +1554,9 @@ async function handleLogFormSubmit(e) {
     activeTaskForLog = null;
     if (workDate !== todayISO) {
       const [y, m, dd] = workDate.split('-');
-      alert(`Роботу збережено в СКО-Д за ${dd}.${m}.${y}.\nУ списку «Виконана робота» показуються записи лише за сьогодні, тому цей запис там не зʼявиться.`);
+      alert(`Роботу збережено в СКО-Д за ${dd}.${m}.${y}.\nУ списку «Виконана робота» показуються записи лише за сьогодні, тому цей запис там не зʼявиться.${syncNote}`);
     } else {
-      alert("Роботу успішно збережено в СКО-Д!");
+      alert("Роботу успішно збережено в СКО-Д!" + syncNote);
     }
 
   } catch(err) {
@@ -1685,6 +1840,11 @@ function setupUIEvents() {
   if (caseSel) {
     caseSel.addEventListener('change', handleCaseChange);
   }
+  // Зв'язок зі «Справами»: вибір справи, номер АСКОД, галочки
+  ['sync_case', 'sync_new'].forEach((id) => document.getElementById(id)?.addEventListener('change', renderSync));
+  ['askod_reg_number', 'askod_reply_number'].forEach((id) => document.getElementById(id)?.addEventListener('input', () => {
+    if (document.getElementById('task_branch')?.value === 'askod') renderSync();
+  }));
   const caseSearch = document.getElementById('case_search');
   if (caseSearch) {
     caseSearch.addEventListener('input', populateCaseDropdown);
