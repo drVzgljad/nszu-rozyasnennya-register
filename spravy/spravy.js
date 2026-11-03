@@ -39,6 +39,42 @@ const STAGES = [
   { key: 'done',    label: 'Закрито',    hint: 'вих. №, резолюцію закрито' }
 ];
 const STAGE_LABEL = Object.fromEntries(STAGES.map((s) => [s.key, s.label]));
+
+/*
+ * Види справ (migration_2026-11-03f_case_kinds.sql): не лише документи АСКОД.
+ * Етапи в базі ті самі; завдання, захід і напрям ходять лише new → work → review → done
+ * і мають свої назви етапів (у базі — dept_cases_stage_label(p, k), тут — KIND_STAGES).
+ */
+const CASE_KINDS = {
+  askod:   { icon: '📨', label: 'Документ АСКОД',  short: 'АСКОД' },
+  task:    { icon: '✅', label: 'Завдання',        short: 'Завдання' },
+  event:   { icon: '📅', label: 'Захід',           short: 'Захід' },
+  project: { icon: '🧭', label: 'Напрям / проєкт', short: 'Напрям' }
+};
+const KIND_STAGES = {
+  task:    [{ key: 'new', label: 'Нове', hint: 'доручили, ще не взялися' }, { key: 'work', label: 'В роботі', hint: 'виконавець працює' },
+            { key: 'review', label: 'На перевірці', hint: 'віддали керівнику' }, { key: 'done', label: 'Готово', hint: 'результат прийнято' }],
+  event:   [{ key: 'new', label: 'Заплановано', hint: 'дата відома' }, { key: 'work', label: 'Підготовка', hint: 'тези, матеріали' },
+            { key: 'review', label: 'Відбувся', hint: 'внести підсумки' }, { key: 'done', label: 'Підсумки внесено', hint: 'що домовились' }],
+  project: [{ key: 'new', label: 'Задумано', hint: 'ідея, ще не почали' }, { key: 'work', label: 'В роботі', hint: 'віхи, пов\'язані справи' },
+            { key: 'review', label: 'На погодженні', hint: 'у керівництва' }, { key: 'done', label: 'Завершено', hint: 'результат є' }]
+};
+const kindOf = (c) => c?.case_kind || (c?.in_no ? 'askod' : 'task');
+const stagesOf = (kind) => KIND_STAGES[kind] || STAGES;
+const stageLabel = (c, key) => (KIND_STAGES[kindOf(c)]?.find((s) => s.key === key)?.label) || STAGE_LABEL[key];
+/** Захід: «05.11, 14:00» з event_at */
+const fmtEventAt = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}, ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+/** ISO → значення для <input type="datetime-local"> у місцевому часі */
+const toLocalInput = (iso) => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+};
 const KIND_LABEL = { letter: 'Лист', sz: 'СЗ', sz_work: 'СЗ (робочий порядок)', pi: 'ПІ', info: 'До відома', other: 'Інше' };
 const KIND_SHORT = { letter: 'Лист', sz: 'СЗ', sz_work: 'СЗ роб.', pi: 'ПІ', info: 'До відома', other: 'Інше' };
 const ROLE_LABEL = { lead: 'Ми — головний виконавець', co: 'Ми — співвиконавці', info: 'Нам — до відома' };
@@ -117,6 +153,7 @@ const state = {
   q: '',
   mine: false,
   f: 'all',           // фільтр: all / hot (строк ≤ 3 дн.) / overdue / remind (нагадування настали)
+  kind: 'all',        // вид справ: all / askod / task / event / project
   view: 'board',      // board — дошка; list — список за строками; people — за виконавцями
   mobileStage: 'work',
   roomScope: 'dept',  // кімната (голос + чат): dept — мій відділ, all — увесь департамент
@@ -268,7 +305,11 @@ function bootDemo() {
     mk({ in_no: '10006-11-26', in_date: d(-5), correspondent: 'Слідчий орган (демо)', subject: 'Запит про надання відомостей щодо оплати послуг закладу', deadline: d(4), deadline_original: d(4), stage: 'sz_sent', executor_name: 'Олена Приклад', reply_kind: 'sz_work', our_role: 'co', lead_unit: 'Юридичний департамент', resolution: 'Юридичний департамент скл., наш департамент' }),
     mk({ in_no: 'ПІ-104-26', in_date: d(-4), correspondent: 'Запитувач (демо)', subject: 'Запит на інформацію: тарифи та кількість закладів за пакетом', deadline: d(1), stage: 'signing', executor_name: 'Демо-користувач', version: 2, reply_kind: 'pi', review_passed: true, draft_path: '10_НА_ПІДПИС\\02.11.26\\lyst_demo_v2.docx' }),
     mk({ in_no: '10005-06-26', in_date: d(-20), correspondent: 'Комітет (демо)', subject: 'Інформація щодо оплати медичних послуг у 2026 році', deadline: d(-5), stage: 'done', executor_name: 'Олена Приклад', version: 4, review_passed: true, out_no: '24001/8-15-26', out_date: d(-6) }),
-    mk({ in_no: null, subject: 'Ініціативний лист: роз\'яснення закладам щодо обліку послуг', stage: 'work', executor_name: 'Петро Зразок', version: 1, deadline: d(14), source: 'claude' })
+    mk({ in_no: null, subject: 'Ініціативний лист: роз\'яснення закладам щодо обліку послуг', stage: 'work', executor_name: 'Петро Зразок', version: 1, deadline: d(14), source: 'claude' }),
+    // Не лише АСКОД: завдання, захід, напрям (вигадані)
+    mk({ case_kind: 'task', in_no: null, reply_kind: 'other', subject: 'Довідка до наради: динаміка оплат за пакетом (демо)', assigned_by: 'Керівник відділу', deadline: d(1), stage: 'work', executor_name: 'Демо-користувач' }),
+    mk({ case_kind: 'event', in_no: null, reply_kind: 'other', subject: 'Робоча група з оновлення специфікацій (демо)', correspondent: 'Міністерство (демо)', event_at: new Date(Date.now() + 864e5 * 2).toISOString(), event_place: 'Teams', deadline: d(2), stage: 'work', executor_name: 'Олена Приклад' }),
+    mk({ case_kind: 'project', in_no: null, reply_kind: 'other', subject: 'Пропозиції до програми наступного року (демо)', deadline: d(30), stage: 'work', executor_name: 'Петро Зразок', nuances: 'Віха 1 — збір пропозицій; віха 2 — розрахунки' })
   ];
   const c3 = state.cases[2].id;
   state.demoEvents[c3] = [
@@ -411,7 +452,7 @@ function demoLog(c, prev) {
   }
   if (c.stage !== prev.stage) {
     const back = rank(c.stage) < rank(prev.stage) && prev.stage !== 'new';
-    ev(back ? 'returned' : 'stage', `${back ? 'Повернуто: ' : ''}${STAGE_LABEL[prev.stage]} → ${STAGE_LABEL[c.stage]}${tail}`);
+    ev(back ? 'returned' : 'stage', `${back ? 'Повернуто: ' : ''}${stageLabel(c, prev.stage)} → ${stageLabel(c, c.stage)}${tail}`);
   }
   if (c.lead_unit !== prev.lead_unit || c.our_role !== prev.our_role) ev('system', `Головний виконавець: ${c.lead_unit || '—'}${c.our_role ? ` (${ROLE_LABEL[c.our_role].toLowerCase()})` : ''}`);
   if (c.version !== prev.version && c.version) ev('version', `Чернетка v${c.version}`);
@@ -481,10 +522,12 @@ function passesFilter(c) {
 function visibleCases() {
   const q = state.q.trim().toLowerCase();
   return state.cases.filter((c) => {
+    if (state.kind !== 'all' && kindOf(c) !== state.kind) return false;
     if (state.mine && !isMine(c)) return false;
     if (!passesFilter(c)) return false;
     if (!q) return true;
-    return [c.in_no, c.subject, c.correspondent, c.executor_name, c.resolution, c.out_no, c.project_no, c.nuances, c.lead_unit]
+    return [c.in_no, c.subject, c.correspondent, c.executor_name, c.resolution, c.out_no, c.project_no, c.nuances, c.lead_unit,
+      c.assigned_by, c.event_place, CASE_KINDS[kindOf(c)]?.label]
       .some((v) => v && String(v).toLowerCase().includes(q));
   });
 }
@@ -505,7 +548,8 @@ function render() {
   document.querySelectorAll('#spView [data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === state.view)));
   if (state.view === 'list') { board.innerHTML = listHTML(list); renderReminderStrip(); return; }
   if (state.view === 'people') { board.innerHTML = peopleHTML(list); renderReminderStrip(); return; }
-  board.innerHTML = STAGES.map((s) => {
+  // Обрано один вид, не АСКОД — колонки і назви етапів цього виду (без «На підписі» / «СЗ надано»)
+  board.innerHTML = stagesOf(state.kind === 'all' ? 'askod' : state.kind).map((s) => {
     const items = sortCol(list.filter((c) => c.stage === s.key), s.key);
     const shown = s.key === 'done' ? items.slice(0, 30) : items;
     return `<section class="sp-col${s.key === state.mobileStage ? ' is-mobile-active' : ''}" data-stage="${s.key}">
@@ -538,10 +582,10 @@ function rowHTML(c, withExecutor = true) {
   const bell = nextReminder(c.id);
   return `<li class="sp-row sp-row-${c.stage}" data-id="${c.id}" tabindex="0" role="button">
     <span class="sp-row-dl">${dl ? `<span class="sp-dl ${dl.cls}">${esc(dl.text)}</span>` : '<span class="sp-muted">без строку</span>'}</span>
-    <span class="sp-row-no">${esc(c.in_no || 'без вх. №')}</span>
-    <span class="sp-row-subj">${esc(c.subject)}${c.correspondent ? `<i>${esc(c.correspondent)}</i>` : ''}</span>
+    <span class="sp-row-no">${CASE_KINDS[kindOf(c)].icon} ${esc(c.in_no || (kindOf(c) === 'event' && c.event_at ? fmtEventAt(c.event_at) : CASE_KINDS[kindOf(c)].short))}</span>
+    <span class="sp-row-subj">${esc(c.subject)}${c.correspondent ? `<i>${esc(c.correspondent)}</i>` : c.assigned_by ? `<i>від: ${esc(c.assigned_by)}</i>` : ''}</span>
     ${withExecutor ? `<span class="sp-row-ex">${esc(c.executor_name || '—')}</span>` : ''}
-    <span class="sp-row-stage"><b class="sp-stage-dot"></b>${STAGE_LABEL[c.stage]}${c.version ? ` · v${c.version}` : ''}${rem ? ` <span class="sp-rem-mini">⚑ ${rem}</span>` : ''}${bell ? ' 🔔' : ''}</span>
+    <span class="sp-row-stage"><b class="sp-stage-dot"></b>${stageLabel(c, c.stage)}${c.version ? ` · v${c.version}` : ''}${rem ? ` <span class="sp-rem-mini">⚑ ${rem}</span>` : ''}${bell ? ' 🔔' : ''}</span>
   </li>`;
 }
 
@@ -604,6 +648,7 @@ function renderReminderStrip() {
  * СЗ головному, а не несуть лист на підпис.
  */
 function nextStage(c) {
+  if (kindOf(c) !== 'askod') return { new: 'work', work: 'review', review: 'done' }[c.stage] || null;
   const co = c.our_role === 'co';
   return {
     new: 'work',
@@ -620,29 +665,33 @@ function cardHTML(c) {
   const remarks = state.remarkCounts[c.id] || 0;
   const rem = nextReminder(c.id);
   const prolonged = c.deadline && c.deadline_original && c.deadline !== c.deadline_original;
+  const k = kindOf(c);
   const badges = [
     c.our_role ? `<span class="sp-role sp-role-${c.our_role}" title="${esc(ROLE_LABEL[c.our_role] + (c.lead_unit ? ' · головний: ' + c.lead_unit : ''))}">${ROLE_SHORT[c.our_role]}</span>` : '',
-    `<span class="sp-kind">${KIND_SHORT[c.reply_kind] || ''}</span>`,
+    k === 'askod' ? `<span class="sp-kind">${KIND_SHORT[c.reply_kind] || ''}</span>` : `<span class="sp-kind sp-kind-${k}" title="${CASE_KINDS[k].label}">${CASE_KINDS[k].icon} ${CASE_KINDS[k].short}</span>`,
     c.version ? `<span class="sp-ver" title="Поточна версія чернетки">v${c.version}</span>` : '',
     c.review_passed ? '<span class="sp-ok" title="Рецензію пройдено">✓ рецензія</span>' : '',
     remarks ? `<span class="sp-rem" title="Незакриті зауваження">⚑ ${remarks}</span>` : '',
     rem ? `<span class="sp-bell${daysLeft(rem.due_date) <= 0 ? ' is-due' : ''}" title="${esc('Нагадування: ' + rem.body)}">🔔 ${fmtDate(rem.due_date).slice(0, 5)}</span>` : '',
     c.source === 'claude' ? '<span class="sp-src" title="Справу завів Claude">Claude</span>' : ''
   ].join('');
-  return `<article class="sp-card" draggable="true" data-id="${c.id}" tabindex="0" role="button" aria-label="${esc((c.in_no || 'Без вх. №') + ': ' + c.subject)}">
+  const head = c.in_no || (k === 'event' && c.event_at ? `📅 ${fmtEventAt(c.event_at)}` : `${CASE_KINDS[k].icon} ${CASE_KINDS[k].short}`);
+  return `<article class="sp-card sp-card-${k}" draggable="true" data-id="${c.id}" tabindex="0" role="button" aria-label="${esc((c.in_no || CASE_KINDS[k].label) + ': ' + c.subject)}">
     <div class="sp-card-top">
-      <span class="sp-inno">${esc(c.in_no || 'без вх. №')}</span>
+      <span class="sp-inno">${esc(head)}</span>
       ${dl ? `<span class="sp-dl ${dl.cls}"${prolonged ? ` title="Продовжено; первинний строк ${fmtDate(c.deadline_original)}"` : ''}>${prolonged ? '↻ ' : ''}${esc(dl.text)}</span>` : ''}
     </div>
     <div class="sp-subj">${esc(c.subject)}</div>
-    ${c.correspondent ? `<div class="sp-corr">${esc(c.correspondent)}</div>` : ''}
+    ${c.correspondent ? `<div class="sp-corr">${esc(c.correspondent)}</div>`
+      : c.assigned_by ? `<div class="sp-corr">від: ${esc(c.assigned_by)}</div>`
+      : k === 'event' && c.event_place ? `<div class="sp-corr">${esc(c.event_place)}</div>` : ''}
     <div class="sp-card-foot">
       <div class="sp-badges">${badges}</div>
       ${c.executor_name ? `<span class="sp-ava" title="${esc(c.executor_name)}">${esc(initials(c.executor_name))}</span>` : '<span class="sp-ava is-none" title="Виконавця не призначено">?</span>'}
     </div>
     ${c.out_no ? `<div class="sp-out">вих. № ${esc(c.out_no)}${c.out_date ? ' від ' + fmtDate(c.out_date) : ''}</div>`
       : c.project_no ? `<div class="sp-out" title="№ проєкту відповіді в АСКОД">проєкт № ${esc(c.project_no)}</div>` : ''}
-    ${next ? `<button type="button" class="sp-next" data-next="${c.id}" title="Перевести в «${STAGE_LABEL[next]}»">${STAGE_LABEL[next]} →</button>` : ''}
+    ${next ? `<button type="button" class="sp-next" data-next="${c.id}" title="Перевести в «${stageLabel(c, next)}»">${stageLabel(c, next)} →</button>` : ''}
   </article>`;
 }
 
@@ -660,7 +709,7 @@ function renderStats() {
 }
 
 function renderMobileTabs(list) {
-  $('spStageTabs').innerHTML = STAGES.map((s) => {
+  $('spStageTabs').innerHTML = stagesOf(state.kind === 'all' ? 'askod' : state.kind).map((s) => {
     const n = list.filter((c) => c.stage === s.key).length;
     return `<button type="button" class="sp-stab${s.key === state.mobileStage ? ' is-active' : ''}" data-stage="${s.key}">${s.label} <b>${n}</b></button>`;
   }).join('');
@@ -673,6 +722,37 @@ function fieldsHTML(c) {
   if (c.executor_name && !people.includes(c.executor_name)) people.unshift(c.executor_name);
   const opt = (v, cur, label) => `<option value="${esc(v)}"${v === (cur ?? '') ? ' selected' : ''}>${esc(label ?? v)}</option>`;
   const prolonged = c.deadline && c.deadline_original && c.deadline !== c.deadline_original;
+  const k = kindOf(c);
+  const kindSel = `<label class="sp-f"><span>Вид справи</span><select data-f="case_kind">${Object.entries(CASE_KINDS).map(([v, d]) => opt(v, k, `${d.icon} ${d.label}`)).join('')}</select></label>`;
+  const exSel = (label) => `<label class="sp-f"><span>${label}</span><select data-f="executor_name">${opt('', c.executor_name, '— не призначено —')}${people.map((p) => opt(p, c.executor_name)).join('')}</select></label>`;
+  const link = (label) => `<label class="sp-f sp-wide"><span>${label}</span>
+      <span class="sp-linkrow"><input data-f="draft_url" value="${esc(c.draft_url)}" placeholder="https://…">${/^https?:\/\//.test(c.draft_url || '') ? `<a class="sp-btn sp-btn-ghost" href="${esc(c.draft_url)}" target="_blank" rel="noopener">Відкрити</a>` : ''}</span></label>`;
+  const deadlineF = (label) => `<label class="sp-f"><span>${label}${prolonged ? ` <i class="sp-orig">первинний ${fmtDate(c.deadline_original)}</i>` : ''}</span><input type="date" data-f="deadline" value="${esc(c.deadline)}"></label>`;
+  if (k === 'task') return `<div class="sp-grid">
+    ${kindSel}${deadlineF('Строк')}
+    <label class="sp-f sp-wide"><span>Що зробити</span><textarea data-f="subject" rows="2">${esc(c.subject)}</textarea></label>
+    <label class="sp-f sp-wide"><span>Від кого</span><input data-f="assigned_by" value="${esc(c.assigned_by)}" placeholder="Хто доручив: керівник, колега, Teams"></label>
+    ${exSel('Виконавець')}
+    ${link('Результат — файл, документ, посилання')}
+    <label class="sp-f sp-wide"><span>Нюанси — на що зважати</span><textarea data-f="nuances" rows="3">${esc(c.nuances)}</textarea></label>
+  </div>`;
+  if (k === 'event') return `<div class="sp-grid">
+    ${kindSel}
+    <label class="sp-f"><span>Коли</span><input type="datetime-local" data-f="event_at" value="${esc(toLocalInput(c.event_at))}"></label>
+    <label class="sp-f sp-wide"><span>Назва заходу</span><textarea data-f="subject" rows="2">${esc(c.subject)}</textarea></label>
+    <label class="sp-f sp-wide"><span>Де / посилання на зустріч</span><input data-f="event_place" value="${esc(c.event_place)}" placeholder="Teams, Zoom, кабінет"></label>
+    <label class="sp-f sp-wide"><span>Організатор</span><input data-f="correspondent" value="${esc(c.correspondent)}" placeholder="МОЗ, ВООЗ, Голова НСЗУ…"></label>
+    ${exSel('Хто від відділу')}
+    ${link('Матеріали — тези, презентація, протокол')}
+    <label class="sp-f sp-wide"><span>Що домовились / підсумки</span><textarea data-f="nuances" rows="4" placeholder="Рішення, доручення, хто що робить далі">${esc(c.nuances)}</textarea></label>
+  </div>`;
+  if (k === 'project') return `<div class="sp-grid">
+    ${kindSel}${deadlineF('Ключова дата')}
+    <label class="sp-f sp-wide"><span>Назва напряму</span><textarea data-f="subject" rows="2">${esc(c.subject)}</textarea></label>
+    ${exSel('Відповідальний')}
+    ${link('Робочий документ, тека, посилання')}
+    <label class="sp-f sp-wide"><span>Віхи й план</span><textarea data-f="nuances" rows="5" placeholder="Що вже є, що далі, з якими справами пов'язано">${esc(c.nuances)}</textarea></label>
+  </div>`;
   return `
   <div class="sp-lead">
     <label class="sp-f sp-lead-unit"><span>Головний виконавець (департамент / управління / відділ)</span>
@@ -681,6 +761,7 @@ function fieldsHTML(c) {
   </div>
   <datalist id="spLeadUnits">${LEAD_UNITS.map((u) => `<option value="${esc(u)}">`).join('')}</datalist>
   <div class="sp-grid">
+    ${kindSel}
     <label class="sp-f"><span>Вх. №</span><input data-f="in_no" value="${esc(c.in_no)}" placeholder="10001-08-26"></label>
     <label class="sp-f"><span>Строк${prolonged ? ` <i class="sp-orig">первинний ${fmtDate(c.deadline_original)}</i>` : ''}</span><input type="date" data-f="deadline" value="${esc(c.deadline)}"></label>
     <label class="sp-f sp-wide"><span>Суть</span><textarea data-f="subject" rows="2">${esc(c.subject)}</textarea></label>
@@ -710,10 +791,13 @@ function fieldsHTML(c) {
 }
 
 function renderDrawerHead(c) {
-  $('spDrawerTitle').textContent = c.in_no ? `Вх. № ${c.in_no}` : 'Справа без вх. №';
+  const k = kindOf(c);
+  $('spDrawerTitle').textContent = c.in_no ? `Вх. № ${c.in_no}`
+    : `${CASE_KINDS[k].icon} ${CASE_KINDS[k].label}${k === 'event' && c.event_at ? ' · ' + fmtEventAt(c.event_at) : ''}`;
   $('spDrawerSub').textContent = c.subject;
-  const cur = STAGES.findIndex((x) => x.key === c.stage);
-  $('spStepper').innerHTML = STAGES.map((s, i) => {
+  const st = stagesOf(kindOf(c));
+  const cur = st.findIndex((x) => x.key === c.stage);
+  $('spStepper').innerHTML = st.map((s, i) => {
     const cls = i < cur ? 'is-past' : i === cur ? 'is-current' : '';
     return `<button type="button" class="sp-step ${cls}" data-stage="${s.key}" aria-pressed="${i === cur}">${s.label}</button>`;
   }).join('');
@@ -926,23 +1010,42 @@ function openAction(name) {
 
 /* ───────────────────────── нова справа ───────────────────────── */
 
+/** Діалог нової справи: показати поля обраного виду (атрибут data-for на полях). */
+function paintNewKind() {
+  const kind = new FormData($('spNewForm')).get('case_kind') || 'askod';
+  document.querySelectorAll('#spNewForm [data-for]').forEach((el) => { el.hidden = !el.dataset.for.split(' ').includes(kind); });
+  $('spNewSubjLbl').textContent = { askod: 'Суть *', task: 'Що зробити *', event: 'Назва заходу *', project: 'Назва напряму *' }[kind];
+  $('spNewDeadlineLbl').textContent = kind === 'project' ? 'Ключова дата' : 'Строк';
+  $('spNewCorrLbl').textContent = kind === 'event' ? 'Організатор' : 'Кореспондент';
+  $('spNewTitle').textContent = kind === 'askod' ? 'Нова справа' : `Нова справа: ${CASE_KINDS[kind].label.toLowerCase()}`;
+}
+
 async function createCase(form) {
   const fd = new FormData(form);
+  const kind = fd.get('case_kind') || 'askod';
+  const eventAt = kind === 'event' && fd.get('event_at') ? new Date(fd.get('event_at')).toISOString() : null;
   const row = {
     department: state.dept,
-    in_no: (fd.get('in_no') || '').trim() || null,
+    case_kind: kind,
+    in_no: kind === 'askod' ? ((fd.get('in_no') || '').trim() || null) : null,
     subject: (fd.get('subject') || '').trim(),
-    correspondent: (fd.get('correspondent') || '').trim() || null,
-    deadline: fd.get('deadline') || null,
-    reply_kind: fd.get('reply_kind') || 'letter',
+    correspondent: ['askod', 'event'].includes(kind) ? ((fd.get('correspondent') || '').trim() || null) : null,
+    // Захід: дата заходу — і строк (сортування, «горить»)
+    deadline: kind === 'event' ? (fd.get('event_at') ? String(fd.get('event_at')).slice(0, 10) : null) : (fd.get('deadline') || null),
+    event_at: eventAt,
+    event_place: kind === 'event' ? ((fd.get('event_place') || '').trim() || null) : null,
+    assigned_by: kind === 'task' ? ((fd.get('assigned_by') || '').trim() || null) : null,
+    reply_kind: kind === 'askod' ? (fd.get('reply_kind') || 'letter') : 'other',
     executor_name: fd.get('executor_name') || null,
-    our_role: fd.get('our_role') || null,
-    lead_unit: (fd.get('lead_unit') || '').trim() || null,
-    stage: fd.get('executor_name') ? 'work' : 'new',
+    our_role: kind === 'askod' ? (fd.get('our_role') || null) : null,
+    lead_unit: kind === 'askod' ? ((fd.get('lead_unit') || '').trim() || null) : null,
+    stage: fd.get('executor_name') && kind !== 'event' ? 'work' : 'new',
     source: 'manual',
     created_by_name: myName()
   };
   if (!row.subject) return toast('Вкажіть суть справи', true);
+  if (kind === 'event' && !eventAt) return toast('Вкажіть дату й час заходу', true);
+  lsSet('spravy-new-kind', kind);
   if (DEMO) {
     const c = { id: crypto.randomUUID(), created_at: new Date().toISOString(), updated_at: new Date().toISOString(), priority: 0, review_passed: false, ...row };
     state.cases.push(c);
@@ -969,6 +1072,16 @@ function wireStatic() {
   $('spSearch').addEventListener('input', (e) => { state.q = e.target.value; render(); });
   $('spMine').addEventListener('change', (e) => { state.mine = e.target.checked; lsSet('spravy-mine', state.mine ? '1' : '0'); render(); });
   $('spFilter').addEventListener('change', (e) => { state.f = e.target.value; render(); });
+  $('spKind').value = lsGet('spravy-kind') || 'all';
+  state.kind = $('spKind').value;
+  $('spKind').addEventListener('change', (e) => {
+    state.kind = e.target.value;
+    lsSet('spravy-kind', state.kind);
+    if (!stagesOf(state.kind).some((s) => s.key === state.mobileStage)) state.mobileStage = 'work';
+    render();
+  });
+  // Діалог нової справи: вид → свій набір полів
+  $('spNewKinds').addEventListener('change', paintNewKind);
   if (['board', 'list', 'people'].includes(lsGet('spravy-view'))) state.view = lsGet('spravy-view');
   $('spView').addEventListener('click', (e) => {
     const b = e.target.closest('[data-view]');
@@ -981,6 +1094,12 @@ function wireStatic() {
   $('spAdd').addEventListener('click', () => {
     const sel = $('spNewExecutor');
     sel.innerHTML = '<option value="">— пізніше —</option>' + state.people.map((p) => `<option>${esc(p.full_name)}</option>`).join('');
+    $('spNewAssigners').innerHTML = state.leaders.map((n) => `<option value="${esc(n)}">`).join('');
+    // Вид за замовчуванням — той, що обрано у фільтрі (дивлюся заходи → заводжу захід)
+    const kind = state.kind !== 'all' ? state.kind : (lsGet('spravy-new-kind') || 'askod');
+    const radio = $('spNewKinds').querySelector(`input[value="${kind}"]`);
+    if (radio) radio.checked = true;
+    paintNewKind();
     $('spNew').showModal();
   });
   $('spNewForm').addEventListener('submit', (e) => { e.preventDefault(); createCase(e.target); });
@@ -1006,7 +1125,7 @@ function wireStatic() {
         patch.executor_name = myName();
         if (!DEMO && state.me) patch.executor_id = state.me.id;
       }
-      saveCase(c.id, patch).then((ok) => ok !== false && toast(`${c.in_no || 'Справа'} → ${STAGE_LABEL[to]}`));
+      saveCase(c.id, patch).then((ok) => ok !== false && toast(`${c.in_no || 'Справа'} → ${stageLabel(c, to)}`));
       return;
     }
     const card = e.target.closest('.sp-card, .sp-row');
@@ -1042,6 +1161,10 @@ function wireStatic() {
     col.classList.remove('is-over');
     const id = e.dataTransfer.getData('text/plain');
     const c = state.cases.find((x) => x.id === id);
+    if (c && kindOf(c) !== 'askod' && ['signing', 'sz_sent'].includes(col.dataset.drop)) {
+      toast(`${CASE_KINDS[kindOf(c)].label}: етапів «На підписі» і «СЗ надано» немає`, true);
+      return;
+    }
     if (c && c.stage !== col.dataset.drop) saveCase(id, { stage: col.dataset.drop });
   });
 
@@ -1067,6 +1190,19 @@ function wireStatic() {
     if (f === 'subject' && !v) { toast('Суть не може бути порожньою', true); return; }
     const patch = { [f]: v };
     if (f === 'executor_name' && !DEMO) patch.executor_id = state.people.find((p) => p.full_name === v)?.id || null;
+    // Захід: час — в ISO; дата заходу стає й строком (сортування, «горить», нагадування)
+    if (f === 'event_at') {
+      patch.event_at = v ? new Date(v).toISOString() : null;
+      if (v) patch.deadline = v.slice(0, 10);
+    }
+    // Вид справи змінено: «На підписі» / «СЗ надано» є лише в АСКОД; поля картки — інші
+    if (f === 'case_kind') {
+      const cur = state.cases.find((x) => x.id === state.openId);
+      if (v !== 'askod' && ['signing', 'sz_sent'].includes(cur?.stage)) patch.stage = 'work';
+      el.blur();
+      saveCase(state.openId, patch).then(() => openCase(state.openId, true));
+      return;
+    }
     saveCase(state.openId, patch);
   });
   $('spNotOurs').addEventListener('click', () => openAction('notours'));

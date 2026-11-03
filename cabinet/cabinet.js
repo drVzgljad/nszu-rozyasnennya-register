@@ -241,7 +241,7 @@ async function loadDatabaseData() {
   // архівні доручення СКО-Д (з 03.11.2026, як головна сторінка)
   const { data: cases, error: casesErr } = await sb
     .from('dept_cases')
-    .select('id, in_no, subject, correspondent, reply_kind, stage, deadline, out_no, project_no')
+    .select('id, in_no, subject, correspondent, reply_kind, stage, deadline, out_no, project_no, case_kind, assigned_by, event_at')
     .eq('executor_id', currentUser.id)
     .neq('stage', 'done')
     .order('deadline', { ascending: true, nullsFirst: false });
@@ -557,6 +557,15 @@ function guessCaseCategory(c) {
 
 const fmtShortDate = (iso) => (iso ? iso.slice(8, 10) + '.' + iso.slice(5, 7) : '');
 
+// Види справ «Справ відділу» (migration_2026-11-03f_case_kinds.sql; те саме CASE_KINDS у spravy.js).
+// skodType — тип у гілці «Внутрішня робота відділу» для справ поза АСКОД
+const CASE_KIND_INFO = {
+  askod:   { icon: '📨', short: 'АСКОД',   label: 'Документ АСКОД' },
+  task:    { icon: '✅', short: 'Завдання', label: 'Завдання',        skodType: 'Аналітична робота' },
+  event:   { icon: '📅', short: 'Захід',    label: 'Захід',           skodType: 'Участь у нарадах / робочих групах' },
+  project: { icon: '🧭', short: 'Напрям',   label: 'Напрям / проєкт', skodType: 'Підготовка нормативних та проектних документів' }
+};
+
 // Пошук справи: номер порівнюємо без дефісів і пробілів («18712», «1871201», «ж10082»),
 // а слово — у суті й кореспонденті
 const normNo = (s) => String(s || '').toLowerCase().replace(/[\s\-–/.]/g, '');
@@ -588,7 +597,9 @@ function populateCaseDropdown() {
   select.innerHTML = `<option value="" disabled selected>${head}</option>` + list.map((c) => {
     const subj = (c.subject || '').length > 70 ? c.subject.slice(0, 70) + '…' : (c.subject || '');
     const dl = c.deadline ? ` (до ${fmtShortDate(c.deadline)})` : '';
-    return `<option value="${escapeHtml(c.id)}">${escapeHtml(c.in_no ? 'Вх. № ' + c.in_no + ' — ' : '')}${escapeHtml(subj)}${dl}</option>`;
+    const kind = CASE_KIND_INFO[c.case_kind || 'askod'];
+    const head = c.in_no ? 'Вх. № ' + c.in_no + ' — ' : `${kind.icon} ${kind.short}: `;
+    return `<option value="${escapeHtml(c.id)}">${escapeHtml(head)}${escapeHtml(subj)}${dl}</option>`;
   }).join('');
   if (keep && list.some((c) => c.id === keep)) select.value = keep;
   else if (q && list.length === 1) select.value = list[0].id;   // одна знайдена — обираємо одразу
@@ -611,12 +622,18 @@ function handleCaseChange() {
     return;
   }
   if (hint) {
-    hint.textContent = `${c.correspondent ? c.correspondent + ' · ' : ''}${c.subject || ''}`;
+    hint.textContent = `${CASE_KIND_INFO[c.case_kind || 'askod'].label} · ${c.correspondent ? c.correspondent + ' · ' : c.assigned_by ? 'від: ' + c.assigned_by + ' · ' : ''}${c.subject || ''}`;
     hint.hidden = false;
   }
-  // Тип документа і справа номенклатури — з самої справи (людина може змінити)
-  const type = c.reply_kind === 'pi' ? '47 — Лист-запит' : '01 — Лист';
-  const cat = guessCaseCategory(c);
+  // Справа АСКОД — у СКО-Д «Робота в АСКОД» (номери, тип документа, справа номенклатури);
+  // завдання, захід, напрям — «Внутрішня робота відділу» з типом за видом справи
+  const askodCase = (c.case_kind || 'askod') === 'askod';
+  populateTypesAndCategories(askodCase ? 'case' : 'department');
+  document.getElementById('form-askod-reg-group').style.display = askodCase ? 'block' : 'none';
+  document.querySelectorAll('.case-project-label, #case_project_no, .case-project-hint')
+    .forEach((el) => { el.style.display = askodCase ? '' : 'none'; });
+  const type = askodCase ? (c.reply_kind === 'pi' ? '47 — Лист-запит' : '01 — Лист') : CASE_KIND_INFO[c.case_kind].skodType;
+  const cat = askodCase ? guessCaseCategory(c) : 'Інше';
   document.querySelectorAll('.task-type-cb').forEach((i) => { i.checked = i.value === type; });
   document.querySelectorAll('.task-category-cb').forEach((i) => { i.checked = i.value === cat; });
   // Вх. № і вих. № — у ті самі поля, що в гілці «Робота в АСКОД»
@@ -627,7 +644,8 @@ function handleCaseChange() {
   // Опис підставляємо, якщо він порожній або це наш попередній автотекст (обрали іншу справу);
   // написане людиною не чіпаємо
   const desc = document.getElementById('description');
-  const auto = `${c.in_no ? 'Вх. № ' + c.in_no + ': ' : ''}${c.subject || ''}${c.out_no ? ' — лист вих. № ' + c.out_no : ''}`;
+  const auto = c.case_kind === 'event' ? `Участь у заході: ${c.subject || ''}`
+    : `${c.in_no ? 'Вх. № ' + c.in_no + ': ' : ''}${c.subject || ''}${c.out_no ? ' — лист вих. № ' + c.out_no : ''}`;
   if (desc && (!desc.value.trim() || desc.value === handleCaseChange.lastAuto)) {
     desc.value = auto;
     handleCaseChange.lastAuto = auto;
@@ -1193,8 +1211,10 @@ async function handleLogFormSubmit(e) {
         btn.textContent = '💾 Зберегти виконану роботу';
         return;
       }
-      askodNum = document.getElementById('askod_reg_number').value.trim() || null;
-      askodReplyNum = caseForLog.out_no || null;
+      // Справа поза АСКОД — без номерів АСКОД
+      const askodCase = (caseForLog.case_kind || 'askod') === 'askod';
+      askodNum = askodCase ? (document.getElementById('askod_reg_number').value.trim() || null) : null;
+      askodReplyNum = askodCase ? (caseForLog.out_no || null) : null;
     } else if (branch === 'askod') {
       askodNum = document.getElementById('askod_reg_number').value.trim();
       askodReplyNum = document.getElementById('askod_reply_number').value.trim() || null;
@@ -1230,8 +1250,9 @@ async function handleLogFormSubmit(e) {
       log_date: workDate,
       start_time: startVal + ':00',
       duration_minutes: duration,
-      // Робота за справою — у звітах СКО-Д це «Робота в АСКОД» з вх. № справи (як кнопка 🕒 у «Справах»)
-      branch: branch === 'case' ? 'askod' : branch,
+      // Робота за справою: справа АСКОД — «Робота в АСКОД» з вх. № (як кнопка 🕒 у «Справах»);
+      // завдання, захід, напрям — «Внутрішня робота відділу»
+      branch: branch === 'case' ? ((caseForLog?.case_kind || 'askod') === 'askod' ? 'askod' : 'department') : branch,
       task_type: taskType,
       category: taskCategory,
       severity_level: severity,

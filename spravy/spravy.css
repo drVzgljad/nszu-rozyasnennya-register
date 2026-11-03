@@ -1000,3 +1000,17 @@
 /* Перемикач кімнати «Мій відділ | Департамент» над голосовою кімнатою */
 .spv-scope { margin-bottom: 8px; }
 .spv-scope[hidden] { display: none; }
+
+/* Види справ (03.11.2026): вибір виду в діалозі нової справи, значки на картках */
+.sp-kinds { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.sp-kinds label { cursor: pointer; }
+.sp-kinds input { position: absolute; opacity: 0; pointer-events: none; }
+.sp-kinds span { display: inline-block; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--surface); font-size: 13px; font-weight: 700; color: var(--ink); }
+.sp-kinds input:checked + span { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
+.sp-kinds input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+#spNewForm [data-for][hidden] { display: none !important; }
+.sp-kind-task, .sp-kind-event, .sp-kind-project { background: var(--sp-chip-bg); color: var(--sp-chip-ink); }
+.sp-card-event { border-left: 3px solid var(--sp-review); }
+.sp-card-task { border-left: 3px solid var(--sp-work); }
+.sp-card-project { border-left: 3px solid var(--sp-signing); }

@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Справи відділу</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="spravy.css?v=20261103u">
+  <link rel="stylesheet" href="spravy.css?v=20261103v">
   <link rel="stylesheet" href="../auth-v2.css?v=20261103b">
   <script type="module" src="../auth-v2.js?v=20261103l"></script>
 </head>
@@ -69,6 +69,13 @@
                placeholder="Вх. №, кореспондент, суть, виконавець">
       </div>
       <label class="sp-toggle"><input type="checkbox" id="spMine"><span>лише мої</span></label>
+      <select id="spKind" class="sp-dept-pick" aria-label="Вид справ">
+        <option value="all">Усі види</option>
+        <option value="askod">📨 Документи АСКОД</option>
+        <option value="task">✅ Завдання</option>
+        <option value="event">📅 Заходи</option>
+        <option value="project">🧭 Напрями</option>
+      </select>
       <select id="spFilter" class="sp-dept-pick" aria-label="Фільтр справ">
         <option value="all">Усі справи</option>
         <option value="hot">Горить: строк ≤ 3 дн.</option>
@@ -180,26 +187,37 @@
   <dialog class="sp-new" id="spNew" aria-labelledby="spNewTitle">
     <form id="spNewForm">
       <h2 id="spNewTitle">Нова справа</h2>
+      <!-- Вид справи: не лише АСКОД (migration_2026-11-03f_case_kinds.sql) -->
+      <div class="sp-kinds" id="spNewKinds" role="radiogroup" aria-label="Вид справи">
+        <label><input type="radio" name="case_kind" value="askod" checked><span>📨 Документ АСКОД</span></label>
+        <label><input type="radio" name="case_kind" value="task"><span>✅ Завдання</span></label>
+        <label><input type="radio" name="case_kind" value="event"><span>📅 Захід</span></label>
+        <label><input type="radio" name="case_kind" value="project"><span>🧭 Напрям / проєкт</span></label>
+      </div>
       <div class="sp-grid">
-        <label class="sp-f"><span>Вх. №</span><input name="in_no" placeholder="10001-08-26 (може бути порожнім)"></label>
-        <label class="sp-f"><span>Строк</span><input name="deadline" type="date"></label>
-        <label class="sp-f sp-wide"><span>Суть *</span><textarea name="subject" rows="2" required></textarea></label>
-        <label class="sp-f sp-wide"><span>Кореспондент</span><input name="correspondent"></label>
-        <label class="sp-f"><span>Тип відповіді</span>
+        <label class="sp-f" data-for="askod"><span>Вх. №</span><input name="in_no" placeholder="10001-08-26 (може бути порожнім)"></label>
+        <label class="sp-f" data-for="askod task project"><span id="spNewDeadlineLbl">Строк</span><input name="deadline" type="date"></label>
+        <label class="sp-f" data-for="event"><span>Коли *</span><input name="event_at" type="datetime-local"></label>
+        <label class="sp-f sp-wide"><span id="spNewSubjLbl">Суть *</span><textarea name="subject" rows="2" required></textarea></label>
+        <label class="sp-f sp-wide" data-for="event"><span>Де / посилання на зустріч</span><input name="event_place" placeholder="Teams, Zoom-посилання, кабінет, адреса"></label>
+        <label class="sp-f sp-wide" data-for="task"><span>Від кого</span><input name="assigned_by" list="spNewAssigners" placeholder="Хто доручив: керівник, колега, Teams"></label>
+        <datalist id="spNewAssigners"></datalist>
+        <label class="sp-f sp-wide" data-for="askod event"><span id="spNewCorrLbl">Кореспондент</span><input name="correspondent"></label>
+        <label class="sp-f" data-for="askod"><span>Тип відповіді</span>
           <select name="reply_kind">
             <option value="letter">Лист</option><option value="sz">СЗ</option>
             <option value="sz_work">СЗ (робочий порядок)</option>
             <option value="pi">ПІ</option><option value="info">До відома</option><option value="other">Інше</option>
           </select></label>
         <label class="sp-f"><span>Виконавець</span><select name="executor_name" id="spNewExecutor"></select></label>
-        <label class="sp-f sp-wide"><span>Головний виконавець (департамент / управління / відділ)</span>
+        <label class="sp-f sp-wide" data-for="askod"><span>Головний виконавець (департамент / управління / відділ)</span>
           <input name="lead_unit" list="spNewLeadUnits"></label>
         <datalist id="spNewLeadUnits">
           <option value="Департамент стратегії універсального охоплення населення медичними послугами">
           <option value="Юридичний департамент"><option value="Департамент інформаційних технологій">
           <option value="Департамент моніторингу"><option value="Управління комунікацій"><option value="Управління справами">
         </datalist>
-        <label class="sp-f"><span>Наша роль</span>
+        <label class="sp-f" data-for="askod"><span>Наша роль</span>
           <select name="our_role">
             <option value="">— не визначено —</option><option value="lead">Ми — головний виконавець</option>
             <option value="co">Ми — співвиконавці</option><option value="info">Нам — до відома</option>
@@ -225,6 +243,6 @@
   </footer>
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
-  <script type="module" src="spravy.js?v=20261103p"></script>
+  <script type="module" src="spravy.js?v=20261103q"></script>
 </body>
 </html>
