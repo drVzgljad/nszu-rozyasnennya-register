@@ -11,9 +11,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="zviazok.css?v=20261103d">
+  <link rel="stylesheet" href="zviazok.css?v=20261103f">
   <link rel="stylesheet" href="../auth-v2.css?v=20261103a">
-  <script type="module" src="../auth-v2.js?v=20261103h"></script>
+  <script type="module" src="../auth-v2.js?v=20261103i"></script>
 </head>
 <!-- Розділ закритий: оверлей «Доступ обмежено» вставляє auth-v2.js. Повідомлення —
      у Supabase під RLS (chat_*), у файлах репозиторію даних немає. Старий chat/ —
@@ -46,7 +46,10 @@
       <div class="zv-dock" id="zvDock" hidden></div>
       <div class="zv-side-foot">
         <span class="zv-status" id="zvStatus" role="status"></span>
-        <button type="button" class="zv-mini zv-notif" id="zvNotifBtn" data-act="notif"></button>
+        <span class="zv-foot-btns">
+          <button type="button" class="zv-mini zv-notif" id="zvNotifBtn" data-act="notif"></button>
+          <button type="button" class="zv-mini" id="zvPushBtn" data-act="push" hidden></button>
+        </span>
       </div>
     </aside>
 
@@ -61,6 +64,7 @@
         </div>
         <div class="zv-head-acts">
           <button type="button" class="zv-btn zv-voice-btn" id="zvVoiceBtn" data-act="voice" aria-pressed="false">🎙 <span>Голос</span></button>
+          <button type="button" class="zv-icon-btn" id="zvInviteBtn" data-act="invite" title="Запросити колег у голос або оголосити загальний збір" aria-label="Запросити в голос">📣</button>
           <button type="button" class="zv-icon-btn" id="zvPinsBtn" data-act="pins" aria-expanded="false" title="Закріплене" aria-label="Закріплене">📌</button>
           <button type="button" class="zv-icon-btn" id="zvMuteBtn" data-act="mute" aria-pressed="false">🔔</button>
           <button type="button" class="zv-icon-btn" id="zvPeopleBtn" data-act="people" aria-expanded="false" title="Хто тут" aria-label="Хто тут">👥</button>
@@ -103,6 +107,6 @@
   <dialog class="zv-dialog" id="zvDialog"></dialog>
   <div class="zv-toast" id="zvToast" role="status" hidden></div>
 
-  <script type="module" src="zviazok.js?v=20261103b"></script>
+  <script type="module" src="zviazok.js?v=20261103e"></script>
 </body>
 </html>

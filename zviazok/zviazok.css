@@ -278,7 +278,7 @@ body.zv-demo #access-denied-overlay { display: none !important; }
   font-size: 12.5px;
   color: var(--muted);
 }
-.zv-status { display: inline-flex; align-items: center; gap: 7px; }
+.zv-status { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
 
 /* ── Док голосу ────────────────────────────────────────────────── */
 .zv-dock {
@@ -556,6 +556,54 @@ body.zv-demo #access-denied-overlay { display: none !important; }
   z-index: 5;
   pointer-events: none;
 }
+
+/* ── «Запросити», «Загальний збір», підказка про push ─────────── */
+.zv-foot-btns { display: inline-flex; gap: 2px; flex-wrap: wrap; justify-content: flex-end; }
+.zv-hint {
+  margin: 4px 4px 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.zv-hint p { margin: 0 0 8px; }
+.zv-hint div { display: flex; gap: 6px; align-items: center; }
+.zv-gather {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--zv-live) 40%, var(--line));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--zv-live) 9%, var(--zv-panel));
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.zv-gather:hover { background: color-mix(in srgb, var(--zv-live) 16%, var(--zv-panel)); }
+.zv-gather > span:first-child { font-size: 26px; }
+.zv-gather b { display: block; font-size: 15px; }
+.zv-gather small { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.zv-gather-card {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin: 3px 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--zv-live) 40%, var(--line));
+  background: color-mix(in srgb, var(--zv-live) 10%, var(--zv-panel));
+  font-weight: 700;
+}
+.zv-share { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); }
+.zv-share > span { flex-basis: 100%; }
+.zv-share a.zv-btn { text-decoration: none; }
 
 /* ── Хто тут ───────────────────────────────────────────────────── */
 .zv-aside {

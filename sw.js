@@ -258,7 +258,10 @@
 //   panel/data/, data/contracts*.json і postanova/data/document_status.json ходять БЕЗ ?v=,
 //   тож без нового CACHE воркер віддавав би старі договори з контактами ФОП і стару
 //   редакцію постанови (лампочка ставок не бачила б змін № 1074 і № 1095).
-const CACHE = 'pmg-portal-v95';
+// v96 (03.11.2026): Web Push для «Чату департаменту» (zviazok/) — обробники push і
+//   notificationclick унизу файла. Кешування не змінювалося; версію піднято, щоб
+//   браузери швидше взяли новий воркер (без нього «Запросити» не дійде до телефона).
+const CACHE = 'pmg-portal-v96';
 // РЎРєС–Р»СЊРєРё С‡РµРєР°С‚Рё РЅР° РјРµСЂРµР¶Сѓ РїС–Рґ С‡Р°СЃ РЅР°РІС–РіР°С†С–С—, РїРµСЂС€ РЅС–Р¶ РїРѕРєР°Р·Р°С‚Рё Р·Р±РµСЂРµР¶РµРЅСѓ РєРѕРїС–СЋ.
 // GitHub Pages РїС–Рґ РЅР°РІР°РЅС‚Р°Р¶РµРЅРЅСЏРј РІС–РґРґР°С” HTML СЃРµРєСѓРЅРґР°РјРё вЂ” Р±РµР· С†СЊРѕРіРѕ Р»С–РјС–С‚Сѓ РІРєР»Р°РґРєР°
 // РїСЂРѕСЃС‚Рѕ РІРёСЃРёС‚СЊ Р±С–Р»РѕСЋ, С– РєРѕСЂРёСЃС‚СѓРІР°С‡ С‚РёСЃРЅРµ РїРѕСЃРёР»Р°РЅРЅСЏ РІРґСЂСѓРіРµ.
@@ -436,3 +439,40 @@ async function navigateWithFallback(req) {
     );
   }
 }
+
+/* ── Web Push: «Запросити в голос» і «Загальний збір» з «Чату департаменту» ──
+   Надсилає воркер tools/voice-turn (POST /push/send), вміст зашифрований для
+   цього браузера. Показуємо сповіщення, а клік відкриває кімнату чату — або
+   вже відкриту вкладку чату перемикає на неї (zviazok.js слухає 'zv-open'). */
+self.addEventListener('push', (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data ? e.data.text() : '' }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'Чат департаменту', {
+    body: d.body || '',
+    icon: '/assets/icon-round-192.png',
+    badge: '/assets/icon-round-192.png',
+    tag: d.tag || 'zv-invite',
+    renotify: true,
+    requireInteraction: true,
+    vibrate: [200, 100, 200],
+    data: { url: d.url || '/zviazok/index.html' }
+  }));
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  let url = e.notification.data && e.notification.data.url;
+  // Лише свій сайт: сповіщення не має відкривати сторонні адреси
+  try { url = new URL(url, self.location.origin); } catch (_) { url = null; }
+  if (!url || url.origin !== self.location.origin) url = new URL('/zviazok/index.html', self.location.origin);
+  e.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const chat = wins.find((w) => new URL(w.url).pathname.startsWith('/zviazok/'));
+    if (chat) {
+      await chat.focus();
+      chat.postMessage({ type: 'zv-open', url: url.href });
+      return;
+    }
+    await self.clients.openWindow(url.href);
+  })());
+});

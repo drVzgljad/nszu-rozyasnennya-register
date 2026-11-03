@@ -18,7 +18,7 @@
  */
 
 // Адреса воркера tools/voice-turn (та сама, що в spravy/voice.js). Порожньо — лише STUN.
-const VOICE_TURN_URL = 'https://pmg-voice-turn.doktorvzgljad.workers.dev';
+export const VOICE_TURN_URL = 'https://pmg-voice-turn.doktorvzgljad.workers.dev';
 const STUN = [{ urls: ['stun:stun.cloudflare.com:3478', 'stun:stun.l.google.com:19302'] }];
 const RETRIES = 3;
 const SPEAK_LEVEL = 0.035;
