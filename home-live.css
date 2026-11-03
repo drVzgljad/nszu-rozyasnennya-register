@@ -1,0 +1,364 @@
+/* ═══ Головна: «Обстановка» — годинник, погода, повітряна тривога, світло ═══
+   Лише для залогінених співробітників (home-live.js показує секцію сам).
+   Власний шар змінних: кольори не розкидані по правилах, темна тема
+   перевизначає тільки їх. Межі — від --line (змінної --border немає). */
+:root {
+  --hl-card: rgba(255, 255, 255, 0.86);
+  --hl-card-solid: #ffffff;
+  --hl-ink: var(--p-ink, #0f172a);
+  --hl-muted: var(--p-muted, #64748b);
+  --hl-line: var(--line, #e2e8f0);
+  --hl-soft: rgba(47, 107, 158, 0.07);
+  --hl-accent: var(--accent, #2f6b9e);
+  --hl-shadow: 0 14px 34px rgba(38, 78, 112, 0.10);
+
+  --hl-on: #22a06b;
+  --hl-on-soft: rgba(34, 160, 107, 0.16);
+  --hl-off: #334155;
+  --hl-maybe: #f59e0b;
+
+  --hl-map-calm: #dbe7f1;
+  --hl-map-stroke: #ffffff;
+  --hl-map-part: #f8c77c;
+  --hl-map-full: #ef6b6b;
+  --hl-map-long: #c9a4a4;
+  --hl-alert: #dc2626;
+  --hl-alert-soft: rgba(220, 38, 38, 0.10);
+  --hl-calm: #15803d;
+  --hl-calm-soft: rgba(21, 128, 61, 0.10);
+  --hl-part: #b45309;
+  --hl-part-soft: rgba(245, 158, 11, 0.14);
+
+  --hl-k-drone: #d97706;
+  --hl-k-jet: #ea580c;
+  --hl-k-missile: #dc2626;
+  --hl-k-ballistic: #a21caf;
+  --hl-k-kab: #92400e;
+  --hl-k-aviation: #0284c7;
+  --hl-k-other: #64748b;
+
+  --hl-face: #ffffff;
+  --hl-face-ring: rgba(47, 107, 158, 0.18);
+  --hl-hand: #1e3a5f;
+  --hl-sec: #e11d48;
+}
+:root.dark-theme {
+  --hl-card: rgba(17, 27, 43, 0.88);
+  --hl-card-solid: #111b2b;
+  --hl-line: rgba(71, 85, 105, 0.7);
+  --hl-soft: rgba(148, 163, 184, 0.08);
+  --hl-shadow: 0 16px 40px rgba(2, 8, 23, 0.4);
+
+  --hl-on: #34d399;
+  --hl-on-soft: rgba(52, 211, 153, 0.16);
+  --hl-off: #475569;
+  --hl-maybe: #fbbf24;
+
+  --hl-map-calm: #23344a;
+  --hl-map-stroke: #0f172a;
+  --hl-map-part: #a1662a;
+  --hl-map-full: #b23b3b;
+  --hl-map-long: #5d4646;
+  --hl-alert: #f87171;
+  --hl-alert-soft: rgba(248, 113, 113, 0.12);
+  --hl-calm: #4ade80;
+  --hl-calm-soft: rgba(74, 222, 128, 0.10);
+  --hl-part: #fbbf24;
+  --hl-part-soft: rgba(251, 191, 36, 0.12);
+
+  --hl-k-drone: #fbbf24;
+  --hl-k-jet: #fb923c;
+  --hl-k-missile: #f87171;
+  --hl-k-ballistic: #e879f9;
+  --hl-k-kab: #d6a36a;
+  --hl-k-aviation: #38bdf8;
+  --hl-k-other: #94a3b8;
+
+  --hl-face: #0f1a2b;
+  --hl-face-ring: rgba(125, 211, 252, 0.2);
+  --hl-hand: #e2e8f0;
+  --hl-sec: #fb7185;
+}
+
+.hl { width: 100%; min-width: 0; }
+.hl[hidden] { display: none !important; }
+.hl-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap; margin: 0 0 12px;
+}
+.hl-title {
+  margin: 0; font-family: var(--p-display); font-size: 18px; font-weight: 800;
+  color: var(--hl-ink); letter-spacing: -0.01em;
+}
+.hl-place {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 34px;
+  padding: 6px 12px; border-radius: 999px; border: 1px solid var(--hl-line);
+  background: var(--hl-card); color: var(--hl-ink); font: inherit;
+  font-size: 13px; font-weight: 800; cursor: pointer;
+}
+.hl-place:hover { border-color: var(--hl-accent); }
+
+.hl-grid {
+  display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px;
+}
+.hl-card {
+  position: relative; min-width: 0; overflow: hidden;
+  padding: 16px 18px; border-radius: 20px;
+  border: 1px solid var(--hl-line); background: var(--hl-card);
+  box-shadow: var(--hl-shadow); color: var(--hl-ink);
+  backdrop-filter: blur(10px);
+}
+.hl-card h3 {
+  margin: 0 0 10px; font-size: 11px; font-weight: 800; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--hl-muted);
+  display: flex; align-items: center; gap: 8px; justify-content: space-between;
+}
+.hl-clock { grid-column: span 3; }
+.hl-weather { grid-column: span 4; }
+.hl-power { grid-column: span 5; }
+.hl-alert { grid-column: span 12; }
+.hl-src { margin-top: 10px; font-size: 11px; line-height: 1.45; color: var(--hl-muted); }
+.hl-src a { color: inherit; }
+.hl-muted { color: var(--hl-muted); }
+
+/* ── Годинник ── */
+.hl-clock-body { display: flex; align-items: center; gap: 16px; }
+.hl-dial { width: 104px; height: 104px; flex: none; }
+.hl-dial .face { fill: var(--hl-face); stroke: var(--hl-face-ring); stroke-width: 3; }
+.hl-dial .tick { stroke: var(--hl-muted); stroke-width: 1.4; stroke-linecap: round; opacity: .55; }
+.hl-dial .tick.major { stroke: var(--hl-ink); stroke-width: 2.6; opacity: .9; }
+.hl-dial .hand { stroke: var(--hl-hand); stroke-linecap: round; transform-origin: 50px 50px; }
+.hl-dial .hand.h { stroke-width: 4.2; }
+.hl-dial .hand.m { stroke-width: 2.8; }
+.hl-dial .hand.s { stroke: var(--hl-sec); stroke-width: 1.4; transition: transform .25s cubic-bezier(.4, 2.2, .55, 1); }
+.hl-dial .pin { fill: var(--hl-sec); }
+.hl-digits { min-width: 0; }
+.hl-time {
+  font-family: var(--p-display); font-weight: 800; font-size: 44px; line-height: 1;
+  letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--hl-ink);
+}
+.hl-time .sec { font-size: 20px; color: var(--hl-muted); margin-left: 2px; }
+.hl-time .colon { animation: hl-blink 2s steps(1) infinite; }
+@keyframes hl-blink { 50% { opacity: .25; } }
+.hl-date { margin-top: 6px; font-size: 14px; font-weight: 700; color: var(--hl-ink); }
+.hl-date-sub { margin-top: 3px; font-size: 12px; color: var(--hl-muted); }
+.hl-sun { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--hl-line); font-size: 12.5px; color: var(--hl-muted); }
+.hl-sun b { color: var(--hl-ink); }
+
+/* ── Погода ── */
+.hl-weather { --wx-a: #8cc8f5; --wx-b: #e6f3fc; transition: background .8s; }
+.hl-weather::before {
+  content: ""; position: absolute; inset: 0; z-index: 0; opacity: .55;
+  background: linear-gradient(150deg, var(--wx-a), var(--wx-b) 70%);
+  transition: opacity .8s;
+}
+.hl-weather > * { position: relative; z-index: 1; }
+.hl-weather.wx-clear-day   { --wx-a: #7cc4f8; --wx-b: #fff3cf; }
+.hl-weather.wx-clear-night { --wx-a: #1e2a5a; --wx-b: #4b5aa3; }
+.hl-weather.wx-cloudy      { --wx-a: #a9bccd; --wx-b: #eef3f7; }
+.hl-weather.wx-rain        { --wx-a: #6f8aa6; --wx-b: #c9d6e2; }
+.hl-weather.wx-snow        { --wx-a: #cfe3f5; --wx-b: #ffffff; }
+.hl-weather.wx-storm       { --wx-a: #4b4f6b; --wx-b: #a3a8c3; }
+.hl-weather.wx-fog         { --wx-a: #c2c8cf; --wx-b: #eceff2; }
+.hl-weather.wx-clear-night, .hl-weather.wx-storm { color: #f1f5f9; }
+.hl-weather.wx-clear-night h3, .hl-weather.wx-storm h3,
+.hl-weather.wx-clear-night .hl-muted, .hl-weather.wx-storm .hl-muted,
+.hl-weather.wx-clear-night .hl-src, .hl-weather.wx-storm .hl-src { color: rgba(241, 245, 249, .78); }
+:root.dark-theme .hl-weather::before { opacity: .55; }
+:root.dark-theme .hl-weather.wx-clear-day   { --wx-a: #1f4f7a; --wx-b: #4a4020; }
+:root.dark-theme .hl-weather.wx-clear-night { --wx-a: #121a3a; --wx-b: #2a336b; }
+:root.dark-theme .hl-weather.wx-cloudy      { --wx-a: #2c3a4b; --wx-b: #172131; }
+:root.dark-theme .hl-weather.wx-rain        { --wx-a: #1e3a55; --wx-b: #142033; }
+:root.dark-theme .hl-weather.wx-snow        { --wx-a: #3a4d63; --wx-b: #1f2b3a; }
+:root.dark-theme .hl-weather.wx-storm       { --wx-a: #2a2b45; --wx-b: #3d3f5e; }
+:root.dark-theme .hl-weather.wx-fog         { --wx-a: #384350; --wx-b: #212a35; }
+:root.dark-theme .hl-weather { color: var(--hl-ink); }
+:root.dark-theme .hl-weather h3, :root.dark-theme .hl-weather .hl-muted, :root.dark-theme .hl-weather .hl-src { color: var(--hl-muted); }
+
+.hl-wx-now { display: flex; align-items: center; gap: 12px; }
+.hl-wx-icon { width: 84px; height: 84px; flex: none; }
+.hl-wx-temp { font-family: var(--p-display); font-size: 44px; font-weight: 800; line-height: 1; letter-spacing: -0.03em; }
+.hl-wx-desc { font-size: 14px; font-weight: 800; margin-top: 4px; }
+.hl-wx-meta { font-size: 12px; margin-top: 3px; }
+.hl-wx-hours {
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin-top: 12px;
+}
+.hl-wx-hour {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0;
+  padding: 6px 2px; border-radius: 12px; background: rgba(255, 255, 255, .45);
+  font-size: 11.5px; font-weight: 700;
+}
+:root.dark-theme .hl-wx-hour { background: rgba(148, 163, 184, .08); }
+.hl-weather.wx-clear-night .hl-wx-hour, .hl-weather.wx-storm .hl-wx-hour { background: rgba(255, 255, 255, .12); }
+.hl-wx-hour svg { width: 28px; height: 28px; }
+.hl-wx-hour .t { font-size: 13px; font-weight: 800; }
+.hl-wx-hour .p { font-size: 10.5px; color: #2563eb; font-weight: 800; }
+:root.dark-theme .hl-wx-hour .p, .hl-weather.wx-clear-night .hl-wx-hour .p { color: #93c5fd; }
+.hl-wx-day { margin-top: 10px; font-size: 12.5px; }
+
+/* Анімовані іконки погоди */
+.wxi .sun-core { fill: #fbbf24; }
+.wxi .sun-rays { stroke: #fbbf24; stroke-width: 3; stroke-linecap: round; transform-origin: 32px 32px; animation: hl-spin 22s linear infinite; }
+.wxi .moon { fill: #fde68a; }
+.wxi .star { fill: #fef9c3; animation: hl-twinkle 3s ease-in-out infinite; }
+.wxi .star:nth-of-type(2) { animation-delay: 1s; }
+.wxi .star:nth-of-type(3) { animation-delay: 2s; }
+.wxi .cloud { fill: #ffffff; stroke: #94a3b8; stroke-width: 1.5; animation: hl-drift 7s ease-in-out infinite alternate; }
+.wxi .cloud.dark { fill: #94a3b8; stroke: #64748b; }
+.wxi .cloud.back { fill: #e2e8f0; animation-duration: 9s; animation-direction: alternate-reverse; }
+.wxi .drop { stroke: #3b82f6; stroke-width: 2.4; stroke-linecap: round; animation: hl-fall 1.1s linear infinite; }
+.wxi .drop:nth-of-type(2) { animation-delay: .35s; }
+.wxi .drop:nth-of-type(3) { animation-delay: .7s; }
+.wxi .flake { fill: #93c5fd; animation: hl-snow 2.6s linear infinite; }
+.wxi .flake:nth-of-type(2) { animation-delay: .9s; }
+.wxi .flake:nth-of-type(3) { animation-delay: 1.7s; }
+.wxi .bolt { fill: #facc15; animation: hl-flash 2.4s steps(1) infinite; }
+.wxi .fog { stroke: #94a3b8; stroke-width: 3; stroke-linecap: round; animation: hl-drift 4s ease-in-out infinite alternate; }
+.wxi .fog:nth-of-type(2) { animation-direction: alternate-reverse; }
+@keyframes hl-spin { to { transform: rotate(360deg); } }
+@keyframes hl-twinkle { 50% { opacity: .2; } }
+@keyframes hl-drift { from { transform: translateX(-2px); } to { transform: translateX(3px); } }
+@keyframes hl-fall { from { transform: translateY(-4px); opacity: 0; } 30% { opacity: 1; } to { transform: translateY(10px); opacity: 0; } }
+@keyframes hl-snow { from { transform: translate(0, -4px); opacity: 0; } 30% { opacity: 1; } to { transform: translate(3px, 11px); opacity: 0; } }
+@keyframes hl-flash { 0%, 100% { opacity: 0; } 8%, 14% { opacity: 1; } 11% { opacity: .2; } }
+
+/* ── Світло ── */
+.hl-pw-status { display: flex; align-items: center; gap: 12px; }
+.hl-bulb {
+  width: 46px; height: 46px; flex: none; border-radius: 14px; display: grid; place-items: center;
+  font-size: 24px; background: var(--hl-on-soft);
+}
+.hl-bulb.off { background: var(--hl-soft); filter: grayscale(1); }
+.hl-bulb.on { animation: hl-glow 3s ease-in-out infinite; }
+@keyframes hl-glow { 50% { box-shadow: 0 0 18px var(--hl-on-soft); } }
+.hl-pw-main { font-size: 16px; font-weight: 800; }
+.hl-pw-next { font-size: 12.5px; color: var(--hl-muted); margin-top: 2px; }
+.hl-pw-row { margin-top: 12px; }
+.hl-pw-row-lbl { display: flex; justify-content: space-between; font-size: 11.5px; font-weight: 800; color: var(--hl-muted); margin-bottom: 4px; }
+.hl-bar { position: relative; display: grid; grid-template-columns: repeat(48, minmax(0, 1fr)); gap: 1px; height: 22px; }
+.hl-bar i { display: block; border-radius: 2px; background: var(--hl-on); opacity: .85; }
+.hl-bar i.off { background: var(--hl-off); opacity: .9; }
+.hl-bar i.maybe { background: repeating-linear-gradient(135deg, var(--hl-maybe) 0 3px, transparent 3px 6px); opacity: 1; }
+.hl-bar i:nth-child(2n) { margin-right: 0; }
+.hl-bar .now {
+  position: absolute; top: -4px; bottom: -4px; width: 2px; border-radius: 2px;
+  background: var(--hl-sec); box-shadow: 0 0 0 2px var(--hl-card-solid);
+}
+.hl-axis { display: flex; justify-content: space-between; font-size: 10px; color: var(--hl-muted); margin-top: 3px; font-variant-numeric: tabular-nums; }
+.hl-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; font-size: 11px; color: var(--hl-muted); }
+.hl-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.hl-legend i { width: 12px; height: 10px; border-radius: 2px; display: inline-block; }
+.hl-select {
+  max-width: 100%; min-height: 32px; padding: 4px 8px; border-radius: 9px;
+  border: 1px solid var(--hl-line); background: var(--hl-card-solid); color: var(--hl-ink);
+  font: inherit; font-size: 12.5px; font-weight: 700;
+}
+.hl-note { padding: 12px; border-radius: 14px; background: var(--hl-soft); font-size: 13px; line-height: 1.5; }
+.hl-note a { color: var(--hl-accent); font-weight: 800; }
+
+/* ── Повітряна тривога ── */
+.hl-alert-body { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+.hl-map { position: relative; min-width: 0; }
+.hl-map svg { display: block; width: 100%; height: auto; }
+.hl-map .ob { fill: var(--hl-map-calm); stroke: var(--hl-map-stroke); stroke-width: 1.4; transition: fill .6s; cursor: pointer; }
+.hl-map .ob:hover { filter: brightness(.95); }
+.hl-map .ob.part { fill: url(#hl-hatch-part); }
+.hl-map .ob.full { fill: var(--hl-map-full); animation: hl-breathe 4s ease-in-out infinite; }
+.hl-map .ob.long { fill: url(#hl-hatch-long); animation: none; }
+.hl-map .ob.me { stroke: var(--hl-ink); stroke-width: 3; }
+@keyframes hl-breathe { 50% { opacity: .78; } }
+.hl-map .mk-ring { fill: none; stroke-width: 2; animation: hl-ping 2.4s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+.hl-map .mk-dot { stroke: var(--hl-card-solid); stroke-width: 2; }
+.hl-map .mk-glyph { fill: #fff; }
+.hl-map .mk-glyph.stroke { fill: none; stroke: #fff; stroke-width: 2.6; stroke-linecap: round; }
+@keyframes hl-ping { from { transform: scale(.7); opacity: .9; } to { transform: scale(1.9); opacity: 0; } }
+.hl-map-tip {
+  position: absolute; pointer-events: none; z-index: 3; max-width: 240px;
+  padding: 8px 10px; border-radius: 10px; background: var(--hl-card-solid);
+  border: 1px solid var(--hl-line); box-shadow: var(--hl-shadow); font-size: 12px; line-height: 1.4;
+}
+.hl-map-tip[hidden] { display: none; }
+
+.hl-me {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px;
+  background: var(--hl-calm-soft); border: 1px solid transparent;
+}
+.hl-me.full { background: var(--hl-alert-soft); border-color: color-mix(in srgb, var(--hl-alert) 35%, transparent); }
+.hl-me.part { background: var(--hl-part-soft); }
+.hl-me-dot { width: 14px; height: 14px; border-radius: 50%; flex: none; background: var(--hl-calm); }
+.hl-me.full .hl-me-dot { background: var(--hl-alert); animation: hl-pulse-dot 1.6s ease-in-out infinite; }
+.hl-me.part .hl-me-dot { background: var(--hl-part); }
+@keyframes hl-pulse-dot { 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--hl-alert) 18%, transparent); } }
+.hl-me-place { font-size: 12px; font-weight: 800; color: var(--hl-muted); }
+.hl-me-state { font-size: 18px; font-weight: 800; line-height: 1.2; }
+.hl-me.full .hl-me-state { color: var(--hl-alert); }
+.hl-me-since { font-size: 12.5px; color: var(--hl-muted); margin-top: 2px; }
+.hl-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.hl-chip {
+  display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px;
+  font-size: 12px; font-weight: 800; background: var(--hl-soft); color: var(--hl-ink);
+}
+.hl-chip svg { width: 14px; height: 14px; }
+.hl-sub + .hl-chips { margin-top: 0; }
+.hl-parts { margin: 8px 0 0; padding: 0; list-style: none; font-size: 12.5px; }
+.hl-parts li { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; border-bottom: 1px dashed var(--hl-line); }
+.hl-parts li span:last-child { color: var(--hl-muted); white-space: nowrap; }
+.hl-sub { margin: 14px 0 6px; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--hl-muted); }
+.hl-feed { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.hl-feed li { display: grid; grid-template-columns: 26px 42px minmax(0, 1fr); gap: 8px; align-items: start; font-size: 13px; line-height: 1.35; }
+.hl-feed li.mine { font-weight: 800; }
+.hl-feed .ic { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; }
+.hl-feed .ic svg { width: 16px; height: 16px; }
+.hl-feed time { font-size: 12px; color: var(--hl-muted); font-variant-numeric: tabular-nums; padding-top: 4px; }
+.hl-feed .tx { padding-top: 3px; overflow-wrap: anywhere; }
+.hl-feed .kind { display: block; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; }
+.hl-summary { font-size: 12.5px; color: var(--hl-muted); margin-top: 8px; }
+.hl-summary b { color: var(--hl-ink); }
+
+/* Діалог вибору місця */
+.hl-dialog {
+  border: 1px solid var(--hl-line); border-radius: 18px; padding: 18px; width: min(420px, calc(100vw - 32px));
+  background: var(--hl-card-solid); color: var(--hl-ink); box-shadow: var(--hl-shadow);
+}
+.hl-dialog::backdrop { background: rgba(15, 23, 42, .4); }
+.hl-dialog h4 { margin: 0 0 12px; font-size: 16px; }
+.hl-dialog label { display: block; margin: 10px 0 4px; font-size: 12px; font-weight: 800; color: var(--hl-muted); }
+.hl-dialog .hl-select { width: 100%; min-height: 40px; font-size: 14px; }
+.hl-dialog p { font-size: 12px; color: var(--hl-muted); line-height: 1.45; margin: 10px 0 0; }
+.hl-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.hl-btn {
+  min-height: 38px; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--hl-line);
+  background: var(--hl-card-solid); color: var(--hl-ink); font: inherit; font-size: 13px; font-weight: 800; cursor: pointer;
+}
+.hl-btn.primary { border-color: transparent; background: linear-gradient(135deg, #2f6b9e, #3a8462); color: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hl *, .hl *::before { animation: none !important; transition: none !important; }
+}
+
+/* ── Розкладка ── */
+/* Десктоп залогіненого: шел — двоколонкова сітка (герой + кабінет); «Обстановка» — другий ряд на всю ширину */
+@media (min-width: 981px) {
+  body.home-logged-in .home-dashboard-shell > .hl { grid-column: 1 / -1; grid-row: 2; padding-bottom: 28px; }
+}
+@media (max-width: 1180px) {
+  .hl-clock, .hl-weather { grid-column: span 6; }
+  .hl-power { grid-column: span 12; }
+}
+@media (max-width: 980px) {
+  body.home-logged-in .home-dashboard-shell > .hl { padding: 0 10px 14px; }
+  .hl-alert-body { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 640px) {
+  .hl-grid { gap: 10px; }
+  .hl-clock, .hl-weather, .hl-power, .hl-alert { grid-column: 1 / -1; }
+  .hl-card { padding: 14px; border-radius: 16px; }
+  .hl-time { font-size: 38px; }
+  .hl-dial { width: 84px; height: 84px; }
+  .hl-wx-temp { font-size: 38px; }
+  .hl-wx-icon { width: 70px; height: 70px; }
+  .hl-wx-hours { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+  .hl-wx-hour { font-size: 10.5px; padding: 5px 1px; }
+  .hl-wx-hour svg { width: 22px; height: 22px; }
+  .hl-feed li { grid-template-columns: 24px 38px minmax(0, 1fr); gap: 6px; font-size: 12.5px; }
+}

@@ -25,6 +25,7 @@
   <link rel="stylesheet" href="portal.css?v=20260808c">
   <link rel="stylesheet" href="brand.css?v=20260826a">
   <link rel="stylesheet" href="auth-v2.css?v=20261103a">
+  <link rel="stylesheet" href="home-live.css?v=20261103a">
   <script type="module" src="auth-v2.js?v=20261103a"></script>
   <style>
     /* Знак проєкту в шапці. Правила тримаємо тут, а не в спільному portal.css:
@@ -733,6 +734,9 @@
     </div>
   </section>
 
+  <!-- ── Обстановка: годинник, погода, тривога, світло (лише залогіненим; home-live.js) ── -->
+  <section class="hl" id="home-live" hidden aria-label="Обстановка"></section>
+
   </div><!-- /.home-dashboard-shell -->
 
 
@@ -817,6 +821,7 @@
 <script type="module">
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
   import { renderBirthdayStrip } from './birthdays.js?v=20260903a';
+  import { showHomeLive, hideHomeLive } from './home-live.js?v=20261103a';
 
   const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
@@ -1203,6 +1208,7 @@
         placeGlobalSearchForRole(null);
         section.style.display = 'none';
         document.body.classList.remove('home-logged-in');
+        hideHomeLive();
         return;
       }
 
@@ -1213,6 +1219,7 @@
         placeGlobalSearchForRole(profile?.role || null);
         section.style.display = 'none';
         document.body.classList.remove('home-logged-in');
+        hideHomeLive();
         return;
       }
 
@@ -1315,11 +1322,13 @@
       section.style.display = 'block';
       // Маркер для мобільного режиму: залогіненим ховаємо все, крім панелі кабінету
       document.body.classList.add('home-logged-in');
+      showHomeLive({ sb, userId: session.user.id });
     } catch (e) {
       console.warn('Failed to load home cabinet metrics:', e);
       placeGlobalSearchForRole(null);
       section.style.display = 'none';
       document.body.classList.remove('home-logged-in');
+      hideHomeLive();
     }
   }
 
