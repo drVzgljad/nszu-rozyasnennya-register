@@ -241,7 +241,7 @@ async function loadDatabaseData() {
   // архівні доручення СКО-Д (з 03.11.2026, як головна сторінка)
   const { data: cases, error: casesErr } = await sb
     .from('dept_cases')
-    .select('id, in_no, subject, correspondent, reply_kind, stage, deadline, out_no')
+    .select('id, in_no, subject, correspondent, reply_kind, stage, deadline, out_no, project_no')
     .eq('executor_id', currentUser.id)
     .neq('stage', 'done')
     .order('deadline', { ascending: true, nullsFirst: false });
@@ -563,7 +563,7 @@ const normNo = (s) => String(s || '').toLowerCase().replace(/[\s\-–/.]/g, '');
 function caseMatches(c, q) {
   if (!q) return true;
   const nq = normNo(q);
-  if (nq && normNo(c.in_no).includes(nq)) return true;
+  if (nq && (normNo(c.in_no).includes(nq) || normNo(c.project_no).includes(nq))) return true;
   const t = q.toLowerCase();
   return (c.subject || '').toLowerCase().includes(t) || (c.correspondent || '').toLowerCase().includes(t);
 }
@@ -604,6 +604,7 @@ function handleCaseChange() {
     if (document.getElementById('task_branch')?.value === 'case') {
       document.getElementById('askod_reg_number').value = '';
       document.getElementById('askod_reply_number').value = '';
+      document.getElementById('case_project_no').value = '';
       const d = document.getElementById('description');
       if (d && d.value === handleCaseChange.lastAuto) d.value = '';
     }
@@ -621,6 +622,7 @@ function handleCaseChange() {
   // Вх. № і вих. № — у ті самі поля, що в гілці «Робота в АСКОД»
   document.getElementById('askod_reg_number').value = c.in_no || '';
   document.getElementById('askod_reply_number').value = c.out_no || '';
+  document.getElementById('case_project_no').value = c.project_no || '';
   // Опис підставляємо, якщо він порожній або це наш попередній автотекст (обрали іншу справу);
   // написане людиною не чіпаємо
   const desc = document.getElementById('description');
@@ -673,9 +675,10 @@ function handleBranchChange() {
       const replyInput = document.getElementById('askod_reply_number');
       if (replyInput) replyInput.value = '';
     } else if (branch === 'case') {
-      // Номери підставляє справа; поля лишаємо видимими — їх можна виправити
+      // Вх. № підставляє справа (можна виправити). Замість «Відповідь на лист №» —
+      // «№ проєкту відповіді» під вибором справи (#case_project_no), вих. № іде зі справи сам
       askodGroup.style.display = 'block';
-      askodReplyGroup.style.display = 'block';
+      askodReplyGroup.style.display = 'none';
       const regLabel = askodGroup.querySelector('label');
       if (regLabel) regLabel.textContent = 'Вх. № справи (з «Справ відділу»)';
     } else {
@@ -1177,7 +1180,7 @@ async function handleLogFormSubmit(e) {
         return;
       }
       askodNum = document.getElementById('askod_reg_number').value.trim() || null;
-      askodReplyNum = document.getElementById('askod_reply_number').value.trim() || null;
+      askodReplyNum = caseForLog.out_no || null;
     } else if (branch === 'askod') {
       askodNum = document.getElementById('askod_reg_number').value.trim();
       askodReplyNum = document.getElementById('askod_reply_number').value.trim() || null;
@@ -1227,6 +1230,9 @@ async function handleLogFormSubmit(e) {
       reply_to_number: askodReplyNum,
       include_37d: include37d
     };
+    // № проєкту відповіді в АСКОД — лише для роботи за справою (migration_2026-11-03e_case_project_no.sql)
+    const projectNo = caseForLog ? (document.getElementById('case_project_no').value.trim() || null) : null;
+    if (caseForLog) logData.project_no = projectNo;
 
     // Include Form 37-D values if checkbox active
     if (include37d) {
@@ -1261,7 +1267,14 @@ async function handleLogFormSubmit(e) {
     const { error: logErr } = await sb.from('skod_logs').insert([logData]);
     if (logErr) throw logErr;
 
-    // 1b. Робота за справою — запис в історії справи (той самий текст, що в «Справах»)
+    // 1b. Робота за справою — № проєкту відповіді в саму справу (тригер бази запише це в історію)
+    // і запис «Зараховано в СКО-Д» (той самий текст, що в «Справах»)
+    if (caseForLog && projectNo && projectNo !== caseForLog.project_no) {
+      const { error: pErr } = await sb.from('dept_cases')
+        .update({ project_no: projectNo, updated_by_name: userProfile.full_name })
+        .eq('id', caseForLog.id);
+      if (pErr) console.error("Failed to save project number to case:", pErr);
+    }
     if (caseForLog) {
       const { error: evErr } = await sb.from('dept_case_events').insert([{
         case_id: caseForLog.id,

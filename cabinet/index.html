@@ -11,10 +11,10 @@
   <title>Особистий кабінет експерта — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260808c">
   <link rel="stylesheet" href="../auth-v2.css?v=20261103b">
-  <link rel="stylesheet" href="cabinet.css?v=20261103c">
+  <link rel="stylesheet" href="cabinet.css?v=20261103d">
   <link rel="stylesheet" href="workspace.css?v=20260722f">
   <script type="module" src="../auth-v2.js?v=20261103l"></script>
-  <script type="module" src="cabinet.js?v=20261103d"></script>
+  <script type="module" src="cabinet.js?v=20261103e"></script>
   <script type="module" src="workspace.js?v=20260903a"></script>
 </head>
 <body data-required-role="expert">
@@ -187,6 +187,9 @@
                 <option value="" selected disabled>-- Завантаження справ... --</option>
               </select>
               <div id="case-desc-hint" class="case-desc-hint" hidden></div>
+              <label for="case_project_no" class="case-project-label">№ проєкту відповіді в АСКОД</label>
+              <input type="text" id="case_project_no" autocomplete="off" placeholder="Н(СЛ)-12345">
+              <div class="field-hint case-project-hint">Зберігається в самій справі — його видно в «Справах відділу» й в історії справи.</div>
             </div>
 
             <!-- Linked Task Selector -->

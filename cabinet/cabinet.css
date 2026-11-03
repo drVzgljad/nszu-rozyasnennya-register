@@ -1308,3 +1308,6 @@
 .case-desc-hint[hidden] { display: none; }
 #link_case { width: 100%; }
 .case-search { width: 100%; margin-bottom: 6px; }
+.case-project-label { display: block; margin-top: 10px; }
+#case_project_no { width: 100%; }
+.case-project-hint { margin-top: 4px; font-size: 11.5px; color: var(--p-muted, #64748b); }

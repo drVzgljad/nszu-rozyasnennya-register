@@ -484,7 +484,7 @@ function visibleCases() {
     if (state.mine && !isMine(c)) return false;
     if (!passesFilter(c)) return false;
     if (!q) return true;
-    return [c.in_no, c.subject, c.correspondent, c.executor_name, c.resolution, c.out_no, c.nuances, c.lead_unit]
+    return [c.in_no, c.subject, c.correspondent, c.executor_name, c.resolution, c.out_no, c.project_no, c.nuances, c.lead_unit]
       .some((v) => v && String(v).toLowerCase().includes(q));
   });
 }
@@ -640,7 +640,8 @@ function cardHTML(c) {
       <div class="sp-badges">${badges}</div>
       ${c.executor_name ? `<span class="sp-ava" title="${esc(c.executor_name)}">${esc(initials(c.executor_name))}</span>` : '<span class="sp-ava is-none" title="Виконавця не призначено">?</span>'}
     </div>
-    ${c.out_no ? `<div class="sp-out">вих. № ${esc(c.out_no)}${c.out_date ? ' від ' + fmtDate(c.out_date) : ''}</div>` : ''}
+    ${c.out_no ? `<div class="sp-out">вих. № ${esc(c.out_no)}${c.out_date ? ' від ' + fmtDate(c.out_date) : ''}</div>`
+      : c.project_no ? `<div class="sp-out" title="№ проєкту відповіді в АСКОД">проєкт № ${esc(c.project_no)}</div>` : ''}
     ${next ? `<button type="button" class="sp-next" data-next="${c.id}" title="Перевести в «${STAGE_LABEL[next]}»">${STAGE_LABEL[next]} →</button>` : ''}
   </article>`;
 }
@@ -688,6 +689,7 @@ function fieldsHTML(c) {
     <label class="sp-f sp-wide"><span>Резолюція (хто скл., співвиконавці)</span><input data-f="resolution" value="${esc(c.resolution)}" placeholder="Прізвище скл., Прізвище, Прізвище"></label>
     <label class="sp-f"><span>Виконавець у відділі</span><select data-f="executor_name">${opt('', c.executor_name, '— не призначено —')}${people.map((p) => opt(p, c.executor_name)).join('')}</select></label>
     <label class="sp-f"><span>Версія чернетки</span><input type="number" min="1" data-f="version" value="${esc(c.version)}" placeholder="1"></label>
+    <label class="sp-f"><span>№ проєкту відповіді (АСКОД)</span><input data-f="project_no" value="${esc(c.project_no)}" placeholder="Н(СЛ)-12345"></label>
     <label class="sp-f sp-check"><input type="checkbox" data-f="review_passed"${c.review_passed ? ' checked' : ''}><span>Рецензію пройдено</span></label>
     <label class="sp-f sp-wide"><span>Посилання (Google Doc із зауваженнями, OneDrive)</span>
       <span class="sp-linkrow"><input data-f="draft_url" value="${esc(c.draft_url)}" placeholder="https://docs.google.com/…">${/^https?:\/\//.test(c.draft_url || '') ? `<a class="sp-btn sp-btn-ghost" href="${esc(c.draft_url)}" target="_blank" rel="noopener">Відкрити</a>` : ''}</span></label>
@@ -870,6 +872,7 @@ const ACTIONS = {
         description: fd.get('desc').trim(),
         askod_reg_number: c.in_no || null,
         reply_to_number: c.out_no || null,
+        project_no: c.project_no || null,
         include_37d: false
       };
       if (!DEMO) {
