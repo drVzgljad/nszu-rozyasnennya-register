@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Справи відділу</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="spravy.css?v=20261103c">
+  <link rel="stylesheet" href="spravy.css?v=20261103d">
   <link rel="stylesheet" href="../auth-v2.css?v=20261103a">
   <script type="module" src="../auth-v2.js?v=20261103a"></script>
 </head>
@@ -53,6 +53,11 @@
 
   <main class="layout sp-layout">
     <!-- Голосова кімната відділу (voice.js): заходимо одразу, мікрофон вимкнений -->
+    <!-- Яка кімната: мій відділ чи весь департамент (голос + чат разом) -->
+    <div class="sp-view spv-scope" id="spScope" role="group" aria-label="Кімната" hidden>
+      <button type="button" data-scope="dept" aria-pressed="true">Мій відділ</button>
+      <button type="button" data-scope="all" aria-pressed="false">Департамент</button>
+    </div>
     <section class="spv" id="spVoice" aria-label="Голосова кімната відділу" hidden></section>
     <!-- Текстовий канал відділу (room-chat.js): та сама кімната, що в розділі «Чат» -->
     <section class="spc" id="spChat" aria-label="Чат відділу" hidden></section>
@@ -220,6 +225,6 @@
   </footer>
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
-  <script type="module" src="spravy.js?v=20261103d"></script>
+  <script type="module" src="spravy.js?v=20261103e"></script>
 </body>
 </html>

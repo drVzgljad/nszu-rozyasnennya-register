@@ -27,6 +27,7 @@ const MANY = 10;               // з такої кількості попере�
 const RETRIES = 3;             // скільки разів перепідключати зірване з'єднання
 const SPEAK_LEVEL = 0.035;     // поріг RMS, з якого вважаємо, що людина говорить
 const LS_OFF = 'spravy-voice-off';
+const ALL = '*';               // «відділ» = увесь департамент (перемикач у spravy.js)
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const initials = (name) => (name || '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';
@@ -89,6 +90,7 @@ export async function setVoiceDept(dept) {
 /* ───────────────────────── канал кімнати ───────────────────────── */
 
 async function topicFor(dept) {
+  if (dept === ALL) return 'voice:all';  // кімната департаменту (migration_2026-11-03b_voice_room_all.sql)
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(dept));
   return 'voice:dept:' + [...new Uint8Array(buf)].slice(0, 8).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
@@ -485,7 +487,7 @@ function render() {
   main.innerHTML = `
     <div class="spv-head">
       <span class="spv-dot ${v.status === 'live' && v.inRoom ? 'is-live' : ''}" aria-hidden="true"></span>
-      <strong>Кімната відділу</strong>
+      <strong>${v.dept === ALL ? 'Кімната департаменту' : 'Кімната відділу'}</strong>
       <span class="spv-count">${list.length ? `${list.length} ${plural(list.length)}` : ''}</span>
     </div>
     <ul class="spv-people" aria-label="Хто в кімнаті">${people}</ul>

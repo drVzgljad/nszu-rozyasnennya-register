@@ -979,3 +979,7 @@
   .spc-last { display: none; }
   .spc-form .spv-btn { padding: 7px 10px; }
 }
+
+/* Перемикач кімнати «Мій відділ | Департамент» над голосовою кімнатою */
+.spv-scope { margin-bottom: 8px; }
+.spv-scope[hidden] { display: none; }

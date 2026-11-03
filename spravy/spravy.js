@@ -25,8 +25,8 @@
  * Realtime, migration_2026-11-03_voice_room.sql), текстовий канал під нею —
  * room-chat.js (кімната відділу з чату порталу). Версії ?v= обох піднімати тут.
  */
-import { initVoice, setVoiceDept } from './voice.js?v=20261103c';
-import { initRoomChat, setRoomChatDept } from './room-chat.js?v=20261103a';
+import { initVoice, setVoiceDept } from './voice.js?v=20261103d';
+import { initRoomChat, setRoomChatDept } from './room-chat.js?v=20261103b';
 
 const $ = (id) => document.getElementById(id);
 
@@ -114,6 +114,7 @@ const state = {
   f: 'all',           // фільтр: all / hot (строк ≤ 3 дн.) / overdue / remind (нагадування настали)
   view: 'board',      // board — дошка; list — список за строками; people — за виконавцями
   mobileStage: 'work',
+  roomScope: 'dept',  // кімната (голос + чат): dept — мій відділ, all — увесь департамент
   openId: null,
   demoEvents: {}
 };
@@ -200,10 +201,34 @@ async function boot() {
   await loadCases();
   applyUrlParams();
   subscribe();
-  // Голосова кімната відділу (voice.js): заходимо одразу, мікрофон вимкнений
-  initVoice({ sb: state.sb, me: state.me, name: myName(), dept: state.dept, toast });
-  // Текстовий канал — кімната відділу з чату порталу (room-chat.js)
-  initRoomChat({ sb: state.sb, me: state.me, name: myName(), dept: state.dept, toast });
+  // Голосова кімната (voice.js): заходимо одразу, мікрофон вимкнений. Текстовий канал під нею —
+  // кімната відділу або головна стрічка «Робочого чату Департаменту» (room-chat.js).
+  setupRoomScope();
+  initVoice({ sb: state.sb, me: state.me, name: myName(), dept: roomTarget(), toast });
+  initRoomChat({ sb: state.sb, me: state.me, name: myName(), dept: roomTarget(), toast });
+}
+
+/** «*» — увесь департамент; без відділу в профілі людина потрапляє туди ж. */
+const roomTarget = () => (state.roomScope === 'all' || !DEPARTMENTS.includes(state.dept) ? '*' : state.dept);
+
+/** Перемикач «Мій відділ | Департамент» над кімнатою; вибір пам'ятає браузер. */
+function setupRoomScope() {
+  const box = $('spScope');
+  if (!box) return;
+  const saved = lsGet('spravy-room-scope');
+  state.roomScope = saved === 'all' || !DEPARTMENTS.includes(state.dept) ? 'all' : 'dept';
+  const paint = () => box.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.scope === state.roomScope)));
+  paint();
+  box.hidden = false;
+  box.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-scope]');
+    if (!b || b.dataset.scope === state.roomScope) return;
+    state.roomScope = b.dataset.scope;
+    lsSet('spravy-room-scope', state.roomScope);
+    paint();
+    setVoiceDept(roomTarget());
+    setRoomChatDept(roomTarget());
+  });
 }
 
 /**
@@ -281,8 +306,8 @@ function setupDeptPicker() {
   sel.addEventListener('change', async () => {
     state.dept = sel.value;
     $('spDeptName').textContent = `Відділ ${state.dept}`;
-    setVoiceDept(state.dept);
-    setRoomChatDept(state.dept);
+    setVoiceDept(roomTarget());
+    setRoomChatDept(roomTarget());
     await loadPeople();
     await loadCases();
   });

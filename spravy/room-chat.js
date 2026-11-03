@@ -16,6 +16,7 @@ const FILE_LIMIT = 10 * 1024 * 1024;  // як у chat/chat.js
 const BUCKET = 'chat-attachments';
 const PAGE = 60;                      // скільки останніх повідомлень показуємо
 const LS_OPEN = 'spravy-chat-open';
+const ALL = '*';                      // «відділ» = увесь департамент (перемикач у spravy.js)
 const FILE_RE = /^📎 \[Файл:\s*([^\]]+)\]\(([^)]+)\)/;
 const STORAGE_RE = /\/storage\/v1\/object\/public\/([^/]+)\/([^?]+)/;
 const IMG_EXT = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
@@ -70,35 +71,49 @@ async function loadRoom() {
   c.msgs = [];
   c.unread = 0;
   c.room = null;
+  renderHead();
   notice('Завантаження…');
-  const { data: room, error } = await c.sb.from('chat_rooms').select('id, name').eq('dept', c.dept).limit(1).maybeSingle();
-  if (error || !room) {
-    notice('У чаті порталу ще немає кімнати цього відділу.');
-    renderHead();
-    return;
+  let q = c.sb.from('chat_messages').select('id, created_at, user_id, user_name, message_text');
+  if (c.dept === ALL) {
+    // Департамент — головна стрічка «Робочого чату Департаменту» (chat/chat.js, type 'group'):
+    // без кімнати й без адресата
+    c.room = { id: null, name: 'Робочий чат Департаменту' };
+    q = q.is('room_id', null).is('recipient_id', null);
+  } else {
+    const { data: room, error } = await c.sb.from('chat_rooms').select('id, name').eq('dept', c.dept).limit(1).maybeSingle();
+    if (error || !room) {
+      notice('У чаті порталу ще немає кімнати цього відділу. Перемкніться на «Департамент».');
+      return;
+    }
+    c.room = room;
+    q = q.eq('room_id', room.id);
   }
-  c.room = room;
-  const { data, error: e2 } = await c.sb.from('chat_messages')
-    .select('id, created_at, user_id, user_name, message_text')
-    .eq('room_id', room.id).order('created_at', { ascending: false }).limit(PAGE);
+  const { data, error: e2 } = await q.order('created_at', { ascending: false }).limit(PAGE);
   if (e2) { notice('Не вдалося завантажити повідомлення: ' + e2.message); return; }
   c.msgs = (data || []).reverse();
   renderHead();
   renderList(true);
-  c.ch = c.sb.channel('spravy-chat-' + room.id)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages', filter: `room_id=eq.${room.id}` }, onChange)
+  // Фільтр «room_id is null» Realtime не вміє — для стрічки департаменту перевіряємо в onChange
+  const filter = c.room.id ? { filter: `room_id=eq.${c.room.id}` } : {};
+  c.ch = c.sb.channel('spravy-chat-' + (c.room.id || 'all'))
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_messages', ...filter }, onChange)
     .subscribe();
 }
 
+/** Повідомлення з цього каналу? (для стрічки департаменту Realtime шле всі зміни таблиці) */
+const ours = (m) => (c.room?.id ? m.room_id === c.room.id : !m.room_id && !m.recipient_id);
+
 function onChange({ eventType, new: n, old: o }) {
   if (eventType === 'INSERT') {
-    if (c.msgs.some((m) => m.id === n.id)) return;
+    if (!ours(n) || c.msgs.some((m) => m.id === n.id)) return;
     c.msgs.push(n);
     if (n.user_id !== c.me?.id && (!c.open || document.hidden)) c.unread++;
   } else if (eventType === 'UPDATE') {
     const m = c.msgs.find((x) => x.id === n.id);
-    if (m) Object.assign(m, n);
+    if (!m) return;
+    Object.assign(m, n);
   } else if (eventType === 'DELETE') {
+    if (!c.msgs.some((m) => m.id === o.id)) return;
     c.msgs = c.msgs.filter((m) => m.id !== o.id);
   }
   renderHead();
@@ -269,6 +284,10 @@ function renderHead() {
   badge.textContent = c.unread > 99 ? '99+' : String(c.unread);
   const last = c.msgs[c.msgs.length - 1];
   q('.spc-last').textContent = !c.open && last ? `${shortName(last.user_name)}: ${preview(last.message_text)}` : '';
+  const all = c.dept === ALL;
+  q('.spc-title').textContent = all ? '💬 Чат департаменту' : '💬 Чат відділу';
+  q('.spc-foot').innerHTML = `Ті самі повідомлення — у розділі <a href="../chat/">Чат</a>, ${all ? 'головна стрічка «Робочий чат Департаменту»' : 'кімната відділу'}.`;
+  c.root.setAttribute('aria-label', all ? 'Чат департаменту' : 'Чат відділу');
 }
 
 function renderList(stick) {
