@@ -621,6 +621,7 @@ function handleCaseChange() {
   document.querySelectorAll('.task-category-cb').forEach((i) => { i.checked = i.value === cat; });
   // Вх. № і вих. № — у ті самі поля, що в гілці «Робота в АСКОД»
   document.getElementById('askod_reg_number').value = c.in_no || '';
+  handleCaseChange.lastReg = c.in_no || '';
   document.getElementById('askod_reply_number').value = c.out_no || '';
   document.getElementById('case_project_no').value = c.project_no || '';
   // Опис підставляємо, якщо він порожній або це наш попередній автотекст (обрали іншу справу);
@@ -638,6 +639,19 @@ function handleBranchChange() {
   const branch = document.getElementById('task_branch').value;
   const caseGroup = document.getElementById('form-case-group');
   if (caseGroup) caseGroup.style.display = branch === 'case' ? 'block' : 'none';
+  if (branch !== 'case') {
+    // Пішли з «Роботи за справою» — прибираємо те, що підставила справа (опис і вх. №);
+    // написане руками лишаємо
+    const d = document.getElementById('description');
+    if (d && handleCaseChange.lastAuto && d.value === handleCaseChange.lastAuto) d.value = '';
+    const reg = document.getElementById('askod_reg_number');
+    if (reg && handleCaseChange.lastReg && reg.value === handleCaseChange.lastReg) reg.value = '';
+    const cs = document.getElementById('link_case');
+    if (cs) cs.selectedIndex = 0;
+    const hint = document.getElementById('case-desc-hint');
+    if (hint) hint.hidden = true;
+    handleCaseChange.lastAuto = handleCaseChange.lastReg = '';
+  }
   const taskSelectorGroup = document.getElementById('form-assigned-task-group');
   const checklistGroup = document.getElementById('subtask-checklist-group');
   const progressGroup = document.getElementById('task-progress-group');
