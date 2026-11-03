@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Чат департаменту | НавігаторПМГ26</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="../assets/icon-192.png">
+  <link rel="apple-touch-icon" href="../assets/icon-180.png">
+  <meta name="theme-color" content="#2f6b9e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="stylesheet" href="../styles.css?v=20260808b">
+  <link rel="stylesheet" href="zviazok.css?v=20261103d">
+  <link rel="stylesheet" href="../auth-v2.css?v=20261103a">
+  <script type="module" src="../auth-v2.js?v=20261103h"></script>
+</head>
+<!-- Розділ закритий: оверлей «Доступ обмежено» вставляє auth-v2.js. Повідомлення —
+     у Supabase під RLS (chat_*), у файлах репозиторію даних немає. Старий chat/ —
+     лише перенаправлення сюди. -->
+<body id="top" data-required-role="expert">
+  <header class="chat-topbar">
+    <div class="nav-row-1">
+      <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал" title="На портал">
+        <span class="chat-topbar-back" aria-hidden="true">‹</span>
+        <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+        <span class="brand-text">
+          <span class="brand-name">Чат департаменту</span>
+          <span class="brand-subtitle">текст і голос · Департамент стратегії · НСЗУ</span>
+        </span>
+      </a>
+      <div class="auth-container"></div>
+    </div>
+    <nav class="section-switch" aria-label="Розділи сайту"></nav>
+  </header>
+
+  <main class="zv-app" id="zvApp">
+    <!-- Розмови: головна стрічка, кімнати за категоріями, закриті й особисті -->
+    <aside class="zv-side" id="zvSide" aria-label="Розмови">
+      <div class="zv-side-top">
+        <input type="search" id="zvFilter" class="zv-filter" placeholder="Знайти кімнату чи колегу…" aria-label="Знайти розмову">
+        <button type="button" class="zv-btn zv-primary zv-newroom" data-act="new-room" title="Створити кімнату з текстом і голосом">＋ Кімната</button>
+      </div>
+      <nav class="zv-list" id="zvList" aria-label="Список розмов"></nav>
+      <!-- Док голосу: де ми зараз у голосі, мікрофон і вихід — з будь-якої кімнати -->
+      <div class="zv-dock" id="zvDock" hidden></div>
+      <div class="zv-side-foot">
+        <span class="zv-status" id="zvStatus" role="status"></span>
+        <button type="button" class="zv-mini zv-notif" id="zvNotifBtn" data-act="notif"></button>
+      </div>
+    </aside>
+
+    <!-- Розмова -->
+    <section class="zv-main" id="zvMain" aria-label="Розмова">
+      <header class="zv-head">
+        <button type="button" class="zv-icon-btn zv-back" data-act="back" aria-label="До списку розмов">‹</button>
+        <span class="zv-head-ico" id="zvHeadIco" aria-hidden="true">💬</span>
+        <div class="zv-head-text">
+          <h1 id="zvHeadTitle">Чат департаменту</h1>
+          <p id="zvHeadTopic" hidden></p>
+        </div>
+        <div class="zv-head-acts">
+          <button type="button" class="zv-btn zv-voice-btn" id="zvVoiceBtn" data-act="voice" aria-pressed="false">🎙 <span>Голос</span></button>
+          <button type="button" class="zv-icon-btn" id="zvPinsBtn" data-act="pins" aria-expanded="false" title="Закріплене" aria-label="Закріплене">📌</button>
+          <button type="button" class="zv-icon-btn" id="zvMuteBtn" data-act="mute" aria-pressed="false">🔔</button>
+          <button type="button" class="zv-icon-btn" id="zvPeopleBtn" data-act="people" aria-expanded="false" title="Хто тут" aria-label="Хто тут">👥</button>
+          <button type="button" class="zv-icon-btn" id="zvSettingsBtn" data-act="settings" title="Налаштування кімнати" aria-label="Налаштування кімнати" hidden>⚙️</button>
+          <button type="button" class="zv-icon-btn" id="zvPopupBtn" data-act="popup" title="Відкрити в окремому плаваючому вікні" aria-label="Окреме вікно">↗</button>
+        </div>
+      </header>
+      <div class="zv-strip" id="zvStrip" aria-label="Голос цієї розмови" hidden></div>
+      <div class="zv-pins" id="zvPins" hidden></div>
+      <div class="zv-log" id="zvLog" role="log" aria-live="polite" aria-label="Повідомлення">
+        <div class="zv-empty"><span aria-hidden="true">💬</span><p>Завантаження…</p></div>
+      </div>
+      <p class="zv-busy" id="zvBusy" hidden></p>
+      <div class="zv-banner" id="zvBanner" hidden></div>
+      <form class="zv-compose" id="zvForm">
+        <label class="zv-icon-btn zv-attach" title="Надіслати файл до 10 МБ. Можна й перетягнути в розмову або вставити Ctrl+V">
+          📎<input type="file" id="zvFile" multiple hidden>
+        </label>
+        <textarea id="zvInput" rows="1" placeholder="Повідомлення…" aria-label="Повідомлення. Enter — надіслати, Shift+Enter — новий рядок"></textarea>
+        <button type="button" class="zv-icon-btn" id="zvEmojiBtn" title="Смайлики" aria-label="Смайлики">😊</button>
+        <button type="submit" class="zv-btn zv-primary zv-send" id="zvSend" aria-label="Надіслати">
+          <span>Надіслати</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+      </form>
+      <div class="zv-drop" id="zvDrop" hidden>Відпустіть, щоб надіслати файл</div>
+    </section>
+
+    <!-- Хто в мережі (у закритій кімнаті — її учасники) -->
+    <aside class="zv-aside" id="zvAside" aria-label="Хто тут">
+      <div class="zv-aside-head">
+        <h2 id="zvAsideTitle">У мережі</h2>
+        <button type="button" class="zv-mini" data-act="close-aside" aria-label="Закрити">✕</button>
+      </div>
+      <ul class="zv-people-list" id="zvAsideList"></ul>
+      <p class="zv-aside-hint">Натисніть на колегу, щоб написати особисто.</p>
+    </aside>
+  </main>
+
+  <dialog class="zv-dialog" id="zvDialog"></dialog>
+  <div class="zv-toast" id="zvToast" role="status" hidden></div>
+
+  <script type="module" src="zviazok.js?v=20261103b"></script>
+</body>
+</html>

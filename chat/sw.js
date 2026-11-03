@@ -1,53 +1,18 @@
-const CACHE_NAME = 'chat-cache-v6';
-const ASSETS = [
-  'index.html',
-  'chat.css',
-  'chat.js',
-  'manifest.json',
-  '../styles.css',
-  '../auth-v2.css',
-  '../auth-v2.js',
-  '../assets/nszu-shield.svg',
-  '../assets/icon-192.png',
-  '../assets/icon-512.png'
-];
+// Старий «Робочий чат» замінено «Чатом департаменту» (zviazok/), 03.11.2026.
+//
+// Попередній воркер віддавав index.html із кешу ПЕРШОЧЕРГОВО, тож у людини з
+// установленим чатом стара сторінка жила б вічно. Браузер сам перевіряє sw.js
+// при кожному заході на /chat/ — знаходить цей файл, ставить його, і він:
+// стирає кеш старого чату, знімає себе й перезавантажує відкриті вкладки —
+// ті потрапляють уже на сторінку-перенаправлення з мережі.
+self.addEventListener('install', () => self.skipWaiting());
 
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      return cache.addAll(ASSETS);
-    }).then(() => self.skipWaiting())
-  );
-});
-
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys => {
-      return Promise.all(
-        keys.map(key => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
-  );
-});
-
-self.addEventListener('fetch', e => {
-  // Bypass caching for third party API requests (Supabase, CDN) to prevent breaking API calls
-  if (e.request.url.includes('supabase.co') || e.request.url.includes('jsdelivr.net')) {
-    return;
-  }
-  
-  e.respondWith(
-    caches.match(e.request).then(cachedResponse => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(e.request).catch(() => {
-        // Return default fallback if needed
-      });
-    })
-  );
+self.addEventListener('activate', (e) => {
+  e.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter((k) => k.startsWith('chat-cache')).map((k) => caches.delete(k)));
+    await self.registration.unregister();
+    const wins = await self.clients.matchAll({ type: 'window' });
+    wins.forEach((w) => w.navigate(w.url).catch(() => {}));
+  })());
 });

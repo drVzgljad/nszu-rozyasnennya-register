@@ -1,0 +1,765 @@
+/* ═══════════════════════════════════════════════════════════════
+   «Чат департаменту» (zviazok/) — текст і голос у кожній кімнаті.
+
+   Кольори — власний шар --zv-*, перевизначений під :root.dark-theme.
+   Межі — це --line (змінної --border у порталі НЕМАЄ: var(--border, #fff)
+   тихо лишив би розділ світлим у темній темі).
+   Мобільне — лише через @media; ≤980px (там, де з'являється таббар) розмова
+   і список розмов — два окремі екрани, як у месенджерах. Плаваюче вікно
+   (?mode=popup, body.is-popup) поводиться так само.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --zv-bg: #eef4f8;
+  --zv-panel: var(--surface, #fff);
+  --zv-hover: #edf4fa;
+  --zv-active: #e1eef9;
+  --zv-mine: #e9f4fd;
+  --zv-ava: #dbe8f3;
+  --zv-ava-ink: #23476b;
+  --zv-badge: #d64545;
+  --zv-live: #2f9e6b;
+  --zv-bad: #c0392b;
+  --zv-speak: #2fbf71;
+  --zv-top: #fff7db;
+  --zv-top-line: #f1d77a;
+  --zv-shadow: 0 10px 30px rgba(14, 30, 55, 0.14);
+  --zv-quote: #f2f7fb;
+}
+
+:root.dark-theme {
+  --zv-bg: #0b1324;
+  --zv-panel: #111c30;
+  --zv-hover: #18263d;
+  --zv-active: #1d3352;
+  --zv-mine: #13263f;
+  --zv-ava: #24405f;
+  --zv-ava-ink: #cfe3f7;
+  --zv-badge: #ef5350;
+  --zv-live: #4ade80;
+  --zv-bad: #f87171;
+  --zv-speak: #4ade80;
+  --zv-top: #2b2410;
+  --zv-top-line: #6b5a1c;
+  --zv-shadow: 0 12px 34px rgba(0, 0, 0, 0.5);
+  --zv-quote: #0f1a2c;
+}
+
+/* ── Сторінка-застосунок: прокручується лише стрічка ───────────── */
+html { height: 100%; }
+body#top {
+  height: 100dvh;
+  margin: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--zv-bg);
+}
+.site-footer { display: none; }
+/* Блоки нижче мають власний display (flex/grid) — без цього атрибут hidden їх не сховав би */
+[hidden] { display: none !important; }
+@media (min-width: 1280px) { body:not(.is-popup) #zvPeopleBtn { display: none; } }
+/* Демо (?demo=1) — без входу, тож оверлей «Доступ обмежено» знімаємо */
+body.zv-demo #access-denied-overlay { display: none !important; }
+/* Плаваючі віджети порталу (стежка nav-trail.js, кошик кодів code-basket.js)
+   лягали на док голосу й кнопку «Надіслати» — у месенджері вони зайві */
+#nav-trail, .cbask { display: none !important; }
+
+/* ── Слім-шапка (та сама, що була в старому чаті) ─────────────── */
+.chat-topbar {
+  flex: none;
+  position: relative;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  background: var(--zv-panel);
+  border-bottom: 1px solid var(--line);
+  padding: 0 16px;
+}
+.chat-topbar .nav-row-1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 54px;
+  min-width: 0;
+}
+.chat-topbar .brand-lockup { display: inline-flex; align-items: center; gap: 9px; text-decoration: none; color: inherit; min-width: 0; }
+.chat-topbar .chat-topbar-back { font-size: 26px; line-height: 1; color: var(--muted); font-weight: 800; margin-right: -2px; }
+.chat-topbar .brand-shield { width: 30px; height: auto; flex: none; }
+.chat-topbar .brand-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.chat-topbar .brand-name { font-size: 16px; font-weight: 800; color: var(--ink); line-height: 1.15; }
+.chat-topbar .brand-subtitle { font-size: 11.5px; color: var(--muted); line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Портальне меню ховаємо — фокус на розмові; повернення — «‹ На портал» і таббар */
+.chat-topbar .section-switch { display: none; }
+
+/* ── Каркас ────────────────────────────────────────────────────── */
+.zv-app {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: 1680px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) 250px;
+  position: relative;
+  /* висувна «Хто тут» за правим краєм не має розширювати сторінку */
+  overflow: clip;
+}
+
+.zv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 7px 13px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--zv-panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .15s, border-color .15s;
+}
+.zv-btn:hover { background: var(--zv-hover); }
+.zv-btn:focus-visible, .zv-icon-btn:focus-visible, .zv-item:focus-visible, .zv-mini:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.zv-btn:disabled { opacity: .55; cursor: default; }
+.zv-primary { background: var(--accent-fill, var(--accent)); border-color: transparent; color: #fff; }
+.zv-primary:hover { background: var(--accent-dark); }
+:root.dark-theme .zv-primary:hover { background: var(--accent-fill); filter: brightness(1.12); }
+.zv-danger { color: var(--zv-bad); border-color: color-mix(in srgb, var(--zv-bad) 40%, transparent); }
+.zv-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 6px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 17px;
+  cursor: pointer;
+}
+.zv-icon-btn:hover { background: var(--zv-hover); }
+.zv-icon-btn span { font-size: 11.5px; font-weight: 800; color: var(--muted); }
+.zv-mini {
+  border: none;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 7px;
+  border-radius: 7px;
+}
+.zv-mini:hover { background: var(--zv-hover); color: var(--ink); }
+.zv-muted { color: var(--muted); font-size: 13px; }
+.zv-grow { flex: 1; }
+.zv-ava {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--zv-ava);
+  color: var(--zv-ava-ink);
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+.zv-ava-xs { width: 20px; height: 20px; font-size: 9px; }
+.zv-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--faint, #8a9aab); flex: none; }
+.zv-dot.is-live { background: var(--zv-live); box-shadow: 0 0 0 3px color-mix(in srgb, var(--zv-live) 22%, transparent); }
+.zv-dot.is-bad { background: var(--zv-bad); }
+.zv-on { width: 8px; height: 8px; border-radius: 50%; background: var(--zv-live); flex: none; margin-left: auto; }
+
+/* ── Список розмов ─────────────────────────────────────────────── */
+.zv-side {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--zv-panel);
+  border-right: 1px solid var(--line);
+}
+.zv-side-top { display: flex; gap: 8px; padding: 12px 12px 8px; }
+.zv-filter {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--soft);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13.5px;
+}
+.zv-newroom { padding: 7px 11px; }
+.zv-list { flex: 1; min-height: 0; overflow-y: auto; padding: 0 8px 10px; overscroll-behavior: contain; }
+.zv-group { list-style: none; margin: 0; padding: 0; }
+.zv-cat-head { display: flex; align-items: center; justify-content: space-between; margin: 12px 4px 3px; }
+.zv-cat-head > span, .zv-cat-head > button[data-fold] {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  border: none;
+  background: none;
+  padding: 2px 4px;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  cursor: pointer;
+}
+.zv-cat-head > span { cursor: default; }
+.zv-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 38px;
+  padding: 6px 9px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  flex-wrap: wrap;
+}
+.zv-item:hover { background: var(--zv-hover); }
+.zv-item.is-active { background: var(--zv-active); font-weight: 700; }
+.zv-item.is-unread .zv-item-name { font-weight: 800; }
+.zv-item-ico { width: 22px; text-align: center; flex: none; font-size: 16px; }
+.zv-item-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zv-item-sub { order: 5; flex-basis: 100%; padding-left: 31px; margin-top: -3px; font-size: 11.5px; }
+.zv-mine { color: var(--zv-live); font-weight: 700; }
+.zv-lock { font-style: normal; font-size: 11px; opacity: .7; }
+.zv-item-voice { font-size: 11.5px; font-weight: 800; color: var(--zv-live); flex: none; }
+.zv-item-mute { font-size: 12px; opacity: .65; flex: none; }
+.zv-badge {
+  flex: none;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--zv-badge);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 800;
+  line-height: 20px;
+  text-align: center;
+}
+.zv-item-people { list-style: none; margin: 0 0 4px; padding: 0 0 0 40px; display: flex; flex-direction: column; gap: 2px; }
+.zv-item-people li { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--muted); min-width: 0; }
+.zv-item-people li i { font-style: normal; font-size: 11px; }
+.zv-item-people li.is-speaking .zv-ava { box-shadow: 0 0 0 2px var(--zv-speak); }
+.zv-side-empty { margin: 4px 10px; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.zv-side-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--line);
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.zv-status { display: inline-flex; align-items: center; gap: 7px; }
+
+/* ── Док голосу ────────────────────────────────────────────────── */
+.zv-dock {
+  margin: 0 8px 8px;
+  padding: 8px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--zv-live) 10%, var(--zv-panel));
+  border: 1px solid color-mix(in srgb, var(--zv-live) 30%, var(--line));
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.zv-dock-where {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: none;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  padding: 2px;
+  min-width: 0;
+}
+.zv-dock-where > span:last-child { display: flex; flex-direction: column; min-width: 0; }
+.zv-dock-where b { font-size: 13px; color: var(--zv-live); }
+.zv-dock-where small { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zv-dock-ctl { display: flex; gap: 6px; }
+.zv-dock-ctl .zv-vbtn { flex: 1; }
+
+/* ── Розмова ───────────────────────────────────────────────────── */
+.zv-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--zv-panel);
+  position: relative;
+}
+.zv-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 58px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.zv-back { display: none; font-size: 26px; font-weight: 800; color: var(--muted); }
+.zv-head-ico { font-size: 22px; flex: none; }
+.zv-head-text { flex: 1; min-width: 0; }
+.zv-head-text h1 { margin: 0; font-size: 16.5px; line-height: 1.2; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zv-head-text p { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zv-head-acts { display: flex; align-items: center; gap: 2px; flex: none; }
+.zv-voice-btn { margin-right: 4px; }
+.zv-voice-btn.is-on { background: color-mix(in srgb, var(--zv-live) 14%, var(--zv-panel)); border-color: var(--zv-live); color: var(--zv-live); }
+.zv-aside-toggle { display: none; }
+
+/* Голос розмови — смуга під шапкою */
+.zv-strip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--zv-live) 6%, var(--zv-panel));
+}
+.zv-vpeople { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; flex: 1; min-width: 0; }
+.zv-vp { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--ink); min-width: 0; }
+.zv-vp .zv-ava { transition: box-shadow .12s; }
+.zv-vp.is-speaking .zv-ava { box-shadow: 0 0 0 3px var(--zv-speak); }
+.zv-vp.is-muted .zv-ava, .zv-vp.is-wait .zv-ava { opacity: .7; }
+.zv-vp.is-bad .zv-ava { box-shadow: 0 0 0 2px var(--zv-bad); }
+.zv-vp-name i { font-style: normal; color: var(--muted); }
+.zv-vpeople.is-peek .zv-vp-name { color: var(--muted); }
+.zv-vctl { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.zv-vnote { margin: 0; font-size: 12.5px; color: var(--muted); }
+.zv-vnote.is-bad { color: var(--zv-bad); flex-basis: 100%; }
+.zv-vbtn.is-on { background: color-mix(in srgb, var(--zv-live) 16%, var(--zv-panel)); border-color: var(--zv-live); color: var(--zv-live); }
+.zv-vbtn.is-off { background: color-mix(in srgb, var(--zv-bad) 12%, var(--zv-panel)); border-color: var(--zv-bad); }
+.zv-leave { color: var(--zv-bad); }
+
+/* Закріплене */
+.zv-pins {
+  flex: none;
+  max-height: 40%;
+  overflow-y: auto;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--zv-top);
+}
+.zv-pins h3 { margin: 0 0 6px; font-size: 13px; }
+.zv-pins ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.zv-pins li { display: flex; align-items: flex-start; gap: 4px; }
+.zv-pin { flex: 1; min-width: 0; text-align: left; border: none; background: none; color: var(--ink); font: inherit; font-size: 13px; padding: 4px 6px; border-radius: 8px; cursor: pointer; }
+.zv-pin:hover { background: color-mix(in srgb, var(--zv-top-line) 30%, transparent); }
+
+/* Стрічка */
+.zv-log {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  position: relative;
+  padding: 10px 0 14px;
+}
+.zv-empty { display: grid; place-items: center; text-align: center; gap: 6px; height: 100%; padding: 30px; color: var(--muted); }
+.zv-empty span { font-size: 42px; }
+.zv-empty p { margin: 0; max-width: 340px; line-height: 1.5; }
+.zv-older { display: flex; margin: 6px auto 4px; font-size: 12.5px; min-height: 30px; }
+.zv-start { text-align: center; color: var(--muted); font-size: 12px; margin: 6px 0; }
+.zv-day, .zv-new { display: flex; align-items: center; gap: 10px; margin: 14px 16px 6px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.zv-day::before, .zv-day::after, .zv-new::before, .zv-new::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.zv-new { color: var(--zv-badge); }
+.zv-new::before, .zv-new::after { background: color-mix(in srgb, var(--zv-badge) 45%, transparent); }
+
+.zv-msg {
+  position: relative;
+  display: flex;
+  gap: 11px;
+  padding: 6px 16px 4px;
+  margin-top: 6px;
+}
+.zv-msg.is-cont { margin-top: 0; padding-top: 1px; }
+.zv-msg:hover, .zv-msg.is-touched, .zv-msg:focus-within { background: var(--zv-hover); }
+.zv-msg.is-mine { background: color-mix(in srgb, var(--zv-mine) 55%, transparent); }
+.zv-msg.is-mine:hover, .zv-msg.is-mine.is-touched { background: var(--zv-mine); }
+.zv-msg.is-top { box-shadow: inset 3px 0 0 var(--zv-top-line); }
+.zv-msg.is-flash { animation: zv-flash 1.6s ease; }
+@keyframes zv-flash { 0%, 40% { background: var(--zv-top); } 100% { background: transparent; } }
+.zv-ghost-time { width: 34px; flex: none; font-size: 10.5px; color: var(--muted); text-align: center; padding-top: 3px; opacity: 0; }
+.zv-msg:hover .zv-ghost-time, .zv-msg.is-touched .zv-ghost-time { opacity: 1; }
+.zv-msg-main { flex: 1; min-width: 0; }
+.zv-meta { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-bottom: 1px; }
+.zv-meta b { font-size: 14px; color: var(--ink); }
+.zv-meta time { font-size: 11.5px; color: var(--muted); }
+.zv-flag { font-size: 11px; font-weight: 700; color: var(--warning-text); background: var(--zv-top); border-radius: 6px; padding: 1px 6px; }
+.zv-text { font-size: 14.5px; line-height: 1.5; color: var(--ink); overflow-wrap: anywhere; }
+.zv-text a { color: var(--accent-dark); }
+.zv-msg.is-big .zv-text { font-size: 34px; line-height: 1.2; }
+.zv-edited { font-size: 11px; color: var(--muted); }
+.zv-quote {
+  display: block;
+  max-width: 100%;
+  margin: 2px 0 4px;
+  padding: 4px 9px;
+  border: none;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  background: var(--zv-quote);
+  color: var(--muted);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.zv-quote b { color: var(--ink); }
+.zv-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  max-width: 100%;
+  margin: 3px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--soft);
+  color: var(--ink);
+  text-decoration: none;
+}
+.zv-file:hover { border-color: var(--accent); }
+.zv-file-ico { font-size: 22px; }
+.zv-file-name { font-weight: 700; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.zv-file small { color: var(--muted); white-space: nowrap; }
+.zv-file-img { flex-direction: column; align-items: flex-start; padding: 6px; }
+.zv-file-img img { display: block; max-width: min(320px, 100%); max-height: 260px; border-radius: 8px; background: var(--line); }
+.zv-file-img span { font-size: 12px; color: var(--muted); padding: 0 4px; }
+
+.zv-rx { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
+.zv-rx-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  padding: 1px 8px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--zv-panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.zv-rx-pill span { font-size: 12px; font-weight: 800; color: var(--muted); }
+.zv-rx-pill.is-mine { border-color: var(--accent); background: var(--accent-soft); }
+.zv-rx-pill.is-mine span { color: var(--accent-dark); }
+.zv-rx-add { color: var(--muted); font-size: 13px; opacity: .7; }
+
+.zv-acts {
+  position: absolute;
+  top: -14px;
+  right: 14px;
+  display: none;
+  gap: 1px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--zv-panel);
+  box-shadow: var(--zv-shadow);
+  z-index: 2;
+}
+.zv-msg:hover .zv-acts, .zv-msg.is-touched .zv-acts, .zv-msg:focus-within .zv-acts { display: flex; }
+.zv-acts button { min-width: 30px; height: 30px; border: none; border-radius: 8px; background: none; font-size: 15px; cursor: pointer; color: var(--ink); }
+.zv-acts button:hover { background: var(--zv-hover); }
+.zv-msg:first-of-type .zv-acts, .zv-day + .zv-msg .zv-acts { top: 2px; }
+
+/* Поле вводу */
+.zv-busy { flex: none; margin: 0; padding: 4px 16px; font-size: 12.5px; color: var(--muted); }
+.zv-banner {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-top: 1px solid var(--line);
+  background: var(--soft);
+  font-size: 13px;
+  color: var(--muted);
+}
+.zv-banner span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zv-banner b { color: var(--ink); }
+.zv-compose {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--line);
+}
+.zv-compose textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  max-height: 180px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--soft);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14.5px;
+  line-height: 1.4;
+  resize: none;
+}
+.zv-compose textarea:focus { outline: none; border-color: var(--accent); background: var(--zv-panel); }
+.zv-compose .zv-icon-btn { height: 40px; }
+.zv-attach { cursor: pointer; }
+.zv-send { min-height: 40px; }
+.zv-drop {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border: 3px dashed var(--accent);
+  border-radius: 12px;
+  font-weight: 800;
+  color: var(--accent-dark);
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* ── Хто тут ───────────────────────────────────────────────────── */
+.zv-aside {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--zv-panel);
+  border-left: 1px solid var(--line);
+}
+.zv-aside-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 12px 6px 16px; }
+.zv-aside-head h2 { margin: 0; font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.zv-aside-head .zv-mini { display: none; }
+.zv-people-list { list-style: none; margin: 0; padding: 0 8px; overflow-y: auto; flex: 1; min-height: 0; }
+.zv-person {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+.zv-person:hover:not(:disabled) { background: var(--zv-hover); }
+.zv-person:disabled { cursor: default; }
+.zv-person-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zv-person-name i { font-style: normal; color: var(--muted); }
+.zv-aside-hint { margin: 0; padding: 10px 16px 14px; font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+/* ── Смайлики ──────────────────────────────────────────────────── */
+.zv-emoji {
+  position: fixed;
+  z-index: 12000;
+  width: 330px;
+  max-width: calc(100vw - 16px);
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--zv-panel);
+  box-shadow: var(--zv-shadow);
+}
+.zv-emoji-q {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--soft);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+.zv-emoji-tabs { display: flex; gap: 2px; margin: 6px 0; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.zv-emoji-tabs button { flex: 1; height: 30px; border: none; border-radius: 8px; background: none; font-size: 16px; cursor: pointer; opacity: .55; }
+.zv-emoji-tabs button[aria-selected="true"] { background: var(--zv-active); opacity: 1; }
+.zv-emoji-grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 2px; max-height: 232px; overflow-y: auto; }
+.zv-emoji-grid button { height: 36px; border: none; border-radius: 8px; background: none; font-size: 21px; cursor: pointer; }
+.zv-emoji-grid button:hover, .zv-emoji-grid button:focus-visible { background: var(--zv-hover); }
+.zv-emoji-empty { grid-column: 1 / -1; margin: 12px 4px; font-size: 12.5px; color: var(--muted); text-align: center; }
+
+/* ── Діалоги ───────────────────────────────────────────────────── */
+.zv-dialog {
+  width: min(520px, calc(100vw - 24px));
+  max-height: calc(100dvh - 40px);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--zv-panel);
+  color: var(--ink);
+  box-shadow: var(--zv-shadow);
+}
+.zv-dialog::backdrop { background: rgba(10, 20, 35, .45); }
+.zv-dialog form { display: flex; flex-direction: column; gap: 12px; padding: 20px; }
+.zv-dialog h2 { margin: 0; font-size: 18px; }
+.zv-dlg-lead { margin: -6px 0 0; font-size: 13px; color: var(--muted); line-height: 1.45; }
+.zv-field { display: flex; flex-direction: column; gap: 6px; border: none; margin: 0; padding: 0; min-width: 0; }
+.zv-field > span, .zv-field > legend { font-size: 12px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; color: var(--muted); padding: 0; }
+.zv-field i { text-transform: none; font-weight: 400; letter-spacing: 0; }
+.zv-field input[type=text], .zv-field input:not([type]), .zv-field input[type=search], .zv-field select, .zv-people-q {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--soft);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  width: 100%;
+}
+.zv-vis label { display: flex; gap: 8px; align-items: center; font-size: 14px; padding: 3px 0; }
+.zv-icons { display: flex; flex-wrap: wrap; gap: 4px; }
+.zv-icons label { cursor: pointer; }
+.zv-icons input { position: absolute; opacity: 0; pointer-events: none; }
+.zv-icons span { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 9px; font-size: 19px; border: 1px solid transparent; }
+.zv-icons input:checked + span { border-color: var(--accent); background: var(--accent-soft); }
+.zv-icons input:focus-visible + span { outline: 2px solid var(--accent); }
+.zv-people { display: flex; flex-direction: column; gap: 2px; max-height: 240px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; padding: 6px; }
+.zv-people > label { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+.zv-people > label:hover { background: var(--zv-hover); }
+.zv-people-pick .zv-person input { margin: 0; }
+.zv-dlg-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; }
+
+/* ── Тост ──────────────────────────────────────────────────────── */
+.zv-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 13000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100vw - 24px);
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #1f3347;
+  color: #fff;
+  font-size: 13.5px;
+  box-shadow: var(--zv-shadow);
+}
+.zv-toast.is-bad { background: #8f2a20; }
+:root.dark-theme .zv-toast { background: #e2e8f0; color: #0f172a; }
+:root.dark-theme .zv-toast.is-bad { background: #fecaca; color: #450a0a; }
+
+/* ═════════════ Вузькі екрани: «Хто тут» — висувна панель ═════════════ */
+@media (max-width: 1279px) {
+  .zv-app { grid-template-columns: 280px minmax(0, 1fr); }
+  .zv-aside {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(280px, 86vw);
+    z-index: 20;
+    box-shadow: var(--zv-shadow);
+    transform: translateX(105%);
+    transition: transform .2s ease;
+    visibility: hidden;
+  }
+  .zv-aside.is-open { transform: none; visibility: visible; }
+  .zv-aside-head .zv-mini { display: inline-block; }
+}
+
+/* ═════════════ ≤980px і плаваюче вікно: два екрани ═════════════ */
+@media (max-width: 980px) {
+  .zv-app { grid-template-columns: minmax(0, 1fr); }
+  body:not(.zv-in-chat) .zv-main { display: none; }
+  body.zv-in-chat .zv-side { display: none; }
+  .zv-side { border-right: none; }
+  .zv-back { display: inline-flex; }
+  .zv-head { padding: 6px 8px; gap: 6px; min-height: 52px; }
+  .zv-head-ico { display: none; }
+  .zv-voice-btn span { display: none; }
+  .zv-voice-btn { padding: 6px 10px; margin-right: 0; }
+  #zvPopupBtn { display: none; }
+  .zv-msg { padding-left: 12px; padding-right: 12px; gap: 9px; }
+  .zv-acts { right: 8px; }
+  .zv-send span { display: none; }
+  .zv-send { padding: 7px 12px; }
+  .zv-compose { padding: 8px; }
+  .zv-strip { padding: 8px 10px; }
+  .zv-vctl .zv-vbtn span { display: none; }
+  .zv-vctl { flex-basis: 100%; }
+  .zv-vp-name { white-space: nowrap; }
+  .zv-toast { bottom: calc(76px + env(safe-area-inset-bottom)); }
+  .chat-topbar { padding: 0 10px; }
+  .chat-topbar .brand-subtitle { display: none; }
+}
+body.is-popup .zv-app { grid-template-columns: minmax(0, 1fr); }
+body.is-popup:not(.zv-in-chat) .zv-main { display: none; }
+body.is-popup.zv-in-chat .zv-side { display: none; }
+body.is-popup .zv-back { display: inline-flex; }
+body.is-popup .chat-topbar { display: none; }
+body.is-popup .zv-voice-btn span, body.is-popup .zv-send span { display: none; }
+body.is-popup .zv-aside {
+  position: absolute; top: 0; right: 0; bottom: 0; width: min(280px, 86vw); z-index: 20;
+  box-shadow: var(--zv-shadow); transform: translateX(105%); visibility: hidden; transition: transform .2s ease;
+}
+body.is-popup .zv-aside.is-open { transform: none; visibility: visible; }
+body.is-popup .zv-aside-head .zv-mini { display: inline-block; }
+
+@media (max-width: 600px) {
+  .zv-head-acts .zv-icon-btn { min-width: 32px; padding: 0 3px; font-size: 16px; }
+  #zvMuteBtn { display: none; }
+  .zv-msg.is-big .zv-text { font-size: 30px; }
+  .zv-file-img img { max-width: 100%; }
+  /* Смайлики на телефоні — шторка над клавіатурою, на всю ширину */
+  .zv-emoji {
+    left: 8px !important;
+    right: 8px;
+    top: auto !important;
+    bottom: calc(70px + env(safe-area-inset-bottom));
+    width: auto;
+    max-width: none;
+  }
+  .zv-emoji-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); max-height: 38vh; }
+  .zv-dialog form { padding: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zv-aside, .zv-msg.is-flash { transition: none; animation: none; }
+}

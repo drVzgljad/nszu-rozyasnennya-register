@@ -64,7 +64,7 @@
       {
         name: "Інформація та комунікації", icon: "💬", tone: "g",
         children: [
-          { name: "Робочий чат", icon: "💬", path: "chat/index.html", role: "expert" },
+          { name: "Чат департаменту", icon: "💬", path: "zviazok/index.html", role: "expert" },
           { name: "Новини та аналітика", icon: "📰", path: "news/index.html", role: "expert" },
           { name: "Інфоцентр", icon: "📡", path: "infocenter/index.html", role: "expert" },
         ],
