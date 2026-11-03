@@ -8,6 +8,7 @@ const sb = window.__pmgSb || (window.__pmgSb = createClient(SUPABASE_URL, SUPABA
 let currentUser = null;
 let userProfile = null;
 let allTasks = [];
+let myCases = [];       // мої незакриті справи (Справи відділу) — для плиток угорі
 let todayLogs = [];
 let departmentProfiles = [];
 let activeTaskForLog = null;
@@ -232,6 +233,16 @@ async function loadDatabaseData() {
   }
   allTasks = tasks || [];
 
+  // 1a. Мої справи — плитки «Активні / Гарячі / Прострочені» рахують їх, а не
+  // архівні доручення СКО-Д (з 03.11.2026, як головна сторінка)
+  const { data: cases, error: casesErr } = await sb
+    .from('dept_cases')
+    .select('stage, deadline')
+    .eq('executor_id', currentUser.id)
+    .neq('stage', 'done');
+  if (casesErr) console.error("Error loading cases:", casesErr);
+  myCases = cases || [];
+
   // 2. Fetch today's skod logs
   const { data: logs, error: logsErr } = await sb
     .from('skod_logs')
@@ -271,10 +282,10 @@ function renderMetrics() {
   const overdueCountEl = document.getElementById('metric-overdue-count');
   const scoreValEl = document.getElementById('metric-score-value');
 
-  // Filter tasks to find active (excluding planning/completed/rejected)
-  const activeTasks = allTasks.filter(t => t.status !== 'completed' && t.status !== 'rejected');
-  
-  // Calculate hot and overdue
+  // Мої незакриті справи. «Гарячі» й «Прострочені» — за тими самими правилами,
+  // що фільтри в spravy/spravy.js (строк ≤ 3 дн.; «СЗ надано» не горить у нас):
+  // клік по плитці відкриває саме цей фільтр, і числа мають збігатися.
+  const activeTasks = myCases;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -282,18 +293,11 @@ function renderMetrics() {
   let overdueCount = 0;
 
   activeTasks.forEach(t => {
-    if (!t.deadline) return;
-    const dl = new Date(t.deadline);
-    dl.setHours(0, 0, 0, 0);
-
-    const diffTime = dl - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays < 0) {
-      overdueCount++;
-    } else if (diffDays <= 2) {
-      hotCount++;
-    }
+    if (!t.deadline || t.stage === 'sz_sent') return;
+    const dl = new Date(t.deadline.slice(0, 10) + 'T00:00:00');
+    const diffDays = Math.round((dl - today) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) overdueCount++;
+    else if (diffDays <= 3) hotCount++;
   });
 
   // Calculate today's logged hours
@@ -304,20 +308,6 @@ function renderMetrics() {
   if (hotCountEl) hotCountEl.textContent = hotCount;
   if (overdueCountEl) overdueCountEl.textContent = overdueCount;
   if (scoreValEl) scoreValEl.textContent = `${totalHours} год`;
-
-  // Бейдж-лічильник і сигнальна рамка панелі доручень
-  const countChip = document.getElementById('tasks-count-chip');
-  if (countChip) {
-    countChip.textContent = activeTasks.length;
-    countChip.style.display = activeTasks.length > 0 ? 'inline-flex' : 'none';
-    countChip.classList.toggle('chip-danger', overdueCount > 0);
-    countChip.classList.toggle('chip-hot', overdueCount === 0 && hotCount > 0);
-  }
-  const tasksPanel = document.getElementById('tasks-panel');
-  if (tasksPanel) {
-    tasksPanel.classList.toggle('has-overdue', overdueCount > 0);
-    tasksPanel.classList.toggle('has-hot', overdueCount === 0 && hotCount > 0);
-  }
 }
 
 function renderTasksList(filter = 'active') {
@@ -1482,32 +1472,26 @@ function setupUIEvents() {
     });
   });
 
-  // 1a. Metric cards open the corresponding task list
-  const metricFilters = {
-    'metric-card-active': 'active',
-    'metric-card-hot': 'hot',
-    'metric-card-overdue': 'overdue'
+  // 1a. Плитки справ відкривають «Справи відділу» з тим самим фільтром (лише мої)
+  const metricLinks = {
+    'metric-card-active': '../spravy/index.html?mine=1',
+    'metric-card-hot': '../spravy/index.html?mine=1&f=hot',
+    'metric-card-overdue': '../spravy/index.html?mine=1&f=overdue'
   };
-  Object.entries(metricFilters).forEach(([cardId, filter]) => {
+  Object.entries(metricLinks).forEach(([cardId, href]) => {
     const card = document.getElementById(cardId);
     if (!card) return;
-    card.addEventListener('click', () => {
-      applyFilter(filter);
-      document.querySelector('.tasks-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+    card.setAttribute('role', 'link');
+    card.tabIndex = 0;
+    const go = () => { location.href = href; };
+    card.addEventListener('click', go);
+    card.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
   });
   const todayCard = document.getElementById('metric-card-today');
   if (todayCard) {
     todayCard.addEventListener('click', () => {
       document.querySelector('.today-feed-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
-  }
-
-  // 1b. Deep link from the home page: cabinet/index.html?filter=hot
-  const urlFilter = new URLSearchParams(window.location.search).get('filter');
-  if (urlFilter && document.querySelector(`.filter-tab[data-filter="${urlFilter}"]`)) {
-    applyFilter(urlFilter);
-    document.querySelector('.tasks-panel')?.scrollIntoView({ block: 'start' });
   }
 
   // 2. Branch selector changes
