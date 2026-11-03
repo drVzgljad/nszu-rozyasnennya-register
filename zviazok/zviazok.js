@@ -24,10 +24,8 @@
  * ?c=main | room:<uuid> | dm:<uuid> — відкрити розмову. ?mode=popup — плаваюче вікно.
  */
 
-import { createVoice, voiceTopic, MANY } from './voice.js?v=20261103c';
+import { createVoice, voiceTopic, MANY } from './voice.js?v=20261103d';
 import { QUICK, buildPicker, emojiOnly } from './emoji.js?v=20261103a';
-import { pushState, enablePush, disablePush, sendPushInvite } from './push.js?v=20261103b';
-import { openInvite, GATHER, GATHER_TEXT } from './invite.js?v=20261103c';
 
 const QS = new URLSearchParams(location.search);
 const DEMO = QS.get('demo') === '1';
@@ -90,7 +88,6 @@ const S = {
   dbStatus: 'connecting',
   signed: new Map(),
   pickerFor: null,        // 'input' або id повідомлення (реакція)
-  push: 'off',            // Web Push на цьому пристрої: on · off · denied · unsupported · ios-install
   firstBoot: false
 };
 
@@ -436,16 +433,13 @@ function voiceMembers(c) {
 
 /* ───────────────────────── голос ───────────────────────── */
 
-/** quiet — не кликати співрозмовника в діалозі (кличе той, хто викликав: inviteDialog). */
+/** quiet — не кликати співрозмовника в діалозі (уже покликаний). */
 async function joinVoice(c = S.chan, quiet) {
   const info = chanInfo(c);
   S.vsChan = c;
   await S.voice.join(topicOf(c), info.title);
-  // Діалог 1:1 у «лобі» не світимо, тож співрозмовника кличемо напряму — у чаті й на телефон
-  if (c.kind === 'dm' && !DEMO && !quiet) {
-    api.ping([c.uid], c, S.name).catch(() => {});
-    sendPushInvite(S.sb, { uids: [c.uid], kind: 'invite', room: '', key: keyOf(c) });
-  }
+  // Діалог 1:1 у «лобі» не світимо, тож співрозмовника кличемо напряму (chat_pings)
+  if (c.kind === 'dm' && !DEMO && !quiet) api.ping([c.uid], c, S.name).catch(() => {});
 }
 
 function onVoice(vs) {
@@ -460,15 +454,6 @@ function onPing(p) {
   if (!p || p.seen) return;
   const [kind, key] = String(p.note || '').split('|');
   if (kind !== 'voice') return;
-  // Кличуть у кімнату відділу «Справ» — туди й ведемо (spravy/voice.js, ?room=dept|all)
-  if (key?.startsWith('spravy:')) {
-    const to = `../spravy/index.html?room=${key === 'spravy:all' ? 'all' : 'dept'}&voice=1`;
-    sound();
-    notify(`${p.sender_name} кличе в голос «${p.room_name || 'Справи'}»`, 'Натисніть, щоб приєднатися', () => { location.href = to; });
-    toast(`📣 ${p.sender_name} кличе в голос «${p.room_name || 'Справи'}»`, false, { label: 'Приєднатися', run: () => { location.href = to; } });
-    if (!DEMO) api.seen(p.id).catch(() => {});
-    return;
-  }
   const c = parseKey(key === 'dm:' + p.recipient_id ? 'dm:' + p.sender_id : key);
   const where = c.kind === 'dm' ? 'на розмову' : `у голос «${p.room_name || chanInfo(c).title}»`;
   sound();
@@ -820,58 +805,6 @@ function filterPeople(form) {
   });
 }
 
-/* ───────────────────────── «Запросити» і «Загальний збір» ───────────────────────── */
-
-/** Посилання на розмову з пропозицією зайти в голос — для «поділитися». */
-function inviteUrl(c) {
-  const key = c.kind === 'dm' ? 'dm:' + S.me.id : keyOf(c);
-  return `${location.origin}/zviazok/index.html?c=${encodeURIComponent(key)}&voice=1`;
-}
-
-/** Діалог спільний із «Справами» (invite.js); тут — лише що це за розмова. */
-function inviteDialog(c = S.chan) {
-  const r = c.kind === 'room' ? roomOf(c.id) : null;
-  // Збір: закрита кімната — її учасники; кімната відділу — відділ; решта — увесь департамент
-  const scope = r && !r.is_public ? { kind: 'members', uids: r.member_ids || [] } : r?.dept ? { kind: 'dept', dept: r.dept } : { kind: 'all' };
-  const inVoiceHere = () => S.vs?.topic === topicOf(c) && S.vs.status !== 'idle';
-  openInvite({
-    sb: S.sb, me: S.me, name: S.name, demo: DEMO,
-    title: chanInfo(c).title,
-    scope,
-    here: new Set(voiceMembers(c).map((m) => m.uid)),
-    people: S.people,
-    online: new Set(S.online.keys()),
-    url: inviteUrl(c),
-    pushKey: keyOf(c),
-    pingKey: keyOf(c),
-    roomId: c.kind === 'room' ? c.id : null,
-    onJoin: () => (inVoiceHere() ? null : joinVoice(c, true)),
-    onGather: () => { if (keyOf(S.chan) !== keyOf(c)) openChan(c); return post(GATHER_TEXT); },
-    toast
-  });
-}
-
-/* ───────────────────────── сповіщення поза порталом (Web Push) ───────────────────────── */
-
-const LS_PUSH_HINT = 'zv-push-hint-off';
-
-async function refreshPush() {
-  S.push = DEMO ? 'off' : await pushState().catch(() => 'unsupported');
-  renderMe();
-  renderSide();
-}
-
-async function togglePush() {
-  try {
-    if (S.push === 'on') { await disablePush(S.sb); toast('Сповіщення поза порталом на цьому пристрої вимкнено.'); }
-    else if (DEMO) toast('Демо: push не вмикається.');
-    else { await enablePush(S.sb, S.me); toast('Готово: запрошення в голос приходитимуть і тоді, коли чат закрито.'); }
-  } catch (e) {
-    toast('Не ввімкнено: ' + (e.message || e), true);
-  }
-  refreshPush();
-}
-
 /* ───────────────────────── вигляд: список розмов ───────────────────────── */
 
 function sideItem(c, { icon, title, sub, lock }) {
@@ -900,14 +833,6 @@ function renderSide() {
   const hit = (t) => !q || t.toLowerCase().includes(q);
   const myDept = (S.dept || '').toLowerCase();
   let html = '';
-  if (S.push === 'off' && !lsGet(LS_PUSH_HINT, false) && !q) {
-    html += `<div class="zv-hint"><p><b>📲 Сповіщення на телефон</b> — щоб вас могли покликати в голос, навіть коли чат закрито.</p>
-      <div><button type="button" class="zv-btn zv-primary" data-act="push">Увімкнути</button><button type="button" class="zv-mini" data-act="push-hint-off">Не зараз</button></div></div>`;
-  } else if (S.push === 'ios-install' && !lsGet(LS_PUSH_HINT, false) && !q) {
-    html += `<div class="zv-hint"><p><b>📲 Сповіщення на iPhone</b> працюють лише в застосунку: Safari → «Поділитися» → «На екран „Додому“», потім відкрийте чат звідти.</p>
-      <div><button type="button" class="zv-mini" data-act="push-hint-off">Зрозуміло</button></div></div>`;
-  }
-
   // Головна стрічка — перша, як «Загальний» у старому чаті
   if (hit('Робочий чат департаменту загальний')) {
     html += `<ul class="zv-group">${sideItem({ kind: 'main' }, { icon: '💬', title: 'Робочий чат департаменту' })}</ul>`;
@@ -974,7 +899,6 @@ function renderHead() {
   mb.title = S.muted.has(key) ? 'Сповіщення з цієї розмови вимкнено — увімкнути' : 'Вимкнути сповіщення з цієї розмови';
   mb.setAttribute('aria-pressed', String(S.muted.has(key)));
   $('zvPopupBtn').hidden = POPUP;
-  $('zvInviteBtn').hidden = c.kind === 'dm';
   const ta = $('zvInput');
   // На телефоні довгий підпис переноситься й вилазить за однорядкове поле
   ta.placeholder = matchMedia('(max-width: 600px)').matches ? 'Повідомлення…' : c.kind === 'dm' ? `Повідомлення для ${shortName(info.title)}…` : c.kind === 'room' ? `Повідомлення в «${info.title}»…` : 'Повідомлення всьому департаменту…';
@@ -1009,7 +933,7 @@ function renderVoice() {
       ${vs.status === 'error' ? `<p class="zv-vnote is-bad">${esc(vs.error)}</p>` : ''}
       ${vs.status === 'live' && people.length < 2 ? `<p class="zv-vnote">Поки що ви тут самі. ${c.kind === 'dm' ? 'Колезі надіслано запрошення.' : ''}</p>` : ''}
       ${vs.needGesture ? '<button type="button" class="zv-btn" data-act="sound">🔊 Натисніть, щоб чути колег</button>' : ''}
-      <div class="zv-vctl">${voiceBtns(false)}${c.kind !== 'dm' ? '<button type="button" class="zv-btn zv-vbtn" data-act="invite" title="Покликати колег у голос або оголосити загальний збір">📣<span>Запросити</span></button>' : ''}</div>`;
+      <div class="zv-vctl">${voiceBtns(false)}</div>`;
   } else if (vm.length) {
     strip.hidden = false;
     strip.innerHTML = `
@@ -1144,9 +1068,6 @@ function msgHtml(m, cont) {
 }
 
 function body(text) {
-  if ((text || '').startsWith(GATHER)) {
-    return `<div class="zv-gather-card"><span>${esc(text)}</span><button type="button" class="zv-btn zv-primary" data-act="join-voice">🎙 Приєднатися</button></div>`;
-  }
   const f = (text || '').match(FILE_RE);
   if (f) {
     const desc = f[1];
@@ -1223,18 +1144,6 @@ function renderMe() {
   nb.textContent = notifOn() ? (denied ? '🔔 Лише звук' : '🔔 Сповіщення') : '🔕 Без сповіщень';
   nb.setAttribute('aria-pressed', String(notifOn()));
   nb.title = notifOn() ? 'Звук і сповіщення про нові повідомлення увімкнено — вимкнути' : 'Увімкнути звук і сповіщення';
-  const pb = $('zvPushBtn');
-  const P = {
-    on: ['📲 Push увімк.', 'Запрошення в голос приходять на цей пристрій, навіть коли чат закрито. Натисніть, щоб вимкнути.'],
-    off: ['📲 Push вимк.', 'Увімкнути сповіщення на цей пристрій: вас зможуть покликати в голос, навіть коли чат закрито'],
-    denied: ['📲 Заблоковано', 'Сповіщення для сайту заблоковані в налаштуваннях браузера — дозвольте їх біля адресного рядка'],
-    unsupported: ['', ''],
-    'ios-install': ['📲 Лише в застосунку', 'На iPhone push працює лише в застосунку на головному екрані: Safari → Поділитися → «На екран Додому»']
-  }[S.push] || ['', ''];
-  pb.hidden = !P[0];
-  pb.textContent = P[0];
-  pb.title = P[1];
-  pb.setAttribute('aria-pressed', String(S.push === 'on'));
 }
 
 function renderAll(stick) {
@@ -1373,8 +1282,6 @@ function wire() {
     }
     const a = e.target.closest('[data-act]')?.dataset.act;
     if (a === 'new-dm') peopleDialog();
-    if (a === 'push') togglePush();
-    if (a === 'push-hint-off') { lsSet(LS_PUSH_HINT, true); renderSide(); }
     if (a === 'new-room') roomDialog(null);
     if (a === 'notif') toggleNotif();
     voiceAct(a);
@@ -1400,7 +1307,6 @@ function wire() {
       renderTitle();
     }
     if (a === 'popup') openPopup();
-    if (a === 'invite') inviteDialog();
   });
 
   $('zvStrip').addEventListener('click', (e) => voiceAct(e.target.closest('[data-act]')?.dataset.act));
@@ -1440,7 +1346,6 @@ function wire() {
     if (act === 'edit') return setEditing(id);
     if (act === 'pin') return togglePin(id);
     if (act === 'del') return removeMsg(id);
-    if (act === 'join-voice') return joinVoice();
     // На дотиковому екрані наведення немає: дотик показує панель дій
     if (!e.target.closest('a, button')) {
       $('zvLog').querySelectorAll('.zv-msg.is-touched').forEach((x) => x !== art && x.classList.remove('is-touched'));
@@ -1465,20 +1370,7 @@ function wire() {
     if (!document.hidden && nearBottom()) markRead(keyOf(S.chan));
   });
   window.addEventListener('pmg:presence', (e) => readPresence(e.detail));
-  // Клік по push-сповіщенню при вже відкритому чаті: sw.js перемикає цю вкладку
-  navigator.serviceWorker?.addEventListener('message', (e) => {
-    if (e.data?.type !== 'zv-open' || !S.me) return;
-    const u = new URL(e.data.url, location.origin);
-    offerVoice(parseKey(u.searchParams.get('c')));
-  });
   // Підпис колонки ще не має сенсу без входу — нижче він з'явиться
-}
-
-/** Прийшли за запрошенням: відкрити розмову й запропонувати голос (мікрофон і звук — лише після кліку). */
-function offerVoice(c) {
-  openChan(c);
-  if (S.vs?.topic === topicOf(c) && S.vs.status !== 'idle') return;
-  toast(`🎙 Вас кличуть у голос: «${chanInfo(c).title}»`, false, { label: 'Приєднатися', run: () => joinVoice(c, true) });
 }
 
 function voiceAct(a) {
@@ -1488,7 +1380,6 @@ function voiceAct(a) {
   if (a === 'mic') S.voice.toggleMic();
   if (a === 'deaf') S.voice.toggleDeaf();
   if (a === 'sound') S.voice.unlock();
-  if (a === 'invite') inviteDialog();
   if (a === 'goto-voice' && S.vs?.chan) openChan(S.vs.chan);
 }
 
@@ -1546,9 +1437,7 @@ async function boot() {
   renderMe();
   openChan(firstChan(), true);
   if (!matchMedia('(min-width: 981px)').matches && !QS.get('c')) document.body.classList.remove('zv-in-chat');
-  if (QS.get('voice') === '1') offerVoice(firstChan());
-  refreshPush();
-  // Непрочитані запрошення в голос, що прийшли, поки сторінка була закрита (за останні 10 хв)
+  // Дзвінки в особистому діалозі, що прийшли, поки сторінка була закрита (за останні 10 хв)
   const { data: pings } = await S.sb.from('chat_pings').select('*').eq('recipient_id', S.me.id).eq('seen', false)
     .gt('created_at', new Date(Date.now() - 10 * 60000).toISOString()).order('created_at', { ascending: false }).limit(1);
   (pings || []).forEach(onPing);
@@ -1645,7 +1534,6 @@ function bootDemo() {
   renderMe();
   openChan(firstChan(), true);
   if (!matchMedia('(min-width: 981px)').matches && !QS.get('c')) document.body.classList.remove('zv-in-chat');
-  if (QS.get('voice') === '1') offerVoice(firstChan());
 }
 
 boot();

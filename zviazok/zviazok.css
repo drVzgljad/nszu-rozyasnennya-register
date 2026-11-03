@@ -557,33 +557,6 @@ body.zv-demo #access-denied-overlay { display: none !important; }
   pointer-events: none;
 }
 
-/* ── «Запросити», «Загальний збір», підказка про push ─────────── */
-.zv-foot-btns { display: inline-flex; gap: 2px; flex-wrap: wrap; justify-content: flex-end; }
-.zv-hint {
-  margin: 4px 4px 8px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  background: var(--accent-soft);
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
-  font-size: 12.5px;
-  line-height: 1.45;
-  color: var(--ink);
-}
-.zv-hint p { margin: 0 0 8px; }
-.zv-hint div { display: flex; gap: 6px; align-items: center; }
-.zv-gather-card {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px 14px;
-  margin: 3px 0;
-  padding: 10px 14px;
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--zv-live) 40%, var(--line));
-  background: color-mix(in srgb, var(--zv-live) 10%, var(--zv-panel));
-  font-weight: 700;
-}
-
 /* ── Хто тут ───────────────────────────────────────────────────── */
 .zv-aside {
   display: flex;

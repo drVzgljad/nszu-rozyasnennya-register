@@ -7,10 +7,6 @@
  * самий, що в chat/chat.js: `📎 [Файл: назва (розмір)](URL сховища)` у приватному
  * бакеті chat-attachments, до 10 МБ. Змінюєте формат там — змініть і тут.
  *
- * «📣 Запросити в голос» і картка «Загальний збір» тут лише кидають подію на document
- * ('spravy:invite' / 'spravy:join-voice') — діалог і голос живуть у voice.js, щоб
- * два модулі не тримали дві копії стану кімнати.
- *
  * Права — RLS чату: читати й писати може будь-який співробітник (не гість), видаляти —
  * лише своє. Кімнати відділів у чаті публічні для всього департаменту — це рішення
  * чату, а не цього модуля.
@@ -191,7 +187,6 @@ function skeleton() {
     </button>
     <div class="spc-body" hidden>
       <div class="spc-list" role="log" aria-live="polite" aria-label="Повідомлення відділу"></div>
-      <div class="spc-tools"><button type="button" class="spv-btn spv-ghost" data-act="invite" title="Покликати колег у голос або оголосити загальний збір">📣 Запросити в голос</button></div>
       <p class="spc-busy" hidden></p>
       <form class="spc-form">
         <label class="spc-attach" title="Надіслати файл (до 10 МБ). Можна й перетягнути у чат або вставити Ctrl+V">
@@ -240,11 +235,7 @@ function wire() {
     sendFiles([...e.dataTransfer.files]);
   });
 
-  q('.spc-tools').addEventListener('click', (e) => {
-    if (e.target.closest('[data-act=invite]')) document.dispatchEvent(new CustomEvent('spravy:invite'));
-  });
   q('.spc-list').addEventListener('click', async (e) => {
-    if (e.target.closest('[data-act=join-voice]')) return document.dispatchEvent(new CustomEvent('spravy:join-voice'));
     const del = e.target.closest('[data-del]');
     if (del) return removeMsg(del.dataset.del);
     const a = e.target.closest('a[data-file]');
@@ -331,10 +322,6 @@ function renderList(stick) {
 }
 
 function body(text) {
-  // «Загальний збір» (оголошує діалог ../zviazok/invite.js) — помітна картка з кнопкою
-  if ((text || '').startsWith('📢 Загальний збір')) {
-    return `<span class="spc-gather"><b>${esc(text)}</b><button type="button" class="spv-btn spv-join" data-act="join-voice">🎙 Приєднатися</button></span>`;
-  }
   const f = (text || '').match(FILE_RE);
   if (f) {
     const desc = f[1];

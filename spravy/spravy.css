@@ -978,18 +978,6 @@
   max-height: 140px;
 }
 .spc-foot { padding: 0 12px 8px; font-size: 12px; color: var(--muted); }
-/* «📣 Запросити в голос» і картка «Загальний збір» (room-chat.js → voice.js) */
-.spc-tools { display: flex; justify-content: flex-end; padding: 4px 12px 0; }
-.spc-gather {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px 12px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
-  background: var(--accent-soft);
-}
 .spc-foot a { color: var(--accent); }
 .spc-drop {
   position: absolute;

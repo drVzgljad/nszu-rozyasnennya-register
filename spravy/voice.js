@@ -16,12 +16,9 @@
  * - «Вийти» = режим рушія «лише дивлюся» (бачиш, хто в кімнаті; тебе не видно й не чути).
  * - 🎧 «Вимкнути звук» глушить і мікрофон, «Увімкнути звук» повертає мікрофон у
  *   попередній стан — це вміє рушій.
- * - «📣 Запросити» і «Загальний збір» — спільний діалог ../zviazok/invite.js (той самий,
- *   що в «Чаті департаменту»): запрошення в чат і Web Push на телефон. Посилання з
- *   запрошення — ?room=dept|all&voice=1: відкриває цю кімнату й заходить у неї.
  */
 
-import { createVoice } from '../zviazok/voice.js?v=20261103c';
+import { createVoice } from '../zviazok/voice.js?v=20261103d';
 
 const MANY = 10;               // з такої кількості попереджаємо: пряма схема важчає
 const LS_OFF = 'spravy-voice-off';
@@ -54,12 +51,7 @@ export function initVoice(opts) {
   Object.assign(v, opts);
   v.root.hidden = false;
   v.root.addEventListener('click', onClick);
-  // Кнопки з текстового каналу під кімнатою (room-chat.js)
-  document.addEventListener('spravy:invite', () => openInviteDialog());
-  document.addEventListener('spravy:join-voice', () => joinRoom());
   if (v.demo) return demo();
-  // Прийшли за запрошенням (?voice=1) — заходимо, навіть якщо раніше натискали «Вийти»
-  if (new URLSearchParams(location.search).get('voice') === '1') lsSet(LS_OFF, null);
   v.eng = createVoice({ sb: v.sb, me: v.me, name: v.name, toast: v.toast, onChange: (s) => { v.vs = s; render(); } });
   openRoom();
 }
@@ -89,7 +81,7 @@ async function openRoom() {
   await v.eng.join(topic, roomTitle(), { listen: lsGet(LS_OFF) === '1' });
 }
 
-/** Зайти в кімнату (кнопка «Увійти» або «Приєднатися» на картці збору в чаті). */
+/** Зайти в кімнату (кнопка «Увійти»). */
 async function joinRoom() {
   if (v.demo) return v.vs.inRoom ? null : demoAct('join');
   lsSet(LS_OFF, null);
@@ -109,36 +101,6 @@ async function onClick(e) {
   else if (act === 'deaf') await v.eng.toggleDeaf();
   else if (act === 'leave') { lsSet(LS_OFF, '1'); await v.eng.exit(); }
   else if (act === 'join') await joinRoom();
-  else if (act === 'invite') openInviteDialog();
-}
-
-/** «📣 Запросити» / «Загальний збір» — діалог спільний із «Чатом департаменту». */
-async function openInviteDialog() {
-  const { openInvite, GATHER_TEXT } = await import('../zviazok/invite.js?v=20261103c');
-  const all = v.dept === ALL;
-  const where = all ? 'all' : 'dept';
-  openInvite({
-    sb: v.sb, me: v.me || { id: 'me' }, name: v.name, demo: v.demo,
-    title: all ? 'Кімната департаменту' : v.dept ? `Кімната відділу (${v.dept})` : 'Кімната відділу',
-    scope: all ? { kind: 'all' } : { kind: 'dept', dept: v.dept },
-    here: new Set((v.vs?.members || []).map((m) => m.uid)),
-    url: `${location.origin}/spravy/index.html?room=${where}&voice=1`,
-    pushKey: 'spravy:' + where,
-    pingKey: 'spravy:' + where,
-    onJoin: () => joinRoom(),
-    // Оголошення збору — у текстовий канал під кімнатою (room-chat.js покаже його сам)
-    onGather: async () => {
-      if (v.demo) return;
-      let roomId = null;
-      if (!all) {
-        const { data } = await v.sb.from('chat_rooms').select('id').eq('dept', v.dept).limit(1).maybeSingle();
-        if (!data) return;
-        roomId = data.id;
-      }
-      await v.sb.from('chat_messages').insert({ user_id: v.me.id, user_name: v.name, message_text: GATHER_TEXT, room_id: roomId });
-    },
-    toast: v.toast
-  });
 }
 
 const STATE_HINT = { ok: 'на зв\'язку', wait: 'з\'єднуємо…', bad: 'немає прямого з\'єднання — потрібен ретранслятор', off: '' };
@@ -176,8 +138,7 @@ function render() {
          title="${s.muted ? 'Увімкнути мікрофон — вас почують' : 'Вимкнути мікрофон'}">${s.muted ? '🎙 Говорити' : '🎙 Мікрофон увімк.'}</button>
        <button type="button" class="spv-btn spv-icon${s.deaf ? ' is-off' : ''}" data-act="deaf" aria-pressed="${s.deaf}"
          title="${s.deaf ? 'Увімкнути звук' : 'Вимкнути звук (і мікрофон)'}">${s.deaf ? '🔕' : '🎧'}</button>
-       <button type="button" class="spv-btn spv-ghost" data-act="leave" title="Вийти з кімнати; запамʼятаємо до наступного «Увійти»">Вийти</button>
-       <button type="button" class="spv-btn spv-ghost" data-act="invite" title="Покликати колег у голос або оголосити загальний збір">📣 Запросити</button>`
+       <button type="button" class="spv-btn spv-ghost" data-act="leave" title="Вийти з кімнати; запамʼятаємо до наступного «Увійти»">Вийти</button>`
     : s.status === 'live'
       ? '<button type="button" class="spv-btn spv-join" data-act="join">Увійти в кімнату</button>'
       : '';
@@ -231,6 +192,5 @@ function demoAct(act) {
   if (me) Object.assign(me, { muted: s.muted, deaf: s.deaf });
   if (act === 'leave') { s.inRoom = false; s.members = s.members.filter((m) => !m.me); }
   if (act === 'join') { s.inRoom = true; s.members.unshift({ key: 'me', name: v.name || 'Демо-користувач', muted: s.muted, deaf: s.deaf, me: true, state: 'ok' }); }
-  if (act === 'invite') openInviteDialog();
   render();
 }
