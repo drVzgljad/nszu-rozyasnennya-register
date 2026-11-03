@@ -591,13 +591,24 @@ function populateCaseDropdown() {
     return `<option value="${escapeHtml(c.id)}">${escapeHtml(c.in_no ? 'Вх. № ' + c.in_no + ' — ' : '')}${escapeHtml(subj)}${dl}</option>`;
   }).join('');
   if (keep && list.some((c) => c.id === keep)) select.value = keep;
-  else if (q && list.length === 1) { select.value = list[0].id; handleCaseChange(); }   // одна знайдена — обираємо одразу
+  else if (q && list.length === 1) select.value = list[0].id;   // одна знайдена — обираємо одразу
+  if (select.value !== keep) handleCaseChange();
 }
 
 function handleCaseChange() {
   const c = myCases.find((x) => x.id === document.getElementById('link_case')?.value);
   const hint = document.getElementById('case-desc-hint');
-  if (!c) { if (hint) hint.hidden = true; return; }
+  if (!c) {
+    // Справу не обрано (пошук її відсіяв) — прибираємо підставлене від попередньої
+    if (hint) hint.hidden = true;
+    if (document.getElementById('task_branch')?.value === 'case') {
+      document.getElementById('askod_reg_number').value = '';
+      document.getElementById('askod_reply_number').value = '';
+      const d = document.getElementById('description');
+      if (d && d.value === handleCaseChange.lastAuto) d.value = '';
+    }
+    return;
+  }
   if (hint) {
     hint.textContent = `${c.correspondent ? c.correspondent + ' · ' : ''}${c.subject || ''}`;
     hint.hidden = false;
