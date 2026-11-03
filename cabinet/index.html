@@ -11,10 +11,10 @@
   <title>Особистий кабінет експерта — НавігаторПМГ26</title>
   <link rel="stylesheet" href="../portal.css?v=20260808c">
   <link rel="stylesheet" href="../auth-v2.css?v=20261103b">
-  <link rel="stylesheet" href="cabinet.css?v=20261103b">
+  <link rel="stylesheet" href="cabinet.css?v=20261103c">
   <link rel="stylesheet" href="workspace.css?v=20260722f">
   <script type="module" src="../auth-v2.js?v=20261103l"></script>
-  <script type="module" src="cabinet.js?v=20261103b"></script>
+  <script type="module" src="cabinet.js?v=20261103c"></script>
   <script type="module" src="workspace.js?v=20260903a"></script>
 </head>
 <body data-required-role="expert">
@@ -180,6 +180,9 @@
                  з вх. № справи, а в історію справи — «Зараховано в СКО-Д» (як кнопка 🕒 у «Справах») -->
             <div class="form-group" id="form-case-group">
               <label for="link_case">Оберіть справу *</label>
+              <input type="search" id="case_search" class="case-search" autocomplete="off"
+                     placeholder="🔍 Пошук за номером: 18712, Ж-10082, ПІ-442… або словом із суті"
+                     aria-label="Пошук справи за номером або змістом">
               <select id="link_case">
                 <option value="" selected disabled>-- Завантаження справ... --</option>
               </select>

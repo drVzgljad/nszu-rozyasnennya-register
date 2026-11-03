@@ -557,6 +557,17 @@ function guessCaseCategory(c) {
 
 const fmtShortDate = (iso) => (iso ? iso.slice(8, 10) + '.' + iso.slice(5, 7) : '');
 
+// Пошук справи: номер порівнюємо без дефісів і пробілів («18712», «1871201», «ж10082»),
+// а слово — у суті й кореспонденті
+const normNo = (s) => String(s || '').toLowerCase().replace(/[\s\-–/.]/g, '');
+function caseMatches(c, q) {
+  if (!q) return true;
+  const nq = normNo(q);
+  if (nq && normNo(c.in_no).includes(nq)) return true;
+  const t = q.toLowerCase();
+  return (c.subject || '').toLowerCase().includes(t) || (c.correspondent || '').toLowerCase().includes(t);
+}
+
 function populateCaseDropdown() {
   const select = document.getElementById('link_case');
   if (!select) return;
@@ -565,13 +576,22 @@ function populateCaseDropdown() {
     select.innerHTML = '<option value="" disabled selected>У вас немає відкритих справ</option>';
     return;
   }
+  const q = (document.getElementById('case_search')?.value || '').trim();
+  const list = myCases.filter((c) => caseMatches(c, q));
+  if (!list.length) {
+    select.innerHTML = `<option value="" disabled selected>Справи «${escapeHtml(q)}» серед ваших відкритих немає</option>`;
+    handleCaseChange();
+    return;
+  }
   // Найгарячіші — вгорі (запит уже відсортовано за строком)
-  select.innerHTML = '<option value="" disabled selected>-- Оберіть справу --</option>' + myCases.map((c) => {
+  const head = q ? `-- Знайдено: ${list.length} --` : '-- Оберіть справу --';
+  select.innerHTML = `<option value="" disabled selected>${head}</option>` + list.map((c) => {
     const subj = (c.subject || '').length > 70 ? c.subject.slice(0, 70) + '…' : (c.subject || '');
     const dl = c.deadline ? ` (до ${fmtShortDate(c.deadline)})` : '';
     return `<option value="${escapeHtml(c.id)}">${escapeHtml(c.in_no ? 'Вх. № ' + c.in_no + ' — ' : '')}${escapeHtml(subj)}${dl}</option>`;
   }).join('');
-  if (keep && myCases.some((c) => c.id === keep)) select.value = keep;
+  if (keep && list.some((c) => c.id === keep)) select.value = keep;
+  else if (q && list.length === 1) { select.value = list[0].id; handleCaseChange(); }   // одна знайдена — обираємо одразу
 }
 
 function handleCaseChange() {
@@ -590,8 +610,14 @@ function handleCaseChange() {
   // Вх. № і вих. № — у ті самі поля, що в гілці «Робота в АСКОД»
   document.getElementById('askod_reg_number').value = c.in_no || '';
   document.getElementById('askod_reply_number').value = c.out_no || '';
+  // Опис підставляємо, якщо він порожній або це наш попередній автотекст (обрали іншу справу);
+  // написане людиною не чіпаємо
   const desc = document.getElementById('description');
-  if (desc && !desc.value.trim()) desc.value = `${c.in_no ? 'Вх. № ' + c.in_no + ': ' : ''}${c.subject || ''}${c.out_no ? ' — лист вих. № ' + c.out_no : ''}`;
+  const auto = `${c.in_no ? 'Вх. № ' + c.in_no + ': ' : ''}${c.subject || ''}${c.out_no ? ' — лист вих. № ' + c.out_no : ''}`;
+  if (desc && (!desc.value.trim() || desc.value === handleCaseChange.lastAuto)) {
+    desc.value = auto;
+    handleCaseChange.lastAuto = auto;
+  }
   updateLiveScore();
 }
 
@@ -1599,6 +1625,12 @@ function setupUIEvents() {
   const caseSel = document.getElementById('link_case');
   if (caseSel) {
     caseSel.addEventListener('change', handleCaseChange);
+  }
+  const caseSearch = document.getElementById('case_search');
+  if (caseSearch) {
+    caseSearch.addEventListener('input', populateCaseDropdown);
+    // Enter у пошуку не повинен відправляти всю форму
+    caseSearch.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); caseSel?.focus(); } });
   }
 
   // 3b. «Робота в АСКОД за цим дорученням» toggle
