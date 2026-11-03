@@ -20,7 +20,12 @@
  *
  * Персональних даних у файлі немає й не може бути — репозиторій публічний.
  * Демо-картки режиму ?demo=1 вигадані.
+ *
+ * Голосова кімната відділу — окремий модуль voice.js (WebRTC + приватний канал
+ * Realtime, migration_2026-11-03_voice_room.sql). Версію ?v= піднімати тут.
  */
+import { initVoice, setVoiceDept } from './voice.js?v=20261103a';
+
 const $ = (id) => document.getElementById(id);
 
 const STAGES = [
@@ -193,6 +198,8 @@ async function boot() {
   await loadCases();
   applyUrlParams();
   subscribe();
+  // Голосова кімната відділу (voice.js): заходимо одразу, мікрофон вимкнений
+  initVoice({ sb: state.sb, me: state.me, name: myName(), dept: state.dept, toast });
 }
 
 /**
@@ -252,6 +259,7 @@ function bootDemo() {
   $('spDeptName').textContent = 'Демо-режим: картки вигадані, нічого не зберігається в базі';
   render();
   applyUrlParams();
+  initVoice({ demo: true, name: myName() });
 }
 
 function showNotice(text) {
@@ -268,6 +276,7 @@ function setupDeptPicker() {
   sel.addEventListener('change', async () => {
     state.dept = sel.value;
     $('spDeptName').textContent = `Відділ ${state.dept}`;
+    setVoiceDept(state.dept);
     await loadPeople();
     await loadCases();
   });
