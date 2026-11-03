@@ -21,6 +21,10 @@ const ALERT_POLL_MS = 30000;
 const WEATHER_POLL_MS = 15 * 60000;
 const POWER_POLL_MS = 10 * 60000;
 const LONG_ALERT_DAYS = 30; // довша за місяць тривога — фон окупованих територій, не подія
+// Без власного вибору — офіс: черга за адресою з довідника Yasno
+// (app.yasno.ua …/addresses/v2/group, просп. Степана Бандери, 19 → група 10.1, перевірено 03.11.2026).
+// Відомчої назви тут свідомо немає: головна не має натякати на належність порталу.
+const OFFICE = { oblast: 'М.КИЇВ', queue: 'GPV10.1', label: 'Офіс · просп. Степана Бандери, 19' };
 
 // Обласний центр: для погоди і підпису. Для окупованих центрів — найближче
 // місто, де працюють державні служби області.
@@ -158,7 +162,7 @@ function writeLocal(p) {
   try { localStorage.setItem(LS_KEY, JSON.stringify(p)); } catch { /* приватне вікно */ }
 }
 async function loadPlace() {
-  let place = readLocal() || { oblast: 'М.КИЇВ', queue: null };
+  let place = readLocal() || { oblast: OFFICE.oblast, queue: OFFICE.queue };
   if (!sb || !userId) return place;
   try {
     const { data, error } = await sb.from('user_home_settings').select('home_place').eq('user_id', userId).maybeSingle();
@@ -189,7 +193,7 @@ const state = { weather: null, alerts: null, map: null, power: {} };
 function skeleton() {
   root.innerHTML = `
     <div class="hl-head">
-      <h2 class="hl-title">Обстановка</h2>
+      <div><h2 class="hl-title">Обстановка</h2><span class="hl-hclock" aria-hidden="true"><b data-f="htime"></b><span data-f="hdate"></span></span></div>
       <button type="button" class="hl-place" data-act="place" title="Змінити область і чергу">📍 <span data-f="place"></span> ▾</button>
     </div>
     <div class="hl-grid">
@@ -222,7 +226,7 @@ function skeleton() {
       </article>
 
       <article class="hl-card hl-power" aria-label="Відключення світла">
-        <h3><span>Світло · графік відключень</span></h3>
+        <h3><span>Світло · графік відключень</span><span data-f="pwq"></span></h3>
         <div data-f="pw"><div class="hl-muted">Завантажую графік…</div></div>
       </article>
 
@@ -230,7 +234,7 @@ function skeleton() {
         <h3><span>Повітряна тривога</span><span class="hl-muted" data-f="aupd"></span></h3>
         <div class="hl-alert-body">
           <div class="hl-map" data-f="map"><div class="hl-muted">Завантажую мапу…</div></div>
-          <div data-f="aside"><div class="hl-muted">Завантажую стан тривог…</div></div>
+          <div class="hl-aside" data-f="aside"><div class="hl-muted">Завантажую стан тривог…</div></div>
         </div>
       </article>
     </div>`;
@@ -317,12 +321,14 @@ function tick() {
   }
   $(root, '[data-f="mh"]').style.transform = `rotate(${(k.mi + k.s / 60) * 6}deg)`;
   $(root, '[data-f="hh"]').style.transform = `rotate(${(daySec / 3600) * 30}deg)`;
+  $(root, '[data-f="htime"]').textContent = `${pad(k.h)}:${pad(k.mi)}`;
   $(root, '[data-f="time"]').innerHTML = `${pad(k.h)}<span class="colon">:</span>${pad(k.mi)}<span class="sec">${pad(k.s)}</span>`;
   if (k.s === 0 || !$(root, '[data-f="date"]').textContent) {
     const now = new Date();
     const wd = now.toLocaleDateString('uk-UA', { timeZone: TZ, weekday: 'long' });
     const dm = now.toLocaleDateString('uk-UA', { timeZone: TZ, day: 'numeric', month: 'long', year: 'numeric' });
     $(root, '[data-f="date"]').textContent = `${wd[0].toUpperCase()}${wd.slice(1)}, ${dm}`;
+    $(root, '[data-f="hdate"]').textContent = `${wd}, ${now.toLocaleDateString('uk-UA', { timeZone: TZ, day: 'numeric', month: 'long' })} · Київ`;
     const utc = Date.UTC(k.y, k.mo - 1, k.d);
     const doy = Math.round((utc - Date.UTC(k.y, 0, 1)) / 864e5) + 1;
     const th = new Date(utc + (4 - k.dow) * 864e5); // ISO-тиждень: четвер того ж тижня
@@ -432,7 +438,7 @@ function dayHalves(hours) {
 async function loadPower() {
   const box = $(root, '[data-f="pw"]');
   const src = POWER_DATA[place.oblast];
-  if (!src) { renderPowerUnsupported(box); return; }
+  if (!src) { $(root, '[data-f="pwq"]').innerHTML = ''; renderPowerUnsupported(box); return; }
   try {
     let d = state.power[src.file];
     if (!d || Date.now() - d._at > POWER_POLL_MS - 5000) {
@@ -475,14 +481,19 @@ function renderPower(d, src) {
   const groups = Object.keys(todayFact || d.preset?.data || {})
     .sort((a, b) => a.localeCompare(b, 'uk', { numeric: true }));
   if (!groups.length) { box.innerHTML = '<div class="hl-note">У джерелі зараз немає графіка для цього регіону.</div>'; return; }
-  const queue = groups.includes(place.queue) ? place.queue : null;
-  const select = `<select class="hl-select" data-f="queue" aria-label="Моя черга">
+  const isOffice = place.oblast === OFFICE.oblast;
+  const wanted = place.queue || (isOffice ? OFFICE.queue : null);
+  const queue = groups.includes(wanted) ? wanted : null;
+  const qName = (g) => `${names[g] || g.replace('GPV', 'Черга ')}${isOffice && g === OFFICE.queue ? ' · офіс' : ''}`;
+  const select = `<select class="hl-select" data-f="queue" aria-label="Моя черга"${isOffice && queue === OFFICE.queue ? ` title="${esc(OFFICE.label)}"` : ''}>
       ${queue ? '' : '<option value="" selected>Оберіть свою чергу…</option>'}
-      ${groups.map((g) => `<option value="${esc(g)}"${g === queue ? ' selected' : ''}>${esc(names[g] || g.replace('GPV', 'Черга '))}</option>`).join('')}
+      ${groups.map((g) => `<option value="${esc(g)}"${g === queue ? ' selected' : ''}>${esc(qName(g))}</option>`).join('')}
     </select>`;
-  const srcLine = `<div class="hl-src">${esc(src.who)} · графік від ${esc(fact.update || d.preset?.updateFact || '—')} · дзеркало <a href="https://github.com/Baskerville42/outage-data-ua" target="_blank" rel="noopener">outage-data-ua</a>. Черга — у квитанції, особовому кабінеті або на сайті ДТЕК.</div>`;
+  const srcLine = `<div class="hl-src">${esc(src.who)} · графік від ${esc(fact.update || d.preset?.updateFact || '—')} · <a href="https://github.com/Baskerville42/outage-data-ua" target="_blank" rel="noopener">outage-data-ua</a></div>`;
+  // Вибір черги — у заголовку картки: так графік не росте вниз і вміщається в екран
+  $(root, '[data-f="pwq"]').innerHTML = select;
   if (!queue) {
-    box.innerHTML = `<div class="hl-note">Оберіть свою чергу — і тут з'явиться, коли світло є, а коли ні.</div><div class="hl-pw-row">${select}</div>${srcLine}`;
+    box.innerHTML = `<div class="hl-note">Оберіть свою чергу вгорі картки — і тут з'явиться, коли світло є, а коли ні. Черга — у квитанції, особовому кабінеті або на сайті ДТЕК.</div>${srcLine}`;
     return;
   }
   const k = kyivNow();
@@ -509,7 +520,8 @@ function renderPower(d, src) {
   box.innerHTML = `
     <div class="hl-pw-status">
       <div class="hl-bulb ${cur === 'on' ? 'on' : 'off'}" aria-hidden="true">💡</div>
-      <div><div class="hl-pw-main">${main}</div><div class="hl-pw-next">${nextTxt}</div></div>
+      <div><div class="hl-pw-main">${main}</div><div class="hl-pw-next">${nextTxt}</div>
+        <div class="hl-pw-next hl-pw-where">📍 ${isOffice && queue === OFFICE.queue ? `${esc(OFFICE.label)} · ` : ''}${esc(names[queue] || queue)}</div></div>
     </div>
     <div class="hl-pw-row">
       <div class="hl-pw-row-lbl"><span>Сьогодні${planned ? ' · за тижневим планом' : ''}</span><span>без світла ${String(offHours).replace('.', ',')} год</span></div>
@@ -521,7 +533,6 @@ function renderPower(d, src) {
       <span><i style="background: var(--hl-off)"></i>відключення</span>
       <span><i style="background: repeating-linear-gradient(135deg, var(--hl-maybe) 0 3px, transparent 3px 6px)"></i>можливе</span>
     </div>
-    <div class="hl-pw-row">${select}</div>
     ${srcLine}`;
 }
 
@@ -725,7 +736,12 @@ export async function showHomeLive(opts = {}) {
   userId = opts.userId || null;
   if (mounted) { root.hidden = false; return; }
   mounted = true;
-  place = readLocal() || { oblast: 'М.КИЇВ', queue: null };
+  // Висота шапки — для розкладки «в одне вікно» (index.html, --home-top)
+  const header = document.querySelector('header.top');
+  if (header && window.ResizeObserver) {
+    new ResizeObserver(() => document.documentElement.style.setProperty('--home-top', `${header.offsetHeight}px`)).observe(header);
+  }
+  place = readLocal() || { oblast: OFFICE.oblast, queue: OFFICE.queue };
   skeleton();
   renderPlace();
   root.hidden = false;
