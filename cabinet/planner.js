@@ -317,6 +317,9 @@ function eventRow(e) {
       ? `<div class="cal-event-meta"><a class="cal-meeting-link" href="${esc(safe)}" target="_blank" rel="noopener noreferrer">🔗 Посилання на зустріч</a></div>`
       : `<div class="cal-event-meta">🔗 ${esc(e.meeting_link)}</div>`;
   }
+  // Захід зі «Справ відділу» (тригер бази кладе його в планувальник виконавця)
+  const caseLine = e.case_id
+    ? `<div class="cal-event-meta"><a class="cal-meeting-link" href="../spravy/index.html?case=${encodeURIComponent(e.case_id)}">📋 Картка справи</a></div>` : '';
   const badge37d = e.report_log_id
     ? `<div class="cal-event-meta"><span class="cal-37d-badge">📊 У звіті 37-Д</span></div>` : '';
 
@@ -335,6 +338,7 @@ function eventRow(e) {
       <div class="cal-event-title">${esc(e.title)}</div>
       ${e.description ? `<div class="cal-event-desc">${esc(e.description)}</div>` : ''}
       ${meetingLine}
+      ${caseLine}
       ${badge37d}
       ${creatorNote}
     </div>

@@ -60,6 +60,11 @@ const KIND_STAGES = {
             { key: 'review', label: 'На погодженні', hint: 'у керівництва' }, { key: 'done', label: 'Завершено', hint: 'результат є' }]
 };
 const kindOf = (c) => c?.case_kind || (c?.in_no ? 'askod' : 'task');
+// Напрями (етап 2): будь-яка справа може належати напряму (parent_id), у напряму — віхи
+const projectsOf = (exceptId) => state.cases.filter((x) => kindOf(x) === 'project' && x.id !== exceptId);
+const childrenOf = (id) => state.cases.filter((x) => x.parent_id === id);
+const milestonesOf = (c) => (Array.isArray(c?.milestones) ? c.milestones : []);
+const nextMilestone = (c) => milestonesOf(c).filter((m) => !m.done && m.due).sort((a, b) => a.due.localeCompare(b.due))[0];
 const stagesOf = (kind) => KIND_STAGES[kind] || STAGES;
 const stageLabel = (c, key) => (KIND_STAGES[kindOf(c)]?.find((s) => s.key === key)?.label) || STAGE_LABEL[key];
 /** Захід: «05.11, 14:00» з event_at */
@@ -675,6 +680,10 @@ function cardHTML(c) {
     rem ? `<span class="sp-bell${daysLeft(rem.due_date) <= 0 ? ' is-due' : ''}" title="${esc('Нагадування: ' + rem.body)}">🔔 ${fmtDate(rem.due_date).slice(0, 5)}</span>` : '',
     c.source === 'claude' ? '<span class="sp-src" title="Справу завів Claude">Claude</span>' : ''
   ].join('');
+  const ms = k === 'project' ? milestonesOf(c) : [];
+  const msNext = k === 'project' ? nextMilestone(c) : null;
+  const kids = k === 'project' ? childrenOf(c.id).length : 0;
+  const parent = c.parent_id ? state.cases.find((x) => x.id === c.parent_id) : null;
   const head = c.in_no || (k === 'event' && c.event_at ? `📅 ${fmtEventAt(c.event_at)}` : `${CASE_KINDS[k].icon} ${CASE_KINDS[k].short}`);
   return `<article class="sp-card sp-card-${k}" draggable="true" data-id="${c.id}" tabindex="0" role="button" aria-label="${esc((c.in_no || CASE_KINDS[k].label) + ': ' + c.subject)}">
     <div class="sp-card-top">
@@ -685,6 +694,8 @@ function cardHTML(c) {
     ${c.correspondent ? `<div class="sp-corr">${esc(c.correspondent)}</div>`
       : c.assigned_by ? `<div class="sp-corr">від: ${esc(c.assigned_by)}</div>`
       : k === 'event' && c.event_place ? `<div class="sp-corr">${esc(c.event_place)}</div>` : ''}
+    ${parent ? `<div class="sp-parent" title="Напрям">🧭 ${esc(parent.subject)}</div>` : ''}
+    ${ms.length || kids ? `<div class="sp-ms-line">${ms.length ? `<span class="sp-ms-bar" style="--p:${Math.round(100 * ms.filter((m) => m.done).length / ms.length)}%"></span><span>віхи ${ms.filter((m) => m.done).length}/${ms.length}</span>` : ''}${msNext ? `<span title="${esc('Наступна віха: ' + msNext.title)}">→ ${fmtDate(msNext.due).slice(0, 5)}</span>` : ''}${kids ? `<span title="Пов'язані справи">🔗 ${kids}</span>` : ''}</div>` : ''}
     <div class="sp-card-foot">
       <div class="sp-badges">${badges}</div>
       ${c.executor_name ? `<span class="sp-ava" title="${esc(c.executor_name)}">${esc(initials(c.executor_name))}</span>` : '<span class="sp-ava is-none" title="Виконавця не призначено">?</span>'}
@@ -727,9 +738,11 @@ function fieldsHTML(c) {
   const exSel = (label) => `<label class="sp-f"><span>${label}</span><select data-f="executor_name">${opt('', c.executor_name, '— не призначено —')}${people.map((p) => opt(p, c.executor_name)).join('')}</select></label>`;
   const link = (label) => `<label class="sp-f sp-wide"><span>${label}</span>
       <span class="sp-linkrow"><input data-f="draft_url" value="${esc(c.draft_url)}" placeholder="https://…">${/^https?:\/\//.test(c.draft_url || '') ? `<a class="sp-btn sp-btn-ghost" href="${esc(c.draft_url)}" target="_blank" rel="noopener">Відкрити</a>` : ''}</span></label>`;
+  const projs = projectsOf(c.id);
+  const parentSel = projs.length || c.parent_id ? `<label class="sp-f"><span>Напрям</span><select data-f="parent_id">${opt('', c.parent_id, '— поза напрямом —')}${projs.map((x) => opt(x.id, c.parent_id, x.subject.length > 60 ? x.subject.slice(0, 58) + '…' : x.subject)).join('')}</select></label>` : '';
   const deadlineF = (label) => `<label class="sp-f"><span>${label}${prolonged ? ` <i class="sp-orig">первинний ${fmtDate(c.deadline_original)}</i>` : ''}</span><input type="date" data-f="deadline" value="${esc(c.deadline)}"></label>`;
   if (k === 'task') return `<div class="sp-grid">
-    ${kindSel}${deadlineF('Строк')}
+    ${kindSel}${deadlineF('Строк')}${parentSel}
     <label class="sp-f sp-wide"><span>Що зробити</span><textarea data-f="subject" rows="2">${esc(c.subject)}</textarea></label>
     <label class="sp-f sp-wide"><span>Від кого</span><input data-f="assigned_by" value="${esc(c.assigned_by)}" placeholder="Хто доручив: керівник, колега, Teams"></label>
     ${exSel('Виконавець')}
@@ -738,7 +751,7 @@ function fieldsHTML(c) {
   </div>`;
   if (k === 'event') return `<div class="sp-grid">
     ${kindSel}
-    <label class="sp-f"><span>Коли</span><input type="datetime-local" data-f="event_at" value="${esc(toLocalInput(c.event_at))}"></label>
+    <label class="sp-f"><span>Коли</span><input type="datetime-local" data-f="event_at" value="${esc(toLocalInput(c.event_at))}"></label>${parentSel}
     <label class="sp-f sp-wide"><span>Назва заходу</span><textarea data-f="subject" rows="2">${esc(c.subject)}</textarea></label>
     <label class="sp-f sp-wide"><span>Де / посилання на зустріч</span><input data-f="event_place" value="${esc(c.event_place)}" placeholder="Teams, Zoom, кабінет"></label>
     <label class="sp-f sp-wide"><span>Організатор</span><input data-f="correspondent" value="${esc(c.correspondent)}" placeholder="МОЗ, ВООЗ, Голова НСЗУ…"></label>
@@ -751,8 +764,9 @@ function fieldsHTML(c) {
     <label class="sp-f sp-wide"><span>Назва напряму</span><textarea data-f="subject" rows="2">${esc(c.subject)}</textarea></label>
     ${exSel('Відповідальний')}
     ${link('Робочий документ, тека, посилання')}
-    <label class="sp-f sp-wide"><span>Віхи й план</span><textarea data-f="nuances" rows="5" placeholder="Що вже є, що далі, з якими справами пов'язано">${esc(c.nuances)}</textarea></label>
-  </div>`;
+    <label class="sp-f sp-wide"><span>Нотатки й план</span><textarea data-f="nuances" rows="4" placeholder="Мета, що вже є, на що зважати">${esc(c.nuances)}</textarea></label>
+  </div>
+  ${projectBlockHTML(c)}`;
   return `
   <div class="sp-lead">
     <label class="sp-f sp-lead-unit"><span>Головний виконавець (департамент / управління / відділ)</span>
@@ -761,7 +775,7 @@ function fieldsHTML(c) {
   </div>
   <datalist id="spLeadUnits">${LEAD_UNITS.map((u) => `<option value="${esc(u)}">`).join('')}</datalist>
   <div class="sp-grid">
-    ${kindSel}
+    ${kindSel}${parentSel}
     <label class="sp-f"><span>Вх. №</span><input data-f="in_no" value="${esc(c.in_no)}" placeholder="10001-08-26"></label>
     <label class="sp-f"><span>Строк${prolonged ? ` <i class="sp-orig">первинний ${fmtDate(c.deadline_original)}</i>` : ''}</span><input type="date" data-f="deadline" value="${esc(c.deadline)}"></label>
     <label class="sp-f sp-wide"><span>Суть</span><textarea data-f="subject" rows="2">${esc(c.subject)}</textarea></label>
@@ -788,6 +802,43 @@ function fieldsHTML(c) {
       ${c.askod_state ? `<div class="sp-f sp-ro"><span>Стан резолюції в АСКОД</span><b>${esc(c.askod_state)}</b></div>` : ''}
     </div>
   </details>`;
+}
+
+/** Напрям: віхи (чекліст із датами) і справи, що до нього належать. */
+function projectBlockHTML(c) {
+  const ms = milestonesOf(c).slice().sort((a, b) => (a.due || '9').localeCompare(b.due || '9'));
+  const done = ms.filter((m) => m.done).length;
+  const kids = childrenOf(c.id).sort((a, b) => (a.stage === 'done') - (b.stage === 'done') || String(a.deadline || '9').localeCompare(String(b.deadline || '9')));
+  return `<section class="sp-block sp-proj">
+    <h3>Віхи <span class="sp-muted">${ms.length ? `${done} з ${ms.length} виконано` : ''}</span></h3>
+    <ul class="sp-ms">${ms.length ? ms.map((m) => {
+      const n = !m.done && m.due ? daysLeft(m.due) : null;
+      return `<li class="sp-ms-item${m.done ? ' is-done' : ''}${n !== null && n < 0 ? ' is-late' : ''}">
+        <label><input type="checkbox" data-ms="${esc(m.id)}"${m.done ? ' checked' : ''}><span>${esc(m.title)}</span></label>
+        <span class="sp-ms-due">${m.due ? fmtDate(m.due) : ''}</span>
+        <button type="button" class="sp-ms-del" data-ms-del="${esc(m.id)}" title="Прибрати віху" aria-label="Прибрати віху">✕</button>
+      </li>`;
+    }).join('') : '<li class="sp-muted sp-none">Віх ще немає: додайте кроки з датами, і дошка покаже, що наступне.</li>'}</ul>
+    <form class="sp-ms-form" id="spMsForm">
+      <input name="title" placeholder="Віха: що має бути зроблено" autocomplete="off" required>
+      <input name="due" type="date" aria-label="До якої дати">
+      <button type="submit" class="sp-btn">Додати</button>
+    </form>
+    <h3>Пов'язані справи <span class="sp-muted">${kids.length || ''}</span></h3>
+    <ul class="sp-kids">${kids.length ? kids.map((x) => {
+      const kk = kindOf(x);
+      return `<li><button type="button" class="sp-kid${x.stage === 'done' ? ' is-done' : ''}" data-open-case="${x.id}">
+        <span>${CASE_KINDS[kk].icon} ${esc(x.in_no || CASE_KINDS[kk].short)}</span><b>${esc(x.subject)}</b><i>${stageLabel(x, x.stage)}${x.executor_name ? ' · ' + esc(x.executor_name) : ''}</i></button></li>`;
+    }).join('') : '<li class="sp-muted sp-none">Справи привʼязуються до напряму в їхній картці: поле «Напрям».</li>'}</ul>
+  </section>`;
+}
+
+/** Зберегти віхи напряму; вагомі зміни — рядком в історію. */
+async function saveMilestones(c, list, note) {
+  const ok = await saveCase(c.id, { milestones: list });
+  if (ok !== false && note) await addEvent(c.id, { kind: 'system', body: note });
+  if ($('spFields').contains(document.activeElement)) document.activeElement.blur();
+  openCase(c.id, true);
 }
 
 function renderDrawerHead(c) {
@@ -1204,6 +1255,37 @@ function wireStatic() {
       return;
     }
     saveCase(state.openId, patch);
+  });
+  // Напрям: віхи й перехід до пов'язаної справи
+  $('spFields').addEventListener('change', (e) => {
+    const cb = e.target.closest('[data-ms]');
+    const c = state.cases.find((x) => x.id === state.openId);
+    if (!cb || !c) return;
+    const list = milestonesOf(c).map((m) => (m.id === cb.dataset.ms ? { ...m, done: cb.checked } : m));
+    const m = list.find((x) => x.id === cb.dataset.ms);
+    saveMilestones(c, list, `${cb.checked ? 'Віху виконано' : 'Віху знову відкрито'}: ${m?.title || ''}`);
+  });
+  $('spFields').addEventListener('click', (e) => {
+    const kid = e.target.closest('[data-open-case]');
+    if (kid) return openCase(kid.dataset.openCase);
+    const del = e.target.closest('[data-ms-del]');
+    const c = state.cases.find((x) => x.id === state.openId);
+    if (!del || !c) return;
+    const m = milestonesOf(c).find((x) => x.id === del.dataset.msDel);
+    if (!m || !confirm(`Прибрати віху «${m.title}»?`)) return;
+    saveMilestones(c, milestonesOf(c).filter((x) => x.id !== m.id), `Віху прибрано: ${m.title}`);
+  });
+  $('spFields').addEventListener('submit', (e) => {
+    if (e.target.id !== 'spMsForm') return;
+    e.preventDefault();
+    const c = state.cases.find((x) => x.id === state.openId);
+    const fd = new FormData(e.target);
+    const title = String(fd.get('title') || '').trim();
+    if (!c || !title) return;
+    const due = fd.get('due') || null;
+    const list = [...milestonesOf(c), { id: crypto.randomUUID().slice(0, 8), title, due, done: false }];
+    e.target.reset();
+    saveMilestones(c, list, `Нова віха: ${title}${due ? ' — до ' + fmtDate(due) : ''}`);
   });
   $('spNotOurs').addEventListener('click', () => openAction('notours'));
   $('spDelete').addEventListener('click', async () => {

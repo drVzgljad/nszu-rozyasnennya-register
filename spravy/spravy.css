@@ -1014,3 +1014,31 @@
 .sp-card-event { border-left: 3px solid var(--sp-review); }
 .sp-card-task { border-left: 3px solid var(--sp-work); }
 .sp-card-project { border-left: 3px solid var(--sp-signing); }
+
+/* Напрями (етап 2, 03.11.2026): належність до напряму, віхи, пов'язані справи */
+.sp-parent { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-ms-line { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+.sp-ms-bar { flex: 0 0 56px; height: 6px; border-radius: 3px; background: var(--sp-chip-bg);
+  background-image: linear-gradient(var(--sp-ok-ink), var(--sp-ok-ink)); background-repeat: no-repeat; background-size: var(--p) 100%; }
+.sp-ms, .sp-kids { list-style: none; margin: 0 0 10px; padding: 0; }
+.sp-ms-item { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px;
+  padding: 6px 0; border-bottom: 1px solid var(--line); }
+.sp-ms-item label { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
+.sp-ms-item.is-done span { text-decoration: line-through; color: var(--muted); }
+.sp-ms-due { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.sp-ms-item.is-late .sp-ms-due { color: #c0392b; font-weight: 700; }
+.sp-ms-del { border: 0; background: none; color: var(--muted); cursor: pointer; padding: 2px 6px; border-radius: 6px; }
+.sp-ms-del:hover { background: var(--sp-chip-bg); color: var(--ink); }
+.sp-ms-form { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; margin: 0 0 18px; }
+.sp-ms-form input { min-width: 0; padding: 7px 9px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; }
+.sp-kid { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; width: 100%; text-align: left;
+  padding: 7px 9px; margin-bottom: 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); cursor: pointer; font: inherit; }
+.sp-kid:hover { border-color: var(--accent); }
+.sp-kid span { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.sp-kid b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-kid i { grid-column: 2; font-style: normal; font-size: 12px; color: var(--muted); }
+.sp-kid.is-done { opacity: .6; }
+@media (max-width: 560px) {
+  .sp-ms-form { grid-template-columns: minmax(0, 1fr) auto; }
+  .sp-ms-form .sp-btn { grid-column: 1 / -1; }
+}
