@@ -18,7 +18,8 @@
  *   попередній стан — це вміє рушій.
  */
 
-import { createVoice } from '../zviazok/voice.js?v=20261103e';
+import { createVoice } from '../zviazok/voice.js?v=20261103f';
+import { createStage } from '../zviazok/stage.js?v=20261103a';
 
 const MANY = 10;               // з такої кількості попереджаємо: пряма схема важчає
 const LS_OFF = 'spravy-voice-off';
@@ -38,6 +39,7 @@ const v = {
   dept: '',
   toast: () => {},
   eng: null,           // рушій ../zviazok/voice.js
+  stage: null,         // «сцена» показу екрана ../zviazok/stage.js — під панеллю
   vs: null,            // його знімок стану: status, error, inRoom, muted, deaf, needGesture, members
   noDept: false
 };
@@ -52,7 +54,10 @@ export function initVoice(opts) {
   v.root.hidden = false;
   v.root.addEventListener('click', onClick);
   if (v.demo) return demo();
-  v.eng = createVoice({ sb: v.sb, me: v.me, name: v.name, toast: v.toast, onChange: (s) => { v.vs = s; render(); } });
+  const host = document.createElement('section');
+  v.root.after(host);
+  v.stage = createStage(host, { onStop: () => v.eng.toggleShare() });
+  v.eng = createVoice({ sb: v.sb, me: v.me, name: v.name, toast: v.toast, onChange: (s) => { v.vs = s; render(); v.stage.update(s); } });
   openRoom();
 }
 
@@ -99,6 +104,7 @@ async function onClick(e) {
   v.eng.unlock();
   if (act === 'mic') await v.eng.toggleMic();
   else if (act === 'deaf') await v.eng.toggleDeaf();
+  else if (act === 'screen') await v.eng.toggleShare();
   else if (act === 'leave') { lsSet(LS_OFF, '1'); await v.eng.exit(); }
   else if (act === 'join') await joinRoom();
 }
@@ -138,6 +144,8 @@ function render() {
          title="${s.muted ? 'Увімкнути мікрофон — вас почують' : 'Вимкнути мікрофон'}">${s.muted ? '🎙 Говорити' : '🎙 Мікрофон увімк.'}</button>
        <button type="button" class="spv-btn spv-icon${s.deaf ? ' is-off' : ''}" data-act="deaf" aria-pressed="${s.deaf}"
          title="${s.deaf ? 'Увімкнути звук' : 'Вимкнути звук (і мікрофон)'}">${s.deaf ? '🔕' : '🎧'}</button>
+       ${s.canShare ? `<button type="button" class="spv-btn spv-icon${s.sharing ? ' is-on' : ''}" data-act="screen" aria-pressed="${!!s.sharing}"
+         title="${s.sharing ? 'Зупинити показ екрана' : 'Показати колегам свій екран або вікно'}">🖥</button>` : ''}
        <button type="button" class="spv-btn spv-ghost" data-act="leave" title="Вийти з кімнати; запамʼятаємо до наступного «Увійти»">Вийти</button>`
     : s.status === 'live'
       ? '<button type="button" class="spv-btn spv-join" data-act="join">Увійти в кімнату</button>'

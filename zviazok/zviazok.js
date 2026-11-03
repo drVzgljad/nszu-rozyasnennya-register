@@ -31,7 +31,8 @@
  * ?mode=popup — плаваюче вікно.
  */
 
-import { createVoice, MANY } from './voice.js?v=20261103e';
+import { createVoice, MANY } from './voice.js?v=20261103f';
+import { createStage } from './stage.js?v=20261103a';
 import { QUICK, buildPicker, emojiOnly } from './emoji.js?v=20261103a';
 
 const QS = new URLSearchParams(location.search);
@@ -557,6 +558,7 @@ function ctlHtml() {
   return `<div class="zv-vctl">
     <button type="button" class="zv-btn zv-vbtn${vs.muted ? '' : ' is-on'}" data-act="mic" aria-pressed="${!vs.muted}" title="${vs.muted ? 'Увімкнути мікрофон' : 'Вимкнути мікрофон — вас не чутимуть'}">${vs.muted ? '🔇' : '🎙'}<span>${vs.muted ? 'Мікрофон вимк.' : 'Мікрофон'}</span></button>
     <button type="button" class="zv-btn zv-vbtn${vs.deaf ? ' is-off' : ''}" data-act="deaf" aria-pressed="${vs.deaf}" title="${vs.deaf ? 'Увімкнути звук' : 'Вимкнути звук (і мікрофон)'}">${vs.deaf ? '🔕' : '🎧'}<span>${vs.deaf ? 'Звук вимк.' : 'Звук'}</span></button>
+    ${vs.canShare ? `<button type="button" class="zv-btn zv-vbtn${vs.sharing ? ' is-on' : ''}" data-act="screen" aria-pressed="${!!vs.sharing}" title="${vs.sharing ? 'Зупинити показ екрана' : 'Показати колегам свій екран або вікно'}">🖥<span>${vs.sharing ? 'Показую' : 'Екран'}</span></button>` : ''}
   </div>`;
 }
 
@@ -979,6 +981,7 @@ function voiceAct(a) {
   if (!a) return;
   if (a === 'mic') S.voice.toggleMic();
   if (a === 'deaf') S.voice.toggleDeaf();
+  if (a === 'screen') S.voice.toggleShare?.();
   if (a === 'sound') S.voice.unlock();
 }
 
@@ -1022,7 +1025,11 @@ async function boot() {
   S.online.set(S.me.id, S.name);
   if (window.__pmgPresence) readPresence(window.__pmgPresence);
 
-  S.voice = createVoice({ sb: S.sb, me: S.me, name: S.name, toast, onChange: onVoice });
+  // «Сцена» показу екрана — над стрічкою повідомлень (той самий компонент, що в «Справах»)
+  const stageHost = document.createElement('section');
+  $('zvLog').before(stageHost);
+  S.stage = createStage(stageHost, { onStop: () => S.voice.toggleShare() });
+  S.voice = createVoice({ sb: S.sb, me: S.me, name: S.name, toast, onChange: (vs) => { onVoice(vs); S.stage.update(vs); } });
   subscribe();
   // Канал голосу — одразу «лише дивлюся»: видно, хто в ефірі, ще до натискання «Голос»
   S.voice.join(TOPIC, TITLE, { listen: true });

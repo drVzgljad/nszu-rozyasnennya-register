@@ -19,6 +19,13 @@
  *
  * Мікрофон за замовчуванням вимкнений. Вимкнений мікрофон зупиняється зовсім —
  * індикатор запису в браузері гасне. Звук у базу не пишеться.
+ *
+ * Показ екрана (03.11.2026): у кожному з'єднанні — другий, відеоканал; показ вмикається
+ * заміною доріжки (як мікрофон), без нового рукостискання. Відеоканал додаємо лише тим,
+ * хто в присутності оголосив caps: ['screen'] — вкладка зі старою версією отримала б
+ * зайвий трек і зламала б собі звук. Показує одна людина: хто почав пізніше (sharing —
+ * час початку), той і показує, попередній показ зупиняється сам. Під документи:
+ * contentHint 'detail', до 15 кадрів/с, до 1,5 Мбіт/с.
  */
 
 // Адреса воркера tools/voice-turn (та сама, що в spravy/voice.js). Порожньо — лише STUN.
@@ -26,6 +33,9 @@ const VOICE_TURN_URL = 'https://pmg-voice-turn.doktorvzgljad.workers.dev';
 const STUN = [{ urls: ['stun:stun.cloudflare.com:3478', 'stun:stun.l.google.com:19302'] }];
 const RETRIES = 3;
 const SPEAK_LEVEL = 0.035;
+const SCREEN_BITRATE = 1500000;   // показ екрана: текст документів читається, канал не забиваємо
+const SCREEN_FPS = 15;
+const canShare = () => !!navigator.mediaDevices?.getDisplayMedia;
 
 export const MANY = 10; // з такої кількості пряма схема кожен-з-кожним важчає
 
@@ -44,6 +54,9 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     muted: true,
     deaf: false,
     micBeforeDeaf: false,
+    screen: null,        // MediaStreamTrack показу екрана або null
+    shareSince: 0,       // коли почали показ — пізніший показ перемагає
+    presenter: '',       // ключ того, хто зараз показує (для тосту «показує екран»)
     ice: STUN,
     iceUntil: 0,
     ctx: null,
@@ -67,8 +80,20 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
       deaf: v.deaf,
       needGesture: v.needGesture,
       inRoom: v.inRoom,
+      sharing: !!v.screen,
+      canShare: canShare(),
+      presenter: presenter(),
       members: [...v.members.entries()].map(([k, m]) => ({ key: k, ...m, me: k === v.key, state: k === v.key ? 'ok' : peerState(k) }))
     };
+  }
+
+  /** Хто показує екран: { key, name, me, stream } або null. stream — відео від нього (у себе — null). */
+  function presenter() {
+    let best = null;
+    v.members.forEach((m, k) => { if (m.sharing && (!best || m.sharing > best.m.sharing)) best = { k, m }; });
+    if (!best) return null;
+    const me = best.k === v.key;
+    return { key: best.k, name: best.m.name || '', me, stream: me ? null : v.peers.get(best.k)?.video || null };
   }
 
   function sinkEl() {
@@ -153,6 +178,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
   /** Закрити канал (перемикання кімнати, перепідключення): мікрофон і звук не чіпаємо. */
   async function closeChannel() {
     clearInterval(v.timer);
+    stopShare(true);
     for (const k of [...v.peers.keys()]) dropPeer(k, true);
     const ch = v.ch;
     v.ch = null;
@@ -190,6 +216,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
   async function exit() {
     if (!v.inRoom) return;
     v.inRoom = false;
+    stopShare(true);
     if (v.mic) { v.mic.stop(); v.mic = null; v.meters.delete('me'); }
     v.muted = true;
     for (const k of [...v.peers.keys()]) dropPeer(k, true);
@@ -198,12 +225,22 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     emit();
   }
 
-  const meta = () => ({ uid: me?.id, name, muted: v.muted, deaf: v.deaf });
+  const meta = () => ({ uid: me?.id, name, muted: v.muted, deaf: v.deaf, caps: ['screen'], sharing: v.shareSince });
 
   function onSync(ch) {
     if (ch !== v.ch) return;
     const st = ch.presenceState() || {};
     v.members = new Map(Object.entries(st).map(([k, arr]) => [k, arr[arr.length - 1] || {}]));
+    // Показ екрана: одна людина за раз — хтось почав пізніше за нас, наш показ зупиняється
+    const pr = presenter();
+    if (v.screen && pr && !pr.me) {
+      v.presenter = pr.key;           // до stopShare: повторна синхронізація не скаже «показує» ще раз
+      stopShare();
+      toast(`🖥 ${pr.name} почав(-ла) показ — ваш показ зупинено`);
+    } else if (pr && !pr.me && pr.key !== v.presenter && v.inRoom) {
+      toast(`🖥 ${pr.name} показує екран`);
+    }
+    v.presenter = pr?.key || '';
     if (v.inRoom && v.members.has(v.key)) {
       // Дзвонить той, у кого ключ менший; другий чекає пропозиції — так двоє
       // ніколи не дзвонять одне одному одночасно
@@ -230,6 +267,13 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
           tr.direction = 'sendrecv';
           p.sender = tr.sender;
           if (v.mic) await p.sender.replaceTrack(v.mic);
+        }
+        // Відеоканал показу екрана — лише якщо той, хто дзвонить, його запропонував
+        const vt = p.pc.getTransceivers().find((t) => t.receiver.track?.kind === 'video');
+        if (vt) {
+          vt.direction = 'sendrecv';
+          p.vsender = vt.sender;
+          if (v.screen) await setScreen(p);
         }
         await p.pc.setLocalDescription(await p.pc.createAnswer());
         send(k, { type: 'answer', sdp: p.pc.localDescription.sdp });
@@ -265,10 +309,17 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     audio.autoplay = true;
     audio.muted = v.deaf;
     sinkEl().append(audio);
-    const p = { pc, sender: null, audio, tries: v.peers.get(k)?.tries || 0, pendingIce: [], gaveUp: false };
+    const p = { pc, sender: null, vsender: null, video: null, audio, tries: v.peers.get(k)?.tries || 0, pendingIce: [], gaveUp: false };
     pc.onicecandidate = (e) => { if (e.candidate) send(k, { type: 'ice', cand: e.candidate.toJSON() }); };
     pc.ontrack = (e) => {
-      audio.srcObject = e.streams[0] || new MediaStream([e.track]);
+      if (e.track.kind === 'video') {
+        // Відео показу екрана: трек є від початку з'єднання, кадри йдуть, лише поки людина показує
+        p.video = new MediaStream([e.track]);
+        e.track.onunmute = emit;
+        emit();
+        return;
+      }
+      audio.srcObject = new MediaStream([e.track]);
       playAudio(audio);
       addMeter(k, audio.srcObject);
     };
@@ -285,7 +336,12 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     const p = makePeer(k);
     const tr = p.pc.addTransceiver(v.mic || 'audio', { direction: 'sendrecv' });
     p.sender = tr.sender;
+    if (v.members.get(k)?.caps?.includes('screen')) {
+      const vt = p.pc.addTransceiver(v.screen || 'video', { direction: 'sendrecv' });
+      p.vsender = vt.sender;
+    }
     await p.pc.setLocalDescription(await p.pc.createOffer());
+    if (v.screen && p.vsender) setScreen(p);
     send(k, { type: 'offer', sdp: p.pc.localDescription.sdp });
   }
 
@@ -365,6 +421,54 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     // Заговорив без звуку — звук повертаємо: говорити й не чути відповіді безглуздо
     if (!muted && v.deaf) { v.micBeforeDeaf = false; hear(true); }
     await Promise.all([...v.peers.values()].map((p) => p.sender?.replaceTrack(v.mic).catch(() => {})));
+    if (!quiet) retrack();
+  }
+
+  /* ───────── показ екрана ───────── */
+
+  async function setScreen(p) {
+    if (!p.vsender) return;
+    await p.vsender.replaceTrack(v.screen).catch(() => {});
+    if (!v.screen) return;
+    try {
+      const prm = p.vsender.getParameters();
+      if (!prm.encodings || !prm.encodings.length) prm.encodings = [{}];
+      prm.encodings[0].maxBitrate = SCREEN_BITRATE;
+      prm.encodings[0].maxFramerate = SCREEN_FPS;
+      await p.vsender.setParameters(prm);
+    } catch (_) { /* браузер не дав змінити параметри — піде з типовими */ }
+  }
+
+  async function startShare() {
+    if (!v.ch || !v.inRoom || v.status !== 'live' || v.screen) return;
+    if (!canShare()) {
+      toast('Цей браузер не вміє показувати екран. Покажіть з комп\'ютера — Chrome або Edge.', true);
+      return;
+    }
+    let s;
+    try {
+      s = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 10, max: SCREEN_FPS } }, audio: false });
+    } catch (_) { return; }               // людина передумала у вікні вибору
+    const t = s.getVideoTracks()[0];
+    if (!t) return;
+    try { t.contentHint = 'detail'; } catch (_) { /* старий браузер */ }
+    t.onended = () => stopShare();      // «Припинити показ» у панелі браузера
+    v.screen = t;
+    v.shareSince = Date.now();
+    await Promise.all([...v.peers.values()].map(setScreen));
+    const viewers = v.members.size - 1;
+    if (viewers >= 8) toast(`Екран бачать ${viewers} людей — з одного комп'ютера показ може гальмувати.`);
+    retrack();
+  }
+
+  /** quiet — без оновлення присутності (вихід із кімнати, перемикання). */
+  function stopShare(quiet) {
+    if (!v.screen) return;
+    v.screen.onended = null;
+    v.screen.stop();
+    v.screen = null;
+    v.shareSince = 0;
+    v.peers.forEach((p) => { p.vsender?.replaceTrack(null).catch(() => {}); });
     if (!quiet) retrack();
   }
 
@@ -481,6 +585,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     exit,
     toggleMic: () => setMuted(!v.muted),
     toggleDeaf: () => setDeaf(!v.deaf),
+    toggleShare: () => (v.screen ? stopShare() : startShare()),
     unlock,
     get topic() { return v.topic; },
     get state() { return snapshot(); },
