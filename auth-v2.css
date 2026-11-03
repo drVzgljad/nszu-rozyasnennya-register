@@ -2695,10 +2695,16 @@
   .global-search-btn .gs-btn-kbd { display: none; }
 }
 
-/* ── Global Search bar (рядок між банером і навігацією) ────────── */
+/* ── Global Search bar (широкий рядок унизу сторінки, над підвалом) ── */
 .global-search-row {
   padding: 4px 0 10px;
 }
+.global-search-row--bottom {
+  padding: 24px clamp(20px, 2.2vw, 42px) 28px;
+}
+/* Гостьова головна вимикає пошук повністю (index.html, placeGlobalSearchForRole) —
+   разом із кнопкою в шапці */
+body[data-guest-search-hidden="true"] #global-search-btn { display: none !important; }
 
 .global-search-bar {
   display: flex;

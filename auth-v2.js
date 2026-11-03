@@ -934,22 +934,25 @@ function inject() {
   // Auth elements inside nav/container
   const container = document.querySelector('.auth-container') || document.querySelector('nav.section-switch');
 
-  // Глобальний пошук: широкий рядок між банером (top-row-1) і навігацією (top-row-2);
-  // на сторінках з нестандартною шапкою — маленька кнопка в auth-контейнері
+  // Глобальний пошук. У шапці скрізь — маленька кнопка в auth-контейнері. На сторінках
+  // з портальною шапкою широкий рядок пошуку стоїть ВНИЗУ, над підвалом: у шапці між
+  // банером і навігацією він займав місце, а користувалися ним рідко (03.11.2026).
   const topInner = document.querySelector('header.top .top-inner');
   const navRow = topInner ? topInner.querySelector('.top-row-2') : null;
   if (navRow) {
     const searchRow = document.createElement('div');
-    searchRow.className = 'global-search-row';
+    searchRow.className = 'global-search-row global-search-row--bottom';
     searchRow.innerHTML = `
-      <button id="global-search-btn" class="global-search-bar" type="button" title="Глобальний пошук по порталу (Ctrl+K)">
+      <button class="global-search-bar" type="button" title="Глобальний пошук по порталу (Ctrl+K)">
         <span class="gs-bar-icon">🔍</span>
         <span class="gs-bar-text">Пошук по порталу: пакети, постанова, роз'яснення, договори…</span>
         <kbd class="gs-btn-kbd">Ctrl K</kbd>
       </button>`;
-    topInner.insertBefore(searchRow, navRow);
+    const footer = document.querySelector('footer');
+    if (footer) footer.before(searchRow); else document.body.appendChild(searchRow);
     searchRow.querySelector('button').addEventListener('click', openGlobalSearch);
-  } else if (container) {
+  }
+  if (container) {
     const searchBtn = document.createElement('button');
     searchBtn.id = 'global-search-btn';
     searchBtn.className = 'global-search-btn';
