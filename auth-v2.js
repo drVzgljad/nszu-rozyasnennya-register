@@ -1194,7 +1194,9 @@ function inject() {
     btn.className = 'auth-nav-btn';
     btn.textContent = 'Увійти';
     btn.addEventListener('click', () => {
-      if (btn.classList.contains('is-signed-in')) sb.auth.signOut();
+      // Лише цей браузер: типовий signOut() — 'global', він скасовує й вхід скриптів
+      // (spravy_sync.py, narady_sync.py), і ранкова синхронізація падає (03.11.2026)
+      if (btn.classList.contains('is-signed-in')) sb.auth.signOut({ scope: 'local' });
       else openModal();
     });
     container.appendChild(btn);
