@@ -52,6 +52,7 @@ const v = {
   mic: null,           // MediaStreamTrack або null
   muted: true,
   deaf: false,
+  micBeforeDeaf: false, // чи говорив до «вимкнути звук» — щоб повернути мікрофон
   ice: STUN,
   iceUntil: 0,
   ctx: null,           // AudioContext для індикатора «говорить»
@@ -278,7 +279,8 @@ async function ensureIce() {
 
 /* ───────────────────────── мікрофон і звук ───────────────────────── */
 
-async function setMuted(muted) {
+/** quiet — не оголошувати стан у кімнаті: це зробить той, хто викликав (setDeaf). */
+async function setMuted(muted, quiet) {
   if (!muted && !v.mic) {
     try {
       const s = await navigator.mediaDevices.getUserMedia({
@@ -297,16 +299,35 @@ async function setMuted(muted) {
     v.meters.delete('me');
   }
   v.muted = muted;
-  if (!muted && v.deaf) setDeaf(false, true);
+  // Заговорив без звуку — звук повертаємо: говорити й не чути відповіді безглуздо
+  if (!muted && v.deaf) {
+    v.micBeforeDeaf = false;
+    hear(true);
+  }
   await Promise.all([...v.peers.values()].map((p) => p.sender?.replaceTrack(v.mic).catch(() => {})));
-  retrack();
+  if (!quiet) retrack();
 }
 
-function setDeaf(deaf, noTrack) {
-  v.deaf = deaf;
-  v.peers.forEach((p) => { if (p.audio) p.audio.muted = deaf; });
-  if (deaf && !v.muted) setMuted(true);
-  if (!noTrack) retrack();
+function hear(on) {
+  v.deaf = !on;
+  v.peers.forEach((p) => { if (p.audio) p.audio.muted = !on; });
+}
+
+/**
+ * «Вимкнути звук» глушить і мікрофон, а «Увімкнути звук» повертає мікрофон
+ * у той стан, у якому він був до вимкнення (як у Discord).
+ */
+async function setDeaf(deaf) {
+  if (deaf) {
+    v.micBeforeDeaf = !v.muted;
+    hear(false);
+    if (!v.muted) await setMuted(true, true);
+  } else {
+    hear(true);
+    if (v.micBeforeDeaf) await setMuted(false, true);
+    v.micBeforeDeaf = false;
+  }
+  retrack();
 }
 
 function retrack() {
@@ -389,7 +410,7 @@ async function onClick(e) {
   const act = b.dataset.act;
   if (v.demo) return demoAct(act);
   if (act === 'mic') await setMuted(!v.muted);
-  else if (act === 'deaf') setDeaf(!v.deaf);
+  else if (act === 'deaf') await setDeaf(!v.deaf);
   else if (act === 'leave') {
     v.inRoom = false;
     lsSet(LS_OFF, '1');
@@ -502,7 +523,12 @@ function demo() {
 function demoAct(act) {
   const me = v.members.get('me');
   if (act === 'mic') { v.muted = !v.muted; me.muted = v.muted; if (!v.muted) { v.deaf = false; me.deaf = false; } }
-  if (act === 'deaf') { v.deaf = !v.deaf; me.deaf = v.deaf; if (v.deaf) { v.muted = true; me.muted = true; } }
+  if (act === 'deaf') {
+    v.deaf = !v.deaf;
+    if (v.deaf) { v.micBeforeDeaf = !v.muted; v.muted = true; } else if (v.micBeforeDeaf) { v.muted = false; v.micBeforeDeaf = false; }
+    me.deaf = v.deaf;
+    me.muted = v.muted;
+  }
   if (act === 'leave') { v.inRoom = false; v.members.delete('me'); }
   if (act === 'join') { v.inRoom = true; v.members.set('me', { name: v.name || 'Демо-користувач', muted: v.muted, deaf: v.deaf }); }
   render();
