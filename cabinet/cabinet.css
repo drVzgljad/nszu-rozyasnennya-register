@@ -1275,3 +1275,29 @@
   }
   .cabinet-fab:active { transform: scale(.95); }
 }
+
+/* Велика кнопка «Справи відділу» — замість панелі-архіву доручень СКО-Д (03.11.2026) */
+.cabinet-spravy-cta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 22px;
+  border-radius: 18px;
+  background: var(--accent);
+  color: #fff;
+  text-decoration: none;
+  box-shadow: var(--shadow);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+.cabinet-spravy-cta:hover { background: var(--accent-dark); transform: translateY(-1px); }
+.cabinet-spravy-cta:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 3px; }
+.cabinet-spravy-cta .cta-icon { font-size: 34px; line-height: 1; flex: none; }
+.cabinet-spravy-cta .cta-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 1 auto; }
+.cabinet-spravy-cta strong { font-size: 22px; line-height: 1.2; }
+.cabinet-spravy-cta small { font-size: 14px; opacity: 0.9; }
+.cabinet-spravy-cta .cta-arrow { font-size: 28px; font-weight: 700; flex: none; }
+@media (max-width: 760px) {
+  .cabinet-spravy-cta { padding: 16px; gap: 12px; }
+  .cabinet-spravy-cta strong { font-size: 19px; }
+  .cabinet-spravy-cta .cta-icon { font-size: 28px; }
+}

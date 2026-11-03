@@ -802,3 +802,180 @@
   .spv-actions { margin-left: 0; flex-basis: 100%; }
   .spv-actions .spv-btn:first-child { flex: 1 1 auto; }
 }
+
+/* ============================================================
+   Текстовий канал відділу (room-chat.js) — під голосовою кімнатою.
+   Кольори — шар --spv-* голосової кімнати і ролі теми.
+   ============================================================ */
+.spc {
+  margin: -6px 0 14px;
+  border: 1px solid var(--spv-line);
+  border-radius: 14px;
+  background: var(--spv-bg);
+  color: var(--ink);
+  overflow: hidden;
+  position: relative;
+}
+.spc-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+.spc-head:hover { background: color-mix(in srgb, var(--spv-line) 35%, transparent); }
+.spc-title { font-weight: 700; white-space: nowrap; }
+.spc-badge {
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--spv-off-ink);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+.spc-last {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.spc-caret { color: var(--muted); transition: transform 0.15s ease; }
+.spc-head[aria-expanded="true"] .spc-caret { transform: rotate(180deg); }
+
+.spc-body { border-top: 1px solid var(--spv-line); position: relative; }
+/* display у правилах нижче не має перебивати атрибут hidden */
+.spc [hidden] { display: none !important; }
+.spc-list {
+  max-height: 340px;
+  overflow-y: auto;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.spc-empty { margin: 8px 0; color: var(--muted); font-size: 13px; }
+.spc-day {
+  display: flex;
+  justify-content: center;
+  margin: 8px 0 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.spc-day span { padding: 1px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--spv-line); }
+
+.spc-msg {
+  position: relative;
+  max-width: min(78%, 620px);
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--spv-line);
+  font-size: 14px;
+  line-height: 1.4;
+  margin-top: 6px;
+  align-self: flex-start;
+}
+.spc-msg.is-cont { margin-top: 0; }
+.spc-msg.is-mine { align-self: flex-end; background: var(--spv-on-bg); border-color: color-mix(in srgb, var(--spv-on-ink) 30%, transparent); }
+.spc-meta { display: flex; gap: 8px; align-items: baseline; margin-bottom: 2px; font-size: 12px; }
+.spc-meta b { color: var(--ink); }
+.spc-meta time { color: var(--muted); }
+.spc-text { overflow-wrap: anywhere; }
+.spc-text a { color: var(--accent); }
+.spc-del {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+  opacity: 0;
+}
+.spc-msg:hover .spc-del, .spc-del:focus-visible { opacity: 1; }
+
+.spc-file {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  color: var(--ink) !important;
+  text-decoration: none;
+  max-width: 100%;
+}
+.spc-file span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.spc-file small { color: var(--muted); }
+.spc-file img { max-width: 260px; max-height: 180px; border-radius: 6px; object-fit: cover; }
+.spc-file:hover { border-color: var(--accent); }
+
+.spc-busy { margin: 0; padding: 4px 12px; font-size: 12px; color: var(--muted); }
+.spc-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--spv-line);
+}
+.spc-attach {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 16px;
+}
+.spc-attach:hover { background: var(--soft); }
+.spc-form textarea {
+  flex: 1 1 auto;
+  min-width: 0;
+  resize: none;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  max-height: 140px;
+}
+.spc-foot { padding: 0 12px 8px; font-size: 12px; color: var(--muted); }
+.spc-foot a { color: var(--accent); }
+.spc-drop {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--spv-bg) 88%, transparent);
+  border: 2px dashed var(--accent);
+  border-radius: 0 0 14px 14px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+@media (max-width: 760px) {
+  .spc-msg { max-width: 92%; }
+  .spc-last { display: none; }
+  .spc-form .spv-btn { padding: 7px 10px; }
+}

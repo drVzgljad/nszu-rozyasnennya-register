@@ -22,9 +22,11 @@
  * Демо-картки режиму ?demo=1 вигадані.
  *
  * Голосова кімната відділу — окремий модуль voice.js (WebRTC + приватний канал
- * Realtime, migration_2026-11-03_voice_room.sql). Версію ?v= піднімати тут.
+ * Realtime, migration_2026-11-03_voice_room.sql), текстовий канал під нею —
+ * room-chat.js (кімната відділу з чату порталу). Версії ?v= обох піднімати тут.
  */
 import { initVoice, setVoiceDept } from './voice.js?v=20261103c';
+import { initRoomChat, setRoomChatDept } from './room-chat.js?v=20261103a';
 
 const $ = (id) => document.getElementById(id);
 
@@ -200,6 +202,8 @@ async function boot() {
   subscribe();
   // Голосова кімната відділу (voice.js): заходимо одразу, мікрофон вимкнений
   initVoice({ sb: state.sb, me: state.me, name: myName(), dept: state.dept, toast });
+  // Текстовий канал — кімната відділу з чату порталу (room-chat.js)
+  initRoomChat({ sb: state.sb, me: state.me, name: myName(), dept: state.dept, toast });
 }
 
 /**
@@ -260,6 +264,7 @@ function bootDemo() {
   render();
   applyUrlParams();
   initVoice({ demo: true, name: myName() });
+  initRoomChat({ demo: true, name: myName() });
 }
 
 function showNotice(text) {
@@ -277,6 +282,7 @@ function setupDeptPicker() {
     state.dept = sel.value;
     $('spDeptName').textContent = `Відділ ${state.dept}`;
     setVoiceDept(state.dept);
+    setRoomChatDept(state.dept);
     await loadPeople();
     await loadCases();
   });
