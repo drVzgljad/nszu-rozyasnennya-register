@@ -24,7 +24,7 @@
  * ?c=main | room:<uuid> | dm:<uuid> — відкрити розмову. ?mode=popup — плаваюче вікно.
  */
 
-import { createVoice, voiceTopic, MANY } from './voice.js?v=20261103d';
+import { createVoice, voiceTopic, MANY } from './voice.js?v=20261103e';
 import { QUICK, buildPicker, emojiOnly } from './emoji.js?v=20261103a';
 
 const QS = new URLSearchParams(location.search);

@@ -18,7 +18,7 @@
  *   попередній стан — це вміє рушій.
  */
 
-import { createVoice } from '../zviazok/voice.js?v=20261103d';
+import { createVoice } from '../zviazok/voice.js?v=20261103e';
 
 const MANY = 10;               // з такої кількості попереджаємо: пряма схема важчає
 const LS_OFF = 'spravy-voice-off';

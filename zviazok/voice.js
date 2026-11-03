@@ -31,6 +31,7 @@ export const MANY = 10; // з такої кількості пряма схем�
 
 export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {} }) {
   const v = {
+    since: 0,          // коли канал став live — перші 3 с join-и = «хто вже був», без звуку
     topic: '',
     label: '',
     ch: null,
@@ -103,13 +104,27 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     const ch = sb.channel(topic, { config: { private: true, broadcast: { self: false }, presence: { key: v.key } } });
     v.ch = ch;
     ch.on('presence', { event: 'sync' }, () => onSync(ch))
-      .on('presence', { event: 'join' }, ({ key }) => { if (key !== v.key && v.inRoom) chime(true); })
-      .on('presence', { event: 'leave' }, ({ key }) => { if (key !== v.key && v.inRoom) chime(false); })
+      // Хтось зайшов чи вийшов — звук і тост. Перемикання мікрофона теж приходить як join/leave
+      // того самого ключа (currentPresences не порожній) — на нього мовчимо. Стан, що прийшов
+      // одразу після входу (усі, хто вже був у кімнаті), теж не дзвонить: це не «зайшли щойно».
+      .on('presence', { event: 'join' }, ({ key, currentPresences, newPresences }) => {
+        if (key === v.key || !v.inRoom || currentPresences?.length || Date.now() - v.since < 3000) return;
+        chime(true);
+        const who = newPresences?.[0]?.name;
+        if (who) toast(`🎧 ${who} — у кімнаті`);
+      })
+      .on('presence', { event: 'leave' }, ({ key, currentPresences, leftPresences }) => {
+        if (key === v.key || !v.inRoom || currentPresences?.length) return;
+        chime(false);
+        const who = leftPresences?.[0]?.name;
+        if (who) toast(`${who} — вийшов(-ла) з кімнати`);
+      })
       .on('broadcast', { event: 'sig' }, ({ payload }) => onSignal(payload))
       .subscribe(async (status, err) => {
         if (ch !== v.ch) return;
         if (status === 'SUBSCRIBED') {
           v.status = 'live';
+          v.since = Date.now();
           if (v.inRoom) await ch.track(meta());
           emit();
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
@@ -425,21 +440,34 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     });
   }
 
-  /** Короткий звук, коли хтось зайшов або вийшов. */
+  /**
+   * Звук входу/виходу: дві ноти, як дверний дзвінок (вхід — вгору, вихід — униз).
+   * Раніше звучав ледь чутно (гучність 0,08) і лише якщо AudioContext уже «прокинувся»
+   * від кліку — колега заходив беззвучно (03.11.2026). Тепер гучніше й будимо контекст:
+   * після будь-якої взаємодії зі сторінкою браузер дозволяє resume() без нового кліку.
+   */
   function chime(up) {
     const ctx = audioCtx();
-    if (!ctx || ctx.state !== 'running' || v.deaf) return;
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    const t = ctx.currentTime;
-    o.frequency.setValueAtTime(up ? 520 : 660, t);
-    o.frequency.linearRampToValueAtTime(up ? 780 : 440, t + 0.16);
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.08, t + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-    o.connect(g).connect(ctx.destination);
-    o.start(t);
-    o.stop(t + 0.24);
+    if (!ctx || v.deaf) return;
+    const play = () => {
+      const t = ctx.currentTime;
+      const notes = up ? [659.25, 987.77] : [987.77, 659.25];   // E5 → B5 / B5 → E5
+      notes.forEach((f, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        const s = t + i * 0.16;
+        o.type = 'triangle';
+        o.frequency.setValueAtTime(f, s);
+        g.gain.setValueAtTime(0.0001, s);
+        g.gain.exponentialRampToValueAtTime(0.3, s + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.0001, s + 0.32);
+        o.connect(g).connect(ctx.destination);
+        o.start(s);
+        o.stop(s + 0.34);
+      });
+    };
+    if (ctx.state === 'running') play();
+    else ctx.resume().then(play).catch(() => {});
   }
 
   document.addEventListener('pointerdown', () => { audioCtx(); unlock(); }, true);
