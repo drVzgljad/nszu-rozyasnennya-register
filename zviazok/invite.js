@@ -8,7 +8,10 @@
  *      «Чат департаменту»;
  *   2) поза порталом — Web Push через воркер (push.js → POST /push/send) тим, хто
  *      увімкнув сповіщення. Посилання в сповіщенні воркер будує сам із pushKey.
- * Поруч — «поділитися» посиланням у WhatsApp, Teams, системне меню телефона.
+ * Поруч — «поділитися» посиланням самому: системне меню (navigator.share — там і WhatsApp,
+ * і Teams), WhatsApp програмою (whatsapp://, запасний — wa.me) і «Скопіювати запрошення»
+ * для Teams: надійного посилання «поділитися текстом» у Teams немає, а веб-Teams вимагає
+ * входу корпоративним акаунтом (так було в першій версії — користувачам не працювало).
  *
  * Діалог сам підтягує свій CSS (invite.css), список співробітників (profiles)
  * і «хто в мережі» (window.__pmgPresence з auth-v2.js) — сторінці нічого
@@ -34,8 +37,25 @@ function css() {
   cssDone = true;
   const l = document.createElement('link');
   l.rel = 'stylesheet';
-  l.href = new URL('./invite.css?v=20261103a', import.meta.url).href;
+  l.href = new URL('./invite.css?v=20261103b', import.meta.url).href;
   document.head.append(l);
+}
+
+/**
+ * WhatsApp програмою: whatsapp:// відкриває WhatsApp Desktop на ПК і застосунок на телефоні.
+ * Підміни на wa.me самі не робимо — Chrome спершу питає «Відкрити WhatsApp?», і поки людина
+ * думає, відкрилась би зайва вкладка. Натомість поруч з'являється «Не відкрилось? Веб-WhatsApp».
+ */
+function openWhatsApp(text, row) {
+  location.href = 'whatsapp://send?text=' + encodeURIComponent(text);
+  if (row.querySelector('.zv-inv-web')) return;
+  const a = document.createElement('a');
+  a.className = 'zv-inv-web';
+  a.href = 'https://wa.me/?text=' + encodeURIComponent(text);
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.textContent = 'Не відкрилось? Веб-WhatsApp';
+  row.append(a);
 }
 
 let peopleCache = null;
@@ -124,10 +144,9 @@ export async function openInvite(o) {
           </label>`).join('') || '<p class="zv-inv-muted">Усі вже тут.</p>'}</div></div>
       <div class="zv-inv-share">
         <span>Або надіслати посилання самому:</span>
-        <a class="zv-inv-btn" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">WhatsApp</a>
-        <a class="zv-inv-btn" href="https://teams.microsoft.com/share?href=${encodeURIComponent(o.url)}&amp;msgText=${encodeURIComponent(`Зайди в голос: «${o.title}»`)}" target="_blank" rel="noopener">Teams</a>
-        ${navigator.share ? '<button type="button" class="zv-inv-btn" data-act="share">📱 Інше…</button>' : ''}
-        <button type="button" class="zv-inv-btn" data-act="copy">Копіювати</button>
+        ${navigator.share ? '<button type="button" class="zv-inv-btn" data-act="share">📱 Поділитися…</button>' : ''}
+        <button type="button" class="zv-inv-btn" data-act="wa">WhatsApp</button>
+        <button type="button" class="zv-inv-btn" data-act="copy" title="Скопіювати текст із посиланням — вставте в Teams чи будь-куди">📋 Скопіювати запрошення</button>
       </div>
       <div class="zv-inv-actions">
         <button type="button" class="zv-inv-btn" data-act="close">Скасувати</button>
@@ -164,9 +183,10 @@ export async function openInvite(o) {
     const a = btn?.dataset.act;
     if (a === 'close') return dlg.close();
     if (a === 'copy') {
-      try { await navigator.clipboard.writeText(text); o.toast('Посилання скопійовано.'); } catch (_) { prompt('Скопіюйте посилання:', o.url); }
+      try { await navigator.clipboard.writeText(text); o.toast('Скопійовано — вставте в Teams чи будь-який чат.'); } catch (_) { prompt('Скопіюйте запрошення:', text); }
     }
     if (a === 'share') navigator.share({ title: 'Зайди в голос', text: `Зайди в голос: «${o.title}»`, url: o.url }).catch(() => {});
+    if (a === 'wa') openWhatsApp(text, form.querySelector('.zv-inv-share'));
     if (a === 'gather') {
       if (!confirm(`Оголосити загальний збір у «${o.title}»? Покличемо ${gLabel}.`)) return;
       btn.disabled = true;

@@ -114,7 +114,7 @@ async function onClick(e) {
 
 /** «📣 Запросити» / «Загальний збір» — діалог спільний із «Чатом департаменту». */
 async function openInviteDialog() {
-  const { openInvite, GATHER_TEXT } = await import('../zviazok/invite.js?v=20261103b');
+  const { openInvite, GATHER_TEXT } = await import('../zviazok/invite.js?v=20261103c');
   const all = v.dept === ALL;
   const where = all ? 'all' : 'dept';
   openInvite({
