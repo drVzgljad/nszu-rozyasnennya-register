@@ -750,6 +750,7 @@ function handleBranchChange() {
 
 /* ── «Внутрішня робота відділу» і «Робота в АСКОД» ↔ «Справи відділу» ── */
 
+const clip = (t, n = 140) => (String(t || '').length > n ? String(t).slice(0, n - 1) + '…' : String(t || ''));
 const CASE_STAGE_LABEL = { new: 'Нове', work: 'В роботі', review: 'Погодження', signing: 'На підписі', sz_sent: 'СЗ надано', done: 'Закрито' };
 
 // Справа за номером АСКОД: вх. №, № проєкту відповіді або вих. № (без дефісів і пробілів)
@@ -809,7 +810,7 @@ function renderSync() {
       text = 'У «Справах відділу» зʼявиться завдання з вами як виконавцем, а цей запис — у його історії.';
       showDone = true;
     } else if (c) {
-      text = `Роботу буде записано в історію справи «${escapeHtml(c.subject)}» (${CASE_STAGE_LABEL[c.stage] || c.stage}${c.executor_name ? ' · ' + escapeHtml(c.executor_name) : ''}).`;
+      text = `Роботу буде записано в історію справи «${escapeHtml(clip(c.subject))}» (${CASE_STAGE_LABEL[c.stage] || c.stage}${c.executor_name ? ' · ' + escapeHtml(c.executor_name) : ''}).`;
     } else {
       text = 'Запис буде лише в СКО-Д, у «Справах відділу» його не буде видно.';
     }
@@ -819,7 +820,7 @@ function renderSync() {
     if (!no) {
       text = 'Справу у «Справах відділу» знайдемо за цим номером.';
     } else if (c) {
-      text = `📋 У «Справах відділу»: <b>${escapeHtml(c.in_no || c.project_no || c.out_no)}</b> — ${escapeHtml(c.subject)} (${CASE_STAGE_LABEL[c.stage] || c.stage}${c.executor_name ? ' · ' + escapeHtml(c.executor_name) : ''}). Роботу буде записано в історію цієї справи.`;
+      text = `📋 У «Справах відділу»: <b>${escapeHtml(c.in_no || c.project_no || c.out_no)}</b> — ${escapeHtml(clip(c.subject))} (${CASE_STAGE_LABEL[c.stage] || c.stage}${c.executor_name ? ' · ' + escapeHtml(c.executor_name) : ''}). Роботу буде записано в історію цієї справи.`;
     } else {
       text = `Документа № ${escapeHtml(no)} у «Справах відділу» немає.`;
       showNew = true;
