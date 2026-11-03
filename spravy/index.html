@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Справи відділу</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="spravy.css?v=20261103w">
+  <link rel="stylesheet" href="spravy.css?v=20261103y">
   <link rel="stylesheet" href="../auth-v2.css?v=20261103b">
   <script type="module" src="../auth-v2.js?v=20261103l"></script>
 </head>
@@ -88,6 +88,9 @@
         <button type="button" data-view="list" aria-pressed="false">Список</button>
         <button type="button" data-view="people" aria-pressed="false">За виконавцями</button>
       </div>
+      <!-- Свій журнал АСКОД (xlsx): askod-upload.js + ../pmg-askod-journal.js -->
+      <button type="button" class="sp-btn" id="spJournal" title="Завантажити свій журнал резолюцій з АСКОД (xlsx): нові справи заведуться, строки й стан оновляться" hidden>📥 Журнал АСКОД</button>
+      <input type="file" id="spJournalFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
       <button type="button" class="sp-btn sp-btn-primary" id="spAdd">+ Справа</button>
     </div>
 
@@ -103,7 +106,8 @@
       <summary>Як працює дошка</summary>
       <ul>
         <li><b>Нове</b> — документ зареєстровано в АСКОД, до роботи ще не взялися.
-          Нові справи з журналу АСКОД заводить скрипт <code>tools/spravy_sync.py</code>;
+          Нові справи з журналу АСКОД заводяться самі щодня, а свіжий журнал можна завантажити
+          й самому: «📥 Журнал АСКОД» → xlsx-вигрузка резолюцій з АСКОД → перевірити підсумок → «Застосувати»;
           «не наше» або «до відома» — просто перетягніть у «Закрито».</li>
         <li><b>Готуємо</b> — є виконавець і чернетка. Номер версії (v1…vN) ставте в картці:
           кожна зміна потрапляє в стрічку подій.</li>
@@ -230,6 +234,18 @@
     </form>
   </dialog>
 
+  <!-- Журнал АСКОД: що зміниться — і підтвердження (askod-upload.js) -->
+  <dialog class="sp-new sp-jr" id="spJournalDlg" aria-labelledby="spJournalTitle">
+    <form id="spJournalForm">
+      <h2 id="spJournalTitle">📥 Журнал АСКОД</h2>
+      <div id="spJournalBody"></div>
+      <div class="sp-new-foot">
+        <button type="button" class="sp-btn sp-btn-ghost" id="spJournalCancel">Скасувати</button>
+        <button type="submit" class="sp-btn sp-btn-primary" id="spJournalOk" disabled>Застосувати</button>
+      </div>
+    </form>
+  </dialog>
+
   <div class="sp-toast" id="spToast" role="status" hidden></div>
 
   <footer class="site-footer">
@@ -243,6 +259,7 @@
   </footer>
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
-  <script type="module" src="spravy.js?v=20261103r"></script>
+  <script src="../pmg-askod-journal.js?v=20261103a" defer></script>
+  <script type="module" src="spravy.js?v=20261103t"></script>
 </body>
 </html>

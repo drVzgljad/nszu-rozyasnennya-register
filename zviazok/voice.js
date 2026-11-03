@@ -64,7 +64,9 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     needGesture: false,
     timer: null,
     sink: null,
-    inRoom: true          // false — «лише дивлюся»: підписані на канал, але без присутності й звуку
+    inRoom: true,         // false — «лише дивлюся»: підписані на канал, але без присутності й звуку
+    rec: null,            // запис наради в ЦЬОМУ браузері: { since, sources: Map(key → запис), done: [] }
+    recSeen: ''           // ключ того, чий запис ми вже оголосили (тост і сигнал — один раз)
   };
 
   const emit = () => onChange(snapshot());
@@ -83,6 +85,8 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
       sharing: !!v.screen,
       canShare: canShare(),
       presenter: presenter(),
+      recording: recorder(),
+      canRecord: typeof window.MediaRecorder !== 'undefined',
       members: [...v.members.entries()].map(([k, m]) => ({ key: k, ...m, me: k === v.key, state: k === v.key ? 'ok' : peerState(k) }))
     };
   }
@@ -94,6 +98,13 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     if (!best) return null;
     const me = best.k === v.key;
     return { key: best.k, name: best.m.name || '', me, stream: me ? null : v.peers.get(best.k)?.video || null };
+  }
+
+  /** Хто записує нараду: { key, name, me, since } або null (пише один — той, хто натиснув «Нарада»). */
+  function recorder() {
+    let best = null;
+    v.members.forEach((m, k) => { if (m.rec && (!best || m.rec < best.m.rec)) best = { k, m }; });
+    return best ? { key: best.k, name: best.m.name || '', me: best.k === v.key, since: best.m.rec } : null;
   }
 
   function sinkEl() {
@@ -194,7 +205,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
   async function leave(quiet) {
     const was = v.inRoom && v.status !== 'idle';
     await closeChannel();
-    if (v.mic) { v.mic.stop(); v.mic = null; v.meters.delete('me'); }
+    if (v.mic) { recDetach('me'); v.mic.stop(); v.mic = null; v.meters.delete('me'); }
     v.muted = true;
     v.label = '';
     v.status = 'idle';
@@ -217,7 +228,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     if (!v.inRoom) return;
     v.inRoom = false;
     stopShare(true);
-    if (v.mic) { v.mic.stop(); v.mic = null; v.meters.delete('me'); }
+    if (v.mic) { recDetach('me'); v.mic.stop(); v.mic = null; v.meters.delete('me'); }
     v.muted = true;
     for (const k of [...v.peers.keys()]) dropPeer(k, true);
     try { await v.ch?.untrack(); } catch (_) { /* канал закрито */ }
@@ -225,12 +236,25 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     emit();
   }
 
-  const meta = () => ({ uid: me?.id, name, muted: v.muted, deaf: v.deaf, caps: ['screen'], sharing: v.shareSince });
+  const meta = () => ({ uid: me?.id, name, muted: v.muted, deaf: v.deaf, caps: ['screen'], sharing: v.shareSince, rec: v.rec?.since || 0 });
 
   function onSync(ch) {
     if (ch !== v.ch) return;
     const st = ch.presenceState() || {};
     v.members = new Map(Object.entries(st).map(([k, arr]) => [k, arr[arr.length - 1] || {}]));
+    // Почався запис наради — кожному в кімнаті (і тому, хто зайшов посеред наради) сигнал і тост.
+    // Попередити всіх, що йде запис, — обов'язково
+    const rc = recorder();
+    if (rc && rc.key !== v.recSeen) {
+      v.recSeen = rc.key;
+      if (!rc.me && v.inRoom) {
+        warnTone();
+        toast(`🔴 Іде запис наради (увімкнув(-ла) ${rc.name}). Усе сказане в кімнаті записується.`);
+      }
+    } else if (!rc && v.recSeen) {
+      if (v.inRoom && v.recSeen !== v.key) toast('⏹ Запис наради завершено');   // ініціатору скаже meeting.js
+      v.recSeen = '';
+    }
     // Показ екрана: одна людина за раз — хтось почав пізніше за нас, наш показ зупиняється
     const pr = presenter();
     if (v.screen && pr && !pr.me) {
@@ -322,6 +346,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
       audio.srcObject = new MediaStream([e.track]);
       playAudio(audio);
       addMeter(k, audio.srcObject);
+      if (v.rec) recAttach(k, audio.srcObject);
     };
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === 'connected') p.tries = 0;
@@ -364,6 +389,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     const p = v.peers.get(k);
     if (!p) return;
     if (sayBye) send(k, { type: 'bye' });
+    recDetach(k);
     try { p.pc.close(); } catch (_) { /* уже закрито */ }
     if (p.audio) { p.audio.srcObject = null; p.audio.remove(); }
     v.meters.delete(k);
@@ -407,12 +433,14 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
         });
         v.mic = s.getAudioTracks()[0];
         addMeter('me', s);
+        if (v.rec) recAttach('me', s);
       } catch (e) {
         toast('Браузер не дав доступу до мікрофона: дозвольте його біля адресного рядка.', true);
         return;
       }
     }
     if (muted && v.mic) {
+      recDetach('me');
       v.mic.stop();
       v.mic = null;
       v.meters.delete('me');
@@ -422,6 +450,90 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     if (!muted && v.deaf) { v.micBeforeDeaf = false; hear(true); }
     await Promise.all([...v.peers.values()].map((p) => p.sender?.replaceTrack(v.mic).catch(() => {})));
     if (!quiet) retrack();
+  }
+
+  /* ───────── запис наради ───────── */
+
+  // Кожен голос — окрема доріжка (свій мікрофон і кожен учасник): у протоколі точно відомо,
+  // хто що сказав, і не треба вгадувати голоси. Час доріжки — зсув від початку наради.
+  const REC_MIME = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4']
+    .find((m) => window.MediaRecorder?.isTypeSupported?.(m)) || '';
+
+  function recAttach(k, stream) {
+    if (!v.rec || !stream?.getAudioTracks().length) return;
+    recDetach(k);
+    const mem = k === 'me' ? { uid: me?.id, name } : (v.members.get(k) || {});
+    let mr;
+    try {
+      mr = new MediaRecorder(new MediaStream(stream.getAudioTracks()), REC_MIME ? { mimeType: REC_MIME, audioBitsPerSecond: 32000 } : {});
+    } catch (_) { return; }
+    const src = { k, mr, chunks: [], start: Date.now(), uid: mem.uid || null, name: mem.name || '' };
+    const rec = v.rec;
+    src.stopped = new Promise((res) => {
+      mr.onstop = () => {
+        const blob = new Blob(src.chunks, { type: mr.mimeType || REC_MIME || 'audio/webm' });
+        if (blob.size) rec.done.push({ uid: src.uid, name: src.name || v.members.get(k)?.name || '', offset_ms: src.start - rec.since, dur_ms: Date.now() - src.start, blob });
+        res();
+      };
+    });
+    mr.ondataavailable = (e) => { if (e.data?.size) src.chunks.push(e.data); };
+    mr.start(10000);
+    rec.sources.set(k, src);
+  }
+
+  function recDetach(k) {
+    const src = v.rec?.sources.get(k);
+    if (!src) return;
+    v.rec.sources.delete(k);
+    if (!src.name) src.name = v.members.get(k)?.name || '';
+    try { src.mr.stop(); } catch (_) { /* уже зупинено */ }
+    v.rec.pending.push(src.stopped);
+  }
+
+  /** «🔴 Нарада»: почати запис у цьому браузері. Усім у кімнаті прийде попередження. */
+  function startRecording() {
+    if (v.rec || !v.ch || !v.inRoom || v.status !== 'live' || !window.MediaRecorder) return false;
+    v.rec = { since: Date.now(), sources: new Map(), done: [], pending: [] };
+    v.recSeen = v.key;
+    v.peers.forEach((p, k) => { if (p.audio?.srcObject) recAttach(k, p.audio.srcObject); });
+    if (v.mic) recAttach('me', new MediaStream([v.mic]));
+    warnTone();
+    retrack();
+    return true;
+  }
+
+  /** «⏹ Кінець наради»: зупинити запис і віддати доріжки { since, until, tracks: [{ uid, name, offset_ms, dur_ms, blob }] }. */
+  async function stopRecording() {
+    const rec = v.rec;
+    if (!rec) return null;
+    [...rec.sources.keys()].forEach(recDetach);
+    await Promise.all(rec.pending);
+    v.rec = null;
+    retrack();
+    return { since: rec.since, until: Date.now(), mime: REC_MIME, tracks: rec.done.sort((a, b) => a.offset_ms - b.offset_ms) };
+  }
+
+  /** Сигнал «іде запис»: три короткі однакові ноти — не сплутати з дзвоником входу. */
+  function warnTone() {
+    const ctx = audioCtx();
+    if (!ctx) return;
+    const play = () => {
+      const t = ctx.currentTime;
+      [0, 0.22, 0.44].forEach((d) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(880, t + d);
+        g.gain.setValueAtTime(0.0001, t + d);
+        g.gain.exponentialRampToValueAtTime(0.25, t + d + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.15);
+        o.connect(g).connect(ctx.destination);
+        o.start(t + d);
+        o.stop(t + d + 0.17);
+      });
+    };
+    if (ctx.state === 'running') play();
+    else ctx.resume().then(play).catch(() => {});
   }
 
   /* ───────── показ екрана ───────── */
@@ -586,6 +698,9 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     toggleMic: () => setMuted(!v.muted),
     toggleDeaf: () => setDeaf(!v.deaf),
     toggleShare: () => (v.screen ? stopShare() : startShare()),
+    startRecording,
+    stopRecording,
+    get recording() { return !!v.rec; },
     unlock,
     get topic() { return v.topic; },
     get state() { return snapshot(); },

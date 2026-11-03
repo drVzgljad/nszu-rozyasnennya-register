@@ -18,7 +18,8 @@
  *   попередній стан — це вміє рушій.
  */
 
-import { createVoice } from '../zviazok/voice.js?v=20261103f';
+import { createVoice } from '../zviazok/voice.js?v=20261103g';
+import { createMeeting } from '../zviazok/meeting.js?v=20261103a';
 import { createStage } from '../zviazok/stage.js?v=20261103a';
 
 const MANY = 10;               // з такої кількості попереджаємо: пряма схема важчає
@@ -39,6 +40,7 @@ const v = {
   dept: '',
   toast: () => {},
   eng: null,           // рушій ../zviazok/voice.js
+  meet: null,          // нарада із записом ../zviazok/meeting.js
   stage: null,         // «сцена» показу екрана ../zviazok/stage.js — під панеллю
   vs: null,            // його знімок стану: status, error, inRoom, muted, deaf, needGesture, members
   noDept: false
@@ -58,6 +60,7 @@ export function initVoice(opts) {
   v.root.after(host);
   v.stage = createStage(host, { onStop: () => v.eng.toggleShare() });
   v.eng = createVoice({ sb: v.sb, me: v.me, name: v.name, toast: v.toast, onChange: (s) => { v.vs = s; render(); v.stage.update(s); } });
+  v.meet = createMeeting({ sb: v.sb, me: v.me, name: v.name, eng: v.eng, toast: v.toast });
   openRoom();
 }
 
@@ -105,7 +108,17 @@ async function onClick(e) {
   if (act === 'mic') await v.eng.toggleMic();
   else if (act === 'deaf') await v.eng.toggleDeaf();
   else if (act === 'screen') await v.eng.toggleShare();
-  else if (act === 'leave') { lsSet(LS_OFF, '1'); await v.eng.exit(); }
+  else if (act === 'meet') { await v.meet.start({ topic: v.eng.topic, label: roomTitle() }); render(); }
+  else if (act === 'meetend') { await v.meet.finish(); render(); }
+  else if (act === 'leave') {
+    // Ви записуєте нараду — вихід її завершує (інакше запис пропаде)
+    if (v.meet.active) {
+      if (!confirm('Іде запис наради. Завершити нараду й зберегти запис?')) return;
+      await v.meet.finish();
+    }
+    lsSet(LS_OFF, '1');
+    await v.eng.exit();
+  }
   else if (act === 'join') await joinRoom();
 }
 
@@ -146,6 +159,9 @@ function render() {
          title="${s.deaf ? 'Увімкнути звук' : 'Вимкнути звук (і мікрофон)'}">${s.deaf ? '🔕' : '🎧'}</button>
        ${s.canShare ? `<button type="button" class="spv-btn spv-icon${s.sharing ? ' is-on' : ''}" data-act="screen" aria-pressed="${!!s.sharing}"
          title="${s.sharing ? 'Зупинити показ екрана' : 'Показати колегам свій екран або вікно'}">🖥</button>` : ''}
+       ${s.canRecord && !(s.recording && !s.recording.me) ? (s.recording?.me
+         ? '<button type="button" class="spv-btn spv-rec is-on" data-act="meetend" title="Зупинити запис і зберегти нараду — протокол підготує Claude">⏹ Кінець наради</button>'
+         : '<button type="button" class="spv-btn spv-rec" data-act="meet" title="Почати нараду: увімкнеться запис, усіх у кімнаті буде попереджено">🔴 Нарада</button>') : ''}
        <button type="button" class="spv-btn spv-ghost" data-act="leave" title="Вийти з кімнати; запамʼятаємо до наступного «Увійти»">Вийти</button>`
     : s.status === 'live'
       ? '<button type="button" class="spv-btn spv-join" data-act="join">Увійти в кімнату</button>'
@@ -158,6 +174,7 @@ function render() {
       <span class="spv-count">${list.length ? `${list.length} ${plural(list.length)}` : ''}</span>
     </div>
     <ul class="spv-people" aria-label="Хто в кімнаті">${people}</ul>
+    ${s.recording ? `<p class="spv-recbar">🔴 Іде запис наради · ${s.recording.me ? 'записуєте ви' : 'увімкнув(-ла) ' + esc(s.recording.name)} · з ${new Date(s.recording.since).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}</p>` : ''}
     ${note ? `<p class="spv-note${s.status === 'error' ? ' is-bad' : ''}">${esc(note)}</p>` : ''}
     ${s.needGesture ? '<button type="button" class="spv-btn spv-sound" data-act="sound">🔊 Натисніть, щоб чути колег</button>' : ''}
     <div class="spv-actions">${btns}</div></div>`;

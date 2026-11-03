@@ -25,8 +25,10 @@
  * Realtime, migration_2026-11-03_voice_room.sql), текстовий канал під нею —
  * room-chat.js (кімната відділу з чату порталу). Версії ?v= обох піднімати тут.
  */
-import { initVoice, setVoiceDept } from './voice.js?v=20261103l';
+import { initVoice, setVoiceDept } from './voice.js?v=20261103m';
 import { initRoomChat, setRoomChatDept } from './room-chat.js?v=20261103e';
+// Свій журнал АСКОД (xlsx) — кнопка «📥 Журнал АСКОД»; розбір — ../pmg-askod-journal.js
+import { initAskodUpload } from './askod-upload.js?v=20261103a';
 
 const $ = (id) => document.getElementById(id);
 
@@ -248,6 +250,7 @@ async function boot() {
   await loadCases();
   applyUrlParams();
   subscribe();
+  initAskodUpload({ sb: state.sb, me: state.me, name: myName(), dept: () => state.dept, toast, reload: loadCases });
   // Голосова кімната (voice.js): заходимо одразу, мікрофон вимкнений. Текстовий канал під нею —
   // кімната відділу або головна стрічка «Робочого чату Департаменту» (room-chat.js).
   setupRoomScope();
@@ -343,6 +346,7 @@ function bootDemo() {
   applyUrlParams();
   initVoice({ demo: true, name: myName() });
   initRoomChat({ demo: true, name: myName() });
+  initAskodUpload({ demo: true, name: myName(), dept: () => state.dept, toast, cases: () => state.cases, people: () => state.people, reload: async () => render() });
 }
 
 function showNotice(text) {

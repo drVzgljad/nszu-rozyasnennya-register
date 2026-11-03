@@ -31,7 +31,8 @@
  * ?mode=popup — плаваюче вікно.
  */
 
-import { createVoice, MANY } from './voice.js?v=20261103f';
+import { createVoice, MANY } from './voice.js?v=20261103g';
+import { createMeeting } from './meeting.js?v=20261103a';
 import { createStage } from './stage.js?v=20261103a';
 import { QUICK, buildPicker, emojiOnly } from './emoji.js?v=20261103a';
 
@@ -319,7 +320,12 @@ async function toggleVoice() {
   renderVoice();
   try {
     if (inVoice()) {
-      await S.voice.exit();
+      // Ви записуєте нараду — вихід її завершує (інакше запис пропаде)
+      const stay = S.meet?.active && !confirm('Іде запис наради. Завершити нараду й зберегти запис?');
+      if (!stay) {
+        if (S.meet?.active) await S.meet.finish();
+        await S.voice.exit();
+      }
     } else {
       // Канал упав (мережа) — не чекаємо хвилину до повтору, перепідключаємось одразу
       if (S.voice.state.status === 'error') await S.voice.leave(true);
@@ -558,13 +564,28 @@ function ctlHtml() {
   return `<div class="zv-vctl">
     <button type="button" class="zv-btn zv-vbtn${vs.muted ? '' : ' is-on'}" data-act="mic" aria-pressed="${!vs.muted}" title="${vs.muted ? 'Увімкнути мікрофон' : 'Вимкнути мікрофон — вас не чутимуть'}">${vs.muted ? '🔇' : '🎙'}<span>${vs.muted ? 'Мікрофон вимк.' : 'Мікрофон'}</span></button>
     <button type="button" class="zv-btn zv-vbtn${vs.deaf ? ' is-off' : ''}" data-act="deaf" aria-pressed="${vs.deaf}" title="${vs.deaf ? 'Увімкнути звук' : 'Вимкнути звук (і мікрофон)'}">${vs.deaf ? '🔕' : '🎧'}<span>${vs.deaf ? 'Звук вимк.' : 'Звук'}</span></button>
+    ${meetBtn(vs)}
     ${vs.canShare ? `<button type="button" class="zv-btn zv-vbtn${vs.sharing ? ' is-on' : ''}" data-act="screen" aria-pressed="${!!vs.sharing}" title="${vs.sharing ? 'Зупинити показ екрана' : 'Показати колегам свій екран або вікно'}">🖥<span>${vs.sharing ? 'Показую' : 'Екран'}</span></button>` : ''}
   </div>`;
+}
+
+// «🔴 Нарада» — запис для протоколу (zviazok/meeting.js); поки пише хтось інший, кнопки немає
+function meetBtn(vs) {
+  if (!vs.canRecord) return '';
+  if (vs.recording?.me) return '<button type="button" class="zv-btn zv-vbtn zv-rec is-on" data-act="meetend" title="Зупинити запис і зберегти нараду — протокол підготує Claude">⏹<span>Кінець наради</span></button>';
+  if (vs.recording) return '';
+  return '<button type="button" class="zv-btn zv-vbtn zv-rec" data-act="meet" title="Почати нараду: увімкнеться запис, усіх у кімнаті буде попереджено">🔴<span>Нарада</span></button>';
+}
+
+function recNote(vs) {
+  if (!vs?.recording) return '';
+  return `<p class="zv-vnote zv-recnote">🔴 Іде запис наради · ${vs.recording.me ? 'записуєте ви' : 'увімкнув(-ла) ' + esc(vs.recording.name)} · з ${new Date(vs.recording.since).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}</p>`;
 }
 
 function voiceNote() {
   const vs = S.vs;
   if (!vs) return '';
+  if (vs.recording) return recNote(vs);
   if (vs.status === 'error') return `<p class="zv-vnote is-bad">${esc(vs.error)}</p>`;
   if (inVoice() && vs.status === 'joining') return '<p class="zv-vnote">Заходимо в голос…</p>';
   if (inVoice() && voicePeople().length < 2) return '<p class="zv-vnote">Поки що ви тут самі — колеги почують сигнал, коли зайдуть.</p>';
@@ -983,6 +1004,8 @@ function voiceAct(a) {
   if (a === 'deaf') S.voice.toggleDeaf();
   if (a === 'screen') S.voice.toggleShare?.();
   if (a === 'sound') S.voice.unlock();
+  if (a === 'meet') S.meet.start({ topic: TOPIC, label: TITLE }).then(renderVoice);
+  if (a === 'meetend') S.meet.finish().then(renderVoice);
 }
 
 /* ───────────────────────── старт ───────────────────────── */
@@ -1030,6 +1053,7 @@ async function boot() {
   $('zvLog').before(stageHost);
   S.stage = createStage(stageHost, { onStop: () => S.voice.toggleShare() });
   S.voice = createVoice({ sb: S.sb, me: S.me, name: S.name, toast, onChange: (vs) => { onVoice(vs); S.stage.update(vs); } });
+  S.meet = createMeeting({ sb: S.sb, me: S.me, name: S.name, eng: S.voice, toast });
   subscribe();
   // Канал голосу — одразу «лише дивлюся»: видно, хто в ефірі, ще до натискання «Голос»
   S.voice.join(TOPIC, TITLE, { listen: true });

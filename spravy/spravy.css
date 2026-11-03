@@ -1042,3 +1042,27 @@
   .sp-ms-form { grid-template-columns: minmax(0, 1fr) auto; }
   .sp-ms-form .sp-btn { grid-column: 1 / -1; }
 }
+
+/* ---------- журнал АСКОД (askod-upload.js) ---------- */
+.sp-jr { width: min(640px, calc(100vw - 32px)); }
+.sp-jr-file { margin: 0 0 10px; overflow-wrap: anywhere; }
+.sp-jr-warn { margin: 0 0 10px; padding: 8px 12px; border-radius: 10px; background: var(--sp-hot-bg); color: var(--sp-hot-ink); font-size: 14px; }
+.sp-jr-warn.is-bad { background: var(--sp-over-bg); color: var(--sp-over-ink); }
+.sp-jr-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin: 4px 0 10px; }
+.sp-jr-stats div { border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; background: var(--soft); }
+.sp-jr-stats strong { display: block; font-size: 22px; line-height: 1.1; }
+.sp-jr-stats span { color: var(--muted); font-size: 13px; }
+.sp-jr-note { display: block; margin: 0 0 10px; line-height: 1.4; }
+.sp-jr-list { border-top: 1px solid var(--line); padding: 6px 0; }
+.sp-jr-list summary { cursor: pointer; font-weight: 700; }
+.sp-jr-list ul { list-style: none; margin: 6px 0 0; padding: 0; max-height: 240px; overflow: hidden auto; }
+.sp-jr-list li { padding: 5px 0; border-bottom: 1px dashed var(--line); font-size: 14px; overflow-wrap: anywhere; }
+.sp-jr-chg { color: var(--sp-ver-ink); font-size: 13px; }
+.sp-jr-subj { color: var(--muted); font-size: 13px; }
+
+/* Нарада із записом (03.11.2026): кнопка й смуга «іде запис» у голосовій кімнаті */
+.spv-btn.spv-rec { border-color: #c0392b; color: #c0392b; }
+.spv-btn.spv-rec.is-on { background: #c0392b; color: #fff; }
+.spv-recbar { margin: 6px 0 0; padding: 6px 10px; border-radius: 8px; font-size: 12.5px; font-weight: 700;
+  background: color-mix(in srgb, #c0392b 12%, transparent); color: #c0392b; }
+:root.dark-theme .spv-recbar, :root.dark-theme .spv-btn.spv-rec:not(.is-on) { color: #ff8a80; border-color: #ff8a80; }
