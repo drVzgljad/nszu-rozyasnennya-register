@@ -109,7 +109,7 @@ const PORTAL_SUBDIRS = [
   'gospitalizatsiya', 'infocenter',
   'koduvannia', 'map', 'mapping', 'news', 'pakety', 'passport', 'pilots', 'pmg-proposals', 'postanova',
   'regulatory', 'relax', 'reminders', 'rentgen', 'rozjasnennya', 'skod', 'spravy', 'vnutrishni-akty',
-  'zoz-dogovr', 'zoz-poshuk', 'zoz-questions'
+  'zoz-dogovr', 'zoz-poshuk', 'zoz-questions', 'zviazok'
 ];
 
 function isInPortalSubdir() {
@@ -192,14 +192,14 @@ function applyAccess() {
   // Update standalone Chat button in top nav
   const chatBtn = document.getElementById('auth-chat-btn');
   if (chatBtn) {
-    chatBtn.href = prefix + 'chat/index.html';
+    chatBtn.href = prefix + 'zviazok/index.html';
     const hasChatAccess = hasAccess('expert');
     if (!hasChatAccess) {
       chatBtn.style.display = 'none';
     } else {
       chatBtn.style.display = '';
       chatBtn.classList.remove('is-locked');
-      chatBtn.innerHTML = `Робочий чат`;
+      chatBtn.innerHTML = `Чат департаменту`;
       chatBtn.onclick = null;
     }
   }
@@ -551,7 +551,9 @@ function applyAccess() {
     const tailItems = [
       { text: '📡 Інфоцентр', path: 'infocenter/index.html', role: 'expert' },
       { text: 'Структура Департаменту', path: 'dept-tree.html', role: 'expert' },
-      { text: 'Робочий чат', path: 'chat/index.html', isChat: true, role: 'expert' }
+      // Чат департаменту (zviazok/): текст і голос у кожній кімнаті. З 03.11.2026
+      // замінив старий chat/ — той лишився перенаправленням сюди.
+      { text: 'Чат департаменту', path: 'zviazok/index.html', isChat: true, role: 'expert' }
     ];
 
     // «Сервіси» — робочі інструменти департаменту. Тринадцять пунктів одним
@@ -952,7 +954,9 @@ function inject() {
     if (footer) footer.before(searchRow); else document.body.appendChild(searchRow);
     searchRow.querySelector('button').addEventListener('click', openGlobalSearch);
   }
-  if (container) {
+  // Компактна кнопка в шапці — лише там, де нижнього рядка немає (hero-шапка):
+  // на портальних сторінках пошук живе внизу, а з клавіатури — Ctrl+K (03.11.2026)
+  if (container && !navRow) {
     const searchBtn = document.createElement('button');
     searchBtn.id = 'global-search-btn';
     searchBtn.className = 'global-search-btn';
@@ -1160,7 +1164,7 @@ function inject() {
     const topChatBtn = document.createElement('a');
     topChatBtn.id = 'auth-chat-btn';
     topChatBtn.className = 'auth-chat-btn';
-    topChatBtn.textContent = 'Робочий чат';
+    topChatBtn.textContent = 'Чат департаменту';
     container.appendChild(topChatBtn);
 
     // Standalone Personal Cabinet button in top nav
@@ -1764,6 +1768,10 @@ async function trackGlobalPresence() {
     .on('presence', { event: 'sync' }, () => {
       const state = globalPresenceChannel.presenceState();
       updateGlobalOnlineCount(state);
+      // Чат департаменту (zviazok/) показує «У мережі» з цього ж стану: другий
+      // канал 'chat_room' з того самого клієнта Realtime закрив би цей
+      window.__pmgPresence = state;
+      window.dispatchEvent(new CustomEvent('pmg:presence', { detail: state }));
     })
     .subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
@@ -2653,7 +2661,8 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '🏠', label: 'Головна', path: 'index.html' },
     { icon: '🔍', label: 'Пошук', action: 'search' },
     { icon: '📋', label: 'Справи', path: 'spravy/index.html' },
-    { icon: '👤', label: 'Кабінет', path: 'cabinet/index.html' },
+    // Чат замість «Кабінету» (03.11.2026): кабінет лишився в шторці «Ще»
+    { icon: '💬', label: 'Чат', path: 'zviazok/index.html' },
     { icon: '☰', label: 'Ще', action: 'more' }
   ] : [
     { icon: '🏠', label: 'Головна', path: 'index.html' },
@@ -2702,7 +2711,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '📊', label: 'Звіти СКО-Д', path: 'skod/reports.html', role: 'expert' },
     { icon: '✅', label: 'Доручення (архів)', path: 'skod/tasks.html', role: 'manager' },
     { icon: '👥', label: 'Структура Департаменту', path: 'dept-tree.html', role: 'expert' },
-    { icon: '💬', label: 'Робочий чат', path: 'chat/index.html', role: 'expert' },
+    { icon: '💬', label: 'Чат департаменту', path: 'zviazok/index.html', role: 'expert' },
     { icon: '📰', label: 'Новини', path: 'news/index.html', role: 'expert' },
     { icon: '📡', label: 'Інфоцентр', path: 'infocenter/index.html', role: 'expert' },
     { icon: '⏰', label: 'Нагадування', path: 'reminders/index.html', role: 'expert' },
