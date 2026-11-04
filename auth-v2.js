@@ -189,17 +189,19 @@ function applyAccess() {
   const prefix = isInSubdir ? '../' : './';
   const currentPath = window.location.pathname.toLowerCase();
 
-  // Update standalone Chat button in top nav
+  // Верхня кнопка поруч із кабінетом — «Справи відділу» (з 04.11.2026). Раніше тут був
+  // «Чат департаменту», і він дублював пункт верхнього меню; чат лишився в меню й таббарі.
+  // id auth-chat-btn лишаємо — на ньому стилі кнопки
   const chatBtn = document.getElementById('auth-chat-btn');
   if (chatBtn) {
-    chatBtn.href = prefix + 'zviazok/index.html';
+    chatBtn.href = prefix + 'spravy/index.html';
     const hasChatAccess = hasAccess('expert');
     if (!hasChatAccess) {
       chatBtn.style.display = 'none';
     } else {
       chatBtn.style.display = '';
       chatBtn.classList.remove('is-locked');
-      chatBtn.innerHTML = `Чат департаменту`;
+      chatBtn.innerHTML = `📋 Справи відділу`;
       chatBtn.onclick = null;
     }
   }
@@ -222,18 +224,8 @@ function applyAccess() {
   // Кнопка вгорі — «Справи відділу» (з 02.11.2026). Раніше тут були «Доручення»
   // СКО-Д лише для керівників; тепер доручення = справа з виконавцем, і вхід
   // потрібен кожному співробітнику. Старий реєстр доручень — у «Сервісах» як архів.
-  const tasksBtn = document.getElementById('auth-tasks-btn');
-  if (tasksBtn) {
-    tasksBtn.href = prefix + 'spravy/index.html';
-    if (!hasAccess('expert')) {
-      tasksBtn.style.display = 'none';
-    } else {
-      tasksBtn.style.display = '';
-      tasksBtn.classList.remove('is-locked');
-      tasksBtn.innerHTML = `📋 Справи`;
-      tasksBtn.onclick = null;
-    }
-  }
+  // Окрему кнопку «📋 Справи» (auth-tasks-btn) прибрано 04.11.2026: «Справи відділу» тепер
+  // у кнопці auth-chat-btn вище, друга була б дублем
 
   // Update standalone Regulatory Admin button in top nav
   const regulatoryBtn = document.getElementById('auth-regulatory-btn');
@@ -1161,11 +1153,11 @@ function inject() {
       closeStatusDropdown();
     });
 
-    // Standalone Chat button in top nav
+    // Кнопка «Справи відділу» (id історичний — колись тут був чат; див. applyAccess)
     const topChatBtn = document.createElement('a');
     topChatBtn.id = 'auth-chat-btn';
     topChatBtn.className = 'auth-chat-btn';
-    topChatBtn.textContent = 'Чат департаменту';
+    topChatBtn.textContent = 'Справи відділу';
     container.appendChild(topChatBtn);
 
     // Standalone Personal Cabinet button in top nav
@@ -1174,13 +1166,6 @@ function inject() {
     topCabinetBtn.className = 'auth-cabinet-btn';
     topCabinetBtn.textContent = 'Особистий кабінет';
     container.appendChild(topCabinetBtn);
-
-    // Standalone Tasks button in top nav
-    const topTasksBtn = document.createElement('a');
-    topTasksBtn.id = 'auth-tasks-btn';
-    topTasksBtn.className = 'auth-tasks-btn';
-    topTasksBtn.textContent = 'Справи';
-    container.appendChild(topTasksBtn);
 
     // Standalone Regulatory Admin button in top nav
     const topRegBtn = document.createElement('a');
@@ -1783,7 +1768,7 @@ function setDeptVoiceGlow(n) {
   let on = n > 0;
   try { if (localStorage.getItem('pmg-voice-glow') === '0') on = false; } catch (_) { /* приватний режим */ }
   document.documentElement.classList.toggle('pmg-voice-live', on);
-  document.querySelectorAll('#auth-chat-btn, .nav-chat-btn, #mobile-tabbar a[href*="zviazok/"]').forEach((el) => {
+  document.querySelectorAll('.nav-chat-btn, #mobile-tabbar a[href*="zviazok/"]').forEach((el) => {
     if (on) el.title = `Зараз у голосі департаменту: ${n}. Відкрити чат`;
     else el.removeAttribute('title');
   });

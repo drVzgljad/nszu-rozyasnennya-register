@@ -3377,7 +3377,6 @@ body.status-nag-open { overflow: hidden; }
   0%, 100% { color: var(--muted, #647688); }
   50% { color: var(--pmg-voice-dot); }
 }
-.pmg-voice-live #auth-chat-btn,
 .pmg-voice-live .nav-chat-btn:not(.active) {
   position: relative;
   border-color: var(--pmg-voice-dot) !important;
@@ -3387,7 +3386,6 @@ body.status-nag-open { overflow: hidden; }
   position: relative;
   animation: pmg-voice-breathe-ink 3s ease-in-out infinite;
 }
-.pmg-voice-live #auth-chat-btn::after,
 .pmg-voice-live .nav-chat-btn:not(.active)::after,
 .pmg-voice-live #mobile-tabbar a.mtab[href*="zviazok/"]::after {
   content: '';
@@ -3402,7 +3400,6 @@ body.status-nag-open { overflow: hidden; }
 }
 .pmg-voice-live #mobile-tabbar a.mtab[href*="zviazok/"]::after { top: 7px; right: calc(50% - 16px); }
 @media (prefers-reduced-motion: reduce) {
-  .pmg-voice-live #auth-chat-btn,
   .pmg-voice-live .nav-chat-btn:not(.active),
   .pmg-voice-live #mobile-tabbar a.mtab[href*="zviazok/"] { animation: none; }
 }
