@@ -1044,6 +1044,51 @@ function skodDescription(c) {
   return `${c.in_no ? 'Вх. № ' + c.in_no + ': ' : ''}${c.subject}${done}`;
 }
 
+/**
+ * № проєкту відповіді зареєстровано в АСКОД — робота зроблена: записуємо її в СКО-Д сама справа
+ * (вказівка користувача 04.11.2026: «щоб це було автоматично»). Параметри — як у записів, що
+ * вносять через кабінет: 1 год, середня складність, «01 — Лист», справа номенклатури за guessCategory.
+ * Якщо запис із цим № проєкту вже є (внесли через кабінет або кнопкою 🕒) — нічого не дублюємо.
+ * Поправити час чи складність — в особистому кабінеті.
+ */
+async function autoSkod(id) {
+  const c = state.cases.find((x) => x.id === id);
+  if (!c?.project_no) return;
+  if (!DEMO) {
+    const { data: had } = await state.sb.from('skod_logs').select('id')
+      .eq('user_id', state.me.id).eq('project_no', c.project_no).limit(1);
+    if (had?.length) return;
+  }
+  const minutes = 60, sev = 'medium';
+  const category = guessCategory(c);
+  const now = new Date();
+  const row = {
+    user_name: myName(),
+    department: state.profile?.Section || state.dept,
+    log_date: todayISO(),
+    start_time: `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:00`,
+    duration_minutes: minutes,
+    branch: 'askod',
+    task_type: c.reply_kind === 'pi' ? '47 — Лист-запит' : '01 — Лист',
+    category,
+    severity_level: sev,
+    complexity_coefficient: SKOD_COEF[sev],
+    score: parseFloat(((minutes / 60) * SKOD_COEF[sev]).toFixed(2)),
+    status: 'completed',
+    description: skodDescription(c),
+    askod_reg_number: c.in_no || null,
+    reply_to_number: c.out_no || null,
+    project_no: c.project_no,
+    include_37d: false
+  };
+  if (!DEMO) {
+    const { error } = await state.sb.from('skod_logs').insert([{ ...row, user_id: state.me.id }]);
+    if (error) return toast('СКО-Д не записано: ' + error.message + ' — натисніть 🕒', true);
+  }
+  await addEvent(id, { kind: 'system', body: `Зараховано в СКО-Д: 1 год, ${category.split(' — ')[0]} (автоматично за № проєкту)` });
+  toast('Зараховано в СКО-Д: 1 год. Час і складність можна змінити в особистому кабінеті');
+}
+
 function openAction(name) {
   const c = state.cases.find((x) => x.id === state.openId);
   const a = ACTIONS[name];
@@ -1252,11 +1297,12 @@ function wireStatic() {
       saveCase(state.openId, patch).then(() => openCase(state.openId, true));
       return;
     }
-    // № проєкту відповіді зареєстровано в АСКОД — робота зроблена: одразу пропонуємо записати її в СКО-Д,
+    // № проєкту відповіді зареєстровано в АСКОД — робота зроблена: записуємо її в СКО-Д автоматично (autoSkod),
     // інакше в особистому кабінеті її не видно (04.11.2026: два проєкти, оформлені тут, не потрапили в кабінет)
     const before = state.cases.find((x) => x.id === state.openId);
     const askSkod = f === 'project_no' && v && v !== (before?.project_no || null);
-    saveCase(state.openId, patch).then((ok) => { if (ok && askSkod) setTimeout(() => openAction('skod'), 250); });
+    const caseId = state.openId;
+    saveCase(caseId, patch).then((ok) => { if (ok && askSkod) autoSkod(caseId); });
   });
   // Напрям: віхи й перехід до пов'язаної справи
   $('spFields').addEventListener('change', (e) => {
