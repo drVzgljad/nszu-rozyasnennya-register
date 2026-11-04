@@ -1252,7 +1252,11 @@ function wireStatic() {
       saveCase(state.openId, patch).then(() => openCase(state.openId, true));
       return;
     }
-    saveCase(state.openId, patch);
+    // № проєкту відповіді зареєстровано в АСКОД — робота зроблена: одразу пропонуємо записати її в СКО-Д,
+    // інакше в особистому кабінеті її не видно (04.11.2026: два проєкти, оформлені тут, не потрапили в кабінет)
+    const before = state.cases.find((x) => x.id === state.openId);
+    const askSkod = f === 'project_no' && v && v !== (before?.project_no || null);
+    saveCase(state.openId, patch).then((ok) => { if (ok && askSkod) setTimeout(() => openAction('skod'), 250); });
   });
   // Напрям: віхи й перехід до пов'язаної справи
   $('spFields').addEventListener('change', (e) => {
