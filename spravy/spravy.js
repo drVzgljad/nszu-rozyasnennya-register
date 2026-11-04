@@ -126,6 +126,7 @@ const LEAD_UNITS = [
   'Відділ клінічної та наукової експертизи', 'Відділ розвитку програми реімбурсації',
   'Відділ взаємодії з надавачами медичних послуг', 'Відділ роботи з електронними медичними даними',
   'Департамент стратегії універсального охоплення населення медичними послугами',
+  'Аналітичне управління',
   'Юридичний департамент', 'Департамент інформаційних технологій', 'Департамент моніторингу',
   'Управління комунікацій', 'Управління справами'
 ];
@@ -688,6 +689,7 @@ function cardHTML(c) {
       : k === 'event' && c.event_place ? `<div class="sp-corr">${esc(c.event_place)}</div>` : ''}
     ${parent ? `<div class="sp-parent" title="Напрям">🧭 ${esc(parent.subject)}</div>` : ''}
     ${ms.length || kids ? `<div class="sp-ms-line">${ms.length ? `<span class="sp-ms-bar" style="--p:${Math.round(100 * ms.filter((m) => m.done).length / ms.length)}%"></span><span>віхи ${ms.filter((m) => m.done).length}/${ms.length}</span>` : ''}${msNext ? `<span title="${esc('Наступна віха: ' + msNext.title)}">→ ${fmtDate(msNext.due).slice(0, 5)}</span>` : ''}${kids ? `<span title="Пов'язані справи">🔗 ${kids}</span>` : ''}</div>` : ''}
+    ${k === 'project' && c.lead_unit ? `<div class="sp-parent" title="Головний виконавець">🏛 ${esc(c.lead_unit)}</div>` : ''}
     <div class="sp-card-foot">
       <div class="sp-badges">${badges}</div>
       ${c.executor_name ? `<span class="sp-ava" title="${esc(c.executor_name)}">${esc(initials(c.executor_name))}</span>` : '<span class="sp-ava is-none" title="Виконавця не призначено">?</span>'}
@@ -755,9 +757,12 @@ function fieldsHTML(c) {
     ${kindSel}${deadlineF('Ключова дата')}
     <label class="sp-f sp-wide"><span>Назва напряму</span><textarea data-f="subject" rows="2">${esc(c.subject)}</textarea></label>
     ${exSel('Відповідальний')}
+    <label class="sp-f"><span>Головний виконавець</span>
+      <input data-f="lead_unit" list="spLeadUnits" value="${esc(c.lead_unit)}" placeholder="Аналітичне управління, наш департамент…"></label>
     ${link('Робочий документ, тека, посилання')}
     <label class="sp-f sp-wide"><span>Нотатки й план</span><textarea data-f="nuances" rows="4" placeholder="Мета, що вже є, на що зважати">${esc(c.nuances)}</textarea></label>
   </div>
+  <datalist id="spLeadUnits">${LEAD_UNITS.map((u) => `<option value="${esc(u)}">`).join('')}</datalist>
   ${projectBlockHTML(c)}`;
   return `
   <div class="sp-lead">
@@ -1081,7 +1086,8 @@ async function createCase(form) {
     reply_kind: kind === 'askod' ? (fd.get('reply_kind') || 'letter') : 'other',
     executor_name: fd.get('executor_name') || null,
     our_role: kind === 'askod' ? (fd.get('our_role') || null) : null,
-    lead_unit: kind === 'askod' ? ((fd.get('lead_unit') || '').trim() || null) : null,
+    // Головний виконавець — у документів АСКОД і в напрямів/проєктів (з 04.11.2026: напрям може вести, напр., Аналітичне управління)
+    lead_unit: kind === 'askod' || kind === 'project' ? ((fd.get('lead_unit') || '').trim() || null) : null,
     stage: fd.get('executor_name') && kind !== 'event' ? 'work' : 'new',
     source: 'manual',
     created_by_name: myName()
