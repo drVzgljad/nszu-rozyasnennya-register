@@ -144,7 +144,7 @@ function render() {
   }).join('');
 
   let note = '';
-  if (v.noDept) note = 'У профілі не вказано відділ.';
+  if (v.noDept) note = 'У профілі не вказано відділ. Голос усього департаменту — у «Чаті департаменту» (посилання вгорі).';
   else if (s.status === 'joining' || s.status === 'idle') note = 'Заходимо в кімнату…';
   else if (s.status === 'error') note = s.error;
   else if (!list.length) note = 'У кімнаті нікого. Зайдіть — колеги побачать вас, коли відкриють «Справи».';

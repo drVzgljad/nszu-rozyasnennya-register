@@ -25,8 +25,8 @@
  * Realtime, migration_2026-11-03_voice_room.sql), текстовий канал під нею —
  * room-chat.js (кімната відділу з чату порталу). Версії ?v= обох піднімати тут.
  */
-import { initVoice, setVoiceDept } from './voice.js?v=20261103n';
-import { initRoomChat, setRoomChatDept } from './room-chat.js?v=20261103e';
+import { initVoice, setVoiceDept } from './voice.js?v=20261104a';
+import { initRoomChat, setRoomChatDept } from './room-chat.js?v=20261104a';
 // Свій журнал АСКОД (xlsx) — кнопка «📥 Журнал АСКОД»; розбір — ../pmg-askod-journal.js
 import { initAskodUpload } from './askod-upload.js?v=20261103a';
 
@@ -163,7 +163,7 @@ const state = {
   kind: 'all',        // вид справ: all / askod / task / event / project
   view: 'board',      // board — дошка; list — список за строками; people — за виконавцями
   mobileStage: 'work',
-  roomScope: 'dept',  // кімната (голос + чат): dept — мій відділ, all — увесь департамент
+  // (roomScope прибрано 04.11.2026: у «Справах» лише кімната відділу, див. roomTarget)
   openId: null,
   demoEvents: {}
 };
@@ -258,29 +258,17 @@ async function boot() {
   initRoomChat({ sb: state.sb, me: state.me, name: myName(), dept: roomTarget(), toast });
 }
 
-/** «*» — увесь департамент; без відділу в профілі людина потрапляє туди ж. */
-const roomTarget = () => (state.roomScope === 'all' || !DEPARTMENTS.includes(state.dept) ? '*' : state.dept);
+/**
+ * З 04.11.2026 у «Справах» лише кімната відділу. Кімната департаменту (voice:all і головна
+ * стрічка) живе в «Чаті департаменту» — одні двері на кімнату, щоб не плутати.
+ * Без відділу в профілі — '' (панель голосу й чату підкаже, куди йти).
+ */
+const roomTarget = () => (DEPARTMENTS.includes(state.dept) ? state.dept : '');
 
-/** Перемикач «Мій відділ | Департамент» над кімнатою; вибір пам'ятає браузер. */
+/** Над кімнатою — назва кімнати й посилання на кімнату департаменту в чаті. */
 function setupRoomScope() {
   const box = $('spScope');
-  if (!box) return;
-  // ?room=dept|all — пряме посилання саме на цю кімнату (закладка, посилання колезі)
-  const want = new URLSearchParams(location.search).get('room');
-  const saved = want === 'all' || want === 'dept' ? want : lsGet('spravy-room-scope');
-  state.roomScope = saved === 'all' || !DEPARTMENTS.includes(state.dept) ? 'all' : 'dept';
-  const paint = () => box.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.scope === state.roomScope)));
-  paint();
-  box.hidden = false;
-  box.addEventListener('click', (e) => {
-    const b = e.target.closest('button[data-scope]');
-    if (!b || b.dataset.scope === state.roomScope) return;
-    state.roomScope = b.dataset.scope;
-    lsSet('spravy-room-scope', state.roomScope);
-    paint();
-    setVoiceDept(roomTarget());
-    setRoomChatDept(roomTarget());
-  });
+  if (box) box.hidden = false;
 }
 
 /**

@@ -82,7 +82,7 @@ async function loadRoom() {
   } else {
     const { data: room, error } = await c.sb.from('chat_rooms').select('id, name').eq('dept', c.dept).limit(1).maybeSingle();
     if (error || !room) {
-      notice('У чаті порталу ще немає кімнати цього відділу. Перемкніться на «Департамент».');
+      notice('У чаті порталу ще немає кімнати цього відділу. Спільна стрічка всього департаменту — у «Чаті департаменту».');
       return;
     }
     c.room = room;

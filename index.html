@@ -349,6 +349,15 @@
     /* Кнопка «Виконане завдання» — веде у форму внесення роботи (СКО-Д) */
     .home-work-action.log-work { display: inline-flex; }
 
+    /* Швидкий вхід у «Справи відділу» і голос департаменту (04.11.2026). На вузькому екрані
+       кнопки стоять у стовпчик — ці дві тримаємо парою в один рядок */
+    .home-work-quick { display: flex; gap: inherit; flex-wrap: wrap; }
+    .home-work-action.quick.voice { border-color: rgba(58, 132, 98, 0.45); }
+    @media (max-width: 980px) {
+      .home-work-quick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+      .home-work-quick .home-work-action { min-width: 0; padding-inline: 6px; white-space: normal; line-height: 1.15; text-align: center; font-size: 13px; }
+    }
+
     /* Рядок поточних подій планувальника */
     .home-planner-strip {
       display: flex;
@@ -688,6 +697,11 @@
           <a class="home-work-action primary" id="home-work-primary" href="spravy/index.html?mine=1">📋 Мої справи</a>
           <a class="home-work-action secondary" id="home-work-secondary" href="skod/reports.html" hidden>Огляд команди</a>
           <a class="home-work-action log-work" id="home-work-log" href="cabinet/index.html#cabinet-log-form">＋ Виконане завдання</a>
+          <!-- Швидкий вхід: дошка й кімната відділу — «Справи», голос департаменту — «Чат департаменту» -->
+          <div class="home-work-quick">
+            <a class="home-work-action quick" href="spravy/index.html" title="Дошка справ відділу і голосова кімната відділу">🗂 Справи відділу</a>
+            <a class="home-work-action quick voice" href="zviazok/index.html?voice=1" title="Одразу в голос усього департаменту (мікрофон увімкнеться)">🎙 Голос департаменту</a>
+          </div>
         </div>
       </div>
       <div class="home-panel-search" id="home-panel-search" hidden aria-label="Пошук у порталі"></div>

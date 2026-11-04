@@ -1056,8 +1056,16 @@ async function boot() {
   S.meet = createMeeting({ sb: S.sb, me: S.me, name: S.name, eng: S.voice, toast });
   subscribe();
   // Канал голосу — одразу «лише дивлюся»: видно, хто в ефірі, ще до натискання «Голос»
-  S.voice.join(TOPIC, TITLE, { listen: true });
+  const voiceJoined = S.voice.join(TOPIC, TITLE, { listen: true });
   renderAll(true);
+  // ?voice=1 — кнопка «🎙 Голос департаменту» з головної: одразу в ефір, як «🎙 Голос».
+  // Параметр знімаємо, щоб оновлення сторінки не заводило в голос удруге
+  if (new URLSearchParams(location.search).get('voice') === '1') {
+    const u = new URL(location.href);
+    u.searchParams.delete('voice');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+    voiceJoined.then(() => { if (!inVoice()) toggleVoice(); }).catch(() => {});
+  }
   if (nearBottom()) markRead();
   if (wide()) $('zvInput').focus({ preventScroll: true });
 }

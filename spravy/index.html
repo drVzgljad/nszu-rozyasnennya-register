@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Справи відділу</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="spravy.css?v=20261103z">
+  <link rel="stylesheet" href="spravy.css?v=20261104a">
   <link rel="stylesheet" href="../auth-v2.css?v=20261103b">
   <script type="module" src="../auth-v2.js?v=20261103m"></script>
 </head>
@@ -53,10 +53,10 @@
 
   <main class="layout sp-layout">
     <!-- Голосова кімната відділу (voice.js): заходимо одразу, мікрофон вимкнений -->
-    <!-- Яка кімната: мій відділ чи весь департамент (голос + чат разом) -->
-    <div class="sp-view spv-scope" id="spScope" role="group" aria-label="Кімната" hidden>
-      <button type="button" data-scope="dept" aria-pressed="true">Мій відділ</button>
-      <button type="button" data-scope="all" aria-pressed="false">Департамент</button>
+    <!-- Тут лише кімната відділу; кімната департаменту — у «Чаті департаменту» (одні двері на кімнату) -->
+    <div class="spv-scope" id="spScope" hidden>
+      <span class="spv-scope-here">🎧 Кімната відділу</span>
+      <a class="spv-scope-link" href="../zviazok/index.html?voice=1" title="Голос і стрічка всього департаменту — у «Чаті департаменту»">🎙 Кімната департаменту →</a>
     </div>
     <section class="spv" id="spVoice" aria-label="Голосова кімната відділу" hidden></section>
     <!-- Текстовий канал відділу (room-chat.js): та сама кімната, що в розділі «Чат» -->
@@ -260,6 +260,6 @@
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
   <script src="../pmg-askod-journal.js?v=20261103a" defer></script>
-  <script type="module" src="spravy.js?v=20261103u"></script>
+  <script type="module" src="spravy.js?v=20261104a"></script>
 </body>
 </html>
