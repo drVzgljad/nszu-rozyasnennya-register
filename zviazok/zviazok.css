@@ -652,3 +652,11 @@ body.is-popup .zv-aside-head { display: flex; }
 .is-on > .rec-dot { background: #fff; border-color: #fff; opacity: 1; animation: rec-pulse 1.2s ease-in-out infinite; }
 @keyframes rec-pulse { 50% { opacity: .25; transform: scale(.75); } }
 @media (prefers-reduced-motion: reduce) { .is-on > .rec-dot { animation: none; } }
+
+/* Пінг до колеги в голосі (04.11.2026): зелений < 150 мс, жовтий < 300, червоний — далі */
+.zv-ping { margin-left: 4px; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--muted); }
+.zv-ping.is-good { color: var(--zv-speak); }
+.zv-ping.is-mid { color: #b7791f; }
+.zv-ping.is-bad { color: var(--zv-bad); }
+:root.dark-theme .zv-ping.is-mid { color: #fbbf24; }
+.zv-vp-st > span + span { margin-left: 3px; }

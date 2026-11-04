@@ -10,7 +10,7 @@
  * enter() / exit(). «Справи» відкривають кімнату відділу так одразу при вході.
  *
  * Канали (RLS — migration_2026-11-03d_chat_voice_rooms.sql):
- *   'voice:all'               — головна стрічка департаменту (та сама, що в «Справах»);
+ *   'voice:all'               — кімната департаменту (лише «Чат департаменту», з 04.11.2026);
  *   'voice:room:<uuid>'       — кімната чату: хто бачить кімнату, той і заходить;
  *   'voice:dm:<uuid>:<uuid>'  — дзвінок 1:1.
  *
@@ -39,6 +39,40 @@ const canShare = () => !!navigator.mediaDevices?.getDisplayMedia;
 
 export const MANY = 10; // з такої кількості пряма схема кожен-з-кожним важчає
 
+/* Пристрій і браузер (04.11.2026): видно в кімнаті й пишеться в журнал проблем.
+   iPad у Safari називає себе «Macintosh» — його видає сенсорний екран */
+const UA = navigator.userAgent || '';
+const DEVICE = (navigator.userAgentData?.mobile ?? /Android|iPhone|iPad|iPod|Mobi/i.test(UA))
+  || (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1) ? 'mob' : 'pc';
+const BROWSER = [
+  [['Edge', /Edg\/(\d+)/], ['Opera', /OPR\/(\d+)/], ['Firefox', /Firefox\/(\d+)/], ['Chrome', /Chrome\/(\d+)/], ['Safari', /Version\/(\d+).*Safari/]]
+    .map(([n, re]) => { const x = UA.match(re); return x ? `${n} ${x[1]}` : ''; }).find(Boolean) || 'інший',
+  /Windows/.test(UA) ? 'Windows' : /Android/.test(UA) ? 'Android' : /iPhone|iPad|iPod/.test(UA) ? 'iOS' : /Mac/.test(UA) ? 'macOS' : /Linux/.test(UA) ? 'Linux' : ''
+].filter(Boolean).join(' · ');
+
+const STATS_MS = 3000;          // як часто міряємо пінг і втрати
+const PING_BAD = 400;           // мс — уже заважає говорити
+const LOSS_BAD = 0.08;          // 8 % втрачених пакетів — звук «булькає»
+const SLOW_MS = 20000;          // за 20 с так і не з'єдналися — проблема
+const ISSUE_LS = 'pmg-voice-issues';
+const ISSUE_GAP = 5 * 60000;    // одна й та сама проблема з тим самим колегою — не частіше
+
+/**
+ * Коротка інформація про учасника для панелей (чат і «Справи»): пристрій, пінг, маршрут.
+ * ping — від мене до нього (у себе — середній до всіх). cls: good · mid · bad.
+ */
+export function netInfo(m) {
+  const dev = m.dev === 'mob' ? '📱' : m.dev === 'pc' ? '💻' : '';
+  const devTip = m.dev === 'mob' ? 'з телефона' : m.dev === 'pc' ? 'з комп\'ютера' : '';
+  const n = m.net;
+  if (!n || n.rtt == null) return { dev, devTip, ping: '', cls: '', tip: devTip };
+  const cls = n.rtt < 150 ? 'good' : n.rtt < 300 ? 'mid' : 'bad';
+  const parts = [devTip, `пінг ${n.rtt} мс${m.me ? ' (середній до колег)' : ''}`];
+  if (n.loss) parts.push(`втрати звуку ${Math.round(n.loss * 100)} %`);
+  if (n.relay) parts.push('через ретранслятор');
+  return { dev, devTip, ping: `${n.rtt} мс`, cls, tip: parts.filter(Boolean).join(' · ') };
+}
+
 export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {} }) {
   const v = {
     since: 0,          // коли канал став live — перші 3 с join-и = «хто вже був», без звуку
@@ -66,7 +100,10 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     sink: null,
     inRoom: true,         // false — «лише дивлюся»: підписані на канал, але без присутності й звуку
     rec: null,            // запис наради в ЦЬОМУ браузері: { since, sources: Map(key → запис), done: [] }
-    recSeen: ''           // ключ того, чий запис ми вже оголосили (тост і сигнал — один раз)
+    recSeen: '',          // ключ того, чий запис ми вже оголосили (тост і сигнал — один раз)
+    statTimer: null,      // раз на STATS_MS — пінг і втрати по кожному з'єднанню
+    issued: new Map(),    // «вид|колега» → коли востаннє записали (не засмічуємо журнал)
+    flushAt: 0            // коли можна знову пробувати досилати журнал
   };
 
   const emit = () => onChange(snapshot());
@@ -87,8 +124,121 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
       presenter: presenter(),
       recording: recorder(),
       canRecord: typeof window.MediaRecorder !== 'undefined',
-      members: [...v.members.entries()].map(([k, m]) => ({ key: k, ...m, me: k === v.key, state: k === v.key ? 'ok' : peerState(k) }))
+      members: [...v.members.entries()].map(([k, m]) => ({
+        key: k, ...m, me: k === v.key, state: k === v.key ? 'ok' : peerState(k),
+        net: k === v.key ? myNet() : v.peers.get(k)?.net || null
+      }))
     };
+  }
+
+  /** У себе — середній пінг до всіх, з ким з'єднані (видно, чи погано саме в мене). */
+  function myNet() {
+    const nets = [...v.peers.values()].map((p) => p.net).filter((n) => n && n.rtt != null);
+    if (!nets.length) return null;
+    return {
+      rtt: Math.round(nets.reduce((s, n) => s + n.rtt, 0) / nets.length),
+      loss: Math.max(...nets.map((n) => n.loss || 0)),
+      relay: nets.some((n) => n.relay)
+    };
+  }
+
+  /* ───────── журнал проблем (migration_2026-11-04_voice_issues.sql) ───────── */
+
+  /**
+   * Записати проблему. Пишемо лише технічні ознаки — не звук і не вміст розмови.
+   * Немає таблиці чи мережі — запис чекає в localStorage і досилається пізніше.
+   */
+  function issue(kind, { peer, ...detail } = {}) {
+    const tag = kind + '|' + (peer || '');
+    if (Date.now() - (v.issued.get(tag) || 0) < ISSUE_GAP) return;
+    v.issued.set(tag, Date.now());
+    const row = {
+      happened_at: new Date().toISOString(),
+      user_name: name || null,
+      topic: v.topic || null,
+      kind,
+      peer_name: peer ? (v.members.get(peer)?.name || null) : null,
+      device: DEVICE,
+      detail: {
+        ...detail,
+        browser: BROWSER,
+        turn: v.ice.some((s) => [].concat(s.urls).some((u) => /^turns?:/.test(u))),
+        in_room: v.members.size,
+        online: navigator.onLine,
+        net_type: navigator.connection?.effectiveType || undefined
+      }
+    };
+    console.warn('[voice] проблема:', kind, row);
+    const q = readQueue();
+    q.push(row);
+    saveQueue(q);
+    flushIssues();
+  }
+
+  function readQueue() {
+    try { return JSON.parse(localStorage.getItem(ISSUE_LS) || '[]'); } catch (_) { return []; }
+  }
+  function saveQueue(q) {
+    try { localStorage.setItem(ISSUE_LS, JSON.stringify(q.slice(-50))); } catch (_) { /* приватне вікно */ }
+  }
+
+  async function flushIssues() {
+    if (Date.now() < v.flushAt || !me?.id) return;
+    const q = readQueue();
+    if (!q.length) return;
+    v.flushAt = Date.now() + 30000;   // поки шлемо (і якщо не вийде) — не частіше
+    try {
+      const { error } = await sb.from('voice_issues').insert(q);
+      if (error) throw error;
+      // Поки слали, могли додатися нові — лишаємо лише їх
+      saveQueue(readQueue().slice(q.length));
+      v.flushAt = 0;
+    } catch (e) {
+      // Таблиці ще нема (міграцію не застосовано) — повторимо при наступному вході
+      if (/voice_issues|42P01|PGRST20/.test(String(e?.message || e?.code || e))) v.flushAt = Date.now() + 10 * 60000;
+    }
+  }
+
+  /* ───────── пінг і втрати ───────── */
+
+  async function readStats(k, p) {
+    if (p.pc.connectionState !== 'connected') {
+      // Довго не з'єднуємось — записуємо один раз (повтори з'єднання робить retryPeer)
+      if (!p.slowLogged && Date.now() - p.born > SLOW_MS && !p.gaveUp) {
+        p.slowLogged = true;
+        issue('slow_connect', { peer: k, ice: p.pc.iceConnectionState, conn: p.pc.connectionState, gathering: p.pc.iceGatheringState, tries: p.tries });
+      }
+      return;
+    }
+    let st;
+    try { st = await p.pc.getStats(); } catch (_) { return; }
+    let pair = null;
+    st.forEach((r) => { if (r.type === 'transport' && r.selectedCandidatePairId) pair = st.get(r.selectedCandidatePairId) || pair; });
+    if (!pair) st.forEach((r) => { if (r.type === 'candidate-pair' && (r.selected || (r.nominated && r.state === 'succeeded'))) pair = r; });
+    let lost = 0, recv = 0;
+    st.forEach((r) => { if (r.type === 'inbound-rtp' && (r.kind || r.mediaType) === 'audio') { lost += r.packetsLost || 0; recv += r.packetsReceived || 0; } });
+    const lc = pair && st.get(pair.localCandidateId);
+    const rc = pair && st.get(pair.remoteCandidateId);
+    const rtt = pair?.currentRoundTripTime != null ? Math.round(pair.currentRoundTripTime * 1000) : null;
+    // Втрати — за останній проміжок, а не за всю розмову (і лише коли звук справді йшов)
+    const prev = p.cnt || { lost: 0, recv: 0 };
+    const dl = Math.max(0, lost - prev.lost), dr = Math.max(0, recv - prev.recv);
+    p.cnt = { lost, recv };
+    const loss = dl + dr >= 50 ? dl / (dl + dr) : 0;
+    const relay = lc?.candidateType === 'relay' || rc?.candidateType === 'relay';
+    p.net = { rtt, loss, relay };
+    // Стійкі проблеми — у журнал: три виміри поспіль із великим пінгом, два — з втратами
+    p.badPing = rtt != null && rtt > PING_BAD ? (p.badPing || 0) + 1 : 0;
+    p.badLoss = loss > LOSS_BAD ? (p.badLoss || 0) + 1 : 0;
+    const info = { rtt, loss: Math.round(loss * 1000) / 10, relay, route: `${lc?.candidateType || '?'}→${rc?.candidateType || '?'}`, proto: lc?.protocol || lc?.relayProtocol };
+    if (p.badPing === 3) issue('high_ping', { peer: k, ...info });
+    if (p.badLoss === 2) issue('packet_loss', { peer: k, ...info });
+  }
+
+  async function statsTick() {
+    if (!v.inRoom || !v.peers.size) return;
+    await Promise.all([...v.peers.entries()].map(([k, p]) => readStats(k, p)));
+    emit();
   }
 
   /** Хто показує екран: { key, name, me, stream } або null. stream — відео від нього (у себе — null). */
@@ -166,6 +316,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           const m = String(err?.message || err || '');
           const closed = /unauthori|permission|denied/i.test(m);
+          issue('channel_error', { msg: m.slice(0, 200) || status, closed });
           v.status = 'error';
           v.error = closed
             ? 'Голосова кімната ще закрита: потрібна міграція (migration_2026-11-03*.sql).'
@@ -183,12 +334,16 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
       });
     clearInterval(v.timer);
     v.timer = setInterval(tick, 150);
+    clearInterval(v.statTimer);
+    v.statTimer = setInterval(statsTick, STATS_MS);
     if (v.inRoom) chime(true);
+    flushIssues();   // недосланий журнал проблем з минулих разів
   }
 
   /** Закрити канал (перемикання кімнати, перепідключення): мікрофон і звук не чіпаємо. */
   async function closeChannel() {
     clearInterval(v.timer);
+    clearInterval(v.statTimer);
     stopShare(true);
     for (const k of [...v.peers.keys()]) dropPeer(k, true);
     const ch = v.ch;
@@ -236,7 +391,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     emit();
   }
 
-  const meta = () => ({ uid: me?.id, name, muted: v.muted, deaf: v.deaf, caps: ['screen'], sharing: v.shareSince, rec: v.rec?.since || 0 });
+  const meta = () => ({ uid: me?.id, name, muted: v.muted, deaf: v.deaf, dev: DEVICE, caps: ['screen'], sharing: v.shareSince, rec: v.rec?.since || 0 });
 
   function onSync(ch) {
     if (ch !== v.ch) return;
@@ -333,7 +488,8 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     audio.autoplay = true;
     audio.muted = v.deaf;
     sinkEl().append(audio);
-    const p = { pc, sender: null, vsender: null, video: null, audio, tries: v.peers.get(k)?.tries || 0, pendingIce: [], gaveUp: false };
+    const p = { pc, sender: null, vsender: null, video: null, audio, tries: v.peers.get(k)?.tries || 0, pendingIce: [], gaveUp: false,
+      born: Date.now(), net: null, cnt: null, slowLogged: false };
     pc.onicecandidate = (e) => { if (e.candidate) send(k, { type: 'ice', cand: e.candidate.toJSON() }); };
     pc.ontrack = (e) => {
       if (e.track.kind === 'video') {
@@ -350,7 +506,10 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     };
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === 'connected') p.tries = 0;
-      if (pc.connectionState === 'failed') retryPeer(k);
+      if (pc.connectionState === 'failed') {
+        issue('peer_failed', { peer: k, tries: p.tries, ice: pc.iceConnectionState, last: p.net });
+        retryPeer(k);
+      }
       emit();
     };
     v.peers.set(k, p);
@@ -373,7 +532,12 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
   function retryPeer(k) {
     const p = v.peers.get(k);
     if (!p || v.key > k) return; // перепідключає той, хто дзвонив
-    if (p.tries >= RETRIES) { p.gaveUp = true; emit(); return; }
+    if (p.tries >= RETRIES) {
+      p.gaveUp = true;
+      issue('peer_gave_up', { peer: k, tries: p.tries, ice: p.pc.iceConnectionState });
+      emit();
+      return;
+    }
     const tries = p.tries + 1;
     setTimeout(async () => {
       if (!v.ch || !v.inRoom || !v.members.has(k) || v.peers.get(k) !== p) return;
@@ -417,6 +581,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
       v.iceUntil = Date.now() + (d.ttl || 3600) * 900; // оновлюємо трохи раніше, ніж ключ спливе
     } catch (e) {
       console.warn('[voice] TURN недоступний, лише прямі з\'єднання', e);
+      issue('turn_down', { msg: String(e?.message || e).slice(0, 200) });
       v.ice = STUN;
       v.iceUntil = Date.now() + 5 * 60000;
     }
@@ -435,7 +600,12 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
         addMeter('me', s);
         if (v.rec) recAttach('me', s);
       } catch (e) {
-        toast('Браузер не дав доступу до мікрофона: дозвольте його біля адресного рядка.', true);
+        // NotAllowedError — заборонив людина чи система; NotFoundError — мікрофона немає;
+        // NotReadableError — мікрофон зайнятий іншою програмою (Teams, Zoom)
+        issue('mic_denied', { err: e?.name || '', msg: String(e?.message || '').slice(0, 200) });
+        toast(e?.name === 'NotFoundError' ? 'Мікрофон не знайдено: підключіть його й спробуйте ще раз.'
+          : e?.name === 'NotReadableError' ? 'Мікрофон зайнятий іншою програмою (Teams, Zoom?) — закрийте її й спробуйте ще раз.'
+          : 'Браузер не дав доступу до мікрофона: дозвольте його біля адресного рядка.', true);
         return;
       }
     }
@@ -610,7 +780,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
   }
 
   function playAudio(audio) {
-    audio.play().catch(() => { v.needGesture = true; emit(); });
+    audio.play().catch((e) => { v.needGesture = true; issue('need_gesture', { err: e?.name || '' }); emit(); });
   }
 
   function unlock() {

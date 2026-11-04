@@ -18,7 +18,7 @@
  *   попередній стан — це вміє рушій.
  */
 
-import { createVoice } from '../zviazok/voice.js?v=20261103g';
+import { createVoice, netInfo } from '../zviazok/voice.js?v=20261104a';
 import { createMeeting } from '../zviazok/meeting.js?v=20261103a';
 import { createStage } from '../zviazok/stage.js?v=20261103a';
 
@@ -133,12 +133,16 @@ function render() {
   const people = list.map((m) => {
     const st = m.state;
     const cls = ['spv-person', m.me && 'is-me', m.muted && 'is-muted', m.deaf && 'is-deaf', st === 'bad' && 'is-bad', st === 'wait' && 'is-wait'].filter(Boolean).join(' ');
-    const flags = `${m.deaf ? 'звук вимкнено' : m.muted ? 'мікрофон вимкнено' : 'мікрофон увімкнено'}${!m.me && STATE_HINT[st] ? ' · ' + STATE_HINT[st] : ''}`;
+    // Пристрій і пінг (04.11.2026) — рушій міряє їх для кожного з'єднання
+    const ni = netInfo(m);
+    const flags = [`${m.deaf ? 'звук вимкнено' : m.muted ? 'мікрофон вимкнено' : 'мікрофон увімкнено'}${!m.me && STATE_HINT[st] ? ' · ' + STATE_HINT[st] : ''}`, ni.tip].filter(Boolean).join(' · ');
     // data-vk — за ним рушій підсвічує того, хто говорить
     return `<li class="${cls}" data-vk="${esc(m.key)}" title="${esc(m.name)}${m.me ? ' (ви)' : ''} — ${esc(flags)}">
       <span class="spv-ava" aria-hidden="true">${esc(initials(m.name))}</span>
       <span class="spv-name">${esc(m.name || 'Без імені')}${m.me ? ' <i>(ви)</i>' : ''}</span>
-      ${m.deaf ? '<span class="spv-flag" aria-label="звук вимкнено">🔕</span>' : m.muted ? '<span class="spv-flag" aria-label="мікрофон вимкнено">🔇</span>' : ''}
+      ${m.deaf ? '<span class="spv-flag" aria-label="звук вимкнено">🔕</span>' : m.muted ? '<span class="spv-flag" aria-label="мікрофон вимкнено">🔇</span>' : '<span class="spv-flag" aria-label="мікрофон увімкнено">🎙</span>'}
+      ${ni.dev ? `<span class="spv-flag" aria-label="${esc(ni.devTip)}">${ni.dev}</span>` : ''}
+      ${ni.ping && s.inRoom ? `<span class="spv-ping is-${ni.cls}">${esc(ni.ping)}</span>` : ''}
       ${st === 'bad' ? '<span class="spv-flag" aria-label="немає з\'єднання">⚠</span>' : ''}
     </li>`;
   }).join('');
@@ -193,9 +197,9 @@ function demo() {
   v.vs = {
     status: 'live', inRoom: true, muted: true, deaf: false, micBeforeDeaf: false, needGesture: false,
     members: [
-      { key: 'me', name: v.name || 'Демо-користувач', muted: true, deaf: false, me: true, state: 'ok' },
-      { key: 'd1', name: 'Олена Приклад', muted: false, deaf: false, state: 'ok' },
-      { key: 'd2', name: 'Петро Зразок', muted: true, deaf: false, state: 'ok' }
+      { key: 'me', name: v.name || 'Демо-користувач', muted: true, deaf: false, me: true, state: 'ok', dev: 'pc' },
+      { key: 'd1', name: 'Олена Приклад', muted: false, deaf: false, state: 'ok', dev: 'pc', net: { rtt: 42, loss: 0, relay: false } },
+      { key: 'd2', name: 'Петро Зразок', muted: true, deaf: false, state: 'ok', dev: 'mob', net: { rtt: 420, loss: 0.1, relay: true } }
     ]
   };
   render();

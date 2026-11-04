@@ -13,7 +13,7 @@
  * одна розмова, а не копія. Формат файлового повідомлення спільний:
  * `📎 [Файл: назва (розмір)](URL сховища)`, бакет приватний.
  *
- * Голос — voice.js, канал 'voice:all' (той самий, що «Департамент» у «Справах»).
+ * Голос — voice.js, канал 'voice:all' (кімната департаменту; у «Справах» з 04.11.2026 лише кімната відділу).
  * На сторінці канал відкрито в режимі «лише дивлюся»: видно, хто в голосі, тебе — ні.
  * «🎙 Голос» = зайти й одразу говорити (мікрофон умикаємо, бо це свідома дія);
  * ще раз — вийти. Звук входу/виходу колег дає рушій.
@@ -31,7 +31,7 @@
  * ?mode=popup — плаваюче вікно.
  */
 
-import { createVoice, MANY } from './voice.js?v=20261103g';
+import { createVoice, MANY, netInfo } from './voice.js?v=20261104a';
 import { createMeeting } from './meeting.js?v=20261103a';
 import { createStage } from './stage.js?v=20261103a';
 import { QUICK, buildPicker, emojiOnly } from './emoji.js?v=20261103a';
@@ -552,10 +552,13 @@ function renderHead() {
 function vpHtml(m) {
   const state = m.deaf ? 'звук вимкнено' : m.muted ? 'мікрофон вимкнено' : 'мікрофон увімкнено';
   const link = m.state === 'bad' ? ' · немає з\'єднання' : m.state === 'wait' ? ' · з\'єднуємо…' : '';
-  return `<li class="zv-vp${m.muted ? ' is-muted' : ''}${m.state === 'bad' ? ' is-bad' : ''}${m.state === 'wait' ? ' is-wait' : ''}" data-vk="${esc(m.key)}" title="${esc(m.name)}${m.me ? ' (ви)' : ''} — ${state}${inVoice() ? link : ''}">
+  // Пристрій і пінг (04.11.2026): пінг — від мене до колеги, тож видно лише тим, хто в голосі
+  const ni = netInfo(m);
+  const tip = [state, ni.tip].filter(Boolean).join(' · ');
+  return `<li class="zv-vp${m.muted ? ' is-muted' : ''}${m.state === 'bad' ? ' is-bad' : ''}${m.state === 'wait' ? ' is-wait' : ''}" data-vk="${esc(m.key)}" title="${esc(m.name)}${m.me ? ' (ви)' : ''} — ${esc(tip)}${inVoice() ? link : ''}">
     <span class="zv-ava" aria-hidden="true">${esc(initials(m.name))}</span>
     <span class="zv-vp-name">${esc(m.name || 'Колега')}${m.me ? ' <i>(ви)</i>' : ''}</span>
-    <span class="zv-vp-st">${m.deaf ? '<span aria-label="звук вимкнено">🔕</span>' : m.muted ? '<span aria-label="мікрофон вимкнено">🔇</span>' : '<span aria-label="мікрофон увімкнено">🎙</span>'}${inVoice() && m.state === 'bad' ? '<span aria-label="немає з\'єднання">⚠</span>' : ''}</span>
+    <span class="zv-vp-st">${m.deaf ? '<span aria-label="звук вимкнено">🔕</span>' : m.muted ? '<span aria-label="мікрофон вимкнено">🔇</span>' : '<span aria-label="мікрофон увімкнено">🎙</span>'}${ni.dev ? `<span aria-label="${esc(ni.devTip)}">${ni.dev}</span>` : ''}${inVoice() && ni.ping ? `<span class="zv-ping is-${ni.cls}">${esc(ni.ping)}</span>` : ''}${inVoice() && m.state === 'bad' ? '<span aria-label="немає з\'єднання">⚠</span>' : ''}</span>
   </li>`;
 }
 
@@ -1113,11 +1116,11 @@ function bootDemo() {
 
   // Голос у демо: двоє колег уже в ефірі, звуку немає
   const others = [
-    { key: 'u2', uid: 'u2', name: 'Петро Зразок', muted: false, deaf: false, state: 'ok' },
-    { key: 'u3', uid: 'u3', name: 'Ірина Вигадана', muted: true, deaf: false, state: 'ok' }
+    { key: 'u2', uid: 'u2', name: 'Петро Зразок', muted: false, deaf: false, state: 'ok', dev: 'pc', net: { rtt: 38, loss: 0, relay: false } },
+    { key: 'u3', uid: 'u3', name: 'Ірина Вигадана', muted: true, deaf: false, state: 'ok', dev: 'mob', net: { rtt: 260, loss: 0.03, relay: true } }
   ];
   const dv = { topic: TOPIC, label: TITLE, status: 'live', error: '', key: 'me', muted: true, deaf: false, needGesture: false, inRoom: false };
-  const emitV = () => onVoice({ ...dv, members: [...(dv.inRoom ? [{ key: 'me', uid: 'me', name: S.name, muted: dv.muted, deaf: dv.deaf, me: true, state: 'ok' }] : []), ...others.map((m) => ({ ...m }))] });
+  const emitV = () => onVoice({ ...dv, members: [...(dv.inRoom ? [{ key: 'me', uid: 'me', name: S.name, muted: dv.muted, deaf: dv.deaf, me: true, state: 'ok', dev: 'pc', net: { rtt: 149, loss: 0, relay: false } }] : []), ...others.map((m) => ({ ...m }))] });
   S.voice = {
     get topic() { return dv.topic; },
     get state() { return { ...dv }; },

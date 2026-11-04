@@ -1076,3 +1076,11 @@
 .is-on > .rec-dot { background: #fff; border-color: #fff; opacity: 1; animation: rec-pulse 1.2s ease-in-out infinite; }
 @keyframes rec-pulse { 50% { opacity: .25; transform: scale(.75); } }
 @media (prefers-reduced-motion: reduce) { .is-on > .rec-dot { animation: none; } }
+
+/* Пінг до колеги в голосовій кімнаті (04.11.2026): зелений < 150 мс, жовтий < 300, червоний — далі */
+.spv-ping { flex: none; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--muted); }
+.spv-ping.is-good { color: var(--spv-on-ink); }
+.spv-ping.is-mid { color: #b7791f; }
+.spv-ping.is-bad { color: var(--spv-off-ink); }
+:root.dark-theme .spv-ping.is-mid { color: #fbbf24; }
+@media (min-width: 761px) { .spv-person { max-width: 280px; } }
