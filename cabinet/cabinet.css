@@ -1125,6 +1125,40 @@
   border-color: rgba(14, 165, 233, 0.35);
 }
 
+/* № проєкту відповіді в АСКОД (04.11.2026) */
+.project-num-badge {
+  font-size: 11px;
+  font-weight: 700;
+  background: #ede9fe;
+  color: #5b21b6;
+  border: 1px solid #c4b5fd;
+  padding: 1px 7px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+.dark-theme .project-num-badge {
+  background: rgba(139, 92, 246, 0.16);
+  color: #c4b5fd;
+  border-color: rgba(139, 92, 246, 0.38);
+}
+
+/* Номер-посилання: відкриває справу у «Справах відділу» */
+a.is-link {
+  text-decoration: none;
+  cursor: pointer;
+}
+a.is-link:hover,
+a.is-link:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  filter: brightness(0.95);
+}
+a.is-link::after {
+  content: ' ↗';
+  font-weight: 400;
+  opacity: 0.7;
+}
+
 /* ── Захист від «grid blowout»: довгий контент (назви доручень у select,
    посилання в описах) не має розширювати колонки за межі екрана ── */
 .cabinet-split-grid > *,

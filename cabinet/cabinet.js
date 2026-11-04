@@ -1109,9 +1109,18 @@ function renderTodayLogsFeed() {
 
     const startFormatted = log.start_time ? log.start_time.slice(0, 5) : '';
 
-    // Підсвічений реєстраційний номер листа АСКОД + номер листа, на який надано відповідь
+    // Підсвічений реєстраційний номер листа АСКОД + номер листа, на який надано відповідь + № проєкту.
+    // З 04.11.2026 номери — посилання на справу у «Справах відділу» (шукаємо за № проєкту, потім за вх. №)
+    const linked = findCaseByNo(log.project_no) || findCaseByNo(log.askod_reg_number);
+    const caseHref = linked ? `../spravy/index.html?case=${encodeURIComponent(linked.id)}` : '';
+    const badge = (cls, title, text) => caseHref
+      ? `<a class="${cls} is-link" href="${caseHref}" title="${title} — відкрити справу у «Справах відділу»">${text}</a>`
+      : `<span class="${cls}" title="${title}">${text}</span>`;
     const askodNumBadge = log.askod_reg_number
-      ? `<span class="askod-num-badge" title="Реєстраційний номер в АСКОД">№ ${escapeHtml(log.askod_reg_number)}</span>`
+      ? badge('askod-num-badge', 'Реєстраційний номер в АСКОД', `№ ${escapeHtml(log.askod_reg_number)}`)
+      : '';
+    const projectBadge = log.project_no
+      ? badge('project-num-badge', 'Проєкт відповіді в АСКОД', `проєкт ${escapeHtml(log.project_no)}`)
       : '';
     const replyNumBadge = log.reply_to_number
       ? `<span class="reply-num-badge" title="Відповідь на вхідний лист">↩ на № ${escapeHtml(log.reply_to_number)}</span>`
@@ -1123,6 +1132,7 @@ function renderTodayLogsFeed() {
           <span class="today-log-tag ${branchBadgeClass}">${branchLabel}</span>
           <span class="today-log-time">${startFormatted} · ${log.duration_minutes} хв</span>
           ${askodNumBadge}
+          ${projectBadge}
           ${replyNumBadge}
         </div>
         <div class="today-log-desc" title="${escapeHtml(log.description)}">${escapeHtml(log.description)}</div>
