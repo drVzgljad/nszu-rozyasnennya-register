@@ -31,7 +31,8 @@
  * ?mode=popup — плаваюче вікно.
  */
 
-import { createVoice, MANY, netInfo } from './voice.js?v=20261104a';
+import { createVoice, MANY, netInfo } from './voice.js?v=20261106a';
+import { openMicPicker } from './mic-picker.js?v=20261106a';
 import { createMeeting } from './meeting.js?v=20261103a';
 import { createStage } from './stage.js?v=20261103a';
 import { QUICK, buildPicker, emojiOnly } from './emoji.js?v=20261103a';
@@ -567,6 +568,7 @@ function ctlHtml() {
   return `<div class="zv-vctl">
     <button type="button" class="zv-btn zv-vbtn${vs.muted ? '' : ' is-on'}" data-act="mic" aria-pressed="${!vs.muted}" title="${vs.muted ? 'Увімкнути мікрофон' : 'Вимкнути мікрофон — вас не чутимуть'}">${vs.muted ? '🔇' : '🎙'}<span>${vs.muted ? 'Мікрофон вимк.' : 'Мікрофон'}</span></button>
     <button type="button" class="zv-btn zv-vbtn${vs.deaf ? ' is-off' : ''}" data-act="deaf" aria-pressed="${vs.deaf}" title="${vs.deaf ? 'Увімкнути звук' : 'Вимкнути звук (і мікрофон)'}">${vs.deaf ? '🔕' : '🎧'}<span>${vs.deaf ? 'Звук вимк.' : 'Звук'}</span></button>
+    <button type="button" class="zv-btn zv-vbtn${vs.micSilent ? ' is-off' : ''}" data-act="micpick" title="Обрати мікрофон і перевірити, чи він вас чує">⚙<span>Пристрій</span></button>
     ${meetBtn(vs)}
     ${vs.canShare ? `<button type="button" class="zv-btn zv-vbtn${vs.sharing ? ' is-on' : ''}" data-act="screen" aria-pressed="${!!vs.sharing}" title="${vs.sharing ? 'Зупинити показ екрана' : 'Показати колегам свій екран або вікно'}">🖥<span>${vs.sharing ? 'Показую' : 'Екран'}</span></button>` : ''}
   </div>`;
@@ -588,6 +590,7 @@ function recNote(vs) {
 function voiceNote() {
   const vs = S.vs;
   if (!vs) return '';
+  if (inVoice() && vs.micSilent) return '<p class="zv-vnote is-bad">⚠ Ваш мікрофон нічого не передає — колеги вас не чують. Оберіть інший: «⚙ Пристрій».</p>';
   if (vs.recording) return recNote(vs);
   if (vs.status === 'error') return `<p class="zv-vnote is-bad">${esc(vs.error)}</p>`;
   if (inVoice() && vs.status === 'joining') return '<p class="zv-vnote">Заходимо в голос…</p>';
@@ -1007,6 +1010,7 @@ function voiceAct(a) {
   if (a === 'deaf') S.voice.toggleDeaf();
   if (a === 'screen') S.voice.toggleShare?.();
   if (a === 'sound') S.voice.unlock();
+  if (a === 'micpick') openMicPicker(DEMO ? null : S.voice, { toast });
   if (a === 'meet') S.meet.start({ topic: TOPIC, label: TITLE }).then(renderVoice);
   if (a === 'meetend') S.meet.finish().then(renderVoice);
 }

@@ -18,7 +18,8 @@
  *   попередній стан — це вміє рушій.
  */
 
-import { createVoice, netInfo } from '../zviazok/voice.js?v=20261104a';
+import { createVoice, netInfo } from '../zviazok/voice.js?v=20261106a';
+import { openMicPicker } from '../zviazok/mic-picker.js?v=20261106a';
 import { createMeeting } from '../zviazok/meeting.js?v=20261103a';
 import { createStage } from '../zviazok/stage.js?v=20261103a';
 
@@ -103,6 +104,7 @@ async function onClick(e) {
   const b = e.target.closest('button[data-act]');
   if (!b) return;
   const act = b.dataset.act;
+  if (act === 'micpick') return openMicPicker(v.demo ? null : v.eng, { toast: v.toast });
   if (v.demo) return demoAct(act);
   v.eng.unlock();
   if (act === 'mic') await v.eng.toggleMic();
@@ -155,12 +157,14 @@ function render() {
   else if (s.inRoom && !others) note = 'Поки що ви тут самі.';
   else if (!s.inRoom) note = `Ви не в кімнаті. Зараз тут: ${list.length}.`;
   if (s.status === 'live' && list.length >= MANY) note = `У кімнаті ${list.length} — пряма схема може не витягнути, звук може рватися.`;
+  if (s.inRoom && s.micSilent) note = '⚠ Ваш мікрофон нічого не передає — колеги вас не чують. Оберіть інший кнопкою «⚙».';
 
   const btns = s.inRoom && s.status === 'live'
     ? `<button type="button" class="spv-btn${s.muted ? '' : ' is-on'}" data-act="mic" aria-pressed="${!s.muted}"
          title="${s.muted ? 'Увімкнути мікрофон — вас почують' : 'Вимкнути мікрофон'}">${s.muted ? '🎙 Говорити' : '🎙 Мікрофон увімк.'}</button>
        <button type="button" class="spv-btn spv-icon${s.deaf ? ' is-off' : ''}" data-act="deaf" aria-pressed="${s.deaf}"
          title="${s.deaf ? 'Увімкнути звук' : 'Вимкнути звук (і мікрофон)'}">${s.deaf ? '🔕' : '🎧'}</button>
+       <button type="button" class="spv-btn spv-icon${s.micSilent ? ' is-off' : ''}" data-act="micpick" title="Обрати мікрофон і перевірити, чи він вас чує">⚙</button>
        ${s.canShare ? `<button type="button" class="spv-btn spv-icon${s.sharing ? ' is-on' : ''}" data-act="screen" aria-pressed="${!!s.sharing}"
          title="${s.sharing ? 'Зупинити показ екрана' : 'Показати колегам свій екран або вікно'}">🖥</button>` : ''}
        ${s.canRecord && !(s.recording && !s.recording.me) ? (s.recording?.me
@@ -179,7 +183,7 @@ function render() {
     </div>
     <ul class="spv-people" aria-label="Хто в кімнаті">${people}</ul>
     ${s.recording ? `<p class="spv-recbar">🔴 Іде запис наради · ${s.recording.me ? 'записуєте ви' : 'увімкнув(-ла) ' + esc(s.recording.name)} · з ${new Date(s.recording.since).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}</p>` : ''}
-    ${note ? `<p class="spv-note${s.status === 'error' ? ' is-bad' : ''}">${esc(note)}</p>` : ''}
+    ${note ? `<p class="spv-note${s.status === 'error' || (s.inRoom && s.micSilent) ? ' is-bad' : ''}">${esc(note)}</p>` : ''}
     ${s.needGesture ? '<button type="button" class="spv-btn spv-sound" data-act="sound">🔊 Натисніть, щоб чути колег</button>' : ''}
     <div class="spv-actions">${btns}</div></div>`;
 }

@@ -20,6 +20,11 @@
  * Мікрофон за замовчуванням вимкнений. Вимкнений мікрофон зупиняється зовсім —
  * індикатор запису в браузері гасне. Звук у базу не пишеться.
  *
+ * Вибір мікрофона (06.11.2026): mics() / setMic(id), вибір пам'ятає браузер
+ * (localStorage 'pmg-voice-mic'); вікно вибору з перевіркою рівня — mic-picker.js.
+ * Мікрофон, що з увімкнення 8 с не дав жодного звуку, — micSilent у стані
+ * й запис 'mic_silent' у журнал проблем.
+ *
  * Показ екрана (03.11.2026): у кожному з'єднанні — другий, відеоканал; показ вмикається
  * заміною доріжки (як мікрофон), без нового рукостискання. Відеоканал додаємо лише тим,
  * хто в присутності оголосив caps: ['screen'] — вкладка зі старою версією отримала б
@@ -57,6 +62,17 @@ const SLOW_MS = 20000;          // за 20 с так і не з'єдналися
 const ISSUE_LS = 'pmg-voice-issues';
 const ISSUE_GAP = 5 * 60000;    // одна й та сама проблема з тим самим колегою — не частіше
 
+/* Вибір мікрофона (06.11.2026). Браузер бере «пристрій за замовчуванням» Windows, а Teams і
+   месенджери — свій вибір або «пристрій зв'язку»: мікрофон «працює всюди, крім порталу».
+   Вибір живе в цьому браузері. «Тихий» мікрофон — той, що з увімкнення не дав жодного звуку
+   (рівень ≈ 0, як у вимкненого чи не того пристрою); у тихій кімнаті живий мікрофон
+   однаково шумить, тож хибних тривог не дає. Раз почули звук — для цієї доріжки більше не перевіряємо. */
+const MIC_LS = 'pmg-voice-mic';
+const SILENT_MS = 8000;
+const SILENT_LEVEL = 0.0008;
+const lsGet = (k) => { try { return localStorage.getItem(k) || ''; } catch (_) { return ''; } };
+const lsSet = (k, val) => { try { val ? localStorage.setItem(k, val) : localStorage.removeItem(k); } catch (_) { /* приватне вікно */ } };
+
 /**
  * Коротка інформація про учасника для панелей (чат і «Справи»): пристрій, пінг, маршрут.
  * ping — від мене до нього (у себе — середній до всіх). cls: good · mid · bad.
@@ -85,6 +101,10 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     members: new Map(),  // key → { uid, name, muted, deaf }
     peers: new Map(),    // key → { pc, sender, audio, tries, pendingIce, gaveUp }
     mic: null,
+    micId: lsGet(MIC_LS),  // вибраний пристрій ('' — за замовчуванням)
+    micSince: 0,           // скільки мікрофон уже слухаємо (лише поки AudioContext працює)
+    micHeard: false,       // з увімкнення був хоч якийсь звук
+    micSilent: false,      // увімкнений, але нічого не передає
     muted: true,
     deaf: false,
     micBeforeDeaf: false,
@@ -117,6 +137,8 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
       key: v.key,
       muted: v.muted,
       deaf: v.deaf,
+      micSilent: v.micSilent,
+      micLabel: v.mic?.label || '',
       needGesture: v.needGesture,
       inRoom: v.inRoom,
       sharing: !!v.screen,
@@ -360,7 +382,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
   async function leave(quiet) {
     const was = v.inRoom && v.status !== 'idle';
     await closeChannel();
-    if (v.mic) { recDetach('me'); v.mic.stop(); v.mic = null; v.meters.delete('me'); }
+    stopMic();
     v.muted = true;
     v.label = '';
     v.status = 'idle';
@@ -383,7 +405,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     if (!v.inRoom) return;
     v.inRoom = false;
     stopShare(true);
-    if (v.mic) { recDetach('me'); v.mic.stop(); v.mic = null; v.meters.delete('me'); }
+    stopMic();
     v.muted = true;
     for (const k of [...v.peers.keys()]) dropPeer(k, true);
     try { await v.ch?.untrack(); } catch (_) { /* канал закрито */ }
@@ -589,32 +611,129 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
 
   /* ───────── мікрофон і звук ───────── */
 
+  /** Відкрити мікрофон: вибраний пристрій, а якщо його вже нема — основний. */
+  async function openMic() {
+    const base = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+    if (v.micId) {
+      try {
+        return await navigator.mediaDevices.getUserMedia({ audio: { ...base, deviceId: { exact: v.micId } } });
+      } catch (e) {
+        if (!/Overconstrained|NotFound/.test(e?.name || '')) throw e;
+        // Навушники відключили, змінили порт — беремо основний і вибір забуваємо
+        v.micId = '';
+        lsSet(MIC_LS, '');
+        toast('Вибраного мікрофона немає — беремо основний. Інший можна обрати кнопкою «⚙».');
+      }
+    }
+    return navigator.mediaDevices.getUserMedia({ audio: base });
+  }
+
+  /** Поставити доріжку мікрофона «в роботу»: індикатор, запис, перевірка тиші, відключення. */
+  function useMic(s) {
+    const t = s.getAudioTracks()[0];
+    v.mic = t;
+    v.meters.delete('me');
+    addMeter('me', s);
+    if (v.rec) recAttach('me', s);
+    v.micSince = 0;
+    v.micHeard = false;
+    v.micSilent = false;
+    // Висмикнули навушники — пробуємо підхопити інший мікрофон, а не мовчимо
+    t.onended = () => {
+      if (v.mic !== t) return;
+      issue('mic_lost', { label: (t.label || '').slice(0, 80) });
+      stopMic();
+      if (v.muted || !v.ch) return;
+      toast('Мікрофон відключився — пробуємо інший.', true);
+      v.micId = '';
+      openMic().then((s2) => {
+        if (v.mic || v.muted || !v.ch) return s2.getTracks().forEach((x) => x.stop());
+        useMic(s2);
+        return Promise.all([...v.peers.values()].map((p) => p.sender?.replaceTrack(v.mic).catch(() => {})));
+      }).catch(() => { v.muted = true; toast('Мікрофона немає — підключіть його й увімкніть знову.', true); }).finally(retrack);
+    };
+  }
+
+  function stopMic() {
+    if (!v.mic) return;
+    recDetach('me');
+    v.mic.onended = null;
+    v.mic.stop();
+    v.mic = null;
+    v.meters.delete('me');
+    v.micSilent = false;
+  }
+
+  /** Список мікрофонів. Назви браузер дає лише після дозволу на мікрофон (labeled). */
+  async function mics() {
+    const all = await navigator.mediaDevices?.enumerateDevices?.().catch(() => []) || [];
+    const list = all.filter((d) => d.kind === 'audioinput').map((d) => ({ id: d.deviceId, label: d.label }));
+    // Свій вибір — як є; «за замовчуванням» з увімкненим мікрофоном — справжній пристрій під ним
+    return { list, current: v.micId || v.mic?.getSettings?.().deviceId || 'default', labeled: list.some((d) => d.label) };
+  }
+
+  /** Обрати мікрофон. Увімкнений — міняємо доріжку в усіх з'єднаннях на ходу. */
+  async function setMic(id) {
+    const prev = v.micId;
+    v.micId = id === 'default' ? '' : (id || '');
+    if (!v.mic || v.muted) { lsSet(MIC_LS, v.micId); emit(); return true; }
+    let s;
+    try { s = await openMic(); } catch (e) {
+      v.micId = prev;
+      toast(e?.name === 'NotReadableError' ? 'Цей мікрофон зайнятий іншою програмою.' : 'Не вдалося увімкнути цей мікрофон.', true);
+      return false;
+    }
+    lsSet(MIC_LS, v.micId);
+    stopMic();
+    useMic(s);
+    await Promise.all([...v.peers.values()].map((p) => p.sender?.replaceTrack(v.mic).catch(() => {})));
+    emit();
+    return true;
+  }
+
+  /**
+   * Мікрофон увімкнено, а звуку з нього немає SILENT_MS — колеги нас не чують.
+   * Рахуємо час лише поки AudioContext працює: «приспаний» контекст теж дає нулі.
+   */
+  function checkSilence(dt) {
+    if (!v.mic || v.muted || v.micHeard) return;
+    const an = v.meters.get('me');
+    if (!an || v.ctx?.state !== 'running') return;
+    if (!v.mic.muted && level(an) > SILENT_LEVEL) {
+      v.micHeard = true;
+      if (v.micSilent) { v.micSilent = false; emit(); }
+      return;
+    }
+    v.micSince += dt;
+    if (v.micSilent || v.micSince < SILENT_MS) return;
+    v.micSilent = true;
+    toast('Ваш мікрофон нічого не передає — колеги вас не чують. Оберіть інший кнопкою «⚙».', true);
+    const t = v.mic;
+    mics().then(({ list }) => issue('mic_silent', {
+      label: (t.label || '').slice(0, 80),
+      chosen: !!v.micId,
+      track_muted: t.muted,
+      inputs: list.length
+    }));
+    emit();
+  }
+
   async function setMuted(muted, quiet) {
     if (!v.ch || !v.inRoom) return;
     if (!muted && !v.mic) {
       try {
-        const s = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-        });
-        v.mic = s.getAudioTracks()[0];
-        addMeter('me', s);
-        if (v.rec) recAttach('me', s);
+        useMic(await openMic());
       } catch (e) {
         // NotAllowedError — заборонив людина чи система; NotFoundError — мікрофона немає;
         // NotReadableError — мікрофон зайнятий іншою програмою (Teams, Zoom)
-        issue('mic_denied', { err: e?.name || '', msg: String(e?.message || '').slice(0, 200) });
+        issue('mic_denied', { err: e?.name || '', msg: String(e?.message || '').slice(0, 200), chosen: !!v.micId });
         toast(e?.name === 'NotFoundError' ? 'Мікрофон не знайдено: підключіть його й спробуйте ще раз.'
-          : e?.name === 'NotReadableError' ? 'Мікрофон зайнятий іншою програмою (Teams, Zoom?) — закрийте її й спробуйте ще раз.'
+          : e?.name === 'NotReadableError' ? 'Мікрофон зайнятий іншою програмою (Teams, Zoom?) — закрийте її або оберіть інший кнопкою «⚙».'
           : 'Браузер не дав доступу до мікрофона: дозвольте його біля адресного рядка.', true);
         return;
       }
     }
-    if (muted && v.mic) {
-      recDetach('me');
-      v.mic.stop();
-      v.mic = null;
-      v.meters.delete('me');
-    }
+    if (muted) stopMic();
     v.muted = muted;
     // Заговорив без звуку — звук повертаємо: говорити й не чути відповіді безглуздо
     if (!muted && v.deaf) { v.micBeforeDeaf = false; hear(true); }
@@ -824,6 +943,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
       const key = k === 'me' ? v.key : k;
       document.querySelectorAll(`[data-vk="${key}"]`).forEach((el) => el.classList.toggle('is-speaking', on));
     });
+    checkSilence(150);
   }
 
   /**
@@ -866,6 +986,8 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     enter,
     exit,
     toggleMic: () => setMuted(!v.muted),
+    mics,
+    setMic,
     toggleDeaf: () => setDeaf(!v.deaf),
     toggleShare: () => (v.screen ? stopShare() : startShare()),
     startRecording,
