@@ -621,6 +621,11 @@ mark { padding: 0 2px; border-radius: 3px; color: inherit; background: #ffe69a; 
 
 .rehab-code { font-size: 12px; }
 .rehab-code--unknown { border-style: dashed; color: var(--muted); }
+/* Код поза НК 025:2021: «am11» — тиха позначка, «none» — попередження. */
+.rehab-code--nk-am11 { text-decoration: underline dotted; text-underline-offset: 3px; }
+.rehab-code--nk-none { border-color: var(--warning-border); background: var(--warning-bg); color: var(--warning-text); }
+.rehab-pill--nk-am11 { background: var(--surface); color: var(--muted); border-style: dashed; }
+.rehab-pill--nk-none { background: var(--warning-bg); color: var(--warning-text); border-color: var(--warning-border); }
 .rehab-focus { font-weight: 700; }
 
 .rehab-mentions { display: grid; gap: 7px; }

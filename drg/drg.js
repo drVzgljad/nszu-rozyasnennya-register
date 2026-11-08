@@ -317,7 +317,8 @@ async function renderPassport(raw) {
       </div>
     </div>
     <div class="drg-card-foot">
-      Вагові коефіцієнти — ${esc(DB.meta.sourceDoc)}, додатки 1 і 2.
+      Вагові коефіцієнти — ${esc(sourceDocText())}, додатки 1 і 2.
+      ${DB.meta.factorsEdition ? `Опис коефіцієнтів пункту 38 — за редакцією від ${esc(DB.meta.factorsEdition.date)}.` : ''}
       Зв'язок коду з групою — Таблиця співставлення, версія ${esc(
         (DB.meta.sources.find((s) => s.id === 'mapping') || {}).version || '—')}.
       Дані розділу зібрано ${esc(DB.meta.generated)}.
@@ -378,6 +379,14 @@ function renderGroupServices(g) {
   }).join('');
   const rest = g.svc.length > 4 ? `<span class="muted">і ще ${g.svc.length - 4}</span>` : '';
   return `<span class="drg-svc-label">Медичні послуги:</span> ${shown} ${rest}`;
+}
+
+// meta.sourceDoc — об'єкт із resolution_1808.json (у старих збірках — рядок).
+function sourceDocText() {
+  const sd = DB.meta.sourceDoc;
+  if (!sd || typeof sd === 'string') return sd || 'Постанова КМУ № 1808';
+  return `Постанова КМУ від ${sd.date} № ${sd.number}`
+    + (sd.edition_date ? ` (ред. ${sd.edition_date})` : '');
 }
 
 // ── Модуль 2. Розрахунок ────────────────────────────────────────────────────

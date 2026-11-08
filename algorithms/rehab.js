@@ -8,7 +8,7 @@
    де код прямо названий у правилі або в прикладі, і завжди з посиланням на це
    місце. Решта кодів чесно лишається без групи. */
 
-const DATA_VERSION = "20260806a";   // піднімати разом із перезбіркою даних
+const DATA_VERSION = "20261108a";   // піднімати разом із перезбіркою даних
 
 const state = {
   data: null,
@@ -70,12 +70,36 @@ const NOTS = [
 /* ── посилання назовні ───────────────────────────────────────── */
 const icdHref = (code) => `../classifiers/index.html?q=${encodeURIComponent(code)}`;
 
+/* Звірка з класифікатором (gaps.outside_nk025, рахує build_rehab.py):
+   «am11» — немає в індексі видання НК 025:2021, але є в ICD-10-AM 11;
+   «none» — немає ні там, ні там, код варто перевірити. */
+const NK_NOTE = {
+  am11: "Немає в індексі видання НК 025:2021, але є в ICD-10-AM 11-го видання, "
+    + "на якому побудовано групер. Робочий довідник ЕСОЗ ширший за видання НК 025, "
+    + "тож сама відсутність у виданні не означає, що запис не приймуть. "
+    + "У зовнішньому тексті краще навести код, що є в НК 025:2021.",
+  none: "Немає ні в індексі видання НК 025:2021, ні в ICD-10-AM 11. Імовірно, це код "
+    + "ВООЗ-версії МКХ-10 або описка в Додатку. Перш ніж посилатися на нього, перевірте.",
+};
+const nkFlag = (code) => ((state.data && state.data.gaps.outside_nk025) || {})[code] || "";
+
 function codeBadge(code, options = {}) {
   const known = state.byCode.has(code);
-  const title = known ? state.byCode.get(code).name : "Немає в Додатку до наказу";
-  return `<button class="code-badge rehab-code${known ? "" : " rehab-code--unknown"}"
+  const flag = nkFlag(code);
+  let title = known ? state.byCode.get(code).name : "Немає в Додатку до наказу";
+  if (flag) title += flag === "none" ? " · ⚠ немає в НК 025:2021 і в ICD-10-AM 11"
+    : " · немає у виданні НК 025:2021 (є в ICD-10-AM 11)";
+  return `<button class="code-badge rehab-code${known ? "" : " rehab-code--unknown"}${
+      flag ? ` rehab-code--nk-${flag}` : ""}"
       type="button" data-code="${esc(code)}" title="${esc(title)}">${esc(code)}${
       options.mark ? esc(options.mark) : ""}</button>`;
+}
+
+function nkPill(code) {
+  const flag = nkFlag(code);
+  if (!flag) return "";
+  return `<span class="rehab-pill rehab-pill--nk-${flag}" title="${esc(NK_NOTE[flag])}">${
+    flag === "none" ? "⚠ код сумнівний" : "поза НК 025:2021"}</span>`;
 }
 
 /* Коди всередині тексту правила робимо клікабельними — інакше правило
@@ -235,6 +259,7 @@ function renderCards(query) {
             `<span class="rehab-pill rehab-pill--${slug(key)}" title="${esc(CAT_NOTE[key] || "")}">${esc(key)}</span>`).join("")}
           ${(record.g || []).map((n) =>
             `<span class="rehab-pill rehab-pill--group">група ${n}</span>`).join("")}
+          ${nkPill(record.code)}
         </div>
       </div>
     </button>`).join("");
@@ -305,6 +330,11 @@ function selectCode(index) {
   byId("rehabReader").innerHTML = `
     <h2>${esc(record.code)}${record.code_to ? `–${esc(record.code_to)}` : ""}${esc(record.mark || "")}</h2>
     <p class="amb-name">${esc(record.name)}</p>
+    ${nkFlag(record.code) ? `<div class="rehab-verdict rehab-verdict--${nkFlag(record.code) === "none" ? "warn" : "no"}">
+      <span class="rehab-verdict-title">${nkFlag(record.code) === "none"
+        ? "Коду немає в класифікаторах" : "Коду немає у виданні НК 025:2021"}</span>
+      <p>${esc(NK_NOTE[nkFlag(record.code)])}</p>
+    </div>` : ""}
     <div class="algorithm-meta">
       ${record.cats.map((key) => `<span class="rehab-pill rehab-pill--${slug(key)}"
         title="${esc(CAT_NOTE[key] || "")}">Діагноз_${esc(key)} · ${esc(CAT_TITLE[key] || "")}</span>`).join("")}
@@ -458,6 +488,8 @@ function copySummary(record) {
   const order = state.data.meta.order;
   const lines = [
     `${record.code}${record.code_to ? "–" + record.code_to : ""} — ${record.name}`,
+    nkFlag(record.code) === "none" ? "Увага: коду немає ні в НК 025:2021, ні в ICD-10-AM 11 — перевірити."
+      : nkFlag(record.code) ? "Примітка: коду немає в індексі видання НК 025:2021 (є в ICD-10-AM 11)." : "",
     record.cats.length ? `Категорія: ${record.cats.map((key) => `Діагноз_${key} (${CAT_TITLE[key]})`).join(", ")}` : "",
     `Основний діагноз: ${wording(record).text || "—"}`,
     formula ? `Формула кодування: ${record.code} ${formula.text}` : "",
