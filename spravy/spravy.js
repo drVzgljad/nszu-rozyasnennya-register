@@ -768,9 +768,25 @@ function splitLanes(list) {
   return { main: list.filter((c) => !isSzIn(c)), sz };
 }
 
-function laneHTML(title, list, key) {
+/**
+ * Смуги згортаються (з 09.11.2026, користувач: «зроби щоб могли згортатись службові та листи»): клік по
+ * заголовку. Що згорнуто — пам'ятає браузер (localStorage 'spravy-lanes-closed'); у згорнутій смузі заголовок
+ * показує, скільки справ на кожному етапі, щоб нічого не загубилось.
+ */
+const lanesClosed = () => { try { return JSON.parse(lsGet('spravy-lanes-closed') || '{}') || {}; } catch (_) { return {}; } };
+function laneHead(title, list, key) {
+  const closed = !!lanesClosed()[key];
   const open = list.filter((c) => c.stage !== 'done').length;
-  return `<h2 class="sp-lane sp-lane-${key}"><span>${title}</span><b>${open}</b><i>у роботі</i></h2>${colsHTML(list)}`;
+  const sum = closed ? stagesOf('askod').filter((s) => s.key !== 'done')
+    .map((s) => [s.label, list.filter((c) => c.stage === s.key).length]).filter(([, n]) => n)
+    .map(([l, n]) => `${l} ${n}`).join(' · ') : '';
+  return `<h2 class="sp-lane sp-lane-${key}${closed ? ' is-closed' : ''}"><button type="button" class="sp-lane-tg" data-lane="${key}" aria-expanded="${!closed}" title="${closed ? 'Розгорнути' : 'Згорнути'}">
+    <span class="sp-lane-chev" aria-hidden="true">▾</span><span>${title}</span><b>${open}</b><i>у роботі</i>${sum ? `<em class="sp-lane-sum">${sum}</em>` : ''}</button></h2>`;
+}
+const laneOpen = (key) => !lanesClosed()[key];
+
+function laneHTML(title, list, key) {
+  return laneHead(title, list, key) + (laneOpen(key) ? colsHTML(list) : '');
 }
 
 /** Колонки етапів. Обрано один вид, не АСКОД — колонки і назви етапів цього виду (без «На підписі» / «СЗ надано»). */
@@ -816,7 +832,7 @@ function rowHTML(c, withExecutor = true) {
 function listHTML(list) {
   const lanes = splitLanes(list);
   if (lanes) {
-    const part = (title, l, key) => `<h2 class="sp-lane sp-lane-${key}"><span>${title}</span><b>${l.filter((c) => c.stage !== 'done').length}</b><i>у роботі</i></h2>${listRows(l)}`;
+    const part = (title, l, key) => laneHead(title, l, key) + (laneOpen(key) ? listRows(l) : '');
     return part('📝 Вхідні службові записки', lanes.sz, 'sz') + part('📨 Листи, звернення, запити', lanes.main, 'main');
   }
   return listRows(list);
@@ -1559,6 +1575,14 @@ function wireStatic() {
 
   const board = $('spBoard');
   board.addEventListener('click', (e) => {
+    const lane = e.target.closest('[data-lane]');
+    if (lane) {
+      const closed = lanesClosed();
+      closed[lane.dataset.lane] = !closed[lane.dataset.lane];
+      lsSet('spravy-lanes-closed', JSON.stringify(closed));
+      render();
+      return;
+    }
     const nx = e.target.closest('[data-next]');
     if (nx) {
       // «далі →»: справу без виконавця беру на себе
