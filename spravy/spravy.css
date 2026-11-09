@@ -1147,3 +1147,14 @@
 .spv-ping.is-bad { color: var(--spv-off-ink); }
 :root.dark-theme .spv-ping.is-mid { color: #fbbf24; }
 @media (min-width: 761px) { .spv-person { max-width: 280px; } }
+
+/* Смуги дошки (09.11.2026): листи й звернення окремо від вхідних службових записок */
+.sp-lane { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 8px; margin: 6px 0 0; padding: 6px 2px 6px 10px;
+  font-size: 15px; font-weight: 800; color: var(--ink); border-left: 4px solid var(--accent); border-bottom: 1px solid var(--line); }
+.sp-lane b { font-variant-numeric: tabular-nums; color: var(--accent-dark); }
+.sp-lane i { font-style: normal; font-weight: 500; font-size: 13px; color: var(--muted); }
+.sp-lane-sz { border-left-color: var(--sp-signing); }
+.sp-lane-main { margin-top: 18px; }
+.sp-board.is-list .sp-lane { margin: 14px 0 8px; }
+.sp-board.is-list .sp-lane:first-child { margin-top: 0; }
+@media (max-width: 1180px) { .sp-lane { position: sticky; left: 0; } }

@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Справи відділу</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="spravy.css?v=20261109c">
+  <link rel="stylesheet" href="spravy.css?v=20261109e">
   <link rel="stylesheet" href="../auth-v2.css?v=20261104a">
   <script type="module" src="../auth-v2.js?v=20261104a"></script>
 </head>
@@ -72,6 +72,7 @@
       <select id="spKind" class="sp-dept-pick" aria-label="Вид справ">
         <option value="all">Усі види</option>
         <option value="askod">📨 Документи АСКОД</option>
+        <option value="szin">📝 Вхідні службові</option>
         <option value="task">✅ Завдання</option>
         <option value="event">📅 Заходи</option>
         <option value="project">🧭 Напрями</option>
@@ -115,6 +116,8 @@
           Нові справи з журналу АСКОД заводяться самі щодня, а свіжий журнал можна завантажити
           й самому: «📥 Журнал АСКОД» → xlsx-вигрузка резолюцій з АСКОД → перевірити підсумок → «Застосувати»;
           «не наше» або «до відома» — просто перетягніть у «Закрито».</li>
+        <li><b>📝 Вхідні службові записки</b> інших підрозділів — окремою смугою над листами й зверненнями, з тими
+          самими етапами; фільтр «📝 Вхідні службові» показує лише їх.</li>
         <li><b>🎯 На контролі</b> — документи з контрольки департаменту. «🎯 Контролька» → xlsx
           «Контроль ДД.ММ. - ДД.ММ.РРРР» → справи з тими самими вх. № позначаться, а стан виконання
           й примітка перейдуть у картку. Позначку можна поставити й зняти вручну в картці справи;
@@ -300,6 +303,6 @@
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
   <script src="../pmg-askod-journal.js?v=20261109a" defer></script>
-  <script type="module" src="spravy.js?v=20261109c"></script>
+  <script type="module" src="spravy.js?v=20261109e"></script>
 </body>
 </html>

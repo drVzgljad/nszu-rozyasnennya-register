@@ -64,6 +64,13 @@ const KIND_STAGES = {
             { key: 'review', label: 'На погодженні', hint: 'у керівництва' }, { key: 'done', label: 'Завершено', hint: 'результат є' }]
 };
 const kindOf = (c) => c?.case_kind || (c?.in_no ? 'askod' : 'task');
+/**
+ * Вхідна службова записка іншого підрозділу НСЗУ (з 09.11.2026 — окрема смуга дошки й фільтр).
+ * Користувач: «зроби окремо вхідні службові, а то нескінченна полоса губить їх». Ознака — кореспондент
+ * «Службова записка» з журналу АСКОД або внутрішній індекс «15-15/143-26», «7.1.1-01/441-26».
+ */
+const isSzIn = (c) => kindOf(c) === 'askod' &&
+  (/службов/i.test(c.correspondent || '') || /^\d[\d.]*-\d+\/\d+-\d{2}$/.test((c.in_no || '').trim()));
 // Напрями (етап 2): будь-яка справа може належати напряму (parent_id), у напряму — віхи
 const projectsOf = (exceptId) => state.cases.filter((x) => kindOf(x) === 'project' && x.id !== exceptId);
 const childrenOf = (id) => state.cases.filter((x) => x.parent_id === id);
@@ -318,6 +325,9 @@ function bootDemo() {
     mk({ in_no: '10006-11-26', in_date: d(-5), correspondent: 'Слідчий орган (демо)', subject: 'Запит про надання відомостей щодо оплати послуг закладу', deadline: d(4), deadline_original: d(4), stage: 'sz_sent', executor_name: 'Олена Приклад', reply_kind: 'sz_work', our_role: 'co', lead_unit: 'Юридичний департамент', resolution: 'Юридичний департамент скл., наш департамент' }),
     mk({ in_no: 'ПІ-104-26', in_date: d(-4), correspondent: 'Запитувач (демо)', subject: 'Запит на інформацію: тарифи та кількість закладів за пакетом', deadline: d(1), stage: 'signing', executor_name: 'Демо-користувач', version: 2, reply_kind: 'pi', review_passed: true, draft_path: '10_НА_ПІДПИС\\02.11.26\\lyst_demo_v2.docx' }),
     mk({ in_no: '10005-06-26', in_date: d(-20), correspondent: 'Комітет (демо)', subject: 'Інформація щодо оплати медичних послуг у 2026 році', deadline: d(-5), stage: 'done', executor_name: 'Олена Приклад', version: 4, review_passed: true, out_no: '24001/8-15-26', out_date: d(-6) }),
+    // Вхідні службові записки інших підрозділів — окрема смуга дошки (вигадані)
+    mk({ in_no: '11-12/101-26', in_date: d(-2), correspondent: 'Службова записка', subject: 'Про надання інформації щодо умов закупівлі за пакетом для відповіді заявнику (демо)', deadline: d(3), stage: 'new', reply_kind: 'sz', source: 'askod', our_role: 'co' }),
+    mk({ in_no: '5-12/202-26', in_date: d(-7), correspondent: 'Службова записка', subject: 'Пропозиції до специфікацій на наступний рік (демо)', deadline: d(-1), stage: 'work', reply_kind: 'sz', executor_name: 'Петро Зразок', version: 1, source: 'askod' }),
     mk({ in_no: null, subject: 'Ініціативний лист: роз\'яснення закладам щодо обліку послуг', stage: 'work', executor_name: 'Петро Зразок', version: 1, deadline: d(14), source: 'claude' }),
     // Не лише АСКОД: завдання, захід, напрям (вигадані)
     mk({ case_kind: 'task', in_no: null, reply_kind: 'other', subject: 'Довідка до наради: динаміка оплат за пакетом (демо)', assigned_by: 'Керівник відділу', deadline: d(1), stage: 'work', executor_name: 'Демо-користувач' }),
@@ -711,7 +721,8 @@ function passesFilter(c) {
 function visibleCases() {
   const q = state.q.trim().toLowerCase();
   return state.cases.filter((c) => {
-    if (state.kind !== 'all' && kindOf(c) !== state.kind) return false;
+    if (state.kind === 'szin') { if (!isSzIn(c)) return false; }
+    else if (state.kind !== 'all' && kindOf(c) !== state.kind) return false;
     if (state.mine && !isMine(c)) return false;
     if (!passesFilter(c)) return false;
     if (!q) return true;
@@ -737,8 +748,34 @@ function render() {
   document.querySelectorAll('#spView [data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === state.view)));
   if (state.view === 'list') { board.innerHTML = listHTML(list); renderReminderStrip(); return; }
   if (state.view === 'people') { board.innerHTML = peopleHTML(list); renderReminderStrip(); return; }
-  // Обрано один вид, не АСКОД — колонки і назви етапів цього виду (без «На підписі» / «СЗ надано»)
-  board.innerHTML = stagesOf(state.kind === 'all' ? 'askod' : state.kind).map((s) => {
+  // Вхідні службові записки — окремою смугою НАД листами й зверненнями (їх мало — не губляться внизу), з тими самими етапами
+  const lanes = splitLanes(list);
+  board.innerHTML = lanes
+    ? laneHTML('📝 Вхідні службові записки', lanes.sz, 'sz') + laneHTML('📨 Листи, звернення, запити', lanes.main, 'main')
+    : colsHTML(list);
+  renderMobileTabs(list);
+  renderReminderStrip();
+}
+
+/**
+ * Дві смуги — лише коли показуємо документи АСКОД разом («Усі види» / «Документи АСКОД») і є обидві
+ * частини; вибрано «📝 Вхідні службові» чи інший вид — одна звичайна дошка.
+ */
+function splitLanes(list) {
+  if (!['all', 'askod'].includes(state.kind)) return null;
+  const sz = list.filter(isSzIn);
+  if (!sz.length || sz.length === list.length) return null;
+  return { main: list.filter((c) => !isSzIn(c)), sz };
+}
+
+function laneHTML(title, list, key) {
+  const open = list.filter((c) => c.stage !== 'done').length;
+  return `<h2 class="sp-lane sp-lane-${key}"><span>${title}</span><b>${open}</b><i>у роботі</i></h2>${colsHTML(list)}`;
+}
+
+/** Колонки етапів. Обрано один вид, не АСКОД — колонки і назви етапів цього виду (без «На підписі» / «СЗ надано»). */
+function colsHTML(list) {
+  return stagesOf(state.kind === 'all' || state.kind === 'szin' ? 'askod' : state.kind).map((s) => {
     const items = sortCol(list.filter((c) => c.stage === s.key), s.key);
     const shown = s.key === 'done' ? items.slice(0, 30) : items;
     return `<section class="sp-col${s.key === state.mobileStage ? ' is-mobile-active' : ''}" data-stage="${s.key}">
@@ -753,8 +790,6 @@ function render() {
       </div>
     </section>`;
   }).join('');
-  renderMobileTabs(list);
-  renderReminderStrip();
 }
 
 /* ── Вигляд «Список»: усе одним списком, найгарячіше зверху ── */
@@ -779,6 +814,15 @@ function rowHTML(c, withExecutor = true) {
 }
 
 function listHTML(list) {
+  const lanes = splitLanes(list);
+  if (lanes) {
+    const part = (title, l, key) => `<h2 class="sp-lane sp-lane-${key}"><span>${title}</span><b>${l.filter((c) => c.stage !== 'done').length}</b><i>у роботі</i></h2>${listRows(l)}`;
+    return part('📝 Вхідні службові записки', lanes.sz, 'sz') + part('📨 Листи, звернення, запити', lanes.main, 'main');
+  }
+  return listRows(list);
+}
+
+function listRows(list) {
   const rows = list.slice().sort(byDeadline);
   const shown = rows.filter((c) => c.stage !== 'done').concat(rows.filter((c) => c.stage === 'done').slice(0, 30));
   return rows.length ? `<ul class="sp-list">${shown.map((c) => rowHTML(c)).join('')}</ul>`
@@ -915,7 +959,7 @@ function renderStats() {
 }
 
 function renderMobileTabs(list) {
-  $('spStageTabs').innerHTML = stagesOf(state.kind === 'all' ? 'askod' : state.kind).map((s) => {
+  $('spStageTabs').innerHTML = stagesOf(state.kind === 'all' || state.kind === 'szin' ? 'askod' : state.kind).map((s) => {
     const n = list.filter((c) => c.stage === s.key).length;
     return `<button type="button" class="sp-stab${s.key === state.mobileStage ? ' is-active' : ''}" data-stage="${s.key}">${s.label} <b>${n}</b></button>`;
   }).join('');
