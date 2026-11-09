@@ -521,7 +521,7 @@ function renderLinks() {
   $('spLinksCount').textContent = state.links.length ? `${open} відкрито з ${state.links.length}` : '';
   // Що справа вже знає: наш проєкт відповіді, головний виконавець, наша роль — видно й без зв'язків
   const c = state.cases.find((x) => x.id === state.openId) || {};
-  const ctx = [c.project_no && `наш проєкт відповіді <b>№ ${esc(c.project_no)}</b>`,
+  const ctx = [c.project_no && `наш проєкт відповіді <b>№ ${copyHTML(c.project_no, '№ проєкту')}</b>`,
     c.lead_unit && `головний виконавець: <b>${esc(c.lead_unit)}</b>`, c.our_role && esc(ROLE_LABEL[c.our_role])].filter(Boolean);
   const peers = (ctx.length ? `<p class="sp-link-ctx">${ctx.join(' · ')}</p>` : '') + (state.peers.length ? `<p class="sp-peers"><b>Та сама справа в інших відділах:</b> ${state.peers.map((p) =>
     `<span class="sp-peer">відділ ${esc(p.department)} · ${esc(STAGE_LABEL[p.stage] || p.stage)}${p.executor_name ? ' · ' + esc(p.executor_name) : ''}${p.our_role ? ' · ' + esc(ROLE_SHORT[p.our_role] || '') : ''}${p.project_no ? ' · проєкт № ' + esc(p.project_no) : ''}</span>`).join('')}</p>` : '');
@@ -1115,10 +1115,26 @@ async function saveMilestones(c, list, note) {
   openCase(c.id, true);
 }
 
+/** Номер, що копіюється кліком у буфер обміну (лише сам номер). */
+const copyHTML = (v, what) => `<button type="button" class="sp-copy" data-copy="${esc(v)}" title="Скопіювати ${esc(what)}: ${esc(v)}">${esc(v)}<span class="sp-copy-ico" aria-hidden="true">⧉</span></button>`;
+
+async function copyText(v) {
+  try { await navigator.clipboard.writeText(v); }
+  catch (_) {
+    // Запасний шлях: старі браузери й сторінки без дозволу на буфер
+    const t = document.createElement('textarea');
+    t.value = v; t.setAttribute('readonly', ''); t.style.cssText = 'position:fixed;left:-9999px';
+    document.body.appendChild(t); t.select();
+    try { document.execCommand('copy'); } finally { t.remove(); }
+  }
+  toast(`Скопійовано: ${v}`);
+}
+
 function renderDrawerHead(c) {
   const k = kindOf(c);
-  $('spDrawerTitle').textContent = c.in_no ? `Вх. № ${c.in_no}`
-    : `${CASE_KINDS[k].icon} ${CASE_KINDS[k].label}${k === 'event' && c.event_at ? ' · ' + fmtEventAt(c.event_at) : ''}`;
+  // Вх. № копіюється кліком — сам номер, без «Вх. №» (09.11.2026: для пошуку в АСКОД)
+  $('spDrawerTitle').innerHTML = c.in_no ? `Вх. № ${copyHTML(c.in_no, 'вх. №')}`
+    : esc(`${CASE_KINDS[k].icon} ${CASE_KINDS[k].label}${k === 'event' && c.event_at ? ' · ' + fmtEventAt(c.event_at) : ''}`);
   $('spDrawerSub').textContent = c.subject;
   const st = stagesOf(kindOf(c));
   const cur = st.findIndex((x) => x.key === c.stage);
@@ -1640,6 +1656,13 @@ function wireStatic() {
   // Картка справи
   const dlg = $('spDrawer');
   $('spClose').addEventListener('click', () => dlg.close());
+  // Номер у заголовку картки (і № проєкту в «Зв'язках») — копіюється кліком
+  dlg.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-copy]');
+    if (!b) return;
+    e.preventDefault();
+    copyText(b.dataset.copy);
+  });
   dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
   dlg.addEventListener('close', () => { state.openId = null; });
   $('spStepper').addEventListener('click', (e) => {

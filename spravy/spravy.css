@@ -1169,3 +1169,10 @@
 .sp-lane.is-closed .sp-lane-chev { transform: rotate(-90deg); }
 .sp-lane-sum { font-style: normal; font-weight: 500; font-size: 13px; color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { .sp-lane-chev { transition: none; } }
+
+/* Номер копіюється кліком (09.11.2026) */
+.sp-copy { all: unset; cursor: copy; border-radius: 4px; padding: 0 2px; font: inherit; color: inherit;
+  border-bottom: 1px dashed currentColor; }
+.sp-copy:hover { background: var(--soft); }
+.sp-copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sp-copy-ico { font-size: .7em; margin-left: 4px; opacity: .55; vertical-align: .15em; border: 0; }
