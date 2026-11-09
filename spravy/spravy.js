@@ -210,6 +210,18 @@ function daysLeft(iso) {
   return Math.round((b - a) / 86400000);
 }
 /** Строк → { cls, text }. Закриті справи строком не «горять». */
+/**
+ * Строк продовжено (кореспондент, керівник, АСКОД): { orig, now, days, tip } або null.
+ * Первинний строк живе в deadline_original — його ставить перше ж зрушення строку.
+ */
+function prolongInfo(c) {
+  if (!c.deadline || !c.deadline_original || c.deadline === c.deadline_original || c.stage === 'done') return null;
+  const days = Math.round((new Date(c.deadline + 'T00:00:00') - new Date(c.deadline_original + 'T00:00:00')) / 864e5);
+  const sign = days > 0 ? '+' : '';
+  return { orig: c.deadline_original, now: c.deadline, days,
+    tip: `Строк ${days > 0 ? 'продовжено' : 'змінено'}: було ${fmtDate(c.deadline_original)} → стало ${fmtDate(c.deadline)} (${sign}${days} ${daysWord(Math.abs(days))})` };
+}
+
 function deadlineInfo(c) {
   const n = daysLeft(c.deadline);
   if (n === null) return null;
@@ -782,6 +794,7 @@ function passesFilter(c) {
   if (state.f === 'overdue') return n !== null && n < 0 && c.stage !== 'sz_sent';
   if (state.f === 'remind') return (state.reminders[c.id] || []).some((r) => daysLeft(r.due_date) <= 0);
   if (state.f === 'control') return !!c.on_control;
+  if (state.f === 'prolonged') return !!prolongInfo(c);
   if (state.f === 'waiting') return (state.linkWait[c.id]?.out || 0) > 0;
   if (state.f === 'incoming') return (state.linkWait[c.id]?.in || 0) > 0;
   return true;
@@ -890,7 +903,7 @@ function rowHTML(c, withExecutor = true) {
   const rem = state.remarkCounts[c.id] || 0;
   const bell = nextReminder(c.id);
   return `<li class="sp-row sp-row-${c.stage}" data-id="${c.id}" tabindex="0" role="button">
-    <span class="sp-row-dl">${dl ? `<span class="sp-dl ${dl.cls}">${esc(dl.text)}</span>` : '<span class="sp-muted">без строку</span>'}</span>
+    <span class="sp-row-dl">${dl ? `<span class="sp-dl ${dl.cls}">${esc(dl.text)}</span>` : '<span class="sp-muted">без строку</span>'}${(() => { const pr = prolongInfo(c); return pr ? ` <span class="sp-prol sp-prol-mini" title="${esc(pr.tip)}">↻ було ${fmtDate(pr.orig).slice(0, 5)}</span>` : ''; })()}</span>
     <span class="sp-row-no">${c.on_control ? `<span class="sp-ctl-mini" title="${esc(controlTip(c))}">🎯</span> ` : ''}${CASE_KINDS[kindOf(c)].icon} ${esc(c.in_no || (kindOf(c) === 'event' && c.event_at ? fmtEventAt(c.event_at) : CASE_KINDS[kindOf(c)].short))}</span>
     <span class="sp-row-subj">${esc(c.subject)}${c.correspondent ? `<i>${esc(c.correspondent)}</i>` : c.assigned_by ? `<i>від: ${esc(c.assigned_by)}</i>` : ''}</span>
     ${withExecutor ? `<span class="sp-row-ex">${esc(c.executor_name || '—')}</span>` : ''}
@@ -989,10 +1002,12 @@ function cardHTML(c) {
   const remarks = state.remarkCounts[c.id] || 0;
   const rem = nextReminder(c.id);
   const prolonged = c.deadline && c.deadline_original && c.deadline !== c.deadline_original;
+  const pr = prolongInfo(c);
   const k = kindOf(c);
   const lw = state.linkWait[c.id];
   const badges = [
     c.on_control ? `<span class="sp-ctl" title="${esc(controlTip(c))}">🎯 контроль</span>` : '',
+    pr ? `<span class="sp-prol" title="${esc(pr.tip)}">↻ було ${fmtDate(pr.orig).slice(0, 5)}</span>` : '',
     c.our_role ? `<span class="sp-role sp-role-${c.our_role}" title="${esc(ROLE_LABEL[c.our_role] + (c.lead_unit ? ' · головний: ' + c.lead_unit : ''))}">${ROLE_SHORT[c.our_role]}</span>` : '',
     k === 'askod' ? `<span class="sp-kind">${KIND_SHORT[c.reply_kind] || ''}</span>` : `<span class="sp-kind sp-kind-${k}" title="${CASE_KINDS[k].label}">${CASE_KINDS[k].icon} ${CASE_KINDS[k].short}</span>`,
     c.version ? `<span class="sp-ver" title="Поточна версія чернетки">v${c.version}</span>` : '',
@@ -1006,7 +1021,7 @@ function cardHTML(c) {
   const kids = k === 'project' ? childrenOf(c.id).length : 0;
   const parent = c.parent_id ? state.cases.find((x) => x.id === c.parent_id) : null;
   const head = c.in_no || (k === 'event' && c.event_at ? `📅 ${fmtEventAt(c.event_at)}` : `${CASE_KINDS[k].icon} ${CASE_KINDS[k].short}`);
-  return `<article class="sp-card sp-card-${k}${c.on_control && c.stage !== 'done' ? ' is-control' : ''}${lw?.out ? ' is-waiting' : lw?.in ? ' is-incoming' : ''}" draggable="true" data-id="${c.id}" tabindex="0" role="button" aria-label="${esc((c.in_no || CASE_KINDS[k].label) + ': ' + c.subject)}">
+  return `<article class="sp-card sp-card-${k}${c.on_control && c.stage !== 'done' ? ' is-control' : ''}${pr ? ' is-prolonged' : ''}${lw?.out ? ' is-waiting' : lw?.in ? ' is-incoming' : ''}" draggable="true" data-id="${c.id}" tabindex="0" role="button" aria-label="${esc((c.in_no || CASE_KINDS[k].label) + ': ' + c.subject)}">
     <div class="sp-card-top">
       <span class="sp-inno">${esc(head)}</span>
       ${dl ? `<span class="sp-dl ${dl.cls}"${prolonged ? ` title="Продовжено; первинний строк ${fmtDate(c.deadline_original)}"` : ''}>${prolonged ? '↻ ' : ''}${esc(dl.text)}</span>` : ''}

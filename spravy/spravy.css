@@ -46,6 +46,9 @@
   --sp-inc: #2563eb;          /* «📥 Треба врахувати» — нам надіслали */
   --sp-inc-bg: #dbeafe;
   --sp-inc-ink: #1e40af;
+  --sp-prol: #7c3aed;         /* «↻ Строк продовжено» */
+  --sp-prol-bg: #ede9fe;
+  --sp-prol-ink: #5b21b6;
 }
 :root.dark-theme {
   --sp-col-bg: #131c2b;
@@ -85,6 +88,9 @@
   --sp-inc: #60a5fa;
   --sp-inc-bg: #172554;
   --sp-inc-ink: #93c5fd;
+  --sp-prol: #a78bfa;
+  --sp-prol-bg: #2e1065;
+  --sp-prol-ink: #c4b5fd;
 }
 
 .sp-hero h1 { margin-bottom: 6px; }
@@ -299,6 +305,10 @@
 .sp-card.is-control { box-shadow: inset 4px 0 0 var(--sp-ctl); }
 .sp-card.is-control:hover, .sp-card.is-control:focus-visible { box-shadow: inset 4px 0 0 var(--sp-ctl), var(--shadow); }
 .sp-badges .sp-ctl { background: var(--sp-ctl-bg); color: var(--sp-ctl-ink); }
+/* «↻ Строк продовжено»: бейдж із первинною датою і пунктирна рамка картки */
+.sp-prol { background: var(--sp-prol-bg); color: var(--sp-prol-ink); font-weight: 700; cursor: help; }
+.sp-prol-mini { font-size: 12px; padding: 0 6px; border-radius: 999px; white-space: nowrap; }
+.sp-card.is-prolonged { outline: 2px dashed var(--sp-prol); outline-offset: -2px; }
 .sp-ctl-mini { cursor: help; }
 .sp-ctlbox { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; align-items: end;
   margin: 0 0 12px; padding: 8px 12px; border: 1px dashed var(--line); border-radius: 12px; }
