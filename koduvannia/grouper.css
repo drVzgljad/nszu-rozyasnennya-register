@@ -46,12 +46,24 @@
 .gr-hint { margin-top: 5px; font-size: 12.5px; color: var(--p-muted, #5b6774); }
 
 .gr-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-.gr-ex {
-  cursor: pointer; font-size: 13px; padding: 5px 11px; border-radius: 999px;
-  border: 1px dashed var(--p-line, #d7dee6); color: var(--accent-dark, #2f6b9e);
-  background: var(--p-faint, #fafbfc);
+
+/* Готові приклади. До 10.11.2026 це були сірі пігулки без підпису поруч із
+   кнопкою, з фоном var(--p-faint) — а це токен кольору ТЕКСТУ, не фону: у темній
+   темі блакитний напис лягав на сірий фон і приклади ніхто не помічав. */
+.gr-examples {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  padding-top: 12px; border-top: 1px solid var(--p-line, #d7dee6);
 }
-.gr-ex:hover { background: var(--accent-soft, #eef6fc); border-style: solid; }
+@media (min-width: 780px) { .gr-examples { grid-column: 1 / -1; } }
+.gr-exlabel { font-size: 13px; color: var(--p-muted, #5b6774); flex-basis: 100%; }
+.gr-ex {
+  cursor: pointer; font: inherit; font-size: 13.5px; padding: 6px 13px;
+  border-radius: 999px; border: 1px solid var(--accent, #006fc9);
+  color: var(--p-ink, #1c2733); background: var(--p-soft, #f5f8fb);
+}
+.gr-ex:hover, .gr-ex:focus-visible {
+  background: var(--accent, #006fc9); color: #fff; outline: none;
+}
 
 /* --- результат --- */
 .gr-result {
@@ -88,7 +100,8 @@
   grid-template-columns: 5.5em 1fr auto;
 }
 @media (max-width: 640px) { .gr-cand { grid-template-columns: 5.5em 1fr; } }
-.gr-cand:nth-child(odd) { background: var(--p-faint, #fafbfc); }
+/* смуги — токеном фону; --p-faint тут стояв помилково (це колір тексту) */
+.gr-cand:nth-child(odd) { background: var(--p-soft, #f5f8fb); }
 .gr-cand-win {
   border-color: var(--accent, #006fc9); background: var(--accent-soft, #eef6fc) !important;
 }
