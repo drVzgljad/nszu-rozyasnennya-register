@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="../styles.css?v=20260808b">
   <link rel="stylesheet" href="../classifiers/classifiers.css?v=20260809d">
   <link rel="stylesheet" href="koduvannia.css?v=20260819e">
-  <link rel="stylesheet" href="grouper.css?v=20260819c">
+  <link rel="stylesheet" href="grouper.css?v=20261110a">
   <link rel="stylesheet" href="../auth-v2.css?v=20261104a">
   <script type="module" src="../auth-v2.js?v=20261104a"></script>
 </head>
@@ -46,8 +46,8 @@
 
     <div class="gr-warn" role="note">
       <b>Для службового користування.</b> Це наша реконструкція логіки групування,
-      зібрана з відкритих додатків AR-DRG і перевірена на фактично згрупованих
-      випадках. <b>Це не офіційний групер НСЗУ</b> і не підстава для рішень щодо
+      зібрана з відкритих додатків AR-DRG і Таблиці співставлення та перевірена
+      на фактично згрупованих випадках. <b>Це не офіційний групер НСЗУ</b> і не підстава для рішень щодо
       оплати. Результат показує, як логіка <i>мала б</i> спрацювати, і слугує
       для перевірки кодування та розбору спірних випадків.
     </div>
@@ -63,7 +63,7 @@
         <label for="grAdd">Супутні діагнози</label>
         <input id="grAdd" type="text" autocomplete="off" spellcheck="false"
                placeholder="G81.1, R47.1, Z50.9">
-        <div class="gr-hint">Через кому. Часто саме вони вирішують групу.</div>
+        <div class="gr-hint">Через кому. Іноді саме вони вирішують групу.</div>
       </div>
       <div class="gr-field">
         <label for="grIv">Інтервенції</label>
@@ -75,10 +75,13 @@
         <button id="grGo" class="kd-btn kd-btn-main" type="button">Згрупувати</button>
         <span class="gr-ex" data-main="I63.3" data-add="G81.1, R47.1, Z50.9"
               data-iv="96162-00, 96021-00">інсульт</span>
-        <span class="gr-ex" data-main="G80.00" data-add="G82.4" data-iv="">ДЦП + тетраплегія</span>
+        <span class="gr-ex" data-main="G80.00" data-add="G82.46" data-iv="">ДЦП + тетраплегія</span>
         <span class="gr-ex" data-main="G55.1" data-add="M51.1" data-iv="40303-00">дискектомія</span>
         <span class="gr-ex" data-main="T06.8" data-add="S06.20, S72.11, S27.0"
               data-iv="">множинна травма</span>
+        <span class="gr-ex" data-main="K80.00" data-add="" data-iv="30445-00">холецистектомія</span>
+        <span class="gr-ex" data-main="F10.4" data-add="G40.9, I67.8" data-iv="">делірій</span>
+        <span class="gr-ex" data-main="O80" data-add="Z37.0" data-iv="90467-00">пологи</span>
       </div>
     </section>
 
@@ -89,18 +92,7 @@
       <div id="grMeta" class="gr-meta"></div>
       <details class="gr-details">
         <summary>Як приймається рішення</summary>
-        <ol>
-          <li><b>ОДК за основним діагнозом.</b> Додаток A класифікації дає для коду
-            одну або кілька основних діагностичних категорій.</li>
-          <li><b>Кандидати.</b> Групи, у які веде основний діагноз, плюс ті, у які
-            ведуть супутні діагнози та інтервенції — але лише в межах того самого ОДК.</li>
-          <li><b>Комбінаційне правило.</b> Якщо для цього діагнозу здобуте дерево
-            рішень і воно певне (чистота ≥ 85%) — застосовуємо його.</li>
-          <li><b>Модальна група.</b> Інакше беремо групу, яка для цього діагнозу
-            найчастіше зустрічалась у фактично згрупованих випадках.</li>
-          <li><b>Ранг.</b> Якщо діагноз не траплявся — обираємо кандидата з найвищим
-            рангом у попарній ієрархії.</li>
-        </ol>
+        <ol id="grHow"></ol>
       </details>
       <details class="gr-details">
         <summary>Чого цей групер не вміє</summary>
@@ -109,6 +101,6 @@
     </section>
   </main>
 
-  <script type="module" src="grouper.js?v=20260819d"></script>
+  <script type="module" src="grouper.js?v=20261110a"></script>
 </body>
 </html>

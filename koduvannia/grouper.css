@@ -99,6 +99,13 @@
   font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em;
   font-weight: 700; color: var(--accent-dark, #2f6b9e);
 }
+/* кандидат, який не дійшов до вибору: поза щаблем або поза сіткою */
+.gr-out {
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--p-muted, #5b6774);
+}
+.gr-cand-off .gr-cc, .gr-cand-off .gr-cn { color: var(--p-muted, #5b6774); }
+.gr-head .gr-odk + .gr-odk { margin-left: 6px; }
 .gr-foot { margin: 16px 0 0; font-size: 13px; color: var(--p-muted, #5b6774); }
 .gr-err { color: #8f2016; font-size: 14.5px; }
 .gr-mut { color: var(--p-muted, #5b6774); font-weight: 400; }
@@ -117,3 +124,16 @@
 .gr-details[open] summary { border-bottom: 1px solid var(--p-line, #d7dee6); }
 .gr-details ol, .gr-details ul { margin: 12px 0; padding: 0 16px 0 34px; }
 .gr-details li { margin-bottom: 7px; font-size: 14px; line-height: 1.55; max-width: 80ch; }
+
+/* таблиця точності по пакетах: на вузькому екрані гортається сама, а не сторінка */
+.gr-tablewrap { overflow-x: auto; margin: 10px 0 4px; }
+.gr-table { border-collapse: collapse; font-size: 13.5px; min-width: 520px; }
+.gr-table th, .gr-table td {
+  padding: 6px 12px 6px 0; text-align: left; vertical-align: baseline;
+  border-bottom: 1px solid var(--p-line, #d7dee6);
+}
+.gr-table th {
+  font-weight: 600; font-size: 12px; text-transform: uppercase;
+  letter-spacing: .04em; color: var(--p-muted, #5b6774);
+}
+.gr-table .gr-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
