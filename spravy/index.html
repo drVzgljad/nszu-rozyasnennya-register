@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Справи відділу</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="spravy.css?v=20261109a">
+  <link rel="stylesheet" href="spravy.css?v=20261109b">
   <link rel="stylesheet" href="../auth-v2.css?v=20261104a">
   <script type="module" src="../auth-v2.js?v=20261104a"></script>
 </head>
@@ -82,6 +82,8 @@
         <option value="overdue">Прострочено</option>
         <option value="remind">Нагадування настали</option>
         <option value="control">🎯 На контролі</option>
+        <option value="waiting">⏳ Чекаємо відповіді</option>
+        <option value="incoming">📥 Надійшло — врахувати</option>
       </select>
       <select id="spDept" class="sp-dept-pick" aria-label="Відділ" hidden></select>
       <div class="sp-view" id="spView" role="group" aria-label="Вигляд">
@@ -117,6 +119,11 @@
           «Контроль ДД.ММ. - ДД.ММ.РРРР» → справи з тими самими вх. № позначаться, а стан виконання
           й примітка перейдуть у картку. Позначку можна поставити й зняти вручну в картці справи;
           фільтр «🎯 На контролі» показує лише їх.</li>
+        <li><b>🔗 Зв'язки</b> — документи між нами й іншою стороною справи. «📤 Ми надіслали» (СЗ головному
+          виконавцю, проєкт на погодження) — на картці «⏳», доки не відмітите «Відповідь є».
+          «📥 Нам надіслали» (СЗ співвиконавця, яку треба врахувати у своєму проєкті) — «📥», доки не
+          відмітите «Враховано». Якщо справа другої сторони теж є на дошці (інший відділ, той самий вх. №),
+          зв'язок видно з обох боків. «📤 Відправлено документ» для СЗ додає зв'язок «⏳» сам.</li>
         <li><b>Готуємо</b> — є виконавець і чернетка. Номер версії (v1…vN) ставте в картці:
           кожна зміна потрапляє в стрічку подій.</li>
         <li><b>Погодження</b> — рецензія і керівник. Зауваження вносьте окремими пунктами
@@ -156,6 +163,17 @@
         <button type="button" class="sp-btn" data-act="skod">🕒 Зарахувати в СКО-Д</button>
       </div>
       <div id="spFields"></div>
+
+      <!-- Зв'язки справ (migration_2026-11-09b_case_links.sql): СЗ туди — чекаємо, СЗ до нас — врахувати -->
+      <section class="sp-block">
+        <h3>🔗 Зв'язки <span class="sp-muted" id="spLinksCount"></span></h3>
+        <div id="spPeers"></div>
+        <ul class="sp-links" id="spLinks"></ul>
+        <div class="sp-link-btns" id="spLinkBtns">
+          <button type="button" class="sp-btn" data-act="link_out">📤 Ми надіслали (чекаємо)</button>
+          <button type="button" class="sp-btn" data-act="link_in">📥 Нам надіслали (врахувати)</button>
+        </div>
+      </section>
 
       <section class="sp-block">
         <h3>Зауваження <span class="sp-muted" id="spRemarksCount"></span></h3>
@@ -282,6 +300,6 @@
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
   <script src="../pmg-askod-journal.js?v=20261109a" defer></script>
-  <script type="module" src="spravy.js?v=20261109a"></script>
+  <script type="module" src="spravy.js?v=20261109b"></script>
 </body>
 </html>

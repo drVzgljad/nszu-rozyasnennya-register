@@ -138,6 +138,40 @@ select in_no, deadline, stage, executor_name, control_note, control_state from d
 where on_control and stage <> 'done' order by deadline;
 ```
 
+## 🔗 Зв'язки справ (з 09.11.2026)
+
+Користувач: «якщо по проєкту ми надіслали службову — чекаємо; чи нам надіслали службову за проєктом, де ми
+співвиконавці». Міграція `../migration_2026-11-09b_case_links.sql` (після 09 — контроль): таблиця `dept_case_links`.
+
+- Рядок = один документ між двома сторонами справи: `direction` `out` — ми надіслали (СЗ, СЗ у робочому порядку,
+  лист, проєкт на погодження) і **чекаємо**; `in` — нам надіслали, треба **врахувати**. `status`: `waiting` →
+  `answered` (відповідь є / враховано) або `closed` (знято). `answer_note` — що відповіли / як враховано.
+- `counterpart_case_id` — справа другої сторони на дошці (той самий вх. № в іншому відділі або інша справа свого).
+  Тоді рядок видно з обох справ **дзеркально** (у нас «⏳ чекаємо», у них «📥 врахувати») і статус може змінити будь-яка
+  сторона (RLS — `dept_case_link_side`). Справу з тим самим вх. № в інших відділах дає `dept_case_peers(p_case)`:
+  лише відділ, етап, виконавець, роль і № проєкту — без суті й кореспондента.
+- Історію обох справ пише тригер `dept_case_links_log` («🔗 СЗ № … → … — чекаємо відповіді», «…: враховано»).
+- На дошці: бейджі «⏳ N» і «📥 N», фільтри «⏳ Чекаємо відповіді» (`?f=waiting`) і «📥 Надійшло — врахувати»
+  (`?f=incoming`). У картці — блок «🔗 Зв'язки» з кнопками «📤 Ми надіслали» / «📥 Нам надіслали».
+  «📤 Відправлено документ» для СЗ сам додає зв'язок «⏳» (галочка, за замовчуванням увімкнена) і прив'язує його до
+  справи головного виконавця, якщо вона є на дошці.
+- Без міграції дошка працює як раніше, а блок пише, що таблиці ще немає.
+
+```sql
+-- ми (співвиконавці) надіслали СЗ головному виконавцю — чекаємо
+insert into dept_case_links (case_id, direction, doc_kind, doc_no, doc_date, counterpart, about, wait_until, created_by_name)
+select id, 'out', 'sz_work', '3-19/60-26', '2026-11-09', 'Юридичний департамент', 'Позиція відділу', '2026-11-12', 'Claude'
+from dept_cases where department = '…' and in_no = '…';
+-- нам надіслали СЗ — врахувати в нашому проєкті
+insert into dept_case_links (case_id, direction, doc_kind, doc_no, counterpart, project_no, created_by_name)
+select id, 'in', 'sz', '15-15-99-26', 'Аналітичне управління', project_no, 'Claude' from dept_cases where …;
+-- відповідь є / враховано
+update dept_case_links set status = 'answered', answer_note = 'Враховано у v3', updated_by_name = 'Claude' where id = '…';
+-- що висить
+select c.in_no, l.direction, l.doc_kind, l.doc_no, l.counterpart, l.wait_until from dept_case_links l
+join dept_cases c on c.id = l.case_id where l.status = 'waiting' order by l.wait_until nulls last;
+```
+
 ## Як Claude веде картки
 
 Claude пише через конектор Supabase (`execute_sql`). Конектор працює в обхід RLS, тому кожна зміна
