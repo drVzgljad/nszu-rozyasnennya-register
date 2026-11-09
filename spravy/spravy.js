@@ -360,6 +360,11 @@ function bootDemo() {
   state.demoLinks = [{ id: crypto.randomUUID(), created_at: ago(2), case_id: c6, case_department: 'демо-відділ', direction: 'out', doc_kind: 'sz_work',
     doc_no: '3-19/60-26', doc_date: d(-2), counterpart: 'Юридичний департамент', about: 'Дані щодо оплат закладу за 2025–2026',
     wait_until: d(3), status: 'waiting', created_by: 'demo', created_by_name: 'Олена Приклад' }];
+  // Друга СЗ — давня, строк очікування минув: смужка червоніє
+  const c7 = state.cases.find((x) => x.stage === 'work' && x.id !== c6 && x.id !== c3)?.id;
+  if (c7) state.demoLinks.push({ id: crypto.randomUUID(), created_at: ago(12), case_id: c7, case_department: 'демо-відділ', direction: 'out', doc_kind: 'sz',
+    doc_no: '8-12/999-26', doc_date: d(-12), counterpart: 'Департамент-приклад', about: 'Запит даних для відповіді',
+    wait_until: d(-2), status: 'waiting', created_by: 'demo', created_by_name: 'Петро Зразок' });
   countLinks(state.demoLinks, new Set(state.cases.map((c) => c.id)));
   $('spDeptName').textContent = 'Демо-режим: картки вигадані, нічого не зберігається в базі';
   render();
@@ -434,7 +439,7 @@ async function loadCounts() {
   const [{ data }, links] = await Promise.all([
     state.sb.from('dept_case_events').select('id, case_id, kind, remark_status, due_date, done, body')
       .in('kind', ['remark', 'reminder']).in('case_id', ids),
-    state.noLinks ? { data: [] } : state.sb.from('dept_case_links').select('id, case_id, counterpart_case_id, direction, status')
+    state.noLinks ? { data: [] } : state.sb.from('dept_case_links').select('id, case_id, counterpart_case_id, case_department, direction, status, doc_kind, doc_no, doc_date, counterpart, wait_until, created_at, created_by_name')
       .eq('status', 'waiting').or(`case_id.in.(${ids.join(',')}),counterpart_case_id.in.(${ids.join(',')})`)
   ]);
   (data || []).forEach((r) => {
@@ -464,10 +469,74 @@ function countLinks(rows, ids) {
     [l.case_id, l.counterpart_case_id].forEach((id) => {
       if (!id || !ids.has(id)) return;
       const v = viewLink(l, id);
-      const w = (state.linkWait[id] ||= { out: 0, in: 0 });
+      const w = (state.linkWait[id] ||= { out: 0, in: 0, first: {} });
       w[v.dir]++;
+      // Найдавніший відкритий документ у кожному напрямку: його дату й дні очікування видно на картці
+      if (!w.first[v.dir] || sentOn(v) < sentOn(w.first[v.dir])) w.first[v.dir] = v;
     });
   });
+}
+
+/** Дата відправлення документа зв'язку: дата документа, інакше — коли внесли запис. */
+const sentOn = (l) => l.doc_date || (l.created_at || '').slice(0, 10) || '';
+
+function daysWord(n) {
+  const m10 = n % 10, m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return 'день';
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return 'дні';
+  return 'днів';
+}
+
+const DIR_WORD = {
+  out: { icon: '📤', who: 'Ми', arrow: '→', waitHead: '⏳ чекаємо', tipHead: 'Ми надіслали', wait: 'чекаємо відповіді', cls: 'is-out' },
+  in:  { icon: '📥', who: 'Нам', arrow: '←', waitHead: '🕓 у нас', tipHead: 'Нам надіслали', wait: 'у нас без опрацювання', cls: 'is-in' }
+};
+
+/**
+ * Відкритий документ справи в напрямку dir ('out' — ми надіслали й чекаємо, 'in' — нам надіслали,
+ * треба врахувати): { o, dir, label, sent, days, waitTxt, over, warm, tip, more }.
+ * Вхідна службова записка без зв'язку теж «нам»: дата — дата реєстрації, від кого — кореспондент.
+ * over — минув «чекаємо до» (або строк вхідної СЗ), warm — тиждень і довше.
+ */
+function waitInfo(c, dir) {
+  const w = state.linkWait[c.id];
+  let o = w?.first?.[dir];
+  let count = w?.[dir] || 0;
+  if (!o && dir === 'in' && isSzIn(c) && c.stage !== 'done' && c.stage !== 'sz_sent') {
+    const who = c.correspondent && !/^службов/i.test(c.correspondent.trim()) ? c.correspondent : '';
+    o = { doc_kind: 'sz', doc_no: c.in_no, doc_date: c.in_date, who, wait_until: c.deadline };
+    count = 1;
+  }
+  if (!o) return null;
+  const D = DIR_WORD[dir];
+  const sent = sentOn(o);
+  const days = sent ? Math.max(0, -daysLeft(sent)) : null;
+  const over = !!o.wait_until && daysLeft(o.wait_until) < 0;
+  const label = `${LINK_SHORT[o.doc_kind] || 'Документ'}${o.doc_no ? ' № ' + o.doc_no : ''}`;
+  const waitTxt = days === null ? (dir === 'out' ? 'чекаємо' : 'врахувати') : days === 0 ? 'сьогодні' : `${days} ${daysWord(days)}`;
+  const who = o.who && o.who !== '—' ? o.who : '';
+  const tip = [`${D.tipHead}: ${label}${sent ? ' від ' + fmtDate(sent) : ''}`, who ? (dir === 'out' ? 'кому: ' : 'від кого: ') + who : '',
+    days !== null ? `${D.wait} ${days} ${daysWord(days)}` : '', o.wait_until ? `${dir === 'out' ? 'чекаємо до' : 'строк'} ${fmtDate(o.wait_until)}${over ? ' — минув' : ''}` : '',
+    count > 1 ? `ще ${count - 1}` : ''].filter(Boolean).join(' · ');
+  return { o, dir, who, label, sent, days, waitTxt, over, warm: !over && days !== null && days >= 7, tip, more: count - 1 };
+}
+
+/** Смужка на картці: «📤 Ми → кому · СЗ № … від 03.11 · ⏳ 6 днів» або «📥 Нам ← від кого · …». */
+function sentStripHTML(c, dir) {
+  const i = waitInfo(c, dir);
+  if (!i) return '';
+  const D = DIR_WORD[dir];
+  return `<div class="sp-sent ${D.cls}${i.over ? ' is-over' : i.warm ? ' is-warm' : ''}" title="${esc(i.tip)}">
+      <span class="sp-sent-doc">${D.icon} <b class="sp-sent-dir">${D.who}${i.who ? ` ${D.arrow}` : ''}</b>${i.who ? ` ${esc(i.who)}` : ''} · <b>${esc(i.label)}</b>${i.sent ? ` від ${fmtDate(i.sent).slice(0, 5)}` : ''}</span>
+      <span class="sp-sent-wait">${D.waitHead} ${esc(i.waitTxt)}${i.more > 0 ? ` · +${i.more}` : ''}</span>
+    </div>`;
+}
+
+/** Міні-мітка в рядку списку. */
+function sentMiniHTML(c, dir) {
+  const i = waitInfo(c, dir);
+  if (!i) return '';
+  return ` <span class="sp-sent-mini ${DIR_WORD[dir].cls}${i.over ? ' is-over' : i.warm ? ' is-warm' : ''}" title="${esc(i.tip)}">${DIR_WORD[dir].icon} ${dir === 'out' ? 'ми' : 'нам'}${i.sent ? ' ' + fmtDate(i.sent).slice(0, 5) : ''} · ${esc(i.waitTxt)}</span>`;
 }
 
 async function loadLinks(caseId) {
@@ -825,7 +894,7 @@ function rowHTML(c, withExecutor = true) {
     <span class="sp-row-no">${c.on_control ? `<span class="sp-ctl-mini" title="${esc(controlTip(c))}">🎯</span> ` : ''}${CASE_KINDS[kindOf(c)].icon} ${esc(c.in_no || (kindOf(c) === 'event' && c.event_at ? fmtEventAt(c.event_at) : CASE_KINDS[kindOf(c)].short))}</span>
     <span class="sp-row-subj">${esc(c.subject)}${c.correspondent ? `<i>${esc(c.correspondent)}</i>` : c.assigned_by ? `<i>від: ${esc(c.assigned_by)}</i>` : ''}</span>
     ${withExecutor ? `<span class="sp-row-ex">${esc(c.executor_name || '—')}</span>` : ''}
-    <span class="sp-row-stage"><b class="sp-stage-dot"></b>${stageLabel(c, c.stage)}${c.version ? ` · v${c.version}` : ''}${rem ? ` <span class="sp-rem-mini">⚑ ${rem}</span>` : ''}${bell ? ' 🔔' : ''}${state.linkWait[c.id]?.out ? ' <span title="Чекаємо відповіді">⏳</span>' : ''}${state.linkWait[c.id]?.in ? ' <span title="Надійшло — врахувати">📥</span>' : ''}</span>
+    <span class="sp-row-stage"><b class="sp-stage-dot"></b>${stageLabel(c, c.stage)}${c.version ? ` · v${c.version}` : ''}${rem ? ` <span class="sp-rem-mini">⚑ ${rem}</span>` : ''}${bell ? ' 🔔' : ''}${sentMiniHTML(c, 'out')}${sentMiniHTML(c, 'in')}</span>
   </li>`;
 }
 
@@ -924,8 +993,6 @@ function cardHTML(c) {
   const lw = state.linkWait[c.id];
   const badges = [
     c.on_control ? `<span class="sp-ctl" title="${esc(controlTip(c))}">🎯 контроль</span>` : '',
-    lw?.out ? `<span class="sp-wait" title="Ми надіслали документ (СЗ, лист, проєкт) і чекаємо відповіді: ${lw.out}">⏳ ${lw.out}</span>` : '',
-    lw?.in ? `<span class="sp-inc" title="Нам надіслали документ, його треба врахувати: ${lw.in}">📥 ${lw.in}</span>` : '',
     c.our_role ? `<span class="sp-role sp-role-${c.our_role}" title="${esc(ROLE_LABEL[c.our_role] + (c.lead_unit ? ' · головний: ' + c.lead_unit : ''))}">${ROLE_SHORT[c.our_role]}</span>` : '',
     k === 'askod' ? `<span class="sp-kind">${KIND_SHORT[c.reply_kind] || ''}</span>` : `<span class="sp-kind sp-kind-${k}" title="${CASE_KINDS[k].label}">${CASE_KINDS[k].icon} ${CASE_KINDS[k].short}</span>`,
     c.version ? `<span class="sp-ver" title="Поточна версія чернетки">v${c.version}</span>` : '',
@@ -939,7 +1006,7 @@ function cardHTML(c) {
   const kids = k === 'project' ? childrenOf(c.id).length : 0;
   const parent = c.parent_id ? state.cases.find((x) => x.id === c.parent_id) : null;
   const head = c.in_no || (k === 'event' && c.event_at ? `📅 ${fmtEventAt(c.event_at)}` : `${CASE_KINDS[k].icon} ${CASE_KINDS[k].short}`);
-  return `<article class="sp-card sp-card-${k}${c.on_control && c.stage !== 'done' ? ' is-control' : ''}" draggable="true" data-id="${c.id}" tabindex="0" role="button" aria-label="${esc((c.in_no || CASE_KINDS[k].label) + ': ' + c.subject)}">
+  return `<article class="sp-card sp-card-${k}${c.on_control && c.stage !== 'done' ? ' is-control' : ''}${lw?.out ? ' is-waiting' : lw?.in ? ' is-incoming' : ''}" draggable="true" data-id="${c.id}" tabindex="0" role="button" aria-label="${esc((c.in_no || CASE_KINDS[k].label) + ': ' + c.subject)}">
     <div class="sp-card-top">
       <span class="sp-inno">${esc(head)}</span>
       ${dl ? `<span class="sp-dl ${dl.cls}"${prolonged ? ` title="Продовжено; первинний строк ${fmtDate(c.deadline_original)}"` : ''}>${prolonged ? '↻ ' : ''}${esc(dl.text)}</span>` : ''}
@@ -951,6 +1018,7 @@ function cardHTML(c) {
     ${parent ? `<div class="sp-parent" title="Напрям">🧭 ${esc(parent.subject)}</div>` : ''}
     ${ms.length || kids ? `<div class="sp-ms-line">${ms.length ? `<span class="sp-ms-bar" style="--p:${Math.round(100 * ms.filter((m) => m.done).length / ms.length)}%"></span><span>віхи ${ms.filter((m) => m.done).length}/${ms.length}</span>` : ''}${msNext ? `<span title="${esc('Наступна віха: ' + msNext.title)}">→ ${fmtDate(msNext.due).slice(0, 5)}</span>` : ''}${kids ? `<span title="Пов'язані справи">🔗 ${kids}</span>` : ''}</div>` : ''}
     ${k === 'project' && c.lead_unit ? `<div class="sp-parent" title="Головний виконавець">🏛 ${esc(c.lead_unit)}</div>` : ''}
+    ${sentStripHTML(c, 'out')}${sentStripHTML(c, 'in')}
     <div class="sp-card-foot">
       <div class="sp-badges">${badges}</div>
       ${c.executor_name ? `<span class="sp-ava" title="${esc(c.executor_name)}">${esc(initials(c.executor_name))}</span>` : '<span class="sp-ava is-none" title="Виконавця не призначено">?</span>'}

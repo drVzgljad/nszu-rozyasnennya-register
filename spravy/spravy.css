@@ -313,6 +313,25 @@
 
 /* 🔗 Зв'язки справ (09.11.2026): ⏳ ми надіслали — чекаємо; 📥 нам надіслали — врахувати */
 .sp-badges .sp-wait { background: var(--sp-wait-bg); color: var(--sp-wait-ink); }
+/* «Ми надіслали — чекаємо»: дата відправлення і скільки днів без відповіді */
+.sp-card.is-waiting { box-shadow: inset 4px 0 0 var(--sp-wait); }
+.sp-card.is-waiting:hover, .sp-card.is-waiting:focus-visible { box-shadow: inset 4px 0 0 var(--sp-wait), var(--shadow); }
+.sp-card.is-control.is-waiting { box-shadow: inset 4px 0 0 var(--sp-ctl), inset 8px 0 0 var(--sp-wait); }
+.sp-sent { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 8px;
+  margin: 6px 0 2px; padding: 5px 8px; border-radius: 8px; background: var(--sp-wait-bg); color: var(--sp-wait-ink);
+  font-size: 12px; line-height: 1.35; min-width: 0; cursor: help; }
+.sp-sent-doc { min-width: 0; overflow-wrap: anywhere; }
+.sp-sent-doc i { font-style: normal; opacity: .85; }
+.sp-sent-wait { font-weight: 700; white-space: nowrap; }
+.sp-sent.is-warm .sp-sent-wait { color: var(--sp-wait); }
+.sp-sent.is-over, .sp-sent.is-in.is-over { background: var(--sp-over-bg); color: var(--sp-over-ink); }
+.sp-sent-mini { font-size: 12px; font-weight: 700; padding: 0 6px; border-radius: 999px; background: var(--sp-wait-bg); color: var(--sp-wait-ink); white-space: nowrap; cursor: help; }
+.sp-card.is-incoming { box-shadow: inset 4px 0 0 var(--sp-inc); }
+.sp-card.is-incoming:hover, .sp-card.is-incoming:focus-visible { box-shadow: inset 4px 0 0 var(--sp-inc), var(--shadow); }
+.sp-sent-dir { font-weight: 800; }
+.sp-sent.is-in, .sp-sent-mini.is-in { background: var(--sp-inc-bg); color: var(--sp-inc-ink); }
+.sp-sent.is-in.is-warm .sp-sent-wait { color: var(--sp-inc); }
+.sp-sent-mini.is-over { background: var(--sp-over-bg); color: var(--sp-over-ink); }
 .sp-badges .sp-inc { background: var(--sp-inc-bg); color: var(--sp-inc-ink); }
 .sp-links { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
 .sp-link { border: 1px solid var(--line); border-left: 4px solid var(--sp-wait); border-radius: 10px;
