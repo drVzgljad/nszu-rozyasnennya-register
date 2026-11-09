@@ -334,6 +334,8 @@
 .sp-link-ans { width: 100%; box-sizing: border-box; background: var(--surface); color: var(--ink); border: 1px solid var(--line);
   border-radius: 8px; padding: 6px 8px; font: inherit; font-size: 14px; }
 .sp-link-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.sp-link-ctx { margin: 0 0 8px; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.sp-link-ctx b { color: var(--ink); }
 .sp-peers { margin: 0 0 8px; font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 8px; overflow-wrap: anywhere; }
 .sp-peers b { color: var(--ink); }
 .sp-peer { padding: 1px 8px; border-radius: 999px; background: var(--sp-chip-bg); color: var(--sp-chip-ink); }

@@ -495,7 +495,7 @@ function linkHTML(l) {
     </div>
     ${l.about ? `<div class="sp-link-body">${esc(l.about)}</div>` : ''}
     <div class="sp-link-meta">
-      ${l.project_no ? `<span>проєкт № ${esc(l.project_no)}</span>` : ''}
+      ${l.project_no && l.project_no !== l.doc_no ? `<span>до проєкту № ${esc(l.project_no)}</span>` : ''}
       ${l.wait_until ? `<span class="${wait !== null && wait < 0 ? 'sp-dl is-over' : wait !== null && wait <= 1 ? 'sp-dl is-hot' : ''}">чекаємо до ${fmtDate(l.wait_until)}${wait !== null && wait < 0 ? ` · минуло ${-wait} дн.` : ''}</span>` : ''}
       ${peer ? `<button type="button" class="sp-link-case" data-open-case="${peer.id}">↗ ${esc(peer.in_no || 'справа')}</button>` : l.counterpart_case_id || l.mirrored ? '<span>справа іншого відділу</span>' : ''}
       ${l.mirrored ? `<span>вніс(-ла) ${esc(l.created_by_name || '—')}</span>` : ''}
@@ -509,8 +509,12 @@ function renderLinks() {
   if (!box) return;
   const open = state.links.filter((l) => l.status === 'waiting').length;
   $('spLinksCount').textContent = state.links.length ? `${open} відкрито з ${state.links.length}` : '';
-  const peers = state.peers.length ? `<p class="sp-peers"><b>Та сама справа в інших відділах:</b> ${state.peers.map((p) =>
-    `<span class="sp-peer">відділ ${esc(p.department)} · ${esc(STAGE_LABEL[p.stage] || p.stage)}${p.executor_name ? ' · ' + esc(p.executor_name) : ''}${p.our_role ? ' · ' + esc(ROLE_SHORT[p.our_role] || '') : ''}${p.project_no ? ' · проєкт № ' + esc(p.project_no) : ''}</span>`).join('')}</p>` : '';
+  // Що справа вже знає: наш проєкт відповіді, головний виконавець, наша роль — видно й без зв'язків
+  const c = state.cases.find((x) => x.id === state.openId) || {};
+  const ctx = [c.project_no && `наш проєкт відповіді <b>№ ${esc(c.project_no)}</b>`,
+    c.lead_unit && `головний виконавець: <b>${esc(c.lead_unit)}</b>`, c.our_role && esc(ROLE_LABEL[c.our_role])].filter(Boolean);
+  const peers = (ctx.length ? `<p class="sp-link-ctx">${ctx.join(' · ')}</p>` : '') + (state.peers.length ? `<p class="sp-peers"><b>Та сама справа в інших відділах:</b> ${state.peers.map((p) =>
+    `<span class="sp-peer">відділ ${esc(p.department)} · ${esc(STAGE_LABEL[p.stage] || p.stage)}${p.executor_name ? ' · ' + esc(p.executor_name) : ''}${p.our_role ? ' · ' + esc(ROLE_SHORT[p.our_role] || '') : ''}${p.project_no ? ' · проєкт № ' + esc(p.project_no) : ''}</span>`).join('')}</p>` : '');
   box.innerHTML = state.noLinks
     ? '<li class="sp-muted sp-none">Зв\'язків у базі ще немає: потрібно застосувати migration_2026-11-09b_case_links.sql.</li>'
     : (state.links.length ? state.links.map(linkHTML).join('')
@@ -530,7 +534,7 @@ async function addLink(caseId, row) {
   } else {
     const { error } = await state.sb.from('dept_case_links').insert({ ...full, created_by: state.me.id });
     if (error) return toast('Зв\'язок не збережено: ' + error.message, true);
-    await loadEvents(caseId);
+    if (state.openId === caseId) await loadEvents(caseId);
   }
   await refreshLinks(caseId);
 }
@@ -545,7 +549,7 @@ async function updateLink(caseId, id, patch) {
   } else {
     const { error } = await state.sb.from('dept_case_links').update({ ...patch, updated_by_name: myName() }).eq('id', id);
     if (error) return toast('Не збережено: ' + error.message, true);
-    if ('status' in patch) await loadEvents(caseId);
+    if ('status' in patch && state.openId === caseId) await loadEvents(caseId);
   }
   await refreshLinks(caseId);
 }
@@ -599,11 +603,13 @@ async function saveCase(id, patch) {
   if (!c) return;
   const prev = { ...c };
   Object.assign(c, patch, { updated_by_name: myName() });
+  const toSz = patch.stage === 'sz_sent' && prev.stage !== 'sz_sent';
   if (DEMO) {
     demoLog(c, prev);
     c.change_note = null;
     render();
     if (state.openId === id) { renderDrawerHead(c); loadEvents(id); }
+    if (toSz) await autoLinkSzSent(c);
     return true;
   }
   const { error } = await state.sb.from('dept_cases').update({ ...patch, updated_by_name: myName() }).eq('id', id);
@@ -616,6 +622,7 @@ async function saveCase(id, patch) {
   }
   render();
   if (state.openId === id) { renderDrawerHead(c); await loadEvents(id); }
+  if (toSz) await autoLinkSzSent(c);
   return true;
 }
 
@@ -1183,6 +1190,7 @@ const ACTIONS = {
       }
       if (fd.get('move')) {
         const patch = { stage: kind === 'sz_work' ? 'sz_sent' : 'done' };
+        state.skipAutoLink = !fd.get('wait');
         if (kind === 'letter' && no) Object.assign(patch, { out_no: no, out_date: fd.get('date') || null });
         await saveCase(id, patch);
       }
@@ -1268,20 +1276,38 @@ const ACTIONS = {
  * Форма зв'язку. «Справа другої сторони» — та сама справа в іншому відділі (dept_case_peers)
  * або інша справа нашого відділу: тоді зв'язок видно з обох карток.
  */
+/**
+ * Що форма зв'язку бере зі справи (09.11.2026, користувач: «чому вона не заповнена, номер…»):
+ * № — № проєкту нашої СЗ в АСКОД (project_no), поки немає зареєстрованого; кому — головний
+ * виконавець; дата й «про що» — з останнього «📤 Відправлено документ»; чекаємо до — строк справи.
+ */
+function linkDefaults(c, dir) {
+  const out = dir === 'out';
+  const sent = (state.openId === c.id ? state.events : []).filter((e) => e.kind === 'outgoing').slice(-1)[0];
+  const n = daysLeft(c.deadline);
+  return {
+    doc_kind: sent && LINK_DOC[sent.doc_kind] ? sent.doc_kind : 'sz',
+    doc_no: out ? (sent?.doc_no || c.project_no || '') : '',
+    doc_date: (out && (sent?.event_date || String(sent?.created_at || '').slice(0, 10))) || todayISO(),
+    counterpart: out ? (sent?.addressee || c.lead_unit || '') : '',
+    about: out ? (sent?.body || '') : '',
+    wait_until: out && n !== null && n >= 0 ? c.deadline.slice(0, 10) : ''
+  };
+}
+
 function linkFields(c, dir) {
   const out = dir === 'out';
-  const defKind = c.our_role === 'co' ? 'sz_work' : 'sz';
+  const d = linkDefaults(c, dir);
   const peerOpts = state.peers.map((p) => `<option value="${p.id}"${out && p.our_role === 'lead' ? ' selected' : ''}>відділ ${esc(p.department)} — та сама справа${p.executor_name ? ' (' + esc(p.executor_name) + ')' : ''}</option>`);
   const ownOpts = state.cases.filter((x) => x.id !== c.id && x.stage !== 'done')
     .map((x) => `<option value="${x.id}">${esc(x.in_no || CASE_KINDS[kindOf(x)].short)} — ${esc(x.subject.length > 50 ? x.subject.slice(0, 48) + '…' : x.subject)}</option>`);
   return `
-    <label class="sp-f"><span>Що</span><select name="doc_kind">${Object.entries(LINK_DOC).map(([k, v]) => `<option value="${k}"${k === defKind ? ' selected' : ''}>${v}</option>`).join('')}</select></label>
-    <label class="sp-f"><span>№</span><input name="doc_no" placeholder="№ СЗ, вих. № або Н(СЛ)-…"></label>
-    <label class="sp-f"><span>Дата</span><input type="date" name="doc_date" value="${todayISO()}"></label>
-    <label class="sp-f"><span>${out ? 'Кому' : 'Від кого'}</span><input name="counterpart" list="spLeadUnits" placeholder="підрозділ або людина" value="${esc(out && c.our_role === 'co' ? c.lead_unit || '' : '')}"></label>
-    <label class="sp-f"><span>До якого проєкту (АСКОД)</span><input name="project_no" placeholder="Н(СЛ)-12345" value="${esc(out ? '' : c.project_no || '')}"></label>
-    ${out ? '<label class="sp-f"><span>Чекаємо до</span><input type="date" name="wait_until"></label>' : ''}
-    <label class="sp-f sp-wide"><span>Про що</span><input name="about" placeholder="${out ? 'позиція відділу, дані, пропозиції до проєкту' : 'що просять урахувати'}"></label>
+    <label class="sp-f"><span>Що</span><select name="doc_kind">${Object.entries(LINK_DOC).map(([k, v]) => `<option value="${k}"${k === d.doc_kind ? ' selected' : ''}>${v}</option>`).join('')}</select></label>
+    <label class="sp-f"><span>№ ${out ? 'нашого документа' : 'їхнього документа'}</span><input name="doc_no" value="${esc(d.doc_no)}" placeholder="${out ? 'Н(СЛ)-… або зареєстрований №' : '№ їхньої СЗ'}"></label>
+    <label class="sp-f"><span>Дата</span><input type="date" name="doc_date" value="${esc(d.doc_date)}"></label>
+    <label class="sp-f"><span>${out ? 'Кому' : 'Від кого'}</span><input name="counterpart" list="spLeadUnits" placeholder="підрозділ або людина" value="${esc(d.counterpart)}"></label>
+    ${out ? `<label class="sp-f"><span>Чекаємо до</span><input type="date" name="wait_until" value="${esc(d.wait_until)}"></label>` : ''}
+    <label class="sp-f sp-wide"><span>Про що</span><input name="about" value="${esc(d.about)}" placeholder="${out ? 'позиція відділу, дані, пропозиції до проєкту' : 'що просять урахувати'}"></label>
     <label class="sp-f sp-wide"><span>Справа другої сторони на дошці</span><select name="counterpart_case_id">
       <option value="">— немає на дошці —</option>${peerOpts.join('')}${ownOpts.length ? `<optgroup label="Справи нашого відділу">${ownOpts.join('')}</optgroup>` : ''}</select></label>
     <p class="sp-f sp-wide sp-muted">${out ? 'На картці з\'явиться «⏳», доки не відмітите «Відповідь є».' : 'На картці з\'явиться «📥», доки не відмітите «Враховано».'}
@@ -1290,8 +1316,32 @@ function linkFields(c, dir) {
 
 function linkRow(fd, dir) {
   const v = (k) => (String(fd.get(k) || '').trim() || null);
+  const c = state.cases.find((x) => x.id === state.openId);
+  // № проєкту відповіді — зі справи сам; окремого поля в формі немає (його плутали з вх. №)
   return { direction: dir, doc_kind: v('doc_kind') || 'sz', doc_no: v('doc_no'), doc_date: v('doc_date'), counterpart: v('counterpart'),
-    project_no: v('project_no'), about: v('about'), wait_until: dir === 'out' ? v('wait_until') : null, counterpart_case_id: v('counterpart_case_id') };
+    project_no: c?.project_no || null, about: v('about'), wait_until: dir === 'out' ? v('wait_until') : null, counterpart_case_id: v('counterpart_case_id') };
+}
+
+/**
+ * Справу перевели в «СЗ надано» (кнопкою, перетягуванням чи кроком), а зв'язку «⏳» ще немає —
+ * заводимо його сам із даних справи. «📤 Відправлено документ» додає зв'язок раніше, тож дубля не буде.
+ */
+async function autoLinkSzSent(c) {
+  // «📤 Відправлено документ» зі знятою галочкою «Чекаємо відповіді» — людина сказала, що зв'язок не потрібен
+  if (state.skipAutoLink) { state.skipAutoLink = false; return; }
+  if (state.noLinks) return;
+  if (DEMO) {
+    if (state.demoLinks.some((l) => l.case_id === c.id && l.direction === 'out')) return;
+  } else {
+    const { data, error } = await state.sb.from('dept_case_links').select('id').eq('case_id', c.id).eq('direction', 'out').limit(1);
+    if (error || data?.length) return;
+  }
+  if (state.openId === c.id && !state.events.length) await loadEvents(c.id);
+  const d = linkDefaults(c, 'out');
+  await addLink(c.id, { direction: 'out', doc_kind: d.doc_kind, doc_no: d.doc_no || null, doc_date: d.doc_date, counterpart: d.counterpart || null,
+    project_no: c.project_no || null, about: d.about || null, wait_until: d.wait_until || null,
+    counterpart_case_id: state.openId === c.id ? (state.peers.find((p) => p.our_role === 'lead')?.id || null) : null });
+  toast('⏳ Додано зв\'язок: чекаємо, поки головний виконавець урахує СЗ');
 }
 
 function skodDescription(c) {
