@@ -516,9 +516,26 @@
     return ops;
   }
 
+  /**
+   * Будь-яка таблиця (не лише журнал): рядки активного аркуша простими значеннями —
+   * дата → 'YYYY-MM-DD', число → Number, решта → рядок або null. Для контрольки
+   * департаменту (spravy/control-upload.js). Правил журналу не торкається.
+   */
+  async function readSheet(buf) {
+    var rows = await readRows(unzip(buf));
+    return rows.map(function (row) {
+      return row.map(function (v) {
+        if (v instanceof PyDate) return v.d;
+        if (v instanceof PyNum) return v.n;
+        if (v instanceof PyTime) return v.t;
+        return v == null ? null : v;
+      });
+    });
+  }
+
   var api = {
     DAYS: DAYS, ASKOD_NOTE: ASKOD_NOTE, GONE: GONE,
-    readJournal: readJournal, pick: pick, plan: plan,
+    readJournal: readJournal, readSheet: readSheet, pick: pick, plan: plan,
     journal_case: journal_case, our_role: our_role, reply_kind: reply_kind, owns: owns,
     clean: clean, as_date: as_date
   };

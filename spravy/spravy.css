@@ -37,6 +37,9 @@
   --sp-lead-ink: #4a3a8f;
   --sp-bell-bg: #fff4d6;
   --sp-bell-ink: #7a5000;
+  --sp-ctl: #c2410c;          /* «🎯 На контролі» */
+  --sp-ctl-bg: #ffedd5;
+  --sp-ctl-ink: #9a3412;
 }
 :root.dark-theme {
   --sp-col-bg: #131c2b;
@@ -67,6 +70,9 @@
   --sp-lead-ink: #c4b5fd;
   --sp-bell-bg: #3d2c08;
   --sp-bell-ink: #fbbf24;
+  --sp-ctl: #fb923c;
+  --sp-ctl-bg: #431a07;
+  --sp-ctl-ink: #fdba74;
 }
 
 .sp-hero h1 { margin-bottom: 6px; }
@@ -277,6 +283,21 @@
 .sp-badges .sp-role-co { background: var(--sp-co-bg); color: var(--sp-co-ink); }
 .sp-badges .sp-bell { background: var(--sp-chip-bg); color: var(--sp-chip-ink); }
 .sp-badges .sp-bell.is-due { background: var(--sp-bell-bg); color: var(--sp-bell-ink); }
+/* «🎯 На контролі» (09.11.2026): смужка ліворуч на картці, бейдж, блок у картці справи */
+.sp-card.is-control { box-shadow: inset 4px 0 0 var(--sp-ctl); }
+.sp-card.is-control:hover, .sp-card.is-control:focus-visible { box-shadow: inset 4px 0 0 var(--sp-ctl), var(--shadow); }
+.sp-badges .sp-ctl { background: var(--sp-ctl-bg); color: var(--sp-ctl-ink); }
+.sp-ctl-mini { cursor: help; }
+.sp-ctlbox { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; align-items: end;
+  margin: 0 0 12px; padding: 8px 12px; border: 1px dashed var(--line); border-radius: 12px; }
+.sp-ctlbox.is-on { border: 1px solid var(--sp-ctl); background: var(--sp-ctl-bg); }
+.sp-ctlbox.is-on .sp-check > span, .sp-ctlbox.is-on .sp-f > span { color: var(--sp-ctl-ink); font-weight: 700; }
+.sp-ctlbox input:not([type="checkbox"]) { background: var(--surface); }
+.sp-ctl-from { grid-column: 1 / -1; margin: 0; font-size: 13px; color: var(--sp-ctl-ink); overflow-wrap: anywhere; }
+@media (max-width: 560px) { .sp-ctlbox { grid-template-columns: minmax(0, 1fr); } }
+.sp-ctl-pick { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
+.sp-ctl-pick input { margin-top: 3px; flex: none; }
+.sp-ctl-dl { color: var(--sp-hot-ink); font-size: 13px; }
 
 /* ---------- смуга нагадувань ---------- */
 .sp-reminders {

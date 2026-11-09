@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Справи відділу</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="spravy.css?v=20261104b">
+  <link rel="stylesheet" href="spravy.css?v=20261109a">
   <link rel="stylesheet" href="../auth-v2.css?v=20261104a">
   <script type="module" src="../auth-v2.js?v=20261104a"></script>
 </head>
@@ -81,6 +81,7 @@
         <option value="hot">Горить: строк ≤ 3 дн.</option>
         <option value="overdue">Прострочено</option>
         <option value="remind">Нагадування настали</option>
+        <option value="control">🎯 На контролі</option>
       </select>
       <select id="spDept" class="sp-dept-pick" aria-label="Відділ" hidden></select>
       <div class="sp-view" id="spView" role="group" aria-label="Вигляд">
@@ -91,6 +92,9 @@
       <!-- Свій журнал АСКОД (xlsx): askod-upload.js + ../pmg-askod-journal.js -->
       <button type="button" class="sp-btn" id="spJournal" title="Завантажити свій журнал резолюцій з АСКОД (xlsx): нові справи заведуться, строки й стан оновляться" hidden>📥 Журнал АСКОД</button>
       <input type="file" id="spJournalFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+      <!-- Контролька департаменту (xlsx): control-upload.js — позначка «🎯 На контролі» -->
+      <button type="button" class="sp-btn" id="spControl" title="Завантажити контрольку департаменту (xlsx): справи з неї позначаться «🎯 На контролі»" hidden>🎯 Контролька</button>
+      <input type="file" id="spControlFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
       <button type="button" class="sp-btn sp-btn-primary" id="spAdd">+ Справа</button>
     </div>
 
@@ -109,6 +113,10 @@
           Нові справи з журналу АСКОД заводяться самі щодня, а свіжий журнал можна завантажити
           й самому: «📥 Журнал АСКОД» → xlsx-вигрузка резолюцій з АСКОД → перевірити підсумок → «Застосувати»;
           «не наше» або «до відома» — просто перетягніть у «Закрито».</li>
+        <li><b>🎯 На контролі</b> — документи з контрольки департаменту. «🎯 Контролька» → xlsx
+          «Контроль ДД.ММ. - ДД.ММ.РРРР» → справи з тими самими вх. № позначаться, а стан виконання
+          й примітка перейдуть у картку. Позначку можна поставити й зняти вручну в картці справи;
+          фільтр «🎯 На контролі» показує лише їх.</li>
         <li><b>Готуємо</b> — є виконавець і чернетка. Номер версії (v1…vN) ставте в картці:
           кожна зміна потрапляє в стрічку подій.</li>
         <li><b>Погодження</b> — рецензія і керівник. Зауваження вносьте окремими пунктами
@@ -248,6 +256,18 @@
     </form>
   </dialog>
 
+  <!-- Контролька: що позначиться, що завести, що зняти з контролю (control-upload.js) -->
+  <dialog class="sp-new sp-jr" id="spControlDlg" aria-labelledby="spControlTitle">
+    <form id="spControlForm">
+      <h2 id="spControlTitle">🎯 Контролька</h2>
+      <div id="spControlBody"></div>
+      <div class="sp-new-foot">
+        <button type="button" class="sp-btn sp-btn-ghost" id="spControlCancel">Скасувати</button>
+        <button type="submit" class="sp-btn sp-btn-primary" id="spControlOk" disabled>Застосувати</button>
+      </div>
+    </form>
+  </dialog>
+
   <div class="sp-toast" id="spToast" role="status" hidden></div>
 
   <footer class="site-footer">
@@ -261,7 +281,7 @@
   </footer>
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
-  <script src="../pmg-askod-journal.js?v=20261103a" defer></script>
-  <script type="module" src="spravy.js?v=20261106a"></script>
+  <script src="../pmg-askod-journal.js?v=20261109a" defer></script>
+  <script type="module" src="spravy.js?v=20261109a"></script>
 </body>
 </html>

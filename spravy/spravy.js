@@ -29,6 +29,8 @@ import { initVoice, setVoiceDept } from './voice.js?v=20261106a';
 import { initRoomChat, setRoomChatDept } from './room-chat.js?v=20261104a';
 // Свій журнал АСКОД (xlsx) — кнопка «📥 Журнал АСКОД»; розбір — ../pmg-askod-journal.js
 import { initAskodUpload } from './askod-upload.js?v=20261103a';
+// Контролька департаменту (xlsx) — кнопка «🎯 Контролька»: позначка «На контролі» (migration_2026-11-09_case_control.sql)
+import { initControlUpload } from './control-upload.js?v=20261109a';
 
 const $ = (id) => document.getElementById(id);
 
@@ -253,6 +255,7 @@ async function boot() {
   applyUrlParams();
   subscribe();
   initAskodUpload({ sb: state.sb, me: state.me, name: myName(), dept: () => state.dept, toast, reload: loadCases });
+  initControlUpload({ sb: state.sb, me: state.me, name: myName(), dept: () => state.dept, toast, reload: loadCases });
   // Голосова кімната (voice.js): заходимо одразу, мікрофон вимкнений. Текстовий канал під нею —
   // кімната відділу або головна стрічка «Робочого чату Департаменту» (room-chat.js).
   setupRoomScope();
@@ -275,13 +278,13 @@ function setupRoomScope() {
 
 /**
  * Посилання з головної, смуги «мої справи» й сповіщень:
- * ?mine=1 — лише мої; ?f=hot|overdue|remind — фільтр; ?case=<id> — відкрити справу;
+ * ?mine=1 — лише мої; ?f=hot|overdue|remind|control — фільтр; ?case=<id> — відкрити справу;
  * ?new=1 — одразу форма нової справи (кнопка «Доручити справу»).
  */
 function applyUrlParams() {
   const qs = new URLSearchParams(location.search);
   if (qs.get('mine') === '1') { state.mine = true; $('spMine').checked = true; }
-  if (['hot', 'overdue', 'remind'].includes(qs.get('f'))) { state.f = qs.get('f'); $('spFilter').value = state.f; }
+  if (['hot', 'overdue', 'remind', 'control'].includes(qs.get('f'))) { state.f = qs.get('f'); $('spFilter').value = state.f; }
   if (state.mine || state.f !== 'all') render();
   const id = qs.get('case');
   if (id && state.cases.some((c) => c.id === id)) openCase(id);
@@ -297,7 +300,7 @@ function bootDemo() {
   const d = (n) => { const x = new Date(); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };
   const mk = (o) => ({ id: crypto.randomUUID(), department: 'демо-відділ', reply_kind: 'letter', review_passed: false, priority: 0, source: 'manual', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), ...o });
   state.cases = [
-    mk({ in_no: '10001-08-26', in_date: d(-6), correspondent: 'Міністерство (демо)', subject: 'Погодження проєкту наказу про зміни до переліку обладнання — п\'ятиденний строк', deadline: d(-1), deadline_original: d(-1), stage: 'new', resolution: 'Керівник скл., відділ А, відділ Б', askod_state: 'До виконання', source: 'askod', our_role: 'lead', lead_unit: 'Департамент стратегії універсального охоплення населення медичними послугами' }),
+    mk({ in_no: '10001-08-26', in_date: d(-6), correspondent: 'Міністерство (демо)', subject: 'Погодження проєкту наказу про зміни до переліку обладнання — п\'ятиденний строк', deadline: d(-1), deadline_original: d(-1), stage: 'new', resolution: 'Керівник скл., відділ А, відділ Б', askod_state: 'До виконання', source: 'askod', our_role: 'lead', on_control: true, control_note: 'контроль Голови', control_state: 'проєкт відсутній', control_lead: 'Керівник В.', control_list: 'Контроль (демо)', lead_unit: 'Департамент стратегії універсального охоплення населення медичними послугами' }),
     mk({ in_no: 'Д-1002-26', in_date: d(-3), correspondent: 'Громадянин (демо)', subject: 'Чи покриває програма медичних гарантій обстеження за направленням лікаря ПМД', deadline: d(2), stage: 'work', executor_name: 'Олена Приклад', version: 2, draft_path: '19_службові_записки\\letter_demo_v2.json', reply_kind: 'sz', nuances: 'Нових умов не вигадувати — лише специфікація пакета.' }),
     mk({ in_no: '10003-12-26', in_date: d(-10), correspondent: 'Обласна адміністрація (демо)', subject: 'Впровадження нових вагових коефіцієнтів з 01.01.2027', deadline: d(9), deadline_original: d(-2), stage: 'review', executor_name: 'Петро Зразок', version: 3, draft_url: 'https://docs.google.com/', nuances: 'Проєкт наступного року не тлумачимо.', our_role: 'lead', lead_unit: 'Департамент стратегії універсального охоплення населення медичними послугами' }),
     mk({ in_no: '10006-11-26', in_date: d(-5), correspondent: 'Слідчий орган (демо)', subject: 'Запит про надання відомостей щодо оплати послуг закладу', deadline: d(4), deadline_original: d(4), stage: 'sz_sent', executor_name: 'Олена Приклад', reply_kind: 'sz_work', our_role: 'co', lead_unit: 'Юридичний департамент', resolution: 'Юридичний департамент скл., наш департамент' }),
@@ -337,6 +340,9 @@ function bootDemo() {
   initVoice({ demo: true, name: myName() });
   initRoomChat({ demo: true, name: myName() });
   initAskodUpload({ demo: true, name: myName(), dept: () => state.dept, toast, cases: () => state.cases, people: () => state.people, reload: async () => render() });
+  initControlUpload({ demo: true, name: myName(), dept: () => state.dept, toast, cases: () => state.cases, people: () => state.people,
+    demoEvent: (id, body) => (state.demoEvents[id] ||= []).push({ id: crypto.randomUUID(), case_id: id, created_at: new Date().toISOString(), author_name: myName(), kind: 'system', body }),
+    reload: async () => { render(); if (state.openId) openCase(state.openId, true); } });
 }
 
 function showNotice(text) {
@@ -457,6 +463,7 @@ function demoLog(c, prev) {
   if (c.version !== prev.version && c.version) ev('version', `Чернетка v${c.version}`);
   if (c.executor_name !== prev.executor_name) ev('executor', `Виконавець: ${c.executor_name || '—'}`);
   if (c.review_passed !== prev.review_passed) ev('review', c.review_passed ? 'Рецензію пройдено' : 'Рецензію знято');
+  if (!!c.on_control !== !!prev.on_control) ev('system', c.on_control ? `🎯 Поставлено на контроль${c.control_note ? ' — ' + c.control_note : ''}` : '🎯 Знято з контролю');
 }
 
 async function addEvent(caseId, row) {
@@ -515,6 +522,7 @@ function passesFilter(c) {
   if (state.f === 'hot') return n !== null && n >= 0 && n <= 3 && c.stage !== 'sz_sent';
   if (state.f === 'overdue') return n !== null && n < 0 && c.stage !== 'sz_sent';
   if (state.f === 'remind') return (state.reminders[c.id] || []).some((r) => daysLeft(r.due_date) <= 0);
+  if (state.f === 'control') return !!c.on_control;
   return true;
 }
 
@@ -526,7 +534,7 @@ function visibleCases() {
     if (!passesFilter(c)) return false;
     if (!q) return true;
     return [c.in_no, c.subject, c.correspondent, c.executor_name, c.resolution, c.out_no, c.project_no, c.nuances, c.lead_unit,
-      c.assigned_by, c.event_place, CASE_KINDS[kindOf(c)]?.label]
+      c.assigned_by, c.event_place, CASE_KINDS[kindOf(c)]?.label, c.control_note, c.control_state, c.control_lead]
       .some((v) => v && String(v).toLowerCase().includes(q));
   });
 }
@@ -581,7 +589,7 @@ function rowHTML(c, withExecutor = true) {
   const bell = nextReminder(c.id);
   return `<li class="sp-row sp-row-${c.stage}" data-id="${c.id}" tabindex="0" role="button">
     <span class="sp-row-dl">${dl ? `<span class="sp-dl ${dl.cls}">${esc(dl.text)}</span>` : '<span class="sp-muted">без строку</span>'}</span>
-    <span class="sp-row-no">${CASE_KINDS[kindOf(c)].icon} ${esc(c.in_no || (kindOf(c) === 'event' && c.event_at ? fmtEventAt(c.event_at) : CASE_KINDS[kindOf(c)].short))}</span>
+    <span class="sp-row-no">${c.on_control ? `<span class="sp-ctl-mini" title="${esc(controlTip(c))}">🎯</span> ` : ''}${CASE_KINDS[kindOf(c)].icon} ${esc(c.in_no || (kindOf(c) === 'event' && c.event_at ? fmtEventAt(c.event_at) : CASE_KINDS[kindOf(c)].short))}</span>
     <span class="sp-row-subj">${esc(c.subject)}${c.correspondent ? `<i>${esc(c.correspondent)}</i>` : c.assigned_by ? `<i>від: ${esc(c.assigned_by)}</i>` : ''}</span>
     ${withExecutor ? `<span class="sp-row-ex">${esc(c.executor_name || '—')}</span>` : ''}
     <span class="sp-row-stage"><b class="sp-stage-dot"></b>${stageLabel(c, c.stage)}${c.version ? ` · v${c.version}` : ''}${rem ? ` <span class="sp-rem-mini">⚑ ${rem}</span>` : ''}${bell ? ' 🔔' : ''}</span>
@@ -658,6 +666,12 @@ function nextStage(c) {
   }[c.stage] || null;
 }
 
+/** Підказка позначки «На контролі»: примітка, стан за контролькою, гол. виконавець, звідки. */
+function controlTip(c) {
+  return ['На контролі', c.control_note, c.control_state && 'стан: ' + c.control_state,
+    c.control_lead && 'гол. вик.: ' + c.control_lead, c.control_list].filter(Boolean).join(' · ');
+}
+
 function cardHTML(c) {
   const dl = deadlineInfo(c);
   const next = nextStage(c);
@@ -666,6 +680,7 @@ function cardHTML(c) {
   const prolonged = c.deadline && c.deadline_original && c.deadline !== c.deadline_original;
   const k = kindOf(c);
   const badges = [
+    c.on_control ? `<span class="sp-ctl" title="${esc(controlTip(c))}">🎯 контроль</span>` : '',
     c.our_role ? `<span class="sp-role sp-role-${c.our_role}" title="${esc(ROLE_LABEL[c.our_role] + (c.lead_unit ? ' · головний: ' + c.lead_unit : ''))}">${ROLE_SHORT[c.our_role]}</span>` : '',
     k === 'askod' ? `<span class="sp-kind">${KIND_SHORT[c.reply_kind] || ''}</span>` : `<span class="sp-kind sp-kind-${k}" title="${CASE_KINDS[k].label}">${CASE_KINDS[k].icon} ${CASE_KINDS[k].short}</span>`,
     c.version ? `<span class="sp-ver" title="Поточна версія чернетки">v${c.version}</span>` : '',
@@ -679,7 +694,7 @@ function cardHTML(c) {
   const kids = k === 'project' ? childrenOf(c.id).length : 0;
   const parent = c.parent_id ? state.cases.find((x) => x.id === c.parent_id) : null;
   const head = c.in_no || (k === 'event' && c.event_at ? `📅 ${fmtEventAt(c.event_at)}` : `${CASE_KINDS[k].icon} ${CASE_KINDS[k].short}`);
-  return `<article class="sp-card sp-card-${k}" draggable="true" data-id="${c.id}" tabindex="0" role="button" aria-label="${esc((c.in_no || CASE_KINDS[k].label) + ': ' + c.subject)}">
+  return `<article class="sp-card sp-card-${k}${c.on_control && c.stage !== 'done' ? ' is-control' : ''}" draggable="true" data-id="${c.id}" tabindex="0" role="button" aria-label="${esc((c.in_no || CASE_KINDS[k].label) + ': ' + c.subject)}">
     <div class="sp-card-top">
       <span class="sp-inno">${esc(head)}</span>
       ${dl ? `<span class="sp-dl ${dl.cls}"${prolonged ? ` title="Продовжено; первинний строк ${fmtDate(c.deadline_original)}"` : ''}>${prolonged ? '↻ ' : ''}${esc(dl.text)}</span>` : ''}
@@ -772,6 +787,7 @@ function fieldsHTML(c) {
     <label class="sp-f"><span>Наша роль</span><select data-f="our_role">${opt('', c.our_role, '— не визначено —')}${Object.entries(ROLE_LABEL).map(([k, v]) => opt(k, c.our_role, v)).join('')}</select></label>
   </div>
   <datalist id="spLeadUnits">${LEAD_UNITS.map((u) => `<option value="${esc(u)}">`).join('')}</datalist>
+  ${controlHTML(c)}
   <div class="sp-grid">
     ${kindSel}${parentSel}
     <label class="sp-f"><span>Вх. №</span><input data-f="in_no" value="${esc(c.in_no)}" placeholder="10001-08-26"></label>
@@ -800,6 +816,21 @@ function fieldsHTML(c) {
       ${c.askod_state ? `<div class="sp-f sp-ro"><span>Стан резолюції в АСКОД</span><b>${esc(c.askod_state)}</b></div>` : ''}
     </div>
   </details>`;
+}
+
+/**
+ * «🎯 На контролі» (з 09.11.2026): галочка й примітка — вручну; стан виконання,
+ * гол. виконавець і назва контрольки — з кнопки «🎯 Контролька» (control-upload.js).
+ */
+function controlHTML(c) {
+  const from = [c.control_state && `Стан за контролькою: <b>${esc(c.control_state)}</b>`,
+    c.control_lead && `гол. вик.: ${esc(c.control_lead)}`, c.control_list && esc(c.control_list)].filter(Boolean).join(' · ');
+  return `<div class="sp-ctlbox${c.on_control ? ' is-on' : ''}">
+    <label class="sp-f sp-check"><input type="checkbox" data-f="on_control"${c.on_control ? ' checked' : ''}><span>🎯 На контролі</span></label>
+    <label class="sp-f sp-ctl-note"><span>Вид контролю / примітка</span>
+      <input data-f="control_note" value="${esc(c.control_note)}" placeholder="контроль Голови, подовжено до …"></label>
+    ${c.on_control && from ? `<p class="sp-ctl-from">${from}</p>` : ''}
+  </div>`;
 }
 
 /** Напрям: віхи (чекліст із датами) і справи, що до нього належать. */
@@ -1290,8 +1321,9 @@ function wireStatic() {
       patch.event_at = v ? new Date(v).toISOString() : null;
       if (v) patch.deadline = v.slice(0, 10);
     }
-    // Вид справи змінено: «На підписі» / «СЗ надано» є лише в АСКОД; поля картки — інші
-    if (f === 'case_kind') {
+    // Вид справи змінено: «На підписі» / «СЗ надано» є лише в АСКОД; поля картки — інші.
+    // «На контролі» — перемалювати блок (підсвітка й стан за контролькою)
+    if (f === 'case_kind' || f === 'on_control') {
       const cur = state.cases.find((x) => x.id === state.openId);
       if (v !== 'askod' && ['signing', 'sz_sent'].includes(cur?.stage)) patch.stage = 'work';
       el.blur();
