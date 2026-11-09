@@ -1,6 +1,6 @@
 {
-  "generated": "2026-11-08T08:16:17.994857+00:00",
-  "archive_fetched_at": "2026-11-08T08:16:17.267609+00:00",
+  "generated": "2026-11-09T05:00:32.658166+00:00",
+  "archive_fetched_at": "2026-11-09T05:00:31.932580+00:00",
   "archive_source": "https://nszu.gov.ua/arxiv-dokumentiv?groups[2][attributes][]=36",
   "archive_records": 189,
   "total": 197,
@@ -4621,7 +4621,7 @@
     {
       "id": 324,
       "url": "https://backend.nszu.gov.ua/documents/6955/file",
-      "local_name": "file",
+      "local_name": "nszu_doc_6955.pdf",
       "archive_title": "Роз’яснення щодо визначення одного дослідження, анатомічних ділянок, їх суміжності та правил вибору кодів спостережень під час формування діагностичного звіту КТ МРТ",
       "extension": "pdf",
       "storage_date": null,
@@ -4629,12 +4629,12 @@
       "stage": "extracted",
       "sha256": "59f7406148ba3980779d55562a0f46f1d2bb03e47011093dbc55d26f15012f0c",
       "size": 212306,
-      "engine": "unsupported:",
+      "engine": "pdf-text",
       "stats": {
-        "blocks": 0,
-        "body_blocks": 0,
-        "sentences": 0,
-        "chars": 0,
+        "blocks": 78,
+        "body_blocks": 67,
+        "sentences": 88,
+        "chars": 14885,
         "tables": 0,
         "table_rows": 0,
         "unreadable": 0
@@ -4643,46 +4643,47 @@
     {
       "id": 325,
       "url": "https://backend.nszu.gov.ua/documents/6954/file",
-      "local_name": "file",
+      "local_name": "nszu_doc_6954.xlsx",
       "archive_title": "Додаток 1",
       "extension": "xlsx",
       "storage_date": null,
       "first_seen": "2026-10-30",
       "stage": "extracted",
-      "sha256": "59f7406148ba3980779d55562a0f46f1d2bb03e47011093dbc55d26f15012f0c",
-      "size": 212306,
-      "engine": "unsupported:",
+      "sha256": "3519e290358a70a2cbf4b4d5f256b03150b4bed9089845d677184bba2fe580fd",
+      "size": 15076,
+      "engine": "xlsx",
       "stats": {
-        "blocks": 0,
-        "body_blocks": 0,
-        "sentences": 0,
-        "chars": 0,
-        "tables": 0,
-        "table_rows": 0,
+        "blocks": 2,
+        "body_blocks": 2,
+        "sentences": 2,
+        "chars": 58,
+        "tables": 2,
+        "table_rows": 52,
         "unreadable": 0
       }
     },
     {
       "id": 326,
       "url": "https://backend.nszu.gov.ua/documents/6953/file",
-      "local_name": "file",
+      "local_name": "nszu_doc_6953.pdf",
       "archive_title": "Роз'яснення щодо практичного застосування норми про кількість медичних послуг за пакетом «Реабілітаційна допомога дорослим і дітям у стаціонарних умовах»",
       "extension": "pdf",
       "storage_date": null,
       "first_seen": "2026-10-30",
       "stage": "extracted",
-      "sha256": "59f7406148ba3980779d55562a0f46f1d2bb03e47011093dbc55d26f15012f0c",
-      "size": 212306,
-      "engine": "unsupported:",
+      "sha256": "908ae4baba70dbab441955b4abb64c53175e1b306245ef12a242be0f835337b9",
+      "size": 88848,
+      "engine": "pdf-text",
       "stats": {
-        "blocks": 0,
-        "body_blocks": 0,
-        "sentences": 0,
-        "chars": 0,
+        "blocks": 16,
+        "body_blocks": 5,
+        "sentences": 6,
+        "chars": 706,
         "tables": 0,
         "table_rows": 0,
         "unreadable": 0
-      }
+      },
+      "content_changed_at": "2026-11-08"
     }
   ]
 }
