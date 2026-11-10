@@ -16,6 +16,10 @@
  * - «Вийти» = режим рушія «лише дивлюся» (бачиш, хто в кімнаті; тебе не видно й не чути).
  * - 🎧 «Вимкнути звук» глушить і мікрофон, «Увімкнути звук» повертає мікрофон у
  *   попередній стан — це вміє рушій.
+ * - Панель стоїть і в «Справах», і в особистому кабінеті (10.11.2026). Рушій — один учасник на
+ *   ВКЛАДКУ, тож у кімнаті тримає голос лише одна вкладка браузера (Web Locks, замок LOCK); решта
+ *   показують, хто в кімнаті, і кнопку «Перенести голос сюди» (steal + BroadcastChannel). Закрилась
+ *   вкладка з голосом — замок переходить до наступної, і та заходить сама.
  */
 
 import { createVoice, netInfo } from '../zviazok/voice.js?v=20261106a';
@@ -26,6 +30,8 @@ import { createStage } from '../zviazok/stage.js?v=20261103a';
 const MANY = 10;               // з такої кількості попереджаємо: пряма схема важчає
 const LS_OFF = 'spravy-voice-off';
 const ALL = '*';               // «відділ» = увесь департамент (перемикач у spravy.js)
+const LOCK = 'pmg-voice-holder';   // замок «ця вкладка тримає голос» (Web Locks)
+const BC = 'pmg-voice-tabs';       // канал між вкладками: «віддай голос»
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const initials = (name) => (name || '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';
@@ -44,7 +50,12 @@ const v = {
   meet: null,          // нарада із записом ../zviazok/meeting.js
   stage: null,         // «сцена» показу екрана ../zviazok/stage.js — під панеллю
   vs: null,            // його знімок стану: status, error, inRoom, muted, deaf, needGesture, members
-  noDept: false
+  noDept: false,
+  holder: true,        // ця вкладка тримає голос (без Web Locks — завжди так, як раніше)
+  elsewhere: false,    // голос тримає інша вкладка: тут лише видно, хто в кімнаті
+  release: null,       // відпустити замок
+  pending: null,       // AbortController заявки, що чекає в черзі
+  bc: null
 };
 
 /* ───────────────────────── публічне ───────────────────────── */
@@ -62,7 +73,53 @@ export function initVoice(opts) {
   v.stage = createStage(host, { onStop: () => v.eng.toggleShare() });
   v.eng = createVoice({ sb: v.sb, me: v.me, name: v.name, toast: v.toast, onChange: (s) => { v.vs = s; render(); v.stage.update(s); } });
   v.meet = createMeeting({ sb: v.sb, me: v.me, name: v.name, eng: v.eng, toast: v.toast });
-  openRoom();
+  if (!navigator.locks || !window.BroadcastChannel) return openRoom();
+  v.holder = false;
+  v.bc = new BroadcastChannel(BC);
+  v.bc.onmessage = (e) => { if (e.data === 'yield' && v.holder) giveAway(); };
+  queueForLock();
+  // Замок не дали одразу — голос в іншій вкладці: показуємо кімнату «лише дивлюся»
+  setTimeout(() => { if (!v.holder && !v.elsewhere) { v.elsewhere = true; openRoom(); } }, 400);
+}
+
+/* ───────────────────────── одна вкладка з голосом ───────────────────────── */
+
+/**
+ * Стати в чергу на замок; отримали — ця вкладка тримає голос, поки замок не заберуть («Перенести сюди»
+ * в іншій вкладці) або не попросять віддати. У вкладці завжди не більше однієї заявки в черзі:
+ * перед «steal» очікувану заявку скасовуємо (v.pending).
+ */
+function queueForLock(steal = false) {
+  const ac = steal ? null : new AbortController();
+  if (ac) v.pending = ac;
+  navigator.locks.request(LOCK, steal ? { steal: true } : { signal: ac.signal }, () => new Promise((res) => {
+    if (ac) v.pending = null;
+    v.release = res;
+    v.holder = true;
+    v.elsewhere = false;
+    openRoom();
+  })).catch(() => { /* замок забрала інша вкладка або заявку скасовано */ }).finally(() => {
+    if (ac && ac.signal.aborted) return;       // скасовано заради «Перенести сюди» в цій же вкладці
+    if (v.holder) { v.holder = false; v.elsewhere = true; openRoom(); }
+    queueForLock();                            // знову в чергу: закриється вкладка з голосом — зайдемо самі
+  });
+}
+
+/** Інша вкладка попросила голос — виходимо в «лише дивлюся» і відпускаємо замок. */
+async function giveAway() {
+  if (v.meet?.active) await v.meet.finish();
+  v.holder = false;
+  v.elsewhere = true;
+  await openRoom();
+  const r = v.release; v.release = null; if (r) r();
+}
+
+/** «Перенести голос сюди»: просимо вкладку з голосом піти й забираємо замок. */
+function takeOver() {
+  v.pending?.abort();
+  v.pending = null;
+  v.bc?.postMessage('yield');
+  queueForLock(true);
 }
 
 /** Керівництво перемкнуло відділ або «Мій відділ | Департамент» — переходимо в ту кімнату. */
@@ -87,12 +144,13 @@ async function openRoom() {
   if (v.noDept) { await v.eng.leave(true); return render(); }
   const topic = await topicFor(v.dept);
   // Рушій сам перемикає кімнату: мікрофон і звук лишаються, як були
-  await v.eng.join(topic, roomTitle(), { listen: lsGet(LS_OFF) === '1' });
+  await v.eng.join(topic, roomTitle(), { listen: v.elsewhere || lsGet(LS_OFF) === '1' });
 }
 
 /** Зайти в кімнату (кнопка «Увійти»). */
 async function joinRoom() {
   if (v.demo) return v.vs.inRoom ? null : demoAct('join');
+  if (v.elsewhere) { lsSet(LS_OFF, null); return takeOver(); }
   lsSet(LS_OFF, null);
   v.eng.unlock();
   await v.eng.enter();
@@ -151,6 +209,7 @@ function render() {
 
   let note = '';
   if (v.noDept) note = 'У профілі не вказано відділ. Голос усього департаменту — у «Чаті департаменту» (посилання вгорі).';
+  else if (v.elsewhere) note = `Голос відкрито в іншій вкладці порталу («Справи» чи кабінет). Тут видно, хто в кімнаті${list.length ? `: ${list.length}` : ''}.`;
   else if (s.status === 'joining' || s.status === 'idle') note = 'Заходимо в кімнату…';
   else if (s.status === 'error') note = s.error;
   else if (!list.length) note = 'У кімнаті нікого. Зайдіть — колеги побачать вас, коли відкриють «Справи».';
@@ -172,7 +231,9 @@ function render() {
          : '<button type="button" class="spv-btn spv-rec" data-act="meet" aria-pressed="false" title="Почати нараду: увімкнеться запис, усіх у кімнаті буде попереджено"><i class="rec-dot" aria-hidden="true"></i>Нарада</button>') : ''}
        <button type="button" class="spv-btn spv-ghost" data-act="leave" title="Вийти з кімнати; запамʼятаємо до наступного «Увійти»">Вийти</button>`
     : s.status === 'live'
-      ? '<button type="button" class="spv-btn spv-join" data-act="join">Увійти в кімнату</button>'
+      ? (v.elsewhere
+        ? '<button type="button" class="spv-btn spv-join" data-act="join" title="Голос перейде сюди, а в іншій вкладці стане «лише дивлюся»">🎧 Перенести голос сюди</button>'
+        : '<button type="button" class="spv-btn spv-join" data-act="join">Увійти в кімнату</button>')
       : '';
 
   v.root.innerHTML = `<div class="spv-main">
