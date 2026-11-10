@@ -741,7 +741,9 @@
 .sp-row-review .sp-stage-dot { background: var(--sp-review); }
 .sp-row-signing .sp-stage-dot { background: var(--sp-signing); }
 .sp-row-sz_sent .sp-stage-dot { background: var(--sp-sz); }
-.sp-row-done { opacity: .65; }
+.sp-row-done, .sp-row-sz_sent { opacity: .65; }
+/* «СЗ надано» = закрито: картка приглушена, але смужку «⏳ чекаємо» видно повністю */
+.sp-card.is-closed > :not(.sp-sent) { opacity: .7; }
 .sp-row-done .sp-stage-dot { background: var(--sp-done); }
 .sp-rem-mini { color: var(--sp-rem-ink); font-weight: 700; }
 

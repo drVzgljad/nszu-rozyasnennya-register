@@ -214,8 +214,15 @@ function daysLeft(iso) {
  * Строк продовжено (кореспондент, керівник, АСКОД): { orig, now, days, tip } або null.
  * Первинний строк живе в deadline_original — його ставить перше ж зрушення строку.
  */
+/**
+ * «СЗ надано» рівнозначне «Закрито» (вимога користувача 10.11.2026): нашу частину зроблено, строк
+ * не горить і не прострочується, у «у роботі» й навантаження виконавців справа не йде.
+ * Колонка «СЗ надано» лишається — там видно, чию відповідь ми чекаємо (⏳).
+ */
+const isClosed = (c) => c.stage === 'done' || c.stage === 'sz_sent';
+
 function prolongInfo(c) {
-  if (!c.deadline || !c.deadline_original || c.deadline === c.deadline_original || c.stage === 'done') return null;
+  if (!c.deadline || !c.deadline_original || c.deadline === c.deadline_original || isClosed(c)) return null;
   const days = Math.round((new Date(c.deadline + 'T00:00:00') - new Date(c.deadline_original + 'T00:00:00')) / 864e5);
   const sign = days > 0 ? '+' : '';
   return { orig: c.deadline_original, now: c.deadline, days,
@@ -226,7 +233,7 @@ function deadlineInfo(c) {
   const n = daysLeft(c.deadline);
   if (n === null) return null;
   const date = fmtDate(c.deadline);
-  if (c.stage === 'done') return { cls: 'is-closed', text: date };
+  if (isClosed(c)) return { cls: 'is-closed', text: date };
   if (n < 0) return { cls: 'is-over', text: `${date} · прострочено ${-n} дн.` };
   if (n === 0) return { cls: 'is-hot', text: `${date} · сьогодні` };
   if (n === 1) return { cls: 'is-hot', text: `${date} · завтра` };
@@ -858,7 +865,7 @@ function splitLanes(list) {
 const lanesClosed = () => { try { return JSON.parse(lsGet('spravy-lanes-closed') || '{}') || {}; } catch (_) { return {}; } };
 function laneHead(title, list, key) {
   const closed = !!lanesClosed()[key];
-  const open = list.filter((c) => c.stage !== 'done').length;
+  const open = list.filter((c) => !isClosed(c)).length;
   const sum = closed ? stagesOf('askod').filter((s) => s.key !== 'done')
     .map((s) => [s.label, list.filter((c) => c.stage === s.key).length]).filter(([, n]) => n)
     .map(([l, n]) => `${l} ${n}`).join(' · ') : '';
@@ -894,7 +901,7 @@ function colsHTML(list) {
 
 /** Порядок за строком: прострочене й найближче зверху, без строку — внизу, закрите — в кінці. */
 function byDeadline(a, b) {
-  const done = (c) => (c.stage === 'done' ? 1 : 0);
+  const done = (c) => (c.stage === 'done' ? 2 : c.stage === 'sz_sent' ? 1 : 0);
   return (done(a) - done(b)) || String(a.deadline || '9999').localeCompare(String(b.deadline || '9999'));
 }
 
@@ -922,7 +929,7 @@ function listHTML(list) {
 
 function listRows(list) {
   const rows = list.slice().sort(byDeadline);
-  const shown = rows.filter((c) => c.stage !== 'done').concat(rows.filter((c) => c.stage === 'done').slice(0, 30));
+  const shown = rows.filter((c) => c.stage !== 'done').concat(rows.filter((c) => c.stage === 'done').slice(0, 30)); // «СЗ надано» — у кінці відкритих (byDeadline)
   return rows.length ? `<ul class="sp-list">${shown.map((c) => rowHTML(c)).join('')}</ul>`
     : '<div class="sp-notice">Справ за цим фільтром немає.</div>';
 }
@@ -930,7 +937,7 @@ function listRows(list) {
 /* ── Вигляд «За виконавцями»: хто що тримає ── */
 function peopleHTML(list) {
   const groups = new Map();
-  list.filter((c) => c.stage !== 'done').forEach((c) => {
+  list.filter((c) => !isClosed(c)).forEach((c) => {
     const k = c.executor_name || '';
     if (!groups.has(k)) groups.set(k, []);
     groups.get(k).push(c);
@@ -1021,7 +1028,7 @@ function cardHTML(c) {
   const kids = k === 'project' ? childrenOf(c.id).length : 0;
   const parent = c.parent_id ? state.cases.find((x) => x.id === c.parent_id) : null;
   const head = c.in_no || (k === 'event' && c.event_at ? `📅 ${fmtEventAt(c.event_at)}` : `${CASE_KINDS[k].icon} ${CASE_KINDS[k].short}`);
-  return `<article class="sp-card sp-card-${k}${c.on_control && c.stage !== 'done' ? ' is-control' : ''}${pr ? ' is-prolonged' : ''}${lw?.out ? ' is-waiting' : lw?.in ? ' is-incoming' : ''}" draggable="true" data-id="${c.id}" tabindex="0" role="button" aria-label="${esc((c.in_no || CASE_KINDS[k].label) + ': ' + c.subject)}">
+  return `<article class="sp-card sp-card-${k}${c.on_control && !isClosed(c) ? ' is-control' : ''}${c.stage === 'sz_sent' ? ' is-closed' : ''}${pr ? ' is-prolonged' : ''}${lw?.out ? ' is-waiting' : lw?.in ? ' is-incoming' : ''}" draggable="true" data-id="${c.id}" tabindex="0" role="button" aria-label="${esc((c.in_no || CASE_KINDS[k].label) + ': ' + c.subject)}">
     <div class="sp-card-top">
       <span class="sp-inno">${esc(head)}</span>
       ${dl ? `<span class="sp-dl ${dl.cls}"${prolonged ? ` title="Продовжено; первинний строк ${fmtDate(c.deadline_original)}"` : ''}>${prolonged ? '↻ ' : ''}${esc(dl.text)}</span>` : ''}
@@ -1045,7 +1052,7 @@ function cardHTML(c) {
 }
 
 function renderStats() {
-  const active = state.cases.filter((c) => c.stage !== 'done');
+  const active = state.cases.filter((c) => !isClosed(c));
   const over = active.filter((c) => { const n = daysLeft(c.deadline); return n !== null && n < 0; }).length;
   const hot = active.filter((c) => { const n = daysLeft(c.deadline); return n !== null && n >= 0 && n <= 3; }).length;
   const rem = Object.values(state.remarkCounts).reduce((a, b) => a + b, 0);
@@ -1165,7 +1172,7 @@ function controlHTML(c) {
 function projectBlockHTML(c) {
   const ms = milestonesOf(c).slice().sort((a, b) => (a.due || '9').localeCompare(b.due || '9'));
   const done = ms.filter((m) => m.done).length;
-  const kids = childrenOf(c.id).sort((a, b) => (a.stage === 'done') - (b.stage === 'done') || String(a.deadline || '9').localeCompare(String(b.deadline || '9')));
+  const kids = childrenOf(c.id).sort((a, b) => isClosed(a) - isClosed(b) || String(a.deadline || '9').localeCompare(String(b.deadline || '9')));
   return `<section class="sp-block sp-proj">
     <h3>Віхи <span class="sp-muted">${ms.length ? `${done} з ${ms.length} виконано` : ''}</span></h3>
     <ul class="sp-ms">${ms.length ? ms.map((m) => {
@@ -1184,7 +1191,7 @@ function projectBlockHTML(c) {
     <h3>Пов'язані справи <span class="sp-muted">${kids.length || ''}</span></h3>
     <ul class="sp-kids">${kids.length ? kids.map((x) => {
       const kk = kindOf(x);
-      return `<li><button type="button" class="sp-kid${x.stage === 'done' ? ' is-done' : ''}" data-open-case="${x.id}">
+      return `<li><button type="button" class="sp-kid${isClosed(x) ? ' is-done' : ''}" data-open-case="${x.id}">
         <span>${CASE_KINDS[kk].icon} ${esc(x.in_no || CASE_KINDS[kk].short)}</span><b>${esc(x.subject)}</b><i>${stageLabel(x, x.stage)}${x.executor_name ? ' · ' + esc(x.executor_name) : ''}</i></button></li>`;
     }).join('') : '<li class="sp-muted sp-none">Справи привʼязуються до напряму в їхній картці: поле «Напрям».</li>'}</ul>
   </section>`;
