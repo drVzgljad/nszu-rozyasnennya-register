@@ -1512,6 +1512,9 @@ async function autoLinkSzSent(c) {
   // «📤 Відправлено документ» зі знятою галочкою «Чекаємо відповіді» — людина сказала, що зв'язок не потрібен
   if (state.skipAutoLink) { state.skipAutoLink = false; return; }
   if (state.noLinks) return;
+  // Вхідна службова: наша СЗ — кінцева відповідь, чекати нема на кого (10.11.2026: зв'язок «⏳» на власний
+  // відділ після «СЗ надано» на 10-12/749-26)
+  if (isSzIn(c)) return;
   if (DEMO) {
     if (state.demoLinks.some((l) => l.case_id === c.id && l.direction === 'out')) return;
   } else {
@@ -1807,6 +1810,12 @@ function wireStatic() {
     const before = state.cases.find((x) => x.id === state.openId);
     const askSkod = f === 'project_no' && v && v !== (before?.project_no || null);
     const caseId = state.openId;
+    // Вхідна службова з № проєкту нашої СЗ-відповіді — справу виконано: одразу «Закрито» (вимога користувача
+    // 10.11.2026: «службова повинна бути закрита, номер проекту відповіді вже є»)
+    if (askSkod && before && isSzIn(before) && before.stage !== 'done') {
+      patch.stage = 'done';
+      patch.change_note = `СЗ-відповідь, проєкт № ${v}`;
+    }
     saveCase(caseId, patch).then((ok) => { if (ok && askSkod) autoSkod(caseId); });
   });
   // Напрям: віхи й перехід до пов'язаної справи
