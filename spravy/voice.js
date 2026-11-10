@@ -23,6 +23,9 @@
  * - «🚪 В гості» (10.11.2026): колега з іншого відділу стукає в кімнату відділу (таблиця voice_knocks,
  *   migration_2026-11-10b_voice_knock.sql), будь-хто з відділу пускає — і голос гостя переходить у ту
  *   кімнату; «← До свого відділу» знімає дозвіл. Керівництво заходить без стуку (як і раніше).
+ * - Покликати колегу (10.11.2026): ім'я зі списку «в мережі» (auth-v2.js) перетягують на панель —
+ *   колега отримує «Зайти / Ні» (broadcast 'voice-invite' каналу присутності). «Зайти»: свій відділ —
+ *   просто заходить; інший — стукає, і вкладка того, хто кликав, пускає сама (v.invited).
  */
 
 import { createVoice, netInfo } from '../zviazok/voice.js?v=20261106a';
@@ -69,7 +72,8 @@ const v = {
   knocks: [],          // хто стукає в нашу кімнату (status 'wait')
   knockCh: null,       // Realtime: стуки в нашу кімнату
   myKnockCh: null,     // Realtime: відповідь на наш стук
-  noKnock: false       // таблиці voice_knocks ще нема (міграція 10b)
+  noKnock: false,      // таблиці voice_knocks ще нема (міграція 10b)
+  invited: new Map()   // кого ми покликали: user_id → час (їхній стук пускаємо самі, 15 хв)
 };
 
 /* ───────────────────────── публічне ───────────────────────── */
@@ -82,6 +86,7 @@ export function initVoice(opts) {
   v.home = v.dept;
   v.root.hidden = false;
   v.root.addEventListener('click', onClick);
+  setupInviteDrop();
   if (v.demo) return demo();
   const host = document.createElement('section');
   v.root.after(host);
@@ -89,6 +94,20 @@ export function initVoice(opts) {
   v.eng = createVoice({ sb: v.sb, me: v.me, name: v.name, toast: v.toast, onChange: (s) => { v.vs = s; render(); v.stage.update(s); } });
   v.meet = createMeeting({ sb: v.sb, me: v.me, name: v.name, eng: v.eng, toast: v.toast });
   watchKnocks();
+  window.__pmgVoice = { acceptInvite };
+  window.addEventListener('pmg:voice-invite-reply', (e) => {
+    const r = e.detail || {};
+    v.toast(r.ok ? `🎙 ${r.name || 'Колега'} заходить у кімнату` : `${r.name || 'Колега'} зараз не може`, !r.ok);
+  });
+  // Прийшли сюди з іншої сторінки за запрошенням («Зайти»)
+  const inv = new URLSearchParams(location.search).get('voice_invite');
+  if (inv) {
+    try {
+      const p = JSON.parse(inv);
+      const u = new URL(location.href); u.searchParams.delete('voice_invite'); history.replaceState(null, '', u);
+      setTimeout(() => acceptInvite(p), 1500);
+    } catch (_) { /* зіпсований параметр — ігноруємо */ }
+  }
   if (!navigator.locks || !window.BroadcastChannel) return openRoom();
   v.holder = false;
   v.bc = new BroadcastChannel(BC);
@@ -161,12 +180,14 @@ async function watchKnocks() {
     .gte('created_at', since).order('created_at');
   if (error) { v.noKnock = true; return render(); }   // міграції 10b ще нема — кнопка «В гості» схована
   v.knocks = (data || []).filter((k) => k.user_id !== v.me.id);
+  v.knocks.filter(wasInvited).forEach((k) => decide(k.id, true));
   v.knockCh = v.sb.channel('knocks:' + topic)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'voice_knocks', filter: `topic=eq.${topic}` }, (p) => {
       const k = p.new;
       if (!k?.id) return;
       const was = v.knocks.some((x) => x.id === k.id);
       v.knocks = v.knocks.filter((x) => x.id !== k.id);
+      if (k.status === 'wait' && wasInvited(k)) { decide(k.id, true); return; }
       if (k.status === 'wait' && k.user_id !== v.me.id) {
         v.knocks.push(k);
         if (!was) v.toast(`🚪 ${k.name || 'Колега'} просить зайти в кімнату відділу`);
@@ -175,6 +196,62 @@ async function watchKnocks() {
     })
     .subscribe();
   render();
+}
+
+/** Стукає той, кого ми самі покликали за останні 15 хвилин — пускаємо без питань. */
+function wasInvited(k) {
+  const t = v.invited.get(k.user_id);
+  return !!t && Date.now() - t < 15 * 60e3;
+}
+
+/* ───────────────────────── покликати колегу ───────────────────────── */
+
+/** Панель голосу приймає ім'я, перетягнуте зі списку «в мережі». */
+function setupInviteDrop() {
+  const has = (e) => [...(e.dataTransfer?.types || [])].includes('application/x-pmg-user');
+  v.root.addEventListener('dragover', (e) => {
+    if (!has(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    v.root.classList.add('is-drop');
+  });
+  v.root.addEventListener('dragleave', (e) => { if (!v.root.contains(e.relatedTarget)) v.root.classList.remove('is-drop'); });
+  v.root.addEventListener('drop', (e) => {
+    v.root.classList.remove('is-drop');
+    const raw = e.dataTransfer.getData('application/x-pmg-user');
+    if (!raw) return;
+    e.preventDefault();
+    try { invite(JSON.parse(raw)); } catch (_) { /* не наш формат */ }
+  });
+}
+
+/** Покликати колегу в кімнату, де ми зараз: він отримає «Зайти / Ні». */
+function invite(u) {
+  if (!u?.id) return;
+  if (v.demo) return v.toast(`У демо не кличемо. Тут ${u.name} отримав(-ла) б «Зайти / Ні»`);
+  if (!v.dept || v.dept === ALL) return v.toast('Кімнату відділу не визначено — кликати нікуди', true);
+  if ((v.vs?.members || []).some((m) => m.name === u.name)) return v.toast(`${u.name} уже в кімнаті`);
+  v.invited.set(u.id, Date.now());
+  window.dispatchEvent(new CustomEvent('pmg:voice-invite-send',
+    { detail: { to: u.id, from_id: v.me.id, from_name: v.name, dept: v.dept } }));
+  v.toast(`🎙 Покликали ${u.name} — чекаємо відповіді`);
+}
+
+/** «Зайти» на запрошення: голос — у цю вкладку, далі свій відділ одразу, чужий — через стук. */
+async function acceptInvite(p) {
+  if (!v.eng || !p?.dept) return;
+  lsSet(LS_OFF, null);
+  if (v.elsewhere) takeOver();
+  if (p.dept === v.home) {
+    if (v.visit) await endVisit(false);
+    v.dept = v.home;
+    await openRoom();
+    if (v.vs && !v.vs.inRoom && !v.elsewhere) await v.eng.enter();
+    return;
+  }
+  if (v.visit?.dept === p.dept && v.visit.status === 'in') return;
+  if (v.visit) await endVisit(false);
+  await knock(p.dept);
 }
 
 /** Пустити / не пускати — може будь-хто з відділу. */

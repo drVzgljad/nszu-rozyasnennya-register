@@ -921,6 +921,8 @@
 .spv-knock i { font-style: normal; opacity: .85; }
 .spv-visit { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
 .spv-visit-hint { flex-basis: 100%; font-size: 13px; color: var(--muted); }
+/* Сюди перетягують ім'я зі списку «в мережі» — покликати в кімнату */
+.spv.is-drop { outline: 3px dashed var(--spv-live); outline-offset: 2px; }
 
 .spv-actions {
   display: flex;

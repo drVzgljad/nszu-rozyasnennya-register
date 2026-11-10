@@ -1137,9 +1137,28 @@
   display: block;
 }
 
-.portal-online-chip:hover .online-users-dropdown {
+.portal-online-chip:hover .online-users-dropdown,
+.portal-online-chip.is-dragging .online-users-dropdown {
   display: block;
 }
+/* Ім'я можна перетягнути на панель голосу — покликати в кімнату */
+.dropdown-users-list li.is-draggable { cursor: grab; }
+.dropdown-users-list li.is-draggable:hover { color: var(--accent, #1f6fb2); }
+
+/* Запрошення в голосову кімнату: «Зайти / Ні» */
+.pmg-voice-invite {
+  position: fixed; right: 16px; bottom: 84px; z-index: 2000; max-width: min(380px, calc(100vw - 32px));
+  background: var(--surface, #fff); color: var(--ink, #1b2a3a); border: 1px solid var(--line, #dde6ee);
+  border-left: 5px solid #22a25b; border-radius: 14px; box-shadow: 0 14px 40px rgba(14, 30, 55, .22);
+  padding: 12px 14px; animation: onlineDropdownFade .25s ease;
+}
+.pmg-voice-invite p { margin: 0 0 10px; line-height: 1.4; }
+.pmg-voice-invite div { display: flex; gap: 8px; justify-content: flex-end; }
+.pmg-voice-invite button {
+  font: inherit; font-weight: 700; padding: 6px 14px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--line, #dde6ee); background: var(--soft, #f4f7fa); color: var(--ink, #1b2a3a);
+}
+.pmg-voice-invite button[data-v="yes"] { background: #22a25b; border-color: #22a25b; color: #fff; }
 
 @keyframes onlineDropdownFade {
   from {

@@ -25,7 +25,7 @@
  * Realtime, migration_2026-11-03_voice_room.sql), текстовий канал під нею —
  * room-chat.js (кімната відділу з чату порталу). Версії ?v= обох піднімати тут.
  */
-import { initVoice, setVoiceDept } from './voice.js?v=20261110b';
+import { initVoice, setVoiceDept } from './voice.js?v=20261110c';
 import { initRoomChat, setRoomChatDept } from './room-chat.js?v=20261104a';
 // Свій журнал АСКОД (xlsx) — кнопка «📥 Журнал АСКОД»; розбір — ../pmg-askod-journal.js
 import { initAskodUpload } from './askod-upload.js?v=20261103a';

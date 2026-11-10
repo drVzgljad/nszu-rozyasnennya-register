@@ -6,7 +6,7 @@
  * мікрофон за замовчуванням вимкнений. Голос тримає лише одна вкладка браузера; в іншій видно,
  * хто в кімнаті, і кнопку «Перенести голос сюди». Стилі — ../spravy/spravy.css (лише sp-/spv- класи).
  */
-import { initVoice } from '../spravy/voice.js?v=20261110b';
+import { initVoice } from '../spravy/voice.js?v=20261110c';
 
 // Ті самі відділи, що в spravy.js (DEPARTMENTS): кімната = хеш назви відділу
 const DEPARTMENTS = [

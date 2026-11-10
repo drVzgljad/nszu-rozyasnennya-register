@@ -1797,6 +1797,11 @@ async function trackGlobalPresence() {
   });
 
   globalPresenceChannel
+    // Запрошення в голосову кімнату (перетягнули зі списку «в мережі» на панель голосу — spravy/voice.js)
+    .on('broadcast', { event: 'voice-invite' }, ({ payload }) => onVoiceInvite(payload))
+    .on('broadcast', { event: 'voice-invite-reply' }, ({ payload }) => {
+      if (user && payload?.to === user.id) window.dispatchEvent(new CustomEvent('pmg:voice-invite-reply', { detail: payload }));
+    })
     .on('presence', { event: 'sync' }, () => {
       const state = globalPresenceChannel.presenceState();
       updateGlobalOnlineCount(state);
@@ -1853,9 +1858,59 @@ function updateGlobalOnlineCount(state) {
     uniqueUsers.forEach(u => {
       const li = document.createElement('li');
       li.textContent = u.name;
+      // Перетягнути на панель голосу («Справи», кабінет) — покликати в кімнату (spravy/voice.js)
+      if (user && u.id !== user.id) {
+        li.draggable = true;
+        li.classList.add('is-draggable');
+        li.title = 'Перетягніть на панель голосу, щоб покликати в кімнату';
+        li.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('application/x-pmg-user', JSON.stringify({ id: u.id, name: u.name }));
+          e.dataTransfer.effectAllowed = 'copy';
+          document.getElementById('portal-online-chip')?.classList.add('is-dragging');
+        });
+        li.addEventListener('dragend', () => document.getElementById('portal-online-chip')?.classList.remove('is-dragging'));
+      }
       dropdownList.appendChild(li);
     });
   }
+}
+
+/* ── Запрошення в голосову кімнату (10.11.2026) ─────────────
+   Колегу перетягнули зі списку «в мережі» на панель голосу. Він отримує питання «Зайти / Ні»
+   на будь-якій сторінці порталу; без згоди нікого не переносимо. «Зайти»: сторінка з панеллю
+   голосу (window.__pmgVoice) заходить сама, інакше — перехід у «Справи» з ?voice_invite=. */
+window.addEventListener('pmg:voice-invite-send', (e) => {
+  globalPresenceChannel?.send({ type: 'broadcast', event: 'voice-invite', payload: e.detail });
+});
+
+function voiceInviteReply(p, ok) {
+  globalPresenceChannel?.send({ type: 'broadcast', event: 'voice-invite-reply',
+    payload: { to: p.from_id, ok, name: (user?.user_metadata?.full_name || user?.email || ''), dept: p.dept } });
+}
+
+function onVoiceInvite(p) {
+  if (!user || !p || p.to !== user.id) return;
+  document.getElementById('pmg-voice-invite')?.remove();
+  const box = document.createElement('div');
+  box.id = 'pmg-voice-invite';
+  box.className = 'pmg-voice-invite';
+  box.setAttribute('role', 'alertdialog');
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  box.innerHTML = `<p>🎙 <b>${esc(p.from_name || 'Колега')}</b> кличе вас у голосову кімнату відділу «${esc(p.dept || '')}»</p>
+    <div><button type="button" data-v="yes">Зайти</button><button type="button" data-v="no">Ні</button></div>`;
+  document.body.append(box);
+  const close = () => { box.remove(); clearTimeout(t); };
+  const t = setTimeout(() => { voiceInviteReply(p, false); close(); }, 90000);
+  box.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-v]');
+    if (!b) return;
+    const yes = b.dataset.v === 'yes';
+    voiceInviteReply(p, yes);
+    close();
+    if (!yes) return;
+    if (window.__pmgVoice?.acceptInvite) return window.__pmgVoice.acceptInvite(p);
+    location.href = '/spravy/?voice_invite=' + encodeURIComponent(JSON.stringify({ dept: p.dept, from_id: p.from_id }));
+  });
 }
 
 function toggleTheme() {
