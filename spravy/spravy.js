@@ -200,6 +200,33 @@ const todayISO = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 const fmtDate = (iso) => (iso ? iso.slice(0, 10).split('-').reverse().join('.') : '');
+/**
+ * Дата в маршруті вводиться текстом «дд.мм» — рік за замовчуванням поточний (вимога користувача 10.11.2026:
+ * стандартне поле дати Chrome зберігало «рік 0002» вже після першої цифри року). Приймає «7.11», «07.11.2026»,
+ * «0711», «07112026», «7/11/26». Повертає ISO, '' для порожнього або null, якщо дату не розібрано.
+ */
+function parseDM(v) {
+  v = String(v || '').trim();
+  if (!v) return '';
+  let d, m, y;
+  const dig = v.replace(/\s/g, '');
+  if (/^\d{4}$/.test(dig)) { d = dig.slice(0, 2); m = dig.slice(2); }
+  else if (/^\d{8}$/.test(dig)) { d = dig.slice(0, 2); m = dig.slice(2, 4); y = dig.slice(4); }
+  else {
+    const x = v.match(/^(\d{1,2})\D+(\d{1,2})(?:\D+(\d{2}|\d{4}))?\D*$/);
+    if (!x) return null;
+    [, d, m, y] = x;
+  }
+  y = y ? (y.length === 2 ? '20' + y : y) : todayISO().slice(0, 4);
+  const t = new Date(Date.UTC(+y, +m - 1, +d));
+  if (+y < 2000 || t.getUTCFullYear() !== +y || t.getUTCMonth() !== +m - 1 || t.getUTCDate() !== +d) return null;
+  return t.toISOString().slice(0, 10);
+}
+/** Поле дати маршруту: «дд.мм», рік показуємо, лише якщо він не поточний. */
+function dmInput(key, iso, label, cls) {
+  const val = iso ? (iso.slice(0, 4) === todayISO().slice(0, 4) ? fmtDate(iso).slice(0, 5) : fmtDate(iso)) : '';
+  return `<input type="text" inputmode="numeric" autocomplete="off" class="${cls || 'sp-rt-date'}" data-rt-date="${key}" value="${esc(val)}" placeholder="дд.мм" aria-label="${esc(label)}" title="дд.мм — рік ${todayISO().slice(0, 4)}; інший рік — дд.мм.рррр. Enter — зберегти">`;
+}
 const fmtStamp = (ts) => {
   const d = new Date(ts);
   return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -1410,11 +1437,11 @@ function renderRoute(c) {
   const node = (key, role, who, ok, attrs, del) => `<li class="sp-rt-node${ok ? ' is-ok' : ''}${cur === key ? ' is-cur' : ''}">
       <button type="button" class="sp-rt-btn" ${attrs} aria-pressed="${!!ok}" title="${ok ? 'Погоджено ' + fmtDate(ok) + ' — натисніть, щоб зняти' : 'Натисніть, коли погоджено'}">
         <span class="sp-rt-role">${role}</span><b>${esc(who)}</b><i>${okTxt(ok)}</i></button>
-      ${ok ? `<input type="date" class="sp-rt-date" data-rt-date="${key}" value="${esc(ok)}" aria-label="Дата: ${esc(who)}">` : ''}${del || ''}</li>`;
+      ${ok ? dmInput(key, ok, 'Дата: ' + who) : ''}${del || ''}</li>`;
   const signNode = `<li class="sp-rt-node sp-rt-signnode${r.sign.ok ? ' is-ok' : r.sign.sent ? ' is-sent' : ''}${cur === 'sign' ? ' is-cur' : ''}">
       <div class="sp-rt-btn sp-rt-signbox"><span class="sp-rt-role">🖋 підписує</span><b>${esc(r.sign.who)}</b>
-        <label class="sp-rt-dt"><span>📤 відправлено на підпис</span><input type="date" data-rt-date="sent" value="${esc(r.sign.sent || '')}"></label>
-        <label class="sp-rt-dt"><span>🖋 підписано</span><input type="date" data-rt-date="signed" value="${esc(r.sign.ok || '')}"></label>
+        <label class="sp-rt-dt"><span>📤 відправлено на підпис</span>${dmInput('sent', r.sign.sent, 'Відправлено на підпис', '')}</label>
+        <label class="sp-rt-dt"><span>🖋 підписано</span>${dmInput('signed', r.sign.ok, 'Підписано', '')}</label>
       </div></li>`;
   const steps = r.steps.map((s, i) => node('s' + i, 'погоджує', s.who, s.ok, `data-rt="step" data-i="${i}"`,
     `<button type="button" class="sp-rt-del" data-rt-del="${i}" title="Прибрати ланку" aria-label="Прибрати ланку ${esc(s.who)}">✕</button>`)).join('<li class="sp-rt-arrow" aria-hidden="true">→</li>');
@@ -2022,7 +2049,9 @@ function wireStatic() {
     if (!c) return;
     const r = JSON.parse(JSON.stringify(routeOf(c)));
     if (e.target.matches('[data-rt-date]')) {
-      const k = e.target.dataset.rtDate, v = e.target.value || null;
+      const k = e.target.dataset.rtDate, pv = parseDM(e.target.value);
+      if (pv === null) { toast('Дату не розібрано: введіть дд.мм (рік ' + todayISO().slice(0, 4) + ') або дд.мм.рррр', true); renderRoute(c); return; }
+      const v = pv || null;
       if (k === 'exec') { r.exec = v; return saveRoute(c, r, v ? `Виконавець погодив: ${fmtDate(v)}` : 'Знято позначку виконавця'); }
       if (/^s\d+$/.test(k)) {
         const st = r.steps[+k.slice(1)];

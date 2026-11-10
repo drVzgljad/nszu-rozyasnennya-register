@@ -1298,3 +1298,5 @@
 .sp-rt-dt input { font: inherit; font-size: 12px; padding: 1px 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
 .sp-rt-signnode.is-sent .sp-rt-btn { border-style: solid; border-color: var(--sp-signing, #7c5cc4); }
 .sp-badges .sp-sent-sign, .sp-sent-sign.sp-signed-mini { background: var(--sp-wait-bg); color: var(--sp-wait-ink); font-weight: 800; border: 1px solid var(--sp-wait); }
+.sp-rt-date, .sp-rt-dt input { width: 8.5em; max-width: 100%; }
+.sp-rt-date::placeholder, .sp-rt-dt input::placeholder { color: var(--muted); opacity: .7; }
