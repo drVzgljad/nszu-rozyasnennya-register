@@ -1288,6 +1288,14 @@
 .sp-card.is-reviewed { outline: 3px solid var(--sp-prol); outline-offset: -1px; }
 .sp-row.is-reviewed { box-shadow: inset 4px 0 0 var(--sp-prol); background: var(--sp-prol-bg); }
 .sp-badges .sp-rev-mini { background: var(--sp-prol-bg); color: var(--sp-prol-ink); font-weight: 700; }
+/* Постійна позначка (10.11.2026): не опрацьовано сьогодні — червона, щоранку скидається */
+.sp-rev-mini.sp-signed-mini { background: var(--sp-prol-bg); color: var(--sp-prol-ink); font-weight: 700; }
+.sp-badges .sp-rev-mini.is-todo, .sp-rev-mini.is-todo { background: var(--sp-over-bg); color: var(--sp-over-ink); border: 1px solid var(--sp-over-ink); font-weight: 700; }
+.sp-reviewed.is-todo span { color: var(--sp-over-ink); }
+.sp-reviewed.is-todo input { accent-color: var(--sp-over-ink); outline: 2px solid var(--sp-over-ink); outline-offset: 1px; }
+/* Днів на підписі: від 3 — жирніше */
+.sp-sent-sign.is-long { background: var(--sp-over-bg); color: var(--sp-over-ink); border-color: var(--sp-over-ink); }
+.sp-rt-days { display: block; color: var(--sp-over-ink); font-size: 12px; }
 
 /* ---------- «🖋 Підписано» (10.11.2026) ---------- */
 .sp-badges .sp-signed, .sp-signed-mini { background: var(--sp-ok-bg); color: var(--sp-ok-ink); font-weight: 800; border: 1px solid var(--sp-ok-ink); }
@@ -1304,3 +1312,13 @@
 .sp-badges .sp-sent-sign, .sp-sent-sign.sp-signed-mini { background: var(--sp-wait-bg); color: var(--sp-wait-ink); font-weight: 800; border: 1px solid var(--sp-wait); }
 .sp-rt-date, .sp-rt-dt input { width: 8.5em; max-width: 100%; }
 .sp-rt-date::placeholder, .sp-rt-dt input::placeholder { color: var(--muted); opacity: .7; }
+
+/* ---------- Маршрут по центру, ланки однакової ширини (вимога користувача 10.11.2026) ---------- */
+.sp-rt { justify-content: center; align-items: center; row-gap: 10px; }
+.sp-rt-node { align-items: center; }
+.sp-rt-btn { align-items: center; text-align: center; width: 160px; min-width: 0; max-width: none; box-sizing: border-box; }
+.sp-rt-signbox { width: 190px; }
+.sp-rt-dt { align-items: center; }
+.sp-rt-date, .sp-rt-dt input { text-align: center; }
+.sp-rt-mvs { width: 100%; }
+@media (max-width: 560px) { .sp-rt-btn { width: 140px; } .sp-rt-signbox { width: 170px; } }

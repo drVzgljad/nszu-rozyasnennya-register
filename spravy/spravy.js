@@ -252,6 +252,8 @@ const isClosed = (c) => c.stage === 'done' || c.stage === 'sz_sent';
 /**
  * «☑ Опрацьовано сьогодні» (вимога користувача 10.11.2026): власна позначка в цьому браузері, діє лише
  * поточний день — наступного дня скидається, і справу треба переглянути знову. На дошці — фіолетова рамка.
+ * Позначка постійна (10.11.2026): на кожній відкритій справі — червоне «☐ не опрацьовано», доки її
+ * сьогодні не відмітили; щоранку всі знову червоні.
  */
 const LS_REVIEWED = 'spravy-reviewed';
 function reviewedToday() {
@@ -261,6 +263,12 @@ function reviewedToday() {
   } catch (_) { return new Set(); }
 }
 const isReviewed = (id) => reviewedToday().has(id);
+function reviewHTML(c, mini) {
+  if (isClosed(c)) return '';
+  return isReviewed(c.id)
+    ? `<span class="sp-rev-mini${mini ? ' sp-signed-mini' : ''}" title="Ви позначили справу як опрацьовану сьогодні">☑ сьогодні</span>`
+    : `<span class="sp-rev-mini is-todo${mini ? ' sp-signed-mini' : ''}" title="Сьогодні ще не опрацьовано — відмітьте в картці">☐ не опрацьовано</span>`;
+}
 function setReviewed(id, on) {
   const ids = reviewedToday();
   if (on) ids.add(id); else ids.delete(id);
@@ -353,12 +361,17 @@ function routeStage(c, r, prev) {
 }
 /** Підписано: у маршруті відмічено підписанта (вимога користувача 10.11.2026) — { who, ok } або null. */
 const signedInfo = (c) => (hasRoute(c) && c.route?.sign?.ok ? c.route.sign : null);
+/** Скільки календарних днів документ на підписі (вимога користувача 10.11.2026): день відправлення = 0. */
+const daysOnSign = (iso) => Math.max(0, -(daysLeft(iso) || 0));
 const sentInfo = (c) => (hasRoute(c) && c.route?.sign?.sent && !c.route.sign.ok ? c.route.sign : null);
 function signedHTML(c, mini) {
   const s = signedInfo(c);
   const t = sentInfo(c);
   if (s) return `<span class="sp-signed${mini ? ' sp-signed-mini' : ''}" title="${esc(`Підписано ${fmtDate(s.ok)}: ${s.who}`)}">🖋 Підписано ${fmtDate(s.ok).slice(0, 5)}</span>`;
-  if (t) return `<span class="sp-sent-sign${mini ? ' sp-signed-mini' : ''}" title="${esc(`Відправлено на підпис ${fmtDate(t.sent)}: ${t.who}`)}">📤 На підпис ${fmtDate(t.sent).slice(0, 5)}</span>`;
+  if (t) {
+    const n = daysOnSign(t.sent);
+    return `<span class="sp-sent-sign${mini ? ' sp-signed-mini' : ''}${n >= 3 ? ' is-long' : ''}" title="${esc(`Відправлено на підпис ${fmtDate(t.sent)}: ${t.who} · на підписі ${n} дн.`)}">📤 На підпис ${fmtDate(t.sent).slice(0, 5)} · ${n} дн.</span>`;
+  }
   return '';
 }
 
@@ -1091,7 +1104,7 @@ function rowHTML(c, withExecutor = true) {
     <span class="sp-row-no">${c.on_control ? `<span class="sp-ctl-mini" title="${esc(controlTip(c))}">🎯</span> ` : ''}${CASE_KINDS[kindOf(c)].icon} ${esc(c.in_no || (kindOf(c) === 'event' && c.event_at ? fmtEventAt(c.event_at) : CASE_KINDS[kindOf(c)].short))}</span>
     <span class="sp-row-subj">${esc(c.subject)}${c.correspondent ? `<i>${esc(c.correspondent)}</i>` : c.assigned_by ? `<i>від: ${esc(c.assigned_by)}</i>` : ''}</span>
     ${withExecutor ? `<span class="sp-row-ex">${esc(c.executor_name || '—')}</span>` : ''}
-    <span class="sp-row-stage"><b class="sp-stage-dot"></b>${stageLabel(c, c.stage)}${c.version ? ` · v${c.version}` : ''}${rem ? ` <span class="sp-rem-mini">⚑ ${rem}</span>` : ''}${bell ? ' 🔔' : ''}${signedHTML(c, true) ? ' ' + signedHTML(c, true) : ''}${isNoteCase(c) ? ` <span class="sp-note sp-note-mini" title="${esc(NOTE_TIP(c))}">${c.our_role === 'answer' ? '↩ СЗ-відповідь' : '📌 врахувати'}</span>` : ''}${sentMiniHTML(c, 'out')}${sentMiniHTML(c, 'in')}</span>
+    <span class="sp-row-stage"><b class="sp-stage-dot"></b>${stageLabel(c, c.stage)}${c.version ? ` · v${c.version}` : ''}${rem ? ` <span class="sp-rem-mini">⚑ ${rem}</span>` : ''}${bell ? ' 🔔' : ''}${signedHTML(c, true) ? ' ' + signedHTML(c, true) : ''}${reviewHTML(c, true) ? ' ' + reviewHTML(c, true) : ''}${isNoteCase(c) ? ` <span class="sp-note sp-note-mini" title="${esc(NOTE_TIP(c))}">${c.our_role === 'answer' ? '↩ СЗ-відповідь' : '📌 врахувати'}</span>` : ''}${sentMiniHTML(c, 'out')}${sentMiniHTML(c, 'in')}</span>
   </li>`;
 }
 
@@ -1194,7 +1207,7 @@ function cardHTML(c) {
     c.on_control ? `<span class="sp-ctl" title="${esc(controlTip(c))}">🎯 контроль</span>` : '',
     pr ? `<span class="sp-prol" title="${esc(pr.tip)}">↻ було ${fmtDate(pr.orig).slice(0, 5)}</span>` : '',
     signedHTML(c),
-    isReviewed(c.id) ? '<span class="sp-rev-mini" title="Ви позначили справу як опрацьовану сьогодні">☑ сьогодні</span>' : '',
+    reviewHTML(c),
     routeMiniHTML(c),
     isNoteCase(c) && c.our_role !== 'answer' ? `<span class="sp-note" title="${esc(NOTE_TIP(c))}">📌 врахувати</span>` : '',
     c.our_role ? `<span class="sp-role sp-role-${c.our_role}" title="${esc(ROLE_LABEL[c.our_role] + (c.lead_unit ? ' · головний: ' + c.lead_unit : ''))}">${ROLE_SHORT[c.our_role]}</span>` : '',
@@ -1420,7 +1433,7 @@ function renderDrawerHead(c) {
   }).join('');
   renderRoute(c);
   const rv = $('spReviewed');
-  if (rv) rv.checked = isReviewed(c.id);
+  if (rv) { rv.checked = isReviewed(c.id); rv.closest('.sp-reviewed')?.classList.toggle('is-todo', !rv.checked); }
 }
 
 /** Маршрут у картці: виконавець → погоджувачі → підписант; над виконавцем — чого чекаємо від інших. */
@@ -1440,7 +1453,7 @@ function renderRoute(c) {
       ${ok ? dmInput(key, ok, 'Дата: ' + who) : ''}${del || ''}</li>`;
   const signNode = `<li class="sp-rt-node sp-rt-signnode${r.sign.ok ? ' is-ok' : r.sign.sent ? ' is-sent' : ''}${cur === 'sign' ? ' is-cur' : ''}">
       <div class="sp-rt-btn sp-rt-signbox"><span class="sp-rt-role">🖋 підписує</span><b>${esc(r.sign.who)}</b>
-        <label class="sp-rt-dt"><span>📤 відправлено на підпис</span>${dmInput('sent', r.sign.sent, 'Відправлено на підпис', '')}</label>
+        <label class="sp-rt-dt"><span>📤 відправлено на підпис${r.sign.sent && !r.sign.ok ? `<b class="sp-rt-days">на підписі ${daysOnSign(r.sign.sent)} дн.</b>` : ''}</span>${dmInput('sent', r.sign.sent, 'Відправлено на підпис', '')}</label>
         <label class="sp-rt-dt"><span>🖋 підписано</span>${dmInput('signed', r.sign.ok, 'Підписано', '')}</label>
       </div></li>`;
   // Порядок погоджувальників змінюється стрілками (вимога користувача 10.11.2026: нач. відділу ↔ заступник)
@@ -2032,6 +2045,7 @@ function wireStatic() {
   $('spReviewed')?.addEventListener('change', (e) => {
     if (!state.openId) return;
     setReviewed(state.openId, e.target.checked);
+    e.target.closest('.sp-reviewed')?.classList.toggle('is-todo', !e.target.checked);
     render();
     toast(e.target.checked ? '☑ Позначено як опрацьовану сьогодні' : 'Позначку «опрацьовано» знято');
   });
