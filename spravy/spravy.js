@@ -240,7 +240,8 @@ const isSzReply = (c) => c.reply_kind === 'sz' || c.reply_kind === 'sz_work';
 function defaultRoute(c) {
   return isSzReply(c)
     ? { exec: null, steps: [{ who: 'Начальник відділу', ok: null }], sign: { who: 'Директор департаменту', ok: null } }
-    : { exec: null, steps: [{ who: 'Начальник відділу', ok: null }, { who: 'Директор департаменту', ok: null }], sign: { who: 'Голова', ok: null } };
+    // Лист: Заступник Голови погоджує обов'язково (вимога користувача 10.11.2026)
+    : { exec: null, steps: [{ who: 'Начальник відділу', ok: null }, { who: 'Директор департаменту', ok: null }, { who: 'Заступник Голови', ok: null }], sign: { who: 'Голова', ok: null } };
 }
 const routeOf = (c) => (c.route && Array.isArray(c.route.steps) && c.route.sign ? c.route : defaultRoute(c));
 const hasRoute = (c) => kindOf(c) === 'askod' && !isNoteCase(c) && c.reply_kind !== 'info';
