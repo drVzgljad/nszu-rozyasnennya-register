@@ -146,7 +146,11 @@ const LEAD_UNITS = [
   'Аналітичне управління',
   'Юридичний департамент', 'Департамент інформаційних технологій', 'Департамент моніторингу',
   'Управління комунікацій', 'Управління справами',
-  'Відділ роботи зі скаргами пацієнтів'
+  'Відділ роботи зі скаргами пацієнтів',
+  // Наші МРД (вимога користувача 10.11.2026)
+  'Північний міжрегіональний департамент', 'Південний міжрегіональний департамент',
+  'Східний міжрегіональний департамент', 'Західний міжрегіональний департамент',
+  'Центральний міжрегіональний департамент'
 ];
 // Чиє зауваження: керівництво департаменту підтягується з profiles (під RLS) —
 // прізвищ у публічному репозиторії бути не повинно.
@@ -376,6 +380,13 @@ function approverGroups() {
 
 const isSzReply = (c) => c.reply_kind === 'sz' || c.reply_kind === 'sz_work';
 /**
+ * Маршрут службової: наша СЗ — або ми співвиконавці (вимога користувача 10.11.2026: «якщо ми співвиконавці,
+ * маршрут нас не цікавить, максимум це службова» — головному виконавцю, підписує директор департаменту).
+ * Співвиконавцям маршрут не обов'язковий («за необхідністю»): без збереженого маршруту в картці лише кнопка
+ * «📝 Потрібна службова», збережений можна прибрати.
+ */
+const routeIsSz = (c) => isSzReply(c) || c.our_role === 'co';
+/**
  * Службова — кінцевий документ (вимога користувача 10.11.2026): відповіді не чекаємо. Маршрут: виконавець →
  * начальник відділу → (заступник директора — за потреби, «+ ланка») → підписує директор департаменту →
  * 📨 РОЗГЛЯДАЄ керівник структури-адресата, його заступник або автор службової-запиту. Підписано — «Закрито»
@@ -398,7 +409,7 @@ function toOptions(c, cur) {
   return groups;
 }
 function defaultRoute(c) {
-  return isSzReply(c)
+  return routeIsSz(c)
     ? { exec: null, steps: [{ who: 'Начальник відділу', ok: null }], sign: { who: 'Директор департаменту', ok: null }, to: { who: defaultTo(c) } }
     // Лист: Заступник Голови погоджує обов'язково (вимога користувача 10.11.2026)
     : { exec: null, steps: [{ who: 'Начальник відділу', ok: null }, { who: 'Директор департаменту', ok: null }, { who: 'Заступник Голови', ok: null }], sign: { who: 'Голова', ok: null } };
@@ -411,7 +422,7 @@ const hasRoute = (c) => kindOf(c) === 'askod' && !isNoteCase(c) && c.reply_kind 
  * «Закрито» / «СЗ надано» змінюємо, лише якщо туди привів сам маршрут (зняли позначку підпису).
  */
 function routeStage(c, r, prev) {
-  const signedTo = c.our_role === 'co' && isSzReply(c) ? 'sz_sent' : 'done';
+  const signedTo = c.our_role === 'co' ? 'sz_sent' : 'done';
   const wasSigned = !!(prev && prev.sign && prev.sign.ok);
   const open = ['new', 'work', 'review', 'signing'].includes(c.stage) || (wasSigned && ['done', 'sz_sent'].includes(c.stage));
   if (!open) return null;
@@ -428,7 +439,7 @@ const sentInfo = (c) => (hasRoute(c) && c.route?.sign?.sent && !c.route.sign.ok 
 function signedHTML(c, mini) {
   const s = signedInfo(c);
   const t = sentInfo(c);
-  if (s) return `<span class="sp-signed${mini ? ' sp-signed-mini' : ''}" title="${esc(`Підписано ${fmtDate(s.ok)}: ${s.who}${isSzReply(c) ? ' · розглядає: ' + ((c.route.to && c.route.to.who) || defaultTo(c)) : ''}`)}">🖋 Підписано ${fmtDate(s.ok).slice(0, 5)}</span>`;
+  if (s) return `<span class="sp-signed${mini ? ' sp-signed-mini' : ''}" title="${esc(`Підписано ${fmtDate(s.ok)}: ${s.who}${routeIsSz(c) ? ' · розглядає: ' + ((c.route.to && c.route.to.who) || defaultTo(c)) : ''}`)}">🖋 Підписано ${fmtDate(s.ok).slice(0, 5)}</span>`;
   if (t) {
     const n = daysOnSign(t.sent);
     return `<span class="sp-sent-sign${mini ? ' sp-signed-mini' : ''}${n >= 3 ? ' is-long' : ''}" title="${esc(`Відправлено на підпис ${fmtDate(t.sent)}: ${t.who} · на підписі ${n} дн.`)}">📤 На підпис ${fmtDate(t.sent).slice(0, 5)} · ${n} дн.</span>`;
@@ -1516,6 +1527,12 @@ function renderRoute(c) {
   if (!box) return;
   box.hidden = !hasRoute(c);
   if (box.hidden) return;
+  if (c.our_role === 'co' && !c.route) {
+    box.innerHTML = `<div class="sp-rt-head"><b>🧭 Маршрут</b>
+      <span class="sp-muted">ми співвиконавці — маршрут потрібен, лише якщо готуємо службову</span>
+      <button type="button" class="sp-btn sp-rt-szbtn" data-rt-sz>📝 Потрібна службова</button></div>`;
+    return;
+  }
   const r = routeOf(c);
   const waits = (state.links || []).filter((l) => l.dir === 'out' && l.status === 'waiting');
   const okTxt = (d) => (d ? `✓ ${fmtDate(d).slice(0, 5)}` : 'чекає');
@@ -1530,7 +1547,7 @@ function renderRoute(c) {
         <label class="sp-rt-dt"><span>📤 відправлено на підпис${r.sign.sent && !r.sign.ok ? `<b class="sp-rt-days">на підписі ${daysOnSign(r.sign.sent)} дн.</b>` : ''}</span>${dmInput('sent', r.sign.sent, 'Відправлено на підпис', '')}</label>
         <label class="sp-rt-dt"><span>🖋 підписано</span>${dmInput('signed', r.sign.ok, 'Підписано', '')}</label>
       </div></li>`;
-  const sz = isSzReply(c);
+  const sz = routeIsSz(c);
   const toWho = (r.to && r.to.who) || defaultTo(c);
   const toNode = sz ? `<li class="sp-rt-arrow" aria-hidden="true">→</li><li class="sp-rt-node sp-rt-tonode${r.sign.ok ? ' is-ok' : ''}">
       <div class="sp-rt-btn sp-rt-signbox"><span class="sp-rt-role">📨 розглядає</span>
@@ -1545,9 +1562,10 @@ function renderRoute(c) {
   box.innerHTML = `<div class="sp-rt-head"><b>🧭 Маршрут</b>
       <label class="sp-rt-sel">підписує <select data-rt-signer>${signerOptions(r.sign.who).map((s) => `<option${s === r.sign.who ? ' selected' : ''}>${esc(s)}</option>`).join('')}</select></label>
       <label class="sp-rt-sel">+ ланка <select data-rt-add><option value="">—</option>${approverGroups().map(([g, list]) => `<optgroup label="${esc(g)}">${list.map((s) => `<option>${esc(s)}</option>`).join('')}</optgroup>`).join('')}<option value="*">Інше…</option></select></label>
-      ${c.route ? '' : '<span class="sp-muted">типовий маршрут — збережеться після першої позначки</span>'}</div>
+      ${c.route ? '' : '<span class="sp-muted">типовий маршрут — збережеться після першої позначки</span>'}
+      ${c.our_role === 'co' && c.route ? '<button type="button" class="sp-rt-clear" data-rt-clear title="Службова не потрібна — прибрати маршрут">✕ прибрати маршрут</button>' : ''}</div>
     ${waits.length ? `<p class="sp-rt-wait">⏳ Чекаємо: ${waits.map((l) => esc(`${LINK_SHORT[l.doc_kind] || 'документ'}${l.doc_no ? ' № ' + l.doc_no : ''}${l.who && l.who !== '—' ? ' — ' + l.who : ''}`)).join(' · ')}</p>` : ''}
-    ${sz ? '<p class="sp-rt-note">Службова — кінцева: після підпису справа закривається, відповіді не чекаємо.</p>' : ''}
+    ${sz ? `<p class="sp-rt-note">${c.our_role === 'co' ? 'Ми співвиконавці: готуємо лише службову головному виконавцю — після підпису «СЗ надано».' : 'Службова — кінцева: після підпису справа закривається, відповіді не чекаємо.'}</p>` : ''}
     <ol class="sp-rt">
       ${node('exec', 'готує', c.executor_name || 'Виконавець', r.exec, 'data-rt="exec"')}
       <li class="sp-rt-arrow" aria-hidden="true">→</li>
@@ -2143,6 +2161,14 @@ function wireStatic() {
     const c = state.cases.find((x) => x.id === state.openId);
     if (!c) return;
     const r = JSON.parse(JSON.stringify(routeOf(c)));
+    if (e.target.closest('[data-rt-sz]')) {
+      return saveRoute(c, JSON.parse(JSON.stringify(defaultRoute(c))), 'Маршрут: готуємо службову головному виконавцю');
+    }
+    if (e.target.closest('[data-rt-clear]')) {
+      if (r.sign.ok || r.sign.sent || r.steps.some((x) => x.ok)) { if (!confirm('У маршруті вже є позначки. Прибрати маршрут?')) return; }
+      return saveCase(c.id, { route: null, change_note: 'Маршрут прибрано: службова не потрібна' })
+        .then((ok) => { if (ok !== false) addEvent(c.id, { kind: 'system', body: '🧭 Маршрут прибрано: службова не потрібна' }); });
+    }
     const del = e.target.closest('[data-rt-del]');
     if (del) {
       const s = r.steps.splice(+del.dataset.rtDel, 1)[0];

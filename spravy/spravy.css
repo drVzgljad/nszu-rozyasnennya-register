@@ -1336,3 +1336,10 @@ button.sp-rev-mini.sp-signed-mini { font-size: 12px; padding: 0 6px; border-radi
 button.sp-rev-mini:hover, button.sp-rev-mini:focus-visible { filter: brightness(.95); outline: 2px solid var(--sp-prol); outline-offset: 1px; }
 button.sp-rev-mini.is-todo:hover, button.sp-rev-mini.is-todo:focus-visible { outline-color: var(--sp-over-ink); }
 .sp-ver-foot { margin: 18px 0 4px; text-align: right; font-size: 11px; color: var(--muted); opacity: .8; }
+
+/* Співвиконавці: маршрут — за необхідністю (10.11.2026) */
+.sp-rt-szbtn { font: inherit; font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 8px; border: 1px solid var(--accent);
+  background: var(--surface); color: var(--accent); cursor: pointer; }
+.sp-rt-clear { margin-left: auto; font: inherit; font-size: 12px; padding: 2px 8px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--muted); cursor: pointer; }
+.sp-rt-clear:hover, .sp-rt-szbtn:hover { filter: brightness(.95); }
