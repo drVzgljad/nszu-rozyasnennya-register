@@ -309,23 +309,35 @@ function defaultRoute(c) {
 }
 const routeOf = (c) => (c.route && Array.isArray(c.route.steps) && c.route.sign ? c.route : defaultRoute(c));
 const hasRoute = (c) => kindOf(c) === 'askod' && !isNoteCase(c) && c.reply_kind !== 'info';
-/** Етап за маршрутом: лише між «Готуємо», «Погодження» й «На підписі»; «СЗ надано» й «Закрито» не чіпаємо. */
-function routeStage(c, r) {
-  if (!['new', 'work', 'review', 'signing'].includes(c.stage)) return null;
+/**
+ * Етап за маршрутом (вимога користувача 10.11.2026): «📤 відправлено на підпис» — «На підписі»;
+ * «🖋 підписано» — «Закрито» (наша СЗ головному виконавцю як співвиконавців — «СЗ надано»).
+ * «Закрито» / «СЗ надано» змінюємо, лише якщо туди привів сам маршрут (зняли позначку підпису).
+ */
+function routeStage(c, r, prev) {
+  const signedTo = c.our_role === 'co' && isSzReply(c) ? 'sz_sent' : 'done';
+  const wasSigned = !!(prev && prev.sign && prev.sign.ok);
+  const open = ['new', 'work', 'review', 'signing'].includes(c.stage) || (wasSigned && ['done', 'sz_sent'].includes(c.stage));
+  if (!open) return null;
+  if (r.sign.ok) return signedTo;
+  if (r.sign.sent) return 'signing';
   if (!r.exec) return c.stage === 'new' ? null : 'work';
-  return r.steps.some((s) => !s.ok) ? 'review' : 'signing';
+  return 'review';
 }
 /** Підписано: у маршруті відмічено підписанта (вимога користувача 10.11.2026) — { who, ok } або null. */
 const signedInfo = (c) => (hasRoute(c) && c.route?.sign?.ok ? c.route.sign : null);
+const sentInfo = (c) => (hasRoute(c) && c.route?.sign?.sent && !c.route.sign.ok ? c.route.sign : null);
 function signedHTML(c, mini) {
   const s = signedInfo(c);
-  if (!s) return '';
-  return `<span class="sp-signed${mini ? ' sp-signed-mini' : ''}" title="${esc(`Підписано ${fmtDate(s.ok)}: ${s.who}`)}">🖋 Підписано ${fmtDate(s.ok).slice(0, 5)}</span>`;
+  const t = sentInfo(c);
+  if (s) return `<span class="sp-signed${mini ? ' sp-signed-mini' : ''}" title="${esc(`Підписано ${fmtDate(s.ok)}: ${s.who}`)}">🖋 Підписано ${fmtDate(s.ok).slice(0, 5)}</span>`;
+  if (t) return `<span class="sp-sent-sign${mini ? ' sp-signed-mini' : ''}" title="${esc(`Відправлено на підпис ${fmtDate(t.sent)}: ${t.who}`)}">📤 На підпис ${fmtDate(t.sent).slice(0, 5)}</span>`;
+  return '';
 }
 
 /** Міні-позначка на картці дошки: скільки ланок пройдено і хто підписує. */
 function routeMiniHTML(c) {
-  if (!hasRoute(c) || !c.route || !['review', 'signing'].includes(c.stage) || signedInfo(c)) return '';
+  if (!hasRoute(c) || !c.route || c.stage !== 'review' || signedInfo(c) || sentInfo(c)) return '';
   const r = routeOf(c);
   const total = r.steps.length + 1;
   const done = r.steps.filter((s) => s.ok).length + (r.sign.ok ? 1 : 0);
@@ -1052,7 +1064,7 @@ function rowHTML(c, withExecutor = true) {
     <span class="sp-row-no">${c.on_control ? `<span class="sp-ctl-mini" title="${esc(controlTip(c))}">🎯</span> ` : ''}${CASE_KINDS[kindOf(c)].icon} ${esc(c.in_no || (kindOf(c) === 'event' && c.event_at ? fmtEventAt(c.event_at) : CASE_KINDS[kindOf(c)].short))}</span>
     <span class="sp-row-subj">${esc(c.subject)}${c.correspondent ? `<i>${esc(c.correspondent)}</i>` : c.assigned_by ? `<i>від: ${esc(c.assigned_by)}</i>` : ''}</span>
     ${withExecutor ? `<span class="sp-row-ex">${esc(c.executor_name || '—')}</span>` : ''}
-    <span class="sp-row-stage"><b class="sp-stage-dot"></b>${stageLabel(c, c.stage)}${c.version ? ` · v${c.version}` : ''}${rem ? ` <span class="sp-rem-mini">⚑ ${rem}</span>` : ''}${bell ? ' 🔔' : ''}${signedInfo(c) ? ' ' + signedHTML(c, true) : ''}${isNoteCase(c) ? ` <span class="sp-note sp-note-mini" title="${esc(NOTE_TIP(c))}">${c.our_role === 'answer' ? '↩ СЗ-відповідь' : '📌 врахувати'}</span>` : ''}${sentMiniHTML(c, 'out')}${sentMiniHTML(c, 'in')}</span>
+    <span class="sp-row-stage"><b class="sp-stage-dot"></b>${stageLabel(c, c.stage)}${c.version ? ` · v${c.version}` : ''}${rem ? ` <span class="sp-rem-mini">⚑ ${rem}</span>` : ''}${bell ? ' 🔔' : ''}${signedHTML(c, true) ? ' ' + signedHTML(c, true) : ''}${isNoteCase(c) ? ` <span class="sp-note sp-note-mini" title="${esc(NOTE_TIP(c))}">${c.our_role === 'answer' ? '↩ СЗ-відповідь' : '📌 врахувати'}</span>` : ''}${sentMiniHTML(c, 'out')}${sentMiniHTML(c, 'in')}</span>
   </li>`;
 }
 
@@ -1394,9 +1406,16 @@ function renderRoute(c) {
   const waits = (state.links || []).filter((l) => l.dir === 'out' && l.status === 'waiting');
   const okTxt = (d) => (d ? `✓ ${fmtDate(d).slice(0, 5)}` : 'чекає');
   const cur = !r.exec ? 'exec' : r.steps.findIndex((s) => !s.ok) >= 0 ? 's' + r.steps.findIndex((s) => !s.ok) : (!r.sign.ok ? 'sign' : '');
+  // Дату погодження можна змінити (вимога користувача 10.11.2026): поле дати під позначкою
   const node = (key, role, who, ok, attrs, del) => `<li class="sp-rt-node${ok ? ' is-ok' : ''}${cur === key ? ' is-cur' : ''}">
       <button type="button" class="sp-rt-btn" ${attrs} aria-pressed="${!!ok}" title="${ok ? 'Погоджено ' + fmtDate(ok) + ' — натисніть, щоб зняти' : 'Натисніть, коли погоджено'}">
-        <span class="sp-rt-role">${role}</span><b>${esc(who)}</b><i>${okTxt(ok)}</i></button>${del || ''}</li>`;
+        <span class="sp-rt-role">${role}</span><b>${esc(who)}</b><i>${okTxt(ok)}</i></button>
+      ${ok ? `<input type="date" class="sp-rt-date" data-rt-date="${key}" value="${esc(ok)}" aria-label="Дата: ${esc(who)}">` : ''}${del || ''}</li>`;
+  const signNode = `<li class="sp-rt-node sp-rt-signnode${r.sign.ok ? ' is-ok' : r.sign.sent ? ' is-sent' : ''}${cur === 'sign' ? ' is-cur' : ''}">
+      <div class="sp-rt-btn sp-rt-signbox"><span class="sp-rt-role">🖋 підписує</span><b>${esc(r.sign.who)}</b>
+        <label class="sp-rt-dt"><span>📤 відправлено на підпис</span><input type="date" data-rt-date="sent" value="${esc(r.sign.sent || '')}"></label>
+        <label class="sp-rt-dt"><span>🖋 підписано</span><input type="date" data-rt-date="signed" value="${esc(r.sign.ok || '')}"></label>
+      </div></li>`;
   const steps = r.steps.map((s, i) => node('s' + i, 'погоджує', s.who, s.ok, `data-rt="step" data-i="${i}"`,
     `<button type="button" class="sp-rt-del" data-rt-del="${i}" title="Прибрати ланку" aria-label="Прибрати ланку ${esc(s.who)}">✕</button>`)).join('<li class="sp-rt-arrow" aria-hidden="true">→</li>');
   box.innerHTML = `<div class="sp-rt-head"><b>🧭 Маршрут</b>
@@ -1408,14 +1427,14 @@ function renderRoute(c) {
       ${node('exec', 'готує', c.executor_name || 'Виконавець', r.exec, 'data-rt="exec"')}
       <li class="sp-rt-arrow" aria-hidden="true">→</li>
       ${steps}${r.steps.length ? '<li class="sp-rt-arrow" aria-hidden="true">→</li>' : ''}
-      ${node('sign', '🖋 підписує', r.sign.who, r.sign.ok, 'data-rt="sign"')}
+      ${signNode}
     </ol>`;
 }
 
 /** Зберегти маршрут; етап підлаштовуємо (Готуємо / Погодження / На підписі) і пишемо подію в історію. */
 async function saveRoute(c, r, note) {
   const patch = { route: r };
-  const st = routeStage(c, r);
+  const st = routeStage(c, r, c.route);
   if (st && st !== c.stage) patch.stage = st;
   patch.change_note = note;
   const ok = await saveCase(c.id, patch);
@@ -1988,6 +2007,8 @@ function wireStatic() {
       const s = r.steps[+b.dataset.i];
       s.ok = s.ok ? null : today;
       if (s.ok && !r.exec) r.exec = today;
+      // Усі погодили — документ висить на підписанті: «відправлено на підпис» сьогодні (дату можна змінити)
+      if (s.ok && r.steps.every((x) => x.ok) && !r.sign.sent) r.sign.sent = today;
       return saveRoute(c, r, s.ok ? `Погоджено: ${s.who}` : `Знято погодження: ${s.who}`);
     }
     if (b.dataset.rt === 'sign') {
@@ -2000,8 +2021,28 @@ function wireStatic() {
     const c = state.cases.find((x) => x.id === state.openId);
     if (!c) return;
     const r = JSON.parse(JSON.stringify(routeOf(c)));
+    if (e.target.matches('[data-rt-date]')) {
+      const k = e.target.dataset.rtDate, v = e.target.value || null;
+      if (k === 'exec') { r.exec = v; return saveRoute(c, r, v ? `Виконавець погодив: ${fmtDate(v)}` : 'Знято позначку виконавця'); }
+      if (/^s\d+$/.test(k)) {
+        const st = r.steps[+k.slice(1)];
+        st.ok = v;
+        return saveRoute(c, r, v ? `Погоджено: ${st.who} — ${fmtDate(v)}` : `Знято погодження: ${st.who}`);
+      }
+      if (k === 'sent') {
+        r.sign.sent = v;
+        if (v) { r.exec = r.exec || v; r.steps.forEach((x) => { x.ok = x.ok || v; }); }
+        return saveRoute(c, r, v ? `Відправлено на підпис (${r.sign.who}): ${fmtDate(v)}` : 'Знято «відправлено на підпис»');
+      }
+      if (k === 'signed') {
+        r.sign.ok = v;
+        if (v) { r.sign.sent = r.sign.sent || v; r.exec = r.exec || v; r.steps.forEach((x) => { x.ok = x.ok || v; }); }
+        return saveRoute(c, r, v ? `Підписано (${r.sign.who}): ${fmtDate(v)}` : 'Знято позначку «підписано»');
+      }
+      return;
+    }
     if (e.target.matches('[data-rt-signer]')) {
-      r.sign = { who: e.target.value, ok: null };
+      r.sign = { who: e.target.value, ok: null, sent: null };
       return saveRoute(c, r, `Маршрут: підписує ${e.target.value}`);
     }
     if (e.target.matches('[data-rt-add]')) {

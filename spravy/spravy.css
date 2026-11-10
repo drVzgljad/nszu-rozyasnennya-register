@@ -1289,3 +1289,12 @@
 .sp-badges .sp-signed, .sp-signed-mini { background: var(--sp-ok-bg); color: var(--sp-ok-ink); font-weight: 800; border: 1px solid var(--sp-ok-ink); }
 .sp-signed-mini { font-size: 12px; padding: 0 6px; border-radius: 999px; white-space: nowrap; }
 .sp-card.is-signed { background-image: linear-gradient(to top, var(--sp-ok-ink) 0 4px, transparent 4px); }
+
+/* ---------- підписант: «📤 відправлено на підпис» і «🖋 підписано» з датами (10.11.2026) ---------- */
+.sp-rt-node { flex-direction: column; align-items: stretch; gap: 3px; }
+.sp-rt-date { font: inherit; font-size: 12px; padding: 1px 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
+.sp-rt-signbox { cursor: default; gap: 4px; min-width: 190px; }
+.sp-rt-dt { display: flex; flex-direction: column; gap: 1px; font-size: 11px; color: var(--muted); }
+.sp-rt-dt input { font: inherit; font-size: 12px; padding: 1px 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
+.sp-rt-signnode.is-sent .sp-rt-btn { border-style: solid; border-color: var(--sp-signing, #7c5cc4); }
+.sp-badges .sp-sent-sign, .sp-sent-sign.sp-signed-mini { background: var(--sp-wait-bg); color: var(--sp-wait-ink); font-weight: 800; border: 1px solid var(--sp-wait); }
