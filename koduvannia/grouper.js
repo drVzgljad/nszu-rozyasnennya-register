@@ -24,6 +24,7 @@ const SB_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
 const MAP_V = 'v=40';     // та сама мітка, що в koduvannia.js: файли спільні
 
 let DX, IV, GI, RANK, MODAL, TREES, GROUPS, META, H, MAP;
+let UPLOADED = null;      // коли правила залито в базу (updated_at блоку meta)
 let VERSION = 1;          // версія ПРАВИЛ у базі: сторінка вміє обидві
 let MIN_APPLY = 0.85;     // поріг чистоти листка дерева
 let WITH_CODES = false;   // ознаки iv:<код> у деревах
@@ -94,11 +95,14 @@ async function loadBlocks() {
   }
   const token = sbToken();
   if (!token) throw new Error('НЕМАЄ СЕСІЇ');
-  const r = await fetch(`${SB_URL}/rest/v1/grouper_rules?select=key,payload`,
+  const r = await fetch(`${SB_URL}/rest/v1/grouper_rules?select=key,payload,updated_at`,
                         { headers: { apikey: SB_KEY, Authorization: `Bearer ${token}` } });
   if (r.status === 401 || r.status === 403) throw new Error('СЕСІЯ ЗАСТАРІЛА');
   if (!r.ok) throw new Error(`Supabase ${r.status}`);
-  (await r.json()).forEach(x => { by[x.key] = x.payload; });
+  (await r.json()).forEach(x => {
+    by[x.key] = x.payload;
+    if (x.key === 'meta') UPLOADED = x.updated_at || null;
+  });
   return by;
 }
 
@@ -119,6 +123,7 @@ async function boot() {
   }
   init(by, map);
   renderMeta();
+  renderVersion();
   renderHow();
   wire();
 }
@@ -816,6 +821,43 @@ function renderMeta() {
   }
   document.getElementById('grLimits').innerHTML =
     m.limits.map(x => `<li>${esc(x)}</li>`).join('');
+}
+
+// ── версія в кутку сторінки ────────────────────────────────────────────────
+// Три різні речі, які легко сплутати: версія ЛОГІКИ (номер у правилах і в
+// цьому файлі, мусять бути сумісні), ЗБІРКА правил (коли їх навчено й
+// зібрано, export_to_portal.py) і ЗБІРКА сторінки (мітка кешу ?v= у html).
+const dmy = iso => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}:\d{2}))?/.exec(iso || '');
+  return m ? { d: `${m[3]}.${m[2]}.${m[1]}`, t: m[4] || '' } : null;
+};
+const local = iso => {              // час із бази приходить у UTC
+  const d = iso ? new Date(iso) : null;
+  if (!d || isNaN(d)) return null;
+  const p = n => String(n).padStart(2, '0');
+  return { d: `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()}`,
+           t: `${p(d.getHours())}:${p(d.getMinutes())}` };
+};
+
+function renderVersion() {
+  const el = document.getElementById('grVer');
+  if (!el) return;
+  const m = META || {};
+  const built = dmy(m.built), up = local(UPLOADED);
+  const page = new URL(import.meta.url).searchParams.get('v') || 'без мітки';
+  const short = [`правила v${m.version || VERSION}`];
+  if (built) short.push(built.d);     // правила, залиті до 10.11.2026, дати не мають
+  short.push(`сторінка ${page}`);
+  el.textContent = short.join(' · ');
+
+  const full = [`Правила: версія логіки ${m.version || VERSION}`];
+  if (built) full.push(`зібрано ${built.d}${built.t ? ' о ' + built.t : ''}`);
+  if (m.rev) full.push(`відбиток ${m.rev}`);
+  if (up && built) full.push(`залито в базу ${up.d} о ${up.t}`);
+  const text = `${full.join(', ')}. Сторінка: версія логіки ${LOGIC_VERSION}, збірка ${page}.`;
+  el.title = text;
+  const box = document.getElementById('grMeta');
+  if (box) box.insertAdjacentHTML('beforeend', `<p class="gr-mut gr-verfull">${esc(text)}</p>`);
 }
 
 const HOW_V1 = [

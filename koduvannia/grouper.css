@@ -10,6 +10,15 @@
   border: 1px solid var(--p-line, #d7dee6);
 }
 
+/* Версія правил і сторінки — дрібно, у правому верхньому кутку */
+.gr-ver {
+  margin: 10px 0 -8px; text-align: right; font-size: 12px; line-height: 1.4;
+  color: var(--p-muted, #5b6774); font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere; cursor: help;
+}
+.gr-ver:empty { display: none; }
+.gr-verfull { font-size: 12.5px; }
+
 /* Попередження про службовий характер — навмисно помітне */
 .gr-warn {
   margin: 18px 0 22px; padding: 14px 16px; border-radius: 10px;
