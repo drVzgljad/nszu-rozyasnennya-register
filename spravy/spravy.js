@@ -851,6 +851,7 @@ function render() {
   if (state.view === 'people') { board.innerHTML = peopleHTML(list); renderReminderStrip(); return; }
   // Вхідні службові записки — окремою смугою НАД листами й зверненнями (їх мало — не губляться внизу), з тими самими етапами
   const lanes = splitLanes(list);
+  applyColWidths(board);
   board.innerHTML = lanes
     ? laneHTML('📝 Вхідні службові записки', lanes.sz, 'sz') + laneHTML('📨 Листи, звернення, запити', lanes.main, 'main')
     : colsHTML(list);
@@ -891,12 +892,30 @@ function laneHTML(title, list, key) {
 }
 
 /** Колонки етапів. Обрано один вид, не АСКОД — колонки і назви етапів цього виду (без «На підписі» / «СЗ надано»). */
+/**
+ * Згорнуті колонки (вимога користувача 10.11.2026: «Закрито» й «Нове» розтягуються дуже сильно).
+ * Стан — на пристрої, спільний для обох смуг: колонки в них ті самі. Згорнута колонка — вузька смужка з
+ * назвою й лічильником; картки можна перетягувати й на неї. На телефоні не діє (там по одній колонці).
+ */
+const colsFolded = () => { try { return JSON.parse(lsGet('spravy-cols-folded') || '{}') || {}; } catch (_) { return {}; } };
+const boardStages = () => stagesOf(state.kind === 'all' || state.kind === 'szin' ? 'askod' : state.kind);
+
+function applyColWidths(board) {
+  const f = colsFolded();
+  const st = boardStages();
+  board.style.setProperty('--sp-cols', st.map((s) => (f[s.key] ? '46px' : 'minmax(0, 1fr)')).join(' '));
+  board.style.setProperty('--sp-cols-narrow', st.map((s) => (f[s.key] ? '46px' : 'minmax(210px, 1fr)')).join(' '));
+}
+
 function colsHTML(list) {
-  return stagesOf(state.kind === 'all' || state.kind === 'szin' ? 'askod' : state.kind).map((s) => {
+  const folded = colsFolded();
+  return boardStages().map((s) => {
     const items = sortCol(list.filter((c) => c.stage === s.key), s.key);
     const shown = s.key === 'done' ? items.slice(0, 30) : items;
-    return `<section class="sp-col${s.key === state.mobileStage ? ' is-mobile-active' : ''}" data-stage="${s.key}">
+    const fold = !!folded[s.key];
+    return `<section class="sp-col${s.key === state.mobileStage ? ' is-mobile-active' : ''}${fold ? ' is-folded' : ''}" data-stage="${s.key}">
       <header class="sp-col-head">
+        <button type="button" class="sp-col-fold" data-fold="${s.key}" aria-expanded="${!fold}" title="${fold ? `Розгорнути «${s.label}»` : `Згорнути «${s.label}»`}">${fold ? '›' : '‹'}</button>
         <span class="sp-col-title">${s.label}</span>
         <span class="sp-col-count">${items.length}</span>
         <span class="sp-col-hint">${s.hint}</span>
@@ -1700,6 +1719,14 @@ function wireStatic() {
 
   const board = $('spBoard');
   board.addEventListener('click', (e) => {
+    const fold = e.target.closest('[data-fold]') || (e.target.closest('.sp-col.is-folded .sp-col-head') && e.target.closest('.sp-col')?.querySelector('[data-fold]'));
+    if (fold) {
+      const f = colsFolded();
+      f[fold.dataset.fold] = !f[fold.dataset.fold];
+      lsSet('spravy-cols-folded', JSON.stringify(f));
+      render();
+      return;
+    }
     const lane = e.target.closest('[data-lane]');
     if (lane) {
       const closed = lanesClosed();
