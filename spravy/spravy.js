@@ -255,12 +255,44 @@ const isClosed = (c) => c.stage === 'done' || c.stage === 'sz_sent';
  * Позначка постійна (10.11.2026): на кожній відкритій справі — червоне «☐ не опрацьовано», доки її
  * сьогодні не відмітили; щоранку всі знову червоні.
  */
+/*
+ * З 10.11.2026 позначка спільна для всіх пристроїв користувача: таблиця dept_case_reviews
+ * (migration_2026-11-10e_case_reviewed.sql). Поки таблиці немає (або в демо) — як раніше, localStorage.
+ * Позначки, поставлені в цьому браузері до міграції, при першому завантаженні переносяться в базу.
+ */
 const LS_REVIEWED = 'spravy-reviewed';
-function reviewedToday() {
+function lsReviewed() {
   try {
     const v = JSON.parse(lsGet(LS_REVIEWED) || 'null');
     return v && v.d === todayISO() && Array.isArray(v.ids) ? new Set(v.ids) : new Set();
   } catch (_) { return new Set(); }
+}
+function reviewedToday() {
+  if (state.reviewDb) return state.reviewDb.day === todayISO() ? state.reviewDb.ids : new Set();
+  return lsReviewed();
+}
+// Повернулися на вкладку — підтягнути позначки, поставлені на іншому пристрої (і новий день після ночі)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !state.reviewDb) return;
+  loadReviewed().then(() => { render(); const c = state.cases.find((x) => x.id === state.openId); if (c) { const rv = $('spReviewed'); if (rv) { rv.checked = isReviewed(c.id); rv.closest('.sp-reviewed')?.classList.toggle('is-todo', !rv.checked); } } });
+});
+/** Позначки з бази на сьогодні; null — таблиці ще немає, лишаємось на localStorage. */
+async function loadReviewed() {
+  if (DEMO || !state.sb || !state.me || state.noReviewDb) return;
+  const day = todayISO();
+  const { data, error } = await state.sb.from('dept_case_reviews').select('case_id')
+    .eq('user_id', state.me.id).eq('reviewed_on', day);
+  if (error) { if (MISSING.test(error.message || error.code || '')) state.noReviewDb = true; return; }
+  const ids = new Set((data || []).map((r) => r.case_id));
+  // Що відмітили в цьому браузері до міграції — у базу, і локальну копію прибрати
+  const local = [...lsReviewed()].filter((id) => !ids.has(id) && state.cases.some((c) => c.id === id));
+  if (local.length) {
+    const { error: e2 } = await state.sb.from('dept_case_reviews')
+      .upsert(local.map((case_id) => ({ case_id, user_id: state.me.id, reviewed_on: day })), { ignoreDuplicates: true });
+    if (!e2) local.forEach((id) => ids.add(id));
+  }
+  if (lsGet(LS_REVIEWED)) lsSet(LS_REVIEWED, '');
+  state.reviewDb = { day, ids };
 }
 const isReviewed = (id) => reviewedToday().has(id);
 function reviewHTML(c, mini) {
@@ -272,7 +304,13 @@ function reviewHTML(c, mini) {
 function setReviewed(id, on) {
   const ids = reviewedToday();
   if (on) ids.add(id); else ids.delete(id);
-  lsSet(LS_REVIEWED, JSON.stringify({ d: todayISO(), ids: [...ids] }));
+  if (!state.reviewDb) { lsSet(LS_REVIEWED, JSON.stringify({ d: todayISO(), ids: [...ids] })); return; }
+  const day = todayISO();
+  if (state.reviewDb.day !== day) state.reviewDb = { day, ids };
+  const q = state.sb.from('dept_case_reviews');
+  (on ? q.upsert({ case_id: id, user_id: state.me.id, reviewed_on: day }, { ignoreDuplicates: true })
+      : q.delete().eq('user_id', state.me.id).eq('case_id', id).eq('reviewed_on', day))
+    .then(({ error }) => { if (error) toast('Позначку «опрацьовано» не збережено: ' + (error.message || error.code), true); });
 }
 
 /**
@@ -611,7 +649,7 @@ async function loadCases() {
     return showNotice('Не вдалося завантажити справи: ' + (error.message || error.code));
   }
   state.cases = data || [];
-  await loadCounts();
+  await Promise.all([loadCounts(), loadReviewed()]);
   render();
   if (state.openId) openCase(state.openId, true);
 }
