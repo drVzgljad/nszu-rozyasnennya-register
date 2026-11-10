@@ -16,7 +16,8 @@
 
 // Версія логіки, яку вміє цей файл. upload_supabase.py звіряє її з версією
 // правил і не дасть залити правила, новіші за задеплоєну сторінку.
-export const LOGIC_VERSION = 2;
+// 3 — щаблі (версія 2) плюс критерій ОДК 21A «Множинна значна травма».
+export const LOGIC_VERSION = 3;
 
 const SB_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
 const SB_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
@@ -271,12 +272,55 @@ function parseCodes(s) {
   return (s || '').split(/[,;\n]+/).map(x => x.trim().toUpperCase()).filter(Boolean);
 }
 
+// ── ОДК 21A «Множинна значна травма» (trauma.py) ───────────────────────────
+// Критерій з AR-DRG: основний діагноз — травма, і значні травми лежать
+// щонайменше у двох ділянках тіла. Перелік значних травм і їхні ділянки
+// (H.trauma_sig: код -> ділянка) відновлено з даних.
+const SITE_UA = {
+  head: 'голова і шия', chest: 'грудна клітка', abdomen: 'живіт', kidney: 'нирка',
+  urinary: 'сечові шляхи', spine: 'хребет і таз', upper: 'верхня кінцівка',
+  lower: 'нижня кінцівка', multi: 'кілька ділянок',
+};
+const isTrauma = c => !!c && (c[0] === 'S' || c[0] === 'T');
+
+// -> Map(ділянка -> [коди]) для значних діагнозів випадку (trauma.sites)
+function traumaSites(main, add) {
+  const out = new Map(), seen = new Set();
+  for (const c of [main, ...add]) {
+    if (!isTrauma(c) || seen.has(c)) continue;
+    seen.add(c);
+    const s = get(H.trauma_sig, c);
+    if (!s) continue;
+    if (!out.has(s)) out.set(s, []);
+    out.get(s).push(c);
+  }
+  return out;
+}
+
+// true / false / null — як trauma.multi_trauma: null, коли основний діагноз
+// не травма або правила залито без переліку (тоді все працює як раніше).
+function multiTrauma(main, add) {
+  const sig = H.trauma_sig;
+  if (!sig || !Object.keys(sig).length || !isTrauma(main)) return null;
+  return traumaSites(main, add).size >= 2;
+}
+
+// ОДК випадку з урахуванням критерію (rules.case_mdcs): виконано -> лише 21A;
+// не виконано -> 21A відпадає; якщо нічого не лишилось — усі ОДК діагнозу.
+function caseMdcs(main, mt) {
+  const ent = dxEntries(main);
+  const mdcs = new Set(ent.map(e => e[0]));
+  if (mt === null || !mdcs.has('21A')) return { ent, mdcs };
+  const keep = mt ? new Set(['21A']) : new Set([...mdcs].filter(m => m !== '21A'));
+  if (!keep.size) return { ent, mdcs };
+  return { ent: ent.filter(e => keep.has(e[0])), mdcs: keep };
+}
+
 // Кандидати (rules.candidates). ОДК задає основний діагноз; додаткові
 // діагнози і втручання дають кандидатів лише в межах того самого ОДК.
 // sec і ivc — Map(група -> код, що до неї привів): для пояснення на екрані.
-function candidates(main, add, ivs) {
-  const ent = dxEntries(main);
-  const mdcs = new Set(ent.map(e => e[0]));
+function candidates(main, add, ivs, mt = null) {
+  const { ent, mdcs } = caseMdcs(main, mt);
   const pd = new Set(), sec = new Map(), ivc = new Map();
   ent.forEach(([, lst]) => lst.forEach(a => pd.add(a)));
   add.forEach(c => dxEntries(c).forEach(([m, lst]) => {
@@ -291,10 +335,9 @@ function candidates(main, add, ivs) {
 
 // Загальне втручання, не пов'язане з ОДК основного діагнозу
 // (rules.unrelated_gi). Повертає сам код або null.
-function unrelatedGi(main, ivs) {
-  const ent = dxEntries(main);
+function unrelatedGi(main, ivs, mt = null) {
+  const { ent, mdcs } = caseMdcs(main, mt);
   if (!ent.length) return null;
-  const mdcs = new Set(ent.map(e => e[0]));
   for (const c of ivs)
     if (GI.has(c) && !ivEntries(c).some(([m]) => mdcs.has(m))) return c;
   return null;
@@ -440,12 +483,14 @@ function preMdc(ivs) {
 // Повне рішення версії 2 (predict._predict_v2).
 // code — та сама мітка «щабель:причина», яку дає predict.py: за нею звіряємось.
 function predictV2(main, add, ivs) {
-  const c = candidates(main, add, ivs);
+  const mt = multiTrauma(main, add);
+  const c = candidates(main, add, ivs, mt);
   const { tn, T } = tierset(c);
   const pre = preMdc(ivs);
-  const gi = unrelatedGi(main, ivs);
+  const gi = unrelatedGi(main, ivs, mt);
   const r = { cand: c, tn, T, group: null, why: 'none', base: null, baseWhy: 'none',
-              chain: [], pre, gi, tree: null };
+              chain: [], pre, gi, tree: null, mt,
+              sites: mt === null ? null : traumaSites(main, add) };
 
   if (pre && isValid(pre.group)) {
     r.group = pre.group; r.why = 'pre-mdc'; r.tn = 'pre';
@@ -473,7 +518,7 @@ function predictV2(main, add, ivs) {
       r.group = leaf.group;
     }
   }
-  r.code = `${r.tn}:${r.why}`;
+  r.code = `${mt ? '21A/' : ''}${r.tn}:${r.why}`;
   return r;
 }
 
@@ -486,9 +531,28 @@ const cnt = n => Number(n).toLocaleString('uk');
 const codesTo = (map, T) => [...new Set([...map]
   .filter(([a]) => T.has(remapOf(a))).map(([, code]) => code))].join(', ');
 
+// Пояснення критерію ОДК 21A — лише коли основний діагноз може вести в 21A.
+function explainTrauma(r, main) {
+  if (r.mt === null || !dxEntries(main).some(e => e[0] === '21A')) return null;
+  const parts = [...r.sites].map(([s, codes]) => `${SITE_UA[s] || s} — ${codes.join(', ')}`);
+  if (r.mt) return { rule: 'множинна значна травма', text:
+    `Значні травми лежать у ${r.sites.size} ділянках тіла: ${parts.join('; ')}. ` +
+    `Це ОДК 21A «Множинна значна травма» (групи W01–W04, W61); інші ОДК основного ` +
+    `діагнозу не розглядаються. Сам критерій — з AR-DRG, перелік значних травм ` +
+    `відновлено зі статистики фактично згрупованих випадків.` };
+  return { rule: 'множинної значної травми немає', text:
+    (parts.length
+      ? `Значні травми лише в одній ділянці тіла: ${parts.join('; ')}. `
+      : `Серед діагнозів випадку немає травм із переліку значних. `) +
+    `Для ОДК 21A (W01–W04, W61) потрібні значні травми щонайменше у двох ділянках, ` +
+    `тому ці групи не розглядаються.` };
+}
+
 function explainV2(r, main) {
   const why = [];
   const list = [...r.T].sort().join(', ');
+  const tr = explainTrauma(r, main);
+  if (tr) why.push(tr);
   if (r.why === 'pre-mdc') {
     why.push({ rule: 'Pre-MDC', text:
       `Втручання ${r.pre.code} за Таблицею співставлення належить до групи ${r.pre.group}. ` +
@@ -740,7 +804,8 @@ function renderMeta() {
       <p><b>Порядок вибору</b> (хірургічна група → 801 → інша → медична) — з першоджерела.
          <b>Вибір серед кількох кандидатів</b> здобуто зі статистики: ${cnt(m.trained_cases)}
          фактично згрупованих випадків, ${cnt(m.rules.dx_set + m.rules.set)} записів таблиць
-         вибору, ${m.rules.sec} пар «додатковий діагноз перебиває групу»
+         вибору, ${m.rules.sec} пар «додатковий діагноз перебиває групу»${m.rules.trauma
+           ? `, перелік із ${m.rules.trauma} значних травм для критерію множинної травми` : ''}
          і ${m.rules.trees} комбінаційних дерев.</p>
       <p><b>Перевірка</b> — на випадках, яких навчання не бачило. Менш як тисяча випадків
          показує напрямок, але точності не доводить.</p>
@@ -763,6 +828,7 @@ const HOW_V1 = [
 const HOW_V2 = [
   ['ОДК за основним діагнозом.', 'Додаток A класифікації і Таблиця співставлення дають для коду одну або кілька основних діагностичних категорій. Втручання і супутні діагнози дають кандидатів лише в межах цього ОДК.'],
   ['Pre-MDC.', 'Тривала вентиляція, трахеостомія чи ЕКМО за Таблицею співставлення ведуть у групи A13–A15 і A40 незалежно від діагнозу.'],
+  ['Множинна значна травма.', 'Якщо основний діагноз — травма і значні травми лежать щонайменше у двох ділянках тіла, випадок належить до ОДК 21A (групи W01–W04, W61). Якщо ні — ці групи не розглядаються. Критерій — з AR-DRG; перелік значних травм відновлено зі статистики.'],
   ['Хірургічний щабель.', 'Якщо є втручання, що веде в хірургічну групу (номери 01–39) свого ОДК, вибір іде лише серед таких груп.'],
   ['Група 801.', 'Якщо хірургічних кандидатів немає, але є загальне втручання, не пов\'язане з ОДК основного діагнозу, — це група 801. Виняток — пологи.'],
   ['Інші втручання.', 'Далі — групи з втручанням без операційної (номери 40–59).'],
