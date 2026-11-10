@@ -457,8 +457,9 @@ function routeMiniHTML(c, mini) {
   if (!hasRoute(c) || !c.route || isClosed(c) || signedInfo(c) || sentInfo(c)) return '';
   const r = routeOf(c);
   if (!r.exec) return '';
-  const total = r.steps.length + 1;
-  const done = r.steps.filter((s) => s.ok).length;
+  // Лічильник з виконавцем (10.11.2026: «а ти не рахуєш першого?»): виконавець + погоджувачі + підписант
+  const total = r.steps.length + 2;
+  const done = 1 + r.steps.filter((s) => s.ok).length;
   const st = r.steps.find((s) => !s.ok);
   const who = st ? st.who : r.sign.who;
   const what = st ? 'погоджує' : 'підписує';
