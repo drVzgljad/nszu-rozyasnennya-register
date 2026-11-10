@@ -251,6 +251,37 @@ const DEPT_DIRECTORS = [
   'Директор Західного міжрегіонального департаменту',
   'Директор Центрального міжрегіонального департаменту'
 ];
+/**
+ * Керівники НСЗУ з ПІБ — лише з бази (таблиця nszu_leaders під RLS, migration_2026-11-10d_nszu_leaders.sql):
+ * репозиторій публічний, тому в коді вище лише посади. Немає таблиці / не залогінений — працюють посади.
+ */
+const shortName = (fio) => { const w = String(fio || '').trim().split(/\s+/); return w.length >= 2 ? `${w[1]} ${w[0].toUpperCase()}` : (fio || ''); };
+const leaderLabel = (l) => (l.full_name ? `${l.position} — ${shortName(l.full_name)}` : l.position);
+async function loadNszuChiefs() {
+  state.nszuChiefs = [];
+  if (DEMO || !state.sb) return;
+  const { data, error } = await state.sb.from('nszu_leaders').select('kind, position, department, full_name, sort')
+    .eq('active', true).order('sort');
+  if (!error && data) state.nszuChiefs = data;
+}
+/** Хто може підписати: керівництво з ПІБ (якщо є в базі) + директор нашого департаменту; поточне значення — завжди в переліку. */
+function signerOptions(cur) {
+  const named = (state.nszuChiefs || []).filter((l) => l.kind === 'head' || l.kind === 'deputy').map(leaderLabel);
+  const list = named.length ? [...named, 'Директор департаменту'] : SIGNERS.slice();
+  if (cur && !list.includes(cur)) list.unshift(cur);
+  return list;
+}
+function approverGroups() {
+  const chiefs = state.nszuChiefs || [];
+  const deputies = chiefs.filter((l) => l.kind === 'deputy').map(leaderLabel);
+  const dirs = chiefs.filter((l) => l.kind === 'director').map(leaderLabel);
+  const units = chiefs.filter((l) => l.kind === 'unit').map(leaderLabel);
+  return [
+    ['Наш департамент і керівництво', [...APPROVERS, ...deputies, ...units]],
+    ['Директори департаментів', dirs.length ? dirs : DEPT_DIRECTORS]
+  ];
+}
+
 const isSzReply = (c) => c.reply_kind === 'sz' || c.reply_kind === 'sz_work';
 function defaultRoute(c) {
   return isSzReply(c)
@@ -346,6 +377,7 @@ async function boot() {
   setupDeptPicker();
   await loadLeaders();
   await loadPeople();
+  await loadNszuChiefs();
   await loadCases();
   applyUrlParams();
   subscribe();
@@ -1338,8 +1370,8 @@ function renderRoute(c) {
   const steps = r.steps.map((s, i) => node('s' + i, 'погоджує', s.who, s.ok, `data-rt="step" data-i="${i}"`,
     `<button type="button" class="sp-rt-del" data-rt-del="${i}" title="Прибрати ланку" aria-label="Прибрати ланку ${esc(s.who)}">✕</button>`)).join('<li class="sp-rt-arrow" aria-hidden="true">→</li>');
   box.innerHTML = `<div class="sp-rt-head"><b>🧭 Маршрут</b>
-      <label class="sp-rt-sel">підписує <select data-rt-signer>${SIGNERS.map((s) => `<option${s === r.sign.who ? ' selected' : ''}>${esc(s)}</option>`).join('')}</select></label>
-      <label class="sp-rt-sel">+ ланка <select data-rt-add><option value="">—</option><optgroup label="Наш департамент і керівництво">${APPROVERS.map((s) => `<option>${esc(s)}</option>`).join('')}</optgroup><optgroup label="Директори департаментів">${DEPT_DIRECTORS.map((s) => `<option>${esc(s)}</option>`).join('')}</optgroup><option value="*">Інше…</option></select></label>
+      <label class="sp-rt-sel">підписує <select data-rt-signer>${signerOptions(r.sign.who).map((s) => `<option${s === r.sign.who ? ' selected' : ''}>${esc(s)}</option>`).join('')}</select></label>
+      <label class="sp-rt-sel">+ ланка <select data-rt-add><option value="">—</option>${approverGroups().map(([g, list]) => `<optgroup label="${esc(g)}">${list.map((s) => `<option>${esc(s)}</option>`).join('')}</optgroup>`).join('')}<option value="*">Інше…</option></select></label>
       ${c.route ? '' : '<span class="sp-muted">типовий маршрут — збережеться після першої позначки</span>'}</div>
     ${waits.length ? `<p class="sp-rt-wait">⏳ Чекаємо: ${waits.map((l) => esc(`${LINK_SHORT[l.doc_kind] || 'документ'}${l.doc_no ? ' № ' + l.doc_no : ''}${l.who && l.who !== '—' ? ' — ' + l.who : ''}`)).join(' · ')}</p>` : ''}
     <ol class="sp-rt">
