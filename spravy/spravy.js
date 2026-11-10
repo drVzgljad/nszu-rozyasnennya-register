@@ -235,7 +235,22 @@ const isNoteCase = (c) => kindOf(c) === 'askod' &&
  * Директор департаменту). Колонка dept_cases.route (migration_2026-11-10c_case_route.sql).
  */
 const SIGNERS = ['Голова', 'Заступник Голови', 'Директор департаменту'];
-const APPROVERS = ['Начальник відділу', 'Директор департаменту', 'Заступник директора департаменту', 'Заступник Голови', 'Юридичний департамент'];
+const APPROVERS = ['Начальник відділу', 'Директор департаменту', 'Заступник директора департаменту', 'Заступник Голови'];
+// Директори департаментів НСЗУ — посадами, без ПІБ (репозиторій публічний; вимога користувача 10.11.2026)
+const DEPT_DIRECTORS = [
+  'Директор Юридичного департаменту',
+  'Директор Департаменту договірної роботи',
+  'Директор Департаменту фінансів та бухгалтерського обліку',
+  'Директор Департаменту методології процесів та фактичного моніторингу',
+  'Директор Департаменту інформаційних технологій',
+  'Директор Департаменту розвитку електронної системи охорони здоров’я',
+  'Директор Департаменту стратегії універсального охоплення населення медичними послугами',
+  'Директор Північного міжрегіонального департаменту',
+  'Директор Південного міжрегіонального департаменту',
+  'Директор Східного міжрегіонального департаменту',
+  'Директор Західного міжрегіонального департаменту',
+  'Директор Центрального міжрегіонального департаменту'
+];
 const isSzReply = (c) => c.reply_kind === 'sz' || c.reply_kind === 'sz_work';
 function defaultRoute(c) {
   return isSzReply(c)
@@ -1324,7 +1339,7 @@ function renderRoute(c) {
     `<button type="button" class="sp-rt-del" data-rt-del="${i}" title="Прибрати ланку" aria-label="Прибрати ланку ${esc(s.who)}">✕</button>`)).join('<li class="sp-rt-arrow" aria-hidden="true">→</li>');
   box.innerHTML = `<div class="sp-rt-head"><b>🧭 Маршрут</b>
       <label class="sp-rt-sel">підписує <select data-rt-signer>${SIGNERS.map((s) => `<option${s === r.sign.who ? ' selected' : ''}>${esc(s)}</option>`).join('')}</select></label>
-      <label class="sp-rt-sel">+ ланка <select data-rt-add><option value="">—</option>${APPROVERS.map((s) => `<option>${esc(s)}</option>`).join('')}<option value="*">Інше…</option></select></label>
+      <label class="sp-rt-sel">+ ланка <select data-rt-add><option value="">—</option><optgroup label="Наш департамент і керівництво">${APPROVERS.map((s) => `<option>${esc(s)}</option>`).join('')}</optgroup><optgroup label="Директори департаментів">${DEPT_DIRECTORS.map((s) => `<option>${esc(s)}</option>`).join('')}</optgroup><option value="*">Інше…</option></select></label>
       ${c.route ? '' : '<span class="sp-muted">типовий маршрут — збережеться після першої позначки</span>'}</div>
     ${waits.length ? `<p class="sp-rt-wait">⏳ Чекаємо: ${waits.map((l) => esc(`${LINK_SHORT[l.doc_kind] || 'документ'}${l.doc_no ? ' № ' + l.doc_no : ''}${l.who && l.who !== '—' ? ' — ' + l.who : ''}`)).join(' · ')}</p>` : ''}
     <ol class="sp-rt">
