@@ -223,6 +223,24 @@ function daysLeft(iso) {
 const isClosed = (c) => c.stage === 'done' || c.stage === 'sz_sent';
 
 /**
+ * «☑ Опрацьовано сьогодні» (вимога користувача 10.11.2026): власна позначка в цьому браузері, діє лише
+ * поточний день — наступного дня скидається, і справу треба переглянути знову. На дошці — фіолетова рамка.
+ */
+const LS_REVIEWED = 'spravy-reviewed';
+function reviewedToday() {
+  try {
+    const v = JSON.parse(lsGet(LS_REVIEWED) || 'null');
+    return v && v.d === todayISO() && Array.isArray(v.ids) ? new Set(v.ids) : new Set();
+  } catch (_) { return new Set(); }
+}
+const isReviewed = (id) => reviewedToday().has(id);
+function setReviewed(id, on) {
+  const ids = reviewedToday();
+  if (on) ids.add(id); else ids.delete(id);
+  lsSet(LS_REVIEWED, JSON.stringify({ d: todayISO(), ids: [...ids] }));
+}
+
+/**
  * «Врахувати в роботі» (вимога користувача 10.11.2026): службова, на яку відповідь не потрібна — резолюція
  * «До/Для врахування в роботі», «До відома», або ми в справі лише до відома. Позначка «📌 врахувати»,
  * фільтр і кнопка «📌 Враховано →» одразу в «Закрито».
@@ -1021,7 +1039,7 @@ function rowHTML(c, withExecutor = true) {
   const dl = deadlineInfo(c);
   const rem = state.remarkCounts[c.id] || 0;
   const bell = nextReminder(c.id);
-  return `<li class="sp-row sp-row-${c.stage}" data-id="${c.id}" tabindex="0" role="button">
+  return `<li class="sp-row sp-row-${c.stage}${isReviewed(c.id) ? ' is-reviewed' : ''}" data-id="${c.id}" tabindex="0" role="button">
     <span class="sp-row-dl">${dl ? `<span class="sp-dl ${dl.cls}">${esc(dl.text)}</span>` : '<span class="sp-muted">без строку</span>'}${(() => { const pr = prolongInfo(c); return pr ? ` <span class="sp-prol sp-prol-mini" title="${esc(pr.tip)}">↻ було ${fmtDate(pr.orig).slice(0, 5)}</span>` : ''; })()}</span>
     <span class="sp-row-no">${c.on_control ? `<span class="sp-ctl-mini" title="${esc(controlTip(c))}">🎯</span> ` : ''}${CASE_KINDS[kindOf(c)].icon} ${esc(c.in_no || (kindOf(c) === 'event' && c.event_at ? fmtEventAt(c.event_at) : CASE_KINDS[kindOf(c)].short))}</span>
     <span class="sp-row-subj">${esc(c.subject)}${c.correspondent ? `<i>${esc(c.correspondent)}</i>` : c.assigned_by ? `<i>від: ${esc(c.assigned_by)}</i>` : ''}</span>
@@ -1128,6 +1146,7 @@ function cardHTML(c) {
   const badges = [
     c.on_control ? `<span class="sp-ctl" title="${esc(controlTip(c))}">🎯 контроль</span>` : '',
     pr ? `<span class="sp-prol" title="${esc(pr.tip)}">↻ було ${fmtDate(pr.orig).slice(0, 5)}</span>` : '',
+    isReviewed(c.id) ? '<span class="sp-rev-mini" title="Ви позначили справу як опрацьовану сьогодні">☑ сьогодні</span>' : '',
     routeMiniHTML(c),
     isNoteCase(c) && c.our_role !== 'answer' ? `<span class="sp-note" title="${esc(NOTE_TIP(c))}">📌 врахувати</span>` : '',
     c.our_role ? `<span class="sp-role sp-role-${c.our_role}" title="${esc(ROLE_LABEL[c.our_role] + (c.lead_unit ? ' · головний: ' + c.lead_unit : ''))}">${ROLE_SHORT[c.our_role]}</span>` : '',
@@ -1143,7 +1162,7 @@ function cardHTML(c) {
   const kids = k === 'project' ? childrenOf(c.id).length : 0;
   const parent = c.parent_id ? state.cases.find((x) => x.id === c.parent_id) : null;
   const head = c.in_no || (k === 'event' && c.event_at ? `📅 ${fmtEventAt(c.event_at)}` : `${CASE_KINDS[k].icon} ${CASE_KINDS[k].short}`);
-  return `<article class="sp-card sp-card-${k}${c.on_control && !isClosed(c) ? ' is-control' : ''}${c.stage === 'sz_sent' ? ' is-closed' : ''}${pr ? ' is-prolonged' : ''}${isNoteCase(c) && !isClosed(c) ? ' is-note' : ''}${lw?.out ? ' is-waiting' : lw?.in ? ' is-incoming' : ''}" draggable="true" data-id="${c.id}" tabindex="0" role="button" aria-label="${esc((c.in_no || CASE_KINDS[k].label) + ': ' + c.subject)}">
+  return `<article class="sp-card sp-card-${k}${c.on_control && !isClosed(c) ? ' is-control' : ''}${c.stage === 'sz_sent' ? ' is-closed' : ''}${pr ? ' is-prolonged' : ''}${isReviewed(c.id) ? ' is-reviewed' : ''}${isNoteCase(c) && !isClosed(c) ? ' is-note' : ''}${lw?.out ? ' is-waiting' : lw?.in ? ' is-incoming' : ''}" draggable="true" data-id="${c.id}" tabindex="0" role="button" aria-label="${esc((c.in_no || CASE_KINDS[k].label) + ': ' + c.subject)}">
     <div class="sp-card-top">
       <span class="sp-inno">${esc(head)}</span>
       ${dl ? `<span class="sp-dl ${dl.cls}"${prolonged ? ` title="Продовжено; первинний строк ${fmtDate(c.deadline_original)}"` : ''}>${prolonged ? '↻ ' : ''}${esc(dl.text)}</span>` : ''}
@@ -1352,6 +1371,8 @@ function renderDrawerHead(c) {
     return `<button type="button" class="sp-step ${cls}" data-stage="${s.key}" aria-pressed="${i === cur}">${s.label}</button>`;
   }).join('');
   renderRoute(c);
+  const rv = $('spReviewed');
+  if (rv) rv.checked = isReviewed(c.id);
 }
 
 /** Маршрут у картці: виконавець → погоджувачі → підписант; над виконавцем — чого чекаємо від інших. */
@@ -1932,6 +1953,12 @@ function wireStatic() {
   });
   dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
   dlg.addEventListener('close', () => { state.openId = null; });
+  $('spReviewed')?.addEventListener('change', (e) => {
+    if (!state.openId) return;
+    setReviewed(state.openId, e.target.checked);
+    render();
+    toast(e.target.checked ? '☑ Позначено як опрацьовану сьогодні' : 'Позначку «опрацьовано» знято');
+  });
   $('spRoute').addEventListener('click', (e) => {
     const c = state.cases.find((x) => x.id === state.openId);
     if (!c) return;

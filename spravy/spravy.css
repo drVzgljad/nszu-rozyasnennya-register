@@ -1276,3 +1276,11 @@
 .sp-badges .sp-rt-mini { background: var(--soft); color: var(--ink); border: 1px solid var(--line); }
 .sp-head-proj { font-size: .8em; font-weight: 600; color: var(--muted); }
 @media (max-width: 560px) { .sp-rt-btn { min-width: 0; } .sp-rt-del { opacity: 1; } }
+
+/* ---------- «☑ Опрацьовано сьогодні» (10.11.2026) ---------- */
+.sp-reviewed { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0 0 10px; font-weight: 700; cursor: pointer; }
+.sp-reviewed input { width: 18px; height: 18px; accent-color: var(--sp-prol); }
+.sp-reviewed i { font-style: normal; font-weight: 400; font-size: 13px; }
+.sp-card.is-reviewed { outline: 3px solid var(--sp-prol); outline-offset: -1px; }
+.sp-row.is-reviewed { box-shadow: inset 4px 0 0 var(--sp-prol); background: var(--sp-prol-bg); }
+.sp-badges .sp-rev-mini { background: var(--sp-prol-bg); color: var(--sp-prol-ink); font-weight: 700; }
