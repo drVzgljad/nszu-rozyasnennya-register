@@ -1284,3 +1284,8 @@
 .sp-card.is-reviewed { outline: 3px solid var(--sp-prol); outline-offset: -1px; }
 .sp-row.is-reviewed { box-shadow: inset 4px 0 0 var(--sp-prol); background: var(--sp-prol-bg); }
 .sp-badges .sp-rev-mini { background: var(--sp-prol-bg); color: var(--sp-prol-ink); font-weight: 700; }
+
+/* ---------- «🖋 Підписано» (10.11.2026) ---------- */
+.sp-badges .sp-signed, .sp-signed-mini { background: var(--sp-ok-bg); color: var(--sp-ok-ink); font-weight: 800; border: 1px solid var(--sp-ok-ink); }
+.sp-signed-mini { font-size: 12px; padding: 0 6px; border-radius: 999px; white-space: nowrap; }
+.sp-card.is-signed { background-image: linear-gradient(to top, var(--sp-ok-ink) 0 4px, transparent 4px); }

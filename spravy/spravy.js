@@ -315,9 +315,17 @@ function routeStage(c, r) {
   if (!r.exec) return c.stage === 'new' ? null : 'work';
   return r.steps.some((s) => !s.ok) ? 'review' : 'signing';
 }
+/** Підписано: у маршруті відмічено підписанта (вимога користувача 10.11.2026) — { who, ok } або null. */
+const signedInfo = (c) => (hasRoute(c) && c.route?.sign?.ok ? c.route.sign : null);
+function signedHTML(c, mini) {
+  const s = signedInfo(c);
+  if (!s) return '';
+  return `<span class="sp-signed${mini ? ' sp-signed-mini' : ''}" title="${esc(`Підписано ${fmtDate(s.ok)}: ${s.who}`)}">🖋 Підписано ${fmtDate(s.ok).slice(0, 5)}</span>`;
+}
+
 /** Міні-позначка на картці дошки: скільки ланок пройдено і хто підписує. */
 function routeMiniHTML(c) {
-  if (!hasRoute(c) || !c.route || !['review', 'signing'].includes(c.stage)) return '';
+  if (!hasRoute(c) || !c.route || !['review', 'signing'].includes(c.stage) || signedInfo(c)) return '';
   const r = routeOf(c);
   const total = r.steps.length + 1;
   const done = r.steps.filter((s) => s.ok).length + (r.sign.ok ? 1 : 0);
@@ -1044,7 +1052,7 @@ function rowHTML(c, withExecutor = true) {
     <span class="sp-row-no">${c.on_control ? `<span class="sp-ctl-mini" title="${esc(controlTip(c))}">🎯</span> ` : ''}${CASE_KINDS[kindOf(c)].icon} ${esc(c.in_no || (kindOf(c) === 'event' && c.event_at ? fmtEventAt(c.event_at) : CASE_KINDS[kindOf(c)].short))}</span>
     <span class="sp-row-subj">${esc(c.subject)}${c.correspondent ? `<i>${esc(c.correspondent)}</i>` : c.assigned_by ? `<i>від: ${esc(c.assigned_by)}</i>` : ''}</span>
     ${withExecutor ? `<span class="sp-row-ex">${esc(c.executor_name || '—')}</span>` : ''}
-    <span class="sp-row-stage"><b class="sp-stage-dot"></b>${stageLabel(c, c.stage)}${c.version ? ` · v${c.version}` : ''}${rem ? ` <span class="sp-rem-mini">⚑ ${rem}</span>` : ''}${bell ? ' 🔔' : ''}${isNoteCase(c) ? ` <span class="sp-note sp-note-mini" title="${esc(NOTE_TIP(c))}">${c.our_role === 'answer' ? '↩ СЗ-відповідь' : '📌 врахувати'}</span>` : ''}${sentMiniHTML(c, 'out')}${sentMiniHTML(c, 'in')}</span>
+    <span class="sp-row-stage"><b class="sp-stage-dot"></b>${stageLabel(c, c.stage)}${c.version ? ` · v${c.version}` : ''}${rem ? ` <span class="sp-rem-mini">⚑ ${rem}</span>` : ''}${bell ? ' 🔔' : ''}${signedInfo(c) ? ' ' + signedHTML(c, true) : ''}${isNoteCase(c) ? ` <span class="sp-note sp-note-mini" title="${esc(NOTE_TIP(c))}">${c.our_role === 'answer' ? '↩ СЗ-відповідь' : '📌 врахувати'}</span>` : ''}${sentMiniHTML(c, 'out')}${sentMiniHTML(c, 'in')}</span>
   </li>`;
 }
 
@@ -1146,6 +1154,7 @@ function cardHTML(c) {
   const badges = [
     c.on_control ? `<span class="sp-ctl" title="${esc(controlTip(c))}">🎯 контроль</span>` : '',
     pr ? `<span class="sp-prol" title="${esc(pr.tip)}">↻ було ${fmtDate(pr.orig).slice(0, 5)}</span>` : '',
+    signedHTML(c),
     isReviewed(c.id) ? '<span class="sp-rev-mini" title="Ви позначили справу як опрацьовану сьогодні">☑ сьогодні</span>' : '',
     routeMiniHTML(c),
     isNoteCase(c) && c.our_role !== 'answer' ? `<span class="sp-note" title="${esc(NOTE_TIP(c))}">📌 врахувати</span>` : '',
@@ -1162,7 +1171,7 @@ function cardHTML(c) {
   const kids = k === 'project' ? childrenOf(c.id).length : 0;
   const parent = c.parent_id ? state.cases.find((x) => x.id === c.parent_id) : null;
   const head = c.in_no || (k === 'event' && c.event_at ? `📅 ${fmtEventAt(c.event_at)}` : `${CASE_KINDS[k].icon} ${CASE_KINDS[k].short}`);
-  return `<article class="sp-card sp-card-${k}${c.on_control && !isClosed(c) ? ' is-control' : ''}${c.stage === 'sz_sent' ? ' is-closed' : ''}${pr ? ' is-prolonged' : ''}${isReviewed(c.id) ? ' is-reviewed' : ''}${isNoteCase(c) && !isClosed(c) ? ' is-note' : ''}${lw?.out ? ' is-waiting' : lw?.in ? ' is-incoming' : ''}" draggable="true" data-id="${c.id}" tabindex="0" role="button" aria-label="${esc((c.in_no || CASE_KINDS[k].label) + ': ' + c.subject)}">
+  return `<article class="sp-card sp-card-${k}${c.on_control && !isClosed(c) ? ' is-control' : ''}${c.stage === 'sz_sent' ? ' is-closed' : ''}${pr ? ' is-prolonged' : ''}${isReviewed(c.id) ? ' is-reviewed' : ''}${signedInfo(c) && !isClosed(c) ? ' is-signed' : ''}${isNoteCase(c) && !isClosed(c) ? ' is-note' : ''}${lw?.out ? ' is-waiting' : lw?.in ? ' is-incoming' : ''}" draggable="true" data-id="${c.id}" tabindex="0" role="button" aria-label="${esc((c.in_no || CASE_KINDS[k].label) + ': ' + c.subject)}">
     <div class="sp-card-top">
       <span class="sp-inno">${esc(head)}</span>
       ${dl ? `<span class="sp-dl ${dl.cls}"${prolonged ? ` title="Продовжено; первинний строк ${fmtDate(c.deadline_original)}"` : ''}>${prolonged ? '↻ ' : ''}${esc(dl.text)}</span>` : ''}
