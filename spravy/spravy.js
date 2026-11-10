@@ -1459,7 +1459,24 @@ function renderRoute(c) {
 }
 
 /** Зберегти маршрут; етап підлаштовуємо (Готуємо / Погодження / На підписі) і пишемо подію в історію. */
+/**
+ * Хронологія маршруту (вимога користувача 10.11.2026: «якщо підписано 29.10 — і всі погодження тим числом чи
+ * числом, коли справді погоджували, а не датою введення»): погодження ≤ «на підпис» ≤ «підписано». Пізнішу дату
+ * (зазвичай сьогоднішню, коли маршрут відмічають заднім числом) підтягуємо до межі; ранішу, введену руками, лишаємо.
+ */
+function normRoute(r) {
+  const s = r.sign || {};
+  if (s.ok && s.sent && s.sent > s.ok) s.sent = s.ok;
+  const cap = s.sent || s.ok;
+  if (!cap) return r;
+  r.steps.forEach((x) => { if (x.ok && x.ok > cap) x.ok = cap; });
+  const first = r.steps.map((x) => x.ok).filter(Boolean).sort()[0] || cap;
+  if (r.exec && r.exec > first) r.exec = first;
+  return r;
+}
+
 async function saveRoute(c, r, note) {
+  normRoute(r);
   const patch = { route: r };
   const st = routeStage(c, r, c.route);
   if (st && st !== c.stage) patch.stage = st;
