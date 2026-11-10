@@ -910,6 +910,17 @@
   flex: 1 1 220px;
 }
 .spv-note.is-bad { color: var(--spv-off-ink); }
+/* «🚪 В гості»: стуки в нашу кімнату і список кімнат інших відділів */
+.spv-knocks { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.spv-knock {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 6px 8px;
+  border: 1px solid var(--spv-line); border-left: 4px solid var(--spv-live); border-radius: 10px;
+  background: var(--spv-on-bg); color: var(--spv-on-ink); font-size: 14px; min-width: 0;
+}
+.spv-knock > span { flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere; }
+.spv-knock i { font-style: normal; opacity: .85; }
+.spv-visit { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.spv-visit-hint { flex-basis: 100%; font-size: 13px; color: var(--muted); }
 
 .spv-actions {
   display: flex;

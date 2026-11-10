@@ -25,7 +25,7 @@
  * Realtime, migration_2026-11-03_voice_room.sql), текстовий канал під нею —
  * room-chat.js (кімната відділу з чату порталу). Версії ?v= обох піднімати тут.
  */
-import { initVoice, setVoiceDept } from './voice.js?v=20261110a';
+import { initVoice, setVoiceDept } from './voice.js?v=20261110b';
 import { initRoomChat, setRoomChatDept } from './room-chat.js?v=20261104a';
 // Свій журнал АСКОД (xlsx) — кнопка «📥 Журнал АСКОД»; розбір — ../pmg-askod-journal.js
 import { initAskodUpload } from './askod-upload.js?v=20261103a';
@@ -307,7 +307,7 @@ async function boot() {
   // Голосова кімната (voice.js): заходимо одразу, мікрофон вимкнений. Текстовий канал під нею —
   // кімната відділу або головна стрічка «Робочого чату Департаменту» (room-chat.js).
   setupRoomScope();
-  initVoice({ sb: state.sb, me: state.me, name: myName(), dept: roomTarget(), toast });
+  initVoice({ sb: state.sb, me: state.me, name: myName(), dept: roomTarget(), role: state.profile.role || '', depts: DEPARTMENTS, toast });
   initRoomChat({ sb: state.sb, me: state.me, name: myName(), dept: roomTarget(), toast });
 }
 
@@ -399,7 +399,7 @@ function bootDemo() {
   $('spDeptName').textContent = 'Демо-режим: картки вигадані, нічого не зберігається в базі';
   render();
   applyUrlParams();
-  initVoice({ demo: true, name: myName() });
+  initVoice({ demo: true, name: myName(), dept: DEPARTMENTS[1], depts: DEPARTMENTS, toast });
   initRoomChat({ demo: true, name: myName() });
   initAskodUpload({ demo: true, name: myName(), dept: () => state.dept, toast, cases: () => state.cases, people: () => state.people, reload: async () => render() });
   initControlUpload({ demo: true, name: myName(), dept: () => state.dept, toast, cases: () => state.cases, people: () => state.people,
