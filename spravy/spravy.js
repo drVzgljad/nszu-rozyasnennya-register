@@ -93,8 +93,9 @@ const toLocalInput = (iso) => {
 };
 const KIND_LABEL = { letter: 'Лист', sz: 'СЗ', sz_work: 'СЗ (робочий порядок)', pi: 'ПІ', info: 'До відома', other: 'Інше' };
 const KIND_SHORT = { letter: 'Лист', sz: 'СЗ', sz_work: 'СЗ роб.', pi: 'ПІ', info: 'До відома', other: 'Інше' };
-const ROLE_LABEL = { lead: 'Ми — головний виконавець', co: 'Ми — співвиконавці', info: 'Нам — до відома' };
-const ROLE_SHORT = { lead: 'Гол.', co: 'Співвик.', info: 'До відома' };
+// answer — вхідна СЗ є відповіддю на нашу записку (вимога користувача 10.11.2026; міграція 10_case_role_answer)
+const ROLE_LABEL = { lead: 'Ми — головний виконавець', co: 'Ми — співвиконавці', info: 'Нам — до відома', answer: 'СЗ-відповідь на нашу записку' };
+const ROLE_SHORT = { lead: 'Гол.', co: 'Співвик.', info: 'До відома', answer: '↩ СЗ-відповідь' };
 const DOC_KIND = { letter: 'Лист', sz: 'Службова записка', sz_work: 'СЗ у робочому порядку', other: 'Інший документ' };
 // Зв'язки справ (migration_2026-11-09b_case_links.sql): документ туди (out — чекаємо) чи назад (in — врахувати)
 const LINK_DOC = { sz: 'Службова записка', sz_work: 'СЗ у робочому порядку', letter: 'Лист', project: 'Проєкт на погодження (АСКОД)', other: 'Інший документ' };
@@ -220,6 +221,15 @@ function daysLeft(iso) {
  * Колонка «СЗ надано» лишається — там видно, чию відповідь ми чекаємо (⏳).
  */
 const isClosed = (c) => c.stage === 'done' || c.stage === 'sz_sent';
+
+/**
+ * «Врахувати в роботі» (вимога користувача 10.11.2026): службова, на яку відповідь не потрібна — резолюція
+ * «До/Для врахування в роботі», «До відома», або ми в справі лише до відома. Позначка «📌 врахувати»,
+ * фільтр і кнопка «📌 Враховано →» одразу в «Закрито».
+ */
+const isNoteCase = (c) => kindOf(c) === 'askod' &&
+  (/врахуван|до відома/i.test(c.resolution || '') || c.reply_kind === 'info' || c.our_role === 'info' || c.our_role === 'answer');
+const NOTE_TIP = (c) => 'Відповідь не потрібна — врахувати в роботі' + (c.resolution ? ' · резолюція: ' + c.resolution : '');
 
 function prolongInfo(c) {
   if (!c.deadline || !c.deadline_original || c.deadline === c.deadline_original || isClosed(c)) return null;
@@ -347,6 +357,7 @@ function bootDemo() {
     // Вхідні службові записки інших підрозділів — окрема смуга дошки (вигадані)
     mk({ in_no: '11-12/101-26', in_date: d(-2), correspondent: 'Службова записка', subject: 'Про надання інформації щодо умов закупівлі за пакетом для відповіді заявнику (демо)', deadline: d(3), stage: 'new', reply_kind: 'sz', source: 'askod', our_role: 'co' }),
     mk({ in_no: '5-12/202-26', in_date: d(-7), correspondent: 'Службова записка', subject: 'Пропозиції до специфікацій на наступний рік (демо)', deadline: d(-1), stage: 'work', reply_kind: 'sz', executor_name: 'Петро Зразок', version: 1, source: 'askod' }),
+    mk({ in_no: '7-12/303-26', in_date: d(-1), correspondent: 'Службова записка', subject: 'Про зміну технічного обмеження в електронній системі з наступного року (демо)', deadline: null, stage: 'new', resolution: 'Керівник відділу: До врахування в роботі', executor_name: 'Демо-користувач', source: 'askod' }),
     mk({ in_no: null, subject: 'Ініціативний лист: роз\'яснення закладам щодо обліку послуг', stage: 'work', executor_name: 'Петро Зразок', version: 1, deadline: d(14), source: 'claude' }),
     // Не лише АСКОД: завдання, захід, напрям (вигадані)
     mk({ case_kind: 'task', in_no: null, reply_kind: 'other', subject: 'Довідка до наради: динаміка оплат за пакетом (демо)', assigned_by: 'Керівник відділу', deadline: d(1), stage: 'work', executor_name: 'Демо-користувач' }),
@@ -802,6 +813,7 @@ function passesFilter(c) {
   if (state.f === 'remind') return (state.reminders[c.id] || []).some((r) => daysLeft(r.due_date) <= 0);
   if (state.f === 'control') return !!c.on_control;
   if (state.f === 'prolonged') return !!prolongInfo(c);
+  if (state.f === 'note') return isNoteCase(c);
   if (state.f === 'waiting') return (state.linkWait[c.id]?.out || 0) > 0;
   if (state.f === 'incoming') return (state.linkWait[c.id]?.in || 0) > 0;
   return true;
@@ -914,7 +926,7 @@ function rowHTML(c, withExecutor = true) {
     <span class="sp-row-no">${c.on_control ? `<span class="sp-ctl-mini" title="${esc(controlTip(c))}">🎯</span> ` : ''}${CASE_KINDS[kindOf(c)].icon} ${esc(c.in_no || (kindOf(c) === 'event' && c.event_at ? fmtEventAt(c.event_at) : CASE_KINDS[kindOf(c)].short))}</span>
     <span class="sp-row-subj">${esc(c.subject)}${c.correspondent ? `<i>${esc(c.correspondent)}</i>` : c.assigned_by ? `<i>від: ${esc(c.assigned_by)}</i>` : ''}</span>
     ${withExecutor ? `<span class="sp-row-ex">${esc(c.executor_name || '—')}</span>` : ''}
-    <span class="sp-row-stage"><b class="sp-stage-dot"></b>${stageLabel(c, c.stage)}${c.version ? ` · v${c.version}` : ''}${rem ? ` <span class="sp-rem-mini">⚑ ${rem}</span>` : ''}${bell ? ' 🔔' : ''}${sentMiniHTML(c, 'out')}${sentMiniHTML(c, 'in')}</span>
+    <span class="sp-row-stage"><b class="sp-stage-dot"></b>${stageLabel(c, c.stage)}${c.version ? ` · v${c.version}` : ''}${rem ? ` <span class="sp-rem-mini">⚑ ${rem}</span>` : ''}${bell ? ' 🔔' : ''}${isNoteCase(c) ? ` <span class="sp-note sp-note-mini" title="${esc(NOTE_TIP(c))}">${c.our_role === 'answer' ? '↩ СЗ-відповідь' : '📌 врахувати'}</span>` : ''}${sentMiniHTML(c, 'out')}${sentMiniHTML(c, 'in')}</span>
   </li>`;
 }
 
@@ -986,6 +998,7 @@ function renderReminderStrip() {
  * СЗ головному, а не несуть лист на підпис.
  */
 function nextStage(c) {
+  if (isNoteCase(c) && !isClosed(c)) return 'done';
   if (kindOf(c) !== 'askod') return { new: 'work', work: 'review', review: 'done' }[c.stage] || null;
   const co = c.our_role === 'co';
   return {
@@ -1015,6 +1028,7 @@ function cardHTML(c) {
   const badges = [
     c.on_control ? `<span class="sp-ctl" title="${esc(controlTip(c))}">🎯 контроль</span>` : '',
     pr ? `<span class="sp-prol" title="${esc(pr.tip)}">↻ було ${fmtDate(pr.orig).slice(0, 5)}</span>` : '',
+    isNoteCase(c) && c.our_role !== 'answer' ? `<span class="sp-note" title="${esc(NOTE_TIP(c))}">📌 врахувати</span>` : '',
     c.our_role ? `<span class="sp-role sp-role-${c.our_role}" title="${esc(ROLE_LABEL[c.our_role] + (c.lead_unit ? ' · головний: ' + c.lead_unit : ''))}">${ROLE_SHORT[c.our_role]}</span>` : '',
     k === 'askod' ? `<span class="sp-kind">${KIND_SHORT[c.reply_kind] || ''}</span>` : `<span class="sp-kind sp-kind-${k}" title="${CASE_KINDS[k].label}">${CASE_KINDS[k].icon} ${CASE_KINDS[k].short}</span>`,
     c.version ? `<span class="sp-ver" title="Поточна версія чернетки">v${c.version}</span>` : '',
@@ -1028,7 +1042,7 @@ function cardHTML(c) {
   const kids = k === 'project' ? childrenOf(c.id).length : 0;
   const parent = c.parent_id ? state.cases.find((x) => x.id === c.parent_id) : null;
   const head = c.in_no || (k === 'event' && c.event_at ? `📅 ${fmtEventAt(c.event_at)}` : `${CASE_KINDS[k].icon} ${CASE_KINDS[k].short}`);
-  return `<article class="sp-card sp-card-${k}${c.on_control && !isClosed(c) ? ' is-control' : ''}${c.stage === 'sz_sent' ? ' is-closed' : ''}${pr ? ' is-prolonged' : ''}${lw?.out ? ' is-waiting' : lw?.in ? ' is-incoming' : ''}" draggable="true" data-id="${c.id}" tabindex="0" role="button" aria-label="${esc((c.in_no || CASE_KINDS[k].label) + ': ' + c.subject)}">
+  return `<article class="sp-card sp-card-${k}${c.on_control && !isClosed(c) ? ' is-control' : ''}${c.stage === 'sz_sent' ? ' is-closed' : ''}${pr ? ' is-prolonged' : ''}${isNoteCase(c) && !isClosed(c) ? ' is-note' : ''}${lw?.out ? ' is-waiting' : lw?.in ? ' is-incoming' : ''}" draggable="true" data-id="${c.id}" tabindex="0" role="button" aria-label="${esc((c.in_no || CASE_KINDS[k].label) + ': ' + c.subject)}">
     <div class="sp-card-top">
       <span class="sp-inno">${esc(head)}</span>
       ${dl ? `<span class="sp-dl ${dl.cls}"${prolonged ? ` title="Продовжено; первинний строк ${fmtDate(c.deadline_original)}"` : ''}>${prolonged ? '↻ ' : ''}${esc(dl.text)}</span>` : ''}
@@ -1047,7 +1061,9 @@ function cardHTML(c) {
     </div>
     ${c.out_no ? `<div class="sp-out">вих. № ${esc(c.out_no)}${c.out_date ? ' від ' + fmtDate(c.out_date) : ''}</div>`
       : c.project_no ? `<div class="sp-out" title="№ проєкту відповіді в АСКОД">проєкт № ${esc(c.project_no)}</div>` : ''}
-    ${next ? `<button type="button" class="sp-next" data-next="${c.id}" title="Перевести в «${stageLabel(c, next)}»">${stageLabel(c, next)} →</button>` : ''}
+    ${next ? (isNoteCase(c) && next === 'done'
+      ? `<button type="button" class="sp-next sp-next-note" data-next="${c.id}" title="Враховано в роботі — перевести в «Закрито»">📌 Враховано →</button>`
+      : `<button type="button" class="sp-next" data-next="${c.id}" title="Перевести в «${stageLabel(c, next)}»">${stageLabel(c, next)} →</button>`) : ''}
   </article>`;
 }
 

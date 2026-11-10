@@ -49,6 +49,9 @@
   --sp-prol: #7c3aed;         /* «↻ Строк продовжено» */
   --sp-prol-bg: #ede9fe;
   --sp-prol-ink: #5b21b6;
+  --sp-note: #0d9488;         /* «📌 Врахувати в роботі» — відповідь не потрібна */
+  --sp-note-bg: #ccfbf1;
+  --sp-note-ink: #115e59;
 }
 :root.dark-theme {
   --sp-col-bg: #131c2b;
@@ -91,6 +94,9 @@
   --sp-prol: #a78bfa;
   --sp-prol-bg: #2e1065;
   --sp-prol-ink: #c4b5fd;
+  --sp-note: #2dd4bf;
+  --sp-note-bg: #042f2e;
+  --sp-note-ink: #5eead4;
 }
 
 .sp-hero h1 { margin-bottom: 6px; }
@@ -299,6 +305,7 @@
 .sp-badges .sp-rem { background: var(--sp-rem-bg); color: var(--sp-rem-ink); }
 .sp-badges .sp-role-lead { background: var(--sp-lead-bg); color: var(--sp-lead-ink); }
 .sp-badges .sp-role-co { background: var(--sp-co-bg); color: var(--sp-co-ink); }
+.sp-badges .sp-role-answer { background: var(--sp-inc-bg); color: var(--sp-inc-ink); }
 .sp-badges .sp-bell { background: var(--sp-chip-bg); color: var(--sp-chip-ink); }
 .sp-badges .sp-bell.is-due { background: var(--sp-bell-bg); color: var(--sp-bell-ink); }
 /* «🎯 На контролі» (09.11.2026): смужка ліворуч на картці, бейдж, блок у картці справи */
@@ -308,6 +315,11 @@
 /* «↻ Строк продовжено»: бейдж із первинною датою і пунктирна рамка картки */
 .sp-prol { background: var(--sp-prol-bg); color: var(--sp-prol-ink); font-weight: 700; cursor: help; }
 .sp-prol-mini { font-size: 12px; padding: 0 6px; border-radius: 999px; white-space: nowrap; }
+.sp-note { background: var(--sp-note-bg); color: var(--sp-note-ink); font-weight: 700; cursor: help; }
+.sp-note-mini { font-size: 12px; padding: 0 6px; border-radius: 999px; white-space: nowrap; }
+.sp-card.is-note { box-shadow: inset 4px 0 0 var(--sp-note); }
+.sp-card.is-note:hover, .sp-card.is-note:focus-visible { box-shadow: inset 4px 0 0 var(--sp-note), var(--shadow); }
+.sp-next.sp-next-note { color: var(--sp-note-ink); border-color: var(--sp-note); }
 .sp-card.is-prolonged { outline: 2px dashed var(--sp-prol); outline-offset: -2px; }
 .sp-ctl-mini { cursor: help; }
 .sp-ctlbox { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; align-items: end;
