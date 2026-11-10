@@ -2237,6 +2237,12 @@ function wireStatic() {
     if (f === 'version') v = v ? parseInt(v, 10) : null;
     else if (v === '' && f !== 'subject') v = null;
     if (f === 'subject' && !v) { toast('Суть не може бути порожньою', true); return; }
+    // Вх. № справи АСКОД випадково не стираємо (10.11.2026: у справі 19156-01-26 поле стало порожнім, картка
+    // втратила номер, синхронізація з журналом могла б завести дубль). Змінити на інший — можна.
+    if (f === 'in_no' && !v) {
+      const cur = state.cases.find((x) => x.id === state.openId);
+      if (cur?.in_no && kindOf(cur) === 'askod') { el.value = cur.in_no; toast('Вх. № справи АСКОД не можна стерти — лише виправити', true); return; }
+    }
     const patch = { [f]: v };
     if (f === 'executor_name' && !DEMO) patch.executor_id = state.people.find((p) => p.full_name === v)?.id || null;
     // Захід: час — в ISO; дата заходу стає й строком (сортування, «горить», нагадування)
