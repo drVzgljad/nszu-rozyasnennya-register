@@ -282,7 +282,7 @@ async function loadReviewed() {
   const day = todayISO();
   const { data, error } = await state.sb.from('dept_case_reviews').select('case_id')
     .eq('user_id', state.me.id).eq('reviewed_on', day);
-  if (error) { if (MISSING.test(error.message || error.code || '')) state.noReviewDb = true; return; }
+  if (error) { if (MISSING.test(error.message || error.code || '')) state.noReviewDb = true; else console.warn('dept_case_reviews:', error); return; }
   const ids = new Set((data || []).map((r) => r.case_id));
   // Що відмітили в цьому браузері до міграції — у базу, і локальну копію прибрати
   const local = [...lsReviewed()].filter((id) => !ids.has(id) && state.cases.some((c) => c.id === id));
@@ -297,9 +297,10 @@ async function loadReviewed() {
 const isReviewed = (id) => reviewedToday().has(id);
 function reviewHTML(c, mini) {
   if (isClosed(c)) return '';
+  // Клікабельна просто на дошці (10.11.2026: «галочка не працює» — тиснули саме її, а вона відкривала картку)
   return isReviewed(c.id)
-    ? `<span class="sp-rev-mini${mini ? ' sp-signed-mini' : ''}" title="Ви позначили справу як опрацьовану сьогодні">☑ сьогодні</span>`
-    : `<span class="sp-rev-mini is-todo${mini ? ' sp-signed-mini' : ''}" title="Сьогодні ще не опрацьовано — відмітьте в картці">☐ не опрацьовано</span>`;
+    ? `<button type="button" class="sp-rev-mini${mini ? ' sp-signed-mini' : ''}" data-rev="${c.id}" aria-pressed="true" title="Опрацьовано сьогодні — натисніть, щоб зняти">☑ сьогодні</button>`
+    : `<button type="button" class="sp-rev-mini is-todo${mini ? ' sp-signed-mini' : ''}" data-rev="${c.id}" aria-pressed="false" title="Сьогодні ще не опрацьовано — натисніть, щоб відмітити">☐ не опрацьовано</button>`;
 }
 function setReviewed(id, on) {
   const ids = reviewedToday();
@@ -487,6 +488,19 @@ async function client() {
   for (let i = 0; i < 30 && !window.__pmgSb; i++) await new Promise((r) => setTimeout(r, 150));
   return window.__pmgSb || null;
 }
+
+/** Версія сторінки внизу: ?v= скрипта й стилів (вимога користувача 10.11.2026). */
+function showVersion() {
+  const el = $('spVerFoot');
+  if (!el) return;
+  const js = new URL(import.meta.url).searchParams.get('v') || '—';
+  const cssLink = [...document.querySelectorAll('link[rel="stylesheet"]')].find((l) => /spravy\.css/.test(l.href));
+  const css = cssLink ? new URL(cssLink.href).searchParams.get('v') || '—' : '—';
+  const fmt = (v) => (/^\d{8}[a-z]*$/.test(v) ? `${v.slice(6, 8)}.${v.slice(4, 6)}.${v.slice(0, 4)}${v.slice(8) ? ' · ' + v.slice(8) : ''}` : v);
+  el.textContent = `Справи відділу · версія ${fmt(js)}${css !== js ? ` (стилі ${fmt(css)})` : ''}${DEMO ? ' · демо' : ''}`;
+  el.title = `spravy.js?v=${js} · spravy.css?v=${css}`;
+}
+showVersion();
 
 async function boot() {
   wireStatic();
@@ -2055,6 +2069,15 @@ function wireStatic() {
         if (!DEMO && state.me) patch.executor_id = state.me.id;
       }
       saveCase(c.id, patch).then((ok) => ok !== false && toast(`${c.in_no || 'Справа'} → ${stageLabel(c, to)}`));
+      return;
+    }
+    const rev = e.target.closest('[data-rev]');
+    if (rev) {
+      const on = !isReviewed(rev.dataset.rev);
+      setReviewed(rev.dataset.rev, on);
+      render();
+      if (state.openId === rev.dataset.rev) { const rv = $('spReviewed'); if (rv) { rv.checked = on; rv.closest('.sp-reviewed')?.classList.toggle('is-todo', !on); } }
+      toast(on ? '☑ Позначено як опрацьовану сьогодні' : 'Позначку «опрацьовано» знято');
       return;
     }
     const card = e.target.closest('.sp-card, .sp-row');

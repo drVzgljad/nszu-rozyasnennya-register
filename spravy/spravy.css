@@ -1328,3 +1328,11 @@
 .sp-rt-tonode .sp-rt-btn { border-style: dashed; }
 .sp-rt-tonode.is-ok .sp-rt-btn { border-style: solid; }
 .sp-rt-tonode select { font: inherit; font-size: 12px; width: 100%; padding: 2px 4px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+
+/* ---------- «опрацьовано» — кнопка просто на дошці; версія внизу (10.11.2026) ---------- */
+button.sp-rev-mini { font: inherit; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 6px;
+  border: 1px solid transparent; cursor: pointer; line-height: inherit; }
+button.sp-rev-mini.sp-signed-mini { font-size: 12px; padding: 0 6px; border-radius: 999px; }
+button.sp-rev-mini:hover, button.sp-rev-mini:focus-visible { filter: brightness(.95); outline: 2px solid var(--sp-prol); outline-offset: 1px; }
+button.sp-rev-mini.is-todo:hover, button.sp-rev-mini.is-todo:focus-visible { outline-color: var(--sp-over-ink); }
+.sp-ver-foot { margin: 18px 0 4px; text-align: right; font-size: 11px; color: var(--muted); opacity: .8; }
