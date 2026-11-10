@@ -229,6 +229,37 @@ const isClosed = (c) => c.stage === 'done' || c.stage === 'sz_sent';
  */
 const isNoteCase = (c) => kindOf(c) === 'askod' &&
   (/врахуван|до відома/i.test(c.resolution || '') || c.reply_kind === 'info' || c.our_role === 'info' || c.our_role === 'answer');
+/* ───────── Маршрут документа (вимога користувача 10.11.2026) ─────────
+ * «Готуємо» — пишемо й чекаємо відповідей структур, куди робили запити; «Погодження» — виконавець погодив,
+ * документ іде ланцюжком; «На підписі» — усі погодили, висить на підписанті (Голова / Заступник Голови /
+ * Директор департаменту). Колонка dept_cases.route (migration_2026-11-10c_case_route.sql).
+ */
+const SIGNERS = ['Голова', 'Заступник Голови', 'Директор департаменту'];
+const APPROVERS = ['Начальник відділу', 'Директор департаменту', 'Заступник директора департаменту', 'Заступник Голови', 'Юридичний департамент'];
+const isSzReply = (c) => c.reply_kind === 'sz' || c.reply_kind === 'sz_work';
+function defaultRoute(c) {
+  return isSzReply(c)
+    ? { exec: null, steps: [{ who: 'Начальник відділу', ok: null }], sign: { who: 'Директор департаменту', ok: null } }
+    : { exec: null, steps: [{ who: 'Начальник відділу', ok: null }, { who: 'Директор департаменту', ok: null }], sign: { who: 'Голова', ok: null } };
+}
+const routeOf = (c) => (c.route && Array.isArray(c.route.steps) && c.route.sign ? c.route : defaultRoute(c));
+const hasRoute = (c) => kindOf(c) === 'askod' && !isNoteCase(c) && c.reply_kind !== 'info';
+/** Етап за маршрутом: лише між «Готуємо», «Погодження» й «На підписі»; «СЗ надано» й «Закрито» не чіпаємо. */
+function routeStage(c, r) {
+  if (!['new', 'work', 'review', 'signing'].includes(c.stage)) return null;
+  if (!r.exec) return c.stage === 'new' ? null : 'work';
+  return r.steps.some((s) => !s.ok) ? 'review' : 'signing';
+}
+/** Міні-позначка на картці дошки: скільки ланок пройдено і хто підписує. */
+function routeMiniHTML(c) {
+  if (!hasRoute(c) || !c.route || !['review', 'signing'].includes(c.stage)) return '';
+  const r = routeOf(c);
+  const total = r.steps.length + 1;
+  const done = r.steps.filter((s) => s.ok).length + (r.sign.ok ? 1 : 0);
+  const wait = r.steps.find((s) => !s.ok)?.who || (r.sign.ok ? '' : r.sign.who);
+  return `<span class="sp-rt-mini" title="${esc(`Маршрут: пройдено ${done} з ${total}${wait ? ' · зараз у: ' + wait : ''} · підписує: ${r.sign.who}`)}">🧭 ${done}/${total} → ${esc(r.sign.who)}</span>`;
+}
+
 const NOTE_TIP = (c) => 'Відповідь не потрібна — врахувати в роботі' + (c.resolution ? ' · резолюція: ' + c.resolution : '');
 
 function prolongInfo(c) {
@@ -618,6 +649,8 @@ function renderLinks() {
   if (!box) return;
   const open = state.links.filter((l) => l.status === 'waiting').length;
   $('spLinksCount').textContent = state.links.length ? `${open} відкрито з ${state.links.length}` : '';
+  const rcase = state.cases.find((x) => x.id === state.openId);
+  if (rcase) renderRoute(rcase);   // «⏳ Чекаємо» в маршруті — з тих самих зв'язків
   // Що справа вже знає: наш проєкт відповіді, головний виконавець, наша роль — видно й без зв'язків
   const c = state.cases.find((x) => x.id === state.openId) || {};
   const ctx = [c.project_no && `наш проєкт відповіді <b>№ ${copyHTML(c.project_no, '№ проєкту')}</b>`,
@@ -1047,6 +1080,7 @@ function cardHTML(c) {
   const badges = [
     c.on_control ? `<span class="sp-ctl" title="${esc(controlTip(c))}">🎯 контроль</span>` : '',
     pr ? `<span class="sp-prol" title="${esc(pr.tip)}">↻ було ${fmtDate(pr.orig).slice(0, 5)}</span>` : '',
+    routeMiniHTML(c),
     isNoteCase(c) && c.our_role !== 'answer' ? `<span class="sp-note" title="${esc(NOTE_TIP(c))}">📌 врахувати</span>` : '',
     c.our_role ? `<span class="sp-role sp-role-${c.our_role}" title="${esc(ROLE_LABEL[c.our_role] + (c.lead_unit ? ' · головний: ' + c.lead_unit : ''))}">${ROLE_SHORT[c.our_role]}</span>` : '',
     k === 'askod' ? `<span class="sp-kind">${KIND_SHORT[c.reply_kind] || ''}</span>` : `<span class="sp-kind sp-kind-${k}" title="${CASE_KINDS[k].label}">${CASE_KINDS[k].icon} ${CASE_KINDS[k].short}</span>`,
@@ -1079,7 +1113,7 @@ function cardHTML(c) {
       ${c.executor_name ? `<span class="sp-ava" title="${esc(c.executor_name)}">${esc(initials(c.executor_name))}</span>` : '<span class="sp-ava is-none" title="Виконавця не призначено">?</span>'}
     </div>
     ${c.out_no ? `<div class="sp-out">вих. № ${esc(c.out_no)}${c.out_date ? ' від ' + fmtDate(c.out_date) : ''}</div>`
-      : c.project_no ? `<div class="sp-out" title="№ проєкту відповіді в АСКОД">проєкт № ${esc(c.project_no)}</div>` : ''}
+      : c.project_no ? `<div class="sp-out" title="№ проєкту відповіді в АСКОД — клік копіює">проєкт № ${copyHTML(c.project_no, '№ проєкту')}</div>` : ''}
     ${next ? (isNoteCase(c) && next === 'done'
       ? `<button type="button" class="sp-next sp-next-note" data-next="${c.id}" title="Враховано в роботі — перевести в «Закрито»">📌 Враховано →</button>`
       : `<button type="button" class="sp-next" data-next="${c.id}" title="Перевести в «${stageLabel(c, next)}»">${stageLabel(c, next)} →</button>`) : ''}
@@ -1258,8 +1292,10 @@ async function copyText(v) {
 function renderDrawerHead(c) {
   const k = kindOf(c);
   // Вх. № копіюється кліком — сам номер, без «Вх. №» (09.11.2026: для пошуку в АСКОД)
-  $('spDrawerTitle').innerHTML = c.in_no ? `Вх. № ${copyHTML(c.in_no, 'вх. №')}`
-    : esc(`${CASE_KINDS[k].icon} ${CASE_KINDS[k].label}${k === 'event' && c.event_at ? ' · ' + fmtEventAt(c.event_at) : ''}`);
+  $('spDrawerTitle').innerHTML = (c.in_no ? `Вх. № ${copyHTML(c.in_no, 'вх. №')}`
+    : esc(`${CASE_KINDS[k].icon} ${CASE_KINDS[k].label}${k === 'event' && c.event_at ? ' · ' + fmtEventAt(c.event_at) : ''}`))
+    // № проєкту відповіді — теж одним кліком (10.11.2026: для пошуку проєкту в АСКОД)
+    + (c.project_no ? ` <span class="sp-head-proj">· проєкт № ${copyHTML(c.project_no, '№ проєкту')}</span>` : '');
   $('spDrawerSub').textContent = c.subject;
   const st = stagesOf(kindOf(c));
   const cur = st.findIndex((x) => x.key === c.stage);
@@ -1267,6 +1303,46 @@ function renderDrawerHead(c) {
     const cls = i < cur ? 'is-past' : i === cur ? 'is-current' : '';
     return `<button type="button" class="sp-step ${cls}" data-stage="${s.key}" aria-pressed="${i === cur}">${s.label}</button>`;
   }).join('');
+  renderRoute(c);
+}
+
+/** Маршрут у картці: виконавець → погоджувачі → підписант; над виконавцем — чого чекаємо від інших. */
+function renderRoute(c) {
+  const box = $('spRoute');
+  if (!box) return;
+  box.hidden = !hasRoute(c);
+  if (box.hidden) return;
+  const r = routeOf(c);
+  const waits = (state.links || []).filter((l) => l.dir === 'out' && l.status === 'waiting');
+  const okTxt = (d) => (d ? `✓ ${fmtDate(d).slice(0, 5)}` : 'чекає');
+  const cur = !r.exec ? 'exec' : r.steps.findIndex((s) => !s.ok) >= 0 ? 's' + r.steps.findIndex((s) => !s.ok) : (!r.sign.ok ? 'sign' : '');
+  const node = (key, role, who, ok, attrs, del) => `<li class="sp-rt-node${ok ? ' is-ok' : ''}${cur === key ? ' is-cur' : ''}">
+      <button type="button" class="sp-rt-btn" ${attrs} aria-pressed="${!!ok}" title="${ok ? 'Погоджено ' + fmtDate(ok) + ' — натисніть, щоб зняти' : 'Натисніть, коли погоджено'}">
+        <span class="sp-rt-role">${role}</span><b>${esc(who)}</b><i>${okTxt(ok)}</i></button>${del || ''}</li>`;
+  const steps = r.steps.map((s, i) => node('s' + i, 'погоджує', s.who, s.ok, `data-rt="step" data-i="${i}"`,
+    `<button type="button" class="sp-rt-del" data-rt-del="${i}" title="Прибрати ланку" aria-label="Прибрати ланку ${esc(s.who)}">✕</button>`)).join('<li class="sp-rt-arrow" aria-hidden="true">→</li>');
+  box.innerHTML = `<div class="sp-rt-head"><b>🧭 Маршрут</b>
+      <label class="sp-rt-sel">підписує <select data-rt-signer>${SIGNERS.map((s) => `<option${s === r.sign.who ? ' selected' : ''}>${esc(s)}</option>`).join('')}</select></label>
+      <label class="sp-rt-sel">+ ланка <select data-rt-add><option value="">—</option>${APPROVERS.map((s) => `<option>${esc(s)}</option>`).join('')}<option value="*">Інше…</option></select></label>
+      ${c.route ? '' : '<span class="sp-muted">типовий маршрут — збережеться після першої позначки</span>'}</div>
+    ${waits.length ? `<p class="sp-rt-wait">⏳ Чекаємо: ${waits.map((l) => esc(`${LINK_SHORT[l.doc_kind] || 'документ'}${l.doc_no ? ' № ' + l.doc_no : ''}${l.who && l.who !== '—' ? ' — ' + l.who : ''}`)).join(' · ')}</p>` : ''}
+    <ol class="sp-rt">
+      ${node('exec', 'готує', c.executor_name || 'Виконавець', r.exec, 'data-rt="exec"')}
+      <li class="sp-rt-arrow" aria-hidden="true">→</li>
+      ${steps}${r.steps.length ? '<li class="sp-rt-arrow" aria-hidden="true">→</li>' : ''}
+      ${node('sign', '🖋 підписує', r.sign.who, r.sign.ok, 'data-rt="sign"')}
+    </ol>`;
+}
+
+/** Зберегти маршрут; етап підлаштовуємо (Готуємо / Погодження / На підписі) і пишемо подію в історію. */
+async function saveRoute(c, r, note) {
+  const patch = { route: r };
+  const st = routeStage(c, r);
+  if (st && st !== c.stage) patch.stage = st;
+  patch.change_note = note;
+  const ok = await saveCase(c.id, patch);
+  if (ok && !patch.stage) await addEvent(c.id, { kind: 'system', body: '🧭 ' + note });
+  if (!ok) toast('Маршрут не збережено: можливо, ще не застосовано migration_2026-11-10c_case_route.sql', true);
 }
 
 /**
@@ -1364,7 +1440,11 @@ const ACTIONS = {
       <label class="sp-f sp-wide"><span>Що сказали *</span><textarea name="note" rows="3" required placeholder="Суть зауваження — воно ж піде в «Зауваження» як невраховане"></textarea></label>`,
     run: async (id, fd) => {
       const from = fd.get('from'), note = fd.get('note').trim();
-      const ok = await saveCase(id, { stage: 'work', change_note: `${from}: ${note}` });
+      const rc = state.cases.find((x) => x.id === id);
+      const patch = { stage: 'work', change_note: `${from}: ${note}` };
+      // Повернули — маршрут починається знову: позначки погодження знімаємо (сам ланцюжок лишається)
+      if (rc?.route) patch.route = { ...rc.route, exec: null, steps: rc.route.steps.map((s) => ({ ...s, ok: null })), sign: { ...rc.route.sign, ok: null } };
+      const ok = await saveCase(id, patch);
       if (ok) await addEvent(id, { kind: 'remark', body: note, remark_from: from, remark_status: 'open', event_date: fd.get('date') || null });
     }
   },
@@ -1719,6 +1799,9 @@ function wireStatic() {
 
   const board = $('spBoard');
   board.addEventListener('click', (e) => {
+    // № проєкту на картці дошки — копіюється, картка при цьому не відкривається
+    const cp = e.target.closest('[data-copy]');
+    if (cp) { e.preventDefault(); e.stopPropagation(); return copyText(cp.dataset.copy); }
     const fold = e.target.closest('[data-fold]') || (e.target.closest('.sp-col.is-folded .sp-col-head') && e.target.closest('.sp-col')?.querySelector('[data-fold]'));
     if (fold) {
       const f = colsFolded();
@@ -1801,6 +1884,51 @@ function wireStatic() {
   });
   dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
   dlg.addEventListener('close', () => { state.openId = null; });
+  $('spRoute').addEventListener('click', (e) => {
+    const c = state.cases.find((x) => x.id === state.openId);
+    if (!c) return;
+    const r = JSON.parse(JSON.stringify(routeOf(c)));
+    const del = e.target.closest('[data-rt-del]');
+    if (del) {
+      const s = r.steps.splice(+del.dataset.rtDel, 1)[0];
+      return saveRoute(c, r, `Маршрут: прибрано ланку «${s?.who || ''}»`);
+    }
+    const b = e.target.closest('[data-rt]');
+    if (!b) return;
+    const today = todayISO();
+    if (b.dataset.rt === 'exec') {
+      r.exec = r.exec ? null : today;
+      return saveRoute(c, r, r.exec ? 'Виконавець погодив — документ на погодження' : 'Знято позначку виконавця');
+    }
+    if (b.dataset.rt === 'step') {
+      const s = r.steps[+b.dataset.i];
+      s.ok = s.ok ? null : today;
+      if (s.ok && !r.exec) r.exec = today;
+      return saveRoute(c, r, s.ok ? `Погоджено: ${s.who}` : `Знято погодження: ${s.who}`);
+    }
+    if (b.dataset.rt === 'sign') {
+      r.sign.ok = r.sign.ok ? null : today;
+      if (r.sign.ok) { r.exec = r.exec || today; r.steps.forEach((s) => { s.ok = s.ok || today; }); }
+      return saveRoute(c, r, r.sign.ok ? `Підписано: ${r.sign.who}` : `Знято позначку підпису: ${r.sign.who}`);
+    }
+  });
+  $('spRoute').addEventListener('change', (e) => {
+    const c = state.cases.find((x) => x.id === state.openId);
+    if (!c) return;
+    const r = JSON.parse(JSON.stringify(routeOf(c)));
+    if (e.target.matches('[data-rt-signer]')) {
+      r.sign = { who: e.target.value, ok: null };
+      return saveRoute(c, r, `Маршрут: підписує ${e.target.value}`);
+    }
+    if (e.target.matches('[data-rt-add]')) {
+      let who = e.target.value;
+      if (who === '*') who = (prompt('Хто погоджує (посада або підрозділ)?') || '').trim();
+      e.target.value = '';
+      if (!who) return;
+      r.steps.push({ who, ok: null });
+      return saveRoute(c, r, `Маршрут: додано ланку «${who}»`);
+    }
+  });
   $('spStepper').addEventListener('click', (e) => {
     const b = e.target.closest('[data-stage]');
     if (b && state.openId) saveCase(state.openId, { stage: b.dataset.stage });
