@@ -1443,8 +1443,12 @@ function renderRoute(c) {
         <label class="sp-rt-dt"><span>📤 відправлено на підпис</span>${dmInput('sent', r.sign.sent, 'Відправлено на підпис', '')}</label>
         <label class="sp-rt-dt"><span>🖋 підписано</span>${dmInput('signed', r.sign.ok, 'Підписано', '')}</label>
       </div></li>`;
+  // Порядок погоджувальників змінюється стрілками (вимога користувача 10.11.2026: нач. відділу ↔ заступник)
+  const n = r.steps.length;
+  const mv = (i, d, s) => `<button type="button" class="sp-rt-mv" data-rt-mv="${i}" data-d="${d}" title="${d < 0 ? 'Раніше' : 'Пізніше'} в маршруті" aria-label="${esc(s.who)} — ${d < 0 ? 'раніше' : 'пізніше'}">${d < 0 ? '◀' : '▶'}</button>`;
   const steps = r.steps.map((s, i) => node('s' + i, 'погоджує', s.who, s.ok, `data-rt="step" data-i="${i}"`,
-    `<button type="button" class="sp-rt-del" data-rt-del="${i}" title="Прибрати ланку" aria-label="Прибрати ланку ${esc(s.who)}">✕</button>`)).join('<li class="sp-rt-arrow" aria-hidden="true">→</li>');
+    `<button type="button" class="sp-rt-del" data-rt-del="${i}" title="Прибрати ланку" aria-label="Прибрати ланку ${esc(s.who)}">✕</button>` +
+    (n > 1 ? `<span class="sp-rt-mvs">${i > 0 ? mv(i, -1, s) : '<span></span>'}${i < n - 1 ? mv(i, 1, s) : '<span></span>'}</span>` : ''))).join('<li class="sp-rt-arrow" aria-hidden="true">→</li>');
   box.innerHTML = `<div class="sp-rt-head"><b>🧭 Маршрут</b>
       <label class="sp-rt-sel">підписує <select data-rt-signer>${signerOptions(r.sign.who).map((s) => `<option${s === r.sign.who ? ' selected' : ''}>${esc(s)}</option>`).join('')}</select></label>
       <label class="sp-rt-sel">+ ланка <select data-rt-add><option value="">—</option>${approverGroups().map(([g, list]) => `<optgroup label="${esc(g)}">${list.map((s) => `<option>${esc(s)}</option>`).join('')}</optgroup>`).join('')}<option value="*">Інше…</option></select></label>
@@ -2039,6 +2043,13 @@ function wireStatic() {
     if (del) {
       const s = r.steps.splice(+del.dataset.rtDel, 1)[0];
       return saveRoute(c, r, `Маршрут: прибрано ланку «${s?.who || ''}»`);
+    }
+    const mvb = e.target.closest('[data-rt-mv]');
+    if (mvb) {
+      const i = +mvb.dataset.rtMv, j = i + (+mvb.dataset.d);
+      if (j < 0 || j >= r.steps.length) return;
+      [r.steps[i], r.steps[j]] = [r.steps[j], r.steps[i]];
+      return saveRoute(c, r, `Маршрут: «${r.steps[j].who}» ${j < i ? 'перед' : 'після'} «${r.steps[i].who}»`);
     }
     const b = e.target.closest('[data-rt]');
     if (!b) return;
