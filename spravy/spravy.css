@@ -1343,3 +1343,7 @@ button.sp-rev-mini.is-todo:hover, button.sp-rev-mini.is-todo:focus-visible { out
 .sp-rt-clear { margin-left: auto; font: inherit; font-size: 12px; padding: 2px 8px; border-radius: 8px; border: 1px solid var(--line);
   background: var(--surface); color: var(--muted); cursor: pointer; }
 .sp-rt-clear:hover, .sp-rt-szbtn:hover { filter: brightness(.95); }
+
+/* «⏳ у кого зараз» на картці (10.11.2026) */
+.sp-badges .sp-rt-mini, .sp-rt-mini.sp-signed-mini { background: var(--sp-wait-bg); color: var(--sp-wait-ink); border: 1px solid var(--sp-wait); font-weight: 700; }
+.sp-rt-mini i { font-style: normal; font-weight: 400; opacity: .75; }

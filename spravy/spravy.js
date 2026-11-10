@@ -442,19 +442,27 @@ function signedHTML(c, mini) {
   if (s) return `<span class="sp-signed${mini ? ' sp-signed-mini' : ''}" title="${esc(`Підписано ${fmtDate(s.ok)}: ${s.who}${routeIsSz(c) ? ' · розглядає: ' + ((c.route.to && c.route.to.who) || defaultTo(c)) : ''}`)}">🖋 Підписано ${fmtDate(s.ok).slice(0, 5)}</span>`;
   if (t) {
     const n = daysOnSign(t.sent);
-    return `<span class="sp-sent-sign${mini ? ' sp-signed-mini' : ''}${n >= 3 ? ' is-long' : ''}" title="${esc(`Відправлено на підпис ${fmtDate(t.sent)}: ${t.who} · на підписі ${n} дн.`)}">📤 На підпис ${fmtDate(t.sent).slice(0, 5)} · ${n} дн.</span>`;
+    return `<span class="sp-sent-sign${mini ? ' sp-signed-mini' : ''}${n >= 3 ? ' is-long' : ''}" title="${esc(`Відправлено на підпис ${fmtDate(t.sent)}: ${t.who} · на підписі ${n} дн.`)}">📤 ${esc(whoShort(t.who))} · ${fmtDate(t.sent).slice(0, 5)} · ${n} дн.</span>`;
   }
   return '';
 }
 
-/** Міні-позначка на картці дошки: скільки ланок пройдено і хто підписує. */
-function routeMiniHTML(c) {
-  if (!hasRoute(c) || !c.route || c.stage !== 'review' || signedInfo(c) || sentInfo(c)) return '';
+/**
+ * Міні-позначка на картці дошки й у списку: У КОГО документ зараз (вимога користувача 10.11.2026: «там повинен
+ * бути той, хто очікує погодження або підпису»). Виконавець ще не відпустив — нічого; на підписі — бейдж
+ * «📤 На підписі: хто · дата · N дн.» (signedHTML); підписано — «🖋 Підписано».
+ */
+const whoShort = (w) => { const t = String(w || ''); const k = t.indexOf(' — '); return k > 0 ? t.slice(k + 3) : t; };
+function routeMiniHTML(c, mini) {
+  if (!hasRoute(c) || !c.route || isClosed(c) || signedInfo(c) || sentInfo(c)) return '';
   const r = routeOf(c);
+  if (!r.exec) return '';
   const total = r.steps.length + 1;
-  const done = r.steps.filter((s) => s.ok).length + (r.sign.ok ? 1 : 0);
-  const wait = r.steps.find((s) => !s.ok)?.who || (r.sign.ok ? '' : r.sign.who);
-  return `<span class="sp-rt-mini" title="${esc(`Маршрут: пройдено ${done} з ${total}${wait ? ' · зараз у: ' + wait : ''} · підписує: ${r.sign.who}`)}">🧭 ${done}/${total} → ${esc(r.sign.who)}</span>`;
+  const done = r.steps.filter((s) => s.ok).length;
+  const st = r.steps.find((s) => !s.ok);
+  const who = st ? st.who : r.sign.who;
+  const what = st ? 'погоджує' : 'підписує';
+  return `<span class="sp-rt-mini${mini ? ' sp-signed-mini' : ''}" title="${esc(`Зараз ${what}: ${who} · пройдено ${done} з ${total} · підписує: ${r.sign.who}`)}">⏳ ${esc(whoShort(who))} <i>${done}/${total}</i></span>`;
 }
 
 const NOTE_TIP = (c) => 'Відповідь не потрібна — врахувати в роботі' + (c.resolution ? ' · резолюція: ' + c.resolution : '');
@@ -1189,7 +1197,7 @@ function rowHTML(c, withExecutor = true) {
     <span class="sp-row-no">${c.on_control ? `<span class="sp-ctl-mini" title="${esc(controlTip(c))}">🎯</span> ` : ''}${CASE_KINDS[kindOf(c)].icon} ${esc(c.in_no || (kindOf(c) === 'event' && c.event_at ? fmtEventAt(c.event_at) : CASE_KINDS[kindOf(c)].short))}</span>
     <span class="sp-row-subj">${esc(c.subject)}${c.correspondent ? `<i>${esc(c.correspondent)}</i>` : c.assigned_by ? `<i>від: ${esc(c.assigned_by)}</i>` : ''}</span>
     ${withExecutor ? `<span class="sp-row-ex">${esc(c.executor_name || '—')}</span>` : ''}
-    <span class="sp-row-stage"><b class="sp-stage-dot"></b>${stageLabel(c, c.stage)}${c.version ? ` · v${c.version}` : ''}${rem ? ` <span class="sp-rem-mini">⚑ ${rem}</span>` : ''}${bell ? ' 🔔' : ''}${signedHTML(c, true) ? ' ' + signedHTML(c, true) : ''}${reviewHTML(c, true) ? ' ' + reviewHTML(c, true) : ''}${isNoteCase(c) ? ` <span class="sp-note sp-note-mini" title="${esc(NOTE_TIP(c))}">${c.our_role === 'answer' ? '↩ СЗ-відповідь' : '📌 врахувати'}</span>` : ''}${sentMiniHTML(c, 'out')}${sentMiniHTML(c, 'in')}</span>
+    <span class="sp-row-stage"><b class="sp-stage-dot"></b>${stageLabel(c, c.stage)}${c.version ? ` · v${c.version}` : ''}${rem ? ` <span class="sp-rem-mini">⚑ ${rem}</span>` : ''}${bell ? ' 🔔' : ''}${signedHTML(c, true) ? ' ' + signedHTML(c, true) : ''}${routeMiniHTML(c, true) ? ' ' + routeMiniHTML(c, true) : ''}${reviewHTML(c, true) ? ' ' + reviewHTML(c, true) : ''}${isNoteCase(c) ? ` <span class="sp-note sp-note-mini" title="${esc(NOTE_TIP(c))}">${c.our_role === 'answer' ? '↩ СЗ-відповідь' : '📌 врахувати'}</span>` : ''}${sentMiniHTML(c, 'out')}${sentMiniHTML(c, 'in')}</span>
   </li>`;
 }
 
