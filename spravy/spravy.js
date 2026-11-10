@@ -374,9 +374,31 @@ function approverGroups() {
 }
 
 const isSzReply = (c) => c.reply_kind === 'sz' || c.reply_kind === 'sz_work';
+/**
+ * Службова — кінцевий документ (вимога користувача 10.11.2026): відповіді не чекаємо. Маршрут: виконавець →
+ * начальник відділу → (заступник директора — за потреби, «+ ланка») → підписує директор департаменту →
+ * 📨 РОЗГЛЯДАЄ керівник структури-адресата, його заступник або автор службової-запиту. Підписано — «Закрито»
+ * (співвиконавцям — «СЗ надано»). «Розглядає» на етап не впливає: лише кому пішло.
+ */
+const TO_AUTHOR = 'Автор службової (запиту)';
+const defaultTo = (c) => (c.our_role === 'co' && c.lead_unit ? `Керівник: ${c.lead_unit}` : TO_AUTHOR);
+function toOptions(c, cur) {
+  const chiefs = state.nszuChiefs || [];
+  const dirs = chiefs.filter((l) => l.kind === 'director').map(leaderLabel);
+  const deps = chiefs.filter((l) => l.kind === 'deputy').map(leaderLabel);
+  const units = chiefs.filter((l) => l.kind === 'unit').map(leaderLabel);
+  const first = [TO_AUTHOR, ...(c.lead_unit ? [`Керівник: ${c.lead_unit}`] : []), 'Заступник директора департаменту-адресата'];
+  const groups = [
+    ['Кому', first],
+    ['Директори департаментів', dirs.length ? dirs : DEPT_DIRECTORS],
+    ...(deps.length || units.length ? [['Керівництво НСЗУ', [...deps, ...units]]] : [])
+  ];
+  if (cur && !groups.some(([, l]) => l.includes(cur))) groups[0][1].unshift(cur);
+  return groups;
+}
 function defaultRoute(c) {
   return isSzReply(c)
-    ? { exec: null, steps: [{ who: 'Начальник відділу', ok: null }], sign: { who: 'Директор департаменту', ok: null } }
+    ? { exec: null, steps: [{ who: 'Начальник відділу', ok: null }], sign: { who: 'Директор департаменту', ok: null }, to: { who: defaultTo(c) } }
     // Лист: Заступник Голови погоджує обов'язково (вимога користувача 10.11.2026)
     : { exec: null, steps: [{ who: 'Начальник відділу', ok: null }, { who: 'Директор департаменту', ok: null }, { who: 'Заступник Голови', ok: null }], sign: { who: 'Голова', ok: null } };
 }
@@ -405,7 +427,7 @@ const sentInfo = (c) => (hasRoute(c) && c.route?.sign?.sent && !c.route.sign.ok 
 function signedHTML(c, mini) {
   const s = signedInfo(c);
   const t = sentInfo(c);
-  if (s) return `<span class="sp-signed${mini ? ' sp-signed-mini' : ''}" title="${esc(`Підписано ${fmtDate(s.ok)}: ${s.who}`)}">🖋 Підписано ${fmtDate(s.ok).slice(0, 5)}</span>`;
+  if (s) return `<span class="sp-signed${mini ? ' sp-signed-mini' : ''}" title="${esc(`Підписано ${fmtDate(s.ok)}: ${s.who}${isSzReply(c) ? ' · розглядає: ' + ((c.route.to && c.route.to.who) || defaultTo(c)) : ''}`)}">🖋 Підписано ${fmtDate(s.ok).slice(0, 5)}</span>`;
   if (t) {
     const n = daysOnSign(t.sent);
     return `<span class="sp-sent-sign${mini ? ' sp-signed-mini' : ''}${n >= 3 ? ' is-long' : ''}" title="${esc(`Відправлено на підпис ${fmtDate(t.sent)}: ${t.who} · на підписі ${n} дн.`)}">📤 На підпис ${fmtDate(t.sent).slice(0, 5)} · ${n} дн.</span>`;
@@ -1494,6 +1516,12 @@ function renderRoute(c) {
         <label class="sp-rt-dt"><span>📤 відправлено на підпис${r.sign.sent && !r.sign.ok ? `<b class="sp-rt-days">на підписі ${daysOnSign(r.sign.sent)} дн.</b>` : ''}</span>${dmInput('sent', r.sign.sent, 'Відправлено на підпис', '')}</label>
         <label class="sp-rt-dt"><span>🖋 підписано</span>${dmInput('signed', r.sign.ok, 'Підписано', '')}</label>
       </div></li>`;
+  const sz = isSzReply(c);
+  const toWho = (r.to && r.to.who) || defaultTo(c);
+  const toNode = sz ? `<li class="sp-rt-arrow" aria-hidden="true">→</li><li class="sp-rt-node sp-rt-tonode${r.sign.ok ? ' is-ok' : ''}">
+      <div class="sp-rt-btn sp-rt-signbox"><span class="sp-rt-role">📨 розглядає</span>
+        <select data-rt-to aria-label="Хто розглядає службову" title="${esc(toWho)}">${toOptions(c, toWho).map(([g, list]) => `<optgroup label="${esc(g)}">${list.map((x) => `<option${x === toWho ? ' selected' : ''}>${esc(x)}</option>`).join('')}</optgroup>`).join('')}<option value="*">Інше…</option></select>
+        <i>${r.sign.ok ? '✓ надіслано ' + fmtDate(r.sign.ok).slice(0, 5) : 'після підпису'}</i></div></li>` : '';
   // Порядок погоджувальників змінюється стрілками (вимога користувача 10.11.2026: нач. відділу ↔ заступник)
   const n = r.steps.length;
   const mv = (i, d, s) => `<button type="button" class="sp-rt-mv" data-rt-mv="${i}" data-d="${d}" title="${d < 0 ? 'Раніше' : 'Пізніше'} в маршруті" aria-label="${esc(s.who)} — ${d < 0 ? 'раніше' : 'пізніше'}">${d < 0 ? '◀' : '▶'}</button>`;
@@ -1505,11 +1533,12 @@ function renderRoute(c) {
       <label class="sp-rt-sel">+ ланка <select data-rt-add><option value="">—</option>${approverGroups().map(([g, list]) => `<optgroup label="${esc(g)}">${list.map((s) => `<option>${esc(s)}</option>`).join('')}</optgroup>`).join('')}<option value="*">Інше…</option></select></label>
       ${c.route ? '' : '<span class="sp-muted">типовий маршрут — збережеться після першої позначки</span>'}</div>
     ${waits.length ? `<p class="sp-rt-wait">⏳ Чекаємо: ${waits.map((l) => esc(`${LINK_SHORT[l.doc_kind] || 'документ'}${l.doc_no ? ' № ' + l.doc_no : ''}${l.who && l.who !== '—' ? ' — ' + l.who : ''}`)).join(' · ')}</p>` : ''}
+    ${sz ? '<p class="sp-rt-note">Службова — кінцева: після підпису справа закривається, відповіді не чекаємо.</p>' : ''}
     <ol class="sp-rt">
       ${node('exec', 'готує', c.executor_name || 'Виконавець', r.exec, 'data-rt="exec"')}
       <li class="sp-rt-arrow" aria-hidden="true">→</li>
       ${steps}${r.steps.length ? '<li class="sp-rt-arrow" aria-hidden="true">→</li>' : ''}
-      ${signNode}
+      ${signNode}${toNode}
     </ol>`;
 }
 
@@ -2150,8 +2179,15 @@ function wireStatic() {
       }
       return;
     }
+    if (e.target.matches('[data-rt-to]')) {
+      let who = e.target.value;
+      if (who === '*') who = (prompt('Хто розглядає службову (посада, підрозділ або ПІБ)?') || '').trim();
+      if (!who) { renderRoute(c); return; }
+      r.to = { who };
+      return saveRoute(c, r, `Маршрут: розглядає ${who}`);
+    }
     if (e.target.matches('[data-rt-signer]')) {
-      r.sign = { who: e.target.value, ok: null, sent: null };
+      r.sign = { who: e.target.value, ok: null, sent: null };   // r.to (кому службова) лишається
       return saveRoute(c, r, `Маршрут: підписує ${e.target.value}`);
     }
     if (e.target.matches('[data-rt-add]')) {

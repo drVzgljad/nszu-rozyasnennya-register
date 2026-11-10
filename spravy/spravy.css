@@ -1322,3 +1322,9 @@
 .sp-rt-date, .sp-rt-dt input { text-align: center; }
 .sp-rt-mvs { width: 100%; }
 @media (max-width: 560px) { .sp-rt-btn { width: 140px; } .sp-rt-signbox { width: 170px; } }
+
+/* ---------- Службова: ланка «📨 Розглядає» (вимога користувача 10.11.2026) ---------- */
+.sp-rt-note { margin: 0 0 8px; font-size: 12px; color: var(--muted); text-align: center; }
+.sp-rt-tonode .sp-rt-btn { border-style: dashed; }
+.sp-rt-tonode.is-ok .sp-rt-btn { border-style: solid; }
+.sp-rt-tonode select { font: inherit; font-size: 12px; width: 100%; padding: 2px 4px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
