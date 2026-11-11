@@ -399,15 +399,18 @@ function toOptions(c, cur) {
   const dirs = chiefs.filter((l) => l.kind === 'director').map(leaderLabel);
   const deps = chiefs.filter((l) => l.kind === 'deputy').map(leaderLabel);
   const units = chiefs.filter((l) => l.kind === 'unit').map(leaderLabel);
+  const heads = chiefs.filter((l) => l.kind === 'head').map(leaderLabel);
   const first = [TO_AUTHOR, ...(c.lead_unit ? [`Керівник: ${c.lead_unit}`] : []), 'Заступник директора департаменту-адресата'];
-  const groups = [
-    ['Кому', first],
-    ['Директори департаментів', dirs.length ? dirs : DEPT_DIRECTORS],
-    ...(deps.length || units.length ? [['Керівництво НСЗУ', [...deps, ...units]]] : [])
-  ];
-  if (cur && !groups.some(([, l]) => l.includes(cur))) groups[0][1].unshift(cur);
-  return groups;
+  const skip = new Set(cur || []);
+  const keep = (l) => l.filter((x) => !skip.has(x));
+  return [
+    ['Кому', keep(first)],
+    ['Керівництво НСЗУ', keep([...(heads.length ? heads : ['Голова']), ...deps, ...units])],
+    ['Директори департаментів', keep(dirs.length ? dirs : DEPT_DIRECTORS)]
+  ].filter(([, l]) => l.length);
 }
+/** Хто розглядає службову: кілька адресатів (вимога користувача 11.11.2026: «наприклад Голова і Шадура»). */
+const toList = (c, r) => (r.to && Array.isArray(r.to.list) && r.to.list.length ? r.to.list : [(r.to && r.to.who) || defaultTo(c)]);
 function defaultRoute(c) {
   return routeIsSz(c)
     ? { exec: null, steps: [{ who: 'Начальник відділу', ok: null }], sign: { who: 'Директор департаменту', ok: null }, to: { who: defaultTo(c) } }
@@ -439,7 +442,7 @@ const sentInfo = (c) => (hasRoute(c) && c.route?.sign?.sent && !c.route.sign.ok 
 function signedHTML(c, mini) {
   const s = signedInfo(c);
   const t = sentInfo(c);
-  if (s) return `<span class="sp-signed${mini ? ' sp-signed-mini' : ''}" title="${esc(`Підписано ${fmtDate(s.ok)}: ${s.who}${routeIsSz(c) ? ' · розглядає: ' + ((c.route.to && c.route.to.who) || defaultTo(c)) : ''}`)}">🖋 Підписано ${fmtDate(s.ok).slice(0, 5)}</span>`;
+  if (s) return `<span class="sp-signed${mini ? ' sp-signed-mini' : ''}" title="${esc(`Підписано ${fmtDate(s.ok)}: ${s.who}${routeIsSz(c) ? ' · розглядає: ' + toList(c, c.route).join(', ') : ''}`)}">🖋 Підписано ${fmtDate(s.ok).slice(0, 5)}</span>`;
   if (t) {
     const n = daysOnSign(t.sent);
     return `<span class="sp-sent-sign${mini ? ' sp-signed-mini' : ''}${n >= 3 ? ' is-long' : ''}" title="${esc(`Відправлено на підпис ${fmtDate(t.sent)}: ${t.who} · на підписі ${n} дн.`)}">📤 ${esc(whoShort(t.who))} · ${fmtDate(t.sent).slice(0, 5)} · ${n} дн.</span>`;
@@ -1557,10 +1560,11 @@ function renderRoute(c) {
         <label class="sp-rt-dt"><span>🖋 підписано</span>${dmInput('signed', r.sign.ok, 'Підписано', '')}</label>
       </div></li>`;
   const sz = routeIsSz(c);
-  const toWho = (r.to && r.to.who) || defaultTo(c);
+  const tos = sz ? toList(c, r) : [];
   const toNode = sz ? `<li class="sp-rt-arrow" aria-hidden="true">→</li><li class="sp-rt-node sp-rt-tonode${r.sign.ok ? ' is-ok' : ''}">
       <div class="sp-rt-btn sp-rt-signbox"><span class="sp-rt-role">📨 розглядає</span>
-        <select data-rt-to aria-label="Хто розглядає службову" title="${esc(toWho)}">${toOptions(c, toWho).map(([g, list]) => `<optgroup label="${esc(g)}">${list.map((x) => `<option${x === toWho ? ' selected' : ''}>${esc(x)}</option>`).join('')}</optgroup>`).join('')}<option value="*">Інше…</option></select>
+        <ul class="sp-rt-tolist">${tos.map((w, i) => `<li title="${esc(w)}"><b>${esc(whoShort(w))}</b>${tos.length > 1 ? `<button type="button" class="sp-rt-todel" data-rt-todel="${i}" aria-label="Прибрати: ${esc(w)}" title="Прибрати">✕</button>` : ''}</li>`).join('')}</ul>
+        <select data-rt-to aria-label="Додати, хто ще розглядає службову"><option value="">+ ще розглядає…</option>${toOptions(c, tos).map(([g, list]) => `<optgroup label="${esc(g)}">${list.map((x) => `<option>${esc(x)}</option>`).join('')}</optgroup>`).join('')}<option value="*">Інше…</option></select>
         <i>${r.sign.ok ? '✓ надіслано ' + fmtDate(r.sign.ok).slice(0, 5) : 'після підпису'}</i></div></li>` : '';
   // Порядок погоджувальників змінюється стрілками (вимога користувача 10.11.2026: нач. відділу ↔ заступник)
   const n = r.steps.length;
@@ -2180,6 +2184,13 @@ function wireStatic() {
       return saveCase(c.id, { route: null, change_note: 'Маршрут прибрано: службова не потрібна' })
         .then((ok) => { if (ok !== false) addEvent(c.id, { kind: 'system', body: '🧭 Маршрут прибрано: службова не потрібна' }); });
     }
+    const tdel = e.target.closest('[data-rt-todel]');
+    if (tdel) {
+      const list = toList(c, r);
+      const gone = list.splice(+tdel.dataset.rtTodel, 1)[0];
+      r.to = { who: list[0], list };
+      return saveRoute(c, r, `Маршрут: «${gone}» більше не розглядає`);
+    }
     const del = e.target.closest('[data-rt-del]');
     if (del) {
       const s = r.steps.splice(+del.dataset.rtDel, 1)[0];
@@ -2241,10 +2252,11 @@ function wireStatic() {
     }
     if (e.target.matches('[data-rt-to]')) {
       let who = e.target.value;
-      if (who === '*') who = (prompt('Хто розглядає службову (посада, підрозділ або ПІБ)?') || '').trim();
+      if (who === '*') who = (prompt('Хто ще розглядає службову (посада, підрозділ або ПІБ)?') || '').trim();
       if (!who) { renderRoute(c); return; }
-      r.to = { who };
-      return saveRoute(c, r, `Маршрут: розглядає ${who}`);
+      const list = toList(c, r).filter((x) => x !== who).concat(who);
+      r.to = { who: list[0], list };
+      return saveRoute(c, r, `Маршрут: розглядає також ${who}`);
     }
     if (e.target.matches('[data-rt-signer]')) {
       r.sign = { who: e.target.value, ok: null, sent: null };   // r.to (кому службова) лишається

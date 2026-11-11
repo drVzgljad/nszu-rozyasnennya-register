@@ -1347,3 +1347,10 @@ button.sp-rev-mini.is-todo:hover, button.sp-rev-mini.is-todo:focus-visible { out
 /* «⏳ у кого зараз» на картці (10.11.2026) */
 .sp-badges .sp-rt-mini, .sp-rt-mini.sp-signed-mini { background: var(--sp-wait-bg); color: var(--sp-wait-ink); border: 1px solid var(--sp-wait); font-weight: 700; }
 .sp-rt-mini i { font-style: normal; font-weight: 400; opacity: .75; }
+
+/* «📨 Розглядає» — кілька адресатів (11.11.2026) */
+.sp-rt-tolist { list-style: none; margin: 2px 0 4px; padding: 0; display: flex; flex-direction: column; gap: 3px; width: 100%; }
+.sp-rt-tolist li { display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 13px; }
+.sp-rt-tolist b { overflow-wrap: anywhere; }
+.sp-rt-todel { border: 1px solid var(--line); border-radius: 50%; width: 16px; height: 16px; padding: 0; font-size: 9px; line-height: 1;
+  background: var(--surface); color: var(--muted); cursor: pointer; flex: none; }
