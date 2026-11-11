@@ -1990,7 +1990,9 @@ async function createCase(form) {
     our_role: kind === 'askod' ? (fd.get('our_role') || null) : null,
     // Головний виконавець — у документів АСКОД і в напрямів/проєктів (з 04.11.2026: напрям може вести, напр., Аналітичне управління)
     lead_unit: kind === 'askod' || kind === 'project' ? ((fd.get('lead_unit') || '').trim() || null) : null,
-    stage: fd.get('executor_name') && kind !== 'event' ? 'work' : 'new',
+    // ↩ СЗ-відповідь на нашу записку — одразу «Закрито» (маршруту й відповіді не потрібно)
+    stage: kind === 'askod' && fd.get('our_role') === 'answer' ? 'done'
+      : fd.get('executor_name') && kind !== 'event' ? 'work' : 'new',
     source: 'manual',
     created_by_name: myName()
   };
@@ -2287,9 +2289,16 @@ function wireStatic() {
     }
     // Вид справи змінено: «На підписі» / «СЗ надано» є лише в АСКОД; поля картки — інші.
     // «На контролі» — перемалювати блок (підсвітка й стан за контролькою)
-    if (f === 'case_kind' || f === 'on_control') {
+    // ↩ СЗ-відповідь на нашу записку: відповідати не треба й маршруту немає — справа одразу в «Закрито»
+    // (11.11.2026, користувач: «маршрути цього не треба, вона відразу іде в закрито»)
+    if (f === 'our_role' && v === 'answer') {
+      patch.stage = 'done';
+      patch.route = null;
+      patch.change_note = '↩ СЗ-відповідь на нашу записку — враховано в роботі';
+    }
+    if (f === 'case_kind' || f === 'on_control' || (f === 'our_role' && v === 'answer')) {
       const cur = state.cases.find((x) => x.id === state.openId);
-      if (v !== 'askod' && ['signing', 'sz_sent'].includes(cur?.stage)) patch.stage = 'work';
+      if (v !== 'askod' && ['signing', 'sz_sent'].includes(cur?.stage) && f === 'case_kind') patch.stage = 'work';
       el.blur();
       saveCase(state.openId, patch).then(() => openCase(state.openId, true));
       return;
