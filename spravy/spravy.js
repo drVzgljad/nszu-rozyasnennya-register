@@ -418,6 +418,22 @@ function defaultRoute(c) {
     : { exec: null, steps: [{ who: 'Начальник відділу', ok: null }, { who: 'Директор департаменту', ok: null }, { who: 'Заступник Голови', ok: null }], sign: { who: 'Голова', ok: null } };
 }
 const routeOf = (c) => (c.route && Array.isArray(c.route.steps) && c.route.sign ? c.route : defaultRoute(c));
+/**
+ * Маршрут під новий тип (лист ↔ службова). Службова: підписує директор департаменту, тож він, Голова й заступники
+ * Голови з погоджувачів виходять; лист: типові ланки листа. Позначки виконавця й однойменних ланок зберігаємо.
+ */
+function rebuildRoute(c, old) {
+  const d = JSON.parse(JSON.stringify(defaultRoute(c)));
+  const prev = (old && Array.isArray(old.steps)) ? old.steps : [];
+  if (routeIsSz(c)) {
+    const keep = prev.filter((x) => !/Заступник Голови|^Голова|^Директор департаменту$/.test(x.who || ''));
+    return { exec: old?.exec || null, steps: keep.length ? keep : d.steps, sign: { who: 'Директор департаменту', ok: null, sent: null },
+      to: old?.to || d.to };
+  }
+  const okOf = (who) => prev.find((x) => x.who === who)?.ok || null;
+  const extra = prev.filter((x) => !d.steps.some((s) => s.who === x.who));
+  return { exec: old?.exec || null, steps: [...d.steps.map((s) => ({ who: s.who, ok: okOf(s.who) })), ...extra], sign: d.sign };
+}
 const hasRoute = (c) => kindOf(c) === 'askod' && !isNoteCase(c) && c.reply_kind !== 'info';
 /**
  * Етап за маршрутом (вимога користувача 10.11.2026): «📤 відправлено на підпис» — «На підписі»;
@@ -1576,7 +1592,8 @@ function renderRoute(c) {
       <label class="sp-rt-sel">підписує <select data-rt-signer>${signerOptions(r.sign.who).map((s) => `<option${s === r.sign.who ? ' selected' : ''}>${esc(s)}</option>`).join('')}</select></label>
       <label class="sp-rt-sel">+ ланка <select data-rt-add><option value="">—</option>${approverGroups().map(([g, list]) => `<optgroup label="${esc(g)}">${list.map((s) => `<option>${esc(s)}</option>`).join('')}</optgroup>`).join('')}<option value="*">Інше…</option></select></label>
       ${c.route ? '' : '<span class="sp-muted">типовий маршрут — збережеться після першої позначки</span>'}
-      ${c.our_role === 'co' && c.route ? '<button type="button" class="sp-rt-clear" data-rt-clear title="Службова не потрібна — прибрати маршрут">✕ прибрати маршрут</button>' : ''}</div>
+      ${c.our_role === 'co' && c.route ? '<button type="button" class="sp-rt-clear" data-rt-clear title="Службова не потрібна — прибрати маршрут">✕ прибрати маршрут</button>'
+        : c.route ? `<button type="button" class="sp-rt-clear" data-rt-reset title="Повернути типовий маршрут (${routeIsSz(c) ? 'службова: підписує директор департаменту' : 'лист: підписує Голова'}); позначки буде знято">↺ скинути маршрут</button>` : ''}</div>
     ${waits.length ? `<p class="sp-rt-wait">⏳ Чекаємо: ${waits.map((l) => esc(`${LINK_SHORT[l.doc_kind] || 'документ'}${l.doc_no ? ' № ' + l.doc_no : ''}${l.who && l.who !== '—' ? ' — ' + l.who : ''}`)).join(' · ')}</p>` : ''}
     ${sz ? `<p class="sp-rt-note">${c.our_role === 'co' ? 'Ми співвиконавці: готуємо лише службову головному виконавцю — після підпису «СЗ надано».' : 'Службова — кінцева: після підпису справа закривається, відповіді не чекаємо.'}</p>` : ''}
     <ol class="sp-rt">
@@ -2179,6 +2196,12 @@ function wireStatic() {
     if (e.target.closest('[data-rt-sz]')) {
       return saveRoute(c, JSON.parse(JSON.stringify(defaultRoute(c))), 'Маршрут: готуємо службову головному виконавцю');
     }
+    // ↺ Скинути маршрут до типового за поточним типом відповіді (вимога користувача 11.11.2026: «зроби шоб мож було скидати»)
+    if (e.target.closest('[data-rt-reset]')) {
+      if ((r.sign.ok || r.sign.sent || r.steps.some((x) => x.ok) || r.exec) && !confirm('Скинути маршрут до типового? Усі позначки погоджень і підпису буде знято.')) return;
+      return saveCase(c.id, { route: null, change_note: 'Маршрут скинуто до типового' })
+        .then((ok) => { if (ok !== false) addEvent(c.id, { kind: 'system', body: '🧭 Маршрут скинуто до типового' }); });
+    }
     if (e.target.closest('[data-rt-clear]')) {
       if (r.sign.ok || r.sign.sent || r.steps.some((x) => x.ok)) { if (!confirm('У маршруті вже є позначки. Прибрати маршрут?')) return; }
       return saveCase(c.id, { route: null, change_note: 'Маршрут прибрано: службова не потрібна' })
@@ -2307,6 +2330,20 @@ function wireStatic() {
       patch.stage = 'done';
       patch.route = null;
       patch.change_note = '↩ СЗ-відповідь на нашу записку — враховано в роботі';
+    }
+    // Тип відповіді (лист ↔ службова) або роль «співвиконавці» змінили — збережений маршрут перебудовуємо під новий
+    // тип, позначки виконавця й погоджувачів, що лишаються в маршруті, зберігаємо (11.11.2026: «тип відповіді СЗ, а
+    // маршрут не міняється» — справа 3-19/47-26 лишалася з маршрутом листа до Голови)
+    if ((f === 'reply_kind' || (f === 'our_role' && v !== 'answer')) && !patch.route) {
+      const cur = state.cases.find((x) => x.id === state.openId);
+      const next = cur && { ...cur, [f]: v };
+      if (cur?.route && hasRoute(next) && routeIsSz(cur) !== routeIsSz(next)) {
+        if (cur.route.sign?.ok || cur.route.sign?.sent) {
+          if (!confirm('Документ уже на підписі або підписаний. Перебудувати маршрут під новий тип?')) { saveCase(state.openId, patch); return; }
+        }
+        patch.route = rebuildRoute(next, cur.route);
+        patch.change_note = `Маршрут перебудовано: ${routeIsSz(next) ? 'службова — підписує директор департаменту' : 'лист — підписує Голова'}`;
+      }
     }
     if (f === 'case_kind' || f === 'on_control' || (f === 'our_role' && v === 'answer')) {
       const cur = state.cases.find((x) => x.id === state.openId);
