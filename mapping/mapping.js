@@ -131,7 +131,7 @@
   /** У яку колонку класти зовнішній запит: код втручання / ЕСОЗ / LOINC —
    *  праворуч, усе інше (діагноз, ОДК, код чи назва послуги) — ліворуч. */
   function sniffSide(raw) {
-    const t = raw.toUpperCase().replace(/\s+/g, "");
+    const t = PMG_SEARCH.code(raw);
     if (/^\d{5}-\d{2}$/.test(t)) return "achi";          // НК 026
     if (/^[A-Z]\d{5}$/.test(t)) return "achi";           // послуга ЕСОЗ
     if (/^\d{1,5}-\d$/.test(t)) return "achi";           // LOINC
@@ -272,12 +272,13 @@
     if (rubric && cellHasRubric(cell, codeQ)) return { score: 86, hit: codeQ };
     const via = cellViaOdk(cell, codeQ, rubric);
     if (via) return { score: 80, hit: codeQ, via };
-    const name = s.name.toLowerCase();
+    // нормалізовані форми рахуємо один раз і тримаємо на самому об'єкті
+    const name = s._t || (s._t = PMG_SEARCH.text(s.name));
     if (s.code && s.code.toUpperCase().indexOf(codeQ) === 0) return { score: 70 + bonus };
     if (name.indexOf(q) === 0) return { score: 60 + bonus };
     if (name.indexOf(q) >= 0) return { score: 40 + bonus };
-    if (cell.raw.toLowerCase().indexOf(q) >= 0) return { score: 20 };
-    if ((s.note || "").toLowerCase().indexOf(q) >= 0) return { score: 15 + bonus };
+    if ((cell._t || (cell._t = PMG_SEARCH.text(cell.raw))).indexOf(q) >= 0) return { score: 20 };
+    if ((s._nt || (s._nt = PMG_SEARCH.text(s.note || ""))).indexOf(q) >= 0) return { score: 15 + bonus };
     return { score: 0 };
   }
 
@@ -291,8 +292,8 @@
     if (p.mode === "odk") { runOdkSearch(p); return; }
 
     const raw = p.els.search.value.trim();
-    const q = raw.toLowerCase();
-    const codeQ = raw.toUpperCase().replace(/\s+/g, "");
+    const q = PMG_SEARCH.text(raw);
+    const codeQ = PMG_SEARCH.code(raw);
     const pkg = p.els.pkg.value;
     const odkRef = p.els.odk ? p.els.odk.value : "";
     const kind = p.els.kind ? p.els.kind.value : "";
@@ -320,14 +321,14 @@
 
   function runOdkSearch(p) {
     const raw = p.els.search.value.trim();
-    const q = raw.toLowerCase();
-    const codeQ = raw.toUpperCase().replace(/\s+/g, "");
+    const q = PMG_SEARCH.text(raw);
+    const codeQ = PMG_SEARCH.code(raw);
     const rubric = isRubric(codeQ);
     const hits = [];
     for (const o of ODK) {
       const ix = odkIndex.get(o.id);
       const byCode = !!q && (ix.set.has(codeQ) || (rubric && ix.rubrics.has(codeQ)));
-      if (!q || byCode || o.name.toLowerCase().indexOf(q) >= 0 ||
+      if (!q || byCode || PMG_SEARCH.text(o.name).indexOf(q) >= 0 ||
         normOdk(o.id).indexOf(normOdk(raw)) === 0) hits.push([o, byCode]);
     }
     p.hit = hits.some((h) => h[1]) ? codeQ : "";

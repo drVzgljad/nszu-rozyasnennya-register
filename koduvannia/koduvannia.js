@@ -19,12 +19,9 @@
 
   const V = 'v=40';
 
-  // Кириличні гомогліфи → латиниця (та сама пастка, що в ДСГ і ЕСОЗ)
-  const HOMO = { 'А':'A','В':'B','С':'C','Е':'E','Н':'H','І':'I','К':'K',
-                 'М':'M','О':'O','Р':'P','Т':'T','Х':'X' };
-  const norm = (s) => (s || '').trim().toUpperCase()
-    .replace(/[АВСЕНІКМОРТХ]/g, (ch) => HOMO[ch] || ch)
-    .replace(/\s+/g, '');
+  // Кириличні гомогліфи → латиниця, 3680901 → 36809-01: спільна нормалізація
+  // порталу (pmg-search-norm.js), та сама, що в НК 025, НК 026 і Таблиці.
+  const norm = (s) => PMG_SEARCH.code(s);
 
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g,
     (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
@@ -112,8 +109,8 @@
   function buildSug() {
     if (SUG || !NDX || !NIV) return SUG;
     SUG = [];
-    for (const [c, n] of NDX) SUG.push([c, n.toLowerCase(), 'dx']);
-    for (const [c, n] of NIV) SUG.push([c, n.toLowerCase(), 'iv']);
+    for (const [c, n] of NDX) SUG.push([c, PMG_SEARCH.text(n), 'dx']);
+    for (const [c, n] of NIV) SUG.push([c, PMG_SEARCH.text(n), 'iv']);
     return SUG;
   }
   /* Участь коду в групуванні рахуємо на льоту, а не кладемо в індекс: індекс
@@ -124,9 +121,11 @@
   const inGroup = (row) => (row[2] === 'dx' ? (DX ? !!DX[row[0]] : null)
                                             : (IV ? !!IV[row[0]] : null));
 
-  /* Апостроф у назвах набраний по-різному («м’яз» і «м'яз»), тож обидва
-     зводимо до одного, інакше половина запитів не знаходить нічого. */
-  const sugNorm = (s) => String(s || '').toLowerCase().replace(/[’`]/g, "'");
+  /* Апостроф у назвах набраний по-різному («м’яз», «м'яз», «мʼяз»), а в
+     кириличних словах трапляються латинські двійники («Спiнальна»). Зводимо
+     все спільною нормалізацією порталу; довжину рядка вона зберігає, тож
+     підсвічування збігу лягає на оригінал. */
+  const sugNorm = (s) => PMG_SEARCH.text(s);
   const isCodeish = (t) => /^[a-zа-я]?\d/i.test(t);
 
   function suggest(term) {

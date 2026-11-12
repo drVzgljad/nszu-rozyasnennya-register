@@ -16,10 +16,8 @@
   const ESOZ_RE = /^[A-Z]\d{1,5}$/;
   // У самих даних два коди набрані кириличною «А» (А67007, А67008), тож
   // нормалізуємо і сховище, і запит — інакше їх не знайти жодним набором.
-  const HOMOGLYPH = { "А": "A", "В": "B", "С": "C", "Е": "E", "Н": "H", "І": "I",
-                      "К": "K", "М": "M", "О": "O", "Р": "P", "Т": "T", "Х": "X" };
-  const normEsozCode = (s) => String(s || "").trim().toUpperCase()
-    .split("").map((ch) => HOMOGLYPH[ch] || ch).join("");
+  // Спільна нормалізація порталу (pmg-search-norm.js): ще й 3680901 → 36809-01.
+  const normEsozCode = (s) => PMG_SEARCH.code(s);
   const isCodeQuery = (q) => CODE_RE.test(q) || ESOZ_RE.test(q);
   const BACK_PAGE = "/classifiers/nk026.html";
   /** Хвіст для перехресних посилань: щоб на чужій сторінці була кнопка «Назад». */
@@ -103,6 +101,7 @@
   function buildMaps() {
     for (const e of INDEX) {
       byCode.set(e.c, e);
+      e._t = PMG_SEARCH.text(e.n);   // назва для пошуку: апострофи й латинські двійники зведено
       // Послуги ЕСОЗ не мають ні розділу, ні родини «корінь-**» — у каскад
       // і в перелік споріднених кодів вони не потрапляють.
       if (e.es) continue;
@@ -302,8 +301,8 @@
     if (inline.length > 1) { runBatch(inline); return; }
     el.batchCopy.hidden = true; lastBatchFound = [];
 
-    const q = raw.toLowerCase();
-    const qCode = normEsozCode(raw.replace(/\s+/g, ""));
+    const q = PMG_SEARCH.text(raw);
+    const qCode = normEsozCode(raw);
     const looksCode = isCodeQuery(qCode);
     const out = [];
     for (const e of applyFilters(INDEX)) {
@@ -312,9 +311,9 @@
       else if (looksCode) {
         if (e.c === qCode) score = 100;
         else if (e.c.startsWith(qCode)) score = 70;
-        else if (e.n.toLowerCase().includes(q)) score = 20;
+        else if (e._t.includes(q)) score = 20;
       } else {
-        const nl = e.n.toLowerCase();
+        const nl = e._t;
         if (nl.startsWith(q)) score = 60;
         else if (nl.includes(" " + q)) score = 45;
         else if (nl.includes(q)) score = 30;
@@ -441,8 +440,8 @@
       const exact = byCode.get(qCode);
       matches = exact ? [exact] : INDEX.filter((e) => e.c.startsWith(qCode));
     } else {
-      const q = term.toLowerCase();
-      matches = INDEX.filter((e) => e.n.toLowerCase().includes(q));
+      const q = PMG_SEARCH.text(term);
+      matches = INDEX.filter((e) => e._t.includes(q));
     }
     return applyFilters(matches);
   }

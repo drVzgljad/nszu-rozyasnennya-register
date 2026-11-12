@@ -95,6 +95,7 @@
   function buildMaps() {
     for (const e of INDEX) {
       byCode.set(e.c, e);
+      e._t = PMG_SEARCH.text(e.n);   // назва для пошуку: апострофи й латинські двійники зведено
       if (e.l === 3) {
         const key = e.k + "|" + (e.b == null ? -1 : e.b);
         (l3ByCB.get(key) || l3ByCB.set(key, []).get(key)).push(e);
@@ -110,9 +111,10 @@
     if (el.selBlock.value !== "" && el.selClass.value !== "") fillL3(+el.selClass.value, el.selBlock.value);
     // глибокий лінк ?code= / ?q=
     const q = new URLSearchParams(location.search);
-    const code = (q.get("code") || q.get("q") || "").trim().toUpperCase();
+    const rawCode = (q.get("code") || q.get("q") || "").trim();
+    const code = PMG_SEARCH.code(rawCode);
     if (code && byCode.has(code)) { openCode(code); syncCascade(code); }
-    else if (code) { el.search.value = code; runSearch(); }
+    else if (rawCode) { el.search.value = rawCode; runSearch(); }
   }
 
   // ══════════════════════════════════════════════════════════
@@ -283,9 +285,9 @@
     if (inlineTerms.length > 1) { runBatch(inlineTerms); return; }
     el.batchCopy.hidden = true; lastBatchFound = [];
 
-    const q = raw.toLowerCase();
-    const qCode = raw.toUpperCase().replace(/\s+/g, "");
-    const looksCode = /^[A-ZА-Я][0-9]/.test(qCode);
+    const q = PMG_SEARCH.text(raw);
+    const qCode = PMG_SEARCH.code(raw);
+    const looksCode = /^[A-Z][0-9]/.test(qCode);
     const out = [];
     for (const e of INDEX) {
       if (onlyPmg && !e.pk) continue;
@@ -294,13 +296,13 @@
       if (looksCode) {
         if (e.c === qCode) score = 100;
         else if (e.c.startsWith(qCode)) score = 70;
-        else if (q && e.n.toLowerCase().includes(q)) score = 20;
+        else if (q && e._t.includes(q)) score = 20;
       } else if (q) {
-        const nl = e.n.toLowerCase();
+        const nl = e._t;
         if (nl.startsWith(q)) score = 60;
         else if (nl.includes(" " + q)) score = 45;
         else if (nl.includes(q)) score = 30;
-        else if (e.c.toLowerCase().includes(q)) score = 15;
+        else if (e.c.includes(qCode)) score = 15;
       } else {
         score = 10;
       }
@@ -422,15 +424,15 @@
 
   function matchTerm(term) {
     const onlyPmg = el.onlyPmg.checked, lvl = el.level.value ? +el.level.value : 0;
-    const qCode = term.toUpperCase().replace(/\s+/g, "");
-    const looksCode = /^[A-ZА-Я][0-9]/.test(qCode);
+    const qCode = PMG_SEARCH.code(term);
+    const looksCode = /^[A-Z][0-9]/.test(qCode);
     let matches;
     if (looksCode) {
       const exact = byCode.get(qCode);
       matches = exact ? [exact] : INDEX.filter((e) => e.c.startsWith(qCode));
     } else {
-      const q = term.toLowerCase();
-      matches = INDEX.filter((e) => e.n.toLowerCase().includes(q));
+      const q = PMG_SEARCH.text(term);
+      matches = INDEX.filter((e) => e._t.includes(q));
     }
     if (onlyPmg) matches = matches.filter((e) => e.pk);
     if (lvl) matches = matches.filter((e) => e.l === lvl);
