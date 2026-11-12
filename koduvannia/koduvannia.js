@@ -1692,7 +1692,7 @@
       html = `<div class="kd-scroll"><table class="kd-tbl"><thead>${head}</thead>
         <tbody>${body}</tbody></table></div>
         ${rows.length > 600 ? `<p class="kd-hint">Показано перші 600 рядків із
-          ${rows.length}. Повний зріз — через експорт у CSV.</p>` : ''}`;
+          ${rows.length}. Повний зріз — через експорт в Excel.</p>` : ''}`;
     }
 
     $('aCount').textContent = `${n} рядків · усього розбіжностей: діагнози ${c.dxDiff}, ` +
@@ -1718,13 +1718,11 @@
       rows.push(['Код', 'Наші групи', 'За першоджерелом']);
       for (const r of src) rows.push([r[0], r[1].join(' '), r[2].join(' ')]);
     }
-    const csv = '﻿' + rows.map((r) => r.map((v) =>
-      `"${String(v).replace(/"/g, '""')}"`).join(';')).join('\r\n');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-    a.download = `kodyvannia_audyt_${slice}.csv`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    // Спільний модуль .xlsx замість власного CSV (аудит «Довідників», В-13):
+    // числа йдуть числовими клітинками, Excel не робить із них дат.
+    const [head, ...body] = rows;
+    window.PMG_XLSX.download({ filename: `kodyvannia_audyt_${slice}`, name: 'Зріз',
+      head, rows: body, freeze: true });
   }
 
   // ═══════════════ 4. Належність до пакета (Supabase, RLS) ═════════════════

@@ -950,11 +950,11 @@ function wireAudit() {
   // В експорт ідуть усі рядки за обраними типами, без ліміту показу: саме на
   // це посилається підпис під таблицею, коли рядків більше, ніж намальовано.
   el('auditCsv').addEventListener('click', () =>
-    downloadCsv('anomalii-dsg',
+    downloadXlsx('anomalii-dsg',
       ['Комбінація', 'ДСГ', 'Сума, грн', 'Тип', 'Перевищення порога', 'Пояснення'],
       auditRows.filter((r) => !typeOff.has(r.type))
-        .map((r) => [r.combo, r.drg, r.sum === null ? '' : r.sum.toFixed(2),
-          r.type, r.score.toFixed(3), r.why])));
+        .map((r) => [r.combo, r.drg, num(r.sum, 2), r.type, num(r.score, 3), r.why]),
+      [28, 10, 14, 18, 12, 70]));
   el('bRun').addEventListener('click', runCombo);
   el('bQ').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') runCombo(); });
   document.querySelectorAll('.drg-subtab').forEach((btn) =>
@@ -1278,10 +1278,11 @@ function wireFraudGate() {
   });
   el('fRun').addEventListener('click', runFraud);
   el('fCsv').addEventListener('click', () =>
-    downloadCsv('stres-test-dsg',
+    downloadXlsx('stres-test-dsg',
       ['Стратегія', 'Базова ДСГ', 'Ставши ДСГ', 'Базова сума', 'Нова сума', 'Дельта, грн', 'Дельта, %', 'Чим стримується'],
-      fraudRows.map((r) => [r.strategy, r.from, r.to, r.base.toFixed(2),
-        r.next.toFixed(2), r.delta.toFixed(2), r.pct.toFixed(1), r.control])));
+      fraudRows.map((r) => [r.strategy, r.from, r.to, num(r.base, 2),
+        num(r.next, 2), num(r.delta, 2), num(r.pct, 1), r.control]),
+      [30, 10, 10, 14, 14, 14, 10, 60]));
 }
 
 /* Маніпуляції, які МОЖНА порахувати на довідниках. Кожна спирається на
@@ -1379,18 +1380,16 @@ function runFraud() {
     btn.addEventListener('click', () => openCalc(Number(btn.dataset.open))));
 }
 
-// ── CSV ─────────────────────────────────────────────────────────────────────
-/** BOM обов'язковий: без нього Excel читає українські назви як «????». */
-function downloadCsv(name, head, rows) {
-  const cell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const csv = [head, ...rows].map((r) => r.map(cell).join(';')).join('\r\n');
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `${name}-${DB.meta.generated}.csv`;
-  a.click();
-  URL.revokeObjectURL(a.href);
+// ── Вивантаження в Excel ────────────────────────────────────────────────────
+/* Раніше тут був власний CSV із числами через крапку: Excel з українською
+   локаллю читав «12.5» як 12 травня, а «1.337» — як текст (аудит «Довідників»,
+   В-13). Тепер — спільний модуль pmg-xlsx.js: Number іде числовою клітинкою
+   незалежно від локалі. Дата в назві — дата збірки даних розділу. */
+function downloadXlsx(name, head, rows, widths) {
+  window.PMG_XLSX.download({ filename: `${name}-${DB.meta.generated}`, stamp: false,
+    name: 'Дані', head, rows, widths, freeze: true });
 }
+const num = (x, d) => (x === null || x === undefined || !Number.isFinite(x)) ? null : Number(x.toFixed(d));
 
 // ── Вкладки ─────────────────────────────────────────────────────────────────
 function setTab(mod) {

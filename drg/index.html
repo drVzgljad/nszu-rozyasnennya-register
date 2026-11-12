@@ -11,11 +11,12 @@
   <title>НавігаторПМГ26 | Інструменти ДСГ</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
   <!-- пошукова панель і блоки паспорта — спільні з класифікаторами -->
-  <link rel="stylesheet" href="../classifiers/classifiers.css?v=20260809d">
+  <link rel="stylesheet" href="../classifiers/classifiers.css?v=20261112a">
   <link rel="stylesheet" href="drg.css?v=20260817a">
   <link rel="stylesheet" href="../auth-v2.css?v=20261110a">
   <!-- спільна формула пункту 38 — одна на портал, підключати ДО drg.js -->
   <script src="../pmg-tariff.js?v=2"></script>
+  <script src="../pmg-xlsx.js?v=2"></script>
   <script type="module" src="../auth-v2.js?v=20261110a"></script>
 </head>
 <body id="top">
@@ -141,7 +142,7 @@
           <div class="drg-rules" id="auditRules"></div>
           <div class="drg-actions">
             <button id="auditRun" class="drg-btn drg-btn-main" type="button">Прогнати правила</button>
-            <button id="auditCsv" class="drg-btn" type="button" disabled>⤓ Експорт у CSV</button>
+            <button id="auditCsv" class="drg-btn" type="button" disabled>⤓ Експорт в Excel</button>
             <span class="drg-count" id="auditCount"></span>
           </div>
         </div>
@@ -187,7 +188,7 @@
             <div class="drg-pick" id="fPick" hidden></div>
             <div class="drg-actions">
               <button id="fRun" class="drg-btn drg-btn-main" type="button" disabled>Побудувати карту</button>
-              <button id="fCsv" class="drg-btn" type="button" disabled>⤓ Експорт у CSV</button>
+              <button id="fCsv" class="drg-btn" type="button" disabled>⤓ Експорт в Excel</button>
             </div>
           </div>
           <div class="drg-results" id="fOut"></div>
@@ -248,6 +249,6 @@
   </footer>
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
-  <script type="module" src="drg.js?v=20261108a"></script>
+  <script type="module" src="drg.js?v=20261112a"></script>
 </body>
 </html>
