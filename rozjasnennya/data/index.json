@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-12T07:08:18.840496+00:00",
+ "generated": "2026-11-13T07:14:18.247568+00:00",
  "total": 197,
  "archive_records": 189,
  "duplicate_files": 4,
@@ -490,7 +490,7 @@
    "codes": {
     "esoz": 3,
     "achi": 9,
-    "icd": 191,
+    "icd": 193,
     "loinc": 1,
     "package": 4
    },
@@ -4988,7 +4988,7 @@
     "unreadable": 0
    },
    "codes": {
-    "icd": 203
+    "icd": 204
    },
    "packages": []
   },
@@ -5208,7 +5208,7 @@
     "unreadable": 0
    },
    "codes": {
-    "icd": 96
+    "icd": 98
    },
    "packages": []
   },
@@ -6455,7 +6455,7 @@
    },
    "codes": {
     "position": 2,
-    "icd": 38
+    "icd": 39
    },
    "packages": []
   },
@@ -7013,7 +7013,7 @@
     "unreadable": 0
    },
    "codes": {
-    "icd": 62
+    "icd": 64
    },
    "packages": []
   },
@@ -7375,7 +7375,7 @@
    },
    "codes": {
     "package": 5,
-    "icd": 34
+    "icd": 35
    },
    "packages": [
     "3",
@@ -7430,7 +7430,7 @@
    "codes": {
     "package": 6,
     "achi": 9,
-    "icd": 35
+    "icd": 36
    },
    "packages": [
     "3",
@@ -7736,7 +7736,7 @@
    "codes": {
     "package": 2,
     "achi": 5,
-    "icd": 3
+    "icd": 4
    },
    "packages": [
     "9",
@@ -7788,7 +7788,7 @@
    "codes": {
     "package": 2,
     "achi": 3,
-    "icd": 3
+    "icd": 4
    },
    "packages": [
     "9",
@@ -8189,7 +8189,7 @@
    "codes": {
     "esoz": 17,
     "package": 1,
-    "icd": 37,
+    "icd": 38,
     "loinc": 61,
     "position": 13,
     "achi": 22,
@@ -8573,7 +8573,7 @@
     "unreadable": 0
    },
    "codes": {
-    "icd": 979,
+    "icd": 998,
     "position": 1
    },
    "packages": [
