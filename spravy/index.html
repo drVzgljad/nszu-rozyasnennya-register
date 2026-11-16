@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Справи відділу</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="spravy.css?v=20261111e">
+  <link rel="stylesheet" href="spravy.css?v=20261116b">
   <link rel="stylesheet" href="../auth-v2.css?v=20261110a">
   <script type="module" src="../auth-v2.js?v=20261110a"></script>
 </head>
@@ -161,8 +161,12 @@
       <button type="button" class="sp-x" id="spClose" aria-label="Закрити">✕</button>
     </div>
     <div class="sp-drawer-body" id="spDrawerBody">
-      <label class="sp-reviewed"><input type="checkbox" id="spReviewed"><span>☑ Опрацьовано сьогодні</span>
-        <i class="sp-muted">— до кінця дня; щоранку знову «☐ не опрацьовано»</i></label>
+      <!-- «📝 Зарахувати в 37-Д» (вимога користувача 16.11.2026): поруч з «опрацьовано сьогодні» -->
+      <div class="sp-reviewed-row">
+        <label class="sp-reviewed"><input type="checkbox" id="spReviewed"><span>☑ Опрацьовано сьогодні</span>
+          <i class="sp-muted">— до кінця дня; щоранку знову «☐ не опрацьовано»</i></label>
+        <button type="button" class="sp-btn sp-btn-37d" id="spF37d" title="Додати рядок у звіт за Формою 37-Д: процес і дію підставлено зі справи">📝 Зарахувати в 37-Д</button>
+      </div>
       <div class="sp-stepper" id="spStepper" aria-label="Етап справи"></div>
       <!-- Маршрут документа (migration_2026-11-10c_case_route.sql): виконавець → погоджувачі → підписант -->
       <section class="sp-route" id="spRoute" aria-label="Маршрут документа" hidden></section>
@@ -312,6 +316,6 @@
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
   <script src="../pmg-askod-journal.js?v=20261109b" defer></script>
-  <script type="module" src="spravy.js?v=20261111f"></script>
+  <script type="module" src="spravy.js?v=20261116a"></script>
 </body>
 </html>

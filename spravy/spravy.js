@@ -1711,6 +1711,56 @@ function historyHTML(e) {
 
 /* ───────────────────────── дії в картці справи ───────────────────────── */
 
+/* ───── Форма 37-Д зі справи (вимога користувача 16.11.2026) ─────
+ * Рядок звіту — запис skod_logs з include_37d (той самий, що з кабінету й планувальника; звіт — skod/reports.html,
+ * фільтр за event_date). «Процес» — як у спільному бланку: «К. Ткач. …»; «дія» визначає стан і статус.
+ */
+const F37D_STATUSES = ['заплановано', 'у роботі', 'виконано', 'очікує погодження', 'готово до включення в довідку', 'скасовано / неактуально'];
+const F37D_INFO = ['заплановані зміни для ЗОЗ, аптек, пацієнтів', 'презентація для публічного заходу', 'аналітична довідка для МОЗ або іншого ЦОВВ',
+  'масовий лист-роз’яснення', 'інша інформація, що може потребувати комунікаційної підтримки'];
+const F37D_ACTS = {
+  draft:   { label: 'Підготовлено проєкт відповіді',               status: 'у роботі' },
+  sz:      { label: 'Підготовлено службову записку',               status: 'у роботі' },
+  review:  { label: 'Документ на погодженні',                      status: 'очікує погодження' },
+  signing: { label: 'Документ передано на підпис',                 status: 'очікує погодження' },
+  sent:    { label: 'Надіслано відповідь',                         status: 'виконано' },
+  sz_sent: { label: 'Надано службову записку головному виконавцю', status: 'виконано' },
+  noted:   { label: 'Опрацьовано, враховано в роботі',             status: 'виконано' },
+  meeting: { label: 'Взято участь у нараді / зустрічі',            status: 'виконано' },
+  other:   { label: 'Інша дія',                                    status: 'у роботі' }
+};
+function f37dDefaultAct(c) {
+  const k = kindOf(c);
+  if (k === 'event') return c.stage === 'new' ? 'other' : 'meeting';
+  if (k !== 'askod') return c.stage === 'done' ? 'noted' : 'other';
+  if (c.stage === 'done') return isNoteCase(c) ? 'noted' : (isSzReply(c) ? 'sz_sent' : 'sent');
+  return { review: 'review', signing: 'signing', sz_sent: 'sz_sent' }[c.stage] || (isSzReply(c) || c.our_role === 'co' ? 'sz' : 'draft');
+}
+/** «Костянтин Ткач» / «Ткач Костянтин Іванович» → «К. Ткач» */
+function shortSigner(full) {
+  const p = (full || '').trim().split(/\s+/).filter(Boolean);
+  if (p.length >= 3) return `${p[1][0]}. ${p[0]}`;
+  if (p.length === 2) return `${p[0][0]}. ${p[1]}`;
+  return p[0] || '';
+}
+function f37dProcess(c) {
+  const who = shortSigner(c.executor_name || myName());
+  const what = kindOf(c) === 'askod'
+    ? `Опрацювання ${c.in_no ? 'вх. № ' + c.in_no : 'документа'}${c.correspondent && !/службов/i.test(c.correspondent) ? ' (' + c.correspondent + ')' : ''}: ${c.subject || ''}`
+    : (c.subject || '');
+  return `${who ? who + '. ' : ''}${what}`.trim();
+}
+function f37dState(c, act) {
+  const a = F37D_ACTS[act] || F37D_ACTS.other;
+  const st = a.status === 'виконано' ? 'Виконано' : a.status === 'очікує погодження' ? 'Очікує погодження' : 'У роботі';
+  const out = state.events.filter((e) => e.kind === 'outgoing').slice(-1)[0];
+  let tail = '';
+  if (act === 'sent' && (c.out_no || out?.doc_no)) tail = `, вих. № ${c.out_no || out.doc_no}${c.out_date ? ' від ' + fmtDate(c.out_date) : ''}`;
+  else if (act === 'sz_sent' && out?.doc_no) tail = ` № ${out.doc_no}`;
+  else if (['draft', 'sz', 'review', 'signing'].includes(act) && c.version) tail = ` (v${c.version})`;
+  return `${st}. ${a.label}${tail}.`;
+}
+
 const ACTIONS = {
   prolong: {
     title: 'Продовжити строк',
@@ -1805,6 +1855,57 @@ const ACTIONS = {
         if (error) return toast('СКО-Д не збережено: ' + error.message, true);
       }
       await addEvent(id, { kind: 'system', body: `Зараховано в СКО-Д: ${minutes < 60 ? minutes + ' хв' : (minutes / 60) + ' год'}, ${row.category.split(' — ')[0]}` });
+    }
+  },
+  f37d: {
+    title: 'Зарахувати в 37-Д',
+    fields: (c) => {
+      const act = f37dDefaultAct(c);
+      const had = state.events.filter((e) => e.kind === 'system' && /^Зараховано в 37-Д/.test(e.body || ''));
+      return `
+      <p class="sp-f sp-wide sp-muted">Рядок звіту за Формою 37-Д (СКО-Д → «Звіт 37-Д», потрапляє за датою події). Процес і дію підставлено зі справи — поправте за потреби.</p>
+      ${had.length ? `<p class="sp-f sp-wide sp-f37d-had">⚠ Уже зараховано: ${had.map((e) => esc(fmtDate((e.created_at || '').slice(0, 10)) + ' — ' + e.body.replace(/^Зараховано в 37-Д:\s*/, ''))).join('; ')}</p>` : ''}
+      <label class="sp-f sp-wide"><span>Процес *</span><input name="process" required value="${esc(f37dProcess(c))}"></label>
+      <label class="sp-f sp-wide"><span>Дія</span><select name="act37">${Object.entries(F37D_ACTS).map(([k, v]) => `<option value="${k}"${k === act ? ' selected' : ''}>${esc(v.label)}</option>`).join('')}</select></label>
+      <label class="sp-f sp-wide"><span>Поточний стан виконання *</span><textarea name="state" rows="2" required>${esc(f37dState(c, act))}</textarea></label>
+      <label class="sp-f"><span>Статус 37-Д</span><select name="status37">${F37D_STATUSES.map((s) => `<option${s === F37D_ACTS[act].status ? ' selected' : ''}>${esc(s)}</option>`).join('')}</select></label>
+      <label class="sp-f"><span>Дата події *</span><input type="date" name="date" value="${todayISO()}" required></label>
+      <label class="sp-f sp-wide"><span>Тип інформації</span><select name="info"><option value="">— не зазначати —</option>${F37D_INFO.map((t) => `<option>${esc(t)}</option>`).join('')}</select></label>
+      <label class="sp-f sp-wide"><span>Посилання на документ</span><input name="link" placeholder="необовʼязково"></label>`;
+    },
+    run: async (id, fd) => {
+      const c = state.cases.find((x) => x.id === id);
+      const status37 = fd.get('status37');
+      const row = {
+        user_name: myName(),
+        department: state.profile?.Section || state.dept,
+        log_date: todayISO(),
+        start_time: '09:00:00',
+        duration_minutes: null,          // лише рядок звіту: час рахує «🕒 Зарахувати в СКО-Д», не дублюємо
+        branch: kindOf(c) === 'askod' ? 'askod' : 'department',
+        task_type: kindOf(c) === 'event' ? 'Комунікаційний захід / зустріч' : (c.reply_kind === 'pi' ? '47 — Лист-запит' : '01 — Лист'),
+        category: guessCategory(c),
+        severity_level: 'medium',
+        complexity_coefficient: SKOD_COEF.medium,
+        score: 0,
+        status: status37 === 'виконано' ? 'completed' : 'in_progress',
+        description: fd.get('state').trim(),
+        askod_reg_number: c.in_no || null,
+        reply_to_number: c.out_no || null,
+        project_no: c.project_no || null,
+        include_37d: true,
+        process_name: fd.get('process').trim(),
+        current_state_text: fd.get('state').trim(),
+        status_37d: status37,
+        info_type_37d: fd.get('info') || null,
+        event_date: fd.get('date'),
+        document_link: fd.get('link').trim() || null
+      };
+      if (!DEMO) {
+        const { error } = await state.sb.from('skod_logs').insert([{ ...row, user_id: state.me.id }]);
+        if (error) return toast('37-Д не збережено: ' + error.message, true);
+      }
+      await addEvent(id, { kind: 'system', body: `Зараховано в 37-Д: ${F37D_ACTS[fd.get('act37')]?.label || 'дія'} (${status37}, ${fmtDate(fd.get('date'))})` });
     }
   },
   notours: {
@@ -2430,6 +2531,17 @@ function wireStatic() {
   $('spActions').addEventListener('click', (e) => {
     const b = e.target.closest('[data-act]');
     if (b) openAction(b.dataset.act);
+  });
+  $('spF37d')?.addEventListener('click', () => openAction('f37d'));
+  // 37-Д: змінили дію — перерахувати стан і статус (якщо стан ще не правили руками)
+  $('spActFields').addEventListener('input', (e) => { if (e.target.name === 'state') e.target.dataset.touched = '1'; });
+  $('spActFields').addEventListener('change', (e) => {
+    if (e.target.name !== 'act37') return;
+    const c = state.cases.find((x) => x.id === state.openId);
+    const f = e.target.form;
+    if (!c || !f) return;
+    if (!f.elements.state.dataset.touched) f.elements.state.value = f37dState(c, e.target.value);
+    f.elements.status37.value = F37D_ACTS[e.target.value].status;
   });
   $('spActCancel').addEventListener('click', () => $('spAct').close());
   $('spActForm').addEventListener('submit', async (e) => {

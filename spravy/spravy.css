@@ -1354,3 +1354,9 @@ button.sp-rev-mini.is-todo:hover, button.sp-rev-mini.is-todo:focus-visible { out
 .sp-rt-tolist b { overflow-wrap: anywhere; }
 .sp-rt-todel { border: 1px solid var(--line); border-radius: 50%; width: 16px; height: 16px; padding: 0; font-size: 9px; line-height: 1;
   background: var(--surface); color: var(--muted); cursor: pointer; flex: none; }
+
+/* ---------- «📝 Зарахувати в 37-Д» поруч з «опрацьовано сьогодні» (16.11.2026) ---------- */
+.sp-reviewed-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 0 0 10px; }
+.sp-reviewed-row .sp-reviewed { margin: 0; }
+.sp-btn-37d { padding: 4px 10px; }
+.sp-f37d-had { color: var(--sp-over-ink); font-weight: 600; }
