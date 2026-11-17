@@ -26,6 +26,13 @@
  * - Покликати колегу (10.11.2026): ім'я зі списку «в мережі» (auth-v2.js) перетягують на панель —
  *   колега отримує «Зайти / Ні» (broadcast 'voice-invite' каналу присутності). «Зайти»: свій відділ —
  *   просто заходить; інший — стукає, і вкладка того, хто кликав, пускає сама (v.invited).
+ * - «Двері відділів» на головній (17.11.2026, ../home-doors.js): стук іде звідти, а сюди приходять
+ *   з ?door=home (свої двері), ?door=<id стуку 'ok'> (впустили) або ?door_dept=<відділ> (керівництво).
+ * - «Вивести» (17.11.2026): біля гостя, якого впустили за стуком, — кнопка для будь-кого з відділу.
+ *   Стук стає 'out' (migration_2026-11-17_voice_doors.sql; до неї — 'gone'), гостя повертає до свого відділу.
+ * - Привітання (17.11.2026): заходить у кімнату директорка чи заступниця директора департаменту —
+ *   усім, хто в кімнаті, грає ../assets/greet-*.mp3 (ElevenLabs v4, Dmytro). Хто це — за роллю в
+ *   profiles (director / deputy_director) і ім'ям, під яке записано звертання (GREET).
  */
 
 import { createVoice, netInfo } from '../zviazok/voice.js?v=20261106a';
@@ -40,6 +47,13 @@ const LOCK = 'pmg-voice-holder';   // замок «ця вкладка трим�
 const BC = 'pmg-voice-tabs';       // канал між вкладками: «віддай голос»
 const LEAD = ['admin', 'director', 'deputy_director'];   // заходять у будь-яку кімнату без стуку
 const cap = (t) => (t ? t[0].toUpperCase() + t.slice(1) : '');
+// Привітання керівництва департаменту: роль → звертання й запис. first — початок імені з профілю,
+// під яке записано звертання: з'явиться інша людина з тією ж роллю — мовчимо, а не кличемо чужим ім'ям.
+const GREET = {
+  director: { first: 'Світлан', text: 'Вітаємо пані Світлану!', src: new URL('../assets/greet-svitlana.mp3', import.meta.url).href },
+  deputy_director: { first: 'Альбін', text: 'Вітаємо пані Альбіну!', src: new URL('../assets/greet-albina.mp3', import.meta.url).href }
+};
+const GREET_AGAIN = 10 * 60e3;   // ту саму людину в тій самій кімнаті вітаємо не частіше
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const initials = (name) => (name || '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';
@@ -73,7 +87,9 @@ const v = {
   knockCh: null,       // Realtime: стуки в нашу кімнату
   myKnockCh: null,     // Realtime: відповідь на наш стук
   noKnock: false,      // таблиці voice_knocks ще нема (міграція 10b)
-  invited: new Map()   // кого ми покликали: user_id → час (їхній стук пускаємо самі, 15 хв)
+  invited: new Map(),  // кого ми покликали: user_id → час (їхній стук пускаємо самі, 15 хв)
+  guests: new Map(),   // гості нашої кімнати, впущені за стуком: user_id → рядок voice_knocks ('ok')
+  greet: { topic: '', since: 0, known: new Set(), played: new Map(), people: new Map() }
 };
 
 /* ───────────────────────── публічне ───────────────────────── */
@@ -91,7 +107,7 @@ export function initVoice(opts) {
   const host = document.createElement('section');
   v.root.after(host);
   v.stage = createStage(host, { onStop: () => v.eng.toggleShare() });
-  v.eng = createVoice({ sb: v.sb, me: v.me, name: v.name, toast: v.toast, onChange: (s) => { v.vs = s; render(); v.stage.update(s); } });
+  v.eng = createVoice({ sb: v.sb, me: v.me, name: v.name, toast: v.toast, onChange: (s) => { v.vs = s; watchGreet(s); render(); v.stage.update(s); } });
   v.meet = createMeeting({ sb: v.sb, me: v.me, name: v.name, eng: v.eng, toast: v.toast });
   watchKnocks();
   window.__pmgVoice = { acceptInvite };
@@ -107,6 +123,14 @@ export function initVoice(opts) {
       const u = new URL(location.href); u.searchParams.delete('voice_invite'); history.replaceState(null, '', u);
       setTimeout(() => acceptInvite(p), 1500);
     } catch (_) { /* зіпсований параметр — ігноруємо */ }
+  }
+  // Прийшли з «Дверей відділів» на головній: двері — це намір зайти, тож «Вийти» забуваємо
+  const qs = new URLSearchParams(location.search);
+  const door = qs.get('door'), doorDept = qs.get('door_dept');
+  if (door || doorDept) {
+    const u = new URL(location.href); u.searchParams.delete('door'); u.searchParams.delete('door_dept'); history.replaceState(null, '', u);
+    lsSet(LS_OFF, null);
+    setTimeout(() => acceptDoor(door, doorDept), 1500);
   }
   if (!navigator.locks || !window.BroadcastChannel) return openRoom();
   v.holder = false;
@@ -169,10 +193,11 @@ export async function setVoiceDept(dept) {
 
 /* ───────────────────────── «🚪 В гості» ───────────────────────── */
 
-/** Стуки в нашу кімнату: ті, що чекають (за 30 хв), і нові — миттєво. */
+/** Стуки в нашу кімнату: ті, що чекають (за 30 хв), і нові — миттєво. Плюс гості, яких уже впустили (12 год). */
 async function watchKnocks() {
   if (v.knockCh) { v.sb.removeChannel(v.knockCh); v.knockCh = null; }
   v.knocks = [];
+  v.guests = new Map();
   if (!v.home || v.home === ALL) return render();
   const topic = await topicFor(v.home);
   const since = new Date(Date.now() - 30 * 60e3).toISOString();
@@ -181,12 +206,18 @@ async function watchKnocks() {
   if (error) { v.noKnock = true; return render(); }   // міграції 10b ще нема — кнопка «В гості» схована
   v.knocks = (data || []).filter((k) => k.user_id !== v.me.id);
   v.knocks.filter(wasInvited).forEach((k) => decide(k.id, true));
+  // Кого впустили (дозвіл діє 12 годин — так само рахує voice_room_allowed()): біля них «Вивести»
+  const { data: ok } = await v.sb.from('voice_knocks').select('*').eq('topic', topic).eq('status', 'ok')
+    .gte('decided_at', new Date(Date.now() - 12 * 3600e3).toISOString());
+  (ok || []).forEach((k) => { if (k.user_id !== v.me.id) v.guests.set(k.user_id, k); });
   v.knockCh = v.sb.channel('knocks:' + topic)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'voice_knocks', filter: `topic=eq.${topic}` }, (p) => {
       const k = p.new;
       if (!k?.id) return;
       const was = v.knocks.some((x) => x.id === k.id);
       v.knocks = v.knocks.filter((x) => x.id !== k.id);
+      if (k.status === 'ok' && k.user_id !== v.me.id) v.guests.set(k.user_id, k);
+      else if (v.guests.get(k.user_id)?.id === k.id) v.guests.delete(k.user_id);
       if (k.status === 'wait' && wasInvited(k)) { decide(k.id, true); return; }
       if (k.status === 'wait' && k.user_id !== v.me.id) {
         v.knocks.push(k);
@@ -271,17 +302,34 @@ async function knock(dept) {
   const topic = await topicFor(dept);
   const { data, error } = await v.sb.from('voice_knocks')
     .insert({ topic, room_label: dept, name: v.name, from_dept: v.home || null }).select().single();
-  if (error) return v.toast('Не вдалося постукати: ' + error.message, true);
+  if (error) {
+    const rls = /row-level security|42501/i.test(error.message || error.code || '');
+    return v.toast(rls ? 'Вас нещодавно вивели з цієї кімнати — постукайте за кілька хвилин' : 'Не вдалося постукати: ' + error.message, true);
+  }
   v.visit = { dept, id: data.id, status: 'wait' };
-  v.myKnockCh = v.sb.channel('myknock:' + data.id)
-    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'voice_knocks', filter: `id=eq.${data.id}` }, (p) => {
+  listenMyKnock(data.id, dept);
+  render();
+}
+
+/**
+ * Відповідь на наш стук: поки чекаємо — «пустили» / «ні»; уже в гостях — нас вивели
+ * ('out', а без міграції 17.11 — 'gone', який ставимо не ми: свій 'gone' endVisit ставить, уже відписавшись).
+ */
+function listenMyKnock(id, dept) {
+  if (v.myKnockCh) v.sb.removeChannel(v.myKnockCh);
+  v.myKnockCh = v.sb.channel('myknock:' + id)
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'voice_knocks', filter: `id=eq.${id}` }, (p) => {
       const k = p.new;
-      if (!v.visit || v.visit.id !== k.id || v.visit.status !== 'wait') return;
-      if (k.status === 'ok') { v.toast(`✅ ${k.decided_by_name || 'Колеги'} пустили вас у кімнату`); goVisit(dept, k.id); }
-      else if (k.status === 'no') { v.toast(`Відділ «${dept}» зараз не може прийняти`, true); endVisit(false); }
+      if (!v.visit || v.visit.id !== k.id) return;
+      if (v.visit.status === 'wait') {
+        if (k.status === 'ok') { v.toast(`✅ ${k.decided_by_name || 'Колеги'} впустили вас у кімнату`); goVisit(dept, k.id); }
+        else if (k.status === 'no') { v.toast(`Відділ «${dept}» каже: не зараз`, true); endVisit(false); }
+      } else if (k.status === 'out' || k.status === 'gone') {
+        v.toast(`🚪 ${k.out_by_name || 'Господарі кімнати'} вивели вас із кімнати відділу «${dept}»`, true);
+        endVisit(true, true);
+      }
     })
     .subscribe();
-  render();
 }
 
 /** Пустили — голос переходить у кімнату відділу-господаря. */
@@ -289,17 +337,118 @@ async function goVisit(dept, id) {
   v.visit = { dept, id, status: 'in' };
   v.dept = dept;
   lsSet(LS_OFF, null);
+  roomChanged();
   await openRoom();
 }
 
-/** Скасувати стук або повернутися до свого відділу; дозвіл знімається. */
-async function endVisit(back = true) {
+/** Скасувати стук або повернутися до свого відділу; дозвіл знімається (якщо нас вивели — уже знято). */
+async function endVisit(back = true, kicked = false) {
   const vis = v.visit;
   v.visit = null;
   if (v.myKnockCh) { v.sb.removeChannel(v.myKnockCh); v.myKnockCh = null; }
-  if (vis?.id) await v.sb.from('voice_knocks').update({ status: 'gone' }).eq('id', vis.id);
-  if (v.dept !== v.home) { v.dept = v.home; if (back) await openRoom(); else openRoom(); }
+  if (vis?.id && !kicked) await v.sb.from('voice_knocks').update({ status: 'gone' }).eq('id', vis.id);
+  if (v.dept !== v.home) { v.dept = v.home; roomChanged(); if (back) await openRoom(); else openRoom(); }
   render();
+}
+
+/** Сторінка (spravy.js) перемикає під панеллю чат на кімнату, де ми зараз. */
+function roomChanged() {
+  window.dispatchEvent(new CustomEvent('pmg:voice-room', { detail: { dept: v.dept, home: v.home } }));
+}
+
+/** Прийшли з «Дверей відділів» (../home-doors.js): свої двері, впустили за стуком або керівництво. */
+async function acceptDoor(id, dept) {
+  if (!v.eng) return;
+  if (id === 'home' || (dept && dept === v.home)) {
+    if (!v.home) return;                         // відділу в профілі нема — панель сама підкаже
+    if (v.visit) await endVisit(false);
+    if (v.elsewhere) return takeOver();
+    if (v.vs && !v.vs.inRoom) await v.eng.enter();
+    return;
+  }
+  if (id) {
+    const { data: k } = await v.sb.from('voice_knocks').select('*').eq('id', id).maybeSingle();
+    if (!k || k.user_id !== v.me.id || k.status !== 'ok' || !(v.depts || []).includes(k.room_label)) {
+      return v.toast('Дозвіл зайти вже не дійсний — постукайте ще раз', true);
+    }
+    if (k.room_label === v.home) return acceptDoor('home');
+    if (v.visit) await endVisit(false);
+    await goVisit(k.room_label, k.id);
+    listenMyKnock(k.id, k.room_label);
+  } else if (dept && LEAD.includes(v.role) && (v.depts || []).includes(dept)) {
+    if (v.visit) await endVisit(false);
+    await goVisit(dept, null);
+  } else return;
+  if (v.elsewhere) takeOver();
+  render();
+}
+
+/** «Вивести» гостя, якого впустили за стуком, — може будь-хто з відділу. */
+async function kick(uid) {
+  const g = v.guests.get(uid);
+  if (!g) return;
+  const who = g.name || 'Гостя';
+  if (!confirm(`Вивести ${who} з кімнати відділу?`)) return;
+  let { error } = await v.sb.from('voice_knocks')
+    .update({ status: 'out', out_by_name: v.name, out_at: new Date().toISOString() }).eq('id', g.id);
+  // Без migration_2026-11-17_voice_doors.sql статусу 'out' немає — 'gone' знімає дозвіл так само
+  if (error) ({ error } = await v.sb.from('voice_knocks').update({ status: 'gone' }).eq('id', g.id));
+  if (error) return v.toast('Не вдалося вивести: ' + error.message, true);
+  v.guests.delete(uid);
+  v.toast(`🚪 ${who} — виведено з кімнати`);
+  render();
+}
+
+/* ───────────────────────── привітання керівництва ───────────────────────── */
+
+/**
+ * Хто ЗАЙШОВ у кімнату, де я зараз: нові uid у присутності. Перші 3 с після мого входу — не «зайшли»:
+ * присутність приходить частинами, і ті, хто вже сидів у кімнаті, теж з'являються не одразу.
+ */
+function watchGreet(s) {
+  const g = v.greet;
+  if (!s || s.status !== 'live' || !s.inRoom) { g.topic = ''; return; }
+  const uids = [...new Set(s.members.map((m) => m.uid).filter(Boolean))];
+  if (g.topic !== s.topic) {
+    g.topic = s.topic; g.since = Date.now(); g.known = new Set(uids);
+    greetFor(v.me?.id, v.role, v.name, s);      // керівниця зайшла сама — чує й вона
+    return;
+  }
+  const fresh = uids.filter((u) => !g.known.has(u));
+  g.known = new Set(uids);                      // хто вийшов і зайшов знову — знову «зайшов»
+  if (Date.now() - g.since < 3000) return;
+  fresh.forEach(async (u) => {
+    const p = await personOf(u);
+    if (p) greetFor(u, p.role, p.full_name, v.vs);
+  });
+}
+
+async function personOf(uid) {
+  const g = v.greet;
+  if (!g.people.has(uid)) {
+    g.people.set(uid, v.sb.from('profiles').select('role, full_name').eq('id', uid).maybeSingle()
+      .then(({ data }) => data || null, () => null));
+  }
+  return g.people.get(uid);
+}
+
+function greetFor(uid, role, name, s) {
+  const gr = GREET[role];
+  if (!uid || !gr || !String(name || '').includes(gr.first)) return;
+  const key = v.greet.topic + '|' + uid;
+  if (Date.now() - (v.greet.played.get(key) || 0) < GREET_AGAIN) return;
+  v.greet.played.set(key, Date.now());
+  playGreet(gr, s?.deaf);
+}
+
+function playGreet(gr, deaf) {
+  v.toast(`🎉 ${gr.text}`);
+  if (deaf) return;                              // звук вимкнено — лише напис
+  try {
+    const a = new Audio(gr.src);
+    a.volume = 0.9;
+    a.play().catch(() => { /* браузер не дав грати без жесту — лишається напис */ });
+  } catch (_) { /* без звуку */ }
 }
 
 /* ───────────────────────── кімната ───────────────────────── */
@@ -338,8 +487,10 @@ async function onClick(e) {
   const act = b.dataset.act;
   if (act === 'micpick') return openMicPicker(v.demo ? null : v.eng, { toast: v.toast });
   if (act === 'visit') { v.showDepts = !v.showDepts; return render(); }
-  if (v.demo && ['knock', 'unvisit', 'kok', 'kno'].includes(act)) return v.toast('У демо стук не працює');
+  if (v.demo && ['knock', 'unvisit'].includes(act)) return v.toast('У демо стук не працює');
+  if (v.demo && ['kok', 'kno', 'kick', 'greetdemo'].includes(act)) return demoAct(act, b.dataset);
   if (act === 'knock') return knock(b.dataset.dept);
+  if (act === 'kick') return kick(b.dataset.uid);
   if (act === 'unvisit') return endVisit(true);
   if (act === 'kok' || act === 'kno') return decide(b.dataset.id, act === 'kok');
   if (v.demo) return demoAct(act);
@@ -383,6 +534,7 @@ function render() {
       ${ni.dev ? `<span class="spv-flag" aria-label="${esc(ni.devTip)}">${ni.dev}</span>` : ''}
       ${ni.ping && s.inRoom ? `<span class="spv-ping is-${ni.cls}">${esc(ni.ping)}</span>` : ''}
       ${st === 'bad' ? '<span class="spv-flag" aria-label="немає з\'єднання">⚠</span>' : ''}
+      ${canKick(m) ? `<button type="button" class="spv-kick" data-act="kick" data-uid="${esc(m.uid)}" title="Вивести гостя з кімнати відділу (дозвіл зайти знімається)">Вивести</button>` : ''}
     </li>`;
   }).join('');
 
@@ -404,6 +556,7 @@ function render() {
        <button type="button" class="spv-btn spv-icon${s.deaf ? ' is-off' : ''}" data-act="deaf" aria-pressed="${s.deaf}"
          title="${s.deaf ? 'Увімкнути звук' : 'Вимкнути звук (і мікрофон)'}">${s.deaf ? '🔕' : '🎧'}</button>
        <button type="button" class="spv-btn spv-icon${s.micSilent ? ' is-off' : ''}" data-act="micpick" title="Обрати мікрофон і перевірити, чи він вас чує">⚙</button>
+       ${v.demo ? '<button type="button" class="spv-btn spv-ghost" data-act="greetdemo" title="Демо: у кімнату заходить директорка департаменту — усім грає привітання">▶ Демо: заходить директорка</button>' : ''}
        ${s.canShare ? `<button type="button" class="spv-btn spv-icon${s.sharing ? ' is-on' : ''}" data-act="screen" aria-pressed="${!!s.sharing}"
          title="${s.sharing ? 'Зупинити показ екрана' : 'Показати колегам свій екран або вікно'}">🖥</button>` : ''}
        ${s.canRecord && !(s.recording && !s.recording.me) ? (s.recording?.me
@@ -431,13 +584,19 @@ function render() {
     ${v.showDepts ? deptsHTML() : ''}</div>`;
 }
 
+/** Гість нашої кімнати, впущений за стуком: вивести може будь-хто з відділу (не з чужої кімнати). */
+function canKick(m) {
+  if (m.me || !m.uid || v.visit || v.dept !== v.home) return false;
+  return v.guests.has(m.uid) || (v.demo && m.guest);
+}
+
 /** Хто стукає в нашу кімнату — пустити може будь-хто з відділу. */
 function knocksHTML() {
   if (!v.knocks.length) return '';
   return `<ul class="spv-knocks">${v.knocks.map((k) => `<li class="spv-knock">
       <span>🚪 <b>${esc(k.name || 'Колега')}</b>${k.from_dept ? ` <i>(${esc(k.from_dept)})</i>` : ''} просить зайти</span>
-      <button type="button" class="spv-btn is-on" data-act="kok" data-id="${esc(k.id)}">Пустити</button>
-      <button type="button" class="spv-btn spv-ghost" data-act="kno" data-id="${esc(k.id)}">Ні</button>
+      <button type="button" class="spv-btn is-on" data-act="kok" data-id="${esc(k.id)}">Впустити</button>
+      <button type="button" class="spv-btn spv-ghost" data-act="kno" data-id="${esc(k.id)}">Не зараз</button>
     </li>`).join('')}</ul>`;
 }
 
@@ -475,7 +634,9 @@ function demo() {
     members: [
       { key: 'me', name: v.name || 'Демо-користувач', muted: true, deaf: false, me: true, state: 'ok', dev: 'pc' },
       { key: 'd1', name: 'Олена Приклад', muted: false, deaf: false, state: 'ok', dev: 'pc', net: { rtt: 42, loss: 0, relay: false } },
-      { key: 'd2', name: 'Петро Зразок', muted: true, deaf: false, state: 'ok', dev: 'mob', net: { rtt: 420, loss: 0.1, relay: true } }
+      { key: 'd2', name: 'Петро Зразок', muted: true, deaf: false, state: 'ok', dev: 'mob', net: { rtt: 420, loss: 0.1, relay: true } },
+      // Гість з іншого відділу, якого впустили за стуком: біля нього «Вивести»
+      { key: 'd3', uid: 'demo-guest', guest: true, name: 'Марко Гість', muted: true, deaf: false, state: 'ok', dev: 'pc', net: { rtt: 60, loss: 0, relay: false } }
     ]
   };
   // Демо стуку: колега з іншого відділу просить зайти
@@ -488,9 +649,24 @@ function demo() {
   }, 700);
 }
 
-function demoAct(act) {
+function demoAct(act, ds = {}) {
   const s = v.vs;
   const me = s.members.find((m) => m.me);
+  if (act === 'kok' || act === 'kno') {
+    const k = v.knocks.find((x) => x.id === ds.id);
+    v.knocks = v.knocks.filter((x) => x.id !== ds.id);
+    if (k && act === 'kok') s.members.push({ key: 'd4', uid: 'demo-guest2', guest: true, name: k.name, muted: true, deaf: false, state: 'ok', dev: 'pc' });
+    v.toast(act === 'kok' ? `✅ ${k?.name || 'Гість'} заходить у кімнату` : `${k?.name || 'Гостю'} відповіли «Не зараз»`);
+  }
+  if (act === 'kick') {
+    const g = s.members.find((m) => m.uid === ds.uid);
+    s.members = s.members.filter((m) => m.uid !== ds.uid);
+    v.toast(`🚪 ${g?.name || 'Гостя'} — виведено з кімнати`);
+  }
+  if (act === 'greetdemo' && !s.members.some((m) => m.key === 'dd')) {
+    s.members.push({ key: 'dd', name: 'Директорка департаменту', muted: false, deaf: false, state: 'ok', dev: 'pc' });
+    playGreet(GREET.director, s.deaf);
+  }
   if (act === 'mic') { s.muted = !s.muted; if (!s.muted) s.deaf = false; }
   if (act === 'deaf') {
     s.deaf = !s.deaf;

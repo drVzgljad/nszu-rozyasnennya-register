@@ -930,6 +930,14 @@
 }
 .spv-knock > span { flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere; }
 .spv-knock i { font-style: normal; opacity: .85; }
+/* «Вивести» гостя, якого впустили за стуком (17.11.2026) */
+.spv-kick {
+  flex: none; margin-left: 2px; padding: 1px 7px;
+  border: 1px solid var(--spv-line); border-radius: 7px;
+  background: transparent; color: var(--spv-off-ink);
+  font: inherit; font-size: 11.5px; font-weight: 700; cursor: pointer;
+}
+.spv-kick:hover { border-color: var(--spv-off-ink); }
 .spv-visit { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
 .spv-visit-hint { flex-basis: 100%; font-size: 13px; color: var(--muted); }
 /* Сюди перетягують ім'я зі списку «в мережі» — покликати в кімнату */

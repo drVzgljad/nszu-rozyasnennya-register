@@ -26,6 +26,7 @@
   <link rel="stylesheet" href="brand.css?v=20260826a">
   <link rel="stylesheet" href="auth-v2.css?v=20261110a">
   <link rel="stylesheet" href="home-live.css?v=20261103c">
+  <link rel="stylesheet" href="home-doors.css?v=20261117b">
   <script type="module" src="auth-v2.js?v=20261110a"></script>
   <style>
     /* Знак проєкту в шапці. Правила тримаємо тут, а не в спільному portal.css:
@@ -559,7 +560,8 @@
       body.home-logged-in .home-dashboard-shell {
         display: grid;
         grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
-        grid-template-rows: auto minmax(0, 1fr);
+        /* третій ряд — «Двері відділів» під кабінетом (home-doors.css) */
+        grid-template-rows: auto minmax(0, 1fr) auto;
         gap: 0 16px;
         align-items: stretch;
         flex: none;
@@ -585,7 +587,7 @@
         padding: 16px !important;
         scrollbar-width: thin;
       }
-      body.home-logged-in .home-dashboard-shell > .hl { grid-column: 2; grid-row: 2; min-height: 0; padding: 0; }
+      body.home-logged-in .home-dashboard-shell > .hl { grid-column: 2; grid-row: 2 / span 2; min-height: 0; padding: 0; }
       body.home-logged-in .home-work-heading { flex-direction: column; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
       body.home-logged-in .home-work-title { font-size: 20px; }
       body.home-logged-in .home-work-actions { justify-content: flex-start; }
@@ -793,6 +795,9 @@
     </div>
   </section>
 
+  <!-- ── Двері відділів: стук у кімнати відділів (лише залогіненим; home-doors.js, демо — ?demo=1) ── -->
+  <section class="hd" id="home-doors" hidden aria-label="Двері відділів"></section>
+
   <!-- ── Обстановка: годинник, погода, тривога, світло (лише залогіненим; home-live.js) ── -->
   <section class="hl" id="home-live" hidden aria-label="Обстановка"></section>
 
@@ -881,6 +886,10 @@
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
   import { renderBirthdayStrip } from './birthdays.js?v=20260903a';
   import { showHomeLive, hideHomeLive } from './home-live.js?v=20261103c';
+  import { showHomeDoors, hideHomeDoors } from './home-doors.js?v=20261117a';
+  // Демо дверей без логіна (перевірка вигляду й стуку): index.html?demo=1
+  const DOORS_DEMO = new URLSearchParams(location.search).has('demo');
+  const hideDoors = () => (DOORS_DEMO ? showHomeDoors({ demo: true }) : hideHomeDoors());
 
   const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
@@ -1271,6 +1280,7 @@
         section.style.display = 'none';
         document.body.classList.remove('home-logged-in');
         hideHomeLive();
+        hideDoors();
         return;
       }
 
@@ -1282,6 +1292,7 @@
         section.style.display = 'none';
         document.body.classList.remove('home-logged-in');
         hideHomeLive();
+        hideDoors();
         return;
       }
 
@@ -1385,12 +1396,14 @@
       // Маркер для мобільного режиму: залогіненим ховаємо все, крім панелі кабінету
       document.body.classList.add('home-logged-in');
       showHomeLive({ sb, userId: session.user.id });
+      showHomeDoors({ sb, userId: session.user.id });
     } catch (e) {
       console.warn('Failed to load home cabinet metrics:', e);
       placeGlobalSearchForRole(null);
       section.style.display = 'none';
       document.body.classList.remove('home-logged-in');
       hideHomeLive();
+      hideDoors();
     }
   }
 

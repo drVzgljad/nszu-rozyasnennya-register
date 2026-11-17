@@ -1,0 +1,227 @@
+/* ═══ Головна: «Двері відділів» (home-doors.js) ═══
+   Невеликий ряд дверей у кімнати відділів. Власний шар змінних --hd-*: темна тема
+   перевизначає лише їх. Межі — від --line (змінної --border немає). */
+:root {
+  --hd-card: rgba(255, 255, 255, 0.78);
+  --hd-ink: var(--ink, #1f3347);
+  --hd-muted: var(--muted, #647688);
+  --hd-line: var(--line, #e3edf3);
+  --hd-wood: #b9875a;
+  --hd-wood-dark: #8a5d38;
+  --hd-wood-own: #5e9c7d;
+  --hd-wood-own-dark: #3a7a5c;
+  --hd-frame: #e8dccd;
+  --hd-knob: #f2c14e;
+  --hd-light: #ffe7a8;
+  --hd-plate-bg: #ffffff;
+  --hd-ok: #22a06b;
+  --hd-no: #d14343;
+  --hd-wait: #2f6b9e;
+  --hd-bubble-bg: #1f3347;
+  --hd-bubble-ink: #ffffff;
+  --hd-shadow: 0 12px 30px rgba(38, 78, 112, 0.12);
+}
+:root.dark-theme {
+  --hd-card: rgba(22, 32, 44, 0.82);
+  --hd-wood: #8f6644;
+  --hd-wood-dark: #64442b;
+  --hd-wood-own: #3f7a5f;
+  --hd-wood-own-dark: #2a5a44;
+  --hd-frame: #3a3f46;
+  --hd-knob: #e0b043;
+  --hd-light: #c99a3c;
+  --hd-plate-bg: #1c2733;
+  --hd-ok: #3fbf86;
+  --hd-no: #f07070;
+  --hd-wait: #7fb3e0;
+  --hd-bubble-bg: #e8eef5;
+  --hd-bubble-ink: #14202c;
+  --hd-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.hd {
+  box-sizing: border-box;
+  width: min(100%, 1180px);
+  margin: 14px auto;
+  padding: 12px 14px 10px;
+  border: 1px solid var(--hd-line);
+  border-radius: 18px;
+  background: var(--hd-card);
+  box-shadow: var(--hd-shadow);
+  color: var(--hd-ink);
+  min-width: 0;
+}
+.hd[hidden] { display: none !important; }
+.hd-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin-bottom: 8px; }
+.hd-title { margin: 0; font-size: 14px; font-weight: 800; letter-spacing: -0.01em; color: var(--hd-ink); }
+.hd-hint { font-size: 12px; color: var(--hd-muted); }
+
+.hd-row {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+.hd-cell { position: relative; min-width: 0; }
+
+/* Двері — кнопка: рама, полотно з двома філенками, ручка, табличка */
+.hd-door {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  width: 100%; min-width: 0;
+  padding: 4px 2px 2px;
+  border: 0; border-radius: 10px;
+  background: transparent; color: inherit;
+  font: inherit; cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.hd-door:focus-visible { outline: 2px solid var(--hd-wait); outline-offset: 2px; }
+.hd-frame {
+  position: relative;
+  display: block;
+  width: 44px; height: 62px;
+  padding: 3px 3px 0;
+  border-radius: 8px 8px 2px 2px;
+  background: var(--hd-frame);
+  perspective: 260px;
+  box-sizing: border-box;
+}
+.hd-light {
+  position: absolute; inset: 3px 3px 0;
+  border-radius: 5px 5px 0 0;
+  background: radial-gradient(circle at 40% 45%, var(--hd-light), transparent 75%), #2a2116;
+  opacity: 0; transition: opacity .35s ease;
+}
+.hd-leaf {
+  position: relative;
+  display: flex; flex-direction: column; gap: 4px;
+  height: 100%;
+  padding: 6px 6px 8px;
+  box-sizing: border-box;
+  border-radius: 5px 5px 0 0;
+  background: linear-gradient(180deg, var(--hd-wood), var(--hd-wood-dark));
+  transform-origin: left center;
+  transition: transform .45s cubic-bezier(.3, .7, .3, 1);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12);
+}
+.hd-door.is-own .hd-leaf { background: linear-gradient(180deg, var(--hd-wood-own), var(--hd-wood-own-dark)); }
+.hd-panel { flex: 1; border-radius: 3px; box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, .18), inset 0 1px 0 rgba(255, 255, 255, .18); }
+.hd-knob {
+  position: absolute; right: 5px; top: 52%;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--hd-knob); box-shadow: 0 1px 1px rgba(0, 0, 0, .35);
+}
+.hd-plate {
+  display: block; max-width: 100%;
+  padding: 2px 6px;
+  border: 1px solid var(--hd-line); border-radius: 6px;
+  background: var(--hd-plate-bg);
+  font-size: 11px; line-height: 1.2; font-weight: 700; text-align: center;
+  color: var(--hd-ink);
+  overflow-wrap: anywhere; hyphens: auto;
+}
+.hd-door.is-own .hd-plate { border-color: var(--hd-ok); }
+
+/* Підказка-бульбашка над дверима */
+.hd-bubble {
+  position: absolute; left: 50%; top: -6px; z-index: 2;
+  padding: 2px 7px; border-radius: 9px;
+  background: var(--hd-bubble-bg); color: var(--hd-bubble-ink);
+  font-size: 10.5px; font-weight: 700; white-space: nowrap;
+  transform: translate(-50%, 4px); opacity: 0; pointer-events: none;
+  transition: opacity .2s ease, transform .2s ease;
+}
+.hd-badge {
+  position: absolute; top: 0; left: calc(50% + 14px); z-index: 2;
+  min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box;
+  border-radius: 9px; background: var(--hd-no); color: #fff;
+  font-size: 11px; font-weight: 800; line-height: 18px; text-align: center;
+}
+.hd-cancel {
+  position: absolute; top: 0; right: 2px; z-index: 3;
+  width: 20px; height: 20px; padding: 0;
+  border: 1px solid var(--hd-line); border-radius: 50%;
+  background: var(--hd-plate-bg); color: var(--hd-muted);
+  font-size: 11px; line-height: 1; cursor: pointer;
+}
+
+/* Наведення: свої двері прочиняються, чужі — «тук-тук?» */
+@media (hover: hover) {
+  .hd-door:hover .hd-bubble { opacity: 1; transform: translate(-50%, -2px); }
+  .hd-door.is-own:hover .hd-leaf { transform: rotateY(-22deg); }
+  .hd-door.is-own:hover .hd-light { opacity: .9; }
+  .hd-door:not(.is-own):hover .hd-leaf { transform: rotateY(-6deg); }
+}
+
+/* Стук */
+.hd-door.is-knocking .hd-frame { animation: hd-knock .85s ease; }
+.hd-door.is-knocking .hd-bubble { opacity: 1; transform: translate(-50%, -2px); }
+@keyframes hd-knock {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50% { transform: translateX(-2px) rotate(-1deg); }
+  20%, 40%, 60% { transform: translateX(2px) rotate(1deg); }
+  70% { transform: translateX(0); }
+}
+/* Чекаємо відповіді */
+.hd-door.is-wait .hd-bubble { opacity: 1; transform: translate(-50%, -2px); background: var(--hd-wait); color: #fff; }
+.hd-door.is-wait .hd-frame { animation: hd-wait 1.6s ease-in-out infinite; }
+@keyframes hd-wait {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(47, 107, 158, 0); }
+  50% { box-shadow: 0 0 0 5px rgba(47, 107, 158, .28); }
+}
+/* Впустили / свої двері — відчиняються */
+.hd-door.is-ok .hd-leaf, .hd-door.is-open .hd-leaf { transform: rotateY(-75deg); }
+.hd-door.is-ok .hd-light, .hd-door.is-open .hd-light { opacity: 1; }
+.hd-door.is-ok .hd-bubble { opacity: 1; transform: translate(-50%, -2px); background: var(--hd-ok); color: #fff; }
+/* Не зараз */
+.hd-door.is-no .hd-bubble { opacity: 1; transform: translate(-50%, -2px); background: var(--hd-no); color: #fff; }
+.hd-door.is-no .hd-plate { border-color: var(--hd-no); }
+/* Хтось стукає в мої двері */
+.hd-door.is-flash .hd-frame { animation: hd-knock .85s ease 2; }
+
+.hd-knocks { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.hd-knocks li {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  padding: 6px 8px; border: 1px solid var(--hd-line); border-radius: 10px;
+  background: var(--hd-plate-bg); font-size: 13px;
+}
+.hd-knocks li > span { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; }
+.hd-knocks i { font-style: normal; color: var(--hd-muted); }
+.hd-btn {
+  padding: 4px 10px; border: 1px solid var(--hd-line); border-radius: 8px;
+  background: transparent; color: var(--hd-ink); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+}
+.hd-btn.is-ok { border-color: var(--hd-ok); background: var(--hd-ok); color: #fff; }
+.hd-note { margin: 8px 0 0; font-size: 12.5px; color: var(--hd-muted); overflow-wrap: anywhere; }
+.hd-note.is-no { color: var(--hd-no); }
+.hd-note.is-ok { color: var(--hd-ok); }
+
+@media (prefers-reduced-motion: reduce) {
+  .hd *, .hd *::before, .hd *::after { animation: none !important; transition: none !important; }
+}
+
+/* ── Розкладка в шелі головної (index.html) ── */
+/* Залогінений десктоп «в одне вікно»: двері — під кабінетом у лівій колонці, три в ряд */
+@media (min-width: 1181px) and (min-height: 600px) {
+  body.home-logged-in .home-dashboard-shell > .hd {
+    grid-column: 1; grid-row: 3;
+    width: auto; margin: 10px 0 0; padding: 10px 12px 8px;
+  }
+  /* Ліва колонка вузька й без прокрутки сторінки: підказку несуть title дверей, двері менші */
+  body.home-logged-in .hd-head { margin-bottom: 4px; }
+  body.home-logged-in .hd-hint { display: none; }
+  body.home-logged-in .hd-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 6px; }
+  body.home-logged-in .hd-door { gap: 3px; padding-top: 8px; }
+  body.home-logged-in .hd-frame { width: 32px; height: 44px; }
+  body.home-logged-in .hd-leaf { padding: 4px 5px 6px; gap: 3px; }
+  body.home-logged-in .hd-plate { padding: 1px 4px; font-size: 10px; line-height: 1.15; }
+  body.home-logged-in .hd-knocks li { font-size: 12px; padding: 5px 6px; }
+}
+/* Вузький / низький десктоп: шел — дві колонки; двері — окремим рядом на всю ширину під «Обстановкою» */
+@media (min-width: 981px) and (max-width: 1180px), (min-width: 981px) and (max-height: 599px) {
+  body.home-logged-in .home-dashboard-shell > .hd { grid-column: 1 / -1; grid-row: 3; width: auto; margin: 0 0 24px; }
+}
+/* Мобільний і планшет: між кабінетом і «Обстановкою», три в ряд */
+@media (max-width: 980px) {
+  .hd { width: auto; margin: 0 10px 12px; padding: 10px 10px 8px; border-radius: 16px; }
+  .hd-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 6px; }
+}
