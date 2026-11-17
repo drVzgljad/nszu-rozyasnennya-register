@@ -519,6 +519,17 @@
 }
 .sp-lead .sp-f > span { color: var(--sp-lead-ink); }
 .sp-lead input, .sp-lead select { background: var(--surface); }
+/* ↩ ВІДПОВІДЬ — вхідна службова у відповідь на нашу (17.11.2026) */
+.sp-answer {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px;
+  padding: 9px 12px; margin-bottom: 10px; border-radius: 10px;
+  background: var(--sp-inc-bg); color: var(--sp-inc-ink);
+}
+.sp-answer-txt { flex: 1 1 260px; min-width: 0; font-size: 13px; line-height: 1.35; }
+.sp-answer-btn { background: var(--sp-inc); border-color: var(--sp-inc); color: var(--surface, #fff); font-weight: 700; letter-spacing: .02em; }
+.sp-answer-btn:hover { filter: brightness(1.08); }
+.sp-answer.is-on { background: var(--sp-ok-bg); color: var(--sp-ok-ink); }
+.sp-answer.is-on .sp-btn { font-size: 12px; padding: 5px 9px; }
 .sp-orig { font-style: normal; font-weight: 600; color: var(--sp-hot-ink); }
 .sp-step {
   font: inherit;

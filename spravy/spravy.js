@@ -94,8 +94,8 @@ const toLocalInput = (iso) => {
 const KIND_LABEL = { letter: 'Лист', sz: 'СЗ', sz_work: 'СЗ (робочий порядок)', pi: 'ПІ', info: 'До відома', other: 'Інше' };
 const KIND_SHORT = { letter: 'Лист', sz: 'СЗ', sz_work: 'СЗ роб.', pi: 'ПІ', info: 'До відома', other: 'Інше' };
 // answer — вхідна СЗ є відповіддю на нашу записку (вимога користувача 10.11.2026; міграція 10_case_role_answer)
-const ROLE_LABEL = { lead: 'Ми — головний виконавець', co: 'Ми — співвиконавці', info: 'Нам — до відома', answer: 'СЗ-відповідь на нашу записку' };
-const ROLE_SHORT = { lead: 'Гол.', co: 'Співвик.', info: 'До відома', answer: '↩ СЗ-відповідь' };
+const ROLE_LABEL = { lead: 'Ми — головний виконавець', co: 'Ми — співвиконавці', info: 'Нам — до відома', answer: 'ВІДПОВІДЬ на нашу записку (опрацьовано, враховано)' };
+const ROLE_SHORT = { lead: 'Гол.', co: 'Співвик.', info: 'До відома', answer: '↩ ВІДПОВІДЬ' };
 const DOC_KIND = { letter: 'Лист', sz: 'Службова записка', sz_work: 'СЗ у робочому порядку', other: 'Інший документ' };
 // Зв'язки справ (migration_2026-11-09b_case_links.sql): документ туди (out — чекаємо) чи назад (in — врахувати)
 const LINK_DOC = { sz: 'Службова записка', sz_work: 'СЗ у робочому порядку', letter: 'Лист', project: 'Проєкт на погодження (АСКОД)', other: 'Інший документ' };
@@ -1425,7 +1425,7 @@ function fieldsHTML(c) {
   </div>
   <datalist id="spLeadUnits">${LEAD_UNITS.map((u) => `<option value="${esc(u)}">`).join('')}</datalist>
   ${projectBlockHTML(c)}`;
-  return `
+  return `${answerBarHTML(c)}
   <div class="sp-lead">
     <label class="sp-f sp-lead-unit"><span>Головний виконавець (департамент / управління / відділ)</span>
       <input data-f="lead_unit" list="spLeadUnits" value="${esc(c.lead_unit)}" placeholder="Хто відповідає за документ у цілому"></label>
@@ -1467,6 +1467,24 @@ function fieldsHTML(c) {
  * «🎯 На контролі» (з 09.11.2026): галочка й примітка — вручну; стан виконання,
  * гол. виконавець і назва контрольки — з кнопки «🎯 Контролька» (control-upload.js).
  */
+/**
+ * ↩ ВІДПОВІДЬ — вхідна службова надійшла у відповідь на нашу записку: інформацію опрацьовано та враховано,
+ * службова одразу закривається (17.11.2026, користувач: «зроби можливість помітки для службової - ВІДПОВІДЬ …
+ * і після цього маркування ця службова закривається»). Та сама роль our_role = 'answer', що й у списку «Наша роль»,
+ * лише кнопкою вгорі картки: у випадному списку її не знаходили.
+ */
+function answerBarHTML(c) {
+  if (!(isSzIn(c) || c.our_role === 'answer')) return '';
+  if (c.our_role === 'answer') return `<div class="sp-answer is-on">
+    <span class="sp-answer-txt">↩ <b>ВІДПОВІДЬ</b> — інформацію опрацьовано та враховано, службову закрито</span>
+    <button type="button" class="sp-btn sp-btn-ghost" data-answer="off" title="Зняти позначку й повернути службову в роботу">зняти позначку</button>
+  </div>`;
+  return `<div class="sp-answer">
+    <button type="button" class="sp-btn sp-answer-btn" data-answer="on" title="Службова — відповідь на нашу записку: позначити й закрити">↩ ВІДПОВІДЬ</button>
+    <span class="sp-answer-txt">службова надійшла у відповідь на нашу записку — інформацію опрацьовано та враховано; справа одразу закриється</span>
+  </div>`;
+}
+
 function controlHTML(c) {
   const from = [c.control_state && `Стан за контролькою: <b>${esc(c.control_state)}</b>`,
     c.control_lead && `гол. вик.: ${esc(c.control_lead)}`, c.control_list && esc(c.control_list)].filter(Boolean).join(' · ');
@@ -2478,6 +2496,17 @@ function wireStatic() {
   $('spFields').addEventListener('click', (e) => {
     const kid = e.target.closest('[data-open-case]');
     if (kid) return openCase(kid.dataset.openCase);
+    // ↩ ВІДПОВІДЬ: позначити — роль «відповідь», «Закрито», без маршруту; зняти — назад у «Готуємо»
+    const ans = e.target.closest('[data-answer]');
+    if (ans && state.openId) {
+      const id = state.openId;
+      const patch = ans.dataset.answer === 'on'
+        ? { our_role: 'answer', stage: 'done', route: null, change_note: '↩ ВІДПОВІДЬ — інформацію опрацьовано та враховано' }
+        : { our_role: null, stage: 'work', change_note: 'Позначку «ВІДПОВІДЬ» знято — службова знову в роботі' };
+      ans.disabled = true;
+      saveCase(id, patch).then(() => openCase(id, true));
+      return;
+    }
     const del = e.target.closest('[data-ms-del]');
     const c = state.cases.find((x) => x.id === state.openId);
     if (!del || !c) return;
