@@ -1,6 +1,6 @@
 {
  "meta": {
-  "generated": "2026-08-14",
+  "generated": "2026-11-17",
   "sources": {
    "2025": {
     "number": "1503",
@@ -15,16 +15,16 @@
     "date": "31.12.2025",
     "title": "Про реалізацію програми медичних гарантій у 2026 році",
     "href": "docs/postanova_1808.pdf",
-    "edition": "04.04.2026",
-    "basis": "440-2026-п"
+    "edition": "10.11.2026",
+    "basis": "1369-2026-п"
    }
   },
-  "note": "Пізніші зміни до 1808 (№ 635, 721, 753, 948) звірено з поточною редакцією на zakon.rada.gov.ua — сум і таблиць коефіцієнтів вони не міняли.",
+  "note": "Постанову № 1808 взято в редакції від 10.11.2026 з zakon.rada.gov.ua (з усіма змінами по постанову № 1369 від 04.11.2026 включно).",
   "counts": {
    "chapters_matched": 43,
    "chapters_2025": 43,
    "chapters_2026": 44,
-   "rates": 97,
+   "rates": 98,
    "rates_base": 44,
    "rates_both": 81,
    "coefficient_groups": 38,
@@ -511,7 +511,7 @@
    "point2025": "19",
    "page2025": 27,
    "point2026": "19",
-   "page2026": 27,
+   "page2026": 16,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -534,7 +534,7 @@
    "point2025": "23",
    "page2025": 29,
    "point2026": "23",
-   "page2026": 30,
+   "page2026": 18,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -557,7 +557,7 @@
    "point2025": "31",
    "page2025": 35,
    "point2026": "30",
-   "page2026": 35,
+   "page2026": 20,
    "match": 0.5,
    "status": "both",
    "base": true,
@@ -580,7 +580,7 @@
    "point2025": "33",
    "page2025": 35,
    "point2026": "32",
-   "page2026": 36,
+   "page2026": 21,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -603,7 +603,7 @@
    "point2025": "33",
    "page2025": 35,
    "point2026": "32",
-   "page2026": 36,
+   "page2026": 21,
    "match": 0.9,
    "status": "both",
    "base": false,
@@ -626,7 +626,7 @@
    "point2025": "",
    "page2025": null,
    "point2026": "30",
-   "page2026": 35,
+   "page2026": 20,
    "match": 0.0,
    "status": "only-2026",
    "base": false,
@@ -647,7 +647,7 @@
    "point2025": "",
    "page2025": null,
    "point2026": "31",
-   "page2026": 35,
+   "page2026": 21,
    "match": 0.0,
    "status": "only-2026",
    "base": false,
@@ -668,7 +668,7 @@
    "point2025": "",
    "page2025": null,
    "point2026": "31",
-   "page2026": 35,
+   "page2026": 21,
    "match": 0.0,
    "status": "only-2026",
    "base": false,
@@ -689,7 +689,7 @@
    "point2025": "",
    "page2025": null,
    "point2026": "31",
-   "page2026": 35,
+   "page2026": 21,
    "match": 0.0,
    "status": "only-2026",
    "base": false,
@@ -710,7 +710,7 @@
    "point2025": "",
    "page2025": null,
    "point2026": "31",
-   "page2026": 35,
+   "page2026": 21,
    "match": 0.0,
    "status": "only-2026",
    "base": false,
@@ -733,13 +733,13 @@
    "point2025": "35",
    "page2025": 37,
    "point2026": "34",
-   "page2026": 37,
+   "page2026": 22,
    "match": 1.0,
    "status": "both",
    "base": true,
    "delta": 0.0,
    "delta_pct": 0.0,
-   "extras": 2
+   "extras": 3
   },
   {
    "packages": [
@@ -757,13 +757,36 @@
    "v2026": 1847.2,
    "point2025": "42",
    "page2025": 41,
-   "point2026": "40",
-   "page2026": 44,
-   "match": 1.0,
+   "point2026": "43",
+   "page2026": 27,
+   "match": 0.98,
    "status": "both",
    "base": false,
    "delta": 0.0,
    "delta_pct": 0.0,
+   "extras": 0
+  },
+  {
+   "packages": [
+    "3",
+    "4",
+    "47"
+   ],
+   "chapter2025": "3",
+   "chapter2026": "3",
+   "chapter_title": "Глава 3. Хірургічні операції дорослим та дітям у стаціонарних умовах, хірургічні операції дорослим та дітям в умовах стаціонару одного дня, стаціонарна допомога дорослим та дітям без проведення хірургічних операцій",
+   "kind": "Інше",
+   "qualifier": "",
+   "qualifier2025": "",
+   "v2025": null,
+   "v2026": 1200000.0,
+   "point2025": "",
+   "page2025": null,
+   "point2026": "35",
+   "page2026": 22,
+   "match": 0.0,
+   "status": "only-2026",
+   "base": false,
    "extras": 0
   },
   {
@@ -782,8 +805,8 @@
    "v2026": 1847.2,
    "point2025": "",
    "page2025": null,
-   "point2026": "43",
-   "page2026": 45,
+   "point2026": "40",
+   "page2026": 26,
    "match": 0.0,
    "status": "only-2026",
    "base": false,
@@ -804,7 +827,7 @@
    "point2025": "47",
    "page2025": 43,
    "point2026": "45",
-   "page2026": 46,
+   "page2026": 28,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -827,7 +850,7 @@
    "point2025": "47",
    "page2025": 43,
    "point2026": "45",
-   "page2026": 46,
+   "page2026": 28,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -850,7 +873,7 @@
    "point2025": "47",
    "page2025": 43,
    "point2026": "45",
-   "page2026": 46,
+   "page2026": 28,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -873,7 +896,7 @@
    "point2025": "51",
    "page2025": 45,
    "point2026": "49",
-   "page2026": 48,
+   "page2026": 29,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -896,7 +919,7 @@
    "point2025": "51",
    "page2025": 45,
    "point2026": "49",
-   "page2026": 48,
+   "page2026": 29,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -919,7 +942,7 @@
    "point2025": "55",
    "page2025": 47,
    "point2026": "53",
-   "page2026": 50,
+   "page2026": 29,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -942,7 +965,7 @@
    "point2025": "60",
    "page2025": 48,
    "point2026": "58",
-   "page2026": 51,
+   "page2026": 30,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -965,7 +988,7 @@
    "point2025": "64",
    "page2025": 52,
    "point2026": "62",
-   "page2026": 55,
+   "page2026": 32,
    "match": 0.5,
    "status": "both",
    "base": true,
@@ -988,7 +1011,7 @@
    "point2025": "",
    "page2025": null,
    "point2026": "62",
-   "page2026": 55,
+   "page2026": 32,
    "match": 0.0,
    "status": "only-2026",
    "base": false,
@@ -1009,7 +1032,7 @@
    "point2025": "67",
    "page2025": 61,
    "point2026": "65",
-   "page2026": 70,
+   "page2026": 41,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1032,7 +1055,7 @@
    "point2025": "70",
    "page2025": 62,
    "point2026": "68",
-   "page2026": 71,
+   "page2026": 41,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1055,7 +1078,7 @@
    "point2025": "73",
    "page2025": 63,
    "point2026": "71",
-   "page2026": 72,
+   "page2026": 41,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1078,7 +1101,7 @@
    "point2025": "76",
    "page2025": 63,
    "point2026": "74",
-   "page2026": 72,
+   "page2026": 42,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1101,7 +1124,7 @@
    "point2025": "79",
    "page2025": 64,
    "point2026": "77",
-   "page2026": 73,
+   "page2026": 42,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1124,7 +1147,7 @@
    "point2025": "82",
    "page2025": 64,
    "point2026": "80",
-   "page2026": 74,
+   "page2026": 42,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1147,7 +1170,7 @@
    "point2025": "85",
    "page2025": 65,
    "point2026": "83",
-   "page2026": 74,
+   "page2026": 43,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1170,7 +1193,7 @@
    "point2025": "88",
    "page2025": 66,
    "point2026": "86",
-   "page2026": 75,
+   "page2026": 43,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1193,7 +1216,7 @@
    "point2025": "91",
    "page2025": 66,
    "point2026": "89",
-   "page2026": 76,
+   "page2026": 44,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1216,7 +1239,7 @@
    "point2025": "94",
    "page2025": 67,
    "point2026": "92",
-   "page2026": 76,
+   "page2026": 44,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1239,7 +1262,7 @@
    "point2025": "94",
    "page2025": 67,
    "point2026": "92",
-   "page2026": 76,
+   "page2026": 44,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -1262,7 +1285,7 @@
    "point2025": "97",
    "page2025": 68,
    "point2026": "96",
-   "page2026": 77,
+   "page2026": 45,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1285,7 +1308,7 @@
    "point2025": "100",
    "page2025": 69,
    "point2026": "99",
-   "page2026": 79,
+   "page2026": 45,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1308,7 +1331,7 @@
    "point2025": "103",
    "page2025": 70,
    "point2026": "103",
-   "page2026": 80,
+   "page2026": 46,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1331,7 +1354,7 @@
    "point2025": "106",
    "page2025": 71,
    "point2026": "106",
-   "page2026": 81,
+   "page2026": 47,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1354,7 +1377,7 @@
    "point2025": "106",
    "page2025": 71,
    "point2026": "106",
-   "page2026": 81,
+   "page2026": 47,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -1398,7 +1421,7 @@
    "point2025": "",
    "page2025": null,
    "point2026": "108",
-   "page2026": 84,
+   "page2026": 48,
    "match": 0.0,
    "status": "only-2026",
    "base": false,
@@ -1419,7 +1442,7 @@
    "point2025": "110",
    "page2025": 74,
    "point2026": "110",
-   "page2026": 85,
+   "page2026": 49,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1442,7 +1465,7 @@
    "point2025": "110",
    "page2025": 74,
    "point2026": "110",
-   "page2026": 85,
+   "page2026": 49,
    "match": 0.72,
    "status": "both",
    "base": false,
@@ -1465,7 +1488,7 @@
    "point2025": "110",
    "page2025": 74,
    "point2026": "110",
-   "page2026": 85,
+   "page2026": 49,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -1488,7 +1511,7 @@
    "point2025": "115",
    "page2025": 75,
    "point2026": "115",
-   "page2026": 87,
+   "page2026": 50,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1511,7 +1534,7 @@
    "point2025": "115",
    "page2025": 75,
    "point2026": "115",
-   "page2026": 87,
+   "page2026": 50,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -1534,7 +1557,7 @@
    "point2025": "118",
    "page2025": 77,
    "point2026": "118",
-   "page2026": 88,
+   "page2026": 51,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1557,7 +1580,7 @@
    "point2025": "121",
    "page2025": 78,
    "point2026": "121",
-   "page2026": 89,
+   "page2026": 51,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1580,7 +1603,7 @@
    "point2025": "124",
    "page2025": 78,
    "point2026": "124",
-   "page2026": 89,
+   "page2026": 51,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1603,7 +1626,7 @@
    "point2025": "127",
    "page2025": 85,
    "point2026": "127",
-   "page2026": 95,
+   "page2026": 55,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1626,7 +1649,7 @@
    "point2025": "130",
    "page2025": 88,
    "point2026": "130",
-   "page2026": 98,
+   "page2026": 56,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1649,7 +1672,7 @@
    "point2025": "133",
    "page2025": 88,
    "point2026": "133",
-   "page2026": 99,
+   "page2026": 56,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1672,7 +1695,7 @@
    "point2025": "136",
    "page2025": 89,
    "point2026": "136",
-   "page2026": 100,
+   "page2026": 57,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1695,7 +1718,7 @@
    "point2025": "140",
    "page2025": 91,
    "point2026": "140",
-   "page2026": 102,
+   "page2026": 58,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1718,7 +1741,7 @@
    "point2025": "144",
    "page2025": 91,
    "point2026": "144",
-   "page2026": 102,
+   "page2026": 58,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1741,7 +1764,7 @@
    "point2025": "144",
    "page2025": 91,
    "point2026": "144",
-   "page2026": 102,
+   "page2026": 58,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -1764,7 +1787,7 @@
    "point2025": "148",
    "page2025": 92,
    "point2026": "148",
-   "page2026": 103,
+   "page2026": 59,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1787,7 +1810,7 @@
    "point2025": "152",
    "page2025": 93,
    "point2026": "152",
-   "page2026": 103,
+   "page2026": 59,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1810,7 +1833,7 @@
    "point2025": "156",
    "page2025": 94,
    "point2026": "156",
-   "page2026": 104,
+   "page2026": 60,
    "match": 0.0,
    "status": "both",
    "base": true,
@@ -1832,7 +1855,7 @@
    "point2025": "156",
    "page2025": 94,
    "point2026": "156",
-   "page2026": 104,
+   "page2026": 60,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -1855,7 +1878,7 @@
    "point2025": "160",
    "page2025": 95,
    "point2026": "160",
-   "page2026": 105,
+   "page2026": 60,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1878,7 +1901,7 @@
    "point2025": "164",
    "page2025": 97,
    "point2026": "164",
-   "page2026": 107,
+   "page2026": 61,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -1901,7 +1924,7 @@
    "point2025": "164",
    "page2025": 97,
    "point2026": "164",
-   "page2026": 107,
+   "page2026": 61,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -1924,7 +1947,7 @@
    "point2025": "164",
    "page2025": 97,
    "point2026": "164",
-   "page2026": 107,
+   "page2026": 61,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -1947,7 +1970,7 @@
    "point2025": "164",
    "page2025": 97,
    "point2026": "164",
-   "page2026": 107,
+   "page2026": 61,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -1970,7 +1993,7 @@
    "point2025": "164",
    "page2025": 97,
    "point2026": "164",
-   "page2026": 107,
+   "page2026": 61,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -1993,7 +2016,7 @@
    "point2025": "164",
    "page2025": 97,
    "point2026": "164",
-   "page2026": 107,
+   "page2026": 61,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -2016,7 +2039,7 @@
    "point2025": "164",
    "page2025": 97,
    "point2026": "164",
-   "page2026": 107,
+   "page2026": 61,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -2039,7 +2062,7 @@
    "point2025": "164",
    "page2025": 97,
    "point2026": "164",
-   "page2026": 107,
+   "page2026": 61,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -2062,7 +2085,7 @@
    "point2025": "164",
    "page2025": 97,
    "point2026": "164",
-   "page2026": 107,
+   "page2026": 61,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -2085,7 +2108,7 @@
    "point2025": "164",
    "page2025": 97,
    "point2026": "164",
-   "page2026": 107,
+   "page2026": 61,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -2108,7 +2131,7 @@
    "point2025": "164",
    "page2025": 97,
    "point2026": "164",
-   "page2026": 107,
+   "page2026": 61,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -2131,7 +2154,7 @@
    "point2025": "164",
    "page2025": 97,
    "point2026": "164",
-   "page2026": 107,
+   "page2026": 61,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -2154,7 +2177,7 @@
    "point2025": "164",
    "page2025": 97,
    "point2026": "164",
-   "page2026": 107,
+   "page2026": 61,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -2177,7 +2200,7 @@
    "point2025": "164",
    "page2025": 97,
    "point2026": "164",
-   "page2026": 107,
+   "page2026": 61,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -2200,7 +2223,7 @@
    "point2025": "164",
    "page2025": 97,
    "point2026": "164",
-   "page2026": 107,
+   "page2026": 61,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -2223,7 +2246,7 @@
    "point2025": "164",
    "page2025": 97,
    "point2026": "164",
-   "page2026": 107,
+   "page2026": 61,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -2246,7 +2269,7 @@
    "point2025": "164",
    "page2025": 97,
    "point2026": "164",
-   "page2026": 107,
+   "page2026": 61,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -2269,7 +2292,7 @@
    "point2025": "164",
    "page2025": 97,
    "point2026": "164",
-   "page2026": 107,
+   "page2026": 61,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -2292,7 +2315,7 @@
    "point2025": "164",
    "page2025": 97,
    "point2026": "164",
-   "page2026": 107,
+   "page2026": 61,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -2315,7 +2338,7 @@
    "point2025": "164",
    "page2025": 97,
    "point2026": "164",
-   "page2026": 107,
+   "page2026": 61,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -2338,7 +2361,7 @@
    "point2025": "168",
    "page2025": 99,
    "point2026": "168",
-   "page2026": 110,
+   "page2026": 63,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -2361,7 +2384,7 @@
    "point2025": "168",
    "page2025": 99,
    "point2026": "168",
-   "page2026": 110,
+   "page2026": 63,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -2384,7 +2407,7 @@
    "point2025": "168",
    "page2025": 99,
    "point2026": "168",
-   "page2026": 110,
+   "page2026": 63,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -2407,7 +2430,7 @@
    "point2025": "168",
    "page2025": 99,
    "point2026": "168",
-   "page2026": 110,
+   "page2026": 63,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -2430,7 +2453,7 @@
    "point2025": "168",
    "page2025": 99,
    "point2026": "168",
-   "page2026": 110,
+   "page2026": 63,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -2453,7 +2476,7 @@
    "point2025": "168",
    "page2025": 99,
    "point2026": "168",
-   "page2026": 110,
+   "page2026": 63,
    "match": 1.0,
    "status": "both",
    "base": false,
@@ -2476,7 +2499,7 @@
    "point2025": "172",
    "page2025": 102,
    "point2026": "172",
-   "page2026": 112,
+   "page2026": 64,
    "match": 1.0,
    "status": "both",
    "base": true,
@@ -2499,7 +2522,7 @@
    "point2025": "176",
    "page2025": 102,
    "point2026": "176",
-   "page2026": 113,
+   "page2026": 64,
    "match": 0.0,
    "status": "both",
    "base": true,
@@ -2521,7 +2544,7 @@
    "point2025": "180",
    "page2025": 104,
    "point2026": "180",
-   "page2026": 115,
+   "page2026": 66,
    "match": 0.0,
    "status": "both",
    "base": true,
@@ -2543,7 +2566,7 @@
    "point2025": "",
    "page2025": null,
    "point2026": "185",
-   "page2026": 117,
+   "page2026": 67,
    "match": 0.0,
    "status": "both",
    "base": true,
@@ -2565,7 +2588,7 @@
    "point2025": "",
    "page2025": null,
    "point2026": "186",
-   "page2026": 118,
+   "page2026": 67,
    "match": 0.0,
    "status": "only-2026",
    "base": false,
@@ -2586,7 +2609,7 @@
    "point2025": "",
    "page2025": null,
    "point2026": "186",
-   "page2026": 118,
+   "page2026": 67,
    "match": 0.0,
    "status": "only-2026",
    "base": false,
@@ -2607,7 +2630,7 @@
    "point2025": "",
    "page2025": null,
    "point2026": "186",
-   "page2026": 118,
+   "page2026": 67,
    "match": 0.0,
    "status": "only-2026",
    "base": false,
@@ -2628,7 +2651,7 @@
    "point2025": "",
    "page2025": null,
    "point2026": "186",
-   "page2026": 118,
+   "page2026": 67,
    "match": 0.0,
    "status": "only-2026",
    "base": false,
@@ -2649,7 +2672,7 @@
    "point2025": "",
    "page2025": null,
    "point2026": "186",
-   "page2026": 118,
+   "page2026": 67,
    "match": 0.0,
    "status": "only-2026",
    "base": false,
@@ -2670,7 +2693,7 @@
    "point2025": "",
    "page2025": null,
    "point2026": "186",
-   "page2026": 118,
+   "page2026": 67,
    "match": 0.0,
    "status": "only-2026",
    "base": false,
@@ -2691,7 +2714,7 @@
    "point2025": "",
    "page2025": null,
    "point2026": "191",
-   "page2026": 119,
+   "page2026": 68,
    "match": 0.0,
    "status": "only-2026",
    "base": true,
@@ -2825,7 +2848,7 @@
      "point2025": "20",
      "page2025": 27,
      "point2026": "20",
-     "page2026": 27,
+     "page2026": 16,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -2842,7 +2865,7 @@
      "point2025": "20",
      "page2025": 27,
      "point2026": "20",
-     "page2026": 27,
+     "page2026": 16,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -2859,7 +2882,7 @@
      "point2025": "20",
      "page2025": 27,
      "point2026": "20",
-     "page2026": 27,
+     "page2026": 16,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -2876,7 +2899,7 @@
      "point2025": "20",
      "page2025": 27,
      "point2026": "20",
-     "page2026": 27,
+     "page2026": 16,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -2893,7 +2916,7 @@
      "point2025": "20",
      "page2025": 27,
      "point2026": "20",
-     "page2026": 27,
+     "page2026": 16,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -2910,7 +2933,7 @@
      "point2025": "20",
      "page2025": 27,
      "point2026": "20",
-     "page2026": 27,
+     "page2026": 16,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -2927,7 +2950,7 @@
      "point2025": "20",
      "page2025": 27,
      "point2026": "20",
-     "page2026": 27,
+     "page2026": 16,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -2944,7 +2967,7 @@
      "point2025": "20",
      "page2025": 27,
      "point2026": "20",
-     "page2026": 27,
+     "page2026": 16,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -2961,7 +2984,7 @@
      "point2025": "20",
      "page2025": 27,
      "point2026": "20",
-     "page2026": 27,
+     "page2026": 16,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -2978,7 +3001,7 @@
      "point2025": "20",
      "page2025": 27,
      "point2026": "20",
-     "page2026": 27,
+     "page2026": 16,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -2995,24 +3018,7 @@
      "point2025": "21",
      "page2025": 28,
      "point2026": "21",
-     "page2026": 28,
-     "status": "both",
-     "delta": 0.0,
-     "delta_pct": null
-    },
-    {
-     "label": "капітаційної ставки за один місяць за обслуговування пацієнтів, що подали декларацію про вибір лікаря",
-     "section": "",
-     "label2025": "",
-     "v2025": 0.0,
-     "v2026": 0.0,
-     "raw2025": "0",
-     "raw2026": "0",
-     "extra": [],
-     "point2025": "21",
-     "page2025": 28,
-     "point2026": "21",
-     "page2026": 28,
+     "page2026": 17,
      "status": "both",
      "delta": 0.0,
      "delta_pct": null
@@ -3029,7 +3035,7 @@
      "point2025": "21",
      "page2025": 28,
      "point2026": "21",
-     "page2026": 28,
+     "page2026": 17,
      "status": "both",
      "delta": 0.0,
      "delta_pct": null
@@ -3046,7 +3052,7 @@
      "point2025": "21",
      "page2025": 28,
      "point2026": "21",
-     "page2026": 28,
+     "page2026": 17,
      "status": "both",
      "delta": 0.0,
      "delta_pct": null
@@ -3063,7 +3069,7 @@
      "point2025": "21",
      "page2025": 28,
      "point2026": "21",
-     "page2026": 28,
+     "page2026": 17,
      "status": "both",
      "delta": 0.0,
      "delta_pct": null
@@ -3080,7 +3086,7 @@
      "point2025": "23",
      "page2025": 29,
      "point2026": "23",
-     "page2026": 30,
+     "page2026": 18,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -3097,7 +3103,7 @@
      "point2025": "23",
      "page2025": 29,
      "point2026": "23",
-     "page2026": 30,
+     "page2026": 18,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -3114,7 +3120,7 @@
      "point2025": "26",
      "page2025": 31,
      "point2026": "26",
-     "page2026": 32,
+     "page2026": 19,
      "status": "both",
      "delta": 0.0,
      "delta_pct": null
@@ -3131,10 +3137,25 @@
      "point2025": "27",
      "page2025": 33,
      "point2026": "27",
-     "page2026": 33,
+     "page2026": 20,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
+    },
+    {
+     "label": "капітаційної ставки за один місяць за обслуговування пацієнтів, що подали декларацію про вибір лікаря",
+     "section": "",
+     "label2025": "",
+     "v2025": 0.0,
+     "v2026": null,
+     "raw2025": "0",
+     "raw2026": "",
+     "extra": [],
+     "point2025": "21",
+     "page2025": 28,
+     "point2026": "",
+     "page2026": null,
+     "status": "only-2025"
     },
     {
      "label": "рівня охоплення оглядами осіб вікових груп 40-64 роки та 65 років і старше розмір доплати розраховується як добуток суми вартості медичних послуг за 1",
@@ -3182,7 +3203,7 @@
      "point2025": "32",
      "page2025": 35,
      "point2026": "30",
-     "page2026": 35,
+     "page2026": 20,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -3199,7 +3220,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "30",
-     "page2026": 35,
+     "page2026": 20,
      "status": "only-2026"
     },
     {
@@ -3214,7 +3235,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "30",
-     "page2026": 35,
+     "page2026": 20,
      "status": "only-2026"
     },
     {
@@ -3229,7 +3250,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "30",
-     "page2026": 35,
+     "page2026": 20,
      "status": "only-2026"
     },
     {
@@ -3244,7 +3265,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "30",
-     "page2026": 35,
+     "page2026": 20,
      "status": "only-2026"
     },
     {
@@ -3259,7 +3280,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "30",
-     "page2026": 35,
+     "page2026": 20,
      "status": "only-2026"
     },
     {
@@ -3274,7 +3295,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "31",
-     "page2026": 35,
+     "page2026": 21,
      "status": "only-2026"
     },
     {
@@ -3340,7 +3361,7 @@
      "point2025": "37",
      "page2025": 37,
      "point2026": "36",
-     "page2026": 38,
+     "page2026": 22,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -3357,7 +3378,7 @@
      "point2025": "37",
      "page2025": 37,
      "point2026": "36",
-     "page2026": 38,
+     "page2026": 22,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -3374,7 +3395,7 @@
      "point2025": "37",
      "page2025": 37,
      "point2026": "36",
-     "page2026": 38,
+     "page2026": 22,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -3391,7 +3412,7 @@
      "point2025": "37",
      "page2025": 37,
      "point2026": "36",
-     "page2026": 38,
+     "page2026": 22,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -3408,7 +3429,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "36",
-     "page2026": 38,
+     "page2026": 22,
      "status": "only-2026"
     },
     {
@@ -3423,7 +3444,7 @@
      "point2025": "37",
      "page2025": 37,
      "point2026": "36",
-     "page2026": 38,
+     "page2026": 22,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -3440,7 +3461,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "36",
-     "page2026": 38,
+     "page2026": 22,
      "status": "only-2026"
     },
     {
@@ -3455,7 +3476,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "36",
-     "page2026": 38,
+     "page2026": 22,
      "status": "only-2026"
     },
     {
@@ -3470,7 +3491,7 @@
      "point2025": "37",
      "page2025": 37,
      "point2026": "36",
-     "page2026": 38,
+     "page2026": 22,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -3487,7 +3508,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "36",
-     "page2026": 38,
+     "page2026": 22,
      "status": "only-2026"
     },
     {
@@ -3502,7 +3523,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "36",
-     "page2026": 38,
+     "page2026": 22,
      "status": "only-2026"
     },
     {
@@ -3517,7 +3538,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "36",
-     "page2026": 38,
+     "page2026": 22,
      "status": "only-2026"
     },
     {
@@ -3532,7 +3553,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "36",
-     "page2026": 38,
+     "page2026": 22,
      "status": "only-2026"
     },
     {
@@ -3547,7 +3568,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "36",
-     "page2026": 38,
+     "page2026": 22,
      "status": "only-2026"
     },
     {
@@ -3562,7 +3583,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "36",
-     "page2026": 38,
+     "page2026": 22,
      "status": "only-2026"
     },
     {
@@ -3577,7 +3598,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "36",
-     "page2026": 38,
+     "page2026": 22,
      "status": "only-2026"
     },
     {
@@ -3592,7 +3613,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "36",
-     "page2026": 38,
+     "page2026": 22,
      "status": "only-2026"
     },
     {
@@ -3607,7 +3628,7 @@
      "point2025": "40",
      "page2025": 38,
      "point2026": "38",
-     "page2026": 41,
+     "page2026": 24,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -3624,7 +3645,7 @@
      "point2025": "40",
      "page2025": 38,
      "point2026": "38",
-     "page2026": 41,
+     "page2026": 24,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -3641,7 +3662,7 @@
      "point2025": "40",
      "page2025": 38,
      "point2026": "38",
-     "page2026": 41,
+     "page2026": 24,
      "status": "both"
     },
     {
@@ -3656,7 +3677,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "38",
-     "page2026": 41,
+     "page2026": 24,
      "status": "only-2026"
     },
     {
@@ -3671,11 +3692,11 @@
      "point2025": "",
      "page2025": null,
      "point2026": "38",
-     "page2026": 41,
+     "page2026": 24,
      "status": "only-2026"
     },
     {
-     "label": "за умови виконання двох або більше операцій пацієнту з травматичними ушкодженнями (діагнози класу S та/або Т за міжнародним класифікаторм хв",
+     "label": "за умови виконання двох або більше операцій пацієнту з травматичними ушкодженнями (діагнози класу S та/або Т за міжнародним класифікатором х",
      "section": "",
      "label2025": "",
      "v2025": null,
@@ -3686,7 +3707,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "38",
-     "page2026": 41,
+     "page2026": 24,
      "status": "only-2026"
     },
     {
@@ -3701,7 +3722,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "38",
-     "page2026": 41,
+     "page2026": 24,
      "status": "only-2026"
     },
     {
@@ -3716,7 +3737,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "38",
-     "page2026": 41,
+     "page2026": 24,
      "status": "only-2026"
     },
     {
@@ -3731,7 +3752,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "38",
-     "page2026": 41,
+     "page2026": 24,
      "status": "only-2026"
     },
     {
@@ -3746,7 +3767,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "38",
-     "page2026": 41,
+     "page2026": 24,
      "status": "only-2026"
     },
     {
@@ -3761,7 +3782,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "38",
-     "page2026": 41,
+     "page2026": 24,
      "status": "only-2026"
     },
     {
@@ -3776,7 +3797,7 @@
      "point2025": "40",
      "page2025": 38,
      "point2026": "38",
-     "page2026": 41,
+     "page2026": 24,
      "status": "both",
      "delta": 1.751,
      "delta_pct": 703.21
@@ -3793,7 +3814,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "38",
-     "page2026": 41,
+     "page2026": 24,
      "status": "only-2026"
     },
     {
@@ -3962,7 +3983,7 @@
      "point2025": "55",
      "page2025": 47,
      "point2026": "53",
-     "page2026": 50,
+     "page2026": 29,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -4291,7 +4312,7 @@
      "point2025": "61",
      "page2025": 51,
      "point2026": "59",
-     "page2026": 53,
+     "page2026": 31,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -7037,7 +7058,7 @@
      "point2025": "64",
      "page2025": 52,
      "point2026": "62",
-     "page2026": 55,
+     "page2026": 32,
      "status": "both"
     },
     {
@@ -7052,7 +7073,7 @@
      "point2025": "64",
      "page2025": 52,
      "point2026": "62",
-     "page2026": 55,
+     "page2026": 32,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -7069,7 +7090,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "62",
-     "page2026": 55,
+     "page2026": 32,
      "status": "only-2026"
     },
     {
@@ -7084,7 +7105,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "62",
-     "page2026": 55,
+     "page2026": 32,
      "status": "only-2026"
     },
     {
@@ -7099,7 +7120,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "62",
-     "page2026": 55,
+     "page2026": 32,
      "status": "only-2026"
     },
     {
@@ -7114,7 +7135,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "62",
-     "page2026": 55,
+     "page2026": 32,
      "status": "only-2026"
     },
     {
@@ -7129,7 +7150,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "62",
-     "page2026": 55,
+     "page2026": 32,
      "status": "only-2026"
     },
     {
@@ -7144,7 +7165,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "62",
-     "page2026": 55,
+     "page2026": 32,
      "status": "only-2026"
     },
     {
@@ -7159,7 +7180,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "62",
-     "page2026": 55,
+     "page2026": 32,
      "status": "only-2026"
     },
     {
@@ -7174,7 +7195,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "62",
-     "page2026": 55,
+     "page2026": 32,
      "status": "only-2026"
     },
     {
@@ -7189,7 +7210,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "62",
-     "page2026": 55,
+     "page2026": 32,
      "status": "only-2026"
     },
     {
@@ -7204,7 +7225,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "62",
-     "page2026": 55,
+     "page2026": 32,
      "status": "only-2026"
     },
     {
@@ -7219,7 +7240,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "62",
-     "page2026": 55,
+     "page2026": 32,
      "status": "only-2026"
     },
     {
@@ -7234,7 +7255,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "62",
-     "page2026": 55,
+     "page2026": 32,
      "status": "only-2026"
     },
     {
@@ -7249,7 +7270,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "62",
-     "page2026": 55,
+     "page2026": 32,
      "status": "only-2026"
     },
     {
@@ -7264,7 +7285,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "62",
-     "page2026": 55,
+     "page2026": 32,
      "status": "only-2026"
     },
     {
@@ -7279,7 +7300,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "62",
-     "page2026": 55,
+     "page2026": 32,
      "status": "only-2026"
     }
    ]
@@ -7313,7 +7334,7 @@
      "point2025": "67",
      "page2025": 61,
      "point2026": "65",
-     "page2026": 70,
+     "page2026": 41,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -7349,7 +7370,7 @@
      "point2025": "76",
      "page2025": 63,
      "point2026": "74",
-     "page2026": 72,
+     "page2026": 42,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -7385,7 +7406,7 @@
      "point2025": "79",
      "page2025": 64,
      "point2026": "77",
-     "page2026": 73,
+     "page2026": 42,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -7421,7 +7442,7 @@
      "point2025": "82",
      "page2025": 64,
      "point2026": "80",
-     "page2026": 74,
+     "page2026": 42,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -7457,7 +7478,7 @@
      "point2025": "85",
      "page2025": 65,
      "point2026": "83",
-     "page2026": 74,
+     "page2026": 43,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -7493,7 +7514,7 @@
      "point2025": "88",
      "page2025": 66,
      "point2026": "86",
-     "page2026": 75,
+     "page2026": 43,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -7529,7 +7550,7 @@
      "point2025": "97",
      "page2025": 68,
      "point2026": "96",
-     "page2026": 77,
+     "page2026": 45,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -7546,7 +7567,7 @@
      "point2025": "97",
      "page2025": 68,
      "point2026": "96",
-     "page2026": 77,
+     "page2026": 45,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -7563,7 +7584,7 @@
      "point2025": "97",
      "page2025": 68,
      "point2026": "96",
-     "page2026": 77,
+     "page2026": 45,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -7580,7 +7601,7 @@
      "point2025": "97",
      "page2025": 68,
      "point2026": "96",
-     "page2026": 77,
+     "page2026": 45,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -7597,7 +7618,7 @@
      "point2025": "97",
      "page2025": 68,
      "point2026": "96",
-     "page2026": 77,
+     "page2026": 45,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -7614,7 +7635,7 @@
      "point2025": "97",
      "page2025": 68,
      "point2026": "96",
-     "page2026": 77,
+     "page2026": 45,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -7650,7 +7671,7 @@
      "point2025": "100",
      "page2025": 69,
      "point2026": "99",
-     "page2026": 79,
+     "page2026": 45,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -7667,7 +7688,7 @@
      "point2025": "100",
      "page2025": 69,
      "point2026": "99",
-     "page2026": 79,
+     "page2026": 45,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -7703,7 +7724,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "103",
-     "page2026": 80,
+     "page2026": 46,
      "status": "only-2026"
     },
     {
@@ -7718,7 +7739,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "103",
-     "page2026": 80,
+     "page2026": 46,
      "status": "only-2026"
     },
     {
@@ -7733,7 +7754,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "103",
-     "page2026": 80,
+     "page2026": 46,
      "status": "only-2026"
     },
     {
@@ -7748,7 +7769,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "103",
-     "page2026": 80,
+     "page2026": 46,
      "status": "only-2026"
     },
     {
@@ -7763,7 +7784,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "103",
-     "page2026": 80,
+     "page2026": 46,
      "status": "only-2026"
     },
     {
@@ -7778,7 +7799,7 @@
      "point2025": "103",
      "page2025": 70,
      "point2026": "103",
-     "page2026": 80,
+     "page2026": 46,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -7795,7 +7816,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "103",
-     "page2026": 80,
+     "page2026": 46,
      "status": "only-2026"
     },
     {
@@ -7810,7 +7831,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "103",
-     "page2026": 80,
+     "page2026": 46,
      "status": "only-2026"
     },
     {
@@ -7825,7 +7846,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "103",
-     "page2026": 80,
+     "page2026": 46,
      "status": "only-2026"
     },
     {
@@ -7840,7 +7861,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "103",
-     "page2026": 80,
+     "page2026": 46,
      "status": "only-2026"
     },
     {
@@ -7855,7 +7876,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "103",
-     "page2026": 80,
+     "page2026": 46,
      "status": "only-2026"
     },
     {
@@ -7870,7 +7891,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "103",
-     "page2026": 80,
+     "page2026": 46,
      "status": "only-2026"
     },
     {
@@ -7885,7 +7906,7 @@
      "point2025": "103",
      "page2025": 70,
      "point2026": "103",
-     "page2026": 80,
+     "page2026": 46,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -7902,7 +7923,7 @@
      "point2025": "103",
      "page2025": 70,
      "point2026": "103",
-     "page2026": 80,
+     "page2026": 46,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -8248,7 +8269,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "106",
-     "page2026": 81,
+     "page2026": 47,
      "status": "only-2026"
     },
     {
@@ -8263,7 +8284,7 @@
      "point2025": "106",
      "page2025": 71,
      "point2026": "106",
-     "page2026": 81,
+     "page2026": 47,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -8280,7 +8301,7 @@
      "point2025": "106",
      "page2025": 71,
      "point2026": "106",
-     "page2026": 81,
+     "page2026": 47,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -8297,7 +8318,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "108",
-     "page2026": 84,
+     "page2026": 48,
      "status": "only-2026"
     }
    ]
@@ -8331,7 +8352,7 @@
      "point2025": "112",
      "page2025": 74,
      "point2026": "112",
-     "page2026": 86,
+     "page2026": 49,
      "status": "both",
      "delta": 0.0,
      "delta_pct": null
@@ -8348,7 +8369,7 @@
      "point2025": "112",
      "page2025": 74,
      "point2026": "112",
-     "page2026": 86,
+     "page2026": 49,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -8365,7 +8386,7 @@
      "point2025": "112",
      "page2025": 74,
      "point2026": "112",
-     "page2026": 86,
+     "page2026": 49,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -8382,7 +8403,7 @@
      "point2025": "112",
      "page2025": 74,
      "point2026": "112",
-     "page2026": 86,
+     "page2026": 49,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -8399,7 +8420,7 @@
      "point2025": "112",
      "page2025": 74,
      "point2026": "112",
-     "page2026": 86,
+     "page2026": 49,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -8416,7 +8437,7 @@
      "point2025": "112",
      "page2025": 74,
      "point2026": "112",
-     "page2026": 86,
+     "page2026": 49,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -8433,7 +8454,7 @@
      "point2025": "112",
      "page2025": 74,
      "point2026": "112",
-     "page2026": 86,
+     "page2026": 49,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -8450,7 +8471,7 @@
      "point2025": "112",
      "page2025": 74,
      "point2026": "112",
-     "page2026": 86,
+     "page2026": 49,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -8467,7 +8488,7 @@
      "point2025": "112",
      "page2025": 74,
      "point2026": "112",
-     "page2026": 86,
+     "page2026": 49,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -8503,7 +8524,7 @@
      "point2025": "115",
      "page2025": 75,
      "point2026": "115",
-     "page2026": 87,
+     "page2026": 50,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -8520,7 +8541,7 @@
      "point2025": "115",
      "page2025": 75,
      "point2026": "115",
-     "page2026": 87,
+     "page2026": 50,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -8797,7 +8818,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "127",
-     "page2026": 95,
+     "page2026": 55,
      "status": "only-2026"
     }
    ]
@@ -8831,7 +8852,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "130",
-     "page2026": 98,
+     "page2026": 56,
      "status": "only-2026"
     },
     {
@@ -8846,7 +8867,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "130",
-     "page2026": 98,
+     "page2026": 56,
      "status": "only-2026"
     }
    ]
@@ -8880,7 +8901,7 @@
      "point2025": "133",
      "page2025": 88,
      "point2026": "133",
-     "page2026": 99,
+     "page2026": 56,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -8897,7 +8918,7 @@
      "point2025": "133",
      "page2025": 88,
      "point2026": "133",
-     "page2026": 99,
+     "page2026": 56,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -8914,7 +8935,7 @@
      "point2025": "133",
      "page2025": 88,
      "point2026": "133",
-     "page2026": 99,
+     "page2026": 56,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -8931,7 +8952,7 @@
      "point2025": "133",
      "page2025": 88,
      "point2026": "133",
-     "page2026": 99,
+     "page2026": 56,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -8967,7 +8988,7 @@
      "point2025": "136",
      "page2025": 89,
      "point2026": "136",
-     "page2026": 100,
+     "page2026": 57,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -8984,7 +9005,7 @@
      "point2025": "136",
      "page2025": 89,
      "point2026": "136",
-     "page2026": 100,
+     "page2026": 57,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -9001,7 +9022,7 @@
      "point2025": "136",
      "page2025": 89,
      "point2026": "136",
-     "page2026": 100,
+     "page2026": 57,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -9018,7 +9039,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "136",
-     "page2026": 100,
+     "page2026": 57,
      "status": "only-2026"
     }
    ]
@@ -9052,7 +9073,7 @@
      "point2025": "160",
      "page2025": 95,
      "point2026": "160",
-     "page2026": 105,
+     "page2026": 60,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -9069,7 +9090,7 @@
      "point2025": "160",
      "page2025": 95,
      "point2026": "160",
-     "page2026": 105,
+     "page2026": 60,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -9086,7 +9107,7 @@
      "point2025": "160",
      "page2025": 95,
      "point2026": "160",
-     "page2026": 105,
+     "page2026": 60,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -9103,7 +9124,7 @@
      "point2025": "160",
      "page2025": 95,
      "point2026": "160",
-     "page2026": 105,
+     "page2026": 60,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -9120,7 +9141,7 @@
      "point2025": "160",
      "page2025": 95,
      "point2026": "160",
-     "page2026": 105,
+     "page2026": 60,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -9156,7 +9177,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "164",
-     "page2026": 107,
+     "page2026": 61,
      "status": "only-2026"
     }
    ]
@@ -9190,7 +9211,7 @@
      "point2025": "170",
      "page2025": 100,
      "point2026": "170",
-     "page2026": 111,
+     "page2026": 63,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -9207,7 +9228,7 @@
      "point2025": "170",
      "page2025": 100,
      "point2026": "170",
-     "page2026": 111,
+     "page2026": 63,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -9224,7 +9245,7 @@
      "point2025": "170",
      "page2025": 100,
      "point2026": "170",
-     "page2026": 111,
+     "page2026": 63,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -9241,7 +9262,7 @@
      "point2025": "170",
      "page2025": 100,
      "point2026": "170",
-     "page2026": 111,
+     "page2026": 63,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -9258,7 +9279,7 @@
      "point2025": "170",
      "page2025": 100,
      "point2026": "170",
-     "page2026": 111,
+     "page2026": 63,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -9275,7 +9296,7 @@
      "point2025": "170",
      "page2025": 100,
      "point2026": "170",
-     "page2026": 111,
+     "page2026": 63,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -9292,7 +9313,7 @@
      "point2025": "170",
      "page2025": 100,
      "point2026": "170",
-     "page2026": 111,
+     "page2026": 63,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -9309,7 +9330,7 @@
      "point2025": "170",
      "page2025": 100,
      "point2026": "170",
-     "page2026": 111,
+     "page2026": 63,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -9379,7 +9400,7 @@
      "point2025": "180",
      "page2025": 104,
      "point2026": "180",
-     "page2026": 115,
+     "page2026": 66,
      "status": "both",
      "delta": 0.0,
      "delta_pct": 0.0
@@ -9396,7 +9417,7 @@
      "point2025": "182",
      "page2025": 105,
      "point2026": "182",
-     "page2026": 115,
+     "page2026": 66,
      "status": "both",
      "delta": 0.0,
      "delta_pct": null
@@ -9432,7 +9453,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "184",
-     "page2026": 116,
+     "page2026": 67,
      "status": "only-2026"
     },
     {
@@ -9447,7 +9468,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "185",
-     "page2026": 117,
+     "page2026": 67,
      "status": "only-2026"
     },
     {
@@ -9462,7 +9483,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "185",
-     "page2026": 117,
+     "page2026": 67,
      "status": "only-2026"
     },
     {
@@ -9477,7 +9498,7 @@
      "point2025": "",
      "page2025": null,
      "point2026": "185",
-     "page2026": 117,
+     "page2026": 67,
      "status": "only-2026"
     }
    ]
