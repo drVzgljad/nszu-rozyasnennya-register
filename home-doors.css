@@ -1,18 +1,28 @@
 /* ═══ Головна: «Двері відділів» (home-doors.js) ═══
-   Невеликий ряд дверей у кімнати відділів. Власний шар змінних --hd-*: темна тема
-   перевизначає лише їх. Межі — від --line (змінної --border немає). */
+   Ряд дверей у кімнати відділів. Двері — 3D: лиштва, полотно з філенками й ручкою, за ним — освітлена
+   кімната, на підлогу падає світло. Наведення: свої прочиняються, чужі збільшуються; клік — свої
+   відчиняються навстіж, у чужі стукають (анімація під assets/door-knock.mp3: удари на 70/330/585 мс).
+   Власний шар змінних --hd-*: темна тема перевизначає лише їх. Межі — від --line (--border немає). */
 :root {
-  --hd-card: rgba(255, 255, 255, 0.78);
+  --hd-card: rgba(255, 255, 255, 0.8);
   --hd-ink: var(--ink, #1f3347);
   --hd-muted: var(--muted, #647688);
   --hd-line: var(--line, #e3edf3);
-  --hd-wood: #b9875a;
-  --hd-wood-dark: #8a5d38;
-  --hd-wood-own: #5e9c7d;
-  --hd-wood-own-dark: #3a7a5c;
-  --hd-frame: #e8dccd;
-  --hd-knob: #f2c14e;
-  --hd-light: #ffe7a8;
+  --hd-wall: linear-gradient(180deg, #f3f6f8, #e7edf1);
+  --hd-casing: #f7f1e8;
+  --hd-casing-shade: #d9cbb6;
+  --hd-wood-hi: #c8956a;
+  --hd-wood: #a8714a;
+  --hd-wood-lo: #7c4f30;
+  --hd-own-hi: #6fb394;
+  --hd-own: #3f8f6b;
+  --hd-own-lo: #2b6b4f;
+  --hd-brass-hi: #fff1b8;
+  --hd-brass: #e2b44a;
+  --hd-brass-lo: #9a7222;
+  --hd-room: #3b2a18;
+  --hd-light: #ffd98a;
+  --hd-floor: rgba(120, 140, 160, 0.18);
   --hd-plate-bg: #ffffff;
   --hd-ok: #22a06b;
   --hd-no: #d14343;
@@ -20,16 +30,25 @@
   --hd-bubble-bg: #1f3347;
   --hd-bubble-ink: #ffffff;
   --hd-shadow: 0 12px 30px rgba(38, 78, 112, 0.12);
+  --hd-lift: 0 14px 22px rgba(31, 51, 71, 0.28);
 }
 :root.dark-theme {
-  --hd-card: rgba(22, 32, 44, 0.82);
-  --hd-wood: #8f6644;
-  --hd-wood-dark: #64442b;
-  --hd-wood-own: #3f7a5f;
-  --hd-wood-own-dark: #2a5a44;
-  --hd-frame: #3a3f46;
-  --hd-knob: #e0b043;
-  --hd-light: #c99a3c;
+  --hd-card: rgba(22, 32, 44, 0.84);
+  --hd-wall: linear-gradient(180deg, #1d2834, #17212b);
+  --hd-casing: #3a434d;
+  --hd-casing-shade: #262d35;
+  --hd-wood-hi: #9a6c47;
+  --hd-wood: #7d5435;
+  --hd-wood-lo: #573823;
+  --hd-own-hi: #4f9478;
+  --hd-own: #33735a;
+  --hd-own-lo: #22503e;
+  --hd-brass-hi: #f5dc8c;
+  --hd-brass: #c99a35;
+  --hd-brass-lo: #7a5818;
+  --hd-room: #24190e;
+  --hd-light: #f0c062;
+  --hd-floor: rgba(0, 0, 0, 0.3);
   --hd-plate-bg: #1c2733;
   --hd-ok: #3fbf86;
   --hd-no: #f07070;
@@ -37,13 +56,17 @@
   --hd-bubble-bg: #e8eef5;
   --hd-bubble-ink: #14202c;
   --hd-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  --hd-lift: 0 14px 24px rgba(0, 0, 0, 0.55);
 }
 
+/* ── Картка ── */
 .hd {
+  --hd-w: 58px;            /* ширина дверного прорізу з лиштвою */
+  --hd-h: 86px;
   box-sizing: border-box;
   width: min(100%, 1180px);
   margin: 14px auto;
-  padding: 12px 14px 10px;
+  padding: 12px 14px 12px;
   border: 1px solid var(--hd-line);
   border-radius: 18px;
   background: var(--hd-card);
@@ -52,64 +75,136 @@
   min-width: 0;
 }
 .hd[hidden] { display: none !important; }
-.hd-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin-bottom: 8px; }
+.hd-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; margin-bottom: 6px; }
 .hd-title { margin: 0; font-size: 14px; font-weight: 800; letter-spacing: -0.01em; color: var(--hd-ink); }
 .hd-hint { font-size: 12px; color: var(--hd-muted); }
 
+/* Стіна з дверима: двері стоять на «підлозі» */
 .hd-row {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px 8px;
+  padding: 14px 6px 4px;
+  border-radius: 14px;
+  background: var(--hd-wall);
 }
 .hd-cell { position: relative; min-width: 0; }
+.hd-cell:hover, .hd-cell:focus-within { z-index: 3; }
 
-/* Двері — кнопка: рама, полотно з двома філенками, ручка, табличка */
+/* ── Двері ── */
 .hd-door {
   position: relative;
-  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
   width: 100%; min-width: 0;
-  padding: 4px 2px 2px;
-  border: 0; border-radius: 10px;
-  background: transparent; color: inherit;
+  padding: 0;
+  border: 0; background: transparent; color: inherit;
   font: inherit; cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-.hd-door:focus-visible { outline: 2px solid var(--hd-wait); outline-offset: 2px; }
-.hd-frame {
+.hd-door:focus-visible { outline: none; }
+.hd-door:focus-visible .hd-plate { outline: 2px solid var(--hd-wait); outline-offset: 2px; }
+
+/* Проріз: лиштва + кімната за дверима + полотно. Масштаб — від низу (двері стоять на підлозі) */
+.hd-scene {
   position: relative;
   display: block;
-  width: 44px; height: 62px;
-  padding: 3px 3px 0;
-  border-radius: 8px 8px 2px 2px;
-  background: var(--hd-frame);
-  perspective: 260px;
+  width: var(--hd-w); height: var(--hd-h);
+  padding: 4px 4px 0;
   box-sizing: border-box;
+  border-radius: 6px 6px 1px 1px;
+  background: linear-gradient(90deg, var(--hd-casing-shade), var(--hd-casing) 18%, var(--hd-casing) 82%, var(--hd-casing-shade));
+  box-shadow: 0 1px 0 rgba(0, 0, 0, .08), 0 3px 6px rgba(31, 51, 71, .12);
+  perspective: 340px;
+  transform-origin: 50% 100%;
+  transition: transform .32s cubic-bezier(.2, .9, .25, 1.25), box-shadow .32s ease;
 }
-.hd-light {
-  position: absolute; inset: 3px 3px 0;
-  border-radius: 5px 5px 0 0;
-  background: radial-gradient(circle at 40% 45%, var(--hd-light), transparent 75%), #2a2116;
-  opacity: 0; transition: opacity .35s ease;
+/* Кімната за дверима: темна, доки двері зачинені; світло вмикається, коли їх прочиняють */
+.hd-room {
+  position: absolute; inset: 4px 4px 0;
+  border-radius: 3px 3px 0 0;
+  background:
+    radial-gradient(120% 80% at 30% 35%, var(--hd-light), transparent 70%),
+    linear-gradient(180deg, transparent 70%, rgba(0, 0, 0, .25)),
+    var(--hd-room);
+  filter: brightness(.35);
+  transition: filter .4s ease;
+  overflow: hidden;
 }
+/* Полотно */
 .hd-leaf {
   position: relative;
-  display: flex; flex-direction: column; gap: 4px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1.35fr 1fr;
+  gap: 4px;
   height: 100%;
-  padding: 6px 6px 8px;
+  padding: 6px 5px 9px;
   box-sizing: border-box;
-  border-radius: 5px 5px 0 0;
-  background: linear-gradient(180deg, var(--hd-wood), var(--hd-wood-dark));
+  border-radius: 3px 3px 0 0;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, .045) 0 1px, transparent 1px 4px, rgba(0, 0, 0, .05) 4px 5px, transparent 5px 7px),
+    linear-gradient(180deg, var(--hd-wood-hi), var(--hd-wood) 40%, var(--hd-wood-lo));
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .18), inset -2px 0 0 rgba(0, 0, 0, .12), inset 2px 0 0 rgba(255, 255, 255, .1);
   transform-origin: left center;
-  transition: transform .45s cubic-bezier(.3, .7, .3, 1);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12);
+  transform-style: preserve-3d;
+  transition: transform .5s cubic-bezier(.3, .8, .25, 1);
+  will-change: transform;
 }
-.hd-door.is-own .hd-leaf { background: linear-gradient(180deg, var(--hd-wood-own), var(--hd-wood-own-dark)); }
-.hd-panel { flex: 1; border-radius: 3px; box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, .18), inset 0 1px 0 rgba(255, 255, 255, .18); }
-.hd-knob {
-  position: absolute; right: 5px; top: 52%;
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--hd-knob); box-shadow: 0 1px 1px rgba(0, 0, 0, .35);
+.hd-door.is-own .hd-leaf {
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, .04) 0 1px, transparent 1px 6px),
+    linear-gradient(180deg, var(--hd-own-hi), var(--hd-own) 40%, var(--hd-own-lo));
 }
+/* Філенки з фаскою */
+.hd-panel {
+  border-radius: 2px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, .1), rgba(255, 255, 255, .05));
+  box-shadow: inset 1px 1px 0 rgba(0, 0, 0, .28), inset -1px -1px 0 rgba(255, 255, 255, .2), 0 0 0 1px rgba(255, 255, 255, .05);
+}
+/* Ручка-натискач: розетка + важіль */
+.hd-handle {
+  position: absolute; right: 5px; top: 53%;
+  width: 5px; height: 9px; border-radius: 3px;
+  background: linear-gradient(90deg, var(--hd-brass-lo), var(--hd-brass) 45%, var(--hd-brass-hi) 60%, var(--hd-brass-lo));
+  box-shadow: 0 1px 1px rgba(0, 0, 0, .35);
+}
+.hd-handle::after {
+  content: ''; position: absolute; right: 1px; top: 2px;
+  width: 10px; height: 3px; border-radius: 2px;
+  background: linear-gradient(180deg, var(--hd-brass-hi), var(--hd-brass) 50%, var(--hd-brass-lo));
+  box-shadow: 0 1px 1px rgba(0, 0, 0, .3);
+  transform-origin: right center;
+  transition: transform .2s ease;
+}
+/* Світло, що падає з кімнати на підлогу */
+.hd-spill {
+  position: absolute; left: 50%; bottom: -10px;
+  width: 130%; height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--hd-light), transparent);
+  transform: translateX(-50%) scaleX(.4);
+  opacity: 0;
+  transition: opacity .4s ease, transform .4s ease;
+  pointer-events: none;
+}
+/* Смужка світла з-під дверей — коли чекаємо */
+.hd-crack {
+  position: absolute; left: 6px; right: 6px; bottom: -2px; height: 3px;
+  border-radius: 2px;
+  background: var(--hd-light);
+  filter: blur(1.5px);
+  opacity: 0;
+  pointer-events: none;
+}
+/* Хвилі від ударів кісточками — біля ручки */
+.hd-rings { position: absolute; right: 8px; top: 34%; width: 0; height: 0; pointer-events: none; }
+.hd-rings i {
+  position: absolute; left: -10px; top: -10px; width: 20px; height: 20px;
+  border: 2px solid rgba(255, 255, 255, .85); border-radius: 50%;
+  opacity: 0;
+}
+
+/* Табличка з назвою відділу */
 .hd-plate {
   display: block; max-width: 100%;
   padding: 2px 6px;
@@ -118,72 +213,120 @@
   font-size: 11px; line-height: 1.2; font-weight: 700; text-align: center;
   color: var(--hd-ink);
   overflow-wrap: anywhere; hyphens: auto;
+  transition: border-color .2s ease, color .2s ease;
 }
 .hd-door.is-own .hd-plate { border-color: var(--hd-ok); }
 
 /* Підказка-бульбашка над дверима */
 .hd-bubble {
-  position: absolute; left: 50%; top: -6px; z-index: 2;
-  padding: 2px 7px; border-radius: 9px;
+  position: absolute; left: 50%; top: -12px; z-index: 4;
+  padding: 2px 8px; border-radius: 9px;
   background: var(--hd-bubble-bg); color: var(--hd-bubble-ink);
-  font-size: 10.5px; font-weight: 700; white-space: nowrap;
-  transform: translate(-50%, 4px); opacity: 0; pointer-events: none;
-  transition: opacity .2s ease, transform .2s ease;
+  font-size: 10.5px; font-weight: 800; white-space: nowrap;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, .18);
+  transform: translate(-50%, 6px) scale(.9); opacity: 0; pointer-events: none;
+  transition: opacity .2s ease, transform .25s cubic-bezier(.2, .9, .25, 1.3);
 }
 .hd-badge {
-  position: absolute; top: 0; left: calc(50% + 14px); z-index: 2;
+  position: absolute; top: -6px; left: calc(50% + var(--hd-w) / 2 - 10px); z-index: 4;
   min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box;
   border-radius: 9px; background: var(--hd-no); color: #fff;
   font-size: 11px; font-weight: 800; line-height: 18px; text-align: center;
+  box-shadow: 0 0 0 2px var(--hd-plate-bg);
+  animation: hd-badge 1.4s ease-in-out infinite;
 }
+@keyframes hd-badge { 50% { transform: scale(1.15); } }
 .hd-cancel {
-  position: absolute; top: 0; right: 2px; z-index: 3;
-  width: 20px; height: 20px; padding: 0;
+  position: absolute; top: -8px; right: 0; z-index: 5;
+  width: 22px; height: 22px; padding: 0;
   border: 1px solid var(--hd-line); border-radius: 50%;
   background: var(--hd-plate-bg); color: var(--hd-muted);
   font-size: 11px; line-height: 1; cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .15);
 }
 
-/* Наведення: свої двері прочиняються, чужі — «тук-тук?» */
+/* ── Реакція на наведення ──
+   Свої — збільшуються й прочиняються (видно світло кімнати); чужі — помітно збільшуються, ручка смикається. */
 @media (hover: hover) {
-  .hd-door:hover .hd-bubble { opacity: 1; transform: translate(-50%, -2px); }
-  .hd-door.is-own:hover .hd-leaf { transform: rotateY(-22deg); }
-  .hd-door.is-own:hover .hd-light { opacity: .9; }
-  .hd-door:not(.is-own):hover .hd-leaf { transform: rotateY(-6deg); }
+  .hd-door:hover .hd-scene, .hd-door:focus-visible .hd-scene { box-shadow: var(--hd-lift); }
+  .hd-door:hover .hd-bubble, .hd-door:focus-visible .hd-bubble { opacity: 1; transform: translate(-50%, -4px) scale(1); }
+  .hd-door.is-own:hover .hd-scene, .hd-door.is-own:focus-visible .hd-scene { transform: translateY(-2px) scale(1.12); }
+  .hd-door.is-own:hover .hd-leaf, .hd-door.is-own:focus-visible .hd-leaf { transform: rotateY(-48deg); }
+  .hd-door.is-own:hover .hd-room, .hd-door.is-own:focus-visible .hd-room { filter: brightness(1); }
+  .hd-door.is-own:hover .hd-spill, .hd-door.is-own:focus-visible .hd-spill { opacity: .8; transform: translateX(-50%) scaleX(.85); }
+  .hd-door:not(.is-own):hover .hd-scene, .hd-door:not(.is-own):focus-visible .hd-scene { transform: translateY(-3px) scale(1.24); }
+  .hd-door:not(.is-own):hover .hd-handle::after { transform: rotate(-14deg); }
+  .hd-door:hover .hd-plate { border-color: var(--hd-wait); }
+  .hd-door.is-own:hover .hd-plate { border-color: var(--hd-ok); color: var(--hd-ok); }
 }
+/* Сенсорний екран: відгук на дотик */
+.hd-door:active .hd-scene { transform: scale(1.12); }
 
-/* Стук */
-.hd-door.is-knocking .hd-frame { animation: hd-knock .85s ease; }
-.hd-door.is-knocking .hd-bubble { opacity: 1; transform: translate(-50%, -2px); }
+/* ── Стук: три удари в такт звуку (0,07 · 0,33 · 0,585 с із 0,95 с) ── */
+.hd-door.is-knocking .hd-scene { animation: hd-knock .95s linear both; box-shadow: var(--hd-lift); }
+.hd-door.is-knocking .hd-bubble { opacity: 1; transform: translate(-50%, -4px) scale(1); }
+.hd-door.is-knocking .hd-rings i { animation: hd-ring .45s ease-out both; }
+.hd-door.is-knocking .hd-rings i:nth-child(1) { animation-delay: .07s; }
+.hd-door.is-knocking .hd-rings i:nth-child(2) { animation-delay: .33s; }
+.hd-door.is-knocking .hd-rings i:nth-child(3) { animation-delay: .585s; }
 @keyframes hd-knock {
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50% { transform: translateX(-2px) rotate(-1deg); }
-  20%, 40%, 60% { transform: translateX(2px) rotate(1deg); }
-  70% { transform: translateX(0); }
+  0%   { transform: translateY(-3px) scale(1.24); }
+  7%   { transform: translateY(-3px) scale(1.19) rotate(-1.2deg); }
+  13%  { transform: translateY(-3px) scale(1.25) rotate(.4deg); }
+  35%  { transform: translateY(-3px) scale(1.19) rotate(-1.2deg); }
+  41%  { transform: translateY(-3px) scale(1.25) rotate(.4deg); }
+  62%  { transform: translateY(-3px) scale(1.18) rotate(-1.4deg); }
+  70%  { transform: translateY(-3px) scale(1.25) rotate(.5deg); }
+  100% { transform: translateY(-3px) scale(1.24); }
 }
-/* Чекаємо відповіді */
-.hd-door.is-wait .hd-bubble { opacity: 1; transform: translate(-50%, -2px); background: var(--hd-wait); color: #fff; }
-.hd-door.is-wait .hd-frame { animation: hd-wait 1.6s ease-in-out infinite; }
-@keyframes hd-wait {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(47, 107, 158, 0); }
-  50% { box-shadow: 0 0 0 5px rgba(47, 107, 158, .28); }
+@keyframes hd-ring {
+  0%   { opacity: .9; transform: scale(.3); }
+  100% { opacity: 0;  transform: scale(1.9); }
 }
-/* Впустили / свої двері — відчиняються */
-.hd-door.is-ok .hd-leaf, .hd-door.is-open .hd-leaf { transform: rotateY(-75deg); }
-.hd-door.is-ok .hd-light, .hd-door.is-open .hd-light { opacity: 1; }
-.hd-door.is-ok .hd-bubble { opacity: 1; transform: translate(-50%, -2px); background: var(--hd-ok); color: #fff; }
-/* Не зараз */
-.hd-door.is-no .hd-bubble { opacity: 1; transform: translate(-50%, -2px); background: var(--hd-no); color: #fff; }
-.hd-door.is-no .hd-plate { border-color: var(--hd-no); }
-/* Хтось стукає в мої двері */
-.hd-door.is-flash .hd-frame { animation: hd-knock .85s ease 2; }
 
+/* ── Чекаємо відповіді: світло з-під дверей, двері трохи більші ── */
+.hd-door.is-wait .hd-scene { transform: translateY(-2px) scale(1.14); box-shadow: var(--hd-lift); }
+.hd-door.is-wait .hd-crack { animation: hd-crack 1.6s ease-in-out infinite; }
+.hd-door.is-wait .hd-bubble { opacity: 1; transform: translate(-50%, -4px) scale(1); background: var(--hd-wait); color: #fff; }
+@keyframes hd-crack { 0%, 100% { opacity: .15; } 50% { opacity: .95; } }
+
+/* ── Відчиняються: свої після кліку або чужі, коли впустили ── */
+.hd-door.is-open .hd-scene, .hd-door.is-ok .hd-scene { transform: translateY(-3px) scale(1.28); box-shadow: var(--hd-lift); }
+.hd-door.is-open .hd-leaf, .hd-door.is-ok .hd-leaf { transform: rotateY(-108deg); }
+.hd-door.is-open .hd-room, .hd-door.is-ok .hd-room { filter: brightness(1.1); }
+.hd-door.is-open .hd-spill, .hd-door.is-ok .hd-spill { opacity: 1; transform: translateX(-50%) scaleX(1.1); }
+.hd-door.is-ok .hd-bubble, .hd-door.is-open .hd-bubble { opacity: 1; transform: translate(-50%, -4px) scale(1); background: var(--hd-ok); color: #fff; }
+
+/* ── Не зараз: двері здригаються й лишаються зачиненими ── */
+.hd-door.is-no .hd-scene { animation: hd-no .5s ease both; }
+.hd-door.is-no .hd-bubble { opacity: 1; transform: translate(-50%, -4px) scale(1); background: var(--hd-no); color: #fff; }
+.hd-door.is-no .hd-plate { border-color: var(--hd-no); color: var(--hd-no); }
+@keyframes hd-no {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); } 40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); } 80% { transform: translateX(2px); }
+}
+/* Хтось стукає в мої двері */
+.hd-door.is-flash .hd-scene { animation: hd-flash .95s linear both; }
+.hd-door.is-flash .hd-rings i { animation: hd-ring .45s ease-out both; }
+.hd-door.is-flash .hd-rings i:nth-child(1) { animation-delay: .07s; }
+.hd-door.is-flash .hd-rings i:nth-child(2) { animation-delay: .33s; }
+.hd-door.is-flash .hd-rings i:nth-child(3) { animation-delay: .585s; }
+@keyframes hd-flash {
+  0%, 100% { transform: none; }
+  7%, 35%, 62% { transform: scale(1.06) rotate(1deg); }
+  15%, 43%, 70% { transform: scale(1); }
+}
+
+/* ── Хто стукає в мої двері ── */
 .hd-knocks { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .hd-knocks li {
   display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
-  padding: 6px 8px; border: 1px solid var(--hd-line); border-radius: 10px;
+  padding: 6px 8px; border: 1px solid var(--hd-line); border-left: 4px solid var(--hd-wait); border-radius: 10px;
   background: var(--hd-plate-bg); font-size: 13px;
+  animation: hd-in .3s ease both;
 }
+@keyframes hd-in { from { opacity: 0; transform: translateY(-4px); } }
 .hd-knocks li > span { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; }
 .hd-knocks i { font-style: normal; color: var(--hd-muted); }
 .hd-btn {
@@ -200,19 +343,18 @@
 }
 
 /* ── Розкладка в шелі головної (index.html) ── */
-/* Залогінений десктоп «в одне вікно»: двері — під кабінетом у лівій колонці, три в ряд */
+/* Залогінений десктоп «в одне вікно»: під кабінетом у лівій колонці, три в ряд, двері менші */
 @media (min-width: 1181px) and (min-height: 600px) {
   body.home-logged-in .home-dashboard-shell > .hd {
+    --hd-w: 46px; --hd-h: 68px;
     grid-column: 1; grid-row: 3;
-    width: auto; margin: 10px 0 0; padding: 10px 12px 8px;
+    width: auto; margin: 10px 0 0; padding: 10px 10px 8px;
   }
-  /* Ліва колонка вузька й без прокрутки сторінки: підказку несуть title дверей, двері менші */
   body.home-logged-in .hd-head { margin-bottom: 4px; }
   body.home-logged-in .hd-hint { display: none; }
-  body.home-logged-in .hd-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 6px; }
-  body.home-logged-in .hd-door { gap: 3px; padding-top: 8px; }
-  body.home-logged-in .hd-frame { width: 32px; height: 44px; }
-  body.home-logged-in .hd-leaf { padding: 4px 5px 6px; gap: 3px; }
+  body.home-logged-in .hd-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 6px; padding: 14px 4px 4px; }
+  body.home-logged-in .hd-door { gap: 6px; }
+  body.home-logged-in .hd-leaf { padding: 5px 4px 7px; gap: 3px; }
   body.home-logged-in .hd-plate { padding: 1px 4px; font-size: 10px; line-height: 1.15; }
   body.home-logged-in .hd-knocks li { font-size: 12px; padding: 5px 6px; }
 }
@@ -222,6 +364,6 @@
 }
 /* Мобільний і планшет: між кабінетом і «Обстановкою», три в ряд */
 @media (max-width: 980px) {
-  .hd { width: auto; margin: 0 10px 12px; padding: 10px 10px 8px; border-radius: 16px; }
-  .hd-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 6px; }
+  .hd { --hd-w: 54px; --hd-h: 80px; width: auto; margin: 0 10px 12px; padding: 10px 10px 10px; border-radius: 16px; }
+  .hd-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 6px; padding: 16px 4px 6px; }
 }

@@ -26,7 +26,7 @@
   <link rel="stylesheet" href="brand.css?v=20260826a">
   <link rel="stylesheet" href="auth-v2.css?v=20261110a">
   <link rel="stylesheet" href="home-live.css?v=20261103c">
-  <link rel="stylesheet" href="home-doors.css?v=20261117b">
+  <link rel="stylesheet" href="home-doors.css?v=20261117c">
   <script type="module" src="auth-v2.js?v=20261110a"></script>
   <style>
     /* Знак проєкту в шапці. Правила тримаємо тут, а не в спільному portal.css:
@@ -886,7 +886,7 @@
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
   import { renderBirthdayStrip } from './birthdays.js?v=20260903a';
   import { showHomeLive, hideHomeLive } from './home-live.js?v=20261103c';
-  import { showHomeDoors, hideHomeDoors } from './home-doors.js?v=20261117a';
+  import { showHomeDoors, hideHomeDoors } from './home-doors.js?v=20261117b';
   // Демо дверей без логіна (перевірка вигляду й стуку): index.html?demo=1
   const DOORS_DEMO = new URLSearchParams(location.search).has('demo');
   const hideDoors = () => (DOORS_DEMO ? showHomeDoors({ demo: true }) : hideHomeDoors());

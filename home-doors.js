@@ -58,6 +58,7 @@ export async function showHomeDoors(opts) {
   d.el.addEventListener('click', onClick);
   d.mounted = true;
   d.demo = !!opts.demo;
+  preloadKnock();
   if (d.demo) {
     d.me = { id: 'demo', name: 'Демо-користувач', role: 'expert', dept: DEPTS[1][0] };
     d.knocks = [{ id: 'dk1', name: 'Олена Приклад', from_dept: DEPTS[4][0] }];
@@ -148,9 +149,9 @@ async function knock(dept) {
   if (st?.state === 'wait' || st?.state === 'ok' || d.knocking.has(dept)) return;
   // Спершу стук (анімація + звук), потім уже «чекаємо»: render() перемалював би двері посеред анімації
   d.knocking.add(dept);
-  animate(dept, 'is-knocking', 900);
+  animate(dept, 'is-knocking', 1000);
   knockSound(1);
-  await new Promise((r) => setTimeout(r, 850));
+  await new Promise((r) => setTimeout(r, 950));
   d.knocking.delete(dept);
   if (!d.mounted) return;
   if (d.demo) {
@@ -247,7 +248,7 @@ function animate(dept, cls, ms) {
   setTimeout(() => el.classList.remove(cls), ms);
 }
 
-function flash(dept) { animate(dept, 'is-flash', 1600); }
+function flash(dept) { animate(dept, 'is-flash', 1000); }
 
 function render(note = '') {
   if (!d.el || !d.me) return;
@@ -263,9 +264,12 @@ function render(note = '') {
     const mine = own && d.knocks.length ? `<span class="hd-badge" aria-label="Стукають: ${d.knocks.length}">${d.knocks.length}</span>` : '';
     return `<div class="hd-cell">
       <button type="button" class="${cls}" data-act="door" data-dept="${esc(full)}" title="${esc(tip)}" aria-label="${esc(tip)}">
-        <span class="hd-frame" aria-hidden="true">
-          <span class="hd-light"></span>
-          <span class="hd-leaf"><span class="hd-panel"></span><span class="hd-panel"></span><span class="hd-knob"></span></span>
+        <span class="hd-scene" aria-hidden="true">
+          <span class="hd-room"></span>
+          <span class="hd-leaf"><span class="hd-panel"></span><span class="hd-panel"></span><span class="hd-panel"></span><span class="hd-panel"></span><span class="hd-handle"></span></span>
+          <span class="hd-rings"><i></i><i></i><i></i></span>
+          <span class="hd-crack"></span>
+          <span class="hd-spill"></span>
         </span>
         <span class="hd-bubble" aria-hidden="true">${esc(bubble)}</span>
         ${mine}
@@ -295,14 +299,50 @@ function render(note = '') {
 
 /* ───────────────────────── звук стуку ───────────────────────── */
 
+// Справжній стук у дерев'яні двері (ElevenLabs Sound Effects, обрізано й вирівняно гучність):
+// три удари на 70 / 330 / 585 мс — під них розписано анімацію hd-knock у home-doors.css.
+const KNOCK_URL = new URL('assets/door-knock.mp3?v=20261117a', import.meta.url).href;
 let actx = null;
-/** Три глухі удари по дереву — WebAudio, без файлу. */
-function knockSound(vol = 1) {
+let knockBuf = null;   // Promise<AudioBuffer | null>
+
+/** Розкодувати звук заздалегідь — без AudioContext (його браузер дає лише після жесту). */
+function preloadKnock() {
+  if (knockBuf || !window.OfflineAudioContext) return;
+  knockBuf = fetch(KNOCK_URL).then((r) => (r.ok ? r.arrayBuffer() : Promise.reject()))
+    .then((ab) => new OfflineAudioContext(1, 1, 44100).decodeAudioData(ab))
+    .catch(() => null);
+}
+
+/** Стук: буфер через WebAudio (точно в такт анімації); не вийшло — HTMLAudio; і так ні — синтез. */
+async function knockSound(vol = 1) {
   try {
     actx = actx || new (window.AudioContext || window.webkitAudioContext)();
     if (actx.state === 'suspended') actx.resume();
+    preloadKnock();
+    const buf = await knockBuf;
+    if (buf) {
+      const src = actx.createBufferSource();
+      const g = actx.createGain();
+      g.gain.value = vol;
+      src.buffer = buf;
+      src.connect(g).connect(actx.destination);
+      src.start();
+      return;
+    }
+  } catch (_) { /* далі — запасні шляхи */ }
+  try {
+    const a = new Audio(KNOCK_URL);
+    a.volume = Math.min(1, vol);
+    await a.play();
+  } catch (_) { synthKnock(vol); }
+}
+
+/** Запасний стук — три глухі удари синтезом WebAudio. */
+function synthKnock(vol = 1) {
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
     const t0 = actx.currentTime + 0.02;
-    [0, 0.17, 0.34].forEach((dt, i) => {
+    [0.05, 0.31, 0.565].forEach((dt, i) => {
       const t = t0 + dt;
       const o = actx.createOscillator();
       const g = actx.createGain();
