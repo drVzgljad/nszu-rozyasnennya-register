@@ -14,6 +14,11 @@
  *   'voice:room:<uuid>'       — кімната чату: хто бачить кімнату, той і заходить;
  *   'voice:dm:<uuid>:<uuid>'  — дзвінок 1:1.
  *
+ * Звук входу (17.11.2026, ./greet.js): перший вхід людини за день — привітання на ім'я
+ * («Вітаємо пані Олену!»), решта входів — мелодійний дзвінок. Чи вхід перший, вирішує вкладка того,
+ * хто заходить, і передає в присутності (поле hi = дата); керівництву (поле lead) — привітання на кожен
+ * вхід, не частіше ніж раз на 10 хв. Вихід — як і раніше, дві ноти вниз.
+ *
  * Модуль нічого не малює сам: стан віддає в onChange, а «хто говорить»
  * підсвічує на будь-якому елементі з data-vk="<ключ учасника>".
  *
@@ -32,6 +37,8 @@
  * час початку), той і показує, попередній показ зупиняється сам. Під документи:
  * contentHint 'detail', до 15 кадрів/с, до 1,5 Мбіт/с.
  */
+
+import { greetFor, firstEntryToday, today, playClip, preloadChime, CHIME, ALWAYS } from './greet.js?v=20261117a';
 
 // Адреса воркера tools/voice-turn (та сама, що в spravy/voice.js). Порожньо — лише STUN.
 const VOICE_TURN_URL = 'https://pmg-voice-turn.doktorvzgljad.workers.dev';
@@ -89,8 +96,12 @@ export function netInfo(m) {
   return { dev, devTip, ping: `${n.rtt} мс`, cls, tip: parts.filter(Boolean).join(' · ') };
 }
 
-export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {} }) {
+const GREET_AGAIN = 10 * 60e3;   // керівництво вітаємо на ім'я не частіше
+
+export function createVoice({ sb, me, name, role = '', toast = () => {}, onChange = () => {} }) {
   const v = {
+    hi: '',            // мій вхід сьогодні перший — дата (іде в присутність, кімната вітає на ім'я)
+    greeted: new Map(), // кого вже вітали на ім'я: uid → час (керівництво — не частіше ніж раз на 10 хв)
     since: 0,          // коли канал став live — перші 3 с join-и = «хто вже був», без звуку
     topic: '',
     label: '',
@@ -317,9 +328,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
       // одразу після входу (усі, хто вже був у кімнаті), теж не дзвонить: це не «зайшли щойно».
       .on('presence', { event: 'join' }, ({ key, currentPresences, newPresences }) => {
         if (key === v.key || !v.inRoom || currentPresences?.length || Date.now() - v.since < 3000) return;
-        chime(true);
-        const who = newPresences?.[0]?.name;
-        if (who) toast(`🎧 ${who} — у кімнаті`);
+        arrive(newPresences?.[0] || {});
       })
       .on('presence', { event: 'leave' }, ({ key, currentPresences, leftPresences }) => {
         if (key === v.key || !v.inRoom || currentPresences?.length) return;
@@ -358,7 +367,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     v.timer = setInterval(tick, 150);
     clearInterval(v.statTimer);
     v.statTimer = setInterval(statsTick, STATS_MS);
-    if (v.inRoom) chime(true);
+    if (v.inRoom) selfArrive();
     flushIssues();   // недосланий журнал проблем з минулих разів
   }
 
@@ -395,8 +404,8 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
   async function enter() {
     if (!v.ch || v.inRoom) return;
     v.inRoom = true;
+    selfArrive();
     if (v.status === 'live') await v.ch.track(meta());
-    chime(true);
     emit();
   }
 
@@ -413,7 +422,8 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
     emit();
   }
 
-  const meta = () => ({ uid: me?.id, name, muted: v.muted, deaf: v.deaf, dev: DEVICE, caps: ['screen'], sharing: v.shareSince, rec: v.rec?.since || 0 });
+  const meta = () => ({ uid: me?.id, name, muted: v.muted, deaf: v.deaf, dev: DEVICE, caps: ['screen'], sharing: v.shareSince, rec: v.rec?.since || 0,
+    hi: v.hi, lead: ALWAYS.includes(role) ? 1 : 0 });
 
   function onSync(ch) {
     if (ch !== v.ch) return;
@@ -953,6 +963,47 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
    * після будь-якої взаємодії зі сторінкою браузер дозволяє resume() без нового кліку.
    */
   function chime(up) {
+    if (v.deaf) return;
+    // Вхід — мелодійний дзвінок записом; не вийшло (браузер не дав грати) — дві ноти синтезом
+    if (up) { playClip(CHIME, 0.7).catch(() => synthChime(true)); return; }
+    synthChime(false);
+  }
+
+  /**
+   * Хтось зайшов у кімнату, де я: перший вхід за день (його hi = сьогодні) чи керівництво — привітання
+   * на ім'я, решта — дзвінок. Записане привітання є не для всіх імен (./greet.js) — тоді дзвінок.
+   */
+  function arrive(m) {
+    const g = greetFor(m.name);
+    const key = m.uid || m.name || '';
+    const byName = g && (m.hi === today() || (m.lead && Date.now() - (v.greeted.get(key) || 0) > GREET_AGAIN));
+    if (byName) {
+      v.greeted.set(key, Date.now());
+      toast(`🎉 ${g.text}`);
+      if (!v.deaf) playClip(g.src).catch(() => chime(true));
+      return;
+    }
+    chime(true);
+    if (m.name) toast(`🎧 ${m.name} — у кімнаті`);
+  }
+
+  /** Я зайшов(-ла): перший раз за день (чи я з керівництва) — чую своє привітання, інакше — дзвінок. */
+  function selfArrive() {
+    const first = firstEntryToday();
+    v.hi = first ? today() : '';
+    const g = greetFor(name);
+    const lead = ALWAYS.includes(role) && Date.now() - (v.greeted.get(me?.id) || 0) > GREET_AGAIN;
+    if (g && (first || lead)) {
+      v.greeted.set(me?.id, Date.now());
+      toast(`🎉 ${g.text}`);
+      if (!v.deaf) playClip(g.src).catch(() => chime(true));
+      return;
+    }
+    chime(true);
+  }
+
+  /** Дві ноти, як дверний дзвінок (вгору — вхід, униз — вихід). Для входу — запасний варіант. */
+  function synthChime(up) {
     const ctx = audioCtx();
     if (!ctx || v.deaf) return;
     const play = () => {
@@ -977,6 +1028,7 @@ export function createVoice({ sb, me, name, toast = () => {}, onChange = () => {
   }
 
   document.addEventListener('pointerdown', () => { audioCtx(); unlock(); }, true);
+  preloadChime();
   document.addEventListener('keydown', unlock, true);
   window.addEventListener('pagehide', () => { if (v.ch) leave(true); });
 

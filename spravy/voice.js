@@ -30,12 +30,13 @@
  *   з ?door=home (свої двері), ?door=<id стуку 'ok'> (впустили) або ?door_dept=<відділ> (керівництво).
  * - «Вивести» (17.11.2026): біля гостя, якого впустили за стуком, — кнопка для будь-кого з відділу.
  *   Стук стає 'out' (migration_2026-11-17_voice_doors.sql; до неї — 'gone'), гостя повертає до свого відділу.
- * - Привітання (17.11.2026): заходить у кімнату директорка чи заступниця директора департаменту —
- *   усім, хто в кімнаті, грає ../assets/greet-*.mp3 (ElevenLabs v4, Dmytro). Хто це — за роллю в
- *   profiles (director / deputy_director) і ім'ям, під яке записано звертання (GREET).
+ * - Звук входу (17.11.2026) — у рушії (../zviazok/greet.js): перший вхід людини за день — привітання на
+ *   ім'я («Вітаємо пані Олену!»), далі — мелодійний дзвінок; керівництво — на ім'я на кожен вхід. Сюди
+ *   лише передаємо роль (createVoice({ role })), щоб рушій знав, хто з керівництва.
  */
 
-import { createVoice, netInfo } from '../zviazok/voice.js?v=20261106a';
+import { createVoice, netInfo } from '../zviazok/voice.js?v=20261117a';
+import { greetFor, playClip, CHIME } from '../zviazok/greet.js?v=20261117a';
 import { openMicPicker } from '../zviazok/mic-picker.js?v=20261106a';
 import { createMeeting } from '../zviazok/meeting.js?v=20261103a';
 import { createStage } from '../zviazok/stage.js?v=20261103a';
@@ -47,13 +48,6 @@ const LOCK = 'pmg-voice-holder';   // замок «ця вкладка трим�
 const BC = 'pmg-voice-tabs';       // канал між вкладками: «віддай голос»
 const LEAD = ['admin', 'director', 'deputy_director'];   // заходять у будь-яку кімнату без стуку
 const cap = (t) => (t ? t[0].toUpperCase() + t.slice(1) : '');
-// Привітання керівництва департаменту: роль → звертання й запис. first — початок імені з профілю,
-// під яке записано звертання: з'явиться інша людина з тією ж роллю — мовчимо, а не кличемо чужим ім'ям.
-const GREET = {
-  director: { first: 'Світлан', text: 'Вітаємо пані Світлану!', src: new URL('../assets/greet-svitlana.mp3', import.meta.url).href },
-  deputy_director: { first: 'Альбін', text: 'Вітаємо пані Альбіну!', src: new URL('../assets/greet-albina.mp3', import.meta.url).href }
-};
-const GREET_AGAIN = 10 * 60e3;   // ту саму людину в тій самій кімнаті вітаємо не частіше
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const initials = (name) => (name || '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';
@@ -88,8 +82,7 @@ const v = {
   myKnockCh: null,     // Realtime: відповідь на наш стук
   noKnock: false,      // таблиці voice_knocks ще нема (міграція 10b)
   invited: new Map(),  // кого ми покликали: user_id → час (їхній стук пускаємо самі, 15 хв)
-  guests: new Map(),   // гості нашої кімнати, впущені за стуком: user_id → рядок voice_knocks ('ok')
-  greet: { topic: '', since: 0, known: new Set(), played: new Map(), people: new Map() }
+  guests: new Map()    // гості нашої кімнати, впущені за стуком: user_id → рядок voice_knocks ('ok')
 };
 
 /* ───────────────────────── публічне ───────────────────────── */
@@ -107,7 +100,7 @@ export function initVoice(opts) {
   const host = document.createElement('section');
   v.root.after(host);
   v.stage = createStage(host, { onStop: () => v.eng.toggleShare() });
-  v.eng = createVoice({ sb: v.sb, me: v.me, name: v.name, toast: v.toast, onChange: (s) => { v.vs = s; watchGreet(s); render(); v.stage.update(s); } });
+  v.eng = createVoice({ sb: v.sb, me: v.me, name: v.name, role: v.role, toast: v.toast, onChange: (s) => { v.vs = s; render(); v.stage.update(s); } });
   v.meet = createMeeting({ sb: v.sb, me: v.me, name: v.name, eng: v.eng, toast: v.toast });
   watchKnocks();
   window.__pmgVoice = { acceptInvite };
@@ -399,58 +392,6 @@ async function kick(uid) {
   render();
 }
 
-/* ───────────────────────── привітання керівництва ───────────────────────── */
-
-/**
- * Хто ЗАЙШОВ у кімнату, де я зараз: нові uid у присутності. Перші 3 с після мого входу — не «зайшли»:
- * присутність приходить частинами, і ті, хто вже сидів у кімнаті, теж з'являються не одразу.
- */
-function watchGreet(s) {
-  const g = v.greet;
-  if (!s || s.status !== 'live' || !s.inRoom) { g.topic = ''; return; }
-  const uids = [...new Set(s.members.map((m) => m.uid).filter(Boolean))];
-  if (g.topic !== s.topic) {
-    g.topic = s.topic; g.since = Date.now(); g.known = new Set(uids);
-    greetFor(v.me?.id, v.role, v.name, s);      // керівниця зайшла сама — чує й вона
-    return;
-  }
-  const fresh = uids.filter((u) => !g.known.has(u));
-  g.known = new Set(uids);                      // хто вийшов і зайшов знову — знову «зайшов»
-  if (Date.now() - g.since < 3000) return;
-  fresh.forEach(async (u) => {
-    const p = await personOf(u);
-    if (p) greetFor(u, p.role, p.full_name, v.vs);
-  });
-}
-
-async function personOf(uid) {
-  const g = v.greet;
-  if (!g.people.has(uid)) {
-    g.people.set(uid, v.sb.from('profiles').select('role, full_name').eq('id', uid).maybeSingle()
-      .then(({ data }) => data || null, () => null));
-  }
-  return g.people.get(uid);
-}
-
-function greetFor(uid, role, name, s) {
-  const gr = GREET[role];
-  if (!uid || !gr || !String(name || '').includes(gr.first)) return;
-  const key = v.greet.topic + '|' + uid;
-  if (Date.now() - (v.greet.played.get(key) || 0) < GREET_AGAIN) return;
-  v.greet.played.set(key, Date.now());
-  playGreet(gr, s?.deaf);
-}
-
-function playGreet(gr, deaf) {
-  v.toast(`🎉 ${gr.text}`);
-  if (deaf) return;                              // звук вимкнено — лише напис
-  try {
-    const a = new Audio(gr.src);
-    a.volume = 0.9;
-    a.play().catch(() => { /* браузер не дав грати без жесту — лишається напис */ });
-  } catch (_) { /* без звуку */ }
-}
-
 /* ───────────────────────── кімната ───────────────────────── */
 
 async function topicFor(dept) {
@@ -488,7 +429,7 @@ async function onClick(e) {
   if (act === 'micpick') return openMicPicker(v.demo ? null : v.eng, { toast: v.toast });
   if (act === 'visit') { v.showDepts = !v.showDepts; return render(); }
   if (v.demo && ['knock', 'unvisit'].includes(act)) return v.toast('У демо стук не працює');
-  if (v.demo && ['kok', 'kno', 'kick', 'greetdemo'].includes(act)) return demoAct(act, b.dataset);
+  if (v.demo && ['kok', 'kno', 'kick', 'greetdemo', 'chimedemo'].includes(act)) return demoAct(act, b.dataset);
   if (act === 'knock') return knock(b.dataset.dept);
   if (act === 'kick') return kick(b.dataset.uid);
   if (act === 'unvisit') return endVisit(true);
@@ -556,7 +497,8 @@ function render() {
        <button type="button" class="spv-btn spv-icon${s.deaf ? ' is-off' : ''}" data-act="deaf" aria-pressed="${s.deaf}"
          title="${s.deaf ? 'Увімкнути звук' : 'Вимкнути звук (і мікрофон)'}">${s.deaf ? '🔕' : '🎧'}</button>
        <button type="button" class="spv-btn spv-icon${s.micSilent ? ' is-off' : ''}" data-act="micpick" title="Обрати мікрофон і перевірити, чи він вас чує">⚙</button>
-       ${v.demo ? '<button type="button" class="spv-btn spv-ghost" data-act="greetdemo" title="Демо: у кімнату заходить директорка департаменту — усім грає привітання">▶ Демо: заходить директорка</button>' : ''}
+       ${v.demo ? `<button type="button" class="spv-btn spv-ghost" data-act="greetdemo" title="Демо: колега заходить у голосову кімнату вперше за день — привітання на ім'я">▶ Перший вхід</button>
+       <button type="button" class="spv-btn spv-ghost" data-act="chimedemo" title="Демо: колега заходить удруге за день — мелодійний дзвінок">▶ Повторний вхід</button>` : ''}
        ${s.canShare ? `<button type="button" class="spv-btn spv-icon${s.sharing ? ' is-on' : ''}" data-act="screen" aria-pressed="${!!s.sharing}"
          title="${s.sharing ? 'Зупинити показ екрана' : 'Показати колегам свій екран або вікно'}">🖥</button>` : ''}
        ${s.canRecord && !(s.recording && !s.recording.me) ? (s.recording?.me
@@ -663,9 +605,13 @@ function demoAct(act, ds = {}) {
     s.members = s.members.filter((m) => m.uid !== ds.uid);
     v.toast(`🚪 ${g?.name || 'Гостя'} — виведено з кімнати`);
   }
-  if (act === 'greetdemo' && !s.members.some((m) => m.key === 'dd')) {
-    s.members.push({ key: 'dd', name: 'Директорка департаменту', muted: false, deaf: false, state: 'ok', dev: 'pc' });
-    playGreet(GREET.director, s.deaf);
+  // Демо звуку входу: той самий запис, що в рушії (../zviazok/greet.js)
+  if (act === 'greetdemo' || act === 'chimedemo') {
+    s.members = s.members.filter((m) => m.key !== 'dd');
+    s.members.push({ key: 'dd', name: 'Олена Приклад-друга', muted: true, deaf: false, state: 'ok', dev: 'pc' });
+    const g = greetFor('Олена');
+    if (act === 'greetdemo') v.toast(`🎉 ${g.text}`); else v.toast('🎧 Олена Приклад-друга — у кімнаті');
+    if (!s.deaf) playClip(act === 'greetdemo' ? g.src : CHIME, act === 'greetdemo' ? 0.9 : 0.7).catch(() => {});
   }
   if (act === 'mic') { s.muted = !s.muted; if (!s.muted) s.deaf = false; }
   if (act === 'deaf') {

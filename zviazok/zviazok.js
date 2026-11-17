@@ -31,7 +31,7 @@
  * ?mode=popup — плаваюче вікно.
  */
 
-import { createVoice, MANY, netInfo } from './voice.js?v=20261106a';
+import { createVoice, MANY, netInfo } from './voice.js?v=20261117a';
 import { openMicPicker } from './mic-picker.js?v=20261106a';
 import { createMeeting } from './meeting.js?v=20261103a';
 import { createStage } from './stage.js?v=20261103a';
@@ -1059,7 +1059,7 @@ async function boot() {
   const stageHost = document.createElement('section');
   $('zvLog').before(stageHost);
   S.stage = createStage(stageHost, { onStop: () => S.voice.toggleShare() });
-  S.voice = createVoice({ sb: S.sb, me: S.me, name: S.name, toast, onChange: (vs) => { onVoice(vs); S.stage.update(vs); } });
+  S.voice = createVoice({ sb: S.sb, me: S.me, name: S.name, role: S.role, toast, onChange: (vs) => { onVoice(vs); S.stage.update(vs); } });
   S.meet = createMeeting({ sb: S.sb, me: S.me, name: S.name, eng: S.voice, toast });
   subscribe();
   // Канал голосу — одразу «лише дивлюся»: видно, хто в ефірі, ще до натискання «Голос»
