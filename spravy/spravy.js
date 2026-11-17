@@ -1631,6 +1631,20 @@ function renderRoute(c) {
  * числом, коли справді погоджували, а не датою введення»): погодження ≤ «на підпис» ≤ «підписано». Пізнішу дату
  * (зазвичай сьогоднішню, коли маршрут відмічають заднім числом) підтягуємо до межі; ранішу, введену руками, лишаємо.
  */
+/**
+ * «📤 Відправлено на підпис» іде за останнім погодженням перед підписантом (17.11.2026, користувач: «після погодження
+ * заступника (передпідписанта) автоматично встановити дату на підписі Голові (чи іншому підписанту)»). Раніше дата
+ * ставилась лише кліком по останній ланці й лише сьогоднішня: дата погодження, вписана в поле «дд.мм», її не ставила.
+ * Тепер: усі ланки погоджено — «на підпис» = дата погодження ОСТАННЬОЇ ланки, передпідписанта (без ланок — дата
+ * виконавця); раніші ланки normRoute підтягує не пізніше неї. Дату, яку
+ * змінили руками (не збігається з попереднім автоматичним значенням), не чіпаємо; зняли погодження — знімаємо й її.
+ */
+const lastApproval = (r) => (r.steps.length ? (r.steps.every((x) => x.ok) ? r.steps[r.steps.length - 1].ok : null) : r.exec || null);
+function syncSent(r, before) {
+  if (r.sign.ok) return;
+  if (!r.sign.sent || r.sign.sent === lastApproval(before)) r.sign.sent = lastApproval(r) || null;
+}
+
 function normRoute(r) {
   const s = r.sign || {};
   if (s.ok && s.sent && s.sent > s.ok) s.sent = s.ok;
@@ -2353,14 +2367,15 @@ function wireStatic() {
     const today = todayISO();
     if (b.dataset.rt === 'exec') {
       r.exec = r.exec ? null : today;
+      syncSent(r, routeOf(c));
       return saveRoute(c, r, r.exec ? 'Виконавець погодив — документ на погодження' : 'Знято позначку виконавця');
     }
     if (b.dataset.rt === 'step') {
       const s = r.steps[+b.dataset.i];
       s.ok = s.ok ? null : today;
       if (s.ok && !r.exec) r.exec = today;
-      // Усі погодили — документ висить на підписанті: «відправлено на підпис» сьогодні (дату можна змінити)
-      if (s.ok && r.steps.every((x) => x.ok) && !r.sign.sent) r.sign.sent = today;
+      // Усі погодили — документ висить на підписанті: «відправлено на підпис» тією ж датою (можна змінити)
+      syncSent(r, routeOf(c));
       return saveRoute(c, r, s.ok ? `Погоджено: ${s.who}` : `Знято погодження: ${s.who}`);
     }
     if (b.dataset.rt === 'sign') {
@@ -2377,10 +2392,11 @@ function wireStatic() {
       const k = e.target.dataset.rtDate, pv = parseDM(e.target.value);
       if (pv === null) { toast('Дату не розібрано: введіть дд.мм (рік ' + todayISO().slice(0, 4) + ') або дд.мм.рррр', true); renderRoute(c); return; }
       const v = pv || null;
-      if (k === 'exec') { r.exec = v; return saveRoute(c, r, v ? `Виконавець погодив: ${fmtDate(v)}` : 'Знято позначку виконавця'); }
+      if (k === 'exec') { r.exec = v; syncSent(r, routeOf(c)); return saveRoute(c, r, v ? `Виконавець погодив: ${fmtDate(v)}` : 'Знято позначку виконавця'); }
       if (/^s\d+$/.test(k)) {
         const st = r.steps[+k.slice(1)];
         st.ok = v;
+        syncSent(r, routeOf(c));
         return saveRoute(c, r, v ? `Погоджено: ${st.who} — ${fmtDate(v)}` : `Знято погодження: ${st.who}`);
       }
       if (k === 'sent') {
