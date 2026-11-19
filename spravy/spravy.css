@@ -1536,3 +1536,20 @@ button.sp-rev-mini.is-todo:hover, button.sp-rev-mini.is-todo:focus-visible { out
 .sp-link.is-draft { border-left-color: var(--sp-wait); }
 .sp-im-hint { margin: 0; font-size: 12px; line-height: 1.45; }
 @media (hover: none) { .sp-lr-x { opacity: 1; } }
+
+/* ───── 📑 Блок «Проміжна відповідь і запити» з маршрутами документів (19.11.2026) ───── */
+.sp-docs { border: 1px solid var(--sp-wait); border-radius: 12px; padding: 10px 12px; background: var(--surface); }
+.sp-docs h3 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 0 0 4px; }
+.sp-docs h3 .sp-muted { font-size: 13px; font-weight: 600; }
+.sp-docs-hint { margin: 0 0 8px; font-size: 12px; }
+.sp-docs-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.sp-doc { border: 1px solid var(--line); border-left: 4px solid var(--sp-wait); border-radius: 10px; padding: 8px 10px; min-width: 0; }
+.sp-doc.is-sent { border-left-color: var(--sp-ok-ink); }
+.sp-doc-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: 14px; overflow-wrap: anywhere; }
+.sp-doc-st { margin-left: auto; font-size: 12px; color: var(--muted); }
+.sp-doc-st b { color: var(--ink); }
+.sp-doc .sp-lr { margin-top: 8px; }
+.sp-lr-dl { display: inline-flex; align-items: center; gap: 4px; }
+.sp-lr-line { margin-top: 6px; font-size: 12px; color: var(--sp-wait-ink); background: var(--sp-wait-bg); padding: 4px 8px; border-radius: 8px; overflow-wrap: anywhere; }
+.sp-badges .sp-interim.is-draft { background: var(--sp-wait-bg); color: var(--sp-wait-ink); }
+@media (max-width: 640px) { .sp-doc-st { margin-left: 0; flex-basis: 100%; } }
