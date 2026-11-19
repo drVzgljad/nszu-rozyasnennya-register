@@ -580,6 +580,14 @@ async function loadAlerts() {
   renderAlerts();
 }
 
+// Рівень тривоги (з вересня 2026): жовтий — загроза дронів, червоний — ракети чи масована атака.
+// Воркер віддає його в o.color; невідомий (запасне джерело) показуємо червоним
+const oblastColor = (o) => (o?.color === 'yellow' ? 'yellow' : 'red');
+const COLOR_TXT = {
+  yellow: 'Жовтий рівень — загроза ударних дронів',
+  red: 'Червоний рівень — ракетна загроза або масована атака'
+};
+
 function oblastLevel(o) {
   if (!o || o.level === 'none') return 'none';
   if (o.level === 'full' && o.since && Date.now() - new Date(o.since) > LONG_ALERT_DAYS * 864e5) return 'long';
@@ -602,7 +610,8 @@ function renderAlerts() {
     const [, , vw, vh] = state.map.meta.viewBox.split(' ').map(Number);
     const paths = Object.entries(state.map.oblasts).map(([k, o]) => {
       const lvl = oblastLevel(a.oblasts[k]);
-      return `<path class="ob ${lvl}${k === place.oblast ? ' me' : ''}" data-key="${esc(k)}" d="${o.d}"/>`;
+      const col = lvl === 'full' || lvl === 'part' ? ` ${oblastColor(a.oblasts[k])}` : '';
+      return `<path class="ob ${lvl}${col}${k === place.oblast ? ' me' : ''}" data-key="${esc(k)}" d="${o.d}"/>`;
     }).join('');
     // Обраний регіон — поверх сусідів, щоб його обвідку не перекривали
     const markers = [];
@@ -621,7 +630,10 @@ function renderAlerts() {
       <svg viewBox="0 0 ${vw} ${vh}" role="img" aria-label="Мапа тривог за областями">
         <defs>
           <pattern id="hl-hatch-part" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <rect width="10" height="10" fill="var(--hl-map-calm)"/><rect width="5" height="10" fill="var(--hl-map-part)"/>
+            <rect width="10" height="10" fill="var(--hl-map-calm)"/><rect width="5" height="10" fill="var(--hl-map-full)"/>
+          </pattern>
+          <pattern id="hl-hatch-yellow" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect width="10" height="10" fill="var(--hl-map-calm)"/><rect width="5" height="10" fill="var(--hl-map-yellow)"/>
           </pattern>
           <pattern id="hl-hatch-long" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
             <rect width="9" height="9" fill="var(--hl-map-calm)"/><rect width="3" height="9" fill="var(--hl-map-long)"/>
@@ -637,8 +649,9 @@ function renderAlerts() {
       </svg>
       <div class="hl-map-tip" hidden></div>
       <div class="hl-legend">
-        <span><i style="background: var(--hl-map-full)"></i>тривога в області</span>
-        <span><i style="background: repeating-linear-gradient(45deg, var(--hl-map-part) 0 4px, var(--hl-map-calm) 4px 8px)"></i>у частині районів</span>
+        <span><i style="background: var(--hl-map-full)"></i>червона тривога</span>
+        <span><i style="background: var(--hl-map-yellow)"></i>жовта (дрони)</span>
+        <span><i style="background: repeating-linear-gradient(45deg, var(--hl-muted) 0 4px, var(--hl-map-calm) 4px 8px)"></i>у частині районів</span>
         <span><i style="background: repeating-linear-gradient(45deg, var(--hl-map-long) 0 3px, var(--hl-map-calm) 3px 7px)"></i>триває понад місяць</span>
         <span><i style="background: var(--hl-map-calm)"></i>спокійно</span>
       </div>`;
@@ -656,7 +669,10 @@ function renderAlerts() {
   }[lvl];
   // Тривога у своїй області — вогник біжить по краю картки (home-live.css, .is-alarm).
   // Тривалий фон окупованих територій вогника не вмикає: це не подія
-  $(root, '.hl-alert').classList.toggle('is-alarm', lvl === 'full' || lvl === 'part');
+  const col = oblastColor(mine);
+  const alarm = lvl === 'full' || lvl === 'part';
+  $(root, '.hl-alert').classList.toggle('is-alarm', alarm);
+  $(root, '.hl-alert').classList.toggle('is-yellow', alarm && col === 'yellow');
   const otherTypes = (mine.types || []).filter((t) => t !== 'AIR');
   const myThreats = (a.threats || []).filter((t) => t.oblasts.includes(place.oblast) && Date.now() - new Date(t.at) < 90 * 60000);
   const myKinds = [...new Set(myThreats.map((t) => t.kind))];
@@ -666,11 +682,12 @@ function renderAlerts() {
   const feed = (a.threats || []).slice(0, 7);
 
   aside.innerHTML = `
-    <div class="hl-me ${lvl === 'long' ? 'full' : lvl}">
+    <div class="hl-me ${lvl === 'long' ? 'full' : lvl}${alarm ? ` ${col}` : ''}">
       <span class="hl-me-dot" aria-hidden="true"></span>
       <div>
         <div class="hl-me-place">${esc(PLACES[place.oblast][0])}</div>
         <div class="hl-me-state">${stateTxt}</div>
+        ${alarm && mine.color ? `<div class="hl-me-level">${COLOR_TXT[col]}</div>` : ''}
         <div class="hl-me-since" data-since="${lvl === 'full' || lvl === 'long' ? esc(mine.since || '') : ''}"></div>
       </div>
     </div>
@@ -713,9 +730,9 @@ function bindMapTips(mapBox) {
     const lvl = oblastLevel(o);
     const kinds = [...new Set((state.alerts?.threats || []).filter((t) => t.oblasts.includes(k) && Date.now() - new Date(t.at) < 90 * 60000).map((t) => KINDS[t.kind]?.label))].filter(Boolean);
     tip.innerHTML = `<b>${esc(PLACES[k]?.[0] || k)}</b><br>${{
-      full: `Тривога ${o?.since ? `· ${duration(Date.now() - new Date(o.since))}` : ''}`,
+      full: `${o?.color === 'yellow' ? 'Жовта тривога' : o?.color === 'red' ? 'Червона тривога' : 'Тривога'} ${o?.since ? `· ${duration(Date.now() - new Date(o.since))}` : ''}`,
       long: `Тривога ${o?.since ? sinceLabel(o.since) : ''}`,
-      part: `Тривога в ${o.parts.filter((p) => p.type === 'AIR').length} ${plural(o.parts.filter((p) => p.type === 'AIR').length, 'районі чи громаді', 'районах чи громадах', 'районах чи громадах')}`,
+      part: `${o?.color === 'yellow' ? 'Жовта тривога' : o?.color === 'red' ? 'Червона тривога' : 'Тривога'} в ${o.parts.filter((p) => p.type === 'AIR').length} ${plural(o.parts.filter((p) => p.type === 'AIR').length, 'районі чи громаді', 'районах чи громадах', 'районах чи громадах')}`,
       none: 'Тривоги немає'
     }[lvl]}${kinds.length ? `<br>${esc(kinds.join(', '))}` : ''}<br><span class="hl-muted">Клік — зробити своєю областю</span>`;
     const box = mapBox.getBoundingClientRect();

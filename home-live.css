@@ -22,8 +22,12 @@
   --hl-map-part: #f8c77c;
   --hl-map-full: #ef6b6b;
   --hl-map-long: #c9a4a4;
+  --hl-map-yellow: #f5c518;
   --hl-alert: #dc2626;
   --hl-alert-soft: rgba(220, 38, 38, 0.10);
+  --hl-yellow: #a16207;
+  --hl-yellow-dot: #eab308;
+  --hl-yellow-soft: rgba(234, 179, 8, 0.16);
   --hl-calm: #15803d;
   --hl-calm-soft: rgba(21, 128, 61, 0.10);
   --hl-part: #b45309;
@@ -59,8 +63,12 @@
   --hl-map-part: #a1662a;
   --hl-map-full: #dc4646;
   --hl-map-long: #5d4646;
+  --hl-map-yellow: #d9a90f;
   --hl-alert: #f87171;
   --hl-alert-soft: rgba(248, 113, 113, 0.12);
+  --hl-yellow: #facc15;
+  --hl-yellow-dot: #facc15;
+  --hl-yellow-soft: rgba(250, 204, 21, 0.12);
   --hl-calm: #4ade80;
   --hl-calm-soft: rgba(74, 222, 128, 0.10);
   --hl-part: #fbbf24;
@@ -104,20 +112,23 @@
 /* Тривога у своїй області: червоний вогник біжить по краю картки.
    Кут конічного градієнта анімуємо через @property, маска лишає видимим лише обідок */
 @property --hl-run { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
-.hl-alert.is-alarm { border-color: color-mix(in srgb, var(--hl-alert) 30%, var(--hl-line)); animation: hl-alarm-glow 2.6s ease-in-out infinite; }
+/* Жовтий рівень (дрони) — той самий вогник, але жовтий */
+.hl-alert { --hl-glow: var(--hl-alert); }
+.hl-alert.is-yellow { --hl-glow: var(--hl-yellow-dot); }
+.hl-alert.is-alarm { border-color: color-mix(in srgb, var(--hl-glow) 30%, var(--hl-line)); animation: hl-alarm-glow 2.6s ease-in-out infinite; }
 .hl-alert.is-alarm::after {
   content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none;
   border-radius: inherit; padding: 3px;
   background: conic-gradient(from var(--hl-run), transparent 0deg 220deg,
-    color-mix(in srgb, var(--hl-alert) 35%, transparent) 280deg, var(--hl-alert) 335deg, #ffe4e4 350deg, transparent 358deg);
-  filter: drop-shadow(0 0 4px var(--hl-alert));
+    color-mix(in srgb, var(--hl-glow) 35%, transparent) 280deg, var(--hl-glow) 335deg, #fff7e0 350deg, transparent 358deg);
+  filter: drop-shadow(0 0 4px var(--hl-glow));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
   animation: hl-run 3.2s linear infinite;
 }
 @keyframes hl-run { to { --hl-run: 360deg; } }
-@keyframes hl-alarm-glow { 50% { box-shadow: var(--hl-shadow), 0 0 22px color-mix(in srgb, var(--hl-alert) 28%, transparent); } }
+@keyframes hl-alarm-glow { 50% { box-shadow: var(--hl-shadow), 0 0 22px color-mix(in srgb, var(--hl-glow) 28%, transparent); } }
 
 .hl-grid {
   display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 14px;
@@ -289,6 +300,8 @@
 .hl-map .ob:hover { filter: brightness(.95); }
 .hl-map .ob.part { fill: url(#hl-hatch-part); }
 .hl-map .ob.full { fill: var(--hl-map-full); animation: hl-breathe 4s ease-in-out infinite; }
+.hl-map .ob.full.yellow { fill: var(--hl-map-yellow); }
+.hl-map .ob.part.yellow { fill: url(#hl-hatch-yellow); }
 .hl-map .ob.long { fill: url(#hl-hatch-long); animation: none; }
 .hl-map .ob.me { stroke: var(--hl-ink); stroke-width: 3; }
 @keyframes hl-breathe { 50% { opacity: .78; } }
@@ -313,6 +326,12 @@
 .hl-me-dot { width: 14px; height: 14px; border-radius: 50%; flex: none; background: var(--hl-calm); }
 .hl-me.full .hl-me-dot { background: var(--hl-alert); animation: hl-pulse-dot 1.6s ease-in-out infinite; }
 .hl-me.part .hl-me-dot { background: var(--hl-part); }
+.hl-me.full.yellow { background: var(--hl-yellow-soft); border-color: color-mix(in srgb, var(--hl-yellow-dot) 45%, transparent); }
+.hl-me.part.red .hl-me-dot { background: var(--hl-alert); }
+.hl-me.full.yellow .hl-me-dot { background: var(--hl-yellow-dot); animation-name: hl-pulse-dot-y; }
+.hl-me.full.yellow .hl-me-state { color: var(--hl-yellow); }
+@keyframes hl-pulse-dot-y { 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--hl-yellow-dot) 22%, transparent); } }
+.hl-me-level { font-size: 12px; color: var(--hl-muted); margin-top: 2px; }
 @keyframes hl-pulse-dot { 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--hl-alert) 18%, transparent); } }
 .hl-me-place { font-size: 12px; font-weight: 800; color: var(--hl-muted); }
 .hl-me-state { font-size: 18px; font-weight: 800; line-height: 1.2; }
@@ -359,7 +378,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .hl *, .hl *::before, .hl *::after { animation: none !important; transition: none !important; }
-  .hl-alert.is-alarm::after { background: var(--hl-alert); }
+  .hl-alert.is-alarm::after { background: var(--hl-glow); }
 }
 
 /* ── Розкладка ── */
