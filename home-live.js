@@ -552,6 +552,11 @@ function kindIcon(kind) {
     : `<path d="${g.d}" fill="currentColor"/>`;
   return `<svg viewBox="0 0 24 24" aria-hidden="true">${body}</svg>`;
 }
+// Значки загроз на мапі. Київ — крихітний і лежить усередині області: значки міста й області,
+// поставлені в центри, повністю закривали його колір. Тож значки міста йдуть до області,
+// а обласні стоять стовпчиком у західній частині, поза контуром міста.
+const MARK_ALIAS = { 'М.КИЇВ': 'КИЇВСЬКА' };
+const MARK_AT = { 'КИЇВСЬКА': { x: 428, y: 180, dx: 0, dy: 44 } };
 const kindColor = (kind) => `var(--hl-k-${KINDS[kind] ? kind : 'other'})`;
 
 async function loadMap() {
@@ -602,13 +607,15 @@ function renderAlerts() {
     // Обраний регіон — поверх сусідів, щоб його обвідку не перекривали
     const markers = [];
     const seen = new Set();
-    recent.forEach((t) => t.oblasts.forEach((k) => {
+    recent.forEach((t) => t.oblasts.forEach((k0) => {
+      const k = MARK_ALIAS[k0] || k0;
       const id = `${k}|${t.kind}`;
       const o = state.map.oblasts[k];
       if (!o || seen.has(id)) return;
       seen.add(id);
       const n = markers.filter((m) => m.k === k).length;
-      markers.push({ k, kind: t.kind, x: o.cx + n * 44, y: o.cy - 4 });
+      const at = MARK_AT[k] || { x: o.cx, y: o.cy - 4, dx: 44, dy: 0 };
+      markers.push({ k, kind: t.kind, x: at.x + n * at.dx, y: at.y + n * at.dy });
     }));
     mapBox.innerHTML = `
       <svg viewBox="0 0 ${vw} ${vh}" role="img" aria-label="Мапа тривог за областями">
