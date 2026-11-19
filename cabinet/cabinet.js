@@ -242,7 +242,7 @@ async function loadDatabaseData() {
   // архівні доручення СКО-Д (з 03.11.2026, як головна сторінка)
   const { data: cases, error: casesErr } = await sb
     .from('dept_cases')
-    .select('id, in_no, subject, correspondent, reply_kind, stage, deadline, out_no, project_no, case_kind, assigned_by, event_at')
+    .select('id, in_no, subject, correspondent, reply_kind, stage, deadline, out_no, project_no, case_kind, assigned_by, event_at, merged_into')
     .eq('executor_id', currentUser.id)
     .neq('stage', 'done')
     .order('deadline', { ascending: true, nullsFirst: false });
@@ -306,7 +306,16 @@ function renderMetrics() {
   // Мої незакриті справи. «Гарячі» й «Прострочені» — за тими самими правилами,
   // що фільтри в spravy/spravy.js (строк ≤ 3 дн.; «СЗ надано» не горить у нас):
   // клік по плитці відкриває саме цей фільтр, і числа мають збігатися.
-  const activeTasks = myCases;
+  // 🧩 Об'єднані справи (migration_2026-11-19_case_merge.sql): група — одна справа з найближчим строком, як на
+  // дошці. Сам myCases лишається повним: у формі СКО-Д можна обрати й приєднану справу.
+  const byId = new Map(myCases.map((c) => [c.id, c]));
+  const due = new Map();
+  myCases.forEach((c) => {
+    const m = c.merged_into && byId.get(c.merged_into);
+    if (m && c.deadline && (!(due.get(m.id) ?? m.deadline) || c.deadline < (due.get(m.id) ?? m.deadline))) due.set(m.id, c.deadline);
+  });
+  const activeTasks = myCases.filter((c) => !(c.merged_into && byId.has(c.merged_into)))
+    .map((c) => (due.has(c.id) ? { ...c, deadline: due.get(c.id) } : c));
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 

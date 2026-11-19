@@ -1321,13 +1321,25 @@ async function renderDashboard(dashboardEl, prefix) {
   try {
     const { data } = await sb
       .from('dept_cases')
-      .select('id, in_no, subject, deadline, stage, correspondent, nuances, department, resolution')
+      .select('id, in_no, subject, deadline, stage, correspondent, nuances, department, resolution, merged_into')
       .eq('executor_id', user.id)
       .neq('stage', 'done')
       .order('deadline', { ascending: true, nullsFirst: false });
     // Текст справ вносять люди й скрипт — у розмітку смуги лише екранований
     const h = (v) => String(v ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
-    userTasks = (data || []).map(c => ({
+    // 🧩 Об'єднані справи (spravy/, migration_2026-11-19_case_merge.sql): група — одна справа з усіма вх. № і
+    // найближчим строком, як на дошці. Приєднана справа має того самого виконавця, тож вона теж у вибірці.
+    const rows = data || [];
+    const byId = new Map(rows.map(c => [c.id, c]));
+    rows.forEach(c => {
+      const m = c.merged_into && byId.get(c.merged_into);
+      if (!m) return;
+      if (c.deadline && (!m.deadline || c.deadline < m.deadline)) m.deadline = c.deadline;
+      if (c.in_no) m.in_no = [m.in_no, c.in_no].filter(Boolean).join(' + ');
+    });
+    const own = rows.filter(c => !(c.merged_into && byId.has(c.merged_into)))
+      .sort((a, b) => String(a.deadline || '9999').localeCompare(String(b.deadline || '9999')));
+    userTasks = own.map(c => ({
       id: c.id,
       title: h(c.subject),
       deadline: c.deadline,

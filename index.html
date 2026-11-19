@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="auth-v2.css?v=20261119a">
   <link rel="stylesheet" href="home-live.css?v=20261103c">
   <link rel="stylesheet" href="home-doors.css?v=20261117c">
-  <script type="module" src="auth-v2.js?v=20261119b"></script>
+  <script type="module" src="auth-v2.js?v=20261119c"></script>
   <style>
     /* Знак проєкту в шапці. Правила тримаємо тут, а не в спільному portal.css:
        правка спільного файлу потягла б за собою бамп мітки на всіх сторінках */
@@ -671,7 +671,7 @@
           </span>
         </a>
         <div class="top-row-1-right">
-          <!-- auth-v2.js?v=20261119b inject point -->
+          <!-- auth-v2.js?v=20261119c inject point -->
           <nav class="section-switch top-auth" aria-label="Авторизація"></nav>
         </div>
       </div>
@@ -1346,7 +1346,7 @@
       const [{ data: tasks }, { data: logs }, { data: plannerEvents }] = await Promise.all([
         // Мої справи (Справи відділу) — з 02.11.2026 замість доручень СКО-Д
         sb.from('dept_cases')
-          .select('stage, deadline')
+          .select('id, stage, deadline, merged_into')
           .eq('executor_id', session.user.id)
           .neq('stage', 'done'),
         sb.from('skod_logs')
@@ -1364,7 +1364,14 @@
       ]);
 
       // «СЗ надано» — чекаємо на головного виконавця: справа жива, але не горить у нас
-      const activeTasks = tasks || [];
+      // 🧩 Об'єднані справи (migration_2026-11-19_case_merge.sql): група — одна справа з найближчим строком
+      const allTasks = tasks || [];
+      const byId = new Map(allTasks.map(t => [t.id, { ...t }]));
+      allTasks.forEach(t => {
+        const m = t.merged_into && byId.get(t.merged_into);
+        if (m && t.deadline && (!m.deadline || t.deadline < m.deadline)) m.deadline = t.deadline;
+      });
+      const activeTasks = [...byId.values()].filter(t => !(t.merged_into && byId.has(t.merged_into)));
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
