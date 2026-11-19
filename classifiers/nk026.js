@@ -69,6 +69,7 @@
       .then((r) => r.json())
       .then((idx) => Promise.resolve(loadEsozServices()).then((extra) => idx.concat(extra)))
       .then((idx) => { INDEX = idx; buildMaps(); ready = true; onReady(); })
+      .then(() => window.PMG_FIND && PMG_FIND.ready().then(() => { if (el.search.value.trim()) runSearch(); }))
       .catch(() => { el.count.textContent = "Індекс пошуку недоступний."; })
       .then(loadServices);
   }
@@ -305,7 +306,15 @@
     const qCode = normEsozCode(raw);
     const looksCode = isCodeQuery(qCode);
     const out = [];
-    for (const e of applyFilters(INDEX)) {
+    // пошук за словами — спільний модуль pmg-code-search.js (як у НК 025)
+    let note = "";
+    const byWords = raw && !looksCode && window.PMG_FIND;
+    if (byWords) {
+      const r = PMG_FIND.search(applyFilters(INDEX), raw);
+      for (const x of r.items) out.push([x.score, x.e]);
+      note = r.note;
+    }
+    for (const e of (byWords ? [] : applyFilters(INDEX))) {
       let score = 0;
       if (!raw) score = 10;
       else if (looksCode) {
@@ -321,7 +330,7 @@
       if (score > 0) out.push([score, e]);
     }
     out.sort((a, b) => b[0] - a[0] || a[1].c.localeCompare(b[1].c, "en"));
-    showResults(out.map((x) => x[1]), raw || "фільтр");
+    showResults(out.map((x) => x[1]), (raw || "фільтр") + (note ? " · " + note : ""));
   }
 
   const CAP = 500;
@@ -441,7 +450,9 @@
       matches = exact ? [exact] : INDEX.filter((e) => e.c.startsWith(qCode));
     } else {
       const q = PMG_SEARCH.text(term);
-      matches = INDEX.filter((e) => e._t.includes(q));
+      matches = window.PMG_FIND
+        ? PMG_FIND.search(INDEX, term).items.map((x) => x.e)
+        : INDEX.filter((e) => e._t.includes(q));
     }
     return applyFilters(matches);
   }

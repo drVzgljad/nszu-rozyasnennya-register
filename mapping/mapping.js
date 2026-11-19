@@ -277,6 +277,8 @@
     if (s.code && s.code.toUpperCase().indexOf(codeQ) === 0) return { score: 70 + bonus };
     if (name.indexOf(q) === 0) return { score: 60 + bonus };
     if (name.indexOf(q) >= 0) return { score: 40 + bonus };
+    // усі слова запиту в назві послуги, у будь-якому порядку й відмінку (pmg-code-search.js)
+    if (window.PMG_FIND && q.indexOf(" ") > 0 && PMG_FIND.test(s, name, q)) return { score: 30 + bonus };
     if ((cell._t || (cell._t = PMG_SEARCH.text(cell.raw))).indexOf(q) >= 0) return { score: 20 };
     if ((s._nt || (s._nt = PMG_SEARCH.text(s.note || ""))).indexOf(q) >= 0) return { score: 15 + bonus };
     return { score: 0 };

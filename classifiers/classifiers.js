@@ -65,6 +65,8 @@
     fetch("data/nk025_index.json")
       .then((r) => r.json())
       .then((idx) => { INDEX = idx; buildMaps(); indexReady = true; onIndexReady(); })
+      // словник синонімів довантажується окремо; якщо запит уже введено — перешукати з ним
+      .then(() => window.PMG_FIND && PMG_FIND.ready().then(() => { if (el.search.value.trim()) runSearch(); }))
       .catch(() => { el.count.textContent = "Індекс пошуку недоступний."; })
       // Таблиця співставлення — ПІСЛЯ основного індексу: паралельно з ним три
       // додаткові файли створюють зайву конкуренцію за з'єднання, а паспорт без
@@ -289,7 +291,16 @@
     const qCode = PMG_SEARCH.code(raw);
     const looksCode = /^[A-Z][0-9]/.test(qCode);
     const out = [];
-    for (const e of INDEX) {
+    // Пошук за словами — спільний модуль pmg-code-search.js: слова в будь-якому порядку,
+    // відмінки, словник синонімів. Коди й перегляд за фільтром лишаються тут.
+    let note = "";
+    const byWords = !looksCode && q && window.PMG_FIND;
+    if (byWords) {
+      const r = PMG_FIND.search(INDEX, raw, { filter: (e) => (!onlyPmg || e.pk) && (!lvl || e.l === lvl) });
+      for (const x of r.items) out.push([x.score, x.e]);
+      note = r.note;
+    }
+    for (const e of (byWords ? [] : INDEX)) {
       if (onlyPmg && !e.pk) continue;
       if (lvl && e.l !== lvl) continue;
       let score = 0;
@@ -314,7 +325,7 @@
     lastShown = out.map(([, e]) => ({ t: null, e }));
     exportWhat = raw || "фільтр";
     el.count.textContent = out.length
-      ? `Знайдено ${nf(out.length)}${out.length > CAP ? " · показано " + CAP : ""}`
+      ? `Знайдено ${nf(out.length)}${out.length > CAP ? " · показано " + CAP : ""}${note ? " · " + note : ""}`
       : "Нічого не знайдено";
     el.results.innerHTML = (out.length ? exportBar(out.length) : "") +
       shown.map(([, e]) => resultRow(e)).join("");
@@ -432,7 +443,9 @@
       matches = exact ? [exact] : INDEX.filter((e) => e.c.startsWith(qCode));
     } else {
       const q = PMG_SEARCH.text(term);
-      matches = INDEX.filter((e) => e._t.includes(q));
+      matches = window.PMG_FIND
+        ? PMG_FIND.search(INDEX, term).items.map((x) => x.e)
+        : INDEX.filter((e) => e._t.includes(q));
     }
     if (onlyPmg) matches = matches.filter((e) => e.pk);
     if (lvl) matches = matches.filter((e) => e.l === lvl);
