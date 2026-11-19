@@ -1479,3 +1479,6 @@ button.sp-rev-mini.is-todo:hover, button.sp-rev-mini.is-todo:focus-visible { out
 }
 .sp-board:not(.is-list) .sp-oursz { position: sticky; left: 0; width: var(--sp-board-w, auto); max-width: 100%; box-sizing: border-box; }
 .sp-board:not(.is-list) .sp-lane-ours { width: var(--sp-board-w, auto); max-width: 100%; }
+/* 🧩 Щойно об'єднана група — підсвітка картки на кілька секунд */
+.sp-card.is-flash, .sp-row.is-flash { outline: 3px solid var(--sp-merge); outline-offset: 2px; transition: outline-color .3s; }
+@media (prefers-reduced-motion: reduce) { .sp-card.is-flash, .sp-row.is-flash { transition: none; } }

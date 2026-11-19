@@ -1186,7 +1186,8 @@ function passesFilter(c) {
   if (state.f === 'all') return true;
   if (c.stage === 'done') return false;
   const n = daysLeft(dueOf(c));
-  if (state.f === 'merge') return state.cand.has(c.id);
+  // 🧩 і кандидати, і вже об'єднані групи: інакше щойно об'єднана пара зникала з цього фільтра (19.11.2026)
+  if (state.f === 'merge') return state.cand.has(c.id) || membersOf(c.id).length > 0;
   if (state.f === 'hot') return n !== null && n >= 0 && n <= 3 && c.stage !== 'sz_sent';
   if (state.f === 'overdue') return n !== null && n < 0 && c.stage !== 'sz_sent';
   if (state.f === 'remind') return (state.reminders[c.id] || []).some((r) => daysLeft(r.due_date) <= 0);
@@ -2088,13 +2089,23 @@ async function mergeInto(childId, mainId) {
     demoMerge(child, main);
     render();
     openCase(mainId, true);
+    flashCard(mainId);
     toast(`🧩 Приєднано вх. № ${child.in_no}`);
     return;
   }
   const { error } = await state.sb.from('dept_cases').update({ merged_into: mainId, updated_by_name: myName() }).eq('id', childId);
   if (error) return mergeError(error, 'об\'єднано');
-  toast(`🧩 Приєднано вх. № ${child.in_no}`);
+  toast(`🧩 Приєднано вх. № ${child.in_no} — на дошці тепер одна картка ${main.in_no || ''}`);
   await loadCases();
+  flashCard(mainId);
+}
+
+/** Підсвітити картку на дошці (після об'єднання — де тепер група) */
+function flashCard(id) {
+  const el = document.querySelector(`#spBoard [data-id="${id}"]`);
+  if (!el) return;
+  el.classList.add('is-flash');
+  setTimeout(() => el.classList.remove('is-flash'), 4000);
 }
 
 async function unmerge(childId) {
