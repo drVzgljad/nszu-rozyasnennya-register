@@ -1,14 +1,14 @@
 {
- "generated": "2026-08-14",
+ "generated": "2026-11-19",
  "title": "Коди ЕСОЗ",
  "disclaimer": "Реконструкція, зібрана з документів НСЗУ, а не копія офіційного класифікатора. Покриття неповне: це ті коди, що трапилися в опрацьованих документах.",
  "counts": {
   "services": 519,
   "positions": 97,
   "with_packages": 488,
-  "with_mentions": 479,
+  "with_mentions": 481,
   "with_note": 3,
-  "conflicting_names": 51,
+  "conflicting_names": 22,
   "skipped_codes": 0
  },
  "sources": [
@@ -36,7 +36,9 @@
  "categories": [
   "counselling",
   "diagnostic_curative",
+  "female",
   "reproductive",
+  "urology",
   "лабораторна процедура"
  ]
 }
