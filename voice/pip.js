@@ -78,7 +78,7 @@ export function createPip({ getState, act, onToggle = () => {} }) {
     const html = `<div class="row"><span class="dot${s.inRoom ? ' on' : ''}"></span>
         <span class="air">${s.inRoom ? 'В ЕФІРІ' : 'НЕ В ЕФІРІ'}</span>
         <span class="room" title="${esc(s.label)}">${esc(s.label)}</span>
-        <span class="cnt" title="У кімнаті">👥 ${s.count || 0}</span></div>
+        <span class="cnt" title="${esc((s.people || []).join(', ') || 'У кімнаті')}">👥 ${s.count || 0}</span></div>
       <div class="talk">${talk}</div>
       <div class="btns">
         <button type="button" data-pm="mic" class="${s.muted ? 'mic-off' : 'mic-on'}" title="${s.muted ? 'Увімкнути мікрофон' : 'Вимкнути мікрофон'}">${s.muted ? '🔇 Мікрофон вимк.' : '🎙 Мікрофон увімк.'}</button>

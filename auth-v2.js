@@ -1946,7 +1946,7 @@ function onAirBadge(w) {
   const talk = w.speaking?.length ? `🗣 ${w.speaking.slice(0, 2).join(', ')}${w.speaking.length > 2 ? ` +${w.speaking.length - 2}` : ''}` : '';
   el.classList.toggle('is-muted', !!w.muted);
   el.innerHTML = `<span class="pmg-onair-dot" aria-hidden="true"></span>
-    <span class="pmg-onair-text"><b>В ефірі</b><span class="pmg-onair-room">${esc(w.label)}</span>${talk ? `<span class="pmg-onair-talk">${esc(talk)}</span>` : ''}</span>
+    <span class="pmg-onair-text" title="${esc(w.label)}${w.people?.length ? ' — ' + esc(w.people.join(', ')) : ''}"><b>В ефірі</b><span class="pmg-onair-room">${esc(w.label)}${w.count ? ` · 👥 ${w.count}` : ''}</span>${talk ? `<span class="pmg-onair-talk">${esc(talk)}</span>` : ''}</span>
     <button type="button" data-oa="mic" class="pmg-onair-mic" aria-pressed="${!w.muted}" title="${w.muted ? 'Мікрофон вимкнено — увімкнути' : 'Мікрофон увімкнено — вимкнути'}">${w.muted ? '🔇' : '🎙'}</button>
     <button type="button" data-oa="win" title="Показати голосове вікно">⧉</button>
     <button type="button" data-oa="leave" title="Вийти з голосової кімнати">✕</button>`;

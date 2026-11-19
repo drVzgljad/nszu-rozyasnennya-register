@@ -96,7 +96,8 @@ const v = {
   ask: null,           // намір із адреси вкладки (двері, запрошення): чекає кліку «Зайти» — вікно лише на дію людини
   onState: null,       // вікно: стан змінився (для BroadcastChannel і маркера «в ефірі»)
   onLeave: null,       // вікно: людина вийшла з кімнати — вікно закривається
-  onLost: null         // вікно: голос забрала вкладка (запасний шлях) — вікно закривається
+  onLost: null,        // вікно: голос забрала вкладка (запасний шлях) — вікно закривається
+  follow: ''           // вкладка: назва кімнати, куди пішло вікно (у гостях), — показуємо її
 };
 
 /* ───────────────────────── публічне ───────────────────────── */
@@ -138,6 +139,7 @@ export function initVoice(opts) {
   onVoiceWin((w) => {
     // Вікно вже живе — намір із адреси (двері, запрошення) передаємо йому без кліку
     if (w && v.ask) { sendVoiceCmd('intent', v.ask); v.ask = null; }
+    followWin(w);
     render();
   });
   if (!navigator.locks || !window.BroadcastChannel) return openRoom();
@@ -218,6 +220,22 @@ function api() {
     intent: (p) => applyIntent(p || {}),
     unlock: () => v.eng.unlock()
   };
+}
+
+/**
+ * Вкладка йде слідом за вікном (19.11.2026, «мене пустили, а я не бачу, де я і хто там»): вікно
+ * пішло в гості — панель вкладки показує ту кімнату (хто там, чат відділу-господаря), а не свою.
+ * Кімнату департаменту тут не показуємо: вона в «Чаті департаменту». Вікно закрилось — назад додому.
+ */
+function followWin(w) {
+  if (v.win || v.local || v.demo || !v.eng) return;
+  const there = w && w.inRoom && w.dept && w.dept !== ALL && (v.depts || []).includes(w.dept) ? w.dept : v.home;
+  const label = there !== v.home ? (w.label || `В гостях: ${cap(there)}`) : '';
+  if (there === v.dept && label === v.follow) return;
+  const moved = there !== v.dept;
+  v.dept = there;
+  v.follow = label;
+  if (moved) { roomChanged(); if (v.dept) openRoom(); }
 }
 
 /** Вийти з кімнати у вікні: нарада зберігається, замок відпускаємо, вікно закривається. */
@@ -511,7 +529,7 @@ async function topicFor(dept) {
   return 'voice:dept:' + [...new Uint8Array(buf)].slice(0, 8).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-const roomTitle = () => (v.dept === ALL ? 'Кімната департаменту'
+const roomTitle = () => v.follow || (v.dept === ALL ? 'Кімната департаменту'
   : v.visit?.status === 'in' ? `В гостях: ${cap(v.dept)}` : 'Кімната відділу');
 
 async function openRoom() {
@@ -606,6 +624,7 @@ function render() {
   let note = '';
   if (v.noDept) note = 'У профілі не вказано відділ. Голос усього департаменту — у «Чаті департаменту» (посилання вгорі).';
   else if (v.visit?.status === 'wait') note = `🚪 Стукаємо до відділу «${cap(v.visit.dept)}» — чекаємо, поки хтось пустить.`;
+  else if (w && v.follow) note = `🚪 Ви в гостях: голос в окремому вікні («⧉ Вікно голосу»). Нижче — хто зараз у цій кімнаті.`;
   else if (w) note = w.inRoom ? `🎙 Ви в ефірі — голос в окремому вікні («${w.label || 'кімната'}»). Ходіть порталом, закривайте вкладки — розмова триває.` : 'Голосове вікно відкрито — заходимо в кімнату…';
   else if (tabOnly && v.ask) note = v.ask.voice_invite ? '🎙 Вас кличуть у голосову кімнату — натисніть «Зайти».' : '🚪 Двері відчинено — натисніть «Зайти».';
   else if (v.elsewhere && !tabOnly) note = `Голос відкрито в іншій вкладці порталу («Справи» чи кабінет). Тут видно, хто в кімнаті${list.length ? `: ${list.length}` : ''}.`;

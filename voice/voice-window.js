@@ -17,9 +17,9 @@
  * - Маркер «в ефірі» поверх усіх вікон — ./pip.js.
  */
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { initVoice } from '../spravy/voice.js?v=20261119a';
+import { initVoice } from '../spravy/voice.js?v=20261119b';
 import { BUS, HEARTBEAT } from './link.js?v=20261119a';
-import { createPip } from './pip.js?v=20261119a';
+import { createPip } from './pip.js?v=20261119b';
 
 const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
@@ -77,6 +77,8 @@ function state() {
     muted: s ? !!s.muted : true,
     deaf: !!s?.deaf,
     count: s?.members?.length || 0,
+    // Хто в кімнаті — для бейджа й маркера («де я і хто там»)
+    people: (s?.members || []).map((m) => (m.me ? `${m.name || 'ви'} (ви)` : m.name || 'Без імені')),
     speaking,
     needGesture: !!s?.needGesture
   };
