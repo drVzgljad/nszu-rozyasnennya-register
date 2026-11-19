@@ -796,7 +796,7 @@
   </section>
 
   <!-- ── Двері відділів: стук у кімнати відділів (лише залогіненим; home-doors.js, демо — ?demo=1) ── -->
-  <section class="hd" id="home-doors" hidden aria-label="Двері відділів"></section>
+  <section class="hd" id="home-doors" hidden aria-label="Департамент в ГОЛОСІ"></section>
 
   <!-- ── Обстановка: годинник, погода, тривога, світло (лише залогіненим; home-live.js) ── -->
   <section class="hl" id="home-live" hidden aria-label="Обстановка"></section>
@@ -886,7 +886,7 @@
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
   import { renderBirthdayStrip } from './birthdays.js?v=20260903a';
   import { showHomeLive, hideHomeLive } from './home-live.js?v=20261103c';
-  import { showHomeDoors, hideHomeDoors } from './home-doors.js?v=20261119a';
+  import { showHomeDoors, hideHomeDoors } from './home-doors.js?v=20261119b';
   // Демо дверей без логіна (перевірка вигляду й стуку): index.html?demo=1
   const DOORS_DEMO = new URLSearchParams(location.search).has('demo');
   const hideDoors = () => (DOORS_DEMO ? showHomeDoors({ demo: true }) : hideHomeDoors());

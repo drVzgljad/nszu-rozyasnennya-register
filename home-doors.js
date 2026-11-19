@@ -304,7 +304,7 @@ function render(note = '') {
     : d.me.dept ? 'Свої — одразу, до інших — постукайте' : 'Постукайте — зайдете, коли впустять';
 
   d.el.innerHTML = `<div class="hd-head">
-      <h2 class="hd-title">🚪 Двері відділів</h2>
+      <h2 class="hd-title">🚪 Департамент в ГОЛОСІ</h2>
       <span class="hd-hint">${esc(hint)}${d.demo ? ' · демо' : ''}</span>
     </div>
     <div class="hd-row">${doors}</div>
