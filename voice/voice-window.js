@@ -14,12 +14,12 @@
  * - Намір — з адреси: ?room=all [&mic=1] (кімната департаменту), ?door=…, ?door_dept=…, ?voice_invite=…,
  *   ?knock=<відділ>; без параметрів — кімната свого відділу. Відкрите вікно отримує намір командою 'intent'.
  * - Вийшли з кімнати — вікно закривається. Закрили вікно — вийшли (рушій сам виходить на pagehide).
- * - Маркер «в ефірі» поверх усіх вікон — ./pip.js.
+ * - Компактне міні-вікно поверх усіх вікон (учасники, хто говорить, мікрофон, вийти) — ./pip.js.
  */
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { initVoice } from '../spravy/voice.js?v=20261119b';
 import { BUS, HEARTBEAT } from './link.js?v=20261119a';
-import { createPip } from './pip.js?v=20261119b';
+import { createPip } from './pip.js?v=20261119c';
 
 const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
@@ -39,6 +39,7 @@ const bc = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(BUS) :
 let api = null;
 let pip = null;
 let speaking = [];
+let speakingKeys = new Set();
 let closed = false;
 
 function toast(text, bad) {
@@ -79,6 +80,8 @@ function state() {
     count: s?.members?.length || 0,
     // Хто в кімнаті — для бейджа й маркера («де я і хто там»)
     people: (s?.members || []).map((m) => (m.me ? `${m.name || 'ви'} (ви)` : m.name || 'Без імені')),
+    // Для міні-вікна поверх усіх: кружечки учасників
+    members: (s?.members || []).map((m) => ({ name: m.name || (m.me ? 'ви' : 'Без імені'), me: !!m.me, muted: !!m.muted, sp: speakingKeys.has(m.key) })),
     speaking,
     needGesture: !!s?.needGesture
   };
@@ -103,6 +106,7 @@ function readSpeaking() {
   if (!s) return;
   const keys = new Set([...document.querySelectorAll('#spVoice [data-vk].is-speaking')].map((el) => el.dataset.vk));
   const names = (s.members || []).filter((m) => keys.has(m.key)).map((m) => (m.me ? 'ви' : (m.name || '').split(/\s+/).slice(0, 2).join(' ')));
+  speakingKeys = keys;
   if (names.join('|') !== speaking.join('|')) { speaking = names; publish(); }
 }
 
@@ -173,7 +177,7 @@ async function start() {
   setInterval(readSpeaking, 250);
   window.addEventListener('pagehide', () => { closed = true; bc?.postMessage({ type: 'state', alive: false }); });
 
-  // Маркер поверх усіх вікон
+  // Міні-вікно поверх усіх вікон
   pip = createPip({
     getState: state,
     act: async (cmd) => {
@@ -181,11 +185,12 @@ async function start() {
       if (cmd === 'mic') await api.toggleMic();
       else if (cmd === 'deaf') await api.toggleDeaf();
       else if (cmd === 'leave') { window.focus(); await leave(); }
+      else if (cmd === 'focus') { try { window.focus(); } catch (_) { /* браузер не дав */ } }
       publish(true);
     },
     onToggle: (on) => {
       $('vwPin').classList.toggle('is-on', on);
-      $('vwPin').textContent = on ? '📌 Маркер увімкнено' : '📌 Поверх усіх вікон';
+      $('vwPin').textContent = on ? '📌 Міні-вікно відкрито' : '📌 Міні-вікно поверх усіх';
     }
   });
   const pin = $('vwPin');
