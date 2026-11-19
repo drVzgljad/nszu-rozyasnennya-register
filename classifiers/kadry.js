@@ -261,6 +261,14 @@
   /** Короткий підпис акта під вікном: «постанова КМУ від 31.12.2025 № 1808»
    *  → «ПКМУ № 1808». Обрізати довгу назву трьома крапками не можна — саме
    *  номер акта й несе тут сенс, а він стоїть у кінці. */
+  /** Статус акта на день перегляду: рядок у даних міг застаріти з дня збірки. */
+  function liveStatus(t) {
+    if (!t || !t.status) return "";
+    if (t.status === "набирає чинності" && t.valid_from &&
+        new Date().toISOString().slice(0, 10) >= t.valid_from) return "чинний";
+    return t.status;
+  }
+
   function actLabel(key) {
     const t = G.node_types[SRC_KEY[key]] || {};
     if (!t.act_title) return trim((t.source || "").split(" — ")[0], 28);
@@ -329,7 +337,7 @@
     $("#kdSummary").innerHTML = `
       <div class="kd-sum-line"><b>${esc(trim(n.name, 60))}</b></div>
       <div class="kd-sum-kind">${esc(TYPE_WORD[n.type])} · ${esc(actLabel(n.type))}${
-        t.status ? " · " + esc(t.status) : ""}</div>
+        liveStatus(t) ? " · " + esc(liveStatus(t)) : ""}</div>
       ${pk.size ? `<div class="kd-sum-ok">трапляється у ${nf(pk.size)} ${
         plural(pk.size, "пакеті", "пакетах", "пакетах")} ПМГ-2026</div>`
       : '<div class="kd-sum-kind">жоден пакет ПМГ-2026 цього не вимагає</div>'}`;
@@ -554,7 +562,7 @@
           <span class="kd-sec-t">${esc(TITLES[key])}</span>
           <span class="kd-sec-n">${nf(ids.length)}</span>
           <span class="kd-sec-act">${esc(t.act_title || t.source || "")}${
-            t.status ? " · " + esc(t.status) : ""}</span>
+            liveStatus(t) ? " · " + esc(liveStatus(t)) : ""}</span>
         </summary>
         ${ids.length
           ? `<ul class="kd-list">${ids.map((id) => rowHTML(key, id, lostSet)).join("")}</ul>`

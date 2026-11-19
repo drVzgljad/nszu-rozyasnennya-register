@@ -206,7 +206,11 @@
 
   function renderBanner() {
     const d = IDX.node_types.spec;
-    if (d.status !== "набирає чинності") return;
+    // Плашка «ще не діє» залежить від дати, а не від рядка в даних: збірка
+    // від 11.08.2026 записала «набирає чинності», і сторінка казала це ще
+    // два з половиною місяці після 01.09 (знайдено 19.11.2026).
+    const today = new Date().toISOString().slice(0, 10);
+    if (!d.valid_from || today >= d.valid_from) return;
     el.banner.hidden = false;
     el.banner.innerHTML =
       `⏳ Перелік спеціальностей показано в редакції, яка <b>ще не діє</b>: ` +
@@ -275,8 +279,8 @@
     } else {
       const tones = IDX.tones || {};
       rows.push(["", "Світлофор відповідає на одне питання: чи може заклад " +
-        "виконати цю вимогу після 01.09.2026, коли посади поза Переліком МОЗ " +
-        "вводити стане не можна."]);
+        "виконати цю вимогу тепер, коли з 01.09.2026 посади поза Переліком МОЗ " +
+        "вводити не можна."]);
       ["ok", "warn", "risk"].forEach((k) => {
         if (tones[k]) {
           rows.push([`<span class="sp-tag ${TONE_CLASS[k]}">${esc(TONE_TAG[k])}</span>`, tones[k]]);
