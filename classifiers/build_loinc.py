@@ -28,7 +28,13 @@ BASE = Path(__file__).resolve().parent
 DATA = BASE / "data" / "loinc"
 DATA.mkdir(parents=True, exist_ok=True)
 
-ZIP = Path(r"D:\rpe-pmg\Loinc_2.82.zip")
+# Першоджерело шукаємо на полиці класифікаторів (pmg-data\0_10_класификатори), далі — там,
+# куди 03.09.2026 винесли знімки з теки деплою, і лише потім за старим шляхом у D:\rpe-pmg.
+# Архів LOINC (84 МБ) у git не кладемо: на полиці його може не бути.
+ZIP = next((p for p in (
+    BASE.parent.parent / "0_10_класификатори" / "Loinc_2.82.zip",
+    BASE.parent.parent / "99_Проблемні_файли" / "_з_rpe-pmg_2026-09-03" / "Loinc_2.82.zip",
+) if p.exists()), Path(r"D:\rpe-pmg\Loinc_2.82.zip"))
 if not ZIP.exists():
     cand = sorted(Path(r"D:\rpe-pmg").glob("Loinc_*.zip"))
     if cand:

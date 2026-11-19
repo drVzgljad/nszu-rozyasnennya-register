@@ -40,7 +40,14 @@ TERMS = DATA / "terms"
 DATA.mkdir(parents=True, exist_ok=True)
 TERMS.mkdir(parents=True, exist_ok=True)
 
-PDF = Path(r"D:\rpe-pmg\nk-024_2023.pdf")
+# Першоджерело шукаємо на полиці класифікаторів (pmg-data\0_10_класификатори), далі — там,
+# куди 03.09.2026 винесли знімки з теки деплою, і лише потім за старим шляхом у D:\rpe-pmg.
+PDF_CANDIDATES = [
+    BASE.parent.parent / "0_10_класификатори" / "nk-024_2023.pdf",
+    BASE.parent.parent / "99_Проблемні_файли" / "_з_rpe-pmg_2026-09-03" / "nk-024_2023.pdf",
+    Path(r"D:\rpe-pmg\nk-024_2023.pdf"),
+]
+PDF = next((p for p in PDF_CANDIDATES if p.exists()), PDF_CANDIDATES[-1])
 
 LOG = DATA / "build_nk024.log"
 def log(msg):

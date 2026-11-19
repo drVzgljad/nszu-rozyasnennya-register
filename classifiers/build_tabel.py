@@ -37,6 +37,25 @@ BASE = Path(__file__).resolve().parent
 DATA = BASE / "data" / "tabel"
 DATA.mkdir(parents=True, exist_ok=True)
 SRC = Path(r"D:\rpe-pmg")
+# Першоджерело шукаємо на полиці класифікаторів (pmg-data\0_10_класификатори), далі — там,
+# куди 03.09.2026 винесли знімки з теки деплою, і лише потім за старим шляхом у D:\rpe-pmg.
+# УВАГА: якщо файла немає ніде, документ лишається без тексту (has_text = False) — тому
+# перелік шляхів має бути повним, а після збірки звірка порівнює числа позицій.
+SHELF = BASE.parent.parent / "0_10_класификатори"
+MOVED = BASE.parent.parent / "99_Проблемні_файли" / "_з_rpe-pmg_2026-09-03"
+SHELF_NAMES = {
+    "tabel-951_2010.html": "nakaz-951_2010_tabeli-akush-ginek.html",
+    "tabel-158_2005.html": "nakaz-158_2005_tabel-stomatolog.html",
+    "tabel-1103_2020.html": "nakaz-148-1103_2020_tabel-pervynka.html",
+    "tabel-995_2023.html": "nakaz-995_2023_tabel-reabilitaciya.html",
+}
+
+
+def src_path(name):
+    for p in (SHELF / SHELF_NAMES.get(name, name), MOVED / name, SRC / name):
+        if p.exists():
+            return p
+    return SRC / name
 OLD153 = BASE / "data" / "tabel153"
 
 def log(msg):
@@ -509,7 +528,8 @@ def convert_153(doc):
 # ══════════════════════════════════════════════════════════════
 def pmg_bridge():
     try:
-        pk = json.loads((SRC / "pakety" / "data" / "packages_2026.json").read_text(encoding="utf-8"))["packages"]
+        # специфікації — з джерела сайту, не з теки деплою
+        pk = json.loads((BASE.parent / "pakety" / "data" / "packages_2026.json").read_text(encoding="utf-8"))["packages"]
         pkgs = [{"no": str(p.get("number", "")).strip(), "title": (p.get("title") or "").strip()}
                 for p in pk if re.search(r"табел", json.dumps(p, ensure_ascii=False), re.I)]
         log(f"пакетів ПМГ-2026 з вимогою про табель: {len(pkgs)} з {len(pk)}")
@@ -551,7 +571,7 @@ def main():
         if parser == "convert153":
             tables, items = convert_153(doc)
         else:
-            path = SRC / doc["src"]
+            path = src_path(doc["src"])
             if not path.exists():
                 log(f"  {doc['id']}: НЕМАЄ ФАЙЛУ {path} — пропускаю")
                 entry.update({"has_text": False, "tables": [], "total": 0,

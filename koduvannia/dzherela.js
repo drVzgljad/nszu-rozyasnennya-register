@@ -1,4 +1,4 @@
-/* Джерела кодування — сторінка порталу.
+/* Джерела довідників (код, обладнання, кадри) — сторінка порталу.
  *
  * Дані: data/sources.json          рівні, джерела, відомі розбіжності
  *       data/sources_journal.json  журнал правок (вантажиться, коли його відкрили)
@@ -8,12 +8,13 @@
 (function () {
   'use strict';
 
-  const DATA_V = '20261119a';           // піднімати разом із перезбіркою даних
+  const DATA_V = '20261119b';           // піднімати разом із перезбіркою даних
   const KIND = {
     normative: 'нормативний акт',
     nszu: 'документ НСЗУ',
     reference: 'довідково, не підстава для оплати',
     reconstruction: 'відновлено з даних',
+    own: 'ведеться відділом',
   };
   const FIX = { homoglyph: 'латинська літера в слові', 'cyr-code': 'кирилиця в коді' };
   const JOURNAL_CAP = 200;
@@ -57,8 +58,8 @@
       ${s.readable ? `<a class="dz-open" href="../${esc(s.readable)}">Відкрити джерело на порталі →</a>` : ''}`;
   }
 
-  function renderChain() {
-    $('dzChain').innerHTML = DB.levels.map((lv) => {
+  function levelsHtml(levels) {
+    return levels.map((lv) => {
       const s = SRC[lv.source];
       const sub = [s.edition, s.built ? 'зібрано ' + s.built : ''].filter(Boolean).join(' · ');
       return `<details class="dz-level">
@@ -73,11 +74,27 @@
     }).join('');
   }
 
-  function renderNotes() {
-    const inChain = new Set(DB.levels.map((lv) => lv.source));
-    const notes = DB.sources.filter((s) => !inChain.has(s.id));
-    $('dzNotes').innerHTML = notes.map((s) =>
-      `<article class="dz-note"><h3>${esc(s.title)}</h3>${sourceCard(s)}</article>`).join('');
+  // Три ланцюжки: код, обладнання, кадри. У кожного — рівні й примітки до них.
+  function renderChains() {
+    const chains = DB.chains || [{ key: 'code', title: 'Код', question: '', levels: DB.levels }];
+    $('dzChains').innerHTML = chains.map((ch) => {
+      const inChain = new Set(ch.levels.map((lv) => lv.source));
+      const notes = DB.sources.filter((s) => (s.chain || 'code') === ch.key && !inChain.has(s.id));
+      const path = ch.levels.map((lv) => esc(lv.title)).join(' → ');
+      return `<section class="dz-chainbox" id="dz-${esc(ch.key)}" aria-labelledby="dzH-${esc(ch.key)}">
+        <h2 id="dzH-${esc(ch.key)}">${esc(ch.title)}${ch.question
+          ? `<span class="dz-q">${esc(ch.question)}</span>` : ''}</h2>
+        <p class="dz-sub">${path}</p>
+        <div class="dz-chain">${levelsHtml(ch.levels)}</div>
+        ${notes.length ? `<h3 class="dz-noteh">Примітки до рівнів</h3>
+        <div class="dz-notes">${notes.map((s) =>
+          `<article class="dz-note"><h3>${esc(s.title)}</h3>${
+            s.role ? `<p class="dz-role">${esc(s.role)}</p>` : ''}${sourceCard(s)}</article>`).join('')}</div>` : ''}
+      </section>`;
+    }).join('');
+    $('dzToc').innerHTML = chains.map((ch) =>
+      `<a href="#dz-${esc(ch.key)}">${esc(ch.title)}<span>${ch.levels.length} ${
+        ch.levels.length < 5 ? 'рівні' : 'рівнів'}</span></a>`).join('');
   }
 
   // «Таблиця співставлення: E12.62» → група «Таблиця співставлення», код «E12.62»
@@ -182,7 +199,7 @@
   function renderStats() {
     const known = DB.checks.reduce((n, c) => n + c.items.length, 0);
     const cells = [
-      [DB.levels.length, 'рівнів'],
+      [(DB.chains || [1]).length, 'ланцюжки'],
       [DB.sources.length, 'джерел'],
       [nf(DB.journalTotal), 'записів у журналі правок'],
       [nf(known), 'відомих розбіжностей'],
@@ -198,13 +215,12 @@
     try {
       DB = await (await fetch(`data/sources.json?v=${DATA_V}`)).json();
     } catch (e) {
-      $('dzChain').innerHTML = '<div class="dz-err">Не вдалося завантажити дані про джерела. Оновіть сторінку.</div>';
+      $('dzChains').innerHTML = '<div class="dz-err">Не вдалося завантажити дані про джерела. Оновіть сторінку.</div>';
       return;
     }
     DB.sources.forEach((s) => { SRC[s.id] = s; });
     renderStats();
-    renderChain();
-    renderNotes();
+    renderChains();
     renderChecks();
 
     $('dzJournal').addEventListener('toggle', () => { if ($('dzJournal').open) openJournal(); });

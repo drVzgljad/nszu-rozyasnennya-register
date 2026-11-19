@@ -40,7 +40,14 @@ BASE = Path(__file__).resolve().parent
 DATA = BASE / "data" / "tabel153"
 DATA.mkdir(parents=True, exist_ok=True)
 
-SRC = Path(r"D:\rpe-pmg\tabel-153_1998.html")
+# Першоджерело шукаємо на полиці класифікаторів (pmg-data\0_10_класификатори), далі — там,
+# куди 03.09.2026 винесли знімки з теки деплою, і лише потім за старим шляхом у D:\rpe-pmg.
+SRC_CANDIDATES = [
+    BASE.parent.parent / "0_10_класификатори" / "nakaz-153_1998_tabeli-osnaschennya.html",
+    BASE.parent.parent / "99_Проблемні_файли" / "_з_rpe-pmg_2026-09-03" / "tabel-153_1998.html",
+    Path(r"D:\rpe-pmg\tabel-153_1998.html"),
+]
+SRC = next((p for p in SRC_CANDIDATES if p.exists()), SRC_CANDIDATES[-1])
 
 def log(msg):
     print(f"[{time.strftime('%H:%M:%S')}] {msg}", flush=True)
@@ -278,7 +285,8 @@ def main():
     # ── Місток до ПМГ-2026: у яких пакетах є вимога про табель оснащення ──
     pmg_packages = []
     try:
-        pk = json.loads(Path(r"D:\rpe-pmg\pakety\data\packages_2026.json")
+        # специфікації — з джерела сайту, не з теки деплою
+        pk = json.loads((BASE.parent / "pakety" / "data" / "packages_2026.json")
                         .read_text(encoding="utf-8"))["packages"]
         for p in pk:
             if re.search(r"табел", json.dumps(p, ensure_ascii=False), re.I):

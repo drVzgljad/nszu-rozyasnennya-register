@@ -20,6 +20,22 @@
 .dz-lead { margin: 20px 0 0; font-size: 16px; line-height: 1.6; max-width: 68ch; }
 .dz-sub { margin: 0 0 12px; font-size: 14px; line-height: 1.55; color: var(--dz-muted); max-width: 72ch; }
 
+/* ── зміст і заголовки ланцюжків ── */
+.dz-toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 0; }
+.dz-toc a {
+  display: inline-flex; align-items: baseline; gap: 8px; padding: 7px 14px; border-radius: 999px;
+  border: 1px solid var(--dz-line); background: var(--dz-surface); color: var(--dz-ink);
+  font-size: 14.5px; font-weight: 600; text-decoration: none;
+}
+.dz-toc a:hover { border-color: var(--dz-accent); background: var(--dz-accent-soft); }
+.dz-toc a:focus-visible { outline: 2px solid var(--dz-accent); outline-offset: 2px; }
+.dz-toc span { font-weight: 400; font-size: 12.5px; color: var(--dz-muted); }
+.dz-chainbox { scroll-margin-top: 12px; }
+.dz-q { margin-left: 10px; font-weight: 400; font-size: 14.5px; color: var(--dz-muted); }
+.dz-noteh { font-size: 14px; font-weight: 600; margin: 16px 0 8px; color: var(--dz-muted); }
+.dz-role { margin: 4px 0 0; font-size: 12.5px; color: var(--dz-muted); }
+.dz-kind--own { background: var(--dz-soft); color: var(--dz-ink); }
+
 /* ── ланцюжок ── */
 .dz-chain { display: grid; gap: 6px; margin-top: 10px; }
 .dz-level {

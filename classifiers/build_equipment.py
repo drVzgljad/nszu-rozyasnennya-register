@@ -296,8 +296,13 @@ class Matcher:
         # Пастка 6: кандидат мусить мати хоч одне з двох найрідкісніших слів
         # вимоги. Одного мало: «мішок ручної вентиляції легенів» у GMDN зветься
         # «апарат … ручний», слова «мішок» там немає взагалі, а зміст той самий.
-        rare = sorted(want, key=self.w, reverse=True)[:2]
-        total = sum(self.w(t) for t in want)
+        # ДЕТЕРМІНІЗМ (19.11.2026): множини рядків Python обходить у випадковому
+        # порядку, різному для кожного запуску. Через це дві збірки з тих самих
+        # даних давали різного «представника» серед однакових рядків табеля
+        # (153-327 чи 153-460 — обидва «Відсмоктувач») і різне округлення балу.
+        # Тому скрізь нижче порядок явний: слова за абеткою, рядки за номером.
+        rare = sorted(want, key=lambda t: (-self.w(t), t))[:2]
+        total = sum(self.w(t) for t in sorted(want))
         seen = set()
         for t in rare:
             seen.update(self.inv.get(t, ()))
@@ -308,11 +313,11 @@ class Matcher:
         for t in want:
             seen.update(self.inv.get(t, ())[:600])
         out = []
-        for i in seen:
+        for i in sorted(seen):
             src, code, nm, tt, ln, where = self.rows[i]
             if not tt:
                 continue
-            cover = sum(self.w(t) for t in want & tt) / total
+            cover = sum(self.w(t) for t in sorted(want & tt)) / total
             noise = len(tt - want) / max(ln, 1)
             score = round(cover * (1 - 0.35 * noise), 3)
             if score >= 0.45:
