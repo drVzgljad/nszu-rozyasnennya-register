@@ -509,7 +509,10 @@ function applyAccess() {
           { text: 'Таблиця співставлення · код ↔ пакет', path: 'mapping/index.html' },
           { text: 'Правила: наказ 377', path: 'algorithms/index.html', role: 'expert' },
           { text: 'Кодування реабілітації · наказ 182', path: 'algorithms/rehab.html' },
-          { text: 'Кодування амбулаторки · пакет 9', path: 'algorithms/ambulatory.html', role: 'expert' }
+          { text: 'Кодування амбулаторки · пакет 9', path: 'algorithms/ambulatory.html', role: 'expert' },
+          // 19.11.2026: реєстр джерел кодування — сім рівнів ланцюжка, одне джерело на рівень,
+          // відомі розбіжності й журнал правок. Службова сторінка, тому expert.
+          { text: 'Джерела · звідки дані про коди', path: 'koduvannia/dzherela.html', role: 'expert' }
         ]
       }
     ];
@@ -2834,6 +2837,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '🦼', label: 'Наказ 182 · Кодування реабілітації', path: 'algorithms/rehab.html' },
     { icon: '🏥', label: 'Кодування амбулаторки · пакет 9', path: 'algorithms/ambulatory.html' },
     { icon: '🗄️', label: 'Коди ЕСОЗ · внутрішній', path: 'classifiers/esoz.html', role: 'expert' },
+    { icon: '📑', label: 'Джерела кодування', path: 'koduvannia/dzherela.html', role: 'expert' },
     { icon: '📑', label: 'Договори ЗОЗ', path: 'zoz-dogovr/index.html' },
     { icon: '🏥', label: 'Хто це лікує', path: 'zoz-poshuk/index.html' },
     { icon: '👤', label: 'Кабінет', path: 'cabinet/index.html', role: 'expert' },

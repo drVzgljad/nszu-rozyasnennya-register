@@ -1,0 +1,142 @@
+/* Джерела кодування. Кольори — лише через токени порталу (--p-*, --accent*),
+   тож темна тема працює без окремих правил. Власний шар — змінні --dz-*. */
+
+:root {
+  --dz-ink: var(--p-ink, #1c2733);
+  --dz-muted: var(--p-muted, #5b6774);
+  --dz-line: var(--p-line, #d7dee6);
+  --dz-soft: var(--p-soft, #f5f8fb);
+  --dz-surface: var(--p-surface, #fff);
+  --dz-accent: var(--accent, #006fc9);
+  --dz-accent-dark: var(--accent-dark, #2f6b9e);
+  --dz-accent-soft: var(--accent-soft, #eef6fc);
+  --dz-warn-bg: var(--warning-bg, #fff6e0);
+  --dz-warn-line: var(--warning-border, #e6c56a);
+  --dz-warn-ink: var(--warning-text, #6b4a00);
+}
+
+.dz-main { max-width: 1040px; color: var(--dz-ink); }
+.dz-main h2 { font-size: 19px; margin: 34px 0 6px; letter-spacing: -.01em; }
+.dz-lead { margin: 20px 0 0; font-size: 16px; line-height: 1.6; max-width: 68ch; }
+.dz-sub { margin: 0 0 12px; font-size: 14px; line-height: 1.55; color: var(--dz-muted); max-width: 72ch; }
+
+/* ── ланцюжок ── */
+.dz-chain { display: grid; gap: 6px; margin-top: 10px; }
+.dz-level {
+  border: 1px solid var(--dz-line); border-radius: 12px; background: var(--dz-surface);
+  overflow: hidden;
+}
+.dz-level[open] { border-color: var(--dz-accent); }
+.dz-level > summary {
+  list-style: none; cursor: pointer; padding: 12px 14px;
+  display: grid; grid-template-columns: 30px minmax(0, 190px) minmax(0, 1fr) auto;
+  gap: 12px; align-items: baseline;
+}
+.dz-level > summary::-webkit-details-marker { display: none; }
+.dz-level > summary:hover { background: var(--dz-soft); }
+.dz-level > summary:focus-visible { outline: 2px solid var(--dz-accent); outline-offset: -2px; }
+.dz-n {
+  width: 26px; height: 26px; border-radius: 50%; display: inline-grid; place-items: center;
+  font-size: 13px; font-weight: 600; background: var(--dz-accent-soft); color: var(--dz-accent-dark);
+  align-self: center;
+}
+.dz-lt { font-weight: 600; font-size: 15.5px; }
+.dz-lw { display: block; font-weight: 400; font-size: 12.5px; color: var(--dz-muted); margin-top: 1px; }
+.dz-ls { font-size: 14.5px; line-height: 1.45; overflow-wrap: anywhere; }
+.dz-le { display: block; font-size: 12.5px; color: var(--dz-muted); margin-top: 2px; }
+.dz-chev { color: var(--dz-muted); font-size: 12px; align-self: center; transition: transform .15s; }
+.dz-level[open] .dz-chev { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .dz-chev { transition: none; } }
+
+.dz-body { padding: 4px 14px 16px 56px; border-top: 1px solid var(--dz-line); }
+
+/* ── картка джерела (всередині рівня і в примітках) ── */
+.dz-kind {
+  display: inline-block; font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em;
+  padding: .22em .65em; border-radius: 999px; margin: 12px 8px 0 0;
+  border: 1px solid var(--dz-line); background: var(--dz-soft); color: var(--dz-muted);
+}
+.dz-kind--normative { background: var(--dz-accent-soft); color: var(--dz-accent-dark); }
+.dz-kind--reconstruction, .dz-kind--reference {
+  background: var(--dz-warn-bg); border-color: var(--dz-warn-line); color: var(--dz-warn-ink);
+}
+.dz-dl { margin: 10px 0 0; display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr); gap: 6px 14px; font-size: 14px; line-height: 1.5; }
+.dz-dl dt { color: var(--dz-muted); }
+.dz-dl dd { margin: 0; overflow-wrap: anywhere; }
+.dz-facts { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.dz-facts b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.dz-open {
+  display: inline-block; margin-top: 12px; font-size: 14px; font-weight: 600;
+  color: var(--dz-accent-dark); text-decoration: none;
+}
+.dz-open:hover { text-decoration: underline; }
+
+.dz-notes { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.dz-note {
+  border: 1px solid var(--dz-line); border-radius: 12px; background: var(--dz-surface);
+  padding: 2px 14px 14px;
+}
+.dz-note h3 { font-size: 15px; margin: 10px 0 0; line-height: 1.35; }
+.dz-note .dz-dl { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+.dz-note .dz-dl dt { font-size: 12px; margin-top: 8px; }
+
+/* ── розбіжності ── */
+.dz-checks { display: grid; gap: 6px; }
+.dz-check { border: 1px solid var(--dz-line); border-radius: 10px; background: var(--dz-surface); }
+.dz-check > summary { cursor: pointer; padding: 11px 14px; font-size: 15px; display: flex; gap: 10px; align-items: baseline; }
+.dz-check > summary:hover { background: var(--dz-soft); }
+.dz-cnt {
+  min-width: 30px; text-align: center; font-size: 13px; font-weight: 600; border-radius: 999px;
+  padding: .1em .55em; background: var(--dz-warn-bg); color: var(--dz-warn-ink);
+  border: 1px solid var(--dz-warn-line); font-variant-numeric: tabular-nums;
+}
+.dz-cnt--zero { background: var(--dz-soft); color: var(--dz-muted); border-color: var(--dz-line); }
+.dz-check-body { padding: 0 14px 14px; font-size: 14px; line-height: 1.5; }
+.dz-check-body p { margin: 0 0 8px; color: var(--dz-muted); }
+.dz-grp { margin: 10px 0 0; }
+.dz-grp b { font-weight: 600; }
+.dz-codes { margin: 4px 0 0; display: flex; flex-wrap: wrap; gap: 4px 6px; }
+.dz-code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12.5px;
+  padding: .12em .5em; border-radius: 6px; border: 1px solid var(--dz-line); background: var(--dz-soft);
+}
+.dz-rows { margin: 6px 0 0; padding: 0; list-style: none; }
+.dz-rows li { padding: 6px 0; border-top: 1px solid var(--dz-line); overflow-wrap: anywhere; }
+.dz-rows small { display: block; color: var(--dz-muted); }
+
+/* ── журнал ── */
+.dz-journal { border: 1px solid var(--dz-line); border-radius: 12px; background: var(--dz-surface); }
+.dz-journal > summary { cursor: pointer; padding: 12px 14px; font-weight: 600; font-size: 15px; }
+.dz-journal > summary:hover { background: var(--dz-soft); }
+.dz-filters { display: flex; flex-wrap: wrap; gap: 10px 14px; padding: 4px 14px 10px; }
+.dz-filters label { display: grid; gap: 4px; font-size: 12.5px; color: var(--dz-muted); min-width: 0; }
+.dz-grow { flex: 1 1 200px; }
+.dz-filters select, .dz-filters input {
+  font: inherit; font-size: 14.5px; padding: 7px 9px; border-radius: 8px; max-width: 100%;
+  border: 1px solid var(--dz-line); background: var(--dz-surface); color: var(--dz-ink);
+}
+.dz-filters select:focus, .dz-filters input:focus { outline: none; border-color: var(--dz-accent); }
+.dz-count { padding: 0 14px 8px; font-size: 13px; color: var(--dz-muted); }
+.dz-tablewrap { overflow-x: auto; border-top: 1px solid var(--dz-line); }
+.dz-table { width: 100%; border-collapse: collapse; font-size: 13.5px; line-height: 1.45; }
+.dz-table th { text-align: left; font-weight: 600; font-size: 12px; color: var(--dz-muted); padding: 8px 12px; white-space: nowrap; }
+.dz-table td { padding: 8px 12px; border-top: 1px solid var(--dz-line); vertical-align: top; overflow-wrap: anywhere; }
+.dz-table td:first-child { white-space: nowrap; color: var(--dz-muted); }
+.dz-was { color: var(--dz-muted); }
+.dz-table mark { background: var(--dz-warn-bg); color: var(--dz-warn-ink); border-radius: 3px; padding: 0 1px; }
+
+.dz-foot { margin: 28px 0 0; font-size: 13px; color: var(--dz-muted); }
+.dz-err { padding: 14px; border: 1px solid var(--dz-warn-line); background: var(--dz-warn-bg); color: var(--dz-warn-ink); border-radius: 10px; }
+
+@media (max-width: 700px) {
+  .dz-level > summary { grid-template-columns: 30px minmax(0, 1fr) auto; }
+  .dz-ls { grid-column: 2 / 3; }
+  .dz-body { padding-left: 14px; }
+  .dz-dl { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .dz-dl dt { font-size: 12px; margin-top: 8px; }
+}
+
+/* посилання всередині картки джерела: колір з токена, інакше в темній темі лишається синій браузера */
+.dz-dl a, .dz-check-body a { color: var(--dz-accent-dark); font-weight: 600; }
+/* стрілка рівня: «›» повертається вниз, коли рівень відкрито */
+.dz-chev { font-size: 20px; line-height: 1; width: 14px; text-align: center; }

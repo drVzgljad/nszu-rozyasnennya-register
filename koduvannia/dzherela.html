@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <title>НавігаторПМГ26 | Джерела кодування</title>
+  <link rel="stylesheet" href="../styles.css?v=20260808b">
+  <link rel="stylesheet" href="../classifiers/classifiers.css?v=20261112a">
+  <link rel="stylesheet" href="koduvannia.css?v=20260819e">
+  <link rel="stylesheet" href="dzherela.css?v=20261119a">
+  <link rel="stylesheet" href="../auth-v2.css?v=20261119a">
+  <script type="module" src="../auth-v2.js?v=20261119b"></script>
+</head>
+<body id="top" data-required-role="expert">
+  <header class="hero classifiers-hero">
+    <div class="hero-copy">
+      <div class="overline">Кодування · звідки дані ·
+        <a class="xnav" href="index.html">↔ Кодування випадку</a>
+        <a class="xnav" href="grouper.html">↔ Групер ДСГ</a>
+        <a class="xnav" href="../mapping/index.html">↔ Таблиця співставлення</a></div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів, постанови та правил</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Джерела кодування</h1>
+    </div>
+    <div class="stats" id="dzStats" aria-label="Показники"></div>
+  </header>
+
+  <main class="kd-main dz-main">
+
+    <p class="dz-lead">
+      Шлях коду від діагнозу до суми — сім рівнів. У кожного рівня одне джерело.
+      Усе інше, що згадує той самий код, — примітка з підписом, звідки вона.
+    </p>
+
+    <section aria-labelledby="dzChainH">
+      <h2 id="dzChainH">Ланцюжок</h2>
+      <div id="dzChain" class="dz-chain" aria-live="polite">Завантаження…</div>
+    </section>
+
+    <section aria-labelledby="dzNotesH">
+      <h2 id="dzNotesH">Примітки до рівнів</h2>
+      <p class="dz-sub">Ці джерела не продовжують ланцюжок, а обмежують код: чи можна його
+        застосувати, за яких умов, що про нього писала НСЗУ.</p>
+      <div id="dzNotes" class="dz-notes"></div>
+    </section>
+
+    <section aria-labelledby="dzChecksH">
+      <h2 id="dzChecksH">Відомі розбіжності між джерелами</h2>
+      <p class="dz-sub">Джерела звіряються між собою автоматично під час кожної збірки.
+        Нижче — те, що знайдено, пояснено і поки лишається. Нова розбіжність зупиняє збірку.</p>
+      <div id="dzChecks" class="dz-checks"></div>
+    </section>
+
+    <section aria-labelledby="dzJournalH">
+      <h2 id="dzJournalH">Журнал правок джерел</h2>
+      <p class="dz-sub">У першоджерелах трапляються помилки набору. Портал їх виправляє,
+        але кожну правку записує: що було, що стало.</p>
+      <details id="dzJournal" class="dz-journal">
+        <summary>Показати журнал · <span id="dzJournalN"></span></summary>
+        <div class="dz-filters">
+          <label>Джерело
+            <select id="dzJSrc"><option value="">усі</option></select></label>
+          <label>Вид правки
+            <select id="dzJKind"><option value="">усі</option></select></label>
+          <label class="dz-grow">Пошук
+            <input id="dzJQ" type="search" autocomplete="off" placeholder="код або слово"></label>
+        </div>
+        <div id="dzJCount" class="dz-count"></div>
+        <div class="dz-tablewrap">
+          <table class="dz-table">
+            <thead><tr><th>Джерело</th><th>Де</th><th>Було</th><th>Стало</th></tr></thead>
+            <tbody id="dzJRows"></tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <p id="dzFoot" class="dz-foot"></p>
+  </main>
+
+  <script src="../pmg-search-norm.js?v=1"></script>
+  <script src="dzherela.js?v=20261119a" defer></script>
+</body>
+</html>
