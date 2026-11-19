@@ -71,7 +71,7 @@ DOCS = [
         "title": "Про затвердження табелів оснащення виробами медичного призначення "
                  "структурних підрозділів закладів охорони здоров'я",
         "profile": "Кабінети поліклінік і стаціонарні відділення лікарень — 53 профілі",
-        "edition": "у редакції від 04.11.2010",
+        "edition": "редакція від 04.11.2010 з урахуванням змін наказом № 2650 від 23.12.2019",
         "url": "https://zakon.rada.gov.ua/laws/show/v0153282-98",
         "status": "чинний", "kind": "табель",
         "rada_id": "v0153282-98", "text_revision": "04.11.2010",
@@ -80,7 +80,7 @@ DOCS = [
              "effect": "розділ XI «Стоматологія» Додатка 1 втратив чинність"},
             {"number": "951", "date": "04.11.2010",
              "effect": "виключено акушерсько-гінекологічні позиції в Додатках 1 і 2"},
-            {"number": "2650", "date": "23.12.2019", "missing": True,
+            {"number": "2650", "date": "23.12.2019",
              "effect": "виключено пункти 1-28 розділу XXIII «Трансплантація нирки» Додатка 2 "
                        "(у базі «Законодавство України» цієї зміни немає; текст наказу — на сайті МОЗ)"},
         ],
@@ -93,12 +93,12 @@ DOCS = [
                  "та виробами медичного призначення (акушерсько-гінекологічна допомога)",
         "profile": "ФАП, жіноча консультація, пологовий будинок, перинатальний центр, "
                    "гінекологічні відділення, виїзна бригада",
-        "edition": "редакція прийняття від 04.11.2010",
+        "edition": "редакція від 16.05.2023",
         "url": "https://zakon.rada.gov.ua/laws/show/v0951282-10",
         "status": "чинний", "kind": "примірний табель",
-        "rada_id": "v0951282-10", "text_revision": "04.11.2010",
+        "rada_id": "v0951282-10", "text_revision": "16.05.2023",
         "amendments": [
-            {"number": "904", "date": "16.05.2023", "missing": True,
+            {"number": "904", "date": "16.05.2023",
              "effect": "додано позицію «Крісло гінекологічне (для осіб з інвалідністю)» у табелі "
                        "акушерського, гінекологічного відділення, гінекологічного відділення, жіночої "
                        "консультації, пологового будинку та перинатального центру"},
@@ -111,12 +111,12 @@ DOCS = [
         "title": "Про затвердження табеля оснащення обладнанням одного робочого місця "
                  "лікаря-стоматолога та зубного техніка",
         "profile": "Стоматологічний кабінет, зуботехнічна лабораторія",
-        "edition": "редакція прийняття від 11.04.2005",
+        "edition": "редакція від 07.03.2023",
         "url": "https://zakon.rada.gov.ua/laws/show/v0158282-05",
         "status": "чинний", "kind": "табель",
-        "rada_id": "v0158282-05", "text_revision": "11.04.2005",
+        "rada_id": "v0158282-05", "text_revision": "07.03.2023",
         "amendments": [
-            {"number": "439", "date": "07.03.2023", "missing": True,
+            {"number": "439", "date": "07.03.2023",
              "effect": "у розділі 3 для пунктів 8 і 10 кількість замінено умовою «за наявності "
                        "кабінету для стерилізації медичних виробів»"},
         ],
@@ -128,23 +128,24 @@ DOCS = [
         "title": "Про затвердження Примірного табеля матеріально-технічного оснащення закладів "
                  "охорони здоров'я та фізичних осіб — підприємців, які надають первинну медичну допомогу",
         "profile": "Заклади та ФОП первинної медичної допомоги, амбулаторії, ФАП",
-        "edition": "у редакції наказу МОЗ від 08.05.2020 № 1103",
+        "edition": "редакція від 19.11.2025 (табель у редакції наказу МОЗ від 10.12.2020 № 2857 зі змінами)",
         "url": "https://zakon.rada.gov.ua/laws/show/v0148282-18",
         "status": "чинний", "kind": "примірний табель",
-        "rada_id": "v0148282-18", "text_revision": "08.05.2020",
+        "rada_id": "v0148282-18", "text_revision": "19.11.2025",
         "amendments": [
-            {"number": "2857", "date": "10.12.2020", "missing": True,
+            {"number": "2857", "date": "10.12.2020",
              "effect": "Примірний табель викладено в новій редакції"},
-            {"number": "233", "date": "10.02.2023", "missing": True,
+            {"number": "233", "date": "10.02.2023",
              "effect": "змінено пункти 1 і 3 розділу I; додано розділ IV «Додатковий список для "
                        "домашніх візитів» (пункти 56-65)"},
-            {"number": "20", "date": "04.01.2024", "missing": True,
+            {"number": "20", "date": "04.01.2024",
              "effect": "розділ II доповнено набором камертонів медичних і плантографом"},
-            {"number": "1746", "date": "19.11.2025", "missing": True,
+            {"number": "1746", "date": "19.11.2025",
              "effect": "замість отоофтальмоскопа — окремо отоскоп і офтальмоскоп (пункти 9 і 10); "
                        "пункт 53 про набір цифрових «скопічних» систем у новій редакції; пункти перенумеровано"},
         ],
-        "parser": "html", "src": "tabel-1103_2020.html", "hyphen": "drop",
+        # зведена чинна редакція — сигнальний документ при картці акта на zakon.rada
+        "parser": "docx", "src": "табелі_rada/v0148282-18_red-2025-11-19_tabel.docx",
     },
     {
         "id": "995", "number": "995", "date": "31.05.2023", "authority": "МОЗ України",
@@ -490,6 +491,198 @@ def parse_html(html, doc):
     return assemble(tables, doc)
 
 # ══════════════════════════════════════════════════════════════
+# Зміни чинних редакцій, яких немає в збереженому тексті
+# ══════════════════════════════════════════════════════════════
+# Знімки наказів 951 і 158 узято 28.07.2026 з дзеркала, де лежали редакції прийняття.
+# Замість нового розбору іншого формату (zakon.rada віддає ці акти інакше) зміни внесено
+# тут — явно, з назвою наказу. Кожна правка перевіряє стан «до»: якщо знімок колись
+# замінять чинним текстом, правка впаде з помилкою, а не застосується вдруге.
+# Підсумок звірено з чинним текстом на zakon.rada (19.11.2026): 2 390 позицій наказу 951
+# збігаються за порядком і назвами.
+CHAIR = "Крісло гінекологічне (для осіб з інвалідністю)"
+STERIL = "за наявності кабінету для стерилізації медичних виробів"
+PATCHES = {
+    "951": [   # наказ МОЗ від 16.05.2023 № 904
+        {"op": "add", "tit": "1.2.", "after": ("102", "Центрифуга"), "row": ("103", CHAIR, ["1"])},
+        {"op": "add", "tit": "1.3.", "roz": "1. Відділення консервативної гінекології",
+         "after": ("57", "Мікроскоп або лупа бінокулярна"), "row": ("58", CHAIR, ["1"])},
+        {"op": "add", "tit": "1.3.", "roz": "2. Відділення оперативної гінекології",
+         "after": ("68", "Шприц Жане"), "row": ("69", CHAIR, ["1"])},
+        {"op": "add", "tit": "1.5.", "roz": "14. Денний стаціонар",
+         "after": ("23", "Шафа для одягу"), "row": ("24", CHAIR, ["1"])},
+        {"op": "add", "tit": "1.6.", "roz": "8. Відділення акушерської патології",
+         "after": ("50", "Стілець"), "row": ("51", CHAIR, ["1"])},
+        {"op": "add", "tit": "1.7.", "after": ("28", "Крісло гінекологічне з освітлювальною лампою"),
+         "next": ("29", "Кольпоскоп з фотоприставкою"), "row": ("28-1", CHAIR, ["1", "-"])},
+    ],
+    "158": [   # наказ МОЗ від 07.03.2023 № 439, пункт 10
+        {"op": "qty", "roz": "3.", "no": "8", "name": "Сухожарова шафа", "col": 1,
+         "old": "1 на кабінет (при відсутності централізованої)", "new": STERIL},
+        {"op": "qty", "roz": "3.", "no": "10", "name": "Автоклав", "col": 1,
+         "old": "1 на установу", "new": STERIL},
+    ],
+}
+# наказ МОЗ від 23.12.2019 № 2650, пункт 2: з Додатка 2 наказу 153 виключено пункти 1-28
+# розділу XXIII «Трансплантація нирки». У базі «Законодавство України» цієї зміни немає.
+EXCLUDED_153 = [
+    {"section": "2-XXIII", "count": 28, "status": "виключено наказом № 2650 від 23.12.2019",
+     "note": "( Пункти 1-28 розділу XXIII виключено на підставі Наказу Міністерства охорони здоров'я "
+             "N 2650 від 23.12.2019 )"},
+]
+
+
+def apply_patches(tables, doc):
+    """Вносить PATCHES у сирі таблиці (до складання). Кожна правка — рівно одне місце."""
+    done = 0
+    for p in PATCHES.get(doc["id"], []):
+        cand = [t for t in tables
+                if t["tit"].startswith(p.get("tit", "")) and t["roz"].startswith(p.get("roz", ""))]
+        hits = []
+        for t in cand:
+            rows = t["rows"]
+            if p["op"] == "add":
+                no, name = p["after"]
+                for i, r in enumerate(rows):
+                    if r["no"] == no and r["name"].startswith(name):
+                        nxt = rows[i + 1] if i + 1 < len(rows) else None
+                        if "next" in p and not (nxt and nxt["no"] == p["next"][0]
+                                                and nxt["name"].startswith(p["next"][1])):
+                            continue
+                        hits.append((t, i))
+            else:
+                for i, r in enumerate(rows):
+                    if r["no"] == p["no"] and r["name"].startswith(p["name"]):
+                        hits.append((t, i))
+        if len(hits) != 1:
+            raise SystemExit(f"ПРАВКА НЕ ЗАСТОСОВАНА ({doc['id']}): {p} — знайдено місць: {len(hits)}. "
+                             f"Перевірте, чи не замінено знімок тексту чинною редакцією.")
+        t, i = hits[0]
+        if p["op"] == "add":
+            no, name, qty = p["row"]
+            nxt = t["rows"][i + 1] if i + 1 < len(t["rows"]) else None
+            if nxt and nxt["name"] == name:
+                raise SystemExit(f"ПРАВКА ВЖЕ Є В ТЕКСТІ ({doc['id']}): {name} після № {p['after'][0]}")
+            t["rows"].insert(i + 1, {"no": no, "name": name, "qty": list(qty)})
+        else:
+            r = t["rows"][i]
+            if r["qty"][p["col"]] != p["old"]:
+                raise SystemExit(f"ПРАВКА НЕ ЗАСТОСОВАНА ({doc['id']}): у № {p['no']} очікувалось "
+                                 f"«{p['old']}», а там «{r['qty'][p['col']]}»")
+            r["qty"][p["col"]] = p["new"]
+        done += 1
+    if done:
+        log(f"  {doc['id']}: внесено змін чинної редакції — {done}")
+
+
+# ══════════════════════════════════════════════════════════════
+# Парсер В: docx зведеної редакції (наказ 148)
+# ══════════════════════════════════════════════════════════════
+# У базі «Законодавство України» текст табеля первинної допомоги є лише файлом: «сигнальний
+# документ» при картці акта — зведена чинна редакція (нова редакція наказом № 2857 і всі
+# пізніші зміни). Читаємо docx стандартними засобами, без сторонніх бібліотек.
+W_NS = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+
+
+def docx_text(el, mark_sup=False):
+    """Текст абзацу чи клітинки: розрив рядка і табуляція — пробіл; верхній індекс — «-N»."""
+    out = []
+    for r in el.iter(W_NS + "r"):
+        sup = r.find(f"{W_NS}rPr/{W_NS}vertAlign")
+        is_sup = mark_sup and sup is not None and sup.get(W_NS + "val") == "superscript"
+        for ch in r:
+            if ch.tag == W_NS + "t":
+                out.append(("-" + (ch.text or "")) if is_sup else (ch.text or ""))
+            elif ch.tag in (W_NS + "br", W_NS + "tab", W_NS + "cr"):
+                out.append(" ")
+    return re.sub(r"\s+", " ", "".join(out)).replace("’", "'").strip()
+
+
+def parse_docx(path, doc):
+    import zipfile
+    from xml.etree import ElementTree as ET
+    body = ET.fromstring(zipfile.ZipFile(path).read("word/document.xml")).find(W_NS + "body")
+    tables, paras, cur_tit, cur_roz = [], [], "", ""
+    notes, in_notes, seen_appendix = [], False, False
+    main_tit = ""
+    for el in body:
+        if el.tag == W_NS + "p":
+            t = docx_text(el)
+            if not t:
+                continue
+            paras.append(t)
+            if t.startswith("Примірний табель матеріально"):
+                main_tit = cur_tit = t
+            elif re.match(r"^(Мінімальний набір лікарських засобів|Склад одноразового малого хірургічного набору)", t):
+                cur_tit, cur_roz, in_notes = t.rstrip("*").strip(), "", False
+            elif t.startswith("Примітки:") and not seen_appendix:
+                in_notes = True
+            elif re.match(r"^(В\.о\.|Генеральн|Додаток \d)", t):
+                in_notes, seen_appendix = False, seen_appendix or t.startswith("Додаток")
+            elif in_notes:
+                # перші примітки в docx нумеровано автоматично — номер у тексті відсутній
+                auto = not re.match(r"^(\[\d+\]|х\s*-)", t)
+                notes.append((f"[{sum(1 for n in notes if n[0]) + 1}] " if auto else "") + t if False else
+                             (auto, t))
+            continue
+        if el.tag != W_NS + "tbl":
+            continue
+        rows = el.findall(W_NS + "tr")
+        cells_of_row = lambda r: [docx_text(c) for c in r.findall(W_NS + "tc")]
+        if len(rows) == 1:                              # окрема таблиця-заголовок: «І. Основний список»
+            cur_roz = " ".join(c for c in cells_of_row(rows[0]) if c)
+            continue
+        head = cells_of_row(rows[0])
+        numbered = any(re.match(r"^№", c) for c in head)
+        parsed, roz, n_auto = [], cur_roz, 0
+        if numbered and "Кількість одиниць" in " ".join(head):          # основний табель
+            sub = cells_of_row(rows[1])
+            cols = [head[0], head[1]] + [f"Кількість одиниць · {c}" for c in sub if c]
+        else:
+            cols = head
+
+        def flush():
+            nonlocal parsed
+            if parsed:
+                tables.append({"tit": cur_tit, "roz": roz, "cols": cols, "rows": parsed})
+            parsed = []
+
+        for r in rows[1:]:
+            tcs = r.findall(W_NS + "tc")
+            cells = [docx_text(c) for c in tcs]
+            filled = [c for c in cells if c]
+            if not filled or is_numbering(cells):
+                continue
+            if len(filled) == 1 and re.match(r"^[IVXІХ]+\.\s+\S", filled[0]):   # рядок-заголовок розділу
+                flush()
+                roz = filled[0]
+                continue
+            if numbered:
+                no = docx_text(tcs[0], mark_sup=True).rstrip(".")
+                if not re.fullmatch(r"\d+(-\d+)?", no):
+                    continue                              # другий рядок шапки
+                qty = cells[2:]
+                # у docx трапляється «хвіст» попереднього рядка, зліплений у ту саму стрічку
+                for i, q in enumerate(qty):
+                    if re.fullmatch(r"\d+\.", q):
+                        qty = qty[:i]
+                        break
+                parsed.append({"no": no, "name": cells[1], "qty": qty})
+            else:                                         # таблиця без нумерації (додаток 2)
+                n_auto += 1
+                parsed.append({"no": str(n_auto), "name": cells[0], "qty": cells[1:]})
+        flush()
+    numbered_notes, k = [], 0
+    for auto, t in notes:
+        k += 1 if auto else 0
+        numbered_notes.append(f"[{k}] {t}" if auto else t)
+    for t in tables:                                      # примітки стосуються основного табеля
+        if t["tit"] == main_tit:
+            t["notes"] = numbered_notes
+    log(f"  {doc['id']}: docx — таблиць {len(tables)}, приміток {len(numbered_notes)}")
+    return assemble(tables, doc)
+
+
+# ══════════════════════════════════════════════════════════════
 # Складання документа у спільний формат
 # ══════════════════════════════════════════════════════════════
 def qty_labels(t, ncols):
@@ -512,6 +705,7 @@ def qty_labels(t, ncols):
 
 def assemble(tables, doc):
     """tables → {tables: [...], items: [...]} у форматі розділу."""
+    apply_patches(tables, doc)
     out_tables, items = [], []
     groups, seen_titles = {}, Counter()
     for t in tables:
@@ -537,7 +731,7 @@ def assemble(tables, doc):
             labels = labels[:-1] or ["Кількість"]
         sec = {"id": f'{g["id"]}-{len(g["sections"]) + 1}',
                "title": title, "count": len(t["rows"]),
-               "qty_labels": labels, "notes": [], "excluded": 0}
+               "qty_labels": labels, "notes": list(t.get("notes", [])), "excluded": 0}
         g["sections"].append(sec)
         for r in t["rows"]:
             qty, note = list(r["qty"]), ""
@@ -574,6 +768,17 @@ def convert_153(doc):
     for r in idx:
         items.append([f'153-{len(items) + 1}', r[1], r[2],
                       str(r[3]), f'{r[3]}-{r[4]}', r[5], r[6], ""])
+    for ex in EXCLUDED_153:
+        rows = [it for it in items if it[4] == ex["section"]]
+        sec = next(s for g in tables for s in g["sections"] if s["id"] == ex["section"])
+        if len(rows) != ex["count"] or any(it[6] for it in rows) or sec.get("status"):
+            raise SystemExit(f"ВИКЛЮЧЕННЯ НЕ ЗАСТОСОВАНО (153): розділ {ex['section']} — позицій "
+                             f"{len(rows)}, очікувалось {ex['count']} чинних")
+        for it in rows:
+            it[6] = ex["status"]
+        sec.update({"excluded": len(rows), "status": "позиції виключено",
+                    "notes": list(sec.get("notes", [])) + [ex["note"]]})
+        log(f"  153: розділ {ex['section']} — виключено {len(rows)} позицій ({ex['status']})")
     log(f"  153: перенесено {len(items)} позицій із tabel153")
     return tables, items
 
@@ -644,6 +849,9 @@ def main():
         log("УВАГА: немає data/tabel/status.json — запустіть python tools/tabel_status.py")
     registry = {
         "generated": time.strftime("%Y-%m-%d"),
+        # версія для адрес файлів позицій: дата не годиться, бо дві збірки за день дають
+        # ту саму адресу, і браузер показує старий текст із кешу
+        "stamp": time.strftime("%Y%m%d%H%M"),
         "pmg": {
             "packages": pmg_bridge(),
             "requirement": "Специфікації ПМГ-2026 вимагають, щоб підрозділи були «обладнані "
@@ -677,13 +885,14 @@ def main():
         else:
             path = src_path(doc["src"])
             if not path.exists():
-                log(f"  {doc['id']}: НЕМАЄ ФАЙЛУ {path} — пропускаю")
-                entry.update({"has_text": False, "tables": [], "total": 0,
-                              "text_note": "Текст не завантажено."})
-                registry["docs"].append(entry)
-                continue
-            html = path.read_text(encoding="utf-8", errors="replace")
-            tables, items = (parse_ascii if parser == "ascii" else parse_html)(html, doc)
+                # Раніше тут був тихий пропуск із записом «Текст не завантажено»: табель
+                # мовчки втрачав усі позиції. Тепер збирач зупиняється.
+                raise SystemExit(f"НЕМАЄ ПЕРШОДЖЕРЕЛА наказу № {doc['number']}: {path}")
+            if parser == "docx":
+                tables, items = parse_docx(path, doc)
+            else:
+                html = path.read_text(encoding="utf-8", errors="replace")
+                tables, items = (parse_ascii if parser == "ascii" else parse_html)(html, doc)
 
         (DATA / f'doc_{doc["id"]}.json').write_text(
             json.dumps(items, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")

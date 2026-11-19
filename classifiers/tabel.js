@@ -177,7 +177,7 @@
     if (LOADED.has(docId)) return LOADED.get(docId);
     const d = DOCS.get(docId);
     el.count.textContent = "Завантажую табель…";
-    const items = await fetch(dataUrl(d.file, REG.generated)).then((r) => r.json());
+    const items = await fetch(dataUrl(d.file, REG.stamp || REG.generated)).then((r) => r.json());
     const byId = new Map(), bySec = new Map();
     const txt = items.map((e) => e[C.NAME].toLowerCase());
     items.forEach((e) => {

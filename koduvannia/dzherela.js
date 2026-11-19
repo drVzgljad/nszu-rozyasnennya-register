@@ -8,7 +8,7 @@
 (function () {
   'use strict';
 
-  const DATA_V = '20261119c';           // піднімати разом із перезбіркою даних
+  const DATA_V = '20261119d';           // піднімати разом із перезбіркою даних
   const KIND = {
     normative: 'нормативний акт',
     nszu: 'документ НСЗУ',
@@ -208,7 +208,9 @@
       `<div class="stat"><strong>${esc(v)}</strong><span>${esc(t)}</span></div>`).join('');
     $('dzJournalN').textContent = `${nf(DB.journalTotal)} записів`;
     const d = DB.generated.split('-').reverse().join('.');
-    $('dzFoot').textContent = `Звірку джерел виконано ${d}. Нових розбіжностей немає.`;
+    $('dzFoot').textContent = `Звірку джерел виконано ${d}. ` + (DB.newCount
+      ? `Ще не розглянуто розбіжностей: ${nf(DB.newCount)} — вони в переліку вище.`
+      : 'Нових розбіжностей немає.');
   }
 
   async function init() {

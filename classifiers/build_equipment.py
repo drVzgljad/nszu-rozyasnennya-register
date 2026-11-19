@@ -260,6 +260,8 @@ def load_refs():
     for f in sorted((BASE / "data" / "tabel").glob("doc_*.json")):
         order = f.stem.split("_")[1]
         for r in json.loads(f.read_text(encoding="utf-8")):
+            if r[6]:                 # позицію виключено пізнішим наказом — у підказки не беремо
+                continue
             refs.append(("tabel" + order, r[0], r[1], secs.get((order, r[4]), "")))
     log(f"Довідники: {len(refs)} позицій "
         f"({', '.join(f'{k}={v}' for k, v in Counter(s for s, _, _, _ in refs).most_common())}); "
