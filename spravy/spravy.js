@@ -179,8 +179,8 @@ const KEEPS_OPEN = ['interim', 'sz_req'];
 const LINK_DOC = { sz: 'Службова записка', sz_work: 'СЗ у робочому порядку', letter: 'Лист', project: 'Проєкт на погодження (АСКОД)', other: 'Інший документ' };
 const LINK_SHORT = { sz: 'СЗ', sz_work: 'СЗ роб.', letter: 'Лист', project: 'Проєкт', other: 'Документ' };
 const LINK_STATUS = {
-  out: { waiting: '⏳ Чекаємо відповіді', answered: '✓ Відповідь є', closed: 'Знято' },
-  in:  { waiting: '📥 Треба врахувати', answered: '✓ Враховано', closed: 'Знято' }
+  out: { draft: '✍ Готуємо (маршрут)', waiting: '⏳ Чекаємо відповіді', answered: '✓ Відповідь є', closed: 'Знято' },
+  in:  { draft: '✍ Ще готують', waiting: '📥 Треба врахувати', answered: '✓ Враховано', closed: 'Знято' }
 };
 // Значок події в історії справи
 const EV_ICON = {
@@ -273,6 +273,8 @@ const state = {
   openId: null,
   members: new Map(), // 🧩 id головної → приєднані справи (indexMerges)
   cand: new Map(),    // 🧩 id справи → кандидати на об'єднання
+  linkDraft: {},      // 🧭 id справи → службові-запити, що ще на маршруті: [{ to, now }]
+  noLinkRoute: false, // міграцію 19b (route у зв'язках, стан draft) ще не застосовано
   interim: {},        // 📑 id справи → остання проміжна відповідь { doc_no, date } (бейдж «✉ проміжна»)
   ourSz: null,        // 📤 наші службові (вкладка «📝 Службові»): null — ще не завантажено
   ourSzF: 'open',     // open — готуємо й чекаємо відповіді; all — усі
@@ -788,7 +790,9 @@ function bootDemo() {
     const rq = (no, to, about, extra) => ({ id: crypto.randomUUID(), created_at: ago(4), case_id: ci, case_department: 'демо-відділ', direction: 'out', doc_kind: 'sz',
       doc_no: no, doc_date: d(-4), counterpart: to, about, wait_until: d(1), status: 'waiting', created_by: 'demo', created_by_name: 'Олена Приклад', ...extra });
     state.demoLinks.push(rq('8-15/310-26', 'Аналітичне управління (демо)', 'Кількість пролікованих випадків за пакетом', { status: 'answered', answer_note: 'Дані надано СЗ 4-2/40-26' }),
-      rq('8-15/311-26', 'Юридичний департамент (демо)', 'Позиція щодо підстав відмови'));
+      rq('8-15/311-26', 'Юридичний департамент (демо)', 'Позиція щодо підстав відмови'),
+      rq(null, 'Департамент-приклад (демо)', 'Перелік закладів із договорами за пакетом', { status: 'draft', doc_date: null, created_at: ago(1),
+        route: { exec: d(-1), steps: [{ who: 'Начальник відділу', ok: d(0) }], sign: { who: 'Директор департаменту', ok: null } } }));
   }
   countLinks(state.demoLinks, new Set(state.cases.map((c) => c.id)));
   $('spDeptName').textContent = 'Демо-режим: картки вигадані, нічого не зберігається в базі';
@@ -866,8 +870,7 @@ async function loadCounts() {
   const [{ data }, links] = await Promise.all([
     state.sb.from('dept_case_events').select('id, case_id, kind, remark_status, due_date, done, body, doc_kind, doc_no, event_date, created_at')
       .or('kind.in.(remark,reminder),and(kind.eq.outgoing,doc_kind.eq.interim)').in('case_id', ids),
-    state.noLinks ? { data: [] } : state.sb.from('dept_case_links').select('id, case_id, counterpart_case_id, case_department, direction, status, doc_kind, doc_no, doc_date, counterpart, wait_until, created_at, created_by_name')
-      .eq('status', 'waiting').or(`case_id.in.(${ids.join(',')}),counterpart_case_id.in.(${ids.join(',')})`)
+    state.noLinks ? { data: [] } : openLinks(ids)
   ]);
   (data || []).forEach((r) => {
     if (r.kind === 'remark' && r.remark_status === 'open') state.remarkCounts[r.case_id] = (state.remarkCounts[r.case_id] || 0) + 1;
@@ -881,6 +884,19 @@ async function loadCounts() {
 
 /* ── Зв'язки справ (migration_2026-11-09b_case_links.sql) ── */
 
+/** Відкриті зв'язки справ дошки: «чекаємо» і «готуємо» (з маршрутом службової — після міграції 19b). */
+async function openLinks(ids) {
+  const cols = 'id, case_id, counterpart_case_id, case_department, direction, status, doc_kind, doc_no, doc_date, counterpart, wait_until, created_at, created_by_name';
+  const q = (withRoute) => state.sb.from('dept_case_links').select(cols + (withRoute ? ', route' : ''))
+    .in('status', withRoute ? ['waiting', 'draft'] : ['waiting']).or(`case_id.in.(${ids.join(',')}),counterpart_case_id.in.(${ids.join(',')})`);
+  if (!state.noLinkRoute) {
+    const r = await q(true);
+    if (!r.error || MISSING.test(r.error.message || r.error.code || '')) return r;
+    state.noLinkRoute = true;     // колонки route ще немає — працюємо як до 19.11
+  }
+  return q(false);
+}
+
 /**
  * Зв'язок з погляду справи caseId. Рядок вносить одна сторона (case_id), а друга
  * (counterpart_case_id) бачить його дзеркально: наше «надіслали — чекаємо» для неї
@@ -893,6 +909,9 @@ function viewLink(l, caseId) {
 
 /** Відкриті зв'язки → state.linkWait[case_id] = { out: ⏳ чекаємо, in: 📥 врахувати }. */
 function countLinks(rows, ids) {
+  state.linkDraft = {};
+  rows.filter((l) => l.status === 'draft' && l.direction === 'out' && ids.has(l.case_id))
+    .forEach((l) => (state.linkDraft[l.case_id] ||= []).push({ to: l.counterpart, now: linkRouteNow(linkRouteOf(l)) }));
   rows.filter((l) => l.status === 'waiting').forEach((l) => {
     [l.case_id, l.counterpart_case_id].forEach((id) => {
       if (!id || !ids.has(id)) return;
@@ -995,12 +1014,13 @@ function linkHTML(l) {
   const st = LINK_STATUS[l.dir];
   return `<li class="sp-link is-${l.dir} is-${l.status}" data-link="${l.id}">
     <div class="sp-link-head">
-      <span class="sp-link-dir">${l.dir === 'out' ? '📤 Ми надіслали' : '📥 Нам надіслали'}</span>
+      <span class="sp-link-dir">${l.dir === 'out' ? (l.status === 'draft' ? '✍ Готуємо службову' : '📤 Ми надіслали') : '📥 Нам надіслали'}</span>
       <b>${esc(head)}</b> <span class="sp-muted">${esc(side)}</span>
       <select class="sp-link-status" aria-label="Стан">${Object.entries(st).map(([k, v]) => `<option value="${k}"${k === l.status ? ' selected' : ''}>${v}</option>`).join('')}</select>
       ${mine && !l.mirrored ? '<button type="button" class="sp-link-del" data-link-del title="Прибрати зв\'язок" aria-label="Прибрати зв\'язок">✕</button>' : ''}
     </div>
     ${l.about ? `<div class="sp-link-body">${esc(l.about)}</div>` : ''}
+    ${linkRouteHTML(l)}
     <div class="sp-link-meta">
       ${l.project_no && l.project_no !== l.doc_no ? `<span>до проєкту № ${esc(l.project_no)}</span>` : ''}
       ${l.wait_until ? `<span class="${wait !== null && wait < 0 ? 'sp-dl is-over' : wait !== null && wait <= 1 ? 'sp-dl is-hot' : ''}">чекаємо до ${fmtDate(l.wait_until)}${wait !== null && wait < 0 ? ` · минуло ${-wait} дн.` : ''}</span>` : ''}
@@ -1022,10 +1042,12 @@ function renderLinks() {
   const c = state.cases.find((x) => x.id === state.openId) || {};
   const ctx = [c.project_no && `наш проєкт відповіді <b>№ ${copyHTML(c.project_no, '№ проєкту')}</b>`,
     c.lead_unit && `головний виконавець: <b>${esc(c.lead_unit)}</b>`, c.our_role && esc(ROLE_LABEL[c.our_role])].filter(Boolean);
-  const outs = state.links.filter((l) => viewLink(l, state.openId).dir === 'out' && l.status !== 'closed');
+  const outs = state.links.filter((l) => l.dir === 'out' && l.status !== 'closed');
   const outWait = outs.filter((l) => l.status === 'waiting').length;
-  const sum = outs.length > 1 || (outs.length && !outWait)
-    ? (outWait ? `<p class="sp-link-sum">📤 Запитано ${outs.length} · отримано ${outs.length - outWait} · ⏳ чекаємо ${outWait}</p>`
+  const outDraft = outs.filter((l) => l.status === 'draft').length;
+  const outGot = outs.filter((l) => l.status === 'answered').length;
+  const sum = outs.length > 1 || (outs.length && outGot === outs.length)
+    ? (outGot < outs.length ? `<p class="sp-link-sum">📤 Запитів ${outs.length}${outDraft ? ` · ✍ готуємо ${outDraft}` : ''}${outWait ? ` · ⏳ чекаємо ${outWait}` : ''} · отримано ${outGot}</p>`
       : `<p class="sp-link-sum is-all">✓ Усі запитані відповіді отримано (${outs.length})${isClosed(c) ? '' : ' — можна готувати остаточну відповідь'}</p>`)
     : '';
   const peers = sum + (ctx.length ? `<p class="sp-link-ctx">${ctx.join(' · ')}</p>` : '') + (state.peers.length ? `<p class="sp-peers"><b>Та сама справа в інших відділах:</b> ${state.peers.map((p) =>
@@ -1090,11 +1112,15 @@ async function refreshLinks(caseId) {
 function demoLinkLog(l, prev) {
   const doc = `${LINK_SHORT[l.doc_kind] || 'Документ'}${l.doc_no ? ' № ' + l.doc_no : ''}`;
   const push = (id, body) => id && (state.demoEvents[id] ||= []).push({ id: crypto.randomUUID(), case_id: id, created_at: new Date().toISOString(), author_name: myName(), kind: 'system', body });
-  if (!prev) {
+  if (!prev && l.status === 'draft') {
+    push(l.case_id, `🔗 ${doc}${l.counterpart ? ' → ' + l.counterpart : ''} — готуємо (маршрут службової)`);
+  } else if (prev && prev.status === 'draft' && l.status === 'waiting') {
+    push(l.case_id, `🔗 ${doc}${l.counterpart ? ' → ' + l.counterpart : ''} — надіслано, чекаємо відповіді`);
+  } else if (!prev) {
     push(l.case_id, l.direction === 'out' ? `🔗 ${doc}${l.counterpart ? ' → ' + l.counterpart : ''} — чекаємо відповіді` : `🔗 ${doc}${l.counterpart ? ' від ' + l.counterpart : ''} — врахувати`);
     push(l.counterpart_case_id, l.direction === 'out' ? `🔗 Від відділу ${l.case_department || '—'}: ${doc} — врахувати` : `🔗 ${doc} → відділу ${l.case_department || '—'} — чекають від нас`);
   } else if (prev.status !== l.status) {
-    const word = { answered: l.direction === 'out' ? 'відповідь отримано' : 'враховано', closed: 'знято', waiting: 'знову чекаємо' }[l.status];
+    const word = { answered: l.direction === 'out' ? 'відповідь отримано' : 'враховано', closed: 'знято', waiting: 'знову чекаємо', draft: 'знову готуємо' }[l.status];
     const body = `🔗 ${doc}: ${word}${l.answer_note ? ' — ' + l.answer_note : ''}`;
     push(l.case_id, body);
     push(l.counterpart_case_id, body);
@@ -1344,7 +1370,7 @@ function buildOurSz(links, events) {
     const caseId = own ? l.case_id : l.counterpart_case_id;
     const v = viewLink(l, caseId);
     out.push({ id: 'l' + l.id, caseId, kind: l.doc_kind, no: l.doc_no, date: sentOn(l), who: v.who && v.who !== '—' ? v.who : '',
-      about: l.about, status: l.status, waitUntil: l.wait_until, answer: l.answer_note });
+      about: l.about, status: l.status, waitUntil: l.wait_until, answer: l.answer_note, route: l.route || null });
     seen.add(szKey(caseId, l.doc_no));
   });
   events.forEach((e) => {
@@ -1371,7 +1397,13 @@ async function loadOurSz() {
   const ids = state.cases.map((c) => c.id);
   const chunks = [];
   for (let i = 0; i < ids.length; i += 80) chunks.push(ids.slice(i, i + 80));
-  const cols = 'id, case_id, counterpart_case_id, case_department, direction, status, doc_kind, doc_no, doc_date, counterpart, about, wait_until, answer_note, created_at, created_by_name';
+  const base = 'id, case_id, counterpart_case_id, case_department, direction, status, doc_kind, doc_no, doc_date, counterpart, about, wait_until, answer_note, created_at, created_by_name';
+  // Маршрут службової (route) — лише після міграції 19b: без колонки запит падає, тож перевіряємо одним рядком
+  if (!state.noLinkRoute && !state.noLinks) {
+    const t = await state.sb.from('dept_case_links').select('route').limit(1);
+    if (t.error && !MISSING.test(t.error.message || t.error.code || '')) state.noLinkRoute = true;
+  }
+  const cols = base + (state.noLinkRoute ? '' : ', route');
   const q = (f) => f.then((r) => (r.error ? [] : r.data || []));
   const many = (make) => Promise.all(chunks.map((ch) => q(make(ch)))).then((a) => a.flat());
   const [own, mirror, evs] = await Promise.all([
@@ -1397,7 +1429,11 @@ function ourSzRowHTML(o) {
   if (!c) return '';
   let st;
   let cls;
-  if (o.status === 'draft') {
+  if (o.status === 'draft' && o.route) {
+    const n = linkRouteNow(linkRouteOf(o));
+    st = `✍ готуємо · ${n.what}: ${whoShort(n.who)}`;
+    cls = 'is-draft';
+  } else if (o.status === 'draft') {
     st = `✍ готуємо · ${stageLabel(c, c.stage)}${c.version ? ' · v' + c.version : ''}`;
     cls = 'is-draft';
   } else if (o.status === 'waiting') {
@@ -1628,6 +1664,7 @@ function cardHTML(c) {
     c.on_control ? `<span class="sp-ctl" title="${esc(controlTip(c))}">🎯 контроль</span>` : '',
     pr ? `<span class="sp-prol" title="${esc(pr.tip)}">↻ було ${fmtDate(pr.orig).slice(0, 5)}</span>` : '',
     state.interim[c.id] && !isClosed(c) ? `<span class="sp-interim" title="${esc(interimTip(c))}">✉ проміжна</span>` : '',
+    state.linkDraft[c.id]?.length ? `<span class="sp-lr-mini" title="${esc(linkDraftTip(c))}">🧭 СЗ ${state.linkDraft[c.id].length}</span>` : '',
     signedHTML(c),
     reviewHTML(c),
     routeMiniHTML(c),
@@ -2350,7 +2387,7 @@ const ACTIONS = {
     fields: (c) => {
       const corr = c.correspondent && !/^службов/i.test(c.correspondent.trim()) ? c.correspondent : '';
       return `
-      <p class="sp-f sp-wide sp-muted">Коли для повної відповіді потрібні дані інших підрозділів. Кореспонденту надсилаємо проміжну відповідь і продовжуємо строк, підрозділам — службові із запитом. Кожна службова стане окремим «⏳ чекаємо» у «Зв'язках», справа лишиться в роботі.</p>
+      <p class="sp-f sp-wide sp-muted">Коли для повної відповіді потрібні дані інших підрозділів. Кореспонденту надсилаємо проміжну відповідь і продовжуємо строк, підрозділам — службові із запитом. Справа лишиться в роботі.</p>
       <fieldset class="sp-im-box sp-wide">
         <legend><label class="sp-im-on"><input type="checkbox" name="im_on" checked> ✉ Проміжна відповідь${corr ? ' — ' + esc(corr) : ' кореспонденту'}</label></legend>
         <div class="sp-im-grid" data-im-part>
@@ -2362,6 +2399,8 @@ const ACTIONS = {
       </fieldset>
       <fieldset class="sp-im-box sp-wide">
         <legend>📤 Службові-запити інформації</legend>
+        <p class="sp-muted sp-im-hint">${state.noLinkRoute && !DEMO ? 'Кожна службова — окреме «⏳ чекаємо» у «Зв\'язках».'
+          : 'Є № — службову вже надіслано: одразу «⏳ чекаємо». <b>Без № — ще готуємо:</b> службова отримає свій маршрут (виконавець → начальник відділу → 🖋 директор департаменту), № і дату внесете після підпису.'}</p>
         <div class="sp-im-rows" data-im-rows>${interimRowHTML()}</div>
         <button type="button" class="sp-btn sp-im-add" data-im-add>+ ще службова</button>
         <label class="sp-f sp-wide"><span>Про що просимо</span><input name="rq_about" placeholder="напр. дані про оплати закладу за 2025–2026"></label>
@@ -2388,6 +2427,12 @@ const ACTIONS = {
         if (Object.keys(patch).length) await saveCase(id, patch);
       } else if (c.stage === 'new') await saveCase(id, { stage: 'work' });
       for (const r of rows) {
+        // Без № — службову ще готуємо: власний маршрут, «📤 Надіслано» — після підпису (міграція 19b)
+        if (!r.no && !state.noLinks && (DEMO || !state.noLinkRoute)) {
+          await addLink(id, { direction: 'out', doc_kind: 'sz', status: 'draft', route: linkRouteDefault(), counterpart: r.to,
+            about: about || 'Запит інформації', wait_until: r.until, project_no: c.project_no || null });
+          continue;
+        }
         await addEvent(id, { kind: 'outgoing', doc_kind: 'sz_req', doc_no: r.no || null, addressee: r.to, event_date: r.date, body: about || 'Запит інформації' });
         if (!state.noLinks) await addLink(id, { direction: 'out', doc_kind: 'sz', doc_no: r.no || null, doc_date: r.date, counterpart: r.to,
           about: about || 'Запит інформації', wait_until: r.until, project_no: c.project_no || null });
@@ -2646,6 +2691,119 @@ async function autoSkod(id) {
   }
   await addEvent(id, { kind: 'system', body: `Зараховано в СКО-Д: 1 год, ${category.split(' — ')[0]} (автоматично за № проєкту)` });
   toast('Зараховано в СКО-Д: 1 год. Час і складність можна змінити в особистому кабінеті');
+}
+
+/* ───── 🧭 Маршрут службової-запиту (19.11.2026, користувач: «зроби і на службову маршрут») ─────
+ * У справі кілька документів: остаточна відповідь іде маршрутом справи (dept_cases.route), а кожна наша
+ * службова-запит до іншого підрозділу — власним маршрутом у рядку зв'язку (dept_case_links.route,
+ * migration_2026-11-19b_link_route.sql): виконавець → начальник відділу → (+ ланка) → 🖋 підписує директор
+ * департаменту → 📨 адресат. Поки службову готують, зв'язок у стані 'draft' («✍ готуємо»); підписали —
+ * вносимо № і дату, «📤 Надіслано» → 'waiting' («⏳ чекаємо відповіді»).
+ */
+const LINK_SIGNERS = ['Директор департаменту', 'Заступник директора департаменту', 'Начальник відділу'];
+const linkRouteDefault = () => ({ exec: null, steps: [{ who: 'Начальник відділу', ok: null }], sign: { who: 'Директор департаменту', ok: null } });
+const linkRouteOf = (l) => (l.route && Array.isArray(l.route.steps) && l.route.sign ? l.route : linkRouteDefault());
+/** У кого службова зараз: { who, what }. */
+function linkRouteNow(r) {
+  if (!r.exec) return { who: 'Виконавець', what: 'готує' };
+  const s = r.steps.find((x) => !x.ok);
+  if (s) return { who: s.who, what: 'погоджує' };
+  if (!r.sign.ok) return { who: r.sign.who, what: 'підписує' };
+  return { who: r.sign.who, what: 'підписав(-ла)' };
+}
+const lrDate = (d) => (d ? fmtDate(d).slice(0, 5) : '○');
+
+function linkRouteHTML(l) {
+  if (l.mirrored || l.dir !== 'out' || !(l.status === 'draft' || l.route)) return '';
+  const r = linkRouteOf(l);
+  const now = linkRouteNow(r);
+  const node = (key, label, ok, cur) => `<button type="button" class="sp-lr-node${ok ? ' is-ok' : cur ? ' is-cur' : ''}" data-lr="${key}"
+      title="${ok ? 'Погоджено ' + fmtDate(ok) + ' — клік знімає позначку' : 'Позначити: погоджено сьогодні'}">${esc(label)} <i>${lrDate(ok)}</i></button>`;
+  const firstOpen = !r.exec ? 'exec' : r.steps.findIndex((s) => !s.ok) >= 0 ? 's' + r.steps.findIndex((s) => !s.ok) : 'sign';
+  const steps = r.steps.map((s, i) => `<span class="sp-lr-wrap">${node('s' + i, s.who, s.ok, firstOpen === 's' + i)}<button type="button" class="sp-lr-x" data-lr-del="${i}" title="Прибрати ланку" aria-label="Прибрати ланку">✕</button></span>`).join('<span class="sp-lr-arr">→</span>');
+  const signers = [...new Set([r.sign.who, ...LINK_SIGNERS])];
+  const sign = `<span class="sp-lr-wrap sp-lr-sign${r.sign.ok ? ' is-ok' : firstOpen === 'sign' ? ' is-cur' : ''}">
+      <select data-lr-signer aria-label="Хто підписує службову">${signers.map((s) => `<option${s === r.sign.who ? ' selected' : ''}>${esc(s)}</option>`).join('')}</select>
+      <button type="button" class="sp-lr-node${r.sign.ok ? ' is-ok' : ''}" data-lr="sign" title="${r.sign.ok ? 'Підписано ' + fmtDate(r.sign.ok) + ' — клік знімає позначку' : 'Позначити: підписано сьогодні'}">🖋 <i>${lrDate(r.sign.ok)}</i></button></span>`;
+  const send = l.status === 'draft' && r.sign.ok ? `<div class="sp-lr-send">
+      <span>Підписано — внесіть реєстрацію й відправте:</span>
+      <input data-lr-no placeholder="№ СЗ" value="${esc(l.doc_no || '')}" aria-label="№ службової">
+      <input type="date" data-lr-date value="${esc(l.doc_date || r.sign.ok)}" aria-label="Дата службової">
+      <button type="button" class="sp-btn sp-btn-primary" data-lr-send>📤 Надіслано</button></div>` : '';
+  return `<div class="sp-lr" aria-label="Маршрут службової">
+      <div class="sp-lr-head">🧭 Маршрут службової${l.status === 'draft' ? ` · <b>${esc(now.what)}: ${esc(now.who)}</b>` : ' · надіслано'}</div>
+      <div class="sp-lr-row">${node('exec', '✍ Виконавець', r.exec, firstOpen === 'exec')}<span class="sp-lr-arr">→</span>${steps}${r.steps.length ? '<span class="sp-lr-arr">→</span>' : ''}<button type="button" class="sp-lr-add" data-lr-add title="Додати погоджувача">+ ланка</button><span class="sp-lr-arr">→</span>${sign}<span class="sp-lr-arr">→</span><span class="sp-lr-to">📨 ${esc(l.who || 'адресат')}</span></div>
+      ${send}</div>`;
+}
+
+/** Зміна маршруту службової: зберегти в зв'язку й записати в історію справи. */
+async function saveLinkRoute(caseId, l, r, note) {
+  await updateLink(caseId, l.id, { route: r });
+  if (note) await addEvent(caseId, { kind: 'system', body: `🧭 СЗ → ${l.who || 'адресат'}: ${note}` });
+}
+
+async function onLinkRoute(e) {
+  const li = e.target.closest('[data-link]');
+  if (!li || !state.openId) return false;
+  const l = state.links.find((x) => x.id === li.dataset.link);
+  if (!l) return false;
+  const r = JSON.parse(JSON.stringify(linkRouteOf(l)));
+  const t = e.target;
+  if (t.closest('[data-lr]')) {
+    const k = t.closest('[data-lr]').dataset.lr;
+    const today = todayISO();
+    let label;
+    let on;
+    if (k === 'exec') { on = !r.exec; r.exec = on ? today : null; label = 'виконавець'; }
+    else if (k === 'sign') { on = !r.sign.ok; r.sign.ok = on ? today : null; label = r.sign.who; }
+    else { const s = r.steps[+k.slice(1)]; on = !s.ok; s.ok = on ? today : null; label = s.who; }
+    // Підписано — отже, і всі погодили: ланки без дати отримують ту саму дату
+    if (k === 'sign' && on) { r.exec ||= today; r.steps.forEach((s) => { s.ok ||= today; }); }
+    await saveLinkRoute(state.openId, l, r, `${label} — ${on ? (k === 'sign' ? 'підписано' : 'погоджено') : 'позначку знято'}`);
+    return true;
+  }
+  if (t.closest('[data-lr-del]')) {
+    const i = +t.closest('[data-lr-del]').dataset.lrDel;
+    const who = r.steps[i]?.who;
+    r.steps.splice(i, 1);
+    await saveLinkRoute(state.openId, l, r, `прибрано ланку «${who}»`);
+    return true;
+  }
+  if (t.closest('[data-lr-add]')) {
+    const who = (prompt('Хто ще погоджує службову?', 'Заступник директора департаменту') || '').trim();
+    if (!who) return true;
+    r.steps.push({ who, ok: null });
+    await saveLinkRoute(state.openId, l, r, `додано ланку «${who}»`);
+    return true;
+  }
+  if (t.closest('[data-lr-send]')) {
+    const box = t.closest('.sp-lr-send');
+    const no = box.querySelector('[data-lr-no]').value.trim();
+    const date = box.querySelector('[data-lr-date]').value || todayISO();
+    if (!no && !confirm('Відправити без № службової? Його можна буде дописати пізніше.')) return true;
+    await addEvent(state.openId, { kind: 'outgoing', doc_kind: 'sz_req', doc_no: no || null, addressee: l.who || null, event_date: date, body: l.about || 'Запит інформації' });
+    await updateLink(state.openId, l.id, { doc_no: no || null, doc_date: date, status: 'waiting' });
+    toast(`📤 Службову${no ? ' № ' + no : ''} надіслано — чекаємо відповіді`);
+    return true;
+  }
+  return false;
+}
+
+async function onLinkSigner(e) {
+  const sel = e.target.closest('[data-lr-signer]');
+  const li = e.target.closest('[data-link]');
+  if (!sel || !li || !state.openId) return false;
+  const l = state.links.find((x) => x.id === li.dataset.link);
+  if (!l) return false;
+  const r = JSON.parse(JSON.stringify(linkRouteOf(l)));
+  r.sign.who = sel.value;
+  await saveLinkRoute(state.openId, l, r, `підписує ${sel.value}`);
+  return true;
+}
+
+/** Підказка бейджа «🧭 СЗ N» на картці: у кого кожна службова-запит. */
+function linkDraftTip(c) {
+  return 'Службові-запити на маршруті: ' + (state.linkDraft[c.id] || []).map((d) => `→ ${d.to || 'адресат'} — ${d.now.what}: ${d.now.who}`).join('; ');
 }
 
 /** Рядок службової-запиту у формі «📑 Проміжна відповідь і запити». */
@@ -3218,13 +3376,15 @@ function wireStatic() {
     if (state.followUp) { const next = state.followUp; state.followUp = null; setTimeout(() => openAction(next), 250); }
   });
   // Зв'язки: стан, «що відповіли / як враховано», прибрати, перейти до справи другої сторони
-  $('spLinks').addEventListener('change', (e) => {
+  $('spLinks').addEventListener('change', async (e) => {
+    if (await onLinkSigner(e)) return;
     const li = e.target.closest('[data-link]');
     if (!li || !state.openId) return;
     if (e.target.classList.contains('sp-link-status')) updateLink(state.openId, li.dataset.link, { status: e.target.value });
     if (e.target.classList.contains('sp-link-ans')) updateLink(state.openId, li.dataset.link, { answer_note: e.target.value.trim() || null });
   });
-  $('spLinks').addEventListener('click', (e) => {
+  $('spLinks').addEventListener('click', async (e) => {
+    if (await onLinkRoute(e)) return;
     const go = e.target.closest('[data-open-case]');
     if (go) return openCase(go.dataset.openCase);
     const li = e.target.closest('[data-link]');

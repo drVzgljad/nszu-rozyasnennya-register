@@ -1507,3 +1507,32 @@ button.sp-rev-mini.is-todo:hover, button.sp-rev-mini.is-todo:focus-visible { out
   .sp-im-del { justify-self: end; grid-column: 2; }
 }
 .sp-act.is-wide { width: min(780px, calc(100vw - 32px)); }
+
+/* ───── 🧭 Маршрут службової-запиту в «Зв'язках» (19.11.2026) ───── */
+.sp-lr { margin: 6px 0 2px; padding: 8px 10px; border-radius: 10px; background: var(--soft); border: 1px dashed var(--line); }
+.sp-lr-head { font-size: 12px; color: var(--muted); margin-bottom: 6px; overflow-wrap: anywhere; }
+.sp-lr-head b { color: var(--ink); }
+.sp-lr-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; }
+.sp-lr-arr { color: var(--muted); font-weight: 700; }
+.sp-lr-wrap { position: relative; display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
+.sp-lr-node { font: inherit; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 8px;
+  border: 1px dashed var(--line); background: var(--surface); color: var(--ink); cursor: pointer; max-width: 100%; overflow-wrap: anywhere; text-align: left; }
+.sp-lr-node i { font-style: normal; color: var(--muted); font-size: 11px; white-space: nowrap; }
+.sp-lr-node.is-ok { border-style: solid; border-color: var(--sp-ok-ink); background: var(--sp-ok-bg); }
+.sp-lr-node.is-ok i { color: var(--sp-ok-ink); font-weight: 700; }
+.sp-lr-node.is-cur, .sp-lr-sign.is-cur select { border-style: solid; border-color: var(--sp-wait); box-shadow: 0 0 0 2px var(--sp-wait-bg); }
+.sp-lr-sign.is-ok select { border-color: var(--sp-ok-ink); }
+.sp-lr-sign select { font: inherit; font-size: 12px; padding: 3px 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); max-width: 210px; }
+.sp-lr-x { position: absolute; top: -7px; right: -7px; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--line);
+  background: var(--surface); color: var(--muted); font-size: 10px; line-height: 1; cursor: pointer; opacity: 0; padding: 0; }
+.sp-lr-wrap:hover .sp-lr-x, .sp-lr-x:focus-visible { opacity: 1; }
+.sp-lr-add { font: inherit; font-size: 12px; padding: 3px 8px; border-radius: 8px; border: 1px dashed var(--line); background: transparent; color: var(--muted); cursor: pointer; }
+.sp-lr-add:hover { color: var(--ink); border-color: var(--accent); }
+.sp-lr-to { font-size: 12px; font-weight: 700; color: var(--ink); overflow-wrap: anywhere; }
+.sp-lr-send { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); font-size: 12px; color: var(--muted); }
+.sp-lr-send input { font: inherit; font-size: 13px; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); min-width: 0; }
+.sp-lr-send input[data-lr-no] { width: 9em; }
+.sp-badges .sp-lr-mini { background: var(--sp-wait-bg); color: var(--sp-wait-ink); font-weight: 700; cursor: help; }
+.sp-link.is-draft { border-left-color: var(--sp-wait); }
+.sp-im-hint { margin: 0; font-size: 12px; line-height: 1.45; }
+@media (hover: none) { .sp-lr-x { opacity: 1; } }
