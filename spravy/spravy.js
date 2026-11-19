@@ -171,7 +171,10 @@ const KIND_SHORT = { letter: 'Лист', sz: 'СЗ', sz_work: 'СЗ роб.', pi
 // answer — вхідна СЗ є відповіддю на нашу записку (вимога користувача 10.11.2026; міграція 10_case_role_answer)
 const ROLE_LABEL = { lead: 'Ми — головний виконавець', co: 'Ми — співвиконавці', info: 'Нам — до відома', answer: 'ВІДПОВІДЬ на нашу записку (опрацьовано, враховано)' };
 const ROLE_SHORT = { lead: 'Гол.', co: 'Співвик.', info: 'До відома', answer: '↩ ВІДПОВІДЬ' };
-const DOC_KIND = { letter: 'Лист', sz: 'Службова записка', sz_work: 'СЗ у робочому порядку', other: 'Інший документ' };
+const DOC_KIND = { letter: 'Лист', interim: 'Проміжна відповідь (продовження строку)', sz: 'Службова записка', sz_req: 'СЗ-запит інформації',
+  sz_work: 'СЗ у робочому порядку', other: 'Інший документ' };
+// Документи, які не завершують справу: після них відповідь ще готуємо (📑 «Проміжна відповідь і запити», 19.11.2026)
+const KEEPS_OPEN = ['interim', 'sz_req'];
 // Зв'язки справ (migration_2026-11-09b_case_links.sql): документ туди (out — чекаємо) чи назад (in — врахувати)
 const LINK_DOC = { sz: 'Службова записка', sz_work: 'СЗ у робочому порядку', letter: 'Лист', project: 'Проєкт на погодження (АСКОД)', other: 'Інший документ' };
 const LINK_SHORT = { sz: 'СЗ', sz_work: 'СЗ роб.', letter: 'Лист', project: 'Проєкт', other: 'Документ' };
@@ -270,6 +273,7 @@ const state = {
   openId: null,
   members: new Map(), // 🧩 id головної → приєднані справи (indexMerges)
   cand: new Map(),    // 🧩 id справи → кандидати на об'єднання
+  interim: {},        // 📑 id справи → остання проміжна відповідь { doc_no, date } (бейдж «✉ проміжна»)
   ourSz: null,        // 📤 наші службові (вкладка «📝 Службові»): null — ще не завантажено
   ourSzF: 'open',     // open — готуємо й чекаємо відповіді; all — усі
   demoEvents: {}
@@ -717,6 +721,9 @@ function bootDemo() {
     mk({ in_no: 'Г-1135-26', in_date: d(-2), correspondent: 'Громадська організація «Пацієнти разом» (демо)', subject: 'Повторно: амбулаторна реабілітація дітей після операції — хто оплачує', deadline: d(12), stage: 'new', source: 'askod', askod_state: 'До виконання' }),
     mk({ id: 'demo-merge-main', in_no: '10010-08-26', in_date: d(-9), correspondent: 'Обласна рада (демо)', subject: 'Фінансування паліативної допомоги в області у 2026 році', deadline: d(6), stage: 'work', executor_name: 'Петро Зразок', version: 1, source: 'askod', our_role: 'lead' }),
     mk({ in_no: '10024-08-26', in_date: d(-4), correspondent: 'Обласна рада (демо)', subject: 'Доповнення до листа щодо фінансування паліативної допомоги', deadline: d(3), stage: 'work', executor_name: 'Петро Зразок', source: 'askod', merged_into: 'demo-merge-main' }),
+    // 📑 Проміжна відповідь і два запити інформації в підрозділах (вигадані)
+    mk({ in_no: '10030-08-26', in_date: d(-9), correspondent: 'Громадська організація (демо)', subject: 'Чому закладу відмовлено в оплаті випадків за пакетом (демо)',
+      deadline: d(12), deadline_original: d(1), stage: 'work', executor_name: 'Олена Приклад', reply_kind: 'letter', source: 'askod' }),
     // Не лише АСКОД: завдання, захід, напрям (вигадані)
     mk({ case_kind: 'task', in_no: null, reply_kind: 'other', subject: 'Довідка до наради: динаміка оплат за пакетом (демо)', assigned_by: 'Керівник відділу', deadline: d(1), stage: 'work', executor_name: 'Демо-користувач' }),
     mk({ case_kind: 'event', in_no: null, reply_kind: 'other', subject: 'Робоча група з оновлення специфікацій (демо)', correspondent: 'Міністерство (демо)', event_at: new Date(Date.now() + 864e5 * 2).toISOString(), event_place: 'Teams', deadline: d(2), stage: 'work', executor_name: 'Олена Приклад' }),
@@ -767,6 +774,22 @@ function bootDemo() {
     wait_until: d(-14), status: 'answered', answer_note: 'Дані надано службовою 4-2/31-26', created_by: 'demo', created_by_name: 'Олена Приклад' });
   (state.demoEvents[c3] ||= []).push({ id: 'e8', case_id: c3, created_at: ago(3), author_name: 'Петро Зразок', kind: 'outgoing',
     body: 'Розрахунок коефіцієнтів для відповіді', doc_kind: 'sz', doc_no: '8-15/80-26', addressee: 'Департамент-приклад', event_date: d(-3) });
+  const ci = state.cases.find((x) => x.in_no === '10030-08-26')?.id;
+  if (ci) {
+    state.demoEvents[ci] = [
+      { id: 'i1', case_id: ci, created_at: ago(9), author_name: 'Claude', kind: 'system', body: 'Справу заведено з журналу АСКОД' },
+      { id: 'i2', case_id: ci, created_at: ago(4), author_name: 'Олена Приклад', kind: 'outgoing', doc_kind: 'interim', doc_no: '8-15/1201-26', addressee: 'Громадська організація (демо)',
+        event_date: d(-4), body: `Повідомлено про продовження строку розгляду та запит інформації в підрозділах; новий строк ${fmtDate(d(12))}` },
+      { id: 'i3', case_id: ci, created_at: ago(4), author_name: 'Олена Приклад', kind: 'deadline', body: `Строк: ${fmtDate(d(1))} → ${fmtDate(d(12))} — продовжено: проміжна відповідь вих. № 8-15/1201-26 від ${fmtDate(d(-4))}`, due_date: d(12) },
+      { id: 'i4', case_id: ci, created_at: ago(4), author_name: 'Олена Приклад', kind: 'outgoing', doc_kind: 'sz_req', doc_no: '8-15/310-26', addressee: 'Аналітичне управління (демо)', event_date: d(-4), body: 'Кількість пролікованих випадків за пакетом' },
+      { id: 'i5', case_id: ci, created_at: ago(4), author_name: 'Олена Приклад', kind: 'outgoing', doc_kind: 'sz_req', doc_no: '8-15/311-26', addressee: 'Юридичний департамент (демо)', event_date: d(-4), body: 'Позиція щодо підстав відмови' }
+    ];
+    recountDemo(ci);
+    const rq = (no, to, about, extra) => ({ id: crypto.randomUUID(), created_at: ago(4), case_id: ci, case_department: 'демо-відділ', direction: 'out', doc_kind: 'sz',
+      doc_no: no, doc_date: d(-4), counterpart: to, about, wait_until: d(1), status: 'waiting', created_by: 'demo', created_by_name: 'Олена Приклад', ...extra });
+    state.demoLinks.push(rq('8-15/310-26', 'Аналітичне управління (демо)', 'Кількість пролікованих випадків за пакетом', { status: 'answered', answer_note: 'Дані надано СЗ 4-2/40-26' }),
+      rq('8-15/311-26', 'Юридичний департамент (демо)', 'Позиція щодо підстав відмови'));
+  }
   countLinks(state.demoLinks, new Set(state.cases.map((c) => c.id)));
   $('spDeptName').textContent = 'Демо-режим: картки вигадані, нічого не зберігається в базі';
   if (state.kind === 'szin') loadOurSz();
@@ -837,17 +860,19 @@ async function loadCounts() {
   state.remarkCounts = {};
   state.reminders = {};
   state.linkWait = {};
+  state.interim = {};
   const ids = state.cases.filter((c) => c.stage !== 'done').map((c) => c.id);
   if (!ids.length) return;
   const [{ data }, links] = await Promise.all([
-    state.sb.from('dept_case_events').select('id, case_id, kind, remark_status, due_date, done, body')
-      .in('kind', ['remark', 'reminder']).in('case_id', ids),
+    state.sb.from('dept_case_events').select('id, case_id, kind, remark_status, due_date, done, body, doc_kind, doc_no, event_date, created_at')
+      .or('kind.in.(remark,reminder),and(kind.eq.outgoing,doc_kind.eq.interim)').in('case_id', ids),
     state.noLinks ? { data: [] } : state.sb.from('dept_case_links').select('id, case_id, counterpart_case_id, case_department, direction, status, doc_kind, doc_no, doc_date, counterpart, wait_until, created_at, created_by_name')
       .eq('status', 'waiting').or(`case_id.in.(${ids.join(',')}),counterpart_case_id.in.(${ids.join(',')})`)
   ]);
   (data || []).forEach((r) => {
     if (r.kind === 'remark' && r.remark_status === 'open') state.remarkCounts[r.case_id] = (state.remarkCounts[r.case_id] || 0) + 1;
     if (r.kind === 'reminder' && !r.done && r.due_date) (state.reminders[r.case_id] ||= []).push(r);
+    if (r.kind === 'outgoing') noteInterim(r);
   });
   // Таблиці зв'язків ще немає (міграцію 09b не застосовано) — дошка працює без бейджів ⏳/📥
   if (links.error) { if (MISSING.test(links.error.message || links.error.code || '')) state.noLinks = true; return; }
@@ -997,7 +1022,13 @@ function renderLinks() {
   const c = state.cases.find((x) => x.id === state.openId) || {};
   const ctx = [c.project_no && `наш проєкт відповіді <b>№ ${copyHTML(c.project_no, '№ проєкту')}</b>`,
     c.lead_unit && `головний виконавець: <b>${esc(c.lead_unit)}</b>`, c.our_role && esc(ROLE_LABEL[c.our_role])].filter(Boolean);
-  const peers = (ctx.length ? `<p class="sp-link-ctx">${ctx.join(' · ')}</p>` : '') + (state.peers.length ? `<p class="sp-peers"><b>Та сама справа в інших відділах:</b> ${state.peers.map((p) =>
+  const outs = state.links.filter((l) => viewLink(l, state.openId).dir === 'out' && l.status !== 'closed');
+  const outWait = outs.filter((l) => l.status === 'waiting').length;
+  const sum = outs.length > 1 || (outs.length && !outWait)
+    ? (outWait ? `<p class="sp-link-sum">📤 Запитано ${outs.length} · отримано ${outs.length - outWait} · ⏳ чекаємо ${outWait}</p>`
+      : `<p class="sp-link-sum is-all">✓ Усі запитані відповіді отримано (${outs.length})${isClosed(c) ? '' : ' — можна готувати остаточну відповідь'}</p>`)
+    : '';
+  const peers = sum + (ctx.length ? `<p class="sp-link-ctx">${ctx.join(' · ')}</p>` : '') + (state.peers.length ? `<p class="sp-peers"><b>Та сама справа в інших відділах:</b> ${state.peers.map((p) =>
     `<span class="sp-peer">відділ ${esc(p.department)} · ${esc(STAGE_LABEL[p.stage] || p.stage)}${p.executor_name ? ' · ' + esc(p.executor_name) : ''}${p.our_role ? ' · ' + esc(ROLE_SHORT[p.our_role] || '') : ''}${p.project_no ? ' · проєкт № ' + esc(p.project_no) : ''}</span>`).join('')}</p>` : '');
   box.innerHTML = state.noLinks
     ? '<li class="sp-muted sp-none">Зв\'язків у базі ще немає: потрібно застосувати migration_2026-11-09b_case_links.sql.</li>'
@@ -1161,8 +1192,18 @@ async function updateEvent(caseId, evId, patch) {
   render();
 }
 
+/** 📑 Остання проміжна відповідь справи — для бейджа «✉ проміжна». */
+function noteInterim(e) {
+  if (e.kind !== 'outgoing' || e.doc_kind !== 'interim') return;
+  const date = e.event_date || String(e.created_at || '').slice(0, 10);
+  const cur = state.interim[e.case_id];
+  if (!cur || date >= cur.date) state.interim[e.case_id] = { doc_no: e.doc_no, date };
+}
+
 function recountDemo(caseId) {
   const evs = state.demoEvents[caseId] || [];
+  delete state.interim[caseId];
+  evs.forEach(noteInterim);
   state.remarkCounts[caseId] = evs.filter((e) => e.kind === 'remark' && e.remark_status === 'open').length;
   state.reminders[caseId] = evs.filter((e) => e.kind === 'reminder' && !e.done && e.due_date);
 }
@@ -1286,6 +1327,7 @@ function splitLanes(list) {
  * Клік по рядку відкриває картку листа.
  */
 const SZ_KINDS = ['sz', 'sz_work'];
+const EV_SZ = [...SZ_KINDS, 'sz_req'];   // у подіях «📤 Відправлено» СЗ-запит інформації — теж наша службова
 const szKey = (caseId, no) => caseId + '|' + String(no || '').replace(/\s/g, '').toLowerCase();
 
 function buildOurSz(links, events) {
@@ -1306,10 +1348,10 @@ function buildOurSz(links, events) {
     seen.add(szKey(caseId, l.doc_no));
   });
   events.forEach((e) => {
-    if (!SZ_KINDS.includes(e.doc_kind) || !ours.has(e.case_id)) return;
+    if (!EV_SZ.includes(e.doc_kind) || !ours.has(e.case_id)) return;
     if (seen.has(szKey(e.case_id, e.doc_no))) return;
     seen.add(szKey(e.case_id, e.doc_no));
-    out.push({ id: 'e' + e.id, caseId: e.case_id, kind: e.doc_kind, no: e.doc_no, date: e.event_date || (e.created_at || '').slice(0, 10),
+    out.push({ id: 'e' + e.id, caseId: e.case_id, kind: e.doc_kind === 'sz_req' ? 'sz' : e.doc_kind, no: e.doc_no, date: e.event_date || (e.created_at || '').slice(0, 10),
       who: e.addressee || '', about: e.body, status: 'sent' });
   });
   const sent = new Set(out.map((o) => o.caseId));
@@ -1336,7 +1378,7 @@ async function loadOurSz() {
     state.noLinks ? [] : q(state.sb.from('dept_case_links').select(cols).eq('case_department', state.dept).eq('direction', 'out').in('doc_kind', SZ_KINDS)),
     state.noLinks ? [] : many((ch) => state.sb.from('dept_case_links').select(cols).eq('direction', 'in').in('doc_kind', SZ_KINDS).in('counterpart_case_id', ch)),
     many((ch) => state.sb.from('dept_case_events').select('id, case_id, created_at, body, doc_kind, doc_no, addressee, event_date')
-      .eq('kind', 'outgoing').in('doc_kind', SZ_KINDS).in('case_id', ch))
+      .eq('kind', 'outgoing').in('doc_kind', EV_SZ).in('case_id', ch))
   ]);
   state.ourSz = buildOurSz([...own, ...mirror], evs);
 }
@@ -1585,6 +1627,7 @@ function cardHTML(c) {
   const badges = [
     c.on_control ? `<span class="sp-ctl" title="${esc(controlTip(c))}">🎯 контроль</span>` : '',
     pr ? `<span class="sp-prol" title="${esc(pr.tip)}">↻ було ${fmtDate(pr.orig).slice(0, 5)}</span>` : '',
+    state.interim[c.id] && !isClosed(c) ? `<span class="sp-interim" title="${esc(interimTip(c))}">✉ проміжна</span>` : '',
     signedHTML(c),
     reviewHTML(c),
     routeMiniHTML(c),
@@ -2193,6 +2236,8 @@ const F37D_INFO = ['заплановані зміни для ЗОЗ, аптек,
 const F37D_ACTS = {
   draft:   { label: 'Підготовлено проєкт відповіді',               status: 'у роботі' },
   sz:      { label: 'Підготовлено службову записку',               status: 'у роботі' },
+  interim: { label: 'Надано проміжну відповідь, строк розгляду продовжено', status: 'у роботі' },
+  request: { label: 'Направлено запити інформації структурним підрозділам', status: 'у роботі' },
   review:  { label: 'Документ на погодженні',                      status: 'очікує погодження' },
   signing: { label: 'Документ передано на підпис',                 status: 'очікує погодження' },
   sent:    { label: 'Надіслано відповідь',                         status: 'виконано' },
@@ -2206,6 +2251,8 @@ function f37dDefaultAct(c) {
   if (k === 'event') return c.stage === 'new' ? 'other' : 'meeting';
   if (k !== 'askod') return c.stage === 'done' ? 'noted' : 'other';
   if (c.stage === 'done') return isNoteCase(c) ? 'noted' : (isSzReply(c) ? 'sz_sent' : 'sent');
+  const last = state.events.filter((e) => e.kind === 'outgoing').slice(-1)[0];
+  if (last && KEEPS_OPEN.includes(last.doc_kind) && ['new', 'work'].includes(c.stage)) return last.doc_kind === 'interim' ? 'interim' : 'request';
   return { review: 'review', signing: 'signing', sz_sent: 'sz_sent' }[c.stage] || (isSzReply(c) || c.our_role === 'co' ? 'sz' : 'draft');
 }
 /** «Костянтин Ткач» / «Ткач Костянтин Іванович» → «К. Ткач» */
@@ -2229,6 +2276,13 @@ function f37dState(c, act) {
   let tail = '';
   if (act === 'sent' && (c.out_no || out?.doc_no)) tail = `, вих. № ${c.out_no || out.doc_no}${c.out_date ? ' від ' + fmtDate(c.out_date) : ''}`;
   else if (act === 'sz_sent' && out?.doc_no) tail = ` № ${out.doc_no}`;
+  else if (act === 'interim') {
+    const im = state.events.filter((e) => e.kind === 'outgoing' && e.doc_kind === 'interim').slice(-1)[0];
+    tail = `${im?.doc_no ? ' (вих. № ' + im.doc_no + ')' : ''}${c.deadline ? ', до ' + fmtDate(c.deadline) : ''}`;
+  } else if (act === 'request') {
+    const rq = state.events.filter((e) => e.kind === 'outgoing' && e.doc_kind === 'sz_req');
+    tail = rq.length ? ': ' + rq.map((e) => `${e.addressee || 'підрозділ'}${e.doc_no ? ' (№ ' + e.doc_no + ')' : ''}`).join(', ') : '';
+  }
   else if (['draft', 'sz', 'review', 'signing'].includes(act) && c.version) tail = ` (v${c.version})`;
   return `${st}. ${a.label}${tail}.`;
 }
@@ -2265,7 +2319,7 @@ const ACTIONS = {
       <label class="sp-f"><span>Дата</span><input type="date" name="date" value="${todayISO()}"></label>
       <label class="sp-f"><span>Кому</span><input name="addressee" list="spLeadUnits" placeholder="адресат"></label>
       <label class="sp-f sp-wide"><span>Коротко про зміст</span><input name="note"></label>
-      <label class="sp-f sp-check sp-wide"><input type="checkbox" name="move" checked><span>Перевести справу в «СЗ надано» (для СЗ у робочому порядку) або «Закрито»</span></label>
+      <label class="sp-f sp-check sp-wide"><input type="checkbox" name="move" checked><span>Перевести справу в «СЗ надано» (для СЗ у робочому порядку) або «Закрито». Проміжна відповідь і СЗ-запит справу не закривають</span></label>
       ${state.noLinks ? '' : `<label class="sp-f sp-check sp-wide"><input type="checkbox" name="wait" checked><span>⏳ Чекаємо відповіді — додати в «Зв'язки» (лише для СЗ)</span></label>`}`,
     run: async (id, fd) => {
       const kind = fd.get('doc_kind');
@@ -2273,18 +2327,72 @@ const ACTIONS = {
       await addEvent(id, { kind: 'outgoing', body: fd.get('note').trim() || '', doc_kind: kind, doc_no: no || null,
         addressee: fd.get('addressee').trim() || null, event_date: fd.get('date') || null });
       // СЗ головному виконавцю — чекаємо, поки він урахує: зв'язок «⏳», прив'язаний до його справи, якщо вона на дошці
-      if (fd.get('wait') && ['sz', 'sz_work'].includes(kind)) {
-        const lead = state.peers.find((p) => p.our_role === 'lead');
-        await addLink(id, { direction: 'out', doc_kind: kind, doc_no: no || null, doc_date: fd.get('date') || null,
+      if (fd.get('wait') && ['sz', 'sz_work', 'sz_req'].includes(kind)) {
+        const lead = kind === 'sz_req' ? null : state.peers.find((p) => p.our_role === 'lead');
+        await addLink(id, { direction: 'out', doc_kind: kind === 'sz_req' ? 'sz' : kind, doc_no: no || null, doc_date: fd.get('date') || null,
           counterpart: fd.get('addressee').trim() || null, about: fd.get('note').trim() || null, counterpart_case_id: lead?.id || null });
       }
-      if (fd.get('move')) {
+      if (fd.get('move') && !KEEPS_OPEN.includes(kind)) {
         const patch = { stage: kind === 'sz_work' ? 'sz_sent' : 'done' };
         state.skipAutoLink = !fd.get('wait');
         if (kind === 'letter' && no) Object.assign(patch, { out_no: no, out_date: fd.get('date') || null });
         await saveCase(id, patch);
       }
       state.followUp = 'skod';       // одразу запропонувати зарахувати роботу в СКО-Д
+    }
+  },
+  /* 📑 Проміжна відповідь і запити (19.11.2026, користувач: «коли з одного запиту робиться і відповідь, наприклад
+   * подовження, і службова або декілька щодо запиту інформації від інших підрозділів»). Одна форма — кілька
+   * документів: кореспонденту проміжна відповідь із новим строком, підрозділам — СЗ-запити, кожна окремим «⏳».
+   * Справа лишається в роботі: остаточну відповідь готуємо, коли прийдуть дані. */
+  interim: {
+    title: 'Проміжна відповідь і запити інформації',
+    fields: (c) => {
+      const corr = c.correspondent && !/^службов/i.test(c.correspondent.trim()) ? c.correspondent : '';
+      return `
+      <p class="sp-f sp-wide sp-muted">Коли для повної відповіді потрібні дані інших підрозділів. Кореспонденту надсилаємо проміжну відповідь і продовжуємо строк, підрозділам — службові із запитом. Кожна службова стане окремим «⏳ чекаємо» у «Зв'язках», справа лишиться в роботі.</p>
+      <fieldset class="sp-im-box sp-wide">
+        <legend><label class="sp-im-on"><input type="checkbox" name="im_on" checked> ✉ Проміжна відповідь${corr ? ' — ' + esc(corr) : ' кореспонденту'}</label></legend>
+        <div class="sp-im-grid" data-im-part>
+          <label class="sp-f"><span>Вих. №</span><input name="im_no" placeholder="можна внести пізніше"></label>
+          <label class="sp-f"><span>Дата</span><input type="date" name="im_date" value="${todayISO()}"></label>
+          <label class="sp-f"><span>Новий строк</span><input type="date" name="im_deadline" value="${esc(c.deadline || '')}" min="${todayISO()}"></label>
+          <label class="sp-f sp-wide"><span>Що повідомили</span><input name="im_note" value="Повідомлено про продовження строку розгляду та запит інформації в підрозділах"></label>
+        </div>
+      </fieldset>
+      <fieldset class="sp-im-box sp-wide">
+        <legend>📤 Службові-запити інформації</legend>
+        <div class="sp-im-rows" data-im-rows>${interimRowHTML()}</div>
+        <button type="button" class="sp-btn sp-im-add" data-im-add>+ ще службова</button>
+        <label class="sp-f sp-wide"><span>Про що просимо</span><input name="rq_about" placeholder="напр. дані про оплати закладу за 2025–2026"></label>
+      </fieldset>`;
+    },
+    run: async (id, fd) => {
+      const c = state.cases.find((x) => x.id === id);
+      if (!c) return;
+      const im = !!fd.get('im_on');
+      const to = fd.getAll('rq_to'), nos = fd.getAll('rq_no'), dates = fd.getAll('rq_date'), untils = fd.getAll('rq_until');
+      const rows = to.map((t, i) => ({ to: t.trim(), no: (nos[i] || '').trim(), date: dates[i] || null, until: untils[i] || null })).filter((r) => r.to);
+      if (!im && !rows.length) { toast('Нічого не внесено: позначте проміжну відповідь або вкажіть, кому службова', true); return; }
+      const about = (fd.get('rq_about') || '').trim();
+      if (im) {
+        const no = (fd.get('im_no') || '').trim();
+        const date = fd.get('im_date') || null;
+        const dl = fd.get('im_deadline') || null;
+        const corr = c.correspondent && !/^службов/i.test(c.correspondent.trim()) ? c.correspondent : null;
+        await addEvent(id, { kind: 'outgoing', doc_kind: 'interim', doc_no: no || null, addressee: corr, event_date: date,
+          body: [(fd.get('im_note') || '').trim(), dl && dl !== c.deadline ? `новий строк ${fmtDate(dl)}` : ''].filter(Boolean).join('; ') });
+        const patch = {};
+        if (dl && dl !== c.deadline) Object.assign(patch, { deadline: dl, change_note: `продовжено: проміжна відповідь${no ? ' вих. № ' + no : ''}${date ? ' від ' + fmtDate(date) : ''}` });
+        if (c.stage === 'new') patch.stage = 'work';
+        if (Object.keys(patch).length) await saveCase(id, patch);
+      } else if (c.stage === 'new') await saveCase(id, { stage: 'work' });
+      for (const r of rows) {
+        await addEvent(id, { kind: 'outgoing', doc_kind: 'sz_req', doc_no: r.no || null, addressee: r.to, event_date: r.date, body: about || 'Запит інформації' });
+        if (!state.noLinks) await addLink(id, { direction: 'out', doc_kind: 'sz', doc_no: r.no || null, doc_date: r.date, counterpart: r.to,
+          about: about || 'Запит інформації', wait_until: r.until, project_no: c.project_no || null });
+      }
+      state.followUp = 'skod';
     }
   },
   skod: {
@@ -2540,12 +2648,33 @@ async function autoSkod(id) {
   toast('Зараховано в СКО-Д: 1 год. Час і складність можна змінити в особистому кабінеті');
 }
 
+/** Рядок службової-запиту у формі «📑 Проміжна відповідь і запити». */
+function interimRowHTML() {
+  const until = new Date(Date.now() + 5 * 864e5).toISOString().slice(0, 10);
+  return `<div class="sp-im-row">
+    <label class="sp-f"><span>Кому *</span><input name="rq_to" list="spLeadUnits" placeholder="підрозділ"></label>
+    <label class="sp-f"><span>№ СЗ</span><input name="rq_no" placeholder="8-15/…-26"></label>
+    <label class="sp-f"><span>Дата</span><input type="date" name="rq_date" value="${todayISO()}"></label>
+    <label class="sp-f"><span>Чекаємо до</span><input type="date" name="rq_until" value="${until}"></label>
+    <button type="button" class="sp-im-del" data-im-del title="Прибрати рядок" aria-label="Прибрати рядок">✕</button>
+  </div>`;
+}
+
+/** Підказка бейджа «✉ проміжна». */
+function interimTip(c) {
+  const i = state.interim[c.id];
+  const w = state.linkWait[c.id]?.out || 0;
+  return [`Проміжну відповідь надіслано${i?.doc_no ? ' вих. № ' + i.doc_no : ''}${i?.date ? ' від ' + fmtDate(i.date) : ''}`,
+    c.deadline ? 'строк ' + fmtDate(c.deadline) : '', w ? `чекаємо відповіді на ${w} ${w === 1 ? 'запит' : w < 5 ? 'запити' : 'запитів'}` : 'відповіді на запити отримано'].filter(Boolean).join(' · ');
+}
+
 function openAction(name) {
   const c = state.cases.find((x) => x.id === state.openId);
   const a = ACTIONS[name];
   if (!c || !a) return;
   const dlg = $('spAct');
   dlg.dataset.action = name;
+  dlg.classList.toggle('is-wide', name === 'interim');   // рядки службових: кому, №, дата, до — у ширшому діалозі
   $('spActTitle').textContent = a.title;
   $('spActFields').innerHTML = a.fields(c);
   dlg.showModal();
@@ -3058,6 +3187,23 @@ function wireStatic() {
     if (!c || !f) return;
     if (!f.elements.state.dataset.touched) f.elements.state.value = f37dState(c, e.target.value);
     f.elements.status37.value = F37D_ACTS[e.target.value].status;
+  });
+  $('spActFields').addEventListener('click', (e) => {
+    if (e.target.closest('[data-im-add]')) {
+      const box = $('spActFields').querySelector('[data-im-rows]');
+      box.insertAdjacentHTML('beforeend', interimRowHTML());
+      box.lastElementChild.querySelector('input')?.focus();
+    }
+    const del = e.target.closest('[data-im-del]');
+    if (del) {
+      const rows = $('spActFields').querySelectorAll('.sp-im-row');
+      if (rows.length > 1) del.closest('.sp-im-row').remove();
+      else del.closest('.sp-im-row').querySelectorAll('input[name="rq_to"], input[name="rq_no"]').forEach((i) => { i.value = ''; });
+    }
+  });
+  $('spActFields').addEventListener('change', (e) => {
+    if (e.target.name !== 'im_on') return;
+    $('spActFields').querySelectorAll('[data-im-part] input').forEach((i) => { i.disabled = !e.target.checked; });
   });
   $('spActCancel').addEventListener('click', () => $('spAct').close());
   $('spActForm').addEventListener('submit', async (e) => {

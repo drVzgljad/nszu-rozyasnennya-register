@@ -1482,3 +1482,28 @@ button.sp-rev-mini.is-todo:hover, button.sp-rev-mini.is-todo:focus-visible { out
 /* 🧩 Щойно об'єднана група — підсвітка картки на кілька секунд */
 .sp-card.is-flash, .sp-row.is-flash { outline: 3px solid var(--sp-merge); outline-offset: 2px; transition: outline-color .3s; }
 @media (prefers-reduced-motion: reduce) { .sp-card.is-flash, .sp-row.is-flash { transition: none; } }
+
+/* ───── 📑 Проміжна відповідь і запити інформації (19.11.2026) ───── */
+.sp-badges .sp-interim { background: var(--sp-prol-bg); color: var(--sp-prol-ink); font-weight: 700; cursor: help; }
+.sp-link-sum { margin: 0 0 8px; padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  background: var(--soft); border: 1px solid var(--line); color: var(--ink); overflow-wrap: anywhere; }
+.sp-link-sum.is-all { background: var(--sp-ok-bg); border-color: transparent; color: var(--sp-ok-ink); }
+.sp-im-box { margin: 0; padding: 10px 12px 12px; border: 1px solid var(--line); border-radius: 10px; min-width: 0;
+  display: flex; flex-direction: column; gap: 10px; }
+.sp-im-box legend { padding: 0 6px; font-size: 13px; font-weight: 700; color: var(--ink); }
+.sp-im-on { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.sp-im-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 12px; }
+.sp-im-grid input:disabled { opacity: .5; }
+.sp-im-rows { display: flex; flex-direction: column; gap: 8px; }
+.sp-im-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+.sp-im-del { border: 1px solid var(--line); background: var(--soft); color: var(--muted); border-radius: 8px;
+  width: 34px; height: 34px; cursor: pointer; font: inherit; }
+.sp-im-del:hover { color: var(--ink); }
+.sp-im-add { align-self: flex-start; }
+@media (max-width: 640px) {
+  .sp-im-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .sp-im-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding-bottom: 8px; border-bottom: 1px dashed var(--line); }
+  .sp-im-row .sp-f:first-child { grid-column: 1 / -1; }
+  .sp-im-del { justify-self: end; grid-column: 2; }
+}
+.sp-act.is-wide { width: min(780px, calc(100vw - 32px)); }
