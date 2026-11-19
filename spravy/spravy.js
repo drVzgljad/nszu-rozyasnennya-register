@@ -28,7 +28,7 @@
 import { initVoice, setVoiceDept } from './voice.js?v=20261119b';
 import { initRoomChat, setRoomChatDept } from './room-chat.js?v=20261104a';
 // Свій журнал АСКОД (xlsx) — кнопка «📥 Журнал АСКОД»; розбір — ../pmg-askod-journal.js
-import { initAskodUpload } from './askod-upload.js?v=20261103a';
+import { initAskodUpload } from './askod-upload.js?v=20261119a';
 // Контролька департаменту (xlsx) — кнопка «🎯 Контролька»: позначка «На контролі» (migration_2026-11-09_case_control.sql)
 import { initControlUpload } from './control-upload.js?v=20261109a';
 
@@ -74,6 +74,81 @@ const isSzIn = (c) => kindOf(c) === 'askod' &&
 // Напрями (етап 2): будь-яка справа може належати напряму (parent_id), у напряму — віхи
 const projectsOf = (exceptId) => state.cases.filter((x) => kindOf(x) === 'project' && x.id !== exceptId);
 const childrenOf = (id) => state.cases.filter((x) => x.parent_id === id);
+/*
+ * 🧩 Об'єднані справи (migration_2026-11-19_case_merge.sql, 19.11.2026). Користувач: «буває, що нам треба
+ * об'єднати два або декілька листів однотипних, одного автора». Приєднана справа (merged_into → головна)
+ * лишається рядком зі своїм вх. № і строком — синхронізація з журналом АСКОД її знаходить і дубля не заводить.
+ * На дошці її показує головна картка; етап, виконавця й вих. № за головною веде тригер бази.
+ */
+const mainOf = (c) => (c?.merged_into ? state.cases.find((x) => x.id === c.merged_into) || null : null);
+const membersOf = (id) => state.members.get(id) || [];
+/** Контрольний строк: найближчий у групі. Власний строк кожна справа зберігає — його оновлює журнал АСКОД. */
+function dueOf(c) {
+  const all = [c.deadline, ...membersOf(c.id).map((x) => x.deadline)].filter(Boolean).map((d) => String(d).slice(0, 10)).sort();
+  return all[0] || null;
+}
+const lettersWord = (n) => (n % 10 >= 2 && n % 10 <= 4 && !(n % 100 >= 12 && n % 100 <= 14) ? 'листи' : 'листів');
+// Кандидати на об'єднання: той самий (схожий) автор і хоч трохи спільна тема — або дуже схожа тема.
+// Самого автора мало: МОЗ чи обласна адміністрація пишуть десятки листів про різне.
+const MERGE_STOP = new Set(['щодо', 'надання', 'надати', 'інформації', 'інформація', 'листа', 'листом', 'звернення', 'зверненням',
+  'питання', 'питань', 'просимо', 'прошу', 'розгляду', 'розглянути', 'медичних', 'медичної', 'медичні', 'послуг', 'послуги',
+  'програми', 'програма', 'гарантій', 'допомоги', 'відповідь', 'запит', 'запиту', 'стосовно', 'також', 'року', 'роках', 'демо']);
+const mergeWordsMemo = new Map();
+function mergeWords(s) {
+  const key = String(s || '');
+  if (mergeWordsMemo.has(key)) return mergeWordsMemo.get(key);
+  const set = new Set(key.toLowerCase().replace(/[’ʼ`']/g, '').split(/[^a-zа-яіїєґ0-9]+/i)
+    .filter((w) => w.length >= 4 && !MERGE_STOP.has(w)).map((w) => w.slice(0, 5)));
+  mergeWordsMemo.set(key, set);
+  return set;
+}
+function jaccard(a, b) {
+  if (!a.size || !b.size) return 0;
+  let n = 0;
+  a.forEach((w) => { if (b.has(w)) n++; });
+  return n / (a.size + b.size - n);
+}
+// Автор без лапок і організаційно-правових форм: «КНП "Лікарня № 1"» = «Лікарня № 1»
+const normCorr = (s) => (' ' + String(s || '').toLowerCase().replace(/[«»"“”„'’ʼ`()]/g, ' ') + ' ')
+  .replace(/\s(кнп|кп|тов|пп|ат|прат|го|бо|мбо|днп|дп|фоп|комунальне некомерційне підприємство|громадська організація|благодійна організація)(?=\s)/g, ' ')
+  .replace(/\s+/g, ' ').trim();
+// Літера вх. № звернення громадянина — перша літера прізвища (Д-…, Ш-…); ПІ — запити на інформацію, не автор
+const inPrefix = (no) => { const m = /^([А-ЯІЇЄҐ]{1,2})-\d/.exec(String(no || '').trim()); return m && m[1] !== 'ПІ' ? m[1] : ''; };
+const mergeable = (x) => kindOf(x) === 'askod' && !x.merged_into && !isClosed(x);
+
+function mergeCandidates(c, limit = 6) {
+  if (!mergeable(c)) return [];
+  const mine = new Set([c.id, ...membersOf(c.id).map((x) => x.id)]);
+  const cw = mergeWords(c.subject);
+  const cc = isSzIn(c) ? '' : normCorr(c.correspondent);
+  const cp = inPrefix(c.in_no);
+  const out = [];
+  state.cases.forEach((x) => {
+    if (mine.has(x.id) || !mergeable(x)) return;
+    const topic = jaccard(cw, mergeWords(x.subject));
+    const xc = isSzIn(x) ? '' : normCorr(x.correspondent);
+    const author = !cc || !xc ? 0 : xc === cc ? 1 : jaccard(mergeWords(cc), mergeWords(xc));
+    const citizen = !!cp && cp === inPrefix(x.in_no);
+    let why = '';
+    if (author >= 0.6 && (topic >= 0.2 || citizen)) why = author === 1 ? 'той самий автор' : 'схожий автор';
+    else if (topic >= 0.5) why = 'схожа тема';
+    if (why) out.push({ x, why: why + (topic >= 0.2 && why !== 'схожа тема' ? ', схожа тема' : ''), score: author * 2 + topic + (citizen ? 0.5 : 0) });
+  });
+  return out.sort((a, b) => b.score - a.score).slice(0, limit);
+}
+/** Групи й кандидати — один раз на перемальовування дошки */
+function indexMerges() {
+  const m = new Map();
+  state.cases.forEach((x) => {
+    if (!x.merged_into || !state.cases.some((y) => y.id === x.merged_into)) return;
+    if (!m.has(x.merged_into)) m.set(x.merged_into, []);
+    m.get(x.merged_into).push(x);
+  });
+  m.forEach((list) => list.sort((a, b) => String(a.in_date || a.created_at || '').localeCompare(String(b.in_date || b.created_at || ''))));
+  state.members = m;
+  state.cand = new Map();
+  state.cases.forEach((c) => { const l = mergeable(c) ? mergeCandidates(c) : []; if (l.length) state.cand.set(c.id, l); });
+}
 const milestonesOf = (c) => (Array.isArray(c?.milestones) ? c.milestones : []);
 const nextMilestone = (c) => milestonesOf(c).filter((m) => !m.done && m.due).sort((a, b) => a.due.localeCompare(b.due))[0];
 const stagesOf = (kind) => KIND_STAGES[kind] || STAGES;
@@ -193,6 +268,8 @@ const state = {
   mobileStage: 'work',
   // (roomScope прибрано 04.11.2026: у «Справах» лише кімната відділу, див. roomTarget)
   openId: null,
+  members: new Map(), // 🧩 id головної → приєднані справи (indexMerges)
+  cand: new Map(),    // 🧩 id справи → кандидати на об'єднання
   demoEvents: {}
 };
 
@@ -496,9 +573,10 @@ function prolongInfo(c) {
 }
 
 function deadlineInfo(c) {
-  const n = daysLeft(c.deadline);
+  const due = dueOf(c);   // 🧩 у групи — найближчий строк
+  const n = daysLeft(due);
   if (n === null) return null;
-  const date = fmtDate(c.deadline);
+  const date = fmtDate(due);
   if (isClosed(c)) return { cls: 'is-closed', text: date };
   if (n < 0) return { cls: 'is-over', text: `${date} · прострочено ${-n} дн.` };
   if (n === 0) return { cls: 'is-hot', text: `${date} · сьогодні` };
@@ -605,7 +683,7 @@ function setupRoomScope() {
 function applyUrlParams() {
   const qs = new URLSearchParams(location.search);
   if (qs.get('mine') === '1') { state.mine = true; $('spMine').checked = true; }
-  if (['hot', 'overdue', 'remind', 'control', 'waiting', 'incoming'].includes(qs.get('f'))) { state.f = qs.get('f'); $('spFilter').value = state.f; }
+  if (['hot', 'overdue', 'remind', 'control', 'waiting', 'incoming', 'merge'].includes(qs.get('f'))) { state.f = qs.get('f'); $('spFilter').value = state.f; }
   if (state.mine || state.f !== 'all') render();
   const id = qs.get('case');
   if (id && state.cases.some((c) => c.id === id)) openCase(id);
@@ -632,6 +710,11 @@ function bootDemo() {
     mk({ in_no: '5-12/202-26', in_date: d(-7), correspondent: 'Службова записка', subject: 'Пропозиції до специфікацій на наступний рік (демо)', deadline: d(-1), stage: 'work', reply_kind: 'sz', executor_name: 'Петро Зразок', version: 1, source: 'askod' }),
     mk({ in_no: '7-12/303-26', in_date: d(-1), correspondent: 'Службова записка', subject: 'Про зміну технічного обмеження в електронній системі з наступного року (демо)', deadline: null, stage: 'new', resolution: 'Керівник відділу: До врахування в роботі', executor_name: 'Демо-користувач', source: 'askod' }),
     mk({ in_no: null, subject: 'Ініціативний лист: роз\'яснення закладам щодо обліку послуг', stage: 'work', executor_name: 'Петро Зразок', version: 1, deadline: d(14), source: 'claude' }),
+    // 🧩 Об'єднання (вигадані): два листи одного автора про одне — кандидати; і вже об'єднана група з двох листів
+    mk({ in_no: 'Г-1101-26', in_date: d(-8), correspondent: 'ГО «Пацієнти разом» (демо)', subject: 'Оплата амбулаторної реабілітації дітей після операції', deadline: d(5), stage: 'new', source: 'askod', askod_state: 'До виконання' }),
+    mk({ in_no: 'Г-1135-26', in_date: d(-2), correspondent: 'Громадська організація «Пацієнти разом» (демо)', subject: 'Повторно: амбулаторна реабілітація дітей після операції — хто оплачує', deadline: d(12), stage: 'new', source: 'askod', askod_state: 'До виконання' }),
+    mk({ id: 'demo-merge-main', in_no: '10010-08-26', in_date: d(-9), correspondent: 'Обласна рада (демо)', subject: 'Фінансування паліативної допомоги в області у 2026 році', deadline: d(6), stage: 'work', executor_name: 'Петро Зразок', version: 1, source: 'askod', our_role: 'lead' }),
+    mk({ in_no: '10024-08-26', in_date: d(-4), correspondent: 'Обласна рада (демо)', subject: 'Доповнення до листа щодо фінансування паліативної допомоги', deadline: d(3), stage: 'work', executor_name: 'Петро Зразок', source: 'askod', merged_into: 'demo-merge-main' }),
     // Не лише АСКОД: завдання, захід, напрям (вигадані)
     mk({ case_kind: 'task', in_no: null, reply_kind: 'other', subject: 'Довідка до наради: динаміка оплат за пакетом (демо)', assigned_by: 'Керівник відділу', deadline: d(1), stage: 'work', executor_name: 'Демо-користувач' }),
     mk({ case_kind: 'event', in_no: null, reply_kind: 'other', subject: 'Робоча група з оновлення специфікацій (демо)', correspondent: 'Міністерство (демо)', event_at: new Date(Date.now() + 864e5 * 2).toISOString(), event_place: 'Teams', deadline: d(2), stage: 'work', executor_name: 'Олена Приклад' }),
@@ -658,6 +741,13 @@ function bootDemo() {
     { id: 'f4', case_id: c6, created_at: ago(1), author_name: 'Олена Приклад', kind: 'reminder', body: 'Перевірити, чи головний виконавець відправив відповідь', due_date: d(3), done: false }
   ];
   state.remarkCounts = { [c3]: 1 };
+  const mm = state.cases.find((x) => x.merged_into === 'demo-merge-main');
+  if (mm) {
+    state.demoEvents[mm.id] = [{ id: 'm1', case_id: mm.id, created_at: ago(1), author_name: 'Петро Зразок', kind: 'system',
+      body: '🧩 Приєднано до справи вх. № 10010-08-26 (Обласна рада (демо)) — відповідь одна', meta: { merge: 'in', main: 'demo-merge-main', prev_stage: 'new' } }];
+    (state.demoEvents['demo-merge-main'] ||= []).push({ id: 'm2', case_id: 'demo-merge-main', created_at: ago(1), author_name: 'Петро Зразок', kind: 'system',
+      body: `🧩 Приєднано вх. № 10024-08-26 (Обласна рада (демо)), строк ${fmtDate(d(3))}`, meta: { merge: 'add', child: mm.id } });
+  }
   Object.keys(state.demoEvents).forEach(recountDemo);
   // Зв'язок: ми співвиконавці, СЗ у робочому порядку головному виконавцю — чекаємо, поки врахує
   state.demoLinks = [{ id: crypto.randomUUID(), created_at: ago(2), case_id: c6, case_department: 'демо-відділ', direction: 'out', doc_kind: 'sz_work',
@@ -991,6 +1081,7 @@ async function saveCase(id, patch) {
   if (DEMO) {
     demoLog(c, prev);
     c.change_note = null;
+    demoFollowMain(c);
     render();
     if (state.openId === id) { renderDrawerHead(c); loadEvents(id); }
     if (toSz) await autoLinkSzSent(c);
@@ -1007,6 +1098,8 @@ async function saveCase(id, patch) {
   render();
   if (state.openId === id) { renderDrawerHead(c); await loadEvents(id); }
   if (toSz) await autoLinkSzSent(c);
+  // 🧩 Приєднані справи тригер бази щойно підтягнув за головною — забрати їхній новий стан
+  if (membersOf(id).length && ['stage', 'executor_name', 'executor_id', 'out_no', 'out_date'].some((k) => k in patch)) loadCases();
   return true;
 }
 
@@ -1082,7 +1175,8 @@ function isMine(c) {
 function passesFilter(c) {
   if (state.f === 'all') return true;
   if (c.stage === 'done') return false;
-  const n = daysLeft(c.deadline);
+  const n = daysLeft(dueOf(c));
+  if (state.f === 'merge') return state.cand.has(c.id);
   if (state.f === 'hot') return n !== null && n >= 0 && n <= 3 && c.stage !== 'sz_sent';
   if (state.f === 'overdue') return n !== null && n < 0 && c.stage !== 'sz_sent';
   if (state.f === 'remind') return (state.reminders[c.id] || []).some((r) => daysLeft(r.due_date) <= 0);
@@ -1096,27 +1190,43 @@ function passesFilter(c) {
 
 function visibleCases() {
   const q = state.q.trim().toLowerCase();
+  const hay = (c) => [c.in_no, c.subject, c.correspondent, c.executor_name, c.resolution, c.out_no, c.project_no, c.nuances, c.lead_unit,
+    c.assigned_by, c.event_place, CASE_KINDS[kindOf(c)]?.label, c.control_note, c.control_state, c.control_lead];
   return state.cases.filter((c) => {
+    if (mainOf(c)) return false;   // 🧩 приєднану показує головна картка
     if (state.kind === 'szin') { if (!isSzIn(c)) return false; }
     else if (state.kind !== 'all' && kindOf(c) !== state.kind) return false;
     if (state.mine && !isMine(c)) return false;
     if (!passesFilter(c)) return false;
     if (!q) return true;
-    return [c.in_no, c.subject, c.correspondent, c.executor_name, c.resolution, c.out_no, c.project_no, c.nuances, c.lead_unit,
-      c.assigned_by, c.event_place, CASE_KINDS[kindOf(c)]?.label, c.control_note, c.control_state, c.control_lead]
-      .some((v) => v && String(v).toLowerCase().includes(q));
+    // Пошук за вх. № приєднаної справи знаходить головну
+    return [c, ...membersOf(c.id)].some((y) => hay(y).some((v) => v && String(v).toLowerCase().includes(q)));
   });
 }
 
 /** Порядок у колонці: спершу те, що горить. Закриті — найсвіжіші зверху. */
 function sortCol(list, stage) {
   if (stage === 'done') return list.sort((a, b) => String(b.out_date || b.updated_at).localeCompare(String(a.out_date || a.updated_at)));
-  return list.sort((a, b) => (a.priority - b.priority) || String(a.deadline || '9999').localeCompare(String(b.deadline || '9999')));
+  return list.sort((a, b) => (a.priority - b.priority) || String(dueOf(a) || '9999').localeCompare(String(dueOf(b) || '9999')));
+}
+
+/** 🧩 «Можна об'єднати: N» — підказка над дошкою і пункт фільтра */
+function renderMergeHint() {
+  const n = state.cand.size;
+  const opt = $('spFilter').querySelector('option[value="merge"]');
+  if (opt) opt.textContent = `🧩 Можна об'єднати${n ? ` (${n})` : ''}`;
+  const b = $('spMergeHint');
+  if (!b) return;
+  b.hidden = !n && state.f !== 'merge';
+  b.textContent = state.f === 'merge' ? '🧩 Показати всі справи' : `🧩 Можна об'єднати: ${n}`;
+  b.setAttribute('aria-pressed', String(state.f === 'merge'));
 }
 
 function render() {
+  indexMerges();
   const list = visibleCases();
   renderStats();
+  renderMergeHint();
   const board = $('spBoard');
   board.classList.remove('is-empty');
   board.classList.toggle('is-list', state.view !== 'board');
@@ -1208,7 +1318,7 @@ function colsHTML(list) {
 /** Порядок за строком: прострочене й найближче зверху, без строку — внизу, закрите — в кінці. */
 function byDeadline(a, b) {
   const done = (c) => (c.stage === 'done' ? 2 : c.stage === 'sz_sent' ? 1 : 0);
-  return (done(a) - done(b)) || String(a.deadline || '9999').localeCompare(String(b.deadline || '9999'));
+  return (done(a) - done(b)) || String(dueOf(a) || '9999').localeCompare(String(dueOf(b) || '9999'));
 }
 
 function rowHTML(c, withExecutor = true) {
@@ -1217,7 +1327,7 @@ function rowHTML(c, withExecutor = true) {
   const bell = nextReminder(c.id);
   return `<li class="sp-row sp-row-${c.stage}${isReviewed(c.id) ? ' is-reviewed' : ''}" data-id="${c.id}" tabindex="0" role="button">
     <span class="sp-row-dl">${dl ? `<span class="sp-dl ${dl.cls}">${esc(dl.text)}</span>` : '<span class="sp-muted">без строку</span>'}${(() => { const pr = prolongInfo(c); return pr ? ` <span class="sp-prol sp-prol-mini" title="${esc(pr.tip)}">↻ було ${fmtDate(pr.orig).slice(0, 5)}</span>` : ''; })()}</span>
-    <span class="sp-row-no">${c.on_control ? `<span class="sp-ctl-mini" title="${esc(controlTip(c))}">🎯</span> ` : ''}${CASE_KINDS[kindOf(c)].icon} ${esc(c.in_no || (kindOf(c) === 'event' && c.event_at ? fmtEventAt(c.event_at) : CASE_KINDS[kindOf(c)].short))}</span>
+    <span class="sp-row-no">${c.on_control ? `<span class="sp-ctl-mini" title="${esc(controlTip(c))}">🎯</span> ` : ''}${CASE_KINDS[kindOf(c)].icon} ${esc(c.in_no || (kindOf(c) === 'event' && c.event_at ? fmtEventAt(c.event_at) : CASE_KINDS[kindOf(c)].short))}${membersOf(c.id).length ? ` <span class="sp-merge-mini" title="${esc('Об\'єднано: ' + membersOf(c.id).map((x) => x.in_no).join(', '))}">🧩 +${membersOf(c.id).length}</span>` : ''}</span>
     <span class="sp-row-subj">${esc(c.subject)}${c.correspondent ? `<i>${esc(c.correspondent)}</i>` : c.assigned_by ? `<i>від: ${esc(c.assigned_by)}</i>` : ''}</span>
     ${withExecutor ? `<span class="sp-row-ex">${esc(c.executor_name || '—')}</span>` : ''}
     <span class="sp-row-stage"><b class="sp-stage-dot"></b>${stageLabel(c, c.stage)}${c.version ? ` · v${c.version}` : ''}${rem ? ` <span class="sp-rem-mini">⚑ ${rem}</span>` : ''}${bell ? ' 🔔' : ''}${signedHTML(c, true) ? ' ' + signedHTML(c, true) : ''}${routeMiniHTML(c, true) ? ' ' + routeMiniHTML(c, true) : ''}${reviewHTML(c, true) ? ' ' + reviewHTML(c, true) : ''}${isNoteCase(c) ? ` <span class="sp-note sp-note-mini" title="${esc(NOTE_TIP(c))}">${c.our_role === 'answer' ? '↩ СЗ-відповідь' : '📌 врахувати'}</span>` : ''}${sentMiniHTML(c, 'out')}${sentMiniHTML(c, 'in')}</span>
@@ -1252,8 +1362,8 @@ function peopleHTML(list) {
   const keys = [...groups.keys()].sort((a, b) => (a === '' ? -1 : b === '' ? 1 : a.localeCompare(b, 'uk')));
   return keys.map((k) => {
     const items = groups.get(k).sort(byDeadline);
-    const over = items.filter((c) => { const n = daysLeft(c.deadline); return n !== null && n < 0 && c.stage !== 'sz_sent'; }).length;
-    const hot = items.filter((c) => { const n = daysLeft(c.deadline); return n !== null && n >= 0 && n <= 3 && c.stage !== 'sz_sent'; }).length;
+    const over = items.filter((c) => { const n = daysLeft(dueOf(c)); return n !== null && n < 0 && c.stage !== 'sz_sent'; }).length;
+    const hot = items.filter((c) => { const n = daysLeft(dueOf(c)); return n !== null && n >= 0 && n <= 3 && c.stage !== 'sz_sent'; }).length;
     return `<section class="sp-person">
       <header class="sp-person-head">
         <span class="sp-ava${k ? '' : ' is-none'}">${k ? esc(initials(k)) : '?'}</span>
@@ -1332,8 +1442,10 @@ function cardHTML(c) {
     c.review_passed ? '<span class="sp-ok" title="Рецензію пройдено">✓ рецензія</span>' : '',
     remarks ? `<span class="sp-rem" title="Незакриті зауваження">⚑ ${remarks}</span>` : '',
     rem ? `<span class="sp-bell${daysLeft(rem.due_date) <= 0 ? ' is-due' : ''}" title="${esc('Нагадування: ' + rem.body)}">🔔 ${fmtDate(rem.due_date).slice(0, 5)}</span>` : '',
-    c.source === 'claude' ? '<span class="sp-src" title="Справу завів Claude">Claude</span>' : ''
+    c.source === 'claude' ? '<span class="sp-src" title="Справу завів Claude">Claude</span>' : '',
+    state.cand.has(c.id) ? `<span class="sp-mergecand" title="${esc('Можна об\'єднати: ' + state.cand.get(c.id).map((m) => `${m.x.in_no || '—'} (${m.why})`).join('; '))}">🧩 схожі ${state.cand.get(c.id).length}</span>` : ''
   ].join('');
+  const mem = membersOf(c.id);
   const ms = k === 'project' ? milestonesOf(c) : [];
   const msNext = k === 'project' ? nextMilestone(c) : null;
   const kids = k === 'project' ? childrenOf(c.id).length : 0;
@@ -1342,9 +1454,10 @@ function cardHTML(c) {
   return `<article class="sp-card sp-card-${k}${c.on_control && !isClosed(c) ? ' is-control' : ''}${c.stage === 'sz_sent' ? ' is-closed' : ''}${pr ? ' is-prolonged' : ''}${isReviewed(c.id) ? ' is-reviewed' : ''}${signedInfo(c) && !isClosed(c) ? ' is-signed' : ''}${isNoteCase(c) && !isClosed(c) ? ' is-note' : ''}${lw?.out ? ' is-waiting' : lw?.in ? ' is-incoming' : ''}" draggable="true" data-id="${c.id}" tabindex="0" role="button" aria-label="${esc((c.in_no || CASE_KINDS[k].label) + ': ' + c.subject)}">
     <div class="sp-card-top">
       <span class="sp-inno">${esc(head)}</span>
-      ${dl ? `<span class="sp-dl ${dl.cls}"${prolonged ? ` title="Продовжено; первинний строк ${fmtDate(c.deadline_original)}"` : ''}>${prolonged ? '↻ ' : ''}${esc(dl.text)}</span>` : ''}
+      ${dl ? `<span class="sp-dl ${dl.cls}"${mem.length ? ' title="Контрольний строк — найближчий серед листів групи"' : prolonged ? ` title="Продовжено; первинний строк ${fmtDate(c.deadline_original)}"` : ''}>${prolonged && !mem.length ? '↻ ' : ''}${esc(dl.text)}</span>` : ''}
     </div>
     <div class="sp-subj">${esc(c.subject)}</div>
+    ${mem.length ? `<div class="sp-merge-line" title="${esc(`Об'єднано: одна відповідь на ${mem.length + 1} вхідних. Строк на картці — найближчий у групі.\n` + [c, ...mem].map((x) => `вх. № ${x.in_no || '—'}${x.deadline ? ', строк ' + fmtDate(x.deadline) : ''}`).join('\n'))}">🧩 ${mem.length + 1} ${lettersWord(mem.length + 1)}: ${[c, ...mem].map((x) => esc(x.in_no || '—')).join(' · ')}</div>` : ''}
     ${c.correspondent ? `<div class="sp-corr">${esc(c.correspondent)}</div>`
       : c.assigned_by ? `<div class="sp-corr">від: ${esc(c.assigned_by)}</div>`
       : k === 'event' && c.event_place ? `<div class="sp-corr">${esc(c.event_place)}</div>` : ''}
@@ -1365,9 +1478,9 @@ function cardHTML(c) {
 }
 
 function renderStats() {
-  const active = state.cases.filter((c) => !isClosed(c));
-  const over = active.filter((c) => { const n = daysLeft(c.deadline); return n !== null && n < 0; }).length;
-  const hot = active.filter((c) => { const n = daysLeft(c.deadline); return n !== null && n >= 0 && n <= 3; }).length;
+  const active = state.cases.filter((c) => !isClosed(c) && !mainOf(c));   // 🧩 група — одна справа
+  const over = active.filter((c) => { const n = daysLeft(dueOf(c)); return n !== null && n < 0; }).length;
+  const hot = active.filter((c) => { const n = daysLeft(dueOf(c)); return n !== null && n >= 0 && n <= 3; }).length;
   const rem = Object.values(state.remarkCounts).reduce((a, b) => a + b, 0);
   const dueRem = Object.values(state.reminders).flat().filter((r) => daysLeft(r.due_date) <= 0).length;
   $('statReminders').textContent = dueRem;
@@ -1565,6 +1678,15 @@ function renderDrawerHead(c) {
     const cls = i < cur ? 'is-past' : i === cur ? 'is-current' : '';
     return `<button type="button" class="sp-step ${cls}" data-stage="${s.key}" aria-pressed="${i === cur}">${s.label}</button>`;
   }).join('');
+  // 🧩 Приєднана справа: етап веде головна (тригер бази однаково поверне його до головної)
+  const main = mainOf(c);
+  $('spStepper').classList.toggle('is-merged', !!main);
+  $('spStepper').title = main ? `Етап — як у головної справи вх. № ${main.in_no || '—'}: змінюйте його там` : '';
+  $('spStepper').querySelectorAll('button').forEach((b) => { b.disabled = !!main; });
+  const top = $('spMergeTop');
+  top.hidden = !c.merged_into;
+  top.innerHTML = c.merged_into ? `<span class="sp-merge-txt">🧩 Приєднано до справи <b>${esc(main ? mergeLabel(main) : '(немає на дошці)')}</b> — відповідь одна: етап, виконавець і маршрут ведуться там.</span>
+    ${main ? `<button type="button" class="sp-btn" data-merge-open="${main.id}">Відкрити головну</button>` : ''}` : '';
   renderRoute(c);
   const rv = $('spReviewed');
   if (rv) { rv.checked = isReviewed(c.id); rv.closest('.sp-reviewed')?.classList.toggle('is-todo', !rv.checked); }
@@ -1574,7 +1696,7 @@ function renderDrawerHead(c) {
 function renderRoute(c) {
   const box = $('spRoute');
   if (!box) return;
-  box.hidden = !hasRoute(c);
+  box.hidden = !hasRoute(c) || !!mainOf(c);   // 🧩 у приєднаної справи маршрут веде головна
   if (box.hidden) return;
   if (c.our_role === 'co' && !c.route) {
     box.innerHTML = `<div class="sp-rt-head"><b>🧭 Маршрут</b>
@@ -1681,7 +1803,11 @@ function openCase(id, refresh) {
   renderDrawerHead(c);
   if (!refresh || !dlg.contains(document.activeElement) || !document.activeElement.matches('input, textarea, select')) {
     $('spFields').innerHTML = fieldsHTML(c);
+    // 🧩 Виконавець приєднаної справи — як у головної
+    if (mainOf(c)) $('spFields').querySelectorAll('[data-f="executor_name"]').forEach((s) => { s.disabled = true; s.title = 'Виконавець — як у головної справи'; });
   }
+  indexMerges();
+  if (!refresh || document.activeElement?.id !== 'spMergeQ') renderMerge(c);   // не збивати набір у пошуку
   // Справу з журналу АСКОД не видаляємо: синхронізація завела б її знову, поки
   // резолюція відкрита. Замість цього — «Закрити як не наше» (етап «Закрито» з причиною).
   const fromAskod = c.source === 'askod';
@@ -1689,6 +1815,154 @@ function openCase(id, refresh) {
   $('spNotOurs').hidden = !fromAskod || c.stage === 'done';
   if (!dlg.open) dlg.showModal();
   Promise.all([loadEvents(id), loadLinks(id)]).then(() => { $('spDrawerBody').scrollTop = scroll; });
+}
+
+/* ───────────────────────── 🧩 об'єднання справ ───────────────────────── */
+
+const mergeLabel = (x) => `вх. № ${x.in_no || 'без номера'}${x.correspondent ? ` (${x.correspondent})` : ''}`;
+
+function mergeRowHTML(x, extra, btn) {
+  return `<li class="sp-merge-row">
+    <button type="button" class="sp-merge-no" data-merge-open="${x.id}" title="Відкрити справу">${esc(x.in_no || '—')}</button>
+    <span class="sp-merge-about"><span class="sp-merge-subj">${esc(x.subject)}</span>
+      <i>${esc([x.correspondent, x.deadline ? 'строк ' + fmtDate(x.deadline) : '', stageLabel(x, x.stage) + (x.version ? ' · v' + x.version : ''), extra].filter(Boolean).join(' · '))}</i></span>
+    ${btn}
+  </li>`;
+}
+
+/** Блок «🧩 Об'єднання» в картці: приєднані листи, кандидати, пошук — або «приєднано до …» */
+function renderMerge(c) {
+  const box = $('spMerge');
+  const main = mainOf(c);
+  const mem = membersOf(c.id);
+  if (kindOf(c) !== 'askod' || (!main && !c.merged_into && !mem.length && isClosed(c))) { box.hidden = true; box.innerHTML = ''; return; }
+  box.hidden = false;
+  if (c.merged_into) {
+    box.innerHTML = `<h3>🧩 Об'єднання</h3>
+      <div class="sp-merge-main">
+        <span class="sp-merge-txt">${main ? `Приєднано до справи <b>${esc(mergeLabel(main))}</b> — відповідь одна.` : 'Приєднано до справи, якої немає на дошці.'}
+          Етап, виконавець і вих. № — як у головної; свій строк і резолюція лишаються.</span>
+        ${main ? `<button type="button" class="sp-btn" data-merge-open="${main.id}">Відкрити головну</button>` : ''}
+        <button type="button" class="sp-btn sp-btn-ghost" data-unmerge="${c.id}">Від'єднати</button>
+      </div>`;
+    return;
+  }
+  const cands = isClosed(c) ? [] : mergeCandidates(c);
+  box.innerHTML = `<h3>🧩 Об'єднання ${mem.length ? `<span class="sp-muted">${mem.length + 1} ${lettersWord(mem.length + 1)} — одна відповідь</span>` : ''}</h3>
+    ${mem.length ? `<ul class="sp-merge-list">${[c, ...mem].map((x) => mergeRowHTML(x, x.id === c.id ? 'головна' : '',
+        x.id === c.id ? '' : `<button type="button" class="sp-btn sp-btn-ghost" data-unmerge="${x.id}">Від'єднати</button>`)).join('')}</ul>
+      <p class="sp-merge-note">Контрольний строк групи — найближчий: <b>${esc(fmtDate(dueOf(c)) || 'без строку')}</b>. Етап, виконавця й вих. № змінюйте тут — приєднані справи підуть за цією.</p>` : ''}
+    ${cands.length ? `<p class="sp-merge-hint">Схожі справи — можна приєднати сюди:</p>
+      <ul class="sp-merge-list">${cands.map((m) => mergeRowHTML(m.x, m.why, `<button type="button" class="sp-btn" data-merge-add="${m.x.id}">Приєднати сюди</button>`)).join('')}</ul>` : ''}
+    ${isClosed(c) ? '' : `<details class="sp-merge-find"${mem.length || cands.length ? '' : ' open'}>
+      <summary>${cands.length || mem.length ? 'Знайти іншу справу…' : 'Об\'єднати з іншою справою…'}</summary>
+      <p class="sp-merge-note">Однотипні листи одного автора — одна відповідь. Справа, яку відкрито зараз, стане головною.</p>
+      <input type="search" id="spMergeQ" placeholder="вх. № або слова з теми" autocomplete="off" aria-label="Пошук справи для об'єднання">
+      <ul class="sp-merge-list" id="spMergeRes"></ul>
+    </details>`}`;
+}
+
+function renderMergeSearch(c, q) {
+  const res = $('spMergeRes');
+  if (!res) return;
+  q = q.trim().toLowerCase();
+  if (q.length < 2) { res.innerHTML = ''; return; }
+  const mine = new Set([c.id, ...membersOf(c.id).map((x) => x.id)]);
+  const found = state.cases.filter((x) => !mine.has(x.id) && mergeable(x) &&
+    [x.in_no, x.subject, x.correspondent].some((v) => v && String(v).toLowerCase().includes(q))).slice(0, 8);
+  res.innerHTML = found.length
+    ? found.map((x) => mergeRowHTML(x, membersOf(x.id).length ? `з нею ще ${membersOf(x.id).length}` : '',
+        `<button type="button" class="sp-btn" data-merge-add="${x.id}">Приєднати сюди</button>`)).join('')
+    : '<li class="sp-merge-note">Відкритих документів АСКОД за цим запитом немає.</li>';
+}
+
+const NO_MERGE = /merged_into|42703|PGRST204/i;
+function mergeError(error, what) {
+  toast(NO_MERGE.test(error.message || error.code || '')
+    ? 'Об\'єднання ще не ввімкнено в базі: власник має застосувати migration_2026-11-19_case_merge.sql'
+    : `Не ${what}: ${error.message}`, true);
+}
+
+/** Демо: те саме, що тригери бази (migration_2026-11-19_case_merge.sql) */
+function demoSysEvent(id, body, meta) {
+  (state.demoEvents[id] ||= []).push({ id: crypto.randomUUID(), case_id: id, created_at: new Date().toISOString(), author_name: myName(), kind: 'system', body, meta });
+}
+// Етап при об'єднанні / від'єднанні — не подія «етап»/«повернуто» (звіт 37-Д), а частина події «🧩 …»
+function demoMerge(child, main, note) {
+  const kids = state.cases.filter((x) => x.merged_into === child.id);
+  const st = child.stage !== main.stage ? `; етап: ${stageLabel(child, child.stage)} → ${stageLabel(child, main.stage)}` : '';
+  const ex = child.executor_name !== main.executor_name ? `; виконавець: ${main.executor_name || '—'}` : '';
+  demoSysEvent(child.id, `🧩 Приєднано до справи ${mergeLabel(main)} — відповідь одна${st}${ex}${note ? ' — ' + note : ''}`,
+    { merge: 'in', main: main.id, prev_stage: child.stage });
+  demoSysEvent(main.id, `🧩 Приєднано ${mergeLabel(child)}${child.deadline ? ', строк ' + fmtDate(child.deadline) : ''}`, { merge: 'add', child: child.id });
+  Object.assign(child, { merged_into: main.id, stage: main.stage, executor_id: main.executor_id, executor_name: main.executor_name },
+    main.out_no ? { out_no: main.out_no, out_date: main.out_date } : {});
+  kids.forEach((k) => demoMerge(k, main, `разом зі справою вх. № ${child.in_no || '—'}`));
+}
+function demoUnmerge(child, why) {
+  const main = mainOf(child);
+  const ev = (state.demoEvents[child.id] || []).filter((e) => e.meta?.merge === 'in').pop();
+  const back = ev?.meta?.prev_stage && child.stage !== 'done' && ev.meta.prev_stage !== child.stage ? ev.meta.prev_stage : null;
+  const tail = why ? ` — ${why}` : '';
+  demoSysEvent(child.id, `🧩 Від'єднано від справи ${main ? mergeLabel(main) : '(видалено)'}${tail}${back ? `; етап — як до об'єднання: ${stageLabel(child, back)}` : ''}`, { merge: 'out' });
+  if (main) demoSysEvent(main.id, `🧩 Від'єднано ${mergeLabel(child)}${tail}`, { merge: 'remove', child: child.id });
+  child.merged_into = null;
+  if (back) child.stage = back;
+}
+/** Демо: головна змінилась — те саме в приєднаних (тригер dept_cases_merge_after) */
+function demoFollowMain(c) {
+  state.cases.filter((x) => x.merged_into === c.id).forEach((m) => {
+    if (m.stage === c.stage && m.executor_name === c.executor_name && (!c.out_no || m.out_no === c.out_no)) return;
+    const prev = { ...m };
+    Object.assign(m, { stage: c.stage, executor_id: c.executor_id, executor_name: c.executor_name,
+      change_note: `за головною справою вх. № ${c.in_no || '—'}` }, c.out_no ? { out_no: c.out_no, out_date: c.out_date } : {});
+    demoLog(m, prev);
+    m.change_note = null;
+  });
+}
+
+async function mergeInto(childId, mainId) {
+  if ($('spMerge').contains(document.activeElement)) document.activeElement.blur();   // блок після дії перемалюється
+  const child = state.cases.find((x) => x.id === childId);
+  const main = state.cases.find((x) => x.id === mainId);
+  if (!child || !main) return;
+  const kids = membersOf(child.id).length;
+  const warn = child.version && !main.version
+    ? `\n\n⚠ У справі вх. № ${child.in_no} вже є чернетка v${child.version}, а в цій — немає. Можливо, головною має бути та справа: тоді відкрийте її й приєднайте цю звідти.` : '';
+  if (!confirm(`Приєднати ${mergeLabel(child)} до справи вх. № ${main.in_no || '—'}?\n\n`
+    + 'Відповідь буде одна: етап, виконавець і вих. № приєднаної справи стануть як у цієї. Власний строк і резолюція лишаються, '
+    + 'контрольний строк групи — найближчий.' + (kids ? `\nРазом із нею переїдуть ще ${kids} приєднані.` : '') + warn)) return;
+  if (DEMO) {
+    demoMerge(child, main);
+    render();
+    openCase(mainId, true);
+    toast(`🧩 Приєднано вх. № ${child.in_no}`);
+    return;
+  }
+  const { error } = await state.sb.from('dept_cases').update({ merged_into: mainId, updated_by_name: myName() }).eq('id', childId);
+  if (error) return mergeError(error, 'об\'єднано');
+  toast(`🧩 Приєднано вх. № ${child.in_no}`);
+  await loadCases();
+}
+
+async function unmerge(childId) {
+  if ($('spMerge').contains(document.activeElement)) document.activeElement.blur();
+  const child = state.cases.find((x) => x.id === childId);
+  if (!child) return;
+  const why = prompt(`Від'єднати ${mergeLabel(child)}? Справа повернеться в етап, у якому була до об'єднання, якщо відповідь іще не відправлено.\n\nПричина (необов'язково), напр. «об'єднали помилково»:`, '');
+  if (why === null) return;
+  if (DEMO) {
+    demoUnmerge(child, why.trim());
+    render();
+    openCase(state.openId, true);
+    toast(`🧩 Від'єднано вх. № ${child.in_no}`);
+    return;
+  }
+  const { error } = await state.sb.from('dept_cases')
+    .update({ merged_into: null, change_note: why.trim() || null, updated_by_name: myName() }).eq('id', childId);
+  if (error) return mergeError(error, 'від\'єднано');
+  toast(`🧩 Від'єднано вх. № ${child.in_no}`);
+  await loadCases();
 }
 
 function canDelete() {
@@ -2434,7 +2708,29 @@ function wireStatic() {
   });
   $('spStepper').addEventListener('click', (e) => {
     const b = e.target.closest('[data-stage]');
-    if (b && state.openId) saveCase(state.openId, { stage: b.dataset.stage });
+    if (b && !b.disabled && state.openId) saveCase(state.openId, { stage: b.dataset.stage });
+  });
+  // 🧩 Об'єднання: приєднати сюди / від'єднати / відкрити справу групи; пошук справи
+  $('spMerge').addEventListener('click', (e) => {
+    const add = e.target.closest('[data-merge-add]');
+    if (add && state.openId) return mergeInto(add.dataset.mergeAdd, state.openId);
+    const un = e.target.closest('[data-unmerge]');
+    if (un) return unmerge(un.dataset.unmerge);
+    const op = e.target.closest('[data-merge-open]');
+    if (op) openCase(op.dataset.mergeOpen);
+  });
+  $('spMerge').addEventListener('input', (e) => {
+    const c = state.cases.find((x) => x.id === state.openId);
+    if (e.target.id === 'spMergeQ' && c) renderMergeSearch(c, e.target.value);
+  });
+  $('spMergeTop').addEventListener('click', (e) => {
+    const op = e.target.closest('[data-merge-open]');
+    if (op) openCase(op.dataset.mergeOpen);
+  });
+  $('spMergeHint').addEventListener('click', () => {
+    state.f = state.f === 'merge' ? 'all' : 'merge';
+    $('spFilter').value = state.f;
+    render();
   });
   $('spFields').addEventListener('toggle', (e) => {
     if (e.target.classList?.contains('sp-more')) lsSet('spravy-more', e.target.open ? '1' : '0');

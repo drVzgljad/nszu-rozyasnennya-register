@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Справи відділу</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="spravy.css?v=20261117b">
+  <link rel="stylesheet" href="spravy.css?v=20261119a">
   <link rel="stylesheet" href="../auth-v2.css?v=20261119a">
   <script type="module" src="../auth-v2.js?v=20261119b"></script>
 </head>
@@ -87,7 +87,10 @@
         <option value="note">📌 Врахувати в роботі</option>
         <option value="waiting">⏳ Чекаємо відповіді</option>
         <option value="incoming">📥 Надійшло — врахувати</option>
+        <option value="merge">🧩 Можна об'єднати</option>
       </select>
+      <!-- 🧩 Однотипні листи одного автора — одна відповідь (migration_2026-11-19_case_merge.sql) -->
+      <button type="button" class="sp-merge-hint-btn" id="spMergeHint" aria-pressed="false" hidden>🧩 Можна об'єднати</button>
       <select id="spDept" class="sp-dept-pick" aria-label="Відділ" hidden></select>
       <div class="sp-view" id="spView" role="group" aria-label="Вигляд">
         <button type="button" data-view="board" aria-pressed="true">Дошка</button>
@@ -167,6 +170,8 @@
           <i class="sp-muted">— до кінця дня; щоранку знову «☐ не опрацьовано»</i></label>
         <button type="button" class="sp-btn sp-btn-37d" id="spF37d" title="Додати рядок у звіт за Формою 37-Д: процес і дію підставлено зі справи">📝 Зарахувати в 37-Д</button>
       </div>
+      <!-- 🧩 Приєднана справа: куди приєднано — одразу над етапами -->
+      <div class="sp-merge-main sp-merge-top" id="spMergeTop" hidden></div>
       <div class="sp-stepper" id="spStepper" aria-label="Етап справи"></div>
       <!-- Маршрут документа (migration_2026-11-10c_case_route.sql): виконавець → погоджувачі → підписант -->
       <section class="sp-route" id="spRoute" aria-label="Маршрут документа" hidden></section>
@@ -178,6 +183,9 @@
         <button type="button" class="sp-btn" data-act="skod">🕒 Зарахувати в СКО-Д</button>
       </div>
       <div id="spFields"></div>
+
+      <!-- 🧩 Об'єднання (migration_2026-11-19_case_merge.sql): кілька вхідних одного автора — одна відповідь -->
+      <section class="sp-block sp-merge" id="spMerge" hidden></section>
 
       <!-- Зв'язки справ (migration_2026-11-09b_case_links.sql): СЗ туди — чекаємо, СЗ до нас — врахувати -->
       <section class="sp-block">
@@ -315,7 +323,7 @@
   </footer>
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
-  <script src="../pmg-askod-journal.js?v=20261109b" defer></script>
-  <script type="module" src="spravy.js?v=20261119b"></script>
+  <script src="../pmg-askod-journal.js?v=20261119a" defer></script>
+  <script type="module" src="spravy.js?v=20261119c"></script>
 </body>
 </html>

@@ -52,6 +52,9 @@
   --sp-note: #0d9488;         /* «📌 Врахувати в роботі» — відповідь не потрібна */
   --sp-note-bg: #ccfbf1;
   --sp-note-ink: #115e59;
+  --sp-merge: #b45309;        /* «🧩 Об'єднано» — кілька вхідних, одна відповідь (19.11.2026) */
+  --sp-merge-bg: #fdf0e1;
+  --sp-merge-ink: #8a3c06;
 }
 :root.dark-theme {
   --sp-col-bg: #131c2b;
@@ -97,6 +100,9 @@
   --sp-note: #2dd4bf;
   --sp-note-bg: #042f2e;
   --sp-note-ink: #5eead4;
+  --sp-merge: #f59e0b;
+  --sp-merge-bg: #3a2410;
+  --sp-merge-ink: #fdba74;
 }
 
 .sp-hero h1 { margin-bottom: 6px; }
@@ -1379,3 +1385,54 @@ button.sp-rev-mini.is-todo:hover, button.sp-rev-mini.is-todo:focus-visible { out
 .sp-reviewed-row .sp-reviewed { margin: 0; }
 .sp-btn-37d { padding: 4px 10px; }
 .sp-f37d-had { color: var(--sp-over-ink); font-weight: 600; }
+
+/* ---------- 🧩 Об'єднання: кілька вхідних одного автора — одна відповідь (19.11.2026) ---------- */
+.sp-merge-hint-btn {
+  font: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+  padding: 6px 12px; border-radius: 999px; border: 1px solid var(--sp-merge);
+  background: var(--sp-merge-bg); color: var(--sp-merge-ink);
+}
+.sp-merge-hint-btn[aria-pressed="true"] { background: var(--sp-merge); color: var(--surface, #fff); }
+.sp-merge-line {
+  margin: 2px 0 1px; padding: 2px 8px; border-radius: 7px; width: fit-content; max-width: 100%;
+  font-size: 12px; font-weight: 700; background: var(--sp-merge-bg); color: var(--sp-merge-ink);
+  overflow-wrap: anywhere;
+}
+.sp-badges .sp-mergecand { background: transparent; color: var(--sp-merge-ink); border: 1px dashed var(--sp-merge); cursor: help; }
+.sp-merge-mini { font-size: 12px; font-weight: 700; padding: 0 6px; border-radius: 999px; background: var(--sp-merge-bg); color: var(--sp-merge-ink); white-space: nowrap; }
+.sp-merge h3 .sp-muted { font-weight: 400; font-size: 13px; }
+.sp-merge-main {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+  padding: 10px 12px; border-radius: 10px; background: var(--sp-merge-bg); color: var(--sp-merge-ink);
+}
+.sp-merge-txt { flex: 1 1 260px; min-width: 0; font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
+.sp-merge-list { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.sp-merge-row {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 10px;
+  padding: 7px 10px; border: 1px solid var(--line); border-left: 3px solid var(--sp-merge); border-radius: 9px;
+  background: var(--surface);
+}
+.sp-merge-no {
+  font: inherit; font-weight: 700; font-size: 13px; color: var(--accent); background: none; border: 0; padding: 0;
+  cursor: pointer; text-align: left; white-space: nowrap;
+}
+.sp-merge-no:hover { text-decoration: underline; }
+.sp-merge-about { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.sp-merge-subj { font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-merge-about i { font-style: normal; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.sp-merge-row .sp-btn { padding: 4px 10px; font-size: 12.5px; white-space: nowrap; }
+.sp-merge-note, .sp-merge-hint { margin: 4px 0 8px; font-size: 13px; color: var(--muted); }
+.sp-merge-hint { color: var(--sp-merge-ink); font-weight: 600; }
+.sp-merge-find summary { cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--accent); margin: 2px 0 6px; }
+.sp-merge-find input {
+  width: 100%; box-sizing: border-box; margin: 0 0 8px; padding: 7px 10px; font: inherit; font-size: 14px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink);
+}
+.sp-stepper.is-merged { opacity: .6; }
+.sp-stepper.is-merged .sp-step { cursor: not-allowed; }
+@media (max-width: 560px) {
+  .sp-merge-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .sp-merge-about { grid-column: 1 / -1; grid-row: 2; }
+  .sp-merge-subj { white-space: normal; }
+}
+.sp-merge-top { margin: 0 0 10px; }

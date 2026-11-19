@@ -62,8 +62,14 @@ async function loadContext(dept, owner) {
       .eq('department', dept).eq('owner_name', owner).not('journal_at', 'is', null)
       .order('journal_at', { ascending: false }).limit(1)
   ]);
-  if (cases.error) throw new Error(cases.error.message);
-  return { existing: cases.data || [], people: people.data || [], last: ups.error ? null : (ups.data || [])[0] || null, noLog: !!ups.error && MISSING.test(ups.error.message || ups.error.code || '') };
+  let rows = cases;
+  // 🧩 merged_into (migration_2026-11-19_case_merge.sql) — щоб підсумок показав приєднані справи; без міграції — як було
+  if (!rows.error) {
+    const m = await ctx.sb.from('dept_cases').select('id,merged_into').eq('department', dept).not('merged_into', 'is', null);
+    if (!m.error) { const j = new Map((m.data || []).map((r) => [r.id, r.merged_into])); rows.data = (rows.data || []).map((r) => ({ ...r, merged_into: j.get(r.id) || null })); }
+  }
+  if (rows.error) throw new Error(rows.error.message);
+  return { existing: rows.data || [], people: people.data || [], last: ups.error ? null : (ups.data || [])[0] || null, noLog: !!ups.error && MISSING.test(ups.error.message || ups.error.code || '') };
 }
 
 async function open(file) {
@@ -111,8 +117,12 @@ function summaryHTML(p, last) {
   if (p.stale) warn.push(['is-bad', `Цей журнал сформовано ${fmtStamp(j.created)}, а вже застосовано свіжіший — від ${fmtStamp(last.journal_at)}. Вивантажте журнал з АСКОД заново.`]);
   else if (j.created && (Date.now() - new Date(j.created)) / 864e5 > 2) warn.push(['', `Журнал сформовано ${fmtStamp(j.created)} — йому вже кілька днів. Свіжий дасть точніші строки і стан.`]);
 
+  const joined = ops.filter((o) => o.merged_into).length;
+  const mainNo = (o) => existing.find((c) => c.id === o.merged_into)?.in_no;
   const row = (no, extra) => {
     const c = caseOf.get(no) || cur.get(no) || {};
+    const o = ops.find((x) => x.in_no === no && x.merged_into);
+    if (o) extra = [extra, `🧩 приєднана${mainNo(o) ? ' до ' + esc(mainNo(o)) : ''}`].filter(Boolean).join(' · ');
     return `<li><b>${esc(no)}</b> <span class="sp-muted">строк ${fmtDate(c.deadline)}</span>${extra ? ` <span class="sp-jr-chg">${extra}</span>` : ''}<br><span class="sp-jr-subj">${esc((c.subject || '').slice(0, 140))}</span></li>`;
   };
   const what = (o) => {
@@ -140,7 +150,7 @@ function summaryHTML(p, last) {
       ${back.length ? `<div><strong>${back.length}</strong><span>повернулися</span></div>` : ''}
     </div>
     <p class="sp-muted sp-jr-note">На дошку йдуть документи за ${A.DAYS} днів або зі строком, що минув не більш як тиждень тому, без «до відома»: ${cases.length}, з них уже на дошці ${onBoard}${onBoard - upd.length > 0 ? ` (без змін ${onBoard - upd.length})` : ''}.
-      Етап, виконавця, суть і нюанси журнал не змінює. «Резолюцію закрито» — ваша справа з АСКОД, якої в журналі більше немає: її позначено, а не закрито.</p>
+      Етап, виконавця, суть і нюанси журнал не змінює.${joined ? ` 🧩 У приєднаних справах — ${joined}: оновляться їхні резолюції, строки й стан, об'єднання лишиться.` : ''} «Резолюцію закрито» — ваша справа з АСКОД, якої в журналі більше немає: її позначено, а не закрито.</p>
     ${block('Нові справи', ins, (o) => row(o.in_no), ins.length <= 8)}
     ${block('Оновиться', upd, (o) => row(o.in_no, what(o)), false)}
     ${block('Зникли з журналу', gone, (o) => row(o.in_no), false)}

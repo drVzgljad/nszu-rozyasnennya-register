@@ -448,7 +448,12 @@
    *   by       — підпис зміни (updated_by_name / created_by_name)
    *   skipNoop — не надсилати оновлення, яке нічого не змінює (push() надсилає)
    *
-   * → [{op: 'insert', in_no, row} | {op: 'update'|'gone'|'back', in_no, id, patch}]
+   * → [{op: 'insert', in_no, row} | {op: 'update'|'gone'|'back', in_no, id, patch, merged_into}]
+   *
+   * 🧩 Приєднана справа (merged_into, migration_2026-11-19_case_merge.sql) — звичайний рядок зі своїм
+   * вх. №: резолюцію, строк і стан оновлюємо як завжди, дубля не заводимо (зіставлення за вх. №),
+   * поля merged_into не торкаємось — етап за головною веде тригер бази. merged_into в операції — лише
+   * для підсумку («з них у приєднаних справах»), як лічильник merged у push().
    */
   function plan(o) {
     var dept = o.dept;
@@ -488,7 +493,7 @@
           if (c[k] && cur[k] === null) patch[k] = c[k];
         });
         patch.updated_by_name = by;
-        if (!o.skipNoop || changes(cur, patch)) ops.push({ op: 'update', in_no: c.in_no, id: cur.id, patch: patch });
+        if (!o.skipNoop || changes(cur, patch)) ops.push({ op: 'update', in_no: c.in_no, id: cur.id, patch: patch, merged_into: cur.merged_into || null });
       } else {
         var row = {};
         Object.keys(c).forEach(function (k) { if (k[0] !== '_') row[k] = c[k]; });
@@ -507,11 +512,11 @@
       // «Зникла» — лише справа власника одного з журналів, якої в його журналі вже немає
       if (cur.source === 'askod' && cur.stage !== 'done' && !journalNos.has(no) &&
           cur.askod_state !== GONE && owns(cur.executor_name, owners)) {
-        ops.push({ op: 'gone', in_no: no, id: cur.id, patch: { askod_state: GONE, updated_by_name: by } });
+        ops.push({ op: 'gone', in_no: no, id: cur.id, patch: { askod_state: GONE, updated_by_name: by }, merged_into: cur.merged_into || null });
       // Документ знову в журналі — знімаємо «зникла» і повертаємо стан із журналу
       } else if (cur.askod_state === GONE && journalNos.has(no) && !picked.has(no) && o.docs) {
         var state = journal_case(no, o.docs.get(no).recs).askod_state;
-        ops.push({ op: 'back', in_no: no, id: cur.id, patch: { askod_state: state, updated_by_name: by } });
+        ops.push({ op: 'back', in_no: no, id: cur.id, patch: { askod_state: state, updated_by_name: by }, merged_into: cur.merged_into || null });
       }
     });
     return ops;
