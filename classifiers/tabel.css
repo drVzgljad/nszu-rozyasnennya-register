@@ -103,6 +103,12 @@
 .tb-card-title { font-size: .98rem; font-weight: 700; color: var(--ink); line-height: 1.35; }
 .tb-card-profile { font-size: .84rem; color: var(--muted); line-height: 1.45; margin-top: 3px; }
 .tb-card-meta { font-size: .76rem; color: var(--muted); margin-top: 4px; }
+/* текст табеля відстав від чинної редакції — кольори з токенів, темна тема працює сама */
+.tb-card-meta.tb-stale { color: var(--warning-text, #6b4a00); }
+.tb-stale-note {
+  background: var(--warning-bg, #fff6e0); border: 1px solid var(--warning-border, #e6c56a);
+  color: var(--warning-text, #6b4a00);
+}
 .tb-card-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-top: 9px; }
 .tb-open {
   border: 1px solid var(--accent-dark); background: var(--accent-dark); color: #fff;

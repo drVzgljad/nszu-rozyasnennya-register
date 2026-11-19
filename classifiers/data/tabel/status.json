@@ -1,0 +1,139 @@
+{
+ "generated": "2026-11-19",
+ "about": "Статуси наказів МОЗ про табелі оснащення. Єдине місце: пише tools/tabel_status.py, читає classifiers/build_tabel.py. Руками не правити.",
+ "docs": {
+  "153": {
+   "adopted": "05.06.1998",
+   "current_revision": "04.11.2010",
+   "current_basis": "v0951282-10",
+   "revisions": [
+    {
+     "date": "11.04.2005",
+     "basis": "v0158282-05"
+    },
+    {
+     "date": "04.11.2010",
+     "basis": "v0951282-10"
+    }
+   ],
+   "lost_force": false,
+   "lost_force_date": null,
+   "state_field": null,
+   "source": "zakon.rada.gov.ua",
+   "rada_id": "v0153282-98",
+   "url": "https://zakon.rada.gov.ua/rada/card/v0153282-98",
+   "checked": "2026-11-19"
+  },
+  "951": {
+   "adopted": "04.11.2010",
+   "current_revision": "16.05.2023",
+   "current_basis": "v0904282-23",
+   "revisions": [
+    {
+     "date": "16.05.2023",
+     "basis": "v0904282-23"
+    }
+   ],
+   "lost_force": false,
+   "lost_force_date": null,
+   "state_field": null,
+   "source": "zakon.rada.gov.ua",
+   "rada_id": "v0951282-10",
+   "url": "https://zakon.rada.gov.ua/rada/card/v0951282-10",
+   "checked": "2026-11-19"
+  },
+  "158": {
+   "adopted": "11.04.2005",
+   "current_revision": "07.03.2023",
+   "current_basis": "v0439282-23",
+   "revisions": [
+    {
+     "date": "07.03.2023",
+     "basis": "v0439282-23"
+    }
+   ],
+   "lost_force": false,
+   "lost_force_date": null,
+   "state_field": null,
+   "source": "zakon.rada.gov.ua",
+   "rada_id": "v0158282-05",
+   "url": "https://zakon.rada.gov.ua/rada/card/v0158282-05",
+   "checked": "2026-11-19"
+  },
+  "148": {
+   "adopted": "26.01.2018",
+   "current_revision": "19.11.2025",
+   "current_basis": "v1746282-25",
+   "revisions": [
+    {
+     "date": "10.12.2020",
+     "basis": "v2857282-20"
+    },
+    {
+     "date": "10.02.2023",
+     "basis": "v0233282-23"
+    },
+    {
+     "date": "04.01.2024",
+     "basis": "v0020282-24"
+    },
+    {
+     "date": "19.11.2025",
+     "basis": "v1746282-25"
+    }
+   ],
+   "lost_force": false,
+   "lost_force_date": null,
+   "state_field": null,
+   "source": "zakon.rada.gov.ua",
+   "rada_id": "v0148282-18",
+   "url": "https://zakon.rada.gov.ua/rada/card/v0148282-18",
+   "checked": "2026-11-19"
+  },
+  "995": {
+   "adopted": "31.05.2023",
+   "current_revision": "31.05.2023",
+   "current_basis": null,
+   "revisions": [],
+   "lost_force": false,
+   "lost_force_date": null,
+   "state_field": null,
+   "source": "zakon.rada.gov.ua",
+   "rada_id": "v0995282-23",
+   "url": "https://zakon.rada.gov.ua/rada/card/v0995282-23",
+   "checked": "2026-11-19"
+  },
+  "2650": {
+   "source": "moz.gov.ua",
+   "url": "https://moz.gov.ua/uk/decrees/nakaz-moz-ukraini-vid-23122019--2650-pro-zatverdzhennja-primirnih-tabeliv-materialno-tehnichnogo-osnaschennja-zakladiv-ohoroni-zdorov%E2%80%99ja-ih-vidokremlenih-pidrozdiliv-jaki-nadajut-medichnu-dopomogu-iz-zastosuvannjam-transplantacii",
+   "manual": true,
+   "checked": "2026-11-19",
+   "note": "Наказ опубліковано на сайті МОЗ. На сторінці наказу немає позначок про зміни чи скасування. У базі «Законодавство України» наказу немає.",
+   "lost_force": false
+  },
+  "751": {
+   "source": "moz.gov.ua",
+   "url": "https://moz.gov.ua/uk/decrees/nakaz-moz-ukraini-vid-01052024-751-pro-zatverdzhennja-primirnogo-tabelju-materialno-tehnichnogo-osnaschennja-pidrozdiliv-zakladiv-ohoroni-zdorov%E2%80%99ja",
+   "manual": true,
+   "checked": "2026-11-19",
+   "note": "Наказ опубліковано на сайті МОЗ. На сторінці наказу немає позначок про зміни чи скасування. У базі «Законодавство України» наказу немає.",
+   "lost_force": false
+  },
+  "164": {
+   "source": "moz.gov.ua",
+   "url": "https://moz.gov.ua/uk/decrees/nakaz-moz-ukrayini-vid-10-02-2026-164-pro-zatverdzhennya-primirnogo-tabelyu-materialno-tehnichnogo-osnashennya-strukturnih-pidrozdiliv-zakladiv-ohoroni-zdorov-ya-yaki-nadayut-stacionarnu-dopomogu-paciyentam-iz-gostrim-mozkovim",
+   "manual": true,
+   "checked": "2026-11-19",
+   "note": "Наказ опубліковано на сайті МОЗ. На сторінці наказу немає позначок про зміни чи скасування. У базі «Законодавство України» наказу немає.",
+   "lost_force": false
+  },
+  "93": {
+   "source": "moz.gov.ua",
+   "url": "https://moz.gov.ua/uk/decrees/nakaz-moz-ukrayini-vid-26-01-2026-93-pro-zatverdzhennya-primirnih-tabeliv-materialno-tehnichnogo-osnashennya-zakladiv-ohoroni-zdorov-ya-dlya-funkcionuvannya-kabinetu-intervencijnogo-menedzhmentu-bolyu",
+   "manual": true,
+   "checked": "2026-11-19",
+   "note": "Наказ опубліковано на сайті МОЗ. На сторінці наказу немає позначок про зміни чи скасування. У базі «Законодавство України» наказу немає.",
+   "lost_force": false
+  }
+ }
+}

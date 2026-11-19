@@ -381,7 +381,8 @@
         </div>
         <div class="tb-card-title">${esc(d.short)}</div>
         <div class="tb-card-profile">${esc(d.profile || "")}</div>
-        <div class="tb-card-meta">${esc(d.edition || "")} · ${esc(d.status || "")}</div>
+        <div class="tb-card-meta${d.stale ? " tb-stale" : ""}">${d.stale ? "⚠ " : ""}${esc(d.edition || "")} · ${esc(d.status || "")}${
+          d.checked ? ` · звірено ${esc(d.checked)}` : ""}</div>
         <div class="tb-card-actions">
           ${d.has_text
             ? `<button class="tb-open" type="button" data-open="${d.id}">Відкрити табель · ${positions(d.total)}</button>`
@@ -440,8 +441,10 @@
         <span class="crumb">${esc(d.authority)}</span>
         <span class="sep">›</span><span class="crumb">${esc(d.edition || "")}</span>
         <span class="sep">›</span><span class="crumb">${esc(d.status || "")}</span>
+        ${d.checked ? `<span class="sep">›</span><span class="crumb">звірено ${esc(d.checked)} · ${esc(d.check_source || "")}</span>` : ""}
       </div>
-      ${d.edition_note ? `<div class="tb-group-note">${esc(d.edition_note)}</div>` : ""}
+      ${d.edition_note ? `<div class="tb-group-note${d.stale ? " tb-stale-note" : ""}">${
+        d.stale ? "<b>⚠ Увага.</b> " : ""}${esc(d.edition_note)}</div>` : ""}
       <div class="reader-block"><h3>Профілі підрозділів <span class="src">оберіть, щоб побачити табель цілком</span></h3>${tables}</div>
       ${amend}
       <div class="reader-block"><h3>Джерело</h3>
