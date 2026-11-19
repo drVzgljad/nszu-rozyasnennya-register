@@ -2401,9 +2401,9 @@ const ACTIONS = {
       <p class="sp-f sp-wide sp-muted">Коли для повної відповіді потрібні дані інших підрозділів. Кореспонденту надсилаємо проміжну відповідь і продовжуємо строк, підрозділам — службові із запитом. Справа лишиться в роботі.</p>
       <fieldset class="sp-im-box sp-wide">
         <legend><label class="sp-im-on"><input type="checkbox" name="im_on" checked> ✉ Проміжна відповідь${corr ? ' — ' + esc(corr) : ' кореспонденту'}</label></legend>
-        <p class="sp-muted sp-im-hint" data-im-part-hint>Є вих. № — проміжну відповідь уже надіслано. <b>Без № — ще готуємо:</b> вона піде своїм маршрутом (виконавець → начальник відділу → директор департаменту → заступник Голови → 🖋 Голова) у блоці «📑» угорі картки; строк справи зміниться, коли натиснете «📤 Надіслано».</p>
+        <p class="sp-muted sp-im-hint" data-im-part-hint>Є зареєстрований вих. № — проміжну відповідь уже надіслано. <b>Без № або з № проєкту АСКОД (Н(СЛ)-…) — ще готуємо:</b> вона піде своїм маршрутом (виконавець → начальник відділу → директор департаменту → заступник Голови → 🖋 Голова) у блоці «📑» угорі картки; строк справи зміниться, коли натиснете «📤 Надіслано».</p>
         <div class="sp-im-grid" data-im-part>
-          <label class="sp-f"><span>Вих. №</span><input name="im_no" placeholder="порожньо — ще готуємо"></label>
+          <label class="sp-f"><span>Вих. № або № проєкту</span><input name="im_no" placeholder="порожньо — ще готуємо"></label>
           <label class="sp-f"><span>Дата</span><input type="date" name="im_date" value="${todayISO()}"></label>
           <label class="sp-f"><span>Новий строк</span><input type="date" name="im_deadline" value="${esc(c.deadline || '')}" min="${todayISO()}"></label>
           <label class="sp-f sp-wide"><span>Що повідомили</span><input name="im_note" value="Повідомлено про продовження строку розгляду та запит інформації в підрозділах"></label>
@@ -2412,7 +2412,7 @@ const ACTIONS = {
       <fieldset class="sp-im-box sp-wide">
         <legend>📤 Службові-запити інформації</legend>
         <p class="sp-muted sp-im-hint">${state.noLinkRoute && !DEMO ? 'Кожна службова — окреме «⏳ чекаємо» у «Зв\'язках».'
-          : 'Є № — службову вже надіслано: одразу «⏳ чекаємо». <b>Без № — ще готуємо:</b> службова отримає свій маршрут (виконавець → начальник відділу → 🖋 директор департаменту), № і дату внесете після підпису.'}</p>
+          : 'Є зареєстрований № (8-15/…-26) — службову вже надіслано: одразу «⏳ чекаємо». <b>Без № або з № проєкту АСКОД (Н(СЛ)-…) — ще готуємо:</b> службова отримає свій маршрут (виконавець → начальник відділу → 🖋 директор департаменту), реєстраційний № і дату внесете після підпису.'}</p>
         <div class="sp-im-rows" data-im-rows>${interimRowHTML()}</div>
         <button type="button" class="sp-btn sp-im-add" data-im-add>+ ще службова</button>
         <label class="sp-f sp-wide"><span>Про що просимо</span><input name="rq_about" placeholder="напр. дані про оплати закладу за 2025–2026"></label>
@@ -2431,20 +2431,25 @@ const ACTIONS = {
         const date = fd.get('im_date') || null;
         const dl = fd.get('im_deadline') || null;
         const corr = c.correspondent && !/^службов/i.test(c.correspondent.trim()) ? c.correspondent : null;
-        const draft = !no;   // без № — ще готуємо: маршрут у блоці «📑», строк — коли надішлемо
-        await addEvent(id, { kind: 'outgoing', doc_kind: 'interim', doc_no: no || null, addressee: corr, event_date: draft ? null : date,
+        // Без № або з № проєкту АСКОД (Н(СЛ)-…) — ще готуємо: маршрут у блоці «📑», строк — коли надішлемо
+        const proj = isProjectNo(no);
+        const draft = !no || proj;
+        await addEvent(id, { kind: 'outgoing', doc_kind: 'interim', doc_no: draft ? null : no, addressee: corr, event_date: draft ? null : date,
           body: [(fd.get('im_note') || '').trim(), !draft && dl && dl !== c.deadline ? `новий строк ${fmtDate(dl)}` : ''].filter(Boolean).join('; '),
-          ...(draft ? { meta: { draft: true, route: interimRouteDefault(), deadline: dl || null } } : {}) });
+          ...(draft ? { meta: { draft: true, route: interimRouteDefault(), deadline: dl || null, project_no: proj ? no : null } } : {}) });
         const patch = {};
         if (!draft && dl && dl !== c.deadline) Object.assign(patch, { deadline: dl, change_note: `продовжено: проміжна відповідь вих. № ${no}${date ? ' від ' + fmtDate(date) : ''}` });
         if (c.stage === 'new') patch.stage = 'work';
         if (Object.keys(patch).length) await saveCase(id, patch);
       } else if (c.stage === 'new') await saveCase(id, { stage: 'work' });
       for (const r of rows) {
-        // Без № — службову ще готуємо: власний маршрут, «📤 Надіслано» — після підпису (міграція 19b)
-        if (!r.no && !state.noLinks && (DEMO || !state.noLinkRoute)) {
-          await addLink(id, { direction: 'out', doc_kind: 'sz', status: 'draft', route: linkRouteDefault(), counterpart: r.to,
-            about: about || 'Запит інформації', wait_until: r.until, project_no: c.project_no || null });
+        // Без № або з № проєкту АСКОД (Н(СЛ)-…) — службову ще готуємо: власний маршрут, «📤 Надіслано» — після
+        // підпису (міграція 19b). 19.11.2026 у ПІ-495-26 № проєкту сприйняло як вихідний — службова стала «надісланою»
+        if ((!r.no || isProjectNo(r.no)) && !state.noLinks && (DEMO || !state.noLinkRoute)) {
+          const r0 = linkRouteDefault();
+          if (r.no) r0.exec = todayISO();   // проєкт уже заведено в АСКОД — виконавець свою частину зробив
+          await addLink(id, { direction: 'out', doc_kind: 'sz', status: 'draft', route: r0, counterpart: r.to,
+            about: about || 'Запит інформації', wait_until: r.until, project_no: r.no || null });
           continue;
         }
         await addEvent(id, { kind: 'outgoing', doc_kind: 'sz_req', doc_no: r.no || null, addressee: r.to, event_date: r.date, body: about || 'Запит інформації' });
@@ -2756,6 +2761,8 @@ function linkRouteHTML(l) {
   return `<div class="sp-lr-line">🧭 Службову готуємо — ${esc(n.what)}: <b>${esc(n.who)}</b>. Маршрут — у блоці «📑 Проміжна відповідь і запити» вгорі картки.</div>`;
 }
 
+/** № проєкту в АСКОД (Н(СЛ)-28237): документ ще на погодженні, а не відправлений. Латинські двійники теж. */
+const isProjectNo = (v) => /^\s*[НH]\s*\(\s*[СC]\s*Л\s*\)/i.test(String(v || ''));
 const corrOf = (c) => (c.correspondent && !/^службов/i.test(c.correspondent.trim()) ? c.correspondent : '');
 
 /** Блок «📑 Проміжна відповідь і запити»: проміжні відповіді (події) і службові-запити (зв'язки) з маршрутами. */
@@ -2778,7 +2785,7 @@ function renderDocs(c) {
     ...ims.map((e) => {
       const draft = isDraftEv(e);
       const dl = e.meta?.deadline || '';
-      return item('ev:' + e.id, '✉ Проміжна відповідь', e.addressee || corrOf(c), draft, evRouteOf(e), INTERIM_SIGNERS,
+      return item('ev:' + e.id, `✉ Проміжна відповідь${draft && e.meta?.project_no ? ' · проєкт ' + esc(e.meta.project_no) : ''}`, e.addressee || corrOf(c), draft, evRouteOf(e), INTERIM_SIGNERS,
         `📤 надіслано${e.doc_no ? ' вих. № ' + e.doc_no : ''}${e.event_date ? ' від ' + fmtDate(e.event_date) : ''}`,
         `<div class="sp-lr-send"><span>Підписано — внесіть реєстрацію й відправте:</span>
           <input data-lr-no placeholder="вих. №" aria-label="Вих. № проміжної відповіді">
@@ -2786,7 +2793,7 @@ function renderDocs(c) {
           <label class="sp-lr-dl">новий строк <input type="date" data-lr-deadline value="${esc(dl)}" aria-label="Новий строк справи"></label>
           <button type="button" class="sp-btn sp-btn-primary" data-lr-send>📤 Надіслано</button></div>`);
     }),
-    ...szs.map((l) => item('link:' + l.id, `📤 ${LINK_SHORT[l.doc_kind] || 'СЗ'}-запит${l.doc_no ? ' № ' + esc(l.doc_no) : ''}`, l.who, l.status === 'draft', linkRouteOf(l), LINK_SIGNERS,
+    ...szs.map((l) => item('link:' + l.id, `📤 ${LINK_SHORT[l.doc_kind] || 'СЗ'}-запит${l.doc_no ? ' № ' + esc(l.doc_no) : l.status === 'draft' && isProjectNo(l.project_no) ? ' · проєкт ' + esc(l.project_no) : ''}`, l.who, l.status === 'draft', linkRouteOf(l), LINK_SIGNERS,
       { waiting: '⏳ надіслано, чекаємо відповіді', answered: '✓ відповідь є', closed: 'знято' }[l.status] || '',
       `<div class="sp-lr-send"><span>Підписано — внесіть реєстрацію й відправте:</span>
         <input data-lr-no placeholder="№ СЗ" value="${esc(l.doc_no || '')}" aria-label="№ службової">
@@ -2896,7 +2903,7 @@ function interimRowHTML() {
   const until = new Date(Date.now() + 5 * 864e5).toISOString().slice(0, 10);
   return `<div class="sp-im-row">
     <label class="sp-f"><span>Кому *</span><input name="rq_to" list="spLeadUnits" placeholder="підрозділ"></label>
-    <label class="sp-f"><span>№ СЗ</span><input name="rq_no" placeholder="8-15/…-26"></label>
+    <label class="sp-f"><span>№ СЗ або проєкту</span><input name="rq_no" placeholder="Н(СЛ)-… / 8-15/…-26"></label>
     <label class="sp-f"><span>Дата</span><input type="date" name="rq_date" value="${todayISO()}"></label>
     <label class="sp-f"><span>Чекаємо до</span><input type="date" name="rq_until" value="${until}"></label>
     <button type="button" class="sp-im-del" data-im-del title="Прибрати рядок" aria-label="Прибрати рядок">✕</button>
