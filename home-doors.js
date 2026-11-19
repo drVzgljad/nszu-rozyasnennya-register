@@ -26,6 +26,8 @@ const DEPTS = [
   ['розрахунок вартості медичних послуг', 'Розрахунок вартості'],
   ['робота з електронними медичними даними', 'Електронні медичні дані']
 ];
+import { openVoiceWindow, voiceWin } from './voice/link.js?v=20261119a';
+
 const LEAD = ['admin', 'director', 'deputy_director'];
 const ROOM_URL = 'spravy/index.html';
 const WAIT_MAX = 30 * 60e3;          // стук старший за 30 хв кімната вже не показує
@@ -96,7 +98,12 @@ async function topicFor(dept) {
 const shortName = (dept) => (DEPTS.find(([n]) => n === dept) || [dept, dept])[1];
 const isLead = () => LEAD.includes(d.me?.role);
 
+/**
+ * Зайти в кімнату (19.11.2026): голос відкривається в голосовому вікні (voice/link.js), щоб розмова не рвалась,
+ * поки людина ходить порталом. Вікно відкривається лише на клік; браузер не дав — як раніше, у «Справи».
+ */
 function go(params) {
+  if (openVoiceWindow(params)) return;
   const u = new URL(ROOM_URL, location.href);
   Object.entries(params).forEach(([k, val]) => u.searchParams.set(k, val));
   location.href = u.href;
@@ -190,8 +197,10 @@ function answer(dept, k) {
   const st = d.door[dept];
   if (!st || st.state !== 'wait' || st.id !== k.id) return;
   if (k.status === 'ok') {
-    setDoor(dept, { state: 'ok', id: k.id, text: `Впустив(-ла) ${k.decided_by_name || 'колега'}` });
-    setTimeout(() => go({ door: k.id }), 1100);
+    // Голосове вікно вже відкрите — заходимо самі; ні — вікно відкриється кліком на двері (браузер вимагає дії людини)
+    const auto = !!voiceWin();
+    setDoor(dept, { state: 'ok', id: k.id, text: `Впустив(-ла) ${k.decided_by_name || 'колега'}${auto ? '' : ' — натисніть двері, щоб зайти'}` });
+    if (auto) setTimeout(() => go({ door: k.id }), 1100);
   } else if (k.status === 'no') {
     setDoor(dept, { state: 'no', text: 'Не зараз' });
     d.timers[dept] = setTimeout(() => setDoor(dept, null), 6000);
@@ -217,7 +226,10 @@ function enter(dept) {
   const own = dept === d.me.dept;
   animate(dept, 'is-open', 2000);
   if (d.demo) return setTimeout(() => setDoor(dept, { state: 'info', text: own ? 'Тут відкрилася б кімната вашого відділу' : 'Керівництво заходить без стуку' }), 700);
-  setTimeout(() => go(own ? { door: 'home' } : { door_dept: dept }), 650);
+  // Вікно — одразу, ще в кліку (інакше браузер його заблокує); анімація дверей грає поруч
+  const p = own ? { door: 'home' } : { door_dept: dept };
+  if (openVoiceWindow(p)) return;
+  setTimeout(() => go(p), 650);
 }
 
 /* ───────────────────────── розмітка ───────────────────────── */
@@ -227,6 +239,9 @@ async function onClick(e) {
   if (!b) return;
   const { act, dept, id } = b.dataset;
   if (act === 'door') {
+    // Впустили за стуком — двері відчинені: клік відкриває голосове вікно
+    const st = d.door[dept];
+    if (st?.state === 'ok' && st.id && !d.demo) { animate(dept, 'is-open', 2000); setDoor(dept, null); return go({ door: st.id }); }
     if (dept === d.me.dept || isLead()) return enter(dept);
     return knock(dept);
   }

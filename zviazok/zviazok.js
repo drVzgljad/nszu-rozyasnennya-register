@@ -32,6 +32,8 @@
  */
 
 import { createVoice, MANY, netInfo } from './voice.js?v=20261117a';
+// Голосове вікно (19.11.2026): голос живе там, щоб розмова не рвалась під час переходів порталом
+import { openVoiceWindow, voiceWin, onVoiceWin, sendVoiceCmd, focusVoiceWindow } from '../voice/link.js?v=20261119a';
 import { openMicPicker } from './mic-picker.js?v=20261106a';
 import { createMeeting } from './meeting.js?v=20261103a';
 import { createStage } from './stage.js?v=20261103a';
@@ -302,6 +304,8 @@ function readPresence(state) {
 /* ───────────────────────── голос ───────────────────────── */
 
 const inVoice = () => !!(S.vs && S.vs.inRoom && S.vs.status !== 'idle');
+/** Я в кімнаті департаменту через голосове вікно (../voice/). */
+const inWinVoice = () => { const w = voiceWin(); return !!(w && w.inRoom && w.topic === TOPIC); };
 
 /** Хто в голосі: одна людина — один рядок, навіть якщо в неї відкрито дві вкладки. */
 function voicePeople() {
@@ -317,6 +321,10 @@ function voicePeople() {
 /** Одна кнопка: не в голосі — зайти й говорити; у голосі — вийти (лишаємось «дивитися»). */
 async function toggleVoice() {
   if (S.busyVoice) return;
+  // З 19.11.2026 голос — у голосовому вікні: вийти — команда вікну, зайти — відкрити вікно (лише на клік).
+  // Браузер не дав відкрити вікно — голос у цій вкладці, як раніше
+  if (inWinVoice()) { sendVoiceCmd('leave'); return; }
+  if (!inVoice() && openVoiceWindow({ room: 'all', mic: '1' })) return;
   S.busyVoice = true;
   renderVoice();
   try {
@@ -587,6 +595,19 @@ function recNote(vs) {
   return `<p class="zv-vnote zv-recnote">🔴 Іде запис наради · ${vs.recording.me ? 'записуєте ви' : 'увімкнув(-ла) ' + esc(vs.recording.name)} · з ${new Date(vs.recording.since).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}</p>`;
 }
 
+/** Голос у голосовому вікні: мікрофон і «показати вікно» — командами вікну. */
+function winCtlHtml() {
+  const w = voiceWin();
+  return `<div class="zv-vctl">
+    <button type="button" class="zv-btn zv-vbtn${w.muted ? '' : ' is-on'}" data-act="wmic" aria-pressed="${!w.muted}" title="${w.muted ? 'Увімкнути мікрофон' : 'Вимкнути мікрофон — вас не чутимуть'}">${w.muted ? '🔇' : '🎙'}<span>${w.muted ? 'Мікрофон вимк.' : 'Мікрофон'}</span></button>
+    <button type="button" class="zv-btn zv-vbtn" data-act="wfocus" title="Показати голосове вікно: там пристрій, екран і нарада">⧉<span>Вікно голосу</span></button>
+  </div>`;
+}
+
+function winNote() {
+  return '<p class="zv-vnote">🎙 Ви в ефірі через голосове вікно — ходіть порталом і закривайте вкладки, розмова триває.</p>';
+}
+
 function voiceNote() {
   const vs = S.vs;
   if (!vs) return '';
@@ -600,7 +621,8 @@ function voiceNote() {
 
 function renderVoice() {
   const people = voicePeople();
-  const on = inVoice();
+  const win = !inVoice() && inWinVoice();   // голос у голосовому вікні: тут лише видно й керуємо
+  const on = inVoice() || win;
   const n = people.length;
 
   // Велика кнопка в шапці
@@ -621,18 +643,18 @@ function renderVoice() {
   box.innerHTML = `
     <h2><span class="zv-dot${n ? ' is-live' : ''}" aria-hidden="true"></span>У голосі${n ? ` · ${n}` : ''}</h2>
     ${n ? `<ul class="zv-vpeople" aria-label="Хто в голосі">${people.map(vpHtml).join('')}</ul>` : '<p class="zv-vnote">Зараз у голосі нікого. Натисніть «🎙 Голос» — і ви в ефірі.</p>'}
-    ${voiceNote()}
-    ${on && S.vs.needGesture ? '<button type="button" class="zv-btn" data-act="sound">🔊 Натисніть, щоб чути колег</button>' : ''}
-    ${on ? ctlHtml() : ''}`;
+    ${win ? winNote() : voiceNote()}
+    ${!win && on && S.vs.needGesture ? '<button type="button" class="zv-btn" data-act="sound">🔊 Натисніть, щоб чути колег</button>' : ''}
+    ${win ? winCtlHtml() : on ? ctlHtml() : ''}`;
 
   // Смуга під шапкою — на вузькому екрані, де колонка «У мережі» висувна
   const strip = $('zvStrip');
   if (!wide() && (on || n)) {
     strip.hidden = false;
     strip.innerHTML = `<ul class="zv-vpeople" aria-label="Хто в голосі">${people.map(vpHtml).join('')}</ul>
-      ${voiceNote()}
-      ${on && S.vs.needGesture ? '<button type="button" class="zv-btn" data-act="sound">🔊 Чути колег</button>' : ''}
-      ${on ? ctlHtml() : ''}`;
+      ${win ? winNote() : voiceNote()}
+      ${!win && on && S.vs.needGesture ? '<button type="button" class="zv-btn" data-act="sound">🔊 Чути колег</button>' : ''}
+      ${win ? winCtlHtml() : on ? ctlHtml() : ''}`;
   } else {
     strip.hidden = true;
     strip.innerHTML = '';
@@ -1006,6 +1028,8 @@ function wire() {
 
 function voiceAct(a) {
   if (!a) return;
+  if (a === 'wmic') return sendVoiceCmd('mic');
+  if (a === 'wfocus') return focusVoiceWindow();
   if (a === 'mic') S.voice.toggleMic();
   if (a === 'deaf') S.voice.toggleDeaf();
   if (a === 'screen') S.voice.toggleShare?.();
@@ -1064,6 +1088,7 @@ async function boot() {
   subscribe();
   // Канал голосу — одразу «лише дивлюся»: видно, хто в ефірі, ще до натискання «Голос»
   const voiceJoined = S.voice.join(TOPIC, TITLE, { listen: true });
+  onVoiceWin(() => renderVoice());
   renderAll(true);
   // ?voice=1 — кнопка «🎙 Голос департаменту» з головної: одразу в ефір, як «🎙 Голос».
   // Параметр знімаємо, щоб оновлення сторінки не заводило в голос удруге

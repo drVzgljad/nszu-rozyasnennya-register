@@ -1,4 +1,6 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+// Голосове вікно (19.11.2026): бейдж «в ефірі» на кожній сторінці й вхід у голос без обриву під час переходів
+import { onVoiceWin, sendVoiceCmd, openVoiceWindow, focusVoiceWindow } from './voice/link.js?v=20261119a';
 
 // Run theme initialization immediately to prevent flash of white screen
 (function() {
@@ -1908,10 +1910,51 @@ function onVoiceInvite(p) {
     voiceInviteReply(p, yes);
     close();
     if (!yes) return;
+    // Голос — у голосовому вікні (відкривається ще в кліку); браузер не дав — як раніше
+    if (openVoiceWindow({ voice_invite: JSON.stringify({ dept: p.dept, from_id: p.from_id }) })) return;
     if (window.__pmgVoice?.acceptInvite) return window.__pmgVoice.acceptInvite(p);
     location.href = '/spravy/?voice_invite=' + encodeURIComponent(JSON.stringify({ dept: p.dept, from_id: p.from_id }));
   });
 }
+
+/* ── «В ефірі» (19.11.2026) ──────────────────────────────────────────────
+   Голос живе в окремому голосовому вікні (voice/), тож розмова триває, поки людина ходить
+   порталом. На кожній сторінці порталу — бейдж: кімната, хто говорить, мікрофон, вікно, вийти.
+   Це запасний маркер для браузерів без «поверх усіх вікон» (Firefox, телефони); у Chrome і Edge
+   голосове вікно вміє ще й маркер поверх усіх програм (voice/pip.js).
+   Кнопки й посилання «Голос департаменту» (…zviazok/…?voice=1) теж відкривають голосове вікно. */
+function onAirBadge(w) {
+  let el = document.getElementById('pmg-onair');
+  if (!w || !w.inRoom) { el?.remove(); return; }
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'pmg-onair';
+    el.className = 'pmg-onair';
+    el.setAttribute('role', 'status');
+    el.addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-oa]');
+      if (!b) return;
+      if (b.dataset.oa === 'win') focusVoiceWindow();
+      else sendVoiceCmd(b.dataset.oa);
+    });
+    document.body.append(el);
+  }
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const talk = w.speaking?.length ? `🗣 ${w.speaking.slice(0, 2).join(', ')}${w.speaking.length > 2 ? ` +${w.speaking.length - 2}` : ''}` : '';
+  el.classList.toggle('is-muted', !!w.muted);
+  el.innerHTML = `<span class="pmg-onair-dot" aria-hidden="true"></span>
+    <span class="pmg-onair-text"><b>В ефірі</b><span class="pmg-onair-room">${esc(w.label)}</span>${talk ? `<span class="pmg-onair-talk">${esc(talk)}</span>` : ''}</span>
+    <button type="button" data-oa="mic" class="pmg-onair-mic" aria-pressed="${!w.muted}" title="${w.muted ? 'Мікрофон вимкнено — увімкнути' : 'Мікрофон увімкнено — вимкнути'}">${w.muted ? '🔇' : '🎙'}</button>
+    <button type="button" data-oa="win" title="Показати голосове вікно">⧉</button>
+    <button type="button" data-oa="leave" title="Вийти з голосової кімнати">✕</button>`;
+}
+onVoiceWin(onAirBadge);
+
+document.addEventListener('click', (e) => {
+  const a = e.target.closest?.('a[href*="zviazok/"][href*="voice=1"]');
+  if (!a || e.defaultPrevented || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey) return;
+  if (openVoiceWindow({ room: 'all', mic: '1' })) e.preventDefault();
+});
 
 function toggleTheme() {
   const isDark = document.documentElement.classList.toggle('dark-theme');

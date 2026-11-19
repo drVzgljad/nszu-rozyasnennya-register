@@ -33,6 +33,12 @@
  * - Звук входу (17.11.2026) — у рушії (../zviazok/greet.js): перший вхід людини за день — привітання на
  *   ім'я («Вітаємо пані Олену!»), далі — мелодійний дзвінок; керівництво — на ім'я на кожен вхід. Сюди
  *   лише передаємо роль (createVoice({ role })), щоб рушій знав, хто з керівництва.
+ * - «Голосове вікно» (19.11.2026, ../voice/): голос живе в окремому вікні браузера, щоб розмова не рвалась,
+ *   поки людина ходить порталом, закриває вкладки чи відкриває сторонні сайти. У вікні — ця сама панель
+ *   (initVoice({ win: true }) → api()); у вкладках «Справ» і кабінету — «лише дивлюся» плюс кнопки, що
+ *   керують вікном (../voice/link.js). Вкладка сама в ефір більше не йде. Браузер не дав відкрити вікно —
+ *   запасний шлях v.local: голос у вкладці, як до 19.11. Намір (двері, запрошення, стук, кімната
+ *   департаменту) іде у вікно параметрами адреси або командою 'intent' — applyIntent().
  */
 
 import { createVoice, netInfo } from '../zviazok/voice.js?v=20261117a';
@@ -40,6 +46,7 @@ import { greetFor, playClip, CHIME } from '../zviazok/greet.js?v=20261117a';
 import { openMicPicker } from '../zviazok/mic-picker.js?v=20261106a';
 import { createMeeting } from '../zviazok/meeting.js?v=20261103a';
 import { createStage } from '../zviazok/stage.js?v=20261103a';
+import { openVoiceWindow, voiceWin, onVoiceWin, sendVoiceCmd, focusVoiceWindow } from '../voice/link.js?v=20261119a';
 
 const MANY = 10;               // з такої кількості попереджаємо: пряма схема важчає
 const LS_OFF = 'spravy-voice-off';
@@ -82,7 +89,14 @@ const v = {
   myKnockCh: null,     // Realtime: відповідь на наш стук
   noKnock: false,      // таблиці voice_knocks ще нема (міграція 10b)
   invited: new Map(),  // кого ми покликали: user_id → час (їхній стук пускаємо самі, 15 хв)
-  guests: new Map()    // гості нашої кімнати, впущені за стуком: user_id → рядок voice_knocks ('ok')
+  guests: new Map(),   // гості нашої кімнати, впущені за стуком: user_id → рядок voice_knocks ('ok')
+  // «Голосове вікно» (19.11.2026, ../voice/): голос живе там, а вкладки розділів лише показують кімнату
+  win: false,          // ця панель — у голосовому вікні (тримає голос)
+  local: false,        // вкладка розділу взяла голос собі (браузер не дав відкрити вікно — як до 19.11)
+  ask: null,           // намір із адреси вкладки (двері, запрошення): чекає кліку «Зайти» — вікно лише на дію людини
+  onState: null,       // вікно: стан змінився (для BroadcastChannel і маркера «в ефірі»)
+  onLeave: null,       // вікно: людина вийшла з кімнати — вікно закривається
+  onLost: null         // вікно: голос забрала вкладка (запасний шлях) — вікно закривається
 };
 
 /* ───────────────────────── публічне ───────────────────────── */
@@ -100,31 +114,32 @@ export function initVoice(opts) {
   const host = document.createElement('section');
   v.root.after(host);
   v.stage = createStage(host, { onStop: () => v.eng.toggleShare() });
-  v.eng = createVoice({ sb: v.sb, me: v.me, name: v.name, role: v.role, toast: v.toast, onChange: (s) => { v.vs = s; render(); v.stage.update(s); } });
+  v.eng = createVoice({ sb: v.sb, me: v.me, name: v.name, role: v.role, toast: v.toast, onChange: (s) => { v.vs = s; render(); v.stage.update(s); v.onState?.(); } });
   v.meet = createMeeting({ sb: v.sb, me: v.me, name: v.name, eng: v.eng, toast: v.toast });
   watchKnocks();
-  window.__pmgVoice = { acceptInvite };
   window.addEventListener('pmg:voice-invite-reply', (e) => {
     const r = e.detail || {};
     v.toast(r.ok ? `🎙 ${r.name || 'Колега'} заходить у кімнату` : `${r.name || 'Колега'} зараз не може`, !r.ok);
   });
-  // Прийшли сюди з іншої сторінки за запрошенням («Зайти»)
-  const inv = new URLSearchParams(location.search).get('voice_invite');
-  if (inv) {
-    try {
-      const p = JSON.parse(inv);
-      const u = new URL(location.href); u.searchParams.delete('voice_invite'); history.replaceState(null, '', u);
-      setTimeout(() => acceptInvite(p), 1500);
-    } catch (_) { /* зіпсований параметр — ігноруємо */ }
-  }
-  // Прийшли з «Дверей відділів» на головній: двері — це намір зайти, тож «Вийти» забуваємо
+  // Намір з адреси: запрошення («Зайти»), «Двері відділів» на головній, кімната департаменту
   const qs = new URLSearchParams(location.search);
-  const door = qs.get('door'), doorDept = qs.get('door_dept');
-  if (door || doorDept) {
-    const u = new URL(location.href); u.searchParams.delete('door'); u.searchParams.delete('door_dept'); history.replaceState(null, '', u);
-    lsSet(LS_OFF, null);
-    setTimeout(() => acceptDoor(door, doorDept), 1500);
+  const intent = {};
+  ['room', 'mic', 'door', 'door_dept', 'voice_invite', 'knock'].forEach((k) => { if (qs.get(k)) intent[k] = qs.get(k); });
+  if (Object.keys(intent).length) {
+    const u = new URL(location.href);
+    Object.keys(intent).forEach((k) => u.searchParams.delete(k));
+    history.replaceState(null, '', u);
   }
+  if (v.win) { winStart(intent); return api(); }
+
+  // Вкладка розділу: голос — у голосовому вікні; тут видно, хто в кімнаті, і кнопки для вікна
+  window.__pmgVoice = { acceptInvite: (p) => { v.local = true; return acceptInvite(p); } };
+  if (Object.keys(intent).length) { v.ask = intent; lsSet(LS_OFF, null); }
+  onVoiceWin((w) => {
+    // Вікно вже живе — намір із адреси (двері, запрошення) передаємо йому без кліку
+    if (w && v.ask) { sendVoiceCmd('intent', v.ask); v.ask = null; }
+    render();
+  });
   if (!navigator.locks || !window.BroadcastChannel) return openRoom();
   v.holder = false;
   v.bc = new BroadcastChannel(BC);
@@ -152,19 +167,114 @@ function queueForLock(steal = false) {
     openRoom();
   })).catch(() => { /* замок забрала інша вкладка або заявку скасовано */ }).finally(() => {
     if (ac && ac.signal.aborted) return;       // скасовано заради «Перенести сюди» в цій же вкладці
-    if (v.holder) { v.holder = false; v.elsewhere = true; openRoom(); }
-    queueForLock();                            // знову в чергу: закриється вкладка з голосом — зайдемо самі
+    if (v.holder) { v.holder = false; v.elsewhere = true; v.local = false; openRoom(); }
+    queueForLock();                            // знову в чергу: закриється вкладка з голосом — замок наш, але в ефір не йдемо
   });
 }
 
-/** Інша вкладка попросила голос — виходимо в «лише дивлюся» і відпускаємо замок. */
+/** Інша вкладка чи голосове вікно попросили голос — виходимо в «лише дивлюся» і відпускаємо замок. */
 async function giveAway() {
-  if (v.meet?.active) await v.meet.finish();
-  if (v.visit) await endVisit(false);
+  if (v.local) {
+    if (v.meet?.active) await v.meet.finish();
+    if (v.visit) await endVisit(false);
+  }
   v.holder = false;
   v.elsewhere = true;
+  v.local = false;
   await openRoom();
   const r = v.release; v.release = null; if (r) r();
+}
+
+/* ───────────────────────── голосове вікно (19.11.2026) ───────────────────────── */
+
+/**
+ * Панель у голосовому вікні (../voice/): забираємо голос у вкладок (спершу просимо віддати — так
+ * вкладка, що писала нараду, встигне її зберегти), далі виконуємо намір. Замок забрали назад
+ * (вкладка без вікна, запасний шлях) — вікно закривається.
+ */
+async function winStart(intent) {
+  v.holder = true;
+  v.elsewhere = false;
+  if (navigator.locks && window.BroadcastChannel) {
+    v.bc = new BroadcastChannel(BC);
+    v.bc.postMessage('yield');
+    await new Promise((r) => setTimeout(r, 400));
+    navigator.locks.request(LOCK, { steal: true }, () => new Promise((res) => { v.release = res; }))
+      .catch(() => { /* замок забрали */ })
+      .finally(() => { if (v.release !== 'done') v.onLost?.(); });
+  }
+  await applyIntent(intent);
+}
+
+/** Що вміє вікно ззовні: команди з вкладок (BroadcastChannel) і маркер «в ефірі». */
+function api() {
+  return {
+    get state() { return v.vs; },
+    get label() { return roomTitle(); },
+    get dept() { return v.dept; },
+    toggleMic: async () => { v.eng.unlock(); await v.eng.toggleMic(); },
+    toggleDeaf: async () => { v.eng.unlock(); await v.eng.toggleDeaf(); },
+    leave: () => leaveWin(),
+    intent: (p) => applyIntent(p || {}),
+    unlock: () => v.eng.unlock()
+  };
+}
+
+/** Вийти з кімнати у вікні: нарада зберігається, замок відпускаємо, вікно закривається. */
+async function leaveWin() {
+  if (v.meet?.active) {
+    if (!confirm('Іде запис наради. Завершити нараду й зберегти запис?')) return false;
+    await v.meet.finish();
+  }
+  if (v.visit) await endVisit(false);
+  await v.eng.leave(true);
+  const r = v.release; v.release = 'done'; if (typeof r === 'function') r();
+  v.onLeave?.();
+  return true;
+}
+
+/**
+ * Намір зайти — у вікні (або у вкладці, якщо вікно не відкрилось): кімната департаменту,
+ * запрошення, двері, стук, своя кімната (за замовчуванням). mic: '1' — одразу з мікрофоном (як «🎙 Голос» у чаті).
+ */
+async function applyIntent(p = {}) {
+  // Кімната ще не відкрита (щойно відкрите вікно) — спершу своя; гостювання й департамент відкриють свою самі
+  const elsewhereRoom = p.room === 'all' || p.door_dept || (p.door && p.door !== 'home');
+  if (!v.eng.topic && !elsewhereRoom) await openRoom();
+  if (p.room === 'all') {
+    if (v.visit) await endVisit(false);
+    if (v.elsewhere) takeOver();
+    v.dept = ALL;
+    roomChanged();
+    await openRoom();
+    if (v.eng.state && !v.eng.state.inRoom && !v.elsewhere) await v.eng.enter();
+  } else if (p.voice_invite) {
+    let inv = p.voice_invite;
+    try { if (typeof inv === 'string') inv = JSON.parse(inv); } catch (_) { inv = null; }
+    if (inv) await acceptInvite(inv);
+  } else if (p.knock && (v.depts || []).includes(p.knock)) {
+    if (v.visit) await endVisit(false);
+    await knock(p.knock);
+  } else if ((!v.home || v.home === ALL) && !p.door && !p.door_dept) {
+    return applyIntent({ ...p, room: 'all' });   // відділу в профілі нема — кімната департаменту
+  } else {
+    await acceptDoor(p.door || (p.door_dept ? null : 'home'), p.door_dept || null);
+  }
+  if (p.mic === '1' && v.eng.state?.inRoom && v.eng.state.muted) { v.eng.unlock(); await v.eng.toggleMic(); }
+  render();
+}
+
+/**
+ * Вкладка розділу: «Увійти» відкриває голосове вікно (лише на клік). Браузер не дав —
+ * голос береться в цю вкладку, як було до 19.11 (тоді перехід на іншу сторінку його перерве).
+ */
+function requestVoice(p = {}) {
+  lsSet(LS_OFF, null);
+  v.ask = null;
+  if (openVoiceWindow(p)) return render();
+  v.local = true;
+  v.toast('Браузер не дав відкрити голосове вікно — голос у цій вкладці. Дозвольте спливні вікна для порталу, і розмова не обриватиметься під час переходів', true);
+  applyIntent(p);
 }
 
 /** «Перенести голос сюди»: просимо вкладку з голосом піти й забираємо замок. */
@@ -355,6 +465,7 @@ async function acceptDoor(id, dept) {
   if (id === 'home' || (dept && dept === v.home)) {
     if (!v.home) return;                         // відділу в профілі нема — панель сама підкаже
     if (v.visit) await endVisit(false);
+    if (v.dept !== v.home) { v.dept = v.home; roomChanged(); if (!v.elsewhere) await openRoom(); }
     if (v.elsewhere) return takeOver();
     if (v.vs && !v.vs.inRoom) await v.eng.enter();
     return;
@@ -407,13 +518,15 @@ async function openRoom() {
   v.noDept = !v.dept;
   if (v.noDept) { await v.eng.leave(true); return render(); }
   const topic = await topicFor(v.dept);
-  // Рушій сам перемикає кімнату: мікрофон і звук лишаються, як були
-  await v.eng.join(topic, roomTitle(), { listen: v.elsewhere || lsGet(LS_OFF) === '1' });
+  // Рушій сам перемикає кімнату: мікрофон і звук лишаються, як були.
+  // З 19.11.2026 вкладка розділу в ефір сама не йде — голос у голосовому вікні (крім запасного v.local)
+  await v.eng.join(topic, roomTitle(), { listen: !v.win && (v.elsewhere || !v.local) });
 }
 
 /** Зайти в кімнату (кнопка «Увійти»). */
 async function joinRoom() {
   if (v.demo) return v.vs.inRoom ? null : demoAct('join');
+  if (!v.win && !v.local) return requestVoice(v.ask || (v.dept === ALL ? { room: 'all' } : {}));
   if (v.elsewhere) { lsSet(LS_OFF, null); return takeOver(); }
   lsSet(LS_OFF, null);
   v.eng.unlock();
@@ -433,8 +546,14 @@ async function onClick(e) {
   if (act === 'knock') return knock(b.dataset.dept);
   if (act === 'kick') return kick(b.dataset.uid);
   if (act === 'unvisit') return endVisit(true);
+  if (act === 'home') return applyIntent({});
   if (act === 'kok' || act === 'kno') return decide(b.dataset.id, act === 'kok');
   if (v.demo) return demoAct(act);
+  // Голос у голосовому вікні — кнопки панелі вкладки керують ним
+  if (act === 'wmic') return sendVoiceCmd('mic');
+  if (act === 'wleave') return sendVoiceCmd('leave');
+  if (act === 'wfocus') return focusVoiceWindow();
+  if (act === 'leave' && v.win) return leaveWin();
   v.eng.unlock();
   if (act === 'mic') await v.eng.toggleMic();
   else if (act === 'deaf') await v.eng.toggleDeaf();
@@ -448,6 +567,7 @@ async function onClick(e) {
       await v.meet.finish();
     }
     lsSet(LS_OFF, '1');
+    v.local = false;
     await v.eng.exit();
   }
   else if (act === 'join') await joinRoom();
@@ -458,11 +578,15 @@ const STATE_HINT = { ok: 'на зв\'язку', wait: 'з\'єднуємо…', b
 function render() {
   if (!v.root) return;
   const s = v.vs || { status: 'idle', members: [], inRoom: false, muted: true, deaf: false };
-  const list = s.members.slice().sort((a, b) => (a.me ? -1 : b.me ? 1 : (a.name || '').localeCompare(b.name || '', 'uk')));
+  // Вкладка без голосу: «я» в кімнаті — це голосове вікно (інший ключ, той самий uid)
+  const tabOnly = !v.win && !v.local && !v.demo;
+  const w = tabOnly ? voiceWin() : null;
+  const list = s.members.map((m) => (!m.me && tabOnly && m.uid && m.uid === v.me?.id ? { ...m, me: true, viaWin: true } : m))
+    .sort((a, b) => (a.me ? -1 : b.me ? 1 : (a.name || '').localeCompare(b.name || '', 'uk')));
   const others = list.filter((m) => !m.me).length;
 
   const people = list.map((m) => {
-    const st = m.state;
+    const st = m.viaWin ? 'ok' : m.state;
     const cls = ['spv-person', m.me && 'is-me', m.muted && 'is-muted', m.deaf && 'is-deaf', st === 'bad' && 'is-bad', st === 'wait' && 'is-wait'].filter(Boolean).join(' ');
     // Пристрій і пінг (04.11.2026) — рушій міряє їх для кожного з'єднання
     const ni = netInfo(m);
@@ -482,7 +606,9 @@ function render() {
   let note = '';
   if (v.noDept) note = 'У профілі не вказано відділ. Голос усього департаменту — у «Чаті департаменту» (посилання вгорі).';
   else if (v.visit?.status === 'wait') note = `🚪 Стукаємо до відділу «${cap(v.visit.dept)}» — чекаємо, поки хтось пустить.`;
-  else if (v.elsewhere) note = `Голос відкрито в іншій вкладці порталу («Справи» чи кабінет). Тут видно, хто в кімнаті${list.length ? `: ${list.length}` : ''}.`;
+  else if (w) note = w.inRoom ? `🎙 Ви в ефірі — голос в окремому вікні («${w.label || 'кімната'}»). Ходіть порталом, закривайте вкладки — розмова триває.` : 'Голосове вікно відкрито — заходимо в кімнату…';
+  else if (tabOnly && v.ask) note = v.ask.voice_invite ? '🎙 Вас кличуть у голосову кімнату — натисніть «Зайти».' : '🚪 Двері відчинено — натисніть «Зайти».';
+  else if (v.elsewhere && !tabOnly) note = `Голос відкрито в іншій вкладці порталу («Справи» чи кабінет). Тут видно, хто в кімнаті${list.length ? `: ${list.length}` : ''}.`;
   else if (s.status === 'joining' || s.status === 'idle') note = 'Заходимо в кімнату…';
   else if (s.status === 'error') note = s.error;
   else if (!list.length) note = 'У кімнаті нікого. Зайдіть — колеги побачать вас, коли відкриють «Справи».';
@@ -491,7 +617,14 @@ function render() {
   if (s.status === 'live' && list.length >= MANY) note = `У кімнаті ${list.length} — пряма схема може не витягнути, звук може рватися.`;
   if (s.inRoom && s.micSilent) note = '⚠ Ваш мікрофон нічого не передає — колеги вас не чують. Оберіть інший кнопкою «⚙».';
 
-  const btns = s.inRoom && s.status === 'live'
+  const winBtns = w
+    ? `<button type="button" class="spv-btn${w.muted ? '' : ' is-on'}" data-act="wmic" aria-pressed="${!w.muted}"
+         title="${w.muted ? 'Увімкнути мікрофон у голосовому вікні' : 'Вимкнути мікрофон'}">${w.muted ? '🎙 Говорити' : '🎙 Мікрофон увімк.'}</button>
+       <button type="button" class="spv-btn spv-ghost" data-act="wfocus" title="Показати голосове вікно поверх інших">⧉ Вікно голосу</button>
+       <button type="button" class="spv-btn spv-ghost" data-act="wleave" title="Вийти з кімнати й закрити голосове вікно">Вийти</button>`
+    : `<button type="button" class="spv-btn spv-join" data-act="join"
+         title="Голос відкриється в окремому вікні: розмова не обірветься, поки ви ходите порталом чи іншими сайтами">${v.ask ? '🎙 Зайти' : '🎙 Увійти в кімнату'}</button>`;
+  const btns = tabOnly ? (w || s.status === 'live' || v.ask ? winBtns : '') : s.inRoom && s.status === 'live'
     ? `<button type="button" class="spv-btn${s.muted ? '' : ' is-on'}" data-act="mic" aria-pressed="${!s.muted}"
          title="${s.muted ? 'Увімкнути мікрофон — вас почують' : 'Вимкнути мікрофон'}">${s.muted ? '🎙 Говорити' : '🎙 Мікрофон увімк.'}</button>
        <button type="button" class="spv-btn spv-icon${s.deaf ? ' is-off' : ''}" data-act="deaf" aria-pressed="${s.deaf}"
@@ -504,7 +637,7 @@ function render() {
        ${s.canRecord && !(s.recording && !s.recording.me) ? (s.recording?.me
          ? '<button type="button" class="spv-btn spv-rec is-on" data-act="meetend" aria-pressed="true" title="Іде запис. Натисніть, щоб зупинити й зберегти нараду — протокол підготує Claude"><i class="rec-dot" aria-hidden="true"></i>Кінець наради</button>'
          : '<button type="button" class="spv-btn spv-rec" data-act="meet" aria-pressed="false" title="Почати нараду: увімкнеться запис, усіх у кімнаті буде попереджено"><i class="rec-dot" aria-hidden="true"></i>Нарада</button>') : ''}
-       <button type="button" class="spv-btn spv-ghost" data-act="leave" title="Вийти з кімнати; запамʼятаємо до наступного «Увійти»">Вийти</button>`
+       <button type="button" class="spv-btn spv-ghost" data-act="leave" title="${v.win ? 'Вийти з кімнати й закрити голосове вікно' : 'Вийти з кімнати; запамʼятаємо до наступного «Увійти»'}">Вийти</button>`
     : s.status === 'live'
       ? (v.elsewhere
         ? '<button type="button" class="spv-btn spv-join" data-act="join" title="Голос перейде сюди, а в іншій вкладці стане «лише дивлюся»">🎧 Перенести голос сюди</button>'
@@ -513,7 +646,7 @@ function render() {
 
   v.root.innerHTML = `<div class="spv-main">
     <div class="spv-head">
-      <span class="spv-dot ${s.status === 'live' && s.inRoom ? 'is-live' : ''}" aria-hidden="true"></span>
+      <span class="spv-dot ${(s.status === 'live' && s.inRoom) || w?.inRoom ? 'is-live' : ''}" aria-hidden="true"></span>
       <strong>${roomTitle()}</strong>
       <span class="spv-count">${list.length ? `${list.length} ${plural(list.length)}` : ''}</span>
     </div>
@@ -546,6 +679,9 @@ function knocksHTML() {
 function visitBtnsHTML(s) {
   if (!v.demo && v.noKnock && !LEAD.includes(v.role)) return '';
   if (!v.home || v.home === ALL || !v.depts?.length || v.elsewhere) return '';
+  if (!v.demo && !v.win && !v.local) return '';   // гостювання — у голосовому вікні (там голос)
+  // Вікно перейшло в кімнату департаменту — шлях назад до свого відділу
+  if (v.dept === ALL) return '<button type="button" class="spv-btn" data-act="home" title="Перейти в голосову кімнату свого відділу">← До свого відділу</button>';
   if (v.visit?.status === 'wait') return '<button type="button" class="spv-btn spv-ghost" data-act="unvisit">Скасувати стук</button>';
   if (v.visit?.status === 'in') return '<button type="button" class="spv-btn" data-act="unvisit" title="Повернутися в кімнату свого відділу">← До свого відділу</button>';
   if (s.status !== 'live') return '';

@@ -1160,6 +1160,54 @@
 }
 .pmg-voice-invite button[data-v="yes"] { background: #22a25b; border-color: #22a25b; color: #fff; }
 
+/* «В ефірі» (19.11.2026, auth-v2.js onAirBadge): голос у голосовому вікні — бейдж на кожній сторінці.
+   Темний «ефірний» вигляд в обох темах, власні змінні --oa-*. */
+:root {
+  --oa-bg: #111827;
+  --oa-ink: #f3f4f6;
+  --oa-muted: #9ca3af;
+  --oa-line: #374151;
+  --oa-live: #ef4444;
+  --oa-btn: #1f2937;
+}
+:root.dark-theme { --oa-bg: #020617; --oa-line: #334155; --oa-btn: #0f172a; }
+.pmg-onair {
+  position: fixed; left: 16px; bottom: 16px; z-index: 11001;
+  display: flex; align-items: center; gap: 8px;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 6px 6px 6px 12px; border-radius: 999px;
+  background: var(--oa-bg); color: var(--oa-ink); border: 1px solid var(--oa-line);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .28);
+  font-size: 13px; line-height: 1.25;
+}
+.pmg-onair-dot {
+  flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--oa-live);
+  animation: pmg-onair-pulse 1.6s ease-out infinite;
+}
+@keyframes pmg-onair-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, .6); }
+  70%, 100% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+}
+.pmg-onair-text { display: flex; flex-direction: column; min-width: 0; }
+.pmg-onair-text b { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: #fca5a5; }
+.pmg-onair-room, .pmg-onair-talk { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pmg-onair-room { color: var(--oa-muted); }
+.pmg-onair-talk { color: #86efac; }
+.pmg-onair button {
+  flex: none; width: 32px; height: 32px; padding: 0; border-radius: 50%;
+  border: 1px solid var(--oa-line); background: var(--oa-btn); color: var(--oa-ink);
+  font: inherit; font-size: 15px; cursor: pointer;
+}
+.pmg-onair button:hover { border-color: var(--oa-muted); }
+.pmg-onair .pmg-onair-mic { background: #14532d; border-color: #22c55e; }
+.pmg-onair.is-muted .pmg-onair-mic { background: #450a0a; border-color: var(--oa-live); }
+@media (prefers-reduced-motion: reduce) { .pmg-onair-dot { animation: none; } }
+@media (max-width: 980px) {
+  /* Над мобільним таббаром */
+  .pmg-onair { left: 8px; right: auto; bottom: calc(70px + env(safe-area-inset-bottom)); max-width: calc(100vw - 16px); }
+}
+@media print { .pmg-onair { display: none; } }
+
 @keyframes onlineDropdownFade {
   from {
     opacity: 0;

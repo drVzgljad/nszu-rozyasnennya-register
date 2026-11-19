@@ -1,0 +1,79 @@
+/* Голосове вікно (19.11.2026). Панель — стилі «Справ» (../spravy/spravy.css, класи spv-*),
+   тут лише ролі кольорів порталу (styles.css / auth-v2.css тут не підключені) і шапка вікна. */
+:root {
+  --ink: #1f3347;
+  --muted: #647688;
+  --line: #e3edf3;
+  --surface: #ffffff;
+  --soft: #f2f8fb;
+  --accent: #4a8fc7;
+  --accent-dark: #2f6b9e;
+  --accent-fill: var(--accent);
+  --shadow: 0 12px 34px rgba(38, 78, 112, 0.09);
+  --vw-bg: #eef4f8;
+  --vw-live: #dc2626;
+}
+:root.dark-theme {
+  --ink: #e2e8f0;
+  --muted: #94a3b8;
+  --line: #334155;
+  --surface: #1e293b;
+  --soft: #0f172a;
+  --accent: #0ea5e9;
+  --accent-dark: #38bdf8;
+  --accent-fill: #0369a1;
+  --shadow: 0 12px 34px rgba(0, 0, 0, 0.4);
+  --vw-bg: #0f172a;
+  --vw-live: #f87171;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; overflow-x: clip; }
+body {
+  min-height: 100vh;
+  padding: 10px 12px 16px;
+  background: var(--vw-bg);
+  color: var(--ink);
+  font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.vw-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.vw-title { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.vw-title b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vw-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.vw-dot.is-live { background: var(--vw-live); animation: vw-pulse 1.6s ease-in-out infinite; }
+@keyframes vw-pulse { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .vw-dot.is-live { animation: none; } }
+
+.vw-pin {
+  flex: none;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.vw-pin:hover { border-color: var(--accent); }
+.vw-pin.is-on { border-color: var(--vw-live); color: var(--vw-live); }
+
+.vw-hint, .vw-msg { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+.vw-msg { padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); font-size: 14px; }
+.vw-msg button { margin-top: 8px; }
+
+/* Панель у вузькому вікні: кнопки переносяться, сцена показу екрана — на всю ширину */
+#spVoice { margin-bottom: 10px; }

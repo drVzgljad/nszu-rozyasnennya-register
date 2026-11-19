@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>🎙 Голос · НавігаторПМГ26</title>
+  <link rel="icon" href="/assets/icon-192.png">
+  <script>
+    // Тема — та сама, що на порталі (auth-v2.js тут не підключаємо: вікну не потрібні шапка й меню)
+    try { if (localStorage.getItem('portal-theme') === 'dark') document.documentElement.classList.add('dark-theme'); } catch (_) {}
+  </script>
+  <link rel="stylesheet" href="../spravy/spravy.css?v=20261117b">
+  <link rel="stylesheet" href="voice.css?v=20261119a">
+</head>
+<body>
+  <!-- Голосове вікно (19.11.2026): голос живе тут, тож перехід між сторінками порталу,
+       закриття вкладок і сторонні сайти розмову не рвуть. Логіка — voice-window.js. -->
+  <header class="vw-head">
+    <span class="vw-title"><span class="vw-dot" id="vwDot" aria-hidden="true"></span><b id="vwRoom">Голос</b></span>
+    <button type="button" class="vw-pin" id="vwPin" hidden title="Маленьке вікно «в ефірі» поверх усіх програм: хто говорить, мікрофон, вийти">📌 Поверх усіх вікон</button>
+  </header>
+  <p class="vw-hint" id="vwHint">Це вікно тримає розмову. Ходіть порталом і іншими сайтами, закривайте вкладки: голос не обірветься. Закриєте це вікно — вийдете з кімнати.</p>
+  <section class="spv" id="spVoice" aria-label="Голосова кімната" hidden></section>
+  <p class="vw-msg" id="vwMsg" hidden></p>
+  <script type="module" src="voice-window.js?v=20261119a"></script>
+</body>
+</html>
