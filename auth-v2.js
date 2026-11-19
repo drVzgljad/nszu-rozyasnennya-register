@@ -503,16 +503,16 @@ function applyAccess() {
         // чекає «Доступ обмежено», немає сенсу. Відкритими лишаються Таблиця
         // співставлення, 377 і 182: то офіційні джерела.
         text: '🧭 Кодування', items: [
-          { text: 'Кодування випадку · від коду до тарифу', path: 'koduvannia/index.html', role: 'expert' },
-          { text: 'Групер ДСГ · випадок → група', path: 'koduvannia/grouper.html', role: 'expert' },
-          { text: 'Інструменти ДСГ · тарифи й аномалії', path: 'drg/index.html', role: 'expert' },
+          // 19.11.2026, рішення власника: «усе в одній вкладці». «Кодер» — єдиний вхід на весь
+          // ланцюжок діагноз → ОДК → втручання → групер → ДСГ → Таблиця → тариф. «Кодування
+          // випадку», «Групер ДСГ», «Інструменти ДСГ» і «Джерела» з меню знято: сторінки живі,
+          // відкриваються з Кодера (рядок «Глибше») і з карти порталу. Не повертати їх сюди
+          // окремими пунктами — нову можливість додавати в сам Кодер.
+          { text: 'Кодер · від коду до суми', path: 'koduvannia/koder.html' },
           { text: 'Таблиця співставлення · код ↔ пакет', path: 'mapping/index.html' },
           { text: 'Правила: наказ 377', path: 'algorithms/index.html', role: 'expert' },
           { text: 'Кодування реабілітації · наказ 182', path: 'algorithms/rehab.html' },
-          { text: 'Кодування амбулаторки · пакет 9', path: 'algorithms/ambulatory.html', role: 'expert' },
-          // 19.11.2026: реєстр джерел кодування — сім рівнів ланцюжка, одне джерело на рівень,
-          // відомі розбіжності й журнал правок. Службова сторінка, тому expert.
-          { text: 'Джерела · звідки дані про коди', path: 'koduvannia/dzherela.html', role: 'expert' }
+          { text: 'Кодування амбулаторки · пакет 9', path: 'algorithms/ambulatory.html', role: 'expert' }
         ]
       }
     ];
@@ -2843,13 +2843,11 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '🧪', label: 'LOINC (лаб. коди)', path: 'classifiers/loinc.html' },
     { icon: '👥', label: 'Посади · ДКХП-78', path: 'classifiers/posady.html' },
     { icon: '🪪', label: 'Спеціальності та посади', path: 'classifiers/specialnosti.html' },
+    { icon: '🧭', label: 'Кодер · від коду до суми', path: 'koduvannia/koder.html' },
     { icon: '🔗', label: 'Таблиця співставлення', path: 'mapping/index.html' },
-    { icon: '🧮', label: 'Інструменти ДСГ', path: 'drg/index.html' },
-    { icon: '🧭', label: 'Кодування випадку', path: 'koduvannia/index.html' },
     { icon: '🦼', label: 'Наказ 182 · Кодування реабілітації', path: 'algorithms/rehab.html' },
     { icon: '🏥', label: 'Кодування амбулаторки · пакет 9', path: 'algorithms/ambulatory.html' },
     { icon: '🗄️', label: 'Коди ЕСОЗ · внутрішній', path: 'classifiers/esoz.html', role: 'expert' },
-    { icon: '📑', label: 'Джерела кодування', path: 'koduvannia/dzherela.html', role: 'expert' },
     { icon: '📑', label: 'Договори ЗОЗ', path: 'zoz-dogovr/index.html' },
     { icon: '🏥', label: 'Хто це лікує', path: 'zoz-poshuk/index.html' },
     { icon: '👤', label: 'Кабінет', path: 'cabinet/index.html', role: 'expert' },

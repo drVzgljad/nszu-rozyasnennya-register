@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#2f6b9e">
+  <link rel="apple-touch-icon" href="/assets/icon-180.png">
+  <title>НавігаторПМГ26 | Кодер</title>
+  <link rel="stylesheet" href="../styles.css?v=20260808b">
+  <link rel="stylesheet" href="../classifiers/classifiers.css?v=20261112a">
+  <link rel="stylesheet" href="koduvannia.css?v=20260819e">
+  <link rel="stylesheet" href="koder.css?v=20261119a">
+  <link rel="stylesheet" href="../auth-v2.css?v=20261119a">
+  <script type="module" src="../auth-v2.js?v=20261119d"></script>
+</head>
+<body id="top">
+  <header class="hero classifiers-hero">
+    <div class="hero-copy">
+      <div class="overline">Кодер · від коду до суми в одній вкладці</div>
+      <div class="header-nav-row">
+        <div class="nav-row-1">
+          <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
+            <img class="brand-shield" src="../assets/nszu-shield.svg" alt="" aria-hidden="true">
+            <div class="brand-text">
+              <div class="brand-name">НавігаторПМГ26</div>
+              <div class="brand-subtitle">швидкий помічник з роз'яснень, пакетів, постанови та правил</div>
+            </div>
+          </a>
+          <div class="auth-container"></div>
+        </div>
+        <div class="nav-row-2">
+          <nav class="section-switch" aria-label="Розділи сайту"></nav>
+        </div>
+      </div>
+      <h1>Кодер</h1>
+    </div>
+  </header>
+
+  <main class="kd-main kr-main">
+
+    <section class="kr-ask" aria-label="Запит">
+      <label class="kr-label" for="krQ">Код, кілька кодів або слова</label>
+      <div class="kr-inputrow">
+        <input id="krQ" type="search" autocomplete="off" spellcheck="false"
+               placeholder="M51.1 40303-00 · ДСГ I10 · ОДК 8 · пакет 4 · перелом стегна">
+        <button id="krClear" class="kr-clear" type="button" aria-label="Очистити запит">Очистити</button>
+      </div>
+      <div class="kr-examples">
+        <span class="kr-exlabel">Приклади:</span>
+        <button type="button" class="kr-ex" data-q="M51.1">діагноз</button>
+        <button type="button" class="kr-ex" data-q="M51.1 40303-00">діагноз + втручання</button>
+        <button type="button" class="kr-ex" data-q="40303-00">втручання</button>
+        <button type="button" class="kr-ex" data-q="ДСГ I10">група</button>
+        <button type="button" class="kr-ex" data-q="ОДК 8">ОДК</button>
+        <button type="button" class="kr-ex" data-q="пакет 47">пакет</button>
+        <button type="button" class="kr-ex" data-q="перелом стегна">слова</button>
+      </div>
+    </section>
+
+    <section class="kr-levels" aria-label="Які рівні показувати">
+      <span class="kr-exlabel">Рівні:</span>
+      <div id="krLevels" class="kr-levelchips" role="group" aria-label="Рівні ланцюжка"></div>
+    </section>
+
+    <div id="krStatus" class="kr-status" role="status" aria-live="polite">Завантаження довідників…</div>
+    <div id="krOut" class="kr-out"></div>
+
+    <nav class="kr-more" aria-label="Інші інструменти кодування">
+      <span class="kr-exlabel">Глибше:</span>
+      <a href="index.html">Кодування випадку — усі коефіцієнти й перевірки</a>
+      <a href="grouper.html">Групер ДСГ</a>
+      <a href="../drg/index.html">Інструменти ДСГ — аномалії</a>
+      <a href="dzherela.html">Джерела</a>
+      <a href="../classifiers/index.html">НК 025</a>
+      <a href="../classifiers/nk026.html">НК 026</a>
+      <a href="../mapping/index.html">Таблиця співставлення</a>
+    </nav>
+  </main>
+
+  <script src="../pmg-search-norm.js?v=1" defer></script>
+  <script src="../pmg-code-search.js?v=20261119a" defer></script>
+  <script src="../pmg-tariff.js?v=2" defer></script>
+  <script src="koder.js?v=20261119b" defer></script>
+</body>
+</html>
