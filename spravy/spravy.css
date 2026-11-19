@@ -1436,3 +1436,46 @@ button.sp-rev-mini.is-todo:hover, button.sp-rev-mini.is-todo:focus-visible { out
   .sp-merge-subj { white-space: normal; }
 }
 .sp-merge-top { margin: 0 0 10px; }
+
+/* ---------- 📤 Наші службові — вкладка «📝 Службові» (19.11.2026) ---------- */
+.sp-lane-ours { border-left-color: var(--sp-wait); margin-top: 18px; }
+.sp-oursz { grid-column: 1 / -1; min-width: 0; margin: 8px 0 4px; }
+.sp-oursz-bar { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.sp-oursz-bar button {
+  font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; padding: 5px 12px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+}
+.sp-oursz-bar button[aria-pressed="true"] { background: var(--sp-wait-bg); color: var(--sp-wait-ink); border-color: var(--sp-wait); }
+.sp-oursz-bar b { font-variant-numeric: tabular-nums; margin-left: 2px; }
+.sp-row.sp-oursz-row { grid-template-columns: 96px minmax(170px, 260px) minmax(0, 1fr) auto; border-left: 4px solid var(--sp-wait); }
+.sp-oursz-date { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sp-oursz-doc { min-width: 0; display: flex; flex-direction: column; gap: 1px; overflow-wrap: anywhere; }
+.sp-oursz-doc b { color: var(--ink); }
+.sp-oursz-doc i, .sp-oursz-case i { font-style: normal; font-size: 12.5px; color: var(--muted); }
+.sp-oursz-case { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink); }
+.sp-oursz-case b { color: var(--accent-dark); font-variant-numeric: tabular-nums; }
+.sp-oursz-case i { margin-left: 8px; }
+.sp-oursz-st { font-size: 12.5px; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap;
+  background: var(--sp-wait-bg); color: var(--sp-wait-ink); }
+.sp-oursz-row.is-warm .sp-oursz-st { background: var(--sp-hot-bg); color: var(--sp-hot-ink); }
+.sp-oursz-row.is-over { border-left-color: var(--sp-over-ink); }
+.sp-oursz-row.is-over .sp-oursz-st { background: var(--sp-over-bg); color: var(--sp-over-ink); }
+.sp-oursz-row.is-draft { border-left-color: var(--sp-work); }
+.sp-oursz-row.is-draft .sp-oursz-st { background: var(--sp-ver-bg); color: var(--sp-ver-ink); }
+.sp-oursz-row.is-ok, .sp-oursz-row.is-off, .sp-oursz-row.is-sent { border-left-color: var(--sp-done); }
+.sp-oursz-row.is-ok .sp-oursz-st { background: var(--sp-ok-bg); color: var(--sp-ok-ink); }
+.sp-oursz-row.is-off, .sp-oursz-row.is-sent { opacity: .8; }
+.sp-oursz-row.is-off .sp-oursz-st, .sp-oursz-row.is-sent .sp-oursz-st { background: var(--sp-chip-bg); color: var(--sp-chip-ink); }
+@media (max-width: 1180px) {
+  .sp-row.sp-oursz-row { grid-template-columns: 96px minmax(0, 1fr) auto; }
+  .sp-oursz-case { grid-column: 1 / -1; }
+}
+@media (max-width: 760px) {
+  .sp-row.sp-oursz-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .sp-oursz-date { grid-column: 1; grid-row: 1; }
+  .sp-oursz-st { grid-column: 2; grid-row: 1; justify-self: end; }
+  .sp-oursz-doc, .sp-oursz-case { grid-column: 1 / -1; }
+  .sp-oursz-case { white-space: normal; }
+}
+.sp-board:not(.is-list) .sp-oursz { position: sticky; left: 0; width: var(--sp-board-w, auto); max-width: 100%; box-sizing: border-box; }
+.sp-board:not(.is-list) .sp-lane-ours { width: var(--sp-board-w, auto); max-width: 100%; }

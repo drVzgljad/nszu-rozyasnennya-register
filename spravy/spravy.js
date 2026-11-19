@@ -270,6 +270,8 @@ const state = {
   openId: null,
   members: new Map(), // 🧩 id головної → приєднані справи (indexMerges)
   cand: new Map(),    // 🧩 id справи → кандидати на об'єднання
+  ourSz: null,        // 📤 наші службові (вкладка «📝 Службові»): null — ще не завантажено
+  ourSzF: 'open',     // open — готуємо й чекаємо відповіді; all — усі
   demoEvents: {}
 };
 
@@ -758,8 +760,16 @@ function bootDemo() {
   if (c7) state.demoLinks.push({ id: crypto.randomUUID(), created_at: ago(12), case_id: c7, case_department: 'демо-відділ', direction: 'out', doc_kind: 'sz',
     doc_no: '8-12/999-26', doc_date: d(-12), counterpart: 'Департамент-приклад', about: 'Запит даних для відповіді',
     wait_until: d(-2), status: 'waiting', created_by: 'demo', created_by_name: 'Петро Зразок' });
+  // 📤 Наші службові (вигадані): відповідь уже отримано; і СЗ, внесена лише як «📤 Відправлено документ»
+  const c5 = state.cases.find((x) => x.in_no === '10005-06-26')?.id;
+  if (c5) state.demoLinks.push({ id: crypto.randomUUID(), created_at: ago(20), case_id: c5, case_department: 'демо-відділ', direction: 'out', doc_kind: 'sz',
+    doc_no: '8-15/77-26', doc_date: d(-20), counterpart: 'Аналітичне управління (демо)', about: 'Дані про оплати для відповіді Комітету',
+    wait_until: d(-14), status: 'answered', answer_note: 'Дані надано службовою 4-2/31-26', created_by: 'demo', created_by_name: 'Олена Приклад' });
+  (state.demoEvents[c3] ||= []).push({ id: 'e8', case_id: c3, created_at: ago(3), author_name: 'Петро Зразок', kind: 'outgoing',
+    body: 'Розрахунок коефіцієнтів для відповіді', doc_kind: 'sz', doc_no: '8-15/80-26', addressee: 'Департамент-приклад', event_date: d(-3) });
   countLinks(state.demoLinks, new Set(state.cases.map((c) => c.id)));
   $('spDeptName').textContent = 'Демо-режим: картки вигадані, нічого не зберігається в базі';
+  if (state.kind === 'szin') loadOurSz();
   render();
   applyUrlParams();
   initVoice({ demo: true, name: myName(), dept: DEPARTMENTS[1], depts: DEPARTMENTS, toast });
@@ -817,7 +827,7 @@ async function loadCases() {
     return showNotice('Не вдалося завантажити справи: ' + (error.message || error.code));
   }
   state.cases = data || [];
-  await Promise.all([loadCounts(), loadReviewed()]);
+  await Promise.all([loadCounts(), loadReviewed(), state.kind === 'szin' ? loadOurSz() : null]);
   render();
   if (state.openId) openCase(state.openId, true);
 }
@@ -1232,6 +1242,16 @@ function render() {
   board.classList.toggle('is-list', state.view !== 'board');
   $('spStageTabs').hidden = state.view !== 'board';
   document.querySelectorAll('#spView [data-view]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === state.view)));
+  if (state.kind === 'szin' && state.view !== 'people') {
+    // 📝 Службові (19.11.2026): угорі вхідні — як були, нижче — наші, яких раніше не було видно поза карткою листа
+    if (state.view === 'board') applyColWidths(board);
+    board.innerHTML = (state.view === 'list'
+      ? laneHead('📥 Вхідні службові', list, 'sz') + (laneOpen('sz') ? listRows(list) : '')
+      : laneHTML('📥 Вхідні службові', list, 'sz')) + oursLaneHTML();
+    if (state.view === 'board') { renderMobileTabs(list); fitOurSz(); }
+    renderReminderStrip();
+    return;
+  }
   if (state.view === 'list') { board.innerHTML = listHTML(list); renderReminderStrip(); return; }
   if (state.view === 'people') { board.innerHTML = peopleHTML(list); renderReminderStrip(); return; }
   // Вхідні службові записки — окремою смугою НАД листами й зверненнями (їх мало — не губляться внизу), з тими самими етапами
@@ -1253,6 +1273,138 @@ function splitLanes(list) {
   const sz = list.filter(isSzIn);
   if (!sz.length || sz.length === list.length) return null;
   return { main: list.filter((c) => !isSzIn(c)), sz };
+}
+
+/* ───────────── 📤 Наші службові (вкладка «📝 Службові», 19.11.2026) ─────────────
+ * Користувач: «коли ми пишемо службову на лист, вона відображається тільки в окні [листа]. Зроби щоб ще було
+ * окреме вікно у вкладці службові». Окремої таблиці немає — список збирається з того, що вже вносять:
+ *   • зв'язки «📤 Ми надіслали» (dept_case_links, СЗ і СЗ у робочому порядку) — і ті, що дзеркально внесла друга
+ *     сторона в іншому відділі (у них «📥 нам надіслали» з нашою справою як counterpart);
+ *   • «📤 Відправлено документ» зі службовою, якщо зв'язку з тим самим № немає;
+ *   • службові, які ще готуємо: справи АСКОД, де наша відповідь — СЗ (reply_kind), ще не відправлена.
+ * Клік по рядку відкриває картку листа.
+ */
+const SZ_KINDS = ['sz', 'sz_work'];
+const szKey = (caseId, no) => caseId + '|' + String(no || '').replace(/\s/g, '').toLowerCase();
+
+function buildOurSz(links, events) {
+  const ours = new Map(state.cases.map((c) => [c.id, c]));
+  const out = [];
+  const seen = new Set();
+  const added = new Set();
+  links.forEach((l) => {
+    if (!SZ_KINDS.includes(l.doc_kind) || added.has(l.id)) return;
+    const own = l.direction === 'out' && ours.has(l.case_id);
+    const mirror = l.direction === 'in' && ours.has(l.counterpart_case_id) && !ours.has(l.case_id);
+    if (!own && !mirror) return;
+    added.add(l.id);
+    const caseId = own ? l.case_id : l.counterpart_case_id;
+    const v = viewLink(l, caseId);
+    out.push({ id: 'l' + l.id, caseId, kind: l.doc_kind, no: l.doc_no, date: sentOn(l), who: v.who && v.who !== '—' ? v.who : '',
+      about: l.about, status: l.status, waitUntil: l.wait_until, answer: l.answer_note });
+    seen.add(szKey(caseId, l.doc_no));
+  });
+  events.forEach((e) => {
+    if (!SZ_KINDS.includes(e.doc_kind) || !ours.has(e.case_id)) return;
+    if (seen.has(szKey(e.case_id, e.doc_no))) return;
+    seen.add(szKey(e.case_id, e.doc_no));
+    out.push({ id: 'e' + e.id, caseId: e.case_id, kind: e.doc_kind, no: e.doc_no, date: e.event_date || (e.created_at || '').slice(0, 10),
+      who: e.addressee || '', about: e.body, status: 'sent' });
+  });
+  const sent = new Set(out.map((o) => o.caseId));
+  state.cases.forEach((c) => {
+    if (kindOf(c) !== 'askod' || !SZ_KINDS.includes(c.reply_kind) || isSzIn(c) || isClosed(c) || mainOf(c) || sent.has(c.id)) return;
+    out.push({ id: 'c' + c.id, caseId: c.id, kind: c.reply_kind, no: c.project_no, date: null,
+      who: c.our_role === 'co' ? c.lead_unit || '' : '', about: '', status: 'draft' });   // співвиконавці пишуть головному
+  });
+  return out;
+}
+
+async function loadOurSz() {
+  if (DEMO) {
+    state.ourSz = buildOurSz(state.demoLinks, Object.values(state.demoEvents).flat().filter((e) => e.kind === 'outgoing'));
+    return;
+  }
+  const ids = state.cases.map((c) => c.id);
+  const chunks = [];
+  for (let i = 0; i < ids.length; i += 80) chunks.push(ids.slice(i, i + 80));
+  const cols = 'id, case_id, counterpart_case_id, case_department, direction, status, doc_kind, doc_no, doc_date, counterpart, about, wait_until, answer_note, created_at, created_by_name';
+  const q = (f) => f.then((r) => (r.error ? [] : r.data || []));
+  const many = (make) => Promise.all(chunks.map((ch) => q(make(ch)))).then((a) => a.flat());
+  const [own, mirror, evs] = await Promise.all([
+    state.noLinks ? [] : q(state.sb.from('dept_case_links').select(cols).eq('case_department', state.dept).eq('direction', 'out').in('doc_kind', SZ_KINDS)),
+    state.noLinks ? [] : many((ch) => state.sb.from('dept_case_links').select(cols).eq('direction', 'in').in('doc_kind', SZ_KINDS).in('counterpart_case_id', ch)),
+    many((ch) => state.sb.from('dept_case_events').select('id, case_id, created_at, body, doc_kind, doc_no, addressee, event_date')
+      .eq('kind', 'outgoing').in('doc_kind', SZ_KINDS).in('case_id', ch))
+  ]);
+  state.ourSz = buildOurSz([...own, ...mirror], evs);
+}
+
+/** Дошка ширша за екран (колонки прокручуються) — список наших службових лишається у видимій частині */
+function fitOurSz() {
+  const b = $('spBoard');
+  b.style.setProperty('--sp-board-w', b.clientWidth + 'px');
+}
+window.addEventListener('resize', () => { if (state.kind === 'szin' && state.view === 'board') fitOurSz(); });
+
+const ourSzOpen = (o) => o.status === 'waiting' || o.status === 'draft';
+
+function ourSzRowHTML(o) {
+  const c = state.cases.find((x) => x.id === o.caseId);
+  if (!c) return '';
+  let st;
+  let cls;
+  if (o.status === 'draft') {
+    st = `✍ готуємо · ${stageLabel(c, c.stage)}${c.version ? ' · v' + c.version : ''}`;
+    cls = 'is-draft';
+  } else if (o.status === 'waiting') {
+    const days = o.date ? Math.max(0, -daysLeft(o.date)) : null;
+    const over = !!o.waitUntil && daysLeft(o.waitUntil) < 0;
+    st = `⏳ чекаємо${days !== null ? ` ${days} ${daysWord(days)}` : ''}${o.waitUntil ? ` · до ${fmtDate(o.waitUntil).slice(0, 5)}` : ''}`;
+    cls = over ? 'is-over' : days !== null && days >= 7 ? 'is-warm' : 'is-wait';
+  } else if (o.status === 'answered') { st = '✓ відповідь є'; cls = 'is-ok'; }
+  else if (o.status === 'closed') { st = 'знято'; cls = 'is-off'; }
+  else { st = '📤 відправлено'; cls = 'is-sent'; }
+  const doc = `${LINK_SHORT[o.kind] || 'СЗ'}${o.no ? ' № ' + o.no : o.status === 'draft' ? '' : ' (без №)'}`;
+  const tip = [o.status === 'draft' && o.no ? `№ проєкту ${o.no}` : '', o.about, o.answer ? 'Відповідь: ' + o.answer : ''].filter(Boolean).join(' · ');
+  return `<li class="sp-row sp-oursz-row ${cls}" data-id="${c.id}" tabindex="0" role="button"${tip ? ` title="${esc(tip)}"` : ''}>
+    <span class="sp-oursz-date">${o.date ? fmtDate(o.date) : '—'}</span>
+    <span class="sp-oursz-doc"><b>${esc(doc)}</b>${o.who ? `<i>→ ${esc(o.who)}</i>` : ''}</span>
+    <span class="sp-oursz-case"><b>${c.in_no ? 'на вх. № ' + esc(c.in_no) : esc(CASE_KINDS[kindOf(c)].label)}</b> ${esc(c.subject)}${o.about ? `<i>${esc(o.about)}</i>` : ''}</span>
+    <span class="sp-oursz-st">${esc(st)}</span>
+  </li>`;
+}
+
+function oursLaneHTML() {
+  const closed = !!lanesClosed().ours;
+  const q = state.q.trim().toLowerCase();
+  const byId = new Map(state.cases.map((c) => [c.id, c]));
+  const all = (state.ourSz || []).filter((o) => {
+    const c = byId.get(o.caseId);
+    if (!c || (state.mine && !isMine(c))) return false;
+    return !q || [o.no, o.who, o.about, o.answer, c.in_no, c.subject, c.correspondent].some((v) => v && String(v).toLowerCase().includes(q));
+  });
+  const open = all.filter(ourSzOpen);
+  const list = (state.ourSzF === 'all' ? all : open).slice().sort((a, b) => {
+    if (state.ourSzF === 'all') return String(b.date || '9999').localeCompare(String(a.date || '9999'));
+    // спершу ті, на які чекаємо найдовше; потім ті, що готуємо, — за строком листа
+    const ra = a.status === 'draft' ? 1 : 0;
+    const rb = b.status === 'draft' ? 1 : 0;
+    if (ra !== rb) return ra - rb;
+    if (!ra) return String(a.date || '9999').localeCompare(String(b.date || '9999'));
+    return String(dueOf(byId.get(a.caseId)) || '9999').localeCompare(String(dueOf(byId.get(b.caseId)) || '9999'));
+  });
+  const head = `<h2 class="sp-lane sp-lane-ours${closed ? ' is-closed' : ''}"><button type="button" class="sp-lane-tg" data-lane="ours" aria-expanded="${!closed}" title="${closed ? 'Розгорнути' : 'Згорнути'}">
+    <span class="sp-lane-chev" aria-hidden="true">▾</span><span>📤 Наші службові</span><b>${open.length}</b><i>готуємо й чекаємо відповіді</i></button></h2>`;
+  if (closed) return head;
+  const body = state.ourSz === null ? '<div class="sp-notice">Завантажую наші службові…</div>'
+    : list.length ? `<ul class="sp-list sp-oursz-list">${list.map(ourSzRowHTML).join('')}</ul>`
+    : `<div class="sp-notice">${state.ourSzF === 'all' ? 'Наших службових ще немає' : 'Відкритих наших службових немає'}${q ? ' за цим пошуком' : ''}. Службова з'являється тут, коли в картці листа внесено «📤 Ми надіслали» або «📤 Відправлено документ» зі службовою, або коли наша відповідь на лист — СЗ.</div>`;
+  return `${head}<div class="sp-oursz">
+    <div class="sp-oursz-bar" role="group" aria-label="Які службові показати">
+      <button type="button" data-oursz-f="open" aria-pressed="${state.ourSzF !== 'all'}">⏳ Готуємо й чекаємо <b>${open.length}</b></button>
+      <button type="button" data-oursz-f="all" aria-pressed="${state.ourSzF === 'all'}">Усі <b>${all.length}</b></button>
+    </div>${body}</div>`;
 }
 
 /**
@@ -2458,11 +2610,13 @@ function wireStatic() {
   $('spFilter').addEventListener('change', (e) => { state.f = e.target.value; render(); });
   $('spKind').value = lsGet('spravy-kind') || 'all';
   state.kind = $('spKind').value;
+  state.ourSzF = lsGet('spravy-oursz-f') === 'all' ? 'all' : 'open';
   $('spKind').addEventListener('change', (e) => {
     state.kind = e.target.value;
     lsSet('spravy-kind', state.kind);
     if (!stagesOf(state.kind).some((s) => s.key === state.mobileStage)) state.mobileStage = 'work';
     render();
+    if (state.kind === 'szin') loadOurSz().then(render);   // 📤 наші службові — свіжі щоразу
   });
   // Діалог нової справи: вид → свій набір полів
   $('spNewKinds').addEventListener('change', paintNewKind);
@@ -2506,6 +2660,13 @@ function wireStatic() {
       const f = colsFolded();
       f[fold.dataset.fold] = !f[fold.dataset.fold];
       lsSet('spravy-cols-folded', JSON.stringify(f));
+      render();
+      return;
+    }
+    const osf = e.target.closest('[data-oursz-f]');
+    if (osf) {
+      state.ourSzF = osf.dataset.ourszF;
+      lsSet('spravy-oursz-f', state.ourSzF);
       render();
       return;
     }
