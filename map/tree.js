@@ -41,6 +41,7 @@
           { name: "Хвороби (НК 025)", icon: "🩺", path: "classifiers/index.html", role: "guest" },
           { name: "Інтервенції (НК 026)", icon: "🔬", path: "classifiers/nk026.html", role: "guest" },
           { name: "Лабораторні (LOINC)", icon: "🧪", path: "classifiers/loinc.html", role: "guest" },
+          { name: "Коди ЕСОЗ", icon: "🗄️", path: "classifiers/esoz.html", role: "expert" },
           { name: "Медвироби (НК 024)", icon: "🩹", path: "classifiers/nk024.html", role: "guest" },
           { name: "Номенклатура (НК 031)", icon: "🧾", path: "classifiers/nk031.html", role: "guest" },
           { name: "Табелі оснащення", icon: "📋", path: "classifiers/tabel.html", role: "guest" },

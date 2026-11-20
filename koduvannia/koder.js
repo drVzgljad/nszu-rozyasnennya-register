@@ -9,6 +9,12 @@
  *   сума             — pmg-tariff.js (той самий розрахунок, що в «Кодуванні випадку»);
  *   пошук за словами — pmg-code-search.js.
  *   точна група      — grouper.js (той самий модуль, що на сторінці «Групер ДСГ»).
+ *   послуги ЕСОЗ     — classifiers/data/esoz (картки), algorithms/data/ambulatory_9.json
+ *                      (як послугу обліковують у пакеті 9: клас, хто надає, коди спостережень);
+ *   LOINC            — classifiers/data/loinc/loinc_pmg.json: назви лише тих кодів, що
+ *                      трапляються в документах НСЗУ. Повний довідник — окрема сторінка.
+ * Дані, потрібні не кожному запиту (картки ЕСОЗ, пакет 9, LOINC), довантажуються за першою
+ * потребою — див. need().
  * Рівень «Групер»: тим, хто ввійшов у портал, Кодер показує точну групу з урахуванням
  * супутніх діагнозів — правила групування лежать у базі під замком. Без входу — лише
  * перелік можливих груп за Таблицею співставлення.
@@ -33,10 +39,13 @@
   const RE_ICD = /^[A-Z]\d{2}(\.\d{1,2})?$/;
   const RE_ACHI = /^\d{5}-\d{2}$/;
   const RE_ESOZ = /^[A-Z]\d{5}$/;
+  const RE_POS = /^P\d{1,3}$/;          // посада ЕСОЗ; P10…P99 виглядають як код НК 025
+  const RE_LOINC = /^\d{1,7}-\d$/;      // у НК 026 після дефіса дві цифри, у LOINC — одна
 
   let CORE, DX, IV, VAL, NK025, NK026, SVC, BY_ICD, BY_ACHI, ESOZ;
   const N25 = new Map(), N26 = new Map(), GROUP = new Map(), ODKN = new Map(), ESOZM = new Map();
   let NOTES = null;                 // накази 377, 182, роз'яснення — довантажуються після першої відповіді
+  let notesWait = null;
   let hidden = new Set();
   let EXACT = null;                 // модуль grouper.js із піднятими правилами
   let exactState = 'idle';          // idle · loading · ready · guest · error
@@ -87,7 +96,7 @@
     }
     for (const e of NK025) { e._t = PMG_SEARCH.text(e.n); N25.set(e.c, e); }
     for (const e of NK026) { e._t = PMG_SEARCH.text(e.n); N26.set(e.c, e); }
-    for (const e of ESOZ) ESOZM.set(e.c, e);
+    for (const e of ESOZ) { e._t = PMG_SEARCH.text(e.n); ESOZM.set(e.c, e); }
     CORE.groups.forEach((g, i) => { g._i = i; g._t = PMG_SEARCH.text(g.t); GROUP.set(g.c, g); });
     CORE.odk.forEach((o, i) => { o._i = i; ODKN.set(PMG_SEARCH.code(o.num), o); });
     if (window.PMG_FIND) PMG_FIND.ready().then(() => { if ($('krQ').value.trim()) run(); });
@@ -121,9 +130,56 @@
     try { return EXACT.group(dx, add, ivs); } catch (e) { return { error: 'Групер не зміг опрацювати цей випадок.' }; }
   }
 
+  /* Дані, потрібні не кожному запиту. need('cards', 'amb') повертає true, коли все названо
+     вже на місці (або не завантажилось — тоді відповідь будується без цього шматка);
+     інакше запускає завантаження і після нього перемальовує відповідь. */
+  const LAZY = {
+    cards: { url: '../classifiers/data/esoz/esoz_cards.json' },
+    amb: { url: '../algorithms/data/ambulatory_9.json', prep: indexAmb },
+    loinc: { url: '../classifiers/data/loinc/loinc_pmg.json', prep: indexLoinc },
+    docs: { url: '../rozjasnennya/data/index.json', prep: (d) => new Map((d.documents || []).map((x) => [x.id, x.title || ''])) },
+  };
+
+  function need(...keys) {
+    let ready = true;
+    for (const k of keys) {
+      const z = LAZY[k];
+      if (z.data || z.failed) continue;
+      ready = false;
+      if (!z.wait) {
+        z.wait = get(z.url).then((d) => { z.data = z.prep ? z.prep(d) : d; }, () => { z.failed = true; })
+          .then(() => { z.wait = null; run(); });
+      }
+    }
+    return ready;
+  }
+
+  const pushTo = (map, key, v) => { if (!map.has(key)) map.set(key, []); map.get(key).push(v); };
+
+  /* Пакет 9: рядки додатків чинного листа НСЗУ. Індекси — за кодом послуги, за кодом
+     спостереження (LOINC) і за посадою, що надає послугу. */
+  function indexAmb(a) {
+    const x = { byCode: new Map(), byObs: new Map(), byPos: new Map(), flags: a.flags || {},
+      letter: (a.basis || {}).letter || {}, pos: a.pos_names || {}, odk: a.odk_names || {},
+      sv: new Map((a.services || []).map((s) => [s.key, s.name])),
+      flag: new Map((a.flag_catalogue || []).map((f) => [f.key, f.title])) };
+    for (const r of a.records || []) {
+      pushTo(x.byCode, r.code, r);
+      for (const o of r.obs || []) if (RE_LOINC.test(o)) pushTo(x.byObs, o, r);
+      for (const ps of r.pos || []) pushTo(x.byPos, ps, r);
+    }
+    return x;
+  }
+
+  function indexLoinc(d) {
+    d.list = Object.keys(d.codes).map((c) => ({ c, n: d.codes[c].n, _t: PMG_SEARCH.text(d.codes[c].n + ' · ' + d.codes[c].e) }));
+    return d;
+  }
+
   function loadNotes() {
     if (NOTES) return Promise.resolve(NOTES);
-    return Promise.all([
+    if (notesWait) return notesWait;
+    return notesWait = Promise.all([
       get('../algorithms/data/rehab_182.json').catch(() => null),
       get('../algorithms/data/algorithms_377.json').catch(() => null),
       get('../rozjasnennya/data/codes_index.json').catch(() => null),
@@ -158,8 +214,22 @@
       return ODKN.has(num) ? { kind: 'odk', num } : { kind: 'unknown', what: `ОДК ${m[1]}` };
     }
     if ((m = text.match(/^пакет\s*№?\s*(\d{1,2})$/i))) return { kind: 'package', num: m[1] };
+    if ((m = text.match(/^(?:посада|есоз|esoz)\s*[:·]?\s*(\S+)$/i))) {
+      const c = PMG_SEARCH.code(m[1]);
+      return ESOZM.has(c) ? { kind: 'esoz', code: c } : { kind: 'unknown', what: `Код ЕСОЗ ${m[1]}` };
+    }
+    if ((m = text.match(/^(?:loinc|лоінк|лоїнк)\s*[:·]?\s*(\S+)$/i))) {
+      const c = PMG_SEARCH.code(m[1]);
+      return RE_LOINC.test(c) ? { kind: 'loinc', code: c } : { kind: 'unknown', what: `Код LOINC ${m[1]}` };
+    }
 
     const parts = text.split(/[\s,;]+/).filter(Boolean);
+    if (parts.length === 1) {
+      const c = PMG_SEARCH.code(parts[0]);
+      if (RE_LOINC.test(c)) return { kind: 'loinc', code: c };
+      // посада ЕСОЗ, якщо такого коду діагнозу немає (P8, P126; P13 — діагноз, посада через «посада P13»)
+      if (RE_POS.test(c) && ESOZM.has(c) && !N25.has(c) && !DX[c]) return { kind: 'esoz', code: c };
+    }
     const dx = [], iv = [], other = [];
     for (const p of parts) {
       const c = PMG_SEARCH.code(p);
@@ -172,6 +242,7 @@
       const c = PMG_SEARCH.code(parts[0]);
       if (RE_ESOZ.test(c) && ESOZM.has(c)) return { kind: 'esoz', code: c };
       if (GROUP.has(c)) return { kind: 'drg', code: c };
+      if (RE_ESOZ.test(c)) return { kind: 'unknown', what: `Код послуги ЕСОЗ ${c}`, why: 'у довіднику, зібраному з документів НСЗУ, такого немає' };
     }
     return { kind: 'words', text };
   }
@@ -535,15 +606,165 @@
       more('../mapping/index.html', 'Таблиця співставлення'), { entry: true, src: 'Таблиця співставлення, таблиця 1' });
   }
 
+  // ── поза ланцюжком: послуги й посади ЕСОЗ, LOINC ───────────────────────
+  const side = (title, src, body, entry) => `<section class="kr-level${entry ? ' kr-entry' : ''}">
+    <div class="kr-n" aria-hidden="true">•</div><div class="kr-body">
+      <h2>${esc(title)}${entry ? ' <span class="kr-entrytag">вхід</span>' : ''}${src ? ` <span class="kr-src">${esc(src)}</span>` : ''}</h2>
+      ${body}</div></section>`;
+  const fold = (rows, cap, label) => (rows.length <= cap ? rows.join('')
+    : rows.slice(0, cap).join('') + `<details class="kr-fold"><summary>Ще ${nf(rows.length - cap)} ${esc(label)}</summary>${rows.slice(cap, cap + 300).join('')}</details>`);
+  const uniq = (list) => [...new Set(list.filter(Boolean))];
+  const anyCode = (c) => (RE_LOINC.test(c) || RE_ACHI.test(c) || (RE_ESOZ.test(c) && ESOZM.has(c)) ? chip(c, c)
+    : `<span class="kr-c">${esc(c)}</span>`);
+  const letterSrc = (A) => (A.letter.number ? `лист НСЗУ № ${A.letter.number}, додатки` : 'чинний лист НСЗУ про пакет 9');
+  const flagTags = (A, flags) => (flags || []).map((f) =>
+    tag((A.flag.get(f.key) || f.key) + (f.detail ? ': ' + f.detail : '') + (f.on ? ` (${f.on})` : ''), 'kr-warn')).join(' ');
+  const mentionRows = (list, title) => list.slice().sort((x, y) => (y.n || 0) - (x.n || 0)).map((m) =>
+    `<div class="kr-row"><span class="kr-c">згадок: ${nf(m.n || 1)}</span><span class="kr-t">
+      <a href="../rozjasnennya/index.html?doc=${encodeURIComponent(m.d)}">${esc(title(m) || 'Документ № ' + m.d)}</a></span></div>`);
+
+  /* Як послугу обліковують у пакеті 9 — рядки додатків чинного листа, без домислів. */
+  function esozIn9(code) {
+    const A = LAZY.amb.data;
+    const recs = A ? A.byCode.get(code) || [] : [];
+    if (!recs.length) return '';
+    const bySv = new Map();
+    recs.forEach((r) => pushTo(bySv, r.sv, r));
+    let html = '';
+    for (const [sv, list] of bySv) {
+      const cls = uniq(list.map((r) => r.class)), grp = uniq(list.map((r) => r.group));
+      html += `<p class="kr-fine"><b>${esc(A.sv.get(sv) || sv)}</b>${cls.length ? ' · клас: ' + esc(cls.slice(0, 8).join(', ')) + (cls.length > 8 ? '…' : '') : ''}${
+        grp.length && grp.length <= 4 ? ' · група: ' + esc(grp.join(', ')) : ''} · рядків у додатку: ${nf(list.length)}</p>`;
+      if (sv === 'lab') {
+        html += '<p class="kr-fine">Результат записують кодом спостереження LOINC:</p>' + fold(list.map((r) => {
+          const obs = r.obs || [];
+          const code1 = obs.find((o) => RE_LOINC.test(o));
+          const text = r.obs_name || obs.find((o) => !RE_LOINC.test(o)) || r.report_name || r.name;
+          return `<div class="kr-row">${code1 ? chip(code1, code1) : '<span class="kr-c">—</span>'}
+            <span class="kr-t">${esc(text)} ${code1 ? '' : tag('коду спостереження в додатку немає')}
+              ${r.category ? tag(String(r.category).toLowerCase()) : ''} ${r.referral === 'так' ? tag('за направленням') : ''}
+              ${r.note ? tag(r.note) : ''} ${flagTags(A, r.flags)}</span></div>`;
+        }), 10, 'рядків');
+      } else {
+        const pos = uniq([].concat(...list.map((r) => r.pos || [])));
+        const odk = uniq([].concat(...list.map((r) => r.odk || [])));
+        if (pos.length) {
+          html += `<p class="kr-fine">Хто надає (посади ЕСОЗ): ${nf(pos.length)}</p><div class="kr-chips">${
+            pos.slice(0, 40).map((c) => chip(c, 'посада ' + c, A.pos[c] || (ESOZM.get(c) || {}).n)).join(' ')}</div>`;
+        }
+        // у полі ОДК додатка стоять і номери ОДК, і окремі діагнози, і «Всі»
+        const nums = odk.filter((o) => A.odk[o]), dxs = odk.filter((o) => RE_ICD.test(o));
+        const rest = odk.filter((o) => !A.odk[o] && !RE_ICD.test(o));
+        if (nums.length || rest.length) {
+          html += `<p class="kr-fine">ОДК діагнозів: ${nums.map((o) => chip('ОДК ' + o, 'ОДК ' + o, A.odk[o].name)).join(' ')}
+            ${esc(rest.map((o) => (/^всі$/i.test(o) ? 'усі ОДК' : o)).join(', '))}</p>`;
+        }
+        if (dxs.length) html += `<p class="kr-fine">Окремі діагнози: ${dxs.slice(0, 40).map((o) => chip(o, o)).join(' ')}</p>`;
+        const fl = flagTags(A, [].concat(...list.map((r) => r.flags || []))
+          .filter((f, i, all) => all.findIndex((g) => g.key === f.key && g.detail === f.detail) === i));
+        if (fl) html += `<p class="kr-fine">${fl}</p>`;
+      }
+    }
+    return side('Пакет 9: як обліковується', letterSrc(A), html +
+      more('../algorithms/ambulatory.html?q=' + encodeURIComponent(code), 'усі правила — Кодування амбулаторки'));
+  }
+
   function renderEsoz(p) {
     const e = ESOZM.get(p.code);
-    const alt = e.v > 1 ? '<p class="kr-fine">У листах НСЗУ ця послуга названа інакше — варіанти в довіднику ЕСОЗ.</p>' : '';
-    return `<section class="kr-level kr-entry"><div class="kr-n" aria-hidden="true">•</div><div class="kr-body">
-      <h2>Послуга ЕСОЗ <span class="kr-src">назва — за переліком у виданні НК 026</span></h2>
-      <div class="kr-row"><span class="kr-c">${esc(e.c)}</span><span class="kr-t">${esc(e.n)}
+    const settled = need('cards', 'amb');
+    const card = (LAZY.cards.data || {})[p.code];
+    const A = LAZY.amb.data;
+    const isPos = e.k === 'position';
+    const names = card && card.names && card.names.length > 1
+      ? `<p class="kr-fine">Джерела називають цей код по-різному:</p><ul class="kr-why">${card.names.map((n) =>
+          `<li>${esc(n.n)} <span class="kr-fine">— ${esc((n.src || []).join(', '))}</span></li>`).join('')}</ul>` : '';
+    const note = card && card.note ? `<p>${tag('Застереження Таблиці співставлення: ' + card.note, 'kr-warn')}</p>` : '';
+    let html = side(isPos ? 'Посада ЕСОЗ' : 'Послуга ЕСОЗ', 'зібрано з документів НСЗУ; офіційного довідника немає',
+      `<div class="kr-row"><span class="kr-c">${esc(e.c)}</span><span class="kr-t">${esc(e.n || 'назви немає')}
         ${e.t && /[а-яіїє]/i.test(e.t) ? tag(e.t) : ''} ${(e.p || []).map((x) => chip('пакет ' + x, 'пакет ' + x)).join(' ')}</span></div>
-      ${alt}${more('../classifiers/esoz.html?code=' + encodeURIComponent(e.c), 'картка в довіднику ЕСОЗ')}
-    </div></section>`;
+      ${note}${names}${settled ? '' : '<p class="kr-fine">Завантажую картку…</p>'}
+      ${more('../classifiers/esoz.html?code=' + encodeURIComponent(e.c), 'картка в довіднику ЕСОЗ')}`, true);
+    if (!settled) return html;
+    if (isPos) {
+      const recs = A ? A.byPos.get(p.code) || [] : [];
+      const seen = new Map();
+      recs.forEach((r) => { if (!seen.has(r.code)) seen.set(r.code, r); });
+      if (seen.size) {
+        html += side('Пакет 9: які послуги надає', letterSrc(A), fold([...seen.values()].map((r) =>
+          `<div class="kr-row">${anyCode(r.code)}<span class="kr-t">${esc(r.name)} ${tag(A.sv.get(r.sv) || r.sv)}</span></div>`), 12, 'послуг'));
+      }
+    } else {
+      html += esozIn9(p.code);
+      if (card && (card.services || []).length) {
+        html += side('Таблиця співставлення', 'таблиця 1', card.services.map((s) =>
+          `<div class="kr-row"><span class="kr-c">${(s.p || []).map((x) => 'пакет ' + esc(x)).join(', ') || '—'}</span>
+            <span class="kr-t">${esc(s.s)}</span></div>`).join('') +
+          more('../mapping/index.html?q=' + encodeURIComponent(p.code), 'рядки Таблиці з цим кодом'));
+      }
+    }
+    if (card && (card.mentions || []).length) {
+      html += side("Роз'яснення НСЗУ, що згадують код", nf(card.mentions.length), fold(mentionRows(card.mentions, (m) => m.t), 6, 'документів'));
+    }
+    return html;
+  }
+
+  const LOINC_ST = { T: 'пробний код', D: 'застарілий код', X: 'не рекомендований' };
+  const LOINC_US = { 3: 'офіційний переклад', 2: 'авто-переклад', 1: 'авто-переклад, частковий' };
+
+  function renderLoinc(p) {
+    const code = p.code;
+    const settled = need('loinc', 'amb', 'docs');
+    if (!NOTES) loadNotes().then(run);
+    const L = LAZY.loinc.data, A = LAZY.amb.data;
+    const full = more('../classifiers/loinc.html?code=' + encodeURIComponent(code), 'паспорт коду в довіднику LOINC');
+    if (!settled || !NOTES) {
+      return side('Лабораторний код · LOINC', '', `<div class="kr-row"><span class="kr-c">${esc(code)}</span>
+        <span class="kr-t">Завантажую довідник…</span></div>${full}`, true);
+    }
+    const e = L && L.codes[code];
+    const ver = L ? 'LOINC ' + L.version : 'LOINC';
+    let head;
+    if (e) {
+      const tags = [tag((L.classes[e.c] || e.c) + ' · ' + e.t)];
+      if (LOINC_ST[e.st]) tags.push(tag(LOINC_ST[e.st], 'kr-warn'));
+      if (e.un) tags.push(tag('одиниці: ' + e.un));
+      if (LOINC_US[e.us]) tags.push(tag(LOINC_US[e.us]));
+      head = `<div class="kr-row"><span class="kr-c">${esc(code)}</span><span class="kr-t">${esc(e.n)} ${tags.join(' ')}</span></div>
+        <p class="kr-fine">Англійською: ${esc(e.e)}</p>`;
+    } else if (L && (L.absent || []).includes(code)) {
+      head = `<div class="kr-row"><span class="kr-c">${esc(code)}</span><span class="kr-t">${tag('у ' + ver + ' такого коду немає', 'kr-warn')}
+        У документах НСЗУ код ужито, але в довіднику цієї версії його немає: помилка набору або код новіший за наш реліз.</span></div>`;
+    } else {
+      head = `<div class="kr-row"><span class="kr-c">${esc(code)}</span><span class="kr-t">У документах НСЗУ про програму медичних гарантій
+        цей код не трапляється.</span></div>
+        <p class="kr-fine">Кодер тримає назви лише тих кодів LOINC, що є в документах НСЗУ${L ? `: ${nf(L.list.length)} із ${nf(L.total)}` : ''}.
+          Решту шукайте в повному довіднику.</p>`;
+    }
+    let html = side('Лабораторний код · LOINC', ver, head + full, true);
+
+    const used = A ? A.byObs.get(code) || [] : [];
+    const own = A ? A.byCode.get(code) || [] : [];
+    const fl = A ? flagTags(A, A.flags[code]) : '';
+    if (used.length || own.length || fl) {
+      const seen = new Map();
+      used.forEach((r) => { if (!seen.has(r.code + '|' + r.name)) seen.set(r.code + '|' + r.name, r); });
+      const rows = [...seen.values()].map((r) => `<div class="kr-row">${anyCode(r.code)}
+        <span class="kr-t">${esc(r.name)} ${tag(A.sv.get(r.sv) || r.sv)} ${r.class ? tag(r.class) : ''}
+          ${r.category ? tag(String(r.category).toLowerCase()) : ''} ${r.referral === 'так' ? tag('за направленням') : ''}</span></div>`);
+      const self = own.map((r) => `<div class="kr-row"><span class="kr-c">${esc(code)}</span>
+        <span class="kr-t">Обліковується як послуга: ${esc(r.name)} ${tag(A.sv.get(r.sv) || r.sv)} ${r.class ? tag(r.class) : ''}
+          ${r.note ? tag(r.note) : ''}</span></div>`);
+      html += side('Пакет 9: де цей код потрібен', letterSrc(A),
+        (rows.length ? `<p class="kr-fine">Код спостереження для ${rows.length === 1 ? 'послуги' : 'послуг'}:</p>` + fold(rows, 10, 'послуг') : '') +
+        self.join('') + (fl ? `<p class="kr-fine">${fl}</p>` : '') +
+        more('../algorithms/ambulatory.html?q=' + encodeURIComponent(code), 'усі правила — Кодування амбулаторки'));
+    }
+    const docs = ((NOTES.roz || {}).loinc || {})[code] || [];
+    if (docs.length) {
+      const T = LAZY.docs.data;
+      html += side("Роз'яснення НСЗУ, що згадують код", nf(docs.length), fold(mentionRows(docs, (m) => (T ? T.get(m.d) : '')), 6, 'документів'));
+    }
+    return html;
   }
 
   function renderWords(p) {
@@ -564,9 +785,22 @@
     one('Діагнози · НК 025', NK025, N25, (e) => e.c, (e) => e.n);
     one('Втручання · НК 026', NK026.filter((e) => RE_ACHI.test(e.c)), N26, (e) => e.c, (e) => e.n);
     one('Групи · ДСГ', CORE.groups.filter((g) => inGrid(g) && !g.sfx), GROUP, (g) => 'ДСГ ' + g.c, (g) => g.t);
-    if (!blocks.length) return `<p class="kr-none">За словами «${esc(p.text)}» нічого не знайдено ні в НК 025, ні в НК 026, ні серед ДСГ.</p>`;
+    one('Послуги й посади · ЕСОЗ', ESOZ, ESOZM, (e) => (e.k === 'position' ? 'посада ' + e.c : e.c), (e) => e.n);
+    // LOINC: лише коди з документів НСЗУ; увесь довідник (109 тис.) — на власній сторінці
+    need('loinc');
+    const L = LAZY.loinc.data;
+    const before = blocks.length;
+    if (L) one('Лабораторні · LOINC у документах НСЗУ', L.list, null, (e) => e.c, (e) => e.n);
+    const allLoinc = more('../classifiers/loinc.html?q=' + encodeURIComponent(p.text),
+      `шукати «${p.text}» в усьому LOINC${L ? ' — ' + nf(L.total) + ' кодів' : ''}`);
+    if (blocks.length > before) blocks[blocks.length - 1] = blocks[blocks.length - 1].replace('</section>', allLoinc + '</section>');
+    if (!blocks.length) {
+      return `<p class="kr-none">За словами «${esc(p.text)}» нічого не знайдено ні в НК 025, ні в НК 026, ні серед ДСГ,
+        кодів ЕСОЗ і лабораторних кодів із документів НСЗУ.</p>${allLoinc}`;
+    }
     notes = [...new Set(notes)];
-    return (notes.length ? `<p class="kr-fine">${esc(notes.join(' · '))}</p>` : '') + blocks.join('');
+    return (notes.length ? `<p class="kr-fine">${esc(notes.join(' · '))}</p>` : '') + blocks.join('') +
+      (blocks.length > before ? '' : `<p class="kr-fine">Шукаєте лабораторний показник? ${allLoinc}</p>`);
   }
 
   function welcome() {
@@ -575,6 +809,8 @@
         Таблиці співставлення закривається і скільки це в гривнях.</p>
       <p>Починати можна з будь-якого рівня: з діагнозу, втручання, групи, ОДК чи пакета. Не знаєте коду —
         пишіть словами.</p>
+      <p>Код послуги чи посади ЕСОЗ і лабораторний код LOINC теж можна: Кодер покаже, як послугу обліковують
+        у пакеті 9, якими кодами спостережень записують результат і де про це писала НСЗУ.</p>
     </div>`;
   }
 
@@ -615,7 +851,7 @@
     history.replaceState(null, '', url);
 
     if (p.kind === 'empty') { html = welcome(); }
-    else if (p.kind === 'unknown') { html = `<p class="kr-none">${esc(p.what)} — такого коду немає.</p>`; }
+    else if (p.kind === 'unknown') { html = `<p class="kr-none">${esc(p.what)} — ${esc(p.why || 'такого коду немає')}.</p>`; }
     else if (p.kind === 'case') {
       const badDx = p.dx.filter((c) => !N25.has(c) && !DX[c]);
       const badIv = p.iv.filter((c) => !N26.has(c) && !IV[c]);
@@ -628,12 +864,16 @@
         if (dx.length === 1 && !iv.length && GROUP.has(dx[0])) {
           status += ` ${esc(dx[0])} — це ще й код ДСГ «${esc(GROUP.get(dx[0]).t)}». ${chip('показати групу', 'ДСГ ' + dx[0])}`;
         }
+        if (dx.length === 1 && !iv.length && ESOZM.has(dx[0])) {
+          status += ` ${esc(dx[0])} — це ще й код посади ЕСОЗ «${esc(ESOZM.get(dx[0]).n)}». ${chip('показати посаду', 'посада ' + dx[0])}`;
+        }
       }
     }
     else if (p.kind === 'drg') html = renderDrg(p);
     else if (p.kind === 'odk') html = renderOdk(p);
     else if (p.kind === 'package') html = renderPackage(p);
     else if (p.kind === 'esoz') html = renderEsoz(p);
+    else if (p.kind === 'loinc') html = renderLoinc(p);
     else html = renderWords(p);
 
     $('krStatus').innerHTML = status;

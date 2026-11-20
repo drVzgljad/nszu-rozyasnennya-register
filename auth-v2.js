@@ -457,10 +457,9 @@ function applyAccess() {
       {
         text: '🩺 Коди', items: [
           { text: 'Хвороби · НК 025', path: 'classifiers/index.html' },
-          { text: 'Інтервенції · НК 026', path: 'classifiers/nk026.html' },
-          { text: 'Лабораторні · LOINC', path: 'classifiers/loinc.html' },
-          // Внутрішній: реконструкція з документів, не офіційний класифікатор
-          { text: 'Коди ЕСОЗ · внутрішній', path: 'classifiers/esoz.html', role: 'expert' }
+          { text: 'Інтервенції · НК 026', path: 'classifiers/nk026.html' }
+          // LOINC і коди ЕСОЗ з 20.11.2026 відкриваються з Кодера: код послуги чи аналізу
+          // вводять у те саме поле, а повні довідники — у рядку «Глибше» і на карті порталу.
         ]
       },
       {
@@ -2840,14 +2839,12 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '🧾', label: 'Номенклатура · НК 031', path: 'classifiers/nk031.html' },
     { icon: '📋', label: 'Табелі оснащення', path: 'classifiers/tabel.html' },
     { icon: '🩻', label: 'Обладнання у вимогах', path: 'classifiers/obladnannia.html' },
-    { icon: '🧪', label: 'LOINC (лаб. коди)', path: 'classifiers/loinc.html' },
     { icon: '👥', label: 'Посади · ДКХП-78', path: 'classifiers/posady.html' },
     { icon: '🪪', label: 'Спеціальності та посади', path: 'classifiers/specialnosti.html' },
     { icon: '🧭', label: 'Кодер · від коду до суми', path: 'koduvannia/koder.html' },
     { icon: '🔗', label: 'Таблиця співставлення', path: 'mapping/index.html' },
     { icon: '🦼', label: 'Наказ 182 · Кодування реабілітації', path: 'algorithms/rehab.html' },
     { icon: '🏥', label: 'Кодування амбулаторки · пакет 9', path: 'algorithms/ambulatory.html' },
-    { icon: '🗄️', label: 'Коди ЕСОЗ · внутрішній', path: 'classifiers/esoz.html', role: 'expert' },
     { icon: '📑', label: 'Договори ЗОЗ', path: 'zoz-dogovr/index.html' },
     { icon: '🏥', label: 'Хто це лікує', path: 'zoz-poshuk/index.html' },
     { icon: '👤', label: 'Кабінет', path: 'cabinet/index.html', role: 'expert' },
