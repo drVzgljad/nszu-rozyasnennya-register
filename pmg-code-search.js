@@ -18,7 +18,8 @@
  *
  * PMG_FIND.search(list, raw, opts) → { items: [{e, score, via}], note }
  *     list — масив записів; opts.text(e) — нормалізована назва (типово e._t);
- *     opts.scope — сфера словника: групи з полем scope («kadry» — посади й спеціальності)
+ *     opts.scope — сфера словника: групи з полем scope («kadry» — посади й спеціальності,
+ *              «equipment» — обладнання)
  *              працюють лише в пошуку з тією самою сферою, групи без scope — у пошуку кодів;
  *     via  — пояснення для результатів зі словника («рак → злоякісне новоутворення»);
  *     note — рядок для користувача, коли спрацював щабель 3 або 4.
@@ -146,7 +147,7 @@
   function ready() {
     if (synPromise) return synPromise;
     if (!g.fetch || !BASE) return (synPromise = Promise.resolve());
-    synPromise = g.fetch(BASE + 'data/search_synonyms.json?v=20261120a')
+    synPromise = g.fetch(BASE + 'data/search_synonyms.json?v=20261120b')
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { if (d) setSynonyms(d); })
       .catch(() => {});

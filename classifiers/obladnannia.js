@@ -1,7 +1,11 @@
 /* ============================================================
-   Обладнання у вимогах ПМГ-2026 — фронтенд.
+   «Обладнання» — єдиний вхід ланцюжка обладнання (з 20.11.2026; до того —
+   «Обладнання у вимогах ПМГ-2026»).
    Реєстр вимог до обладнання з 43 пакетів + кандидати з НК 024,
    НК 031 і табелів оснащення.
+   Одне поле розуміє п'ять входів: слова (спільний пошук порталу, сфера словника
+   «equipment»: «ШВЛ», «УЗД», «кювез»), код НК 024, код НК 031, «пакет 3» і
+   «табель 951». Коди й табелі шукаються серед кандидатів у картках виробів.
    Vanilla JS. Дані: data/equipment/equipment_meta.json  — підсумки й зауваги
                      data/equipment/equipment_index.json — легкий список
                      data/equipment/equipment_cards.json — картки (ліниво)
@@ -40,6 +44,13 @@
     "ширший": "довідник називає рід, специфікація — вид із уточненнями",
   };
 
+  // Що саме ввели в поле. Код НК 024 (GMDN) — п'ять цифр; код НК 031 (EMDN) — латинська
+  // літера і цифри (Z1203020408); решта — слова.
+  const RE_PKG = /^пакет\s*№?\s*(\d{1,2})$/i;
+  const RE_TABEL = /^(?:табель|наказ)\s*№?\s*(\d{2,4})$/i;
+  const RE_NK024 = /^\d{5}$/;
+  const RE_NK031 = /^[A-Z]\d{2}[A-Z0-9]*$/;
+
   let META = null, INDEX = null, CARDS = null;
   let cardsPromise = null, openedId = null, readerEmptyHTML = "";
   const byId = new Map();
@@ -61,7 +72,8 @@
     ]).then(([meta, index]) => {
       META = meta;
       INDEX = index;
-      INDEX.forEach((e) => byId.set(e.id, e));
+      const norm = (t) => (window.PMG_SEARCH ? PMG_SEARCH.text(t) : t.toLowerCase());
+      INDEX.forEach((e) => { e._t = norm(e.name); byId.set(e.id, e); });
       onReady();
     }).catch(() => {
       el.count.textContent = "Не вдалося завантажити реєстр обладнання.";
@@ -98,6 +110,8 @@
     if (id && byId.has(id)) openCard(id);
     const text = q.get("q");
     if (text) { el.search.value = text; refilter(); }
+    // словник скорочень довантажується окремо — з ним запит може дати більше
+    if (window.PMG_FIND) PMG_FIND.ready().then(() => { if (el.search.value.trim()) refilter(); });
   }
 
   // ══════════════════════════════════════════════════════════
@@ -154,15 +168,96 @@
     });
     $$(".mobile-tab").forEach((b) =>
       b.addEventListener("click", () => setTab(b.dataset.tab)));
+    document.addEventListener("click", (e) => {
+      const ex = e.target && e.target.closest ? e.target.closest("[data-eqq]") : null;
+      if (ex) { el.search.value = ex.dataset.eqq; refilter(); }
+    });
+  }
+
+  /** Як розуміти введене: пакет, табель, код НК 024, код НК 031 чи слова. */
+  function interpret(raw) {
+    const text = raw.trim();
+    let m;
+    if ((m = text.match(RE_PKG))) return { kind: "pkg", pkg: m[1] };
+    if ((m = text.match(RE_TABEL))) return { kind: "tabel", doc: m[1] };
+    const code = window.PMG_SEARCH ? PMG_SEARCH.code(text) : text.toUpperCase();
+    if (RE_NK024.test(code)) return { kind: "nk024", code };
+    if (RE_NK031.test(code)) return { kind: "nk031", code };
+    return { kind: "text", text };
+  }
+
+  /** Вимоги, серед кандидатів яких є цей код чи цей табель. Потрібні картки. */
+  function byRef(test) {
+    return INDEX.filter((e) => {
+      const c = CARDS[e.id];
+      return c && ((c.refs || []).some(test) || (c.esoz || []).some((t) => test({ src: "nk031", code: t.code })));
+    });
+  }
+
+  function how(html) {
+    const box = $("#eqHow");
+    if (!box) return;
+    box.hidden = !html;
+    box.innerHTML = html || "";
   }
 
   // ══════════════════════════════════════════════════════════
   function refilter() {
-    const q = el.search.value.trim().toLowerCase();
-    const pkg = el.selPkg.value;
+    const raw = el.search.value.trim();
+    const ask = raw ? interpret(raw) : { kind: "none" };
+    let base = INDEX, note = "";
+    let pkg = el.selPkg.value;
+
+    if (ask.kind === "pkg") {
+      pkg = ask.pkg;
+      const n = INDEX.filter((e) => e.pkgs.includes(pkg)).length;
+      note = n ? `Пакет ${esc(pkg)}: обладнання за специфікацією. <a href="../pakety/index.html?package=${
+          encodeURIComponent(pkg)}&section=equipment">блок обладнання у специфікації →</a>`
+        : `У специфікації пакета ${esc(pkg)} вимог до обладнання немає або такого пакета не існує.`;
+    } else if (ask.kind === "nk024" || ask.kind === "nk031" || ask.kind === "tabel") {
+      if (!CARDS) {
+        how("Шукаю серед кандидатів у картках виробів…");
+        loadCards().then(refilter).catch(() => how("Не вдалося завантажити картки виробів — пошук за кодом зараз недоступний."));
+        return;
+      }
+      if (ask.kind === "tabel") {
+        base = byRef((r) => r.src === "tabel" + ask.doc);
+        note = (base.length
+          ? `Табель, наказ МОЗ № ${esc(ask.doc)}: вимоги пакетів, які мають у ньому відповідник.`
+          : `Жодна вимога пакетів не має відповідника в табелі за наказом № ${esc(ask.doc)} — або такого табеля на порталі немає.`) +
+          ` <a href="tabel.html?doc=${encodeURIComponent(ask.doc)}">відкрити табель →</a>`;
+      } else {
+        const src = ask.kind, label = src === "nk024" ? "НК 024" : "НК 031";
+        // НК 031 — ієрархічний: код категорії охоплює всі вкладені позиції
+        base = byRef((r) => r.src === src && (src === "nk031" ? r.code.startsWith(ask.code) : r.code === ask.code));
+        note = (base.length
+          ? `Код ${label} ${esc(ask.code)}: вимоги пакетів, для яких він серед кандидатів. Зіставлення обчислене за назвами.`
+          : `Жодна вимога пакетів не веде до коду ${label} ${esc(ask.code)}.`) +
+          ` <a href="${src}.html?code=${encodeURIComponent(ask.code)}">відкрити код у ${label} →</a>`;
+      }
+    } else if (ask.kind === "text") {
+      // спершу збіг за підрядком (як було), далі — спільний пошук порталу:
+      // слова в іншому відмінку чи порядку і скорочення зі словника
+      const q = raw.toLowerCase();
+      const direct = INDEX.filter((e) => e.name.toLowerCase().includes(q));
+      base = direct;
+      if (window.PMG_FIND) {
+        const r = PMG_FIND.search(INDEX, raw, { scope: "equipment" });
+        const have = new Set(direct);
+        const extra = r.items.filter((x) => !have.has(x.e)).sort((a, b) => b.score - a.score || b.e.hits - a.e.hits).map((x) => x.e);
+        if (extra.length) { base = direct.concat(extra); note = esc(r.note || ""); }
+      }
+      if (!base.length) {
+        note = `За словами «${esc(raw)}» серед вимог пакетів нічого немає. Шукати в довідниках:
+          <a href="nk024.html?q=${encodeURIComponent(raw)}">НК 024</a> ·
+          <a href="nk031.html?q=${encodeURIComponent(raw)}">НК 031</a> ·
+          <a href="tabel.html?q=${encodeURIComponent(raw)}">табелі оснащення</a>`;
+      }
+    }
+    how(note);
+
     const band = el.selBand.value;
-    const list = INDEX.filter((e) => {
-      if (q && !e.name.toLowerCase().includes(q)) return false;
+    const list = base.filter((e) => {
       if (pkg && !e.pkgs.includes(pkg)) return false;
       if (band && (e.band || "—") !== band) return false;
       if (el.onlyCrit.checked && !e.critical) return false;

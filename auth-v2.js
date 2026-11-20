@@ -463,12 +463,11 @@ function applyAccess() {
         ]
       },
       {
-        text: '🩻 Обладнання', items: [
-          { text: 'Медвироби · НК 024', path: 'classifiers/nk024.html' },
-          { text: 'Номенклатура · НК 031', path: 'classifiers/nk031.html' },
-          { text: 'Табелі оснащення', path: 'classifiers/tabel.html' },
-          { text: 'Обладнання у вимогах ПМГ', path: 'classifiers/obladnannia.html' }
-        ]
+        // 20.11.2026, рішення власника: гніздо з чотирьох пунктів зведено до одного. «Обладнання» —
+        // одне поле на весь ланцюжок: назва виробу, код НК 024 чи НК 031, «пакет 3», «табель 951».
+        // НК 024, НК 031 і табелі оснащення відкриваються з рядка «Глибше» на цій сторінці та з карти
+        // порталу. Не повертати їх сюди окремими пунктами — нову можливість додавати в саму вкладку.
+        text: '🩻 Обладнання · від вимоги до коду й табеля', path: 'classifiers/obladnannia.html'
       },
       {
         // Гніздо було на шість пунктів, після аудиту 12.08.2026 стало п'ять,
@@ -2839,10 +2838,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '🏥', label: 'ДЕЦ МОЗ', path: 'dec/index.html' },
     { icon: '🩺', label: 'Хвороби · НК 025', path: 'classifiers/index.html' },
     { icon: '🔬', label: 'Інтервенції · НК 026', path: 'classifiers/nk026.html' },
-    { icon: '🩹', label: 'Медвироби · НК 024', path: 'classifiers/nk024.html' },
-    { icon: '🧾', label: 'Номенклатура · НК 031', path: 'classifiers/nk031.html' },
-    { icon: '📋', label: 'Табелі оснащення', path: 'classifiers/tabel.html' },
-    { icon: '🩻', label: 'Обладнання у вимогах', path: 'classifiers/obladnannia.html' },
+    { icon: '🩻', label: 'Обладнання · від вимоги до коду й табеля', path: 'classifiers/obladnannia.html' },
     { icon: '👥', label: 'Кадри · від вимоги до коду посади', path: 'classifiers/kadry.html' },
     { icon: '🧭', label: 'Кодер · від коду до суми', path: 'koduvannia/koder.html' },
     { icon: '🔗', label: 'Таблиця співставлення', path: 'mapping/index.html' },
