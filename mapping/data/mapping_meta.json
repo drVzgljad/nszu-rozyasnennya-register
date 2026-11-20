@@ -1,5 +1,5 @@
 {
- "generated": "2026-11-19",
+ "generated": "2026-11-20",
  "source": "Таблиця_співставлення_2026_03__ (1).docx",
  "title": "Таблиця співставлення медичних послуг з кодами НК 025:2021 та/або НК 026:2021",
  "counters": {
@@ -13,7 +13,7 @@
   "achi_codes": 5484,
   "icd_codes": 13936,
   "esoz_codes": 488,
-  "loinc_codes": 10,
+  "loinc_codes": 9,
   "with_note": 26,
   "with_conditions": 79,
   "ranges_expanded": 26,
