@@ -20,6 +20,9 @@
  * перелік можливих груп за Таблицею співставлення.
  * Рівень «Тариф»: базова сума плюс «Умови випадку» — коефіцієнти пункту 38, які рахує
  * спільний модуль pmg-tariff.js.
+ * Перевірка тексту: якщо в поле вставлено абзац чи цілий лист, Кодер знаходить у ньому всі
+ * коди й про кожен каже, чи є він у класифікаторі і як набраний (див. scanText). Текст
+ * опрацьовується лише в браузері; в адресу сторінки й у сховище він не потрапляє.
  */
 (function () {
   'use strict';
@@ -52,6 +55,9 @@
   let exactInfo = {};               // версія правил і дата, або текст помилки
   const COND = {};                  // «Умови випадку»: id коефіцієнта пункту 38 → значення
   let condOpen = false;
+  let mode = '';                    // вид останньої відповіді (parse().kind)
+  let lastText = null;              // текст, з якого перейшли до картки коду; живе лише в пам'яті сторінки
+  let ESOZ_LETTERS = new Set();     // з яких літер починаються коди послуг ЕСОЗ
 
   try { hidden = new Set(JSON.parse(localStorage.getItem('koder-hidden') || '[]')); } catch (e) { /* без сховища */ }
 
@@ -97,12 +103,14 @@
     for (const e of NK025) { e._t = PMG_SEARCH.text(e.n); N25.set(e.c, e); }
     for (const e of NK026) { e._t = PMG_SEARCH.text(e.n); N26.set(e.c, e); }
     for (const e of ESOZ) { e._t = PMG_SEARCH.text(e.n); ESOZM.set(e.c, e); }
+    ESOZ_LETTERS = new Set(ESOZ.filter((e) => RE_ESOZ.test(e.c)).map((e) => e.c[0]));
     CORE.groups.forEach((g, i) => { g._i = i; g._t = PMG_SEARCH.text(g.t); GROUP.set(g.c, g); });
     CORE.odk.forEach((o, i) => { o._i = i; ODKN.set(PMG_SEARCH.code(o.num), o); });
     if (window.PMG_FIND) PMG_FIND.ready().then(() => { if ($('krQ').value.trim()) run(); });
 
     const q = new URLSearchParams(location.search).get('q') || new URLSearchParams(location.search).get('code');
     if (q) $('krQ').value = q;
+    fit();
     run();
     loadExact();
   }
@@ -244,7 +252,288 @@
       if (GROUP.has(c)) return { kind: 'drg', code: c };
       if (RE_ESOZ.test(c)) return { kind: 'unknown', what: `Код послуги ЕСОЗ ${c}`, why: 'у довіднику, зібраному з документів НСЗУ, такого немає' };
     }
+    // абзац або лист: якщо в ньому є хоч один код — перевіряємо коди, а не шукаємо за словами
+    if (isText(text)) {
+      const scan = scanText(text);
+      if (scan.items.length) return { kind: 'text', text, scan };
+    }
     return { kind: 'words', text };
+  }
+
+  // ── перевірка кодів у тексті ─────────────────────────────────────────
+  /* Людина вставляє абзац або цілий лист — Кодер знаходить у ньому коди й про кожен каже,
+     чи є він у своєму класифікаторі і як набраний. Розпізнаються коди, набрані великими
+     літерами. Чи велика літера — кириличний двійник латинської, вирішує PMG_SEARCH.code:
+     власної таблиці літер тут немає. Дати, номери листів, суми й телефони відсіюються
+     межами (що стоїть упритул до запису) і контрольною цифрою LOINC. */
+  const TXT_MIN = 7;                               // від скількох слів запит — це вже текст
+  const AL = '0-9A-Za-zА-Яа-яІЇЄҐіїєґ';
+  const UP = 'A-ZА-ЯІЇЄҐ';
+  const RE_AL = new RegExp('[' + AL + ']');
+  const ICD_SRC = '[' + UP + ']\\d{2}(?:\\.\\d{1,2})?';
+  // порядок — це першість: запис, який забрав свій шматок тексту, нижчим у переліку не дістається
+  const TEXT_PATTERNS = [
+    ['odk', new RegExp('(?:ОДК|одк)\\s*№?\\s*(\\d{1,2}[' + UP + ']?)', 'g')],
+    ['drgnum', /(?:ДСГ|дсг|DRG|drg)\s*[:№]?\s*(\d{3}(?:\.\d)?)/g],        // 801, 961.0 — лише після слова
+    ['achi', /\d{5}-\d{2}/g],
+    ['dash1', /\d{1,7}-\d/g],                                           // LOINC або обірваний код НК 026
+    ['esoz', new RegExp('[' + UP + ']\\d{5}', 'g')],
+    ['range', new RegExp('(' + ICD_SRC + ')\\s?-\\s?(' + ICD_SRC + ')', 'g')],
+    ['drgx', new RegExp('[' + UP + ']\\d{2}(?:[' + UP + '](?:-\\d{2})?|-\\d{2}|-[' + UP + '])', 'g')],  // C16A, B06-01, B02-A
+    ['icd', new RegExp(ICD_SRC, 'g')],
+    ['pos', new RegExp('[' + UP + ']\\d{1,3}', 'g')],
+  ];
+  const RE_CTX_DRG = /(?:дсг|drg|діагностично-споріднен\S*\s+груп\S*)\s*[:«"“(№]?\s*$/i;
+  const RE_CTX_GROUP = /груп\S{0,3}\s*[:«"“(]?\s*$/i;
+  const RE_CTX_POS = /посад\S*\s*(?:есоз\s*)?[:«"“(]?\s*$/i;
+  const RE_CTX_ESOZ = /(?:послуг\S*|есоз|esoz)\s*[:«"“(]?\s*$/i;
+  const RE_CTX_LOINC = /(?:loinc|лоінк|лоїнк)[^.;\n]{0,24}$/i;
+  const RE_CTX_VITAMIN = /(?:вітамін\S*|vitamin\S*|віт\.)\s*$/i;
+  const RE_CHAIN = /^\s*(?:[,;/]|та|і|й|або|чи)?\s*$/i;                  // «ДСГ I10, I68 та B01»
+  const KIND = { icd: 'НК 025', range: 'діапазон НК 025', achi: 'НК 026', drg: 'ДСГ', odk: 'ОДК',
+    esoz: 'послуга ЕСОЗ', pos: 'посада ЕСОЗ', loinc: 'LOINC' };
+  const KIND_ORDER = Object.keys(KIND);
+
+  const isText = (s) => /\S\s*\n\s*\S/.test(s) || s.trim().split(/\s+/).filter(Boolean).length >= TXT_MIN;
+  const plural = (n, f) => f[n % 10 === 1 && n % 100 !== 11 ? 0 : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 1 : 2];
+
+  /* Контрольна цифра LOINC (алгоритм Луна). «3-5 днів» чи «стаття 351-1» її не проходять. */
+  function luhn(code) {
+    const [num, d] = code.split('-');
+    let sum = 0;
+    [...num].reverse().forEach((ch, i) => { let v = +ch; if (i % 2 === 0) { v *= 2; if (v > 9) v -= 9; } sum += v; });
+    return (10 - sum % 10) % 10 === +d;
+  }
+
+  /* Що стоїть упритул до запису: «19198-08-26» і «10473/8-15-26» — номери листів, «2026-11-20» —
+     дата, «В12-дефіцитна» — вітамін, а не коди. */
+  function edges(kind, t, a, b, taken) {
+    const p = t[a - 1] || '', n = t[b] || '', n2 = t[b + 1] || '';
+    if (RE_AL.test(p) || RE_AL.test(n)) return false;
+    if (kind === 'achi' || kind === 'dash1') {
+      if (p === '-' || n === '-') return false;
+      // після косої риски — лише якщо перед нею теж код втручання («30445-00/30446-00»)
+      if (p === '/' && !(kind === 'achi' && taken.some((s) => s[1] === a - 1))) return false;
+      if (kind === 'dash1' && (/[.,]/.test(p) || (/[.,]/.test(n) && /\d/.test(n2)))) return false;
+      return true;
+    }
+    if (p === '-') return false;
+    if (n === '.' && /\d/.test(n2)) return false;
+    if (kind === 'icd' && n === '-' && RE_AL.test(n2)) return false;
+    return true;
+  }
+
+  function icdCheck(code) {
+    const e = N25.get(code);
+    if (e) return { name: e.n, flags: [] };
+    if (DX[code]) return { name: '', flags: [['ed11', 'немає в НК 025:2021, є в 11-му виданні']] };
+    let up = code, near = null;
+    while (up.length > 3 && !near) { up = up.slice(0, -1).replace(/\.$/, ''); if (N25.has(up)) near = [up]; }
+    return { name: '', flags: [['none', 'коду немає в НК 025']], near };
+  }
+
+  function rangeItem(a, b) {
+    const flags = [];
+    const lo = a < b ? a : b, hi = (a < b ? b : a) + '￿';
+    const plain = !a.includes('.') && !b.includes('.');
+    let count = 0;
+    for (const e of NK025) if (e.c >= lo && e.c <= hi && (!plain || e.c.length === 3)) count++;
+    if (a > b) flags.push(['rev', 'межі діапазону переставлено']);
+    const miss = [a, b].filter((c) => !N25.has(c) && !DX[c]);
+    if (miss.length) flags.push(['end', (miss.length > 1 ? 'меж ' : 'межі ') + miss.join(' і ') + ' немає в НК 025']);
+    return { kind: 'range', code: a + '-' + b, ends: [a, b].filter((c) => N25.has(c) || DX[c]), flags,
+      name: `у діапазоні ${nf(count)} ${plain ? plural(count, ['рубрика', 'рубрики', 'рубрик']) : plural(count, ['код', 'коди', 'кодів'])} НК 025` };
+  }
+
+  /* Один знайдений запис → що це за код і що з ним не так. null — це не код. */
+  function classify(c, lead, chained, prev, L, loincCtx) {
+    const ctx = (re, name) => re.test(lead) || (chained && prev.ctx === name);
+    const none = (kind, code, why, extra) => Object.assign({ kind, code, name: '', flags: [['none', why]] }, extra);
+    if (c.kind === 'odk') {
+      const o = ODKN.get(PMG_SEARCH.code(c.raw));
+      return o ? { kind: 'odk', code: o.id, name: o.name, q: o.id, flags: [] }
+        : none('odk', 'ОДК ' + c.raw, 'такої ОДК немає в Таблиці співставлення');
+    }
+    if (c.kind === 'drgnum') {
+      const g = GROUP.get(c.raw);
+      return g ? { kind: 'drg', code: g.c, name: g.t, q: 'ДСГ ' + g.c, flags: [], ctx: 'drg' }
+        : none('drg', c.raw, 'такої діагностично-спорідненої групи немає', { ctx: 'drg' });
+    }
+    if (c.kind === 'achi') {
+      const e = N26.get(c.raw);
+      if (e) return { kind: 'achi', code: c.raw, name: e.n, q: c.raw, flags: [] };
+      if (IV[c.raw]) return { kind: 'achi', code: c.raw, name: '', q: c.raw, flags: [['ed11', 'немає в НК 026:2021, є в 11-му виданні']] };
+      return none('achi', c.raw, 'коду немає в НК 026', { near: NK026.filter((x) => x.c.startsWith(c.raw.slice(0, 6))).map((x) => x.c).slice(0, 8) });
+    }
+    if (c.kind === 'dash1') {
+      const e = L && L.codes[c.raw];
+      if (e) return { kind: 'loinc', code: c.raw, name: e.n, q: c.raw, flags: [], ctx: 'loinc' };
+      const num = c.raw.split('-')[0];
+      if (num.length === 5) {
+        const full = [...new Set(NK026.map((x) => x.c).concat(Object.keys(IV)).filter((x) => x.startsWith(c.raw)))];
+        if (full.length) {
+          return { kind: 'achi', code: c.raw, name: '', near: full.slice(0, 8),
+            flags: [['cut', 'обірваний код: після дефіса в НК 026 дві цифри']] };
+        }
+      }
+      const unsure = { kind: 'loinc', code: c.raw, name: '', flags: [], ctx: 'loinc', loose: true };
+      if (ctx(RE_CTX_LOINC, 'loinc')) {
+        return luhn(c.raw) ? unsure : none('loinc', c.raw, 'такого коду LOINC не існує: не сходиться контрольна цифра', { ctx: 'loinc' });
+      }
+      return loincCtx && num.length >= 3 && luhn(c.raw) ? unsure : null;
+    }
+    if (c.kind === 'range') {
+      const a = PMG_SEARCH.code(c.m[1]), b = PMG_SEARCH.code(c.m[2]);
+      return RE_ICD.test(a) && RE_ICD.test(b) ? rangeItem(a, b) : null;
+    }
+    const code = PMG_SEARCH.code(c.raw);
+    if (!/^[A-Z0-9.-]+$/.test(code)) return null;          // лишилась кирилиця без латинського двійника — це не код
+    if (c.kind === 'esoz') {
+      const e = ESOZM.get(code);
+      if (e) return { kind: 'esoz', code, name: e.n, q: code, flags: [], ctx: 'esoz' };
+      return ESOZ_LETTERS.has(code[0]) || ctx(RE_CTX_ESOZ, 'esoz')
+        ? none('esoz', code, 'у довіднику ЕСОЗ, зібраному з документів НСЗУ, такого коду немає', { ctx: 'esoz' }) : null;
+    }
+    const hard = ctx(RE_CTX_DRG, 'drg');
+    const drg = (g) => ({ kind: 'drg', code: g.c, name: g.t, q: 'ДСГ ' + g.c, flags: [], ctx: 'drg' });
+    if (c.kind === 'drgx') {
+      if (GROUP.has(code)) return drg(GROUP.get(code));
+      const r = code.match(/^([A-Z])(\d{2})-(\d{2})$/);                // «I60-64» — скорочений діапазон
+      if (r && !hard && +r[3] > +r[2]) return rangeItem(r[1] + r[2], r[1] + r[3]);
+      return hard ? none('drg', code, 'такої діагностично-спорідненої групи немає', { ctx: 'drg' }) : null;
+    }
+    const pos = (ok) => (ok ? { kind: 'pos', code, name: ESOZM.get(code).n, q: 'посада ' + code, flags: [], ctx: 'pos' }
+      : none('pos', code, 'такої посади в довіднику ЕСОЗ немає', { ctx: 'pos' }));
+    if (c.kind === 'pos') {
+      if (!RE_POS.test(code)) return null;
+      const named = ctx(RE_CTX_POS, 'pos');
+      // без слова «посада» — лише тризначні коди (P104): «P8» чи «Р2» можуть бути чим завгодно
+      if (ESOZM.has(code) && (named || code.length === 4)) return pos(true);
+      return named ? pos(false) : null;
+    }
+    // c.kind === 'icd'
+    if (!RE_ICD.test(code) || RE_CTX_VITAMIN.test(lead)) return null;
+    const bare = !code.includes('.');
+    if (bare && GROUP.has(code) && (hard || RE_CTX_GROUP.test(lead))) return drg(GROUP.get(code));
+    if (bare && hard) return none('drg', code, 'такої діагностично-спорідненої групи немає', { ctx: 'drg' });
+    if (RE_POS.test(code) && ctx(RE_CTX_POS, 'pos')) return pos(ESOZM.has(code));
+    const r = icdCheck(code);
+    const absent = r.flags.some((f) => f[0] === 'none');
+    if (bare && absent) {
+      if (GROUP.has(code)) return drg(GROUP.get(code));
+      if (RE_POS.test(code) && ESOZM.has(code)) return pos(true);
+    }
+    return { kind: 'icd', code, name: r.name, q: absent ? '' : code, flags: r.flags, near: r.near };
+  }
+
+  /** Усі коди в тексті. Повертає { items, mentions, wait, raw }: один запис на код, з лічильником згадок. */
+  function scanText(raw) {
+    const text = raw.replace(/[‐‑‒–—−]/g, '-').replace(/ /g, ' ');   // довжина рядка не міняється
+    const taken = [], cands = [];
+    const free = (a, b) => !taken.some((s) => a < s[1] && b > s[0]);
+    for (const [kind, re] of TEXT_PATTERNS) {
+      re.lastIndex = 0;
+      let m;
+      while ((m = re.exec(text))) {
+        // у «ОДК 8» і «ДСГ 801» код — дужка в кінці, слово перед нею — лише ознака
+        const led = kind === 'odk' || kind === 'drgnum';
+        const str = led ? m[1] : m[0];
+        const a = m.index + m[0].length - str.length, b = a + str.length;
+        if (led && RE_AL.test(text[m.index - 1] || '')) continue;
+        if (!free(a, b) || !edges(kind, text, a, b, taken)) continue;
+        taken.push([a, b]);
+        cands.push({ kind, a, b, raw: str, m });
+      }
+    }
+    cands.sort((x, y) => x.a - y.a);
+
+    // LOINC: назви — у витягу, який довантажується за потребою; після нього відповідь перемалюється
+    const dashy = cands.filter((c) => c.kind === 'dash1');
+    const wait = dashy.length ? !need('loinc') : false;
+    const L = LAZY.loinc.data;
+    const loincCtx = /loinc|лоінк|лоїнк/i.test(text) || dashy.some((c) => L && L.codes[c.raw]);
+
+    const byKey = new Map();
+    let prev = null, mentions = 0;
+    for (const c of cands) {
+      const lead = text.slice(Math.max(0, c.a - 60), c.a);
+      const chained = !!prev && RE_CHAIN.test(text.slice(prev.b, c.a));
+      const hit = classify(c, lead, chained, prev, L, loincCtx);
+      if (!hit) continue;
+      hit.b = c.b;
+      prev = hit;
+      mentions++;
+      // кирилиця: запис після нормалізації відрізняється від набраного (ОДК і числові коди не чіпаємо)
+      const typed = c.raw.toUpperCase().replace(/\s+/g, '');
+      const cyr = !['odk', 'loinc', 'achi'].includes(hit.kind) && c.kind !== 'drgnum' && PMG_SEARCH.code(c.raw) !== typed
+        ? [...typed].filter((ch) => ch.charCodeAt(0) > 127) : [];
+      const key = hit.kind + '|' + hit.code;
+      let it = byKey.get(key);
+      if (!it) { it = Object.assign(hit, { n: 0, a: c.a, at: [c.a, c.b], cyrN: 0, cyrL: new Set() }); byKey.set(key, it); }
+      it.n++;
+      if (cyr.length) {
+        if (!it.cyrN) it.at = [c.a, c.b];                  // у витягу показуємо місце з кирилицею
+        it.cyrN++;
+        cyr.forEach((ch) => it.cyrL.add(ch));
+      }
+    }
+    const items = [...byKey.values()];
+    for (const it of items) {
+      if (!it.cyrN) continue;
+      const l = [...it.cyrL];
+      it.flags.push(['cyr', `набрано кирилицею: ${l.length > 1 ? 'літери' : 'літера'} ${l.map((x) => '«' + x + '»').join(', ')}` +
+        (it.cyrN < it.n ? ` — у ${it.cyrN} з ${it.n} згадок` : '')]);
+    }
+    return { items, mentions, wait, raw };
+  }
+
+  /* Шматок тексту довкола коду — щоб знайти місце в листі. Лишається на екрані, нікуди не йде. */
+  function snippet(raw, a, b) {
+    let from = Math.max(0, a - 44), to = Math.min(raw.length, b + 44);
+    if (from > 0) { const sp = raw.indexOf(' ', from); if (sp > -1 && sp < a) from = sp + 1; }
+    if (to < raw.length) { const sp = raw.lastIndexOf(' ', to); if (sp >= b) to = sp; }
+    const flat = (s) => esc(s.replace(/\s+/g, ' '));
+    return `<span class="kr-snip">${from > 0 ? '…' : ''}${flat(raw.slice(from, a))}<mark>${esc(raw.slice(a, b))}</mark>${flat(raw.slice(b, to))}${to < raw.length ? '…' : ''}</span>`;
+  }
+
+  function renderText(p) {
+    const s = p.scan;
+    const row = (x) => {
+      const bad = x.flags.length > 0;
+      const near = (x.near || []).length
+        ? ` <span class="kr-near">${x.flags.some((f) => f[0] === 'cut') ? 'повний код' : x.kind === 'icd' ? 'найближчий наявний код' : 'у цьому блоці є'}: ${
+          x.near.map((c) => chip(c, c, ((x.kind === 'icd' ? N25 : N26).get(c) || {}).n)).join(' ')}</span>` : '';
+      const ends = x.kind === 'range' && x.ends.length ? ` <span class="kr-near">межі: ${x.ends.map((c) => chip(c, c, (N25.get(c) || {}).n)).join(' ')}</span>` : '';
+      const loose = x.loose ? ` ${tag('не перевірено')} у документах НСЗУ цього коду немає, а повного довідника Кодер не тримає.
+        ${more('../classifiers/loinc.html?code=' + encodeURIComponent(x.code), 'перевірити в довіднику LOINC')}` : '';
+      return `<div class="kr-row${bad ? ' kr-flagged' : ''}">${x.q ? chip(x.code, x.q, 'відкрити картку коду') : `<span class="kr-c">${esc(x.code)}</span>`}
+        <span class="kr-t">${esc(x.name)} ${tag(KIND[x.kind])} ${x.n > 1 ? tag('згадок: ' + x.n) : ''}
+          ${x.flags.map((f) => tag(f[1], 'kr-warn')).join(' ')}${near}${ends}${loose}${bad || x.loose ? snippet(s.raw, x.at[0], x.at[1]) : ''}</span></div>`;
+    };
+    const order = (x, y) => KIND_ORDER.indexOf(x.kind) - KIND_ORDER.indexOf(y.kind) || x.a - y.a;
+    const bad = s.items.filter((x) => x.flags.length).sort((x, y) => x.a - y.a);
+    const loose = s.items.filter((x) => !x.flags.length && x.loose).sort((x, y) => x.a - y.a);
+    const fine = s.items.filter((x) => !x.flags.length && !x.loose).sort(order);
+    const CAP = 200;
+    const block = (title, list, cls) => (list.length ? `<section class="kr-found${cls ? ' ' + cls : ''}"><h2>${esc(title)} <span class="kr-src">${nf(list.length)}</span></h2>
+      ${list.slice(0, CAP).map(row).join('')}${list.length > CAP ? `<p class="kr-fine">Показано перші ${CAP}.</p>` : ''}</section>` : '');
+    const WHAT = [['none', 'немає в класифікаторі'], ['cut', 'обірваний'], ['cyr', 'набрано кирилицею'],
+      ['ed11', 'лише в 11-му виданні'], ['end', 'межі діапазону немає'], ['rev', 'межі переставлено']];
+    const parts = WHAT.map(([k, t]) => [t, bad.filter((x) => x.flags.some((f) => f[0] === k)).length]).filter((x) => x[1]);
+    return `<section class="kr-found kr-text">
+        <h2>Перевірка кодів у тексті <span class="kr-src">текст опрацьовано у вашому браузері: він нікуди не надсилається і не зберігається</span></h2>
+        <p class="kr-tsum"><b>Знайдено кодів: ${nf(s.items.length)}</b>
+          ${bad.length ? `<b class="kr-tbad">з вадою: ${nf(bad.length)}</b>` : '<b class="kr-tgood">вад не знайдено</b>'}
+          ${s.mentions > s.items.length ? `<span class="kr-fine">згадок у тексті: ${nf(s.mentions)}</span>` : ''}</p>
+        ${parts.length ? `<p class="kr-chips">${parts.map(([t, n]) => tag(`${t}: ${n}`, 'kr-warn')).join(' ')}</p>` : ''}
+        ${loose.length ? `<p class="kr-fine">Не перевірено: ${nf(loose.length)} — схожі на коди LOINC, яких немає у витягу Кодера.</p>` : ''}
+        ${s.wait ? '<p class="kr-fine">Завантажую назви лабораторних кодів…</p>' : ''}
+        <p class="kr-fine">Кнопка з кодом відкриває його картку; назад веде кнопка «до перевірки тексту».</p>
+      </section>` +
+      block('З вадою', bad, 'kr-textbad') + block('Не перевірено', loose) + block('Без зауважень', fine) +
+      `<p class="kr-fine">Кодер перевіряє, чи є код у класифікаторі і як його набрано. Чи доречний код у цьому місці тексту —
+        не перевіряє. Коди, записані малими літерами, і коди втручань без дефіса в тексті не розпізнаються.
+        ${bad.some((x) => x.kind === 'achi' && x.flags.some((f) => f[0] === 'none')) ? 'Повного переліку втручань 11-го видання в Кодері немає: код, якого немає в НК 026, звірте з джерелом.' : ''}</p>`;
   }
 
   // ── дані рівнів ──────────────────────────────────────────────────────
@@ -791,9 +1080,15 @@
     const L = LAZY.loinc.data;
     const before = blocks.length;
     if (L) one('Лабораторні · LOINC у документах НСЗУ', L.list, null, (e) => e.c, (e) => e.n);
-    const allLoinc = more('../classifiers/loinc.html?q=' + encodeURIComponent(p.text),
-      `шукати «${p.text}» в усьому LOINC${L ? ' — ' + nf(L.total) + ' кодів' : ''}`);
+    // довгий текст в адресу іншої сторінки не переносимо: у листах бувають персональні дані
+    const allLoinc = isText(p.text) ? more('../classifiers/loinc.html', 'довідник LOINC')
+      : more('../classifiers/loinc.html?q=' + encodeURIComponent(p.text),
+        `шукати «${p.text}» в усьому LOINC${L ? ' — ' + nf(L.total) + ' кодів' : ''}`);
     if (blocks.length > before) blocks[blocks.length - 1] = blocks[blocks.length - 1].replace('</section>', allLoinc + '</section>');
+    if (!blocks.length && isText(p.text)) {
+      return `<p class="kr-none">Кодів у цьому тексті Кодер не знайшов, і за його словами в довідниках нічого немає.
+        Щоб знайти код за словами, залиште в полі два-три слова.</p>`;
+    }
     if (!blocks.length) {
       return `<p class="kr-none">За словами «${esc(p.text)}» нічого не знайдено ні в НК 025, ні в НК 026, ні серед ДСГ,
         кодів ЕСОЗ і лабораторних кодів із документів НСЗУ.</p>${allLoinc}`;
@@ -811,6 +1106,8 @@
         пишіть словами.</p>
       <p>Код послуги чи посади ЕСОЗ і лабораторний код LOINC теж можна: Кодер покаже, як послугу обліковують
         у пакеті 9, якими кодами спостережень записують результат і де про це писала НСЗУ.</p>
+      <p>Можна вставити й абзац або цілий текст листа: Кодер знайде в ньому всі коди й покаже, яких немає
+        в класифікаторах, які набрано кирилицею чи обірвано. Текст лишається у вашому браузері.</p>
     </div>`;
   }
 
@@ -846,9 +1143,14 @@
     const p = parse(raw);
     let html = '', status = '';
     const url = new URL(location.href);
-    if (raw.trim()) url.searchParams.set('q', raw.trim()); else url.searchParams.delete('q');
+    // Абзац чи лист в адресу сторінки не пишемо (у листах бувають персональні дані) —
+    // лише короткі запити й переліки кодів.
+    if (raw.trim() && (!isText(raw) || p.kind === 'case')) url.searchParams.set('q', raw.trim()); else url.searchParams.delete('q');
     url.searchParams.delete('code');
     history.replaceState(null, '', url);
+    mode = p.kind;
+    if (p.kind === 'text') lastText = null;
+    document.body.classList.toggle('kr-textmode', p.kind === 'text');   // рівні ланцюжка тут ні до чого — ховаємо
 
     if (p.kind === 'empty') { html = welcome(); }
     else if (p.kind === 'unknown') { html = `<p class="kr-none">${esc(p.what)} — ${esc(p.why || 'такого коду немає')}.</p>`; }
@@ -874,8 +1176,15 @@
     else if (p.kind === 'package') html = renderPackage(p);
     else if (p.kind === 'esoz') html = renderEsoz(p);
     else if (p.kind === 'loinc') html = renderLoinc(p);
+    else if (p.kind === 'text') {
+      html = renderText(p);
+      status = `Перевірено текст: кодів — ${nf(p.scan.items.length)}, з вадою — ${nf(p.scan.items.filter((x) => x.flags.length).length)}.`;
+    }
     else html = renderWords(p);
 
+    if (lastText != null && p.kind !== 'text') {
+      status = '<button type="button" class="kr-back" data-back>← до перевірки тексту</button> ' + status;
+    }
     $('krStatus').innerHTML = status;
     $('krOut').innerHTML = html;
     if (p.kind === 'case') fillNotes(p.dx.concat(p.iv).slice(0, 4));
@@ -886,11 +1195,23 @@
       `<button type="button" class="kr-lv" data-level="${k}" aria-pressed="${!hidden.has(k)}">${i + 1} ${esc(t)}</button>`).join('');
   }
 
+  /* Поле багаторядкове (у нього вставляють і текст листа) і росте разом із вмістом;
+     найбільшу висоту задає koder.css. */
+  function fit() {
+    const q = $('krQ');
+    q.style.height = 'auto';
+    q.style.height = (q.scrollHeight + (q.offsetHeight - q.clientHeight)) + 'px';
+  }
+
   function bind() {
     let timer = 0;
-    $('krQ').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(run, 220); });
-    $('krQ').addEventListener('keydown', (e) => { if (e.key === 'Enter') { clearTimeout(timer); run(); } });
-    $('krClear').addEventListener('click', () => { $('krQ').value = ''; run(); $('krQ').focus(); });
+    $('krQ').addEventListener('input', () => { lastText = null; fit(); clearTimeout(timer); timer = setTimeout(run, 220); });
+    // Enter — показати відповідь, як і раніше; новий рядок — Shift+Enter
+    $('krQ').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); clearTimeout(timer); run(); }
+    });
+    $('krClear').addEventListener('click', () => { $('krQ').value = ''; lastText = null; fit(); run(); $('krQ').focus(); });
+    window.addEventListener('resize', fit);
     // «Умови випадку»: зміна перемикача перераховує суму; стан живе, доки відкрита сторінка
     document.addEventListener('change', (e) => {
       const c = e.target.closest && e.target.closest('[data-cond]');
@@ -907,9 +1228,18 @@
         run();
         return;
       }
+      if (e.target.closest('[data-back]')) {
+        if (lastText != null) $('krQ').value = lastText;
+        fit();
+        run();
+        return;
+      }
       const b = e.target.closest('[data-q]');
       if (b) {
+        // з перевірки тексту — до картки коду: текст тримаємо в пам'яті сторінки, щоб повернутись
+        if (mode === 'text') lastText = $('krQ').value;
         $('krQ').value = b.dataset.q.trim();
+        fit();
         run();
         window.scrollTo({ top: $('krQ').getBoundingClientRect().top + window.scrollY - 90 });
         return;

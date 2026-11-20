@@ -25,10 +25,13 @@
   border: 2px solid var(--kr-line); border-radius: 12px;
   background: var(--kr-surface); color: var(--kr-ink);
 }
+/* поле багаторядкове: у нього вставляють і текст листа; росте з вмістом (fit у koder.js) до цієї межі */
+#krQ { display: block; line-height: 1.35; resize: vertical; max-height: 232px; overflow-y: auto; }
 #krQ:focus { outline: none; border-color: var(--kr-accent); }
 .kr-clear {
   font: inherit; font-size: 14px; padding: 0 14px; border-radius: 12px; cursor: pointer;
   border: 1px solid var(--kr-line); background: var(--kr-surface); color: var(--kr-muted);
+  max-height: 56px;                 /* поле росте під текст листа, кнопка лишається заввишки з один рядок */
 }
 .kr-clear:hover { background: var(--kr-soft); color: var(--kr-ink); }
 .kr-examples, .kr-levels, .kr-more { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; margin-top: 10px; }
@@ -105,6 +108,28 @@
 }
 .kr-hit:hover { background: var(--kr-soft); }
 
+/* ── перевірка кодів у тексті ── */
+.kr-textmode .kr-levels { display: none; }       /* перемикачі рівнів ланцюжка до тексту не стосуються */
+@media (max-width: 640px) {
+  .kr-textmode .kr-examples { display: none; }   /* на телефоні зведення має бути одразу під полем */
+}
+.kr-text h2 { flex-wrap: wrap; gap: 4px 10px; }
+.kr-tsum { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin: 4px 0 8px; font-size: 16px; }
+.kr-tbad, .kr-tgood { font-weight: 600; border-radius: 8px; padding: 1px 10px; border: 1px solid var(--kr-line); }
+.kr-tbad { background: var(--kr-warn-bg); border-color: var(--kr-warn-line); color: var(--kr-warn-ink); }
+.kr-tgood { background: var(--kr-accent-soft); color: var(--kr-accent-dark); }
+.kr-text p { margin: 0 0 6px; }
+.kr-found .kr-row:first-of-type { border-top: 1px solid var(--kr-line); }
+.kr-textbad { border-color: var(--kr-warn-line); }
+.kr-near { font-size: 13.5px; color: var(--kr-muted); }
+.kr-snip { display: block; margin-top: 3px; font-size: 13px; line-height: 1.45; color: var(--kr-muted); overflow-wrap: anywhere; }
+.kr-snip mark { background: var(--kr-warn-bg); color: var(--kr-warn-ink); border-radius: 3px; padding: 0 3px; font-weight: 600; }
+.kr-back {
+  font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; padding: 3px 11px; border-radius: 999px;
+  border: 1px solid var(--kr-accent); background: var(--kr-accent-soft); color: var(--kr-accent-dark);
+}
+.kr-back:focus-visible { outline: 2px solid var(--kr-accent); outline-offset: 2px; }
+
 .kr-welcome { border: 1px dashed var(--kr-line); border-radius: 12px; padding: 14px 16px; }
 .kr-welcome p { margin: 0 0 8px; font-size: 15px; line-height: 1.6; max-width: 70ch; }
 .kr-welcome p:last-child { margin-bottom: 0; }
@@ -115,7 +140,7 @@
 .kr-more a + a::before { content: "·"; color: var(--kr-muted); margin-right: 8px; }
 
 @media (max-width: 640px) {
-  #krQ { font-size: 16px; padding: 12px; }
+  #krQ { font-size: 16px; padding: 12px; max-height: 168px; }
   .kr-level { grid-template-columns: minmax(0, 1fr); gap: 6px; }
   .kr-n { width: 24px; height: 24px; font-size: 12.5px; }
   .kr-row, .kr-hit { grid-template-columns: minmax(0, 1fr); gap: 2px; }

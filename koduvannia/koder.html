@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="../styles.css?v=20260808b">
   <link rel="stylesheet" href="../classifiers/classifiers.css?v=20261112a">
   <link rel="stylesheet" href="koduvannia.css?v=20260819e">
-  <link rel="stylesheet" href="koder.css?v=20261120a">
+  <link rel="stylesheet" href="koder.css?v=20261120b">
   <link rel="stylesheet" href="../auth-v2.css?v=20261119a">
   <script type="module" src="../auth-v2.js?v=20261120e"></script>
 </head>
@@ -41,10 +41,10 @@
   <main class="kd-main kr-main">
 
     <section class="kr-ask" aria-label="Запит">
-      <label class="kr-label" for="krQ">Код, кілька кодів або слова</label>
+      <label class="kr-label" for="krQ">Код, кілька кодів, слова — або вставте текст листа, щоб перевірити всі коди в ньому</label>
       <div class="kr-inputrow">
-        <input id="krQ" type="search" autocomplete="off" spellcheck="false"
-               placeholder="M51.1 40303-00 · ДСГ I10 · ОДК 8 · пакет 4 · A67001 · 718-7 · перелом стегна">
+        <textarea id="krQ" rows="1" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"
+               placeholder="M51.1 40303-00 · ДСГ I10 · ОДК 8 · пакет 4 · A67001 · 718-7 · перелом стегна"></textarea>
         <button id="krClear" class="kr-clear" type="button" aria-label="Очистити запит">Очистити</button>
       </div>
       <div class="kr-examples">
@@ -58,6 +58,7 @@
         <button type="button" class="kr-ex" data-q="A33001">послуга ЕСОЗ</button>
         <button type="button" class="kr-ex" data-q="718-7">аналіз · LOINC</button>
         <button type="button" class="kr-ex" data-q="перелом стегна">слова</button>
+        <button type="button" class="kr-ex" data-q="Заклад просить роз'яснити, як обліковувати випадок з основним діагнозом М51.1 та втручанням 40303-00. Супутній діагноз Z99.99, консультація A67001, аналіз 718-7, процедура 96076-0 (лист закладу від 03.11.2026 № 123/4-15-26).">текст листа</button>
       </div>
     </section>
 
@@ -86,6 +87,6 @@
   <script src="../pmg-search-norm.js?v=1" defer></script>
   <script src="../pmg-code-search.js?v=20261120c" defer></script>
   <script src="../pmg-tariff.js?v=2" defer></script>
-  <script src="koder.js?v=20261120b" defer></script>
+  <script src="koder.js?v=20261120c" defer></script>
 </body>
 </html>
