@@ -9,7 +9,10 @@
 // обладнання.
 //
 // Координати назв рахують білдери (classifiers/build_posady.py і
-// classifiers/build_equipment.py) і кладуть у *_pkg.json. Сторінка НЕ
+// classifiers/build_equipment.py). Карта посад лежить у кадровому графі
+// (data/kadry/links_pkg.json — її кладе туди build_kadry_graph.py після
+// перевірки, що кожне посилання веде на вузол графа), карта обладнання —
+// в data/equipment/equipment_pkg.json. Сторінка НЕ
 // розбирає вимогу вдруге: другий парсер того самого неминуче розійшовся б
 // із першим. Формат обох карт однаковий:
 //   pkgs[номер пакета] = [{h: голова вимоги дослівно,
@@ -31,7 +34,7 @@
   // Ключ розділу специфікації → де брати карту і куди вести.
   var KINDS = {
     specialists: {
-      data: "classifiers/data/posady/posady_pkg.json",
+      data: "classifiers/data/kadry/links_pkg.json",
       page: "classifiers/posady.html",
       cls: "posada-link",
       hint: "Кваліфікаційна характеристика: ",

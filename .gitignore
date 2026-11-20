@@ -31,3 +31,6 @@ _seeds_local/
 # бази. Репозиторій публічний, тому в git їх немає — вони живуть у
 # таблиці grouper_rules під RLS (див. upload_supabase.py).
 koduvannia/data/grouper/
+
+# Проміжні шари збирачів довідників (кадри, табель № 153) — лише локально
+classifiers/_build/

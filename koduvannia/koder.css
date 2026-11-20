@@ -120,3 +120,28 @@
   .kr-n { width: 24px; height: 24px; font-size: 12.5px; }
   .kr-row, .kr-hit { grid-template-columns: minmax(0, 1fr); gap: 2px; }
 }
+
+/* ── точний групер ── */
+.kr-exact { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.kr-why { margin: 6px 0 4px; padding-left: 18px; font-size: 13.5px; color: var(--kr-ink); }
+.kr-why li { margin: 3px 0; overflow-wrap: anywhere; }
+
+/* ── умови випадку (коефіцієнти пункту 38) ── */
+.kr-cond { margin-top: 10px; border: 1px solid var(--kr-line); border-radius: 10px; background: var(--kr-soft); padding: 2px 12px; }
+.kr-cond > summary { cursor: pointer; font-size: 14px; font-weight: 600; color: var(--kr-accent-dark); padding: 8px 0; }
+.kr-condgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 18px; padding-bottom: 6px; }
+.kr-conditem { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 8px; align-items: center; font-size: 13.5px; padding: 3px 0; cursor: pointer; }
+.kr-conditem > input[type="checkbox"] { justify-self: end; width: 18px; height: 18px; accent-color: var(--kr-accent); }
+.kr-conditem > input[type="number"], .kr-conditem > select {
+  font: inherit; font-size: 13px; width: 74px; padding: 3px 5px; border: 1px solid var(--kr-line); border-radius: 6px;
+  background: var(--kr-surface); color: var(--kr-ink);
+}
+.kr-conditem b { font-weight: 600; color: var(--kr-muted); font-size: 12px; }
+.kr-conditem i { font-style: normal; color: var(--kr-accent-dark); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kr-conditem em { font-style: normal; color: var(--kr-muted); font-size: 12px; }
+.kr-conditem.kr-off { color: var(--kr-muted); cursor: default; }
+.kr-condwarn { display: block; margin-top: 3px; font-size: 12.5px; color: var(--kr-warn-ink); background: var(--kr-warn-bg); border: 1px solid var(--kr-warn-line); border-radius: 6px; padding: 2px 7px; }
+.kr-reset { font: inherit; font-size: 12.5px; border: 0; background: none; color: var(--kr-accent-dark); text-decoration: underline; cursor: pointer; padding: 0; }
+@media (max-width: 640px) {
+  .kr-condgrid { grid-template-columns: minmax(0, 1fr); }
+}

@@ -8,18 +8,24 @@
  *                      й постанови 1808);
  *   сума             — pmg-tariff.js (той самий розрахунок, що в «Кодуванні випадку»);
  *   пошук за словами — pmg-code-search.js.
- * Рівень «Групер» тут — лише перелік можливих груп за Таблицею співставлення. Точний
- * вибір групи робить сторінка «Групер ДСГ» (правила під логіном), і Кодер туди веде.
+ *   точна група      — grouper.js (той самий модуль, що на сторінці «Групер ДСГ»).
+ * Рівень «Групер»: тим, хто ввійшов у портал, Кодер показує точну групу з урахуванням
+ * супутніх діагнозів — правила групування лежать у базі під замком. Без входу — лише
+ * перелік можливих груп за Таблицею співставлення.
+ * Рівень «Тариф»: базова сума плюс «Умови випадку» — коефіцієнти пункту 38, які рахує
+ * спільний модуль pmg-tariff.js.
  */
 (function () {
   'use strict';
 
   const V = 'v=20261119a';
+  const GROUPER = './grouper.js?v=20261120a';
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g,
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const nf = (n, d) => Number(n).toLocaleString('uk-UA', d == null ? {} : { minimumFractionDigits: d, maximumFractionDigits: d });
   const kf = (v) => String(v).replace('.', ',');
+  const days = (n) => (n % 10 === 1 && n % 100 !== 11 ? 'доба' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? 'доби' : 'діб');
   const LEVELS = [
     ['dx', 'Діагноз'], ['odk', 'ОДК'], ['iv', 'Втручання'], ['grouper', 'Групер'],
     ['drg', 'ДСГ'], ['service', 'Таблиця співставлення'], ['tariff', 'Тариф'],
@@ -32,6 +38,11 @@
   const N25 = new Map(), N26 = new Map(), GROUP = new Map(), ODKN = new Map(), ESOZM = new Map();
   let NOTES = null;                 // накази 377, 182, роз'яснення — довантажуються після першої відповіді
   let hidden = new Set();
+  let EXACT = null;                 // модуль grouper.js із піднятими правилами
+  let exactState = 'idle';          // idle · loading · ready · guest · error
+  let exactInfo = {};               // версія правил і дата, або текст помилки
+  const COND = {};                  // «Умови випадку»: id коефіцієнта пункту 38 → значення
+  let condOpen = false;
 
   try { hidden = new Set(JSON.parse(localStorage.getItem('koder-hidden') || '[]')); } catch (e) { /* без сховища */ }
 
@@ -84,6 +95,30 @@
     const q = new URLSearchParams(location.search).get('q') || new URLSearchParams(location.search).get('code');
     if (q) $('krQ').value = q;
     run();
+    loadExact();
+  }
+
+  /* Точний групер. Логіка — у grouper.js, тут лише виклик: копії правил вибору групи
+     в Кодері немає. Правила модуль бере з бази під замком, тож без входу в портал
+     він чесно відмовляє, і рівень «Групер» лишається попереднім. */
+  function loadExact() {
+    exactState = 'loading';
+    let mod;
+    Promise.resolve()
+      .then(() => import(GROUPER))
+      .then((m) => { mod = m; return m.load({ core: CORE, dx: DX, iv: IV }); })
+      .then((info) => { EXACT = mod; exactInfo = info || {}; exactState = 'ready'; })
+      .catch((e) => {
+        const msg = String((e && e.message) || e || '');
+        exactState = /НЕМАЄ СЕСІЇ|СЕСІЯ ЗАСТАРІЛА/.test(msg) ? 'guest' : 'error';
+        exactInfo = { error: msg };
+      })
+      .then(() => { if ($('krQ').value.trim()) run(); });
+  }
+
+  function exact(dx, add, ivs) {
+    if (!EXACT) return null;
+    try { return EXACT.group(dx, add, ivs); } catch (e) { return { error: 'Групер не зміг опрацювати цей випадок.' }; }
   }
 
   function loadNotes() {
@@ -217,10 +252,9 @@
     return out;
   }
 
-  function sum(g) {
+  function calc(g) {
     try {
-      const res = PMG_TARIFF.calcCase(g, CORE, { share: true, balance: true });
-      return { total: res.total, formula: PMG_TARIFF.formulaText(res) };
+      return PMG_TARIFF.calcCase(g, CORE, Object.assign({ share: true, balance: true }, COND));
     } catch (e) { return null; }
   }
 
@@ -303,14 +337,90 @@
   }
 
   function tariffRows(groups) {
+    const active = Object.keys(COND).length;
     return groups.map((g) => {
-      const s = sum(g);
-      if (!s) return '';
+      const res = calc(g);
+      if (!res) return '';
+      const per = res.perDay.map((p) => `<span class="kr-formula">+ ${esc(p.f.label)}: ${p.days} ${days(p.days)} × ${kf(p.f.value)} × ${nf(res.rate)}
+        = ${nf(p.sum, 2)} грн — поверх випадку, без частки застосування</span>`).join('');
+      const warn = res.unknown.map((u) => `<span class="kr-condwarn">Не враховано «${esc(u.f.label)}»: ${esc(u.why)}.</span>`).join('');
       return `<div class="kr-row"><span class="kr-c">${esc(g.c)}</span>
-        <span class="kr-t"><b class="kr-sum">${nf(s.total, 2)} грн</b>
-          <span class="kr-formula">${esc(s.formula)}</span></span></div>`;
-    }).join('') + `<p class="kr-fine">Базова сума: ставка ${nf(CORE.rate.case)} грн × вага × частка застосування.
-      Вікові, травматичні та інші коефіцієнти пункту 38 тут не враховано.</p>`;
+        <span class="kr-t"><b class="kr-sum">${nf(res.perDay.length ? res.grand : res.total, 2)} грн</b>
+          <span class="kr-formula">${esc(PMG_TARIFF.formulaText(res))}</span>${per}${warn}</span></div>`;
+    }).join('') + condPanel(groups[0]) + (active
+      ? `<p class="kr-fine">Сума з позначеними умовами. Чи має заклад право на коефіцієнт, визначають умови
+          пункту 38 і договір — Кодер цього не перевіряє.</p>`
+      : `<p class="kr-fine">Базова сума: ставка ${nf(CORE.rate.case)} грн × вага × частка застосування.
+          Вік, травму, тривалість лікування чи інтенсивну терапію додають «Умови випадку».</p>`);
+  }
+
+  /* «Умови випадку» — перемикачі коефіцієнтів пункту 38. Перелік, значення й підписи
+     беруться з core.json (постанова 1808), рахує pmg-tariff.js; тут лише форма. */
+  function condPanel(g) {
+    if (!g) return '';
+    const pk = new Set(g.p || []);
+    const items = CORE.factors.map((f) => {
+      if (f.stage === 'final' || !['mul', 'addw', 'altw_days', 'rateday'].includes(f.kind)) return '';
+      const otherPkg = f.packages && f.packages.length && pk.size && !f.packages.some((p) => pk.has(p));
+      const noCol = f.kind === 'addw' && g.k[f.column] == null;
+      const noDrg = f.drg && !f.drg.includes(g.c);
+      const noShort = f.kind === 'altw_days' && !(CORE.shortStay && CORE.shortStay[g.root || g.c]);
+      const off = otherPkg || noCol || noDrg || noShort;
+      const why = otherPkg ? `лише ${f.packages.length > 1 ? 'пакети' : 'пакет'} ${f.packages.join(', ')}`
+        : noCol ? `для ${g.c} у додатку значення немає`
+        : noDrg ? `лише ДСГ ${f.drg.join(', ')}`
+        : noShort ? `для ${g.c} значення не відновлено` : '';
+      const id = esc(f.id), v = off ? '' : COND[f.id], dis = off ? ' disabled' : '';
+      let ctl, val = '';
+      if (f.kind === 'mul' && f.options) {
+        ctl = `<select data-cond="${id}"${dis}><option value="">ні</option>${f.options.map((o) =>
+          `<option value="${o.value}"${Number(v) === o.value ? ' selected' : ''}>${esc(o.label)} × ${kf(o.value)}</option>`).join('')}</select>`;
+      } else if (f.kind === 'mul' || f.kind === 'addw') {
+        ctl = `<input type="checkbox" data-cond="${id}"${v ? ' checked' : ''}${dis}>`;
+        val = f.kind === 'mul' ? `× ${kf(f.value)}` : (g.k[f.column] != null ? `+ ${kf(g.k[f.column])} до ваги` : '');
+      } else {
+        ctl = `<input type="number" min="0" max="${f.max_days || 30}" step="1" inputmode="numeric" placeholder="діб"
+          data-cond="${id}" value="${v ? esc(v) : ''}"${dis}>`;
+        val = f.kind === 'rateday'
+          ? `${kf(f.value)} ставки за добу${f.from_day ? `, з ${f.from_day}-ї доби` : ''}${f.max_days ? `, не більше ${f.max_days}` : ''}`
+          : 'замість ваги: за втручання + за кожен день';
+      }
+      return `<label class="kr-conditem${off ? ' kr-off' : ''}" title="${esc(f.note || '')}">${ctl}
+        <span><b>пп. ${esc(f.sub)}</b> ${esc(f.label)}${val ? ` <i>${esc(val)}</i>` : ''}${why ? ` <em>${esc(why)}</em>` : ''}</span></label>`;
+    }).join('');
+    const n = Object.keys(COND).length;
+    return `<details class="kr-cond" id="krCond"${condOpen || n ? ' open' : ''}>
+      <summary>Умови випадку${n ? ` · позначено ${n}` : ' — вік, травма, тривалість, інтенсивна терапія'}</summary>
+      <div class="kr-condgrid">${items}</div>
+      <p class="kr-fine">Тут не рахується: кілька операцій при травмі чи на парних органах (пп. 11) — який коефіцієнт
+        ділиться, визначають алгоритми НСЗУ; кардіохірургічні ваги додатка 2 (пп. 15) — це окремий рядок групи.
+        Коефіцієнти короткого лікування (пп. 9-10) відновлено з фактичних оплат, у постанові їх немає.
+        ${n ? '<button type="button" class="kr-reset" data-cond-reset>скинути умови</button>' : ''}</p>
+    </details>`;
+  }
+
+  /* Рівень «Групер»: точна група для тих, хто ввійшов, інакше — попередня за Таблицею. */
+  function grouperBlock(ex, exGroup, cand, table, addDx) {
+    const byTable = `<p>${esc(cand.rule)}</p>` +
+      (table.length > 1 ? `<p class="kr-fine">Можливих груп ${table.length}. Котру з них обере ЕСОЗ, визначають правила групування.</p>` : '');
+    const link = more('grouper.html', 'усі кандидати й щаблі — Групер ДСГ');
+    if (ex && exGroup) {
+      const stamp = [exactInfo.version ? 'версія правил ' + exactInfo.version : '',
+        exactInfo.uploaded ? 'оновлено ' + new Date(exactInfo.uploaded).toLocaleDateString('uk-UA') : ''].filter(Boolean).join(', ');
+      return `<p class="kr-exact">${chip(exGroup.c, 'ДСГ ' + exGroup.c)} <b>${esc(exGroup.t)}</b> ${tag('точне групування')}</p>
+        <ul class="kr-why">${(ex.why || []).map((w) => `<li><b>${esc(w.rule)}.</b> ${esc(w.text)}</li>`).join('')}</ul>
+        <p class="kr-fine">Групу визначено правилами групера з урахуванням супутніх діагнозів${stamp ? ' (' + esc(stamp) + ')' : ''}.
+          Це відтворення логіки ЕСОЗ, звірене на фактично згрупованих випадках; остаточну групу визначає ЕСОЗ.</p>${link}`;
+    }
+    if (ex && ex.group) {
+      return `<p class="kr-fine">Групер дав групу ${esc(ex.group)}, але в сітці постанови № 1808 її немає. Нижче — групи за Таблицею співставлення.</p>${byTable}${link}`;
+    }
+    if (ex && ex.error) return `<p class="kr-fine">${esc(ex.error)} Нижче — групи за Таблицею співставлення.</p>${byTable}${link}`;
+    const sec = addDx.length ? '<p class="kr-fine">Супутні діагнози тут не враховано: інколи саме вони змінюють групу.</p>' : '';
+    const note = exactState === 'loading' ? '<p class="kr-fine">Завантажую правила групера…</p>'
+      : exactState === 'error' ? `<p class="kr-fine">Правила групера не завантажились (${esc(exactInfo.error || 'помилка')}); показано групи за Таблицею.</p>`
+      : '<p class="kr-fine">Точну групу з урахуванням супутніх діагнозів Кодер показує тим, хто ввійшов у портал.</p>';
+    return byTable + sec + note + more('grouper.html', 'точне групування — Групер ДСГ (потрібен вхід)');
   }
 
   // ── відповіді ────────────────────────────────────────────────────────
@@ -324,7 +434,12 @@
     if (dx) {
       const d = DX[dx];
       const cand = candidates(dx, ivs);
-      const groups = roots(cand.groups);
+      const table = roots(cand.groups);
+      const ex = exact(dx, addDx, ivs);
+      const exGroup = ex && ex.group
+        ? roots(CORE.groups.filter((g) => g.root === ex.group && inGrid(g)))[0] : null;
+      const groups = exGroup ? [exGroup] : table;
+      const others = exGroup ? table.filter((g) => g.root !== exGroup.root) : [];
       html += level('dx', dxLine(dx) +
         (addDx.length ? `<p class="kr-fine">Супутні:</p>${addDx.map(dxLine).join('')}` : '') +
         `<div id="krNotes" class="kr-notes"></div>` +
@@ -335,17 +450,15 @@
         more('../classifiers/nk026.html?code=' + encodeURIComponent(ivs[0]), 'паспорт коду в НК 026')
         : '<p class="kr-none">Втручання не вказано. Допишіть код НК 026 через пробіл — побачите хірургічну групу.</p>',
         { src: 'НК 026:2021', empty: !ivs.length, entry: !!ivs.length });
-      html += level('grouper', `<p>${esc(cand.rule)}</p>` +
-        (groups.length > 1 ? `<p class="kr-fine">Можливих груп ${groups.length}. Котру з них обере ЕСОЗ, визначають правила групування.</p>` : '') +
-        (addDx.length ? '<p class="kr-fine">Супутні діагнози тут не враховано: інколи саме вони змінюють групу.</p>' : '') +
-        more('grouper.html', 'точне групування — Групер ДСГ (потрібен вхід)'),
-        { src: 'попередньо, за Таблицею співставлення' });
-      html += level('drg', groups.length ? drgRows(groups)
+      html += level('grouper', grouperBlock(ex, exGroup, cand, table, addDx),
+        { src: exGroup ? 'точно, за правилами групування' : 'попередньо, за Таблицею співставлення' });
+      html += level('drg', groups.length ? drgRows(groups) +
+          (others.length ? `<details class="kr-fold"><summary>Інші групи, можливі за Таблицею співставлення: ${others.length}</summary>${drgRows(others)}</details>` : '')
         : '<p class="kr-none">Цей діагноз не веде до жодної групи з вагою в постанові.</p>',
         { src: 'постанова № 1808, додатки 1 і 2' });
       html += level('service', serviceRows(groups, BY_ICD[dx]), { src: 'Таблиця співставлення, таблиця 1' });
       html += level('tariff', groups.length ? tariffRows(groups) +
-        more('index.html?q=' + q, 'повний розрахунок з коефіцієнтами — Кодування випадку')
+        more('index.html?q=' + q, 'покроковий розрахунок і перевірки кодування — Кодування випадку')
         : '<p class="kr-none">Немає групи — немає суми.</p>', { src: 'постанова № 1808, пункти 34 і 38' });
       return html;
     }
@@ -538,7 +651,22 @@
     $('krQ').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(run, 220); });
     $('krQ').addEventListener('keydown', (e) => { if (e.key === 'Enter') { clearTimeout(timer); run(); } });
     $('krClear').addEventListener('click', () => { $('krQ').value = ''; run(); $('krQ').focus(); });
+    // «Умови випадку»: зміна перемикача перераховує суму; стан живе, доки відкрита сторінка
+    document.addEventListener('change', (e) => {
+      const c = e.target.closest && e.target.closest('[data-cond]');
+      if (!c) return;
+      const v = c.type === 'checkbox' ? c.checked : Number(c.value) || 0;
+      if (v) COND[c.dataset.cond] = v; else delete COND[c.dataset.cond];
+      condOpen = true;
+      run();
+    });
+    document.addEventListener('toggle', (e) => { if (e.target && e.target.id === 'krCond') condOpen = e.target.open; }, true);
     document.addEventListener('click', (e) => {
+      if (e.target.closest('[data-cond-reset]')) {
+        Object.keys(COND).forEach((k) => delete COND[k]);
+        run();
+        return;
+      }
       const b = e.target.closest('[data-q]');
       if (b) {
         $('krQ').value = b.dataset.q.trim();

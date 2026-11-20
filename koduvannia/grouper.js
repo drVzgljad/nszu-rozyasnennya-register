@@ -106,7 +106,11 @@ async function loadBlocks() {
   return by;
 }
 
-async function boot() {
+/* Завантажити правила й підняти групер БЕЗ сторінки. Так його кличе «Кодер»
+   (koder.js): логіка групування лишається в одному файлі, а не четвертою
+   копією. ready — уже прочитана Таблиця співставлення {core, dx, iv}: Кодер
+   тримає ті самі файли, і тягнути їх удруге немає сенсу. */
+export async function load(ready) {
   const by = await loadBlocks();
   const v = (by.hierarchy && by.hierarchy.version) || 1;
   const need = v >= 2 ? [...BLOCKS_V1, 'gi_codes'] : BLOCKS_V1;
@@ -115,13 +119,21 @@ async function boot() {
   if (v > LOGIC_VERSION) throw new Error(`ПРАВИЛА НОВІШІ: ${v}`);
   let map = null;
   if (v >= 2) {
-    // по одному, не паралельно: два великі fetch одночасно на локальному
-    // сервері дають «Failed to fetch»
-    map = { core: await loadJson(`data/core.json?${MAP_V}`) };
-    map.dx = await loadJson(`data/dx.json?${MAP_V}`);
-    map.iv = await loadJson(`data/iv.json?${MAP_V}`);
+    if (ready && ready.core && ready.dx && ready.iv) map = ready;
+    else {
+      // по одному, не паралельно: два великі fetch одночасно на локальному
+      // сервері дають «Failed to fetch»
+      map = { core: await loadJson(`data/core.json?${MAP_V}`) };
+      map.dx = await loadJson(`data/dx.json?${MAP_V}`);
+      map.iv = await loadJson(`data/iv.json?${MAP_V}`);
+    }
   }
   init(by, map);
+  return { version: VERSION, uploaded: UPLOADED };
+}
+
+async function boot() {
+  await load();
   renderMeta();
   renderVersion();
   renderHow();
@@ -910,8 +922,9 @@ function wire() {
     }));
 }
 
-// У Node (звірка з predict.py) сторінки немає — лише логіка.
-if (typeof document !== 'undefined') boot().catch(e => {
+// У Node (звірка з predict.py) сторінки немає — лише логіка. Так само в «Кодері»:
+// він імпортує цей модуль заради load() і group(), а власної форми групера не має.
+if (typeof document !== 'undefined' && document.getElementById('grResult')) boot().catch(e => {
   const box = document.getElementById('grResult');
   box.hidden = false;
   const m = e.message || '';
