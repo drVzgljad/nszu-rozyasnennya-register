@@ -32,7 +32,7 @@
 
   // Підпис під вікном — акт, який цю ланку встановлює. Беремо з реєстру джерел
   // у графі, щоб не тримати другий список актів у сторінці.
-  const SRC_KEY = { req: "pkgreq", post: "post", dkhp: "dkhp", code: "code", spec: "spec" };
+  const SRC_KEY = { req: "pkgreq", post: "post", dkhp: "dkhp", code: "code", spec: "spec", atest: "atest" };
 
   // Порядок ланок. Ліворуч — право працювати, праворуч — облік у ЕСОЗ.
   const LAYERS = ["spec", "post", "dkhp", "code"];
@@ -100,6 +100,7 @@
   const TYPE_WORD = {
     spec: "спеціальність", post: "посада",
     dkhp: "характеристика ДКХП", code: "код НСЗУ",
+    atest: "спеціальність або профіль Номенклатури атестації",
   };
 
   function buildSearch() {
@@ -304,6 +305,10 @@
       out(a.id, "req_post").forEach((e) => S.post.add(e.to));
       start = LAYERS.indexOf("post");
       fixedReqs = true;
+    } else if (N.get(a.id).type === "atest") {
+      // Зайшли із запису Номенклатури атестації: він сідає на колонку посад.
+      out(a.id, "atest_post").forEach((e) => S.post.add(e.to));
+      start = LAYERS.indexOf("post");
     } else {
       const n = N.get(a.id);
       S[n.type].add(a.id);
@@ -322,17 +327,25 @@
       S.post.forEach((p) => inc(p, "req_post").forEach((e) => reqs.add(e.from)));
     }
 
+    // Атестація (наказ МОЗ № 650): за якою спеціальністю чи профілем Номенклатури атестуються
+    // посади в кадрі. Бічна ланка від посад, тому в LAYERS її немає.
+    const atest = new Set();
+    if (N.get(a.id) && N.get(a.id).type === "atest") atest.add(a.id);
+    else S.post.forEach((p) => inc(p, "atest_post").forEach((e) => atest.add(e.from)));
+
     const noNext = (ids, rel) => [...ids].filter((id) => !out(id, rel).length);
     const reqArr = [...reqs].sort(byReqId);
     return {
       anchorKey: a.kind === "pkg" || N.get(a.id).type === "pkgreq"
         ? "req" : N.get(a.id).type,
       req: reqArr, post: [...S.post], dkhp: [...S.dkhp], code: [...S.code], spec: [...S.spec],
+      atest: [...atest].sort((x, y) => (N.get(x).name || "").localeCompare(N.get(y).name || "", "uk")),
       lost: {
         req: noNext(reqArr, "req_post"),
         post: noNext(S.post, "post_dkhp"),
         dkhp: noNext(S.dkhp, "dkhp_code"),
         spec: [...S.post].filter((p) => !inc(p, "spec_post").length),
+        atest: [...S.post].filter((p) => !inc(p, "atest_post").length),
       },
       critical: reqArr.filter((id) => (N.get(id) || {}).critical),
       tone: reqArr.reduce((acc, id) => {
@@ -378,7 +391,7 @@
 
   const TITLES_BOX = {
     req: "Кадрові вимоги", spec: "Спеціальності",
-    post: "Посади", dkhp: "Характеристики", code: "Коди НСЗУ",
+    post: "Посади", dkhp: "Характеристики", code: "Коди НСЗУ", atest: "Атестація",
   };
 
   function draw() {
@@ -477,6 +490,7 @@
           : key === "dkhp" && n.page ? `<span class="kd-sub">с. ${esc(n.page)} Довідника</span>`
           : key === "post" && n.no ? `<span class="kd-sub">позиція № ${esc(n.no)}</span>`
           : key === "spec" && n.sec ? `<span class="kd-sub">${esc(secLabel(n.sec))}</span>`
+          : key === "atest" ? `<span class="kd-sub">${n.kind === "profile" ? "профіль роботи" : "спеціальність Номенклатури"}</span>`
           : key === "req" ? `<span class="kd-sub">пакет № ${esc(n.package)}</span>` : "";
         return `<div class="kd-val"><span class="kd-val-n">${
           esc(trim(n.name || id, 90))}</span>${extra}</div>`;
@@ -498,6 +512,7 @@
     if (key === "post") return plural(n, "посада", "посади", "посад");
     if (key === "dkhp") return plural(n, "характеристика", "характеристики", "характеристик");
     if (key === "code") return plural(n, "код", "коди", "кодів");
+    if (key === "atest") return plural(n, "запис Номенклатури", "записи Номенклатури", "записів Номенклатури");
     return plural(n, "спеціальність", "спеціальності", "спеціальностей");
   }
 
@@ -506,6 +521,7 @@
       : key === "code" ? "коду НСЗУ немає"
       : key === "spec" ? "жодна спеціальність не веде на цю посаду"
       : key === "req" ? "жоден пакет цього не вимагає"
+      : key === "atest" ? "у Номенклатурі атестації відповідника немає"
       : "немає";
   }
 
@@ -606,6 +622,11 @@
           ${ar}
           ${boxHTML("code", w.code, "")}
         </div>
+        <div class="kd-bottom">
+          <div class="kd-ar down" aria-hidden="true">↓</div>
+          ${boxHTML("atest", w.atest,
+            lost(w.lost.atest, "посада", "посади", "посад", "без відповідника в Номенклатурі"))}
+        </div>
       </div>`;
   }
 
@@ -621,8 +642,24 @@
     post: "Посади, які треба ввести у штатний розпис",
     dkhp: "Кваліфікаційні характеристики",
     code: "Коди посад НСЗУ",
+    atest: "Атестація: спеціальність або профіль роботи за Номенклатурою",
   };
-  const ORDER = ["req", "spec", "post", "dkhp", "code"];
+  const ORDER = ["req", "spec", "post", "dkhp", "code", "atest"];
+
+  /** Пояснення до розділу атестації — з даних графа (atest_info), не свій текст про акт. */
+  function atestNoteHTML(w) {
+    const info = G.atest_info || {}, act = info.act || {}, bpr = info.bpr || {};
+    const pts = (x, label) => (x && x.per_year
+      ? `${label} — ${x.per_year} балів безперервного професійного розвитку на рік` : "");
+    const lines = [pts(bpr.professional, "професіонали"), pts(bpr.fakhivets, "фахівці")].filter(Boolean);
+    return `<p class="kd-empty kd-atest-note">Зіставлення посади із записом Номенклатури (додаток 1 до Порядку
+      проведення атестації, ${esc(act.title || "наказ МОЗ № 650")}) обчислено за професійними кваліфікаціями
+      обох актів. ${act.note_war ? esc(act.note_war) + "." : ""}
+      ${lines.length ? "Вимоги Порядку: " + esc(lines.join("; ")) + "." : ""}
+      ${w.lost.atest.length ? `Посад у кадрі без відповідника: ${nf(w.lost.atest.length)} — для керівних і
+        суто адміністративних посад атестаційної спеціальності може не бути за визначенням.` : ""}
+      Бали й перехідні норми для конкретної посади — в її картці на сторінці «Спеціальності та посади».</p>`;
+  }
 
   function renderSections() {
     const w = current, d = $("#kdDetail");
@@ -655,6 +692,7 @@
         ${ids.length
           ? `<ul class="kd-list">${ids.map((id) => rowHTML(key, id, lostSet)).join("")}</ul>`
           : `<p class="kd-empty">${esc(emptyWhy(key))}.</p>`}
+        ${key === "atest" ? atestNoteHTML(w) : ""}
       </details>`;
   }
 
@@ -692,6 +730,11 @@
           ? [partLabel(n.part), n.no ? "позиція № " + n.no : "", n.qual].filter(Boolean).join(" · ")
         : key === "dkhp"
           ? [n.sub || n.section, n.page ? "с. " + n.page + " Довідника" : ""].filter(Boolean).join(" · ")
+        : key === "atest"
+          ? [n.kind === "profile" ? "профіль роботи" : "спеціальність Номенклатури",
+             (n.quals || []).length ? "кваліфікація: " + n.quals.join(", ") : "",
+             (n.base_specs || []).length ? "на базі спеціальностей: " + n.base_specs.join(", ") : "",
+             (n.path || []).slice(-1)[0]].filter(Boolean).join(" · ")
         : n.kind === "status" ? "юридичний статус, не посада"
         : n.kind === "admin" ? "загальноадміністративна посада" : "";
       body = `

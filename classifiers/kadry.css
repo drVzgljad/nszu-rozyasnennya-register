@@ -90,6 +90,14 @@
 }
 .kd-top > .kd-cell { grid-column: 3; }
 .kd-top > .kd-ar.down { grid-column: 3; justify-self: center; }
+/* Нижній ряд: «Атестація» — бічна ланка від посад, тому теж під їхньою колонкою. */
+.kd-bottom {
+  display: grid; grid-template-columns: 1fr 46px 1fr 46px 1fr 46px 1fr;
+  justify-items: stretch;
+}
+.kd-bottom > .kd-cell { grid-column: 3; }
+.kd-bottom > .kd-ar.down { grid-column: 3; justify-self: center; }
+.kd-atest-note { margin-top: 10px; }
 
 .kd-cell { display: flex; flex-direction: column; gap: 6px; }
 
@@ -144,8 +152,9 @@
 @media (max-width: 1000px) {
   /* Вузько — ланцюжок стає стовпчиком, стрілки повертаються вниз. */
   .kd-grid { min-width: 0; }
-  .kd-row, .kd-top { grid-template-columns: 1fr; }
+  .kd-row, .kd-top, .kd-bottom { grid-template-columns: 1fr; }
   .kd-top > .kd-cell, .kd-top > .kd-ar.down { grid-column: 1; }
+  .kd-bottom > .kd-cell, .kd-bottom > .kd-ar.down { grid-column: 1; }
   .kd-row > .kd-cell, .kd-row > .kd-ar { grid-row: auto; }
   .kd-ar { transform: rotate(90deg); padding: 4px 0; }
   .kd-box { min-height: 0; }
@@ -180,7 +189,8 @@
 }
 .kd-note-h { font-weight: 800; margin-bottom: 10px; color: var(--warning-text); }
 .kd-note-body {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(21rem, 1fr));
+  /* min(21rem, 100%): на телефоні колонка не ширша за саму примітку — інакше схема їздила вбік */
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(21rem, 100%), 1fr));
   gap: 4px 28px; align-items: start;
 }
 .kd-note p { margin: 0 0 8px; }
