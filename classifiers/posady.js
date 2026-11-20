@@ -561,7 +561,7 @@
     if (!raw) { refilter(); return; }
 
     const q = raw.toLowerCase().replace(/\s+/g, " ");
-    let list;
+    let list, note = "";
     if (CODE_RE.test(raw)) {
       const code = raw.toUpperCase().replace(/\s+/g, "");
       const hit = byCode.get(code);
@@ -576,6 +576,12 @@
       }
     } else {
       list = DKHP.filter((e) => matches(e, q));
+      // спільний пошук порталу: інший відмінок чи порядок слів, побутові назви («медсестра»)
+      if (window.PMG_FIND) {
+        const x = PMG_FIND.extra(DKHP, raw, new Set(list), { text: findText, scope: "kadry" });
+        list = list.concat(x.items);
+        note = x.note;
+      }
     }
     list = applyFilters(list);
 
@@ -584,8 +590,10 @@
     const gaps = CODE_RE.test(raw) ? [] :
       orphans.filter((c) => c.name.toLowerCase().includes(q));
 
-    showResults(list, `запит «${raw}»`, gaps);
+    showResults(list, `запит «${raw}»` + (note ? " · " + note : ""), gaps);
   }
+  const findText = (e) => e._t || (e._t = PMG_SEARCH.text(
+    [e.name].concat(e.alt || [], e.syn || []).join(" · ")));
 
   function runBatch() {
     if (!ready) return;
@@ -1018,6 +1026,9 @@
       (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
   }
   function escAttr(s) { return esc(s).replace(/"/g, "&quot;"); }
+
+  // Словник скорочень і побутових назв довантажується окремо: коли прийде — повторюємо пошук.
+  if (window.PMG_FIND) PMG_FIND.ready().then(() => { try { if (el.search && el.search.value.trim()) runSearch(); } catch (e) { /* сторінка ще вантажиться */ } });
 
   boot();
 })();

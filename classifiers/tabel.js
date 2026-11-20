@@ -288,8 +288,21 @@
       }
     }
     out.sort((a, b) => b[0] - a[0] || a[1][C.NAME].localeCompare(b[1][C.NAME], "uk"));
-    showResults(out.map((x) => x[1]), raw + (ids.length > 1 ? ` · у ${ids.length} наказах` : ""));
+    // спільний пошук порталу: інший відмінок чи порядок слів, скорочення («ШВЛ», «УЗД»)
+    let note = "";
+    if (window.PMG_FIND) {
+      const have = new Set(out.map((o) => o[1]));
+      for (const id of ids) {
+        const x = PMG_FIND.extra(LOADED.get(id).items, raw, have,
+          { text: findText, scope: "equipment", filter: el.hideExcluded.checked ? (e) => !e[C.ST] : null });
+        x.items.forEach((e) => out.push([1, e]));
+        note = note || x.note;
+      }
+    }
+    showResults(out.map((x) => x[1]), raw + (ids.length > 1 ? ` · у ${ids.length} наказах` : "") + (note ? " · " + note : ""));
   }
+
+  const findText = (e) => e._t || (e._t = PMG_SEARCH.text(e[C.NAME]));
 
   const CAP = 400;
   function showResults(list, what) {
@@ -699,6 +712,9 @@
   function trim(s, n) { s = String(s || ""); return s.length > n ? s.slice(0, n - 1) + "…" : s; }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
   function escAttr(s) { return esc(s).replace(/"/g, "&quot;"); }
+
+  // Словник скорочень і побутових назв довантажується окремо: коли прийде — повторюємо пошук.
+  if (window.PMG_FIND) PMG_FIND.ready().then(() => { try { if (el.search && el.search.value.trim()) runSearch(); } catch (e) { /* сторінка ще вантажиться */ } });
 
   boot();
 })();

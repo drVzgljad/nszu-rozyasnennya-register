@@ -19,10 +19,14 @@
  * PMG_FIND.search(list, raw, opts) → { items: [{e, score, via}], note }
  *     list — масив записів; opts.text(e) — нормалізована назва (типово e._t);
  *     opts.scope — сфера словника: групи з полем scope («kadry» — посади й спеціальності,
- *              «equipment» — обладнання)
+ *              «equipment» — обладнання; розділи без власних груп передають свою назву,
+ *              щоб словник кодів до них не застосовувався)
  *              працюють лише в пошуку з тією самою сферою, групи без scope — у пошуку кодів;
  *     via  — пояснення для результатів зі словника («рак → злоякісне новоутворення»);
  *     note — рядок для користувача, коли спрацював щабель 3 або 4.
+ * PMG_FIND.extra(list, raw, have, opts) → { items: [запис,…], note } — для розділів зі своїм
+ *     ранжуванням (НК 024, НК 031, табелі, LOINC, посади): записи, яких розділ сам не знайшов
+ *     (have — Set знайденого), найкращі перші. Розділ дописує їх у кінець свого списку.
  * PMG_FIND.ready() → Promise, що завершується, коли словник завантажено (або не вдалося —
  *     тоді пошук працює без щабля 3).
  * PMG_FIND.setSynonyms(dict) — для тестів у Node (tools/check_search.js).
@@ -271,6 +275,13 @@
     return { items, note };
   }
 
+  /** Що спільний пошук знаходить понад те, що розділ уже знайшов сам. */
+  function extra(list, raw, have, opts) {
+    const r = search(list, raw, opts);
+    const items = r.items.filter((x) => !have.has(x.e)).sort((a, b) => b.score - a.score).map((x) => x.e);
+    return { items, note: items.length ? r.note : '' };
+  }
+
   /** Чи всі слова запиту є в одному тексті (для розділів зі своїм ранжуванням). */
   function test(e, text, raw) {
     const tokens = makeTokens(norm(raw));
@@ -279,5 +290,5 @@
     return tokens.every((tok) => tokenTier(e, tok) > 0);
   }
 
-  g.PMG_FIND = { search, test, ready, setSynonyms, stem, _variants: (raw) => variants(makeTokens(norm(raw))) };
+  g.PMG_FIND = { search, extra, test, ready, setSynonyms, stem, _variants: (raw) => variants(makeTokens(norm(raw))) };
 })(typeof window !== 'undefined' ? window : globalThis);

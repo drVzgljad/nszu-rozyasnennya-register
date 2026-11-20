@@ -292,13 +292,24 @@
     }
     out.sort((a, b) => b[0] - a[0] ||
       (a[1][C.RANK] || 9e9) - (b[1][C.RANK] || 9e9) || a[1][C.NUM].localeCompare(b[1][C.NUM]));
+    // Спільний пошук порталу — слова в іншому відмінку чи порядку («глюкози в крові»).
+    // Набір великий (до 67 тисяч записів), тому кличемо його лише коли точний збіг дав мало.
+    let more = 0;
+    if (!looksCode && out.length < 20 && window.PMG_FIND) {
+      const x = PMG_FIND.extra(WORK, raw, new Set(out.map((o) => o[1])), { text: findText, scope: "loinc", filter: passFilters });
+      x.items.sort((a, b) => (a[C.RANK] || 9e9) - (b[C.RANK] || 9e9)).forEach((r) => out.push([1, r]));
+      more = x.items.length;
+    }
     const CAP = 600;
     el.count.textContent = out.length
-      ? `Знайдено ${nf(out.length)}${out.length > CAP ? " · показано " + CAP : ""}`
+      ? `Знайдено ${nf(out.length)}${out.length > CAP ? " · показано " + CAP : ""}${more ? " · з них за окремими словами " + nf(more) : ""}`
       : "Нічого не знайдено";
     el.results.innerHTML = out.slice(0, CAP).map(([, r]) => resultRow(r)).join("");
     el.results.hidden = false;
   }
+
+  const findText = (r) => r._t || (r._t = PMG_SEARCH.text(
+    r[C.NUM] + " " + AX.map((c) => r[c] || "").join(" ") + " " + (r[C.UA] || []).filter(Boolean).join(" ")));
 
   function resultRow(r) {
     const badge = US_BADGE[r[C.US]];

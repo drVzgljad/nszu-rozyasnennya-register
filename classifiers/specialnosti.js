@@ -422,7 +422,13 @@
     const type = TYPE[registry];
 
     let list = NODES.filter((n) => n.type === type);
-    if (q) list = list.filter((n) => n.name.toLowerCase().includes(q));
+    if (q) {
+      const direct = list.filter((n) => n.name.toLowerCase().includes(q));
+      // спільний пошук порталу: інший відмінок чи порядок слів, побутові назви («медсестра»)
+      const extra = window.PMG_FIND
+        ? PMG_FIND.extra(list, el.search.value.trim(), new Set(direct), { text: findText, scope: "kadry" }).items : [];
+      list = direct.concat(extra);
+    }
     if (type === "spec") {
       if (sec) list = list.filter((n) => n.sec === sec);
       if (kind) list = list.filter((n) => (n.kinds || []).includes(kind));
@@ -446,6 +452,8 @@
 
     paint(list);
   }
+
+  const findText = (n) => n._t || (n._t = PMG_SEARCH.text(n.name));
 
   function deg(n, type) { return (n.deg || {})[type] || 0; }
 
@@ -855,6 +863,9 @@
       <span class="sp-tag m-root">${byPkg.size}</span></h3>
       <div class="sp-pkglist">${rows}</div></div>`;
   }
+
+  // Словник скорочень і побутових назв довантажується окремо: коли прийде — повторюємо пошук.
+  if (window.PMG_FIND) PMG_FIND.ready().then(() => { try { if (el.search && el.search.value.trim()) refilter(); } catch (e) { /* сторінка ще вантажиться */ } });
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", boot);

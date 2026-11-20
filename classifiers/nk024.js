@@ -335,8 +335,17 @@
       if (score > 0) out.push([score, e]);
     }
     out.sort((a, b) => b[0] - a[0] || a[1][C.CODE].localeCompare(b[1][C.CODE]));
-    showResults(out.map((x) => x[1]), raw || "фільтр");
+    // спільний пошук порталу: інший відмінок чи порядок слів, скорочення («ШВЛ», «УЗД»)
+    let note = "";
+    if (raw && !looksCode && window.PMG_FIND) {
+      const x = PMG_FIND.extra(INDEX, raw, new Set(out.map((o) => o[1])),
+        { text: findText, scope: "equipment", filter: bit ? (e) => !!(e[C.FLAG] & bit) : null });
+      x.items.forEach((e) => out.push([1, e]));
+      note = x.note;
+    }
+    showResults(out.map((x) => x[1]), (raw || "фільтр") + (note ? " · " + note : ""));
   }
+  const findText = (e) => e._t || (e._t = PMG_SEARCH.text(e[C.UA] + " " + e[C.EN]));
 
   const CAP = 500;
   function showResults(list, what) {
@@ -637,6 +646,9 @@
   function trim(s, n) { s = String(s || ""); return s.length > n ? s.slice(0, n - 1) + "…" : s; }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])); }
   function escAttr(s) { return esc(s).replace(/"/g, "&quot;"); }
+
+  // Словник скорочень і побутових назв довантажується окремо: коли прийде — повторюємо пошук.
+  if (window.PMG_FIND) PMG_FIND.ready().then(() => { try { if (el.search && el.search.value.trim()) runSearch(); } catch (e) { /* сторінка ще вантажиться */ } });
 
   boot();
 })();
