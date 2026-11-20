@@ -641,7 +641,9 @@ function setTab(tab) {
 
 /* ── старт ──────────────────────────────────────────────────── */
 async function init() {
-  const response = await fetch(`data/ambulatory_9.json?v=${Date.now()}`);
+  // Без мітки часу в адресі: з нею 2 МБ вантажились наново при кожному заході. Свіжість
+  // забезпечує service worker (мережа першою з перевіркою за ETag — див. sw.js).
+  const response = await fetch("data/ambulatory_9.json", { cache: "no-cache" });
   state.data = await response.json();
   state.data.services.forEach((s) => { SERVICE_NAME[s.key] = s.name; });
 

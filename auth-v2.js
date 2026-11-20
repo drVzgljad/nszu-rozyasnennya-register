@@ -509,9 +509,11 @@ function applyAccess() {
           // окремими пунктами — нову можливість додавати в сам Кодер.
           { text: 'Кодер · від коду до суми', path: 'koduvannia/koder.html' },
           { text: 'Таблиця співставлення · код ↔ пакет', path: 'mapping/index.html' },
-          { text: 'Правила: наказ 377', path: 'algorithms/index.html', role: 'expert' },
-          { text: 'Кодування реабілітації · наказ 182', path: 'algorithms/rehab.html' },
-          { text: 'Кодування амбулаторки · пакет 9', path: 'algorithms/ambulatory.html', role: 'expert' }
+          // 20.11.2026: три пункти правил зведено в один. Накази 377, 182 і правила амбулаторки —
+          // вкладки однієї смуги (algorithms/rules-tabs.js). Гостю відкрита лише вкладка наказу 182,
+          // тому він потрапляє одразу на неї, а не на «Доступ обмежено».
+          { text: 'Правила кодування · 377, 182, пакет 9',
+            path: hasAccess('expert') ? 'algorithms/index.html' : 'algorithms/rehab.html' }
         ]
       }
     ];
@@ -2843,8 +2845,8 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
     { icon: '🪪', label: 'Спеціальності та посади', path: 'classifiers/specialnosti.html' },
     { icon: '🧭', label: 'Кодер · від коду до суми', path: 'koduvannia/koder.html' },
     { icon: '🔗', label: 'Таблиця співставлення', path: 'mapping/index.html' },
-    { icon: '🦼', label: 'Наказ 182 · Кодування реабілітації', path: 'algorithms/rehab.html' },
-    { icon: '🏥', label: 'Кодування амбулаторки · пакет 9', path: 'algorithms/ambulatory.html' },
+    { icon: '📐', label: 'Правила кодування · 377, 182, пакет 9',
+      path: hasAccess('expert') ? 'algorithms/index.html' : 'algorithms/rehab.html' },
     { icon: '📑', label: 'Договори ЗОЗ', path: 'zoz-dogovr/index.html' },
     { icon: '🏥', label: 'Хто це лікує', path: 'zoz-poshuk/index.html' },
     { icon: '👤', label: 'Кабінет', path: 'cabinet/index.html', role: 'expert' },
