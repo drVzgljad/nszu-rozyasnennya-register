@@ -8,20 +8,17 @@
   <link rel="apple-touch-icon" href="/assets/icon-180.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>НавігаторПМГ26 | Кадровий ланцюжок</title>
+  <title>НавігаторПМГ26 | Кадри</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
   <link rel="stylesheet" href="classifiers.css?v=20261112a">
-  <link rel="stylesheet" href="kadry.css?v=20260812a">
+  <link rel="stylesheet" href="kadry.css?v=20261120a">
   <link rel="stylesheet" href="../auth-v2.css?v=20261119a">
-  <script type="module" src="../auth-v2.js?v=20261120b"></script>
+  <script type="module" src="../auth-v2.js?v=20261120c"></script>
 </head>
 <body id="top">
   <header class="hero classifiers-hero">
     <div class="hero-copy">
-      <div class="overline">Проба · кадровий контур ·
-        <a class="xnav" href="specialnosti.html">↔ Спеціальності та посади</a>
-        <a class="xnav" href="posady.html">↔ Характеристики ДКХП-78</a>
-        <a class="xnav" href="../pakety/index.html">↔ Пакети ПМГ-2026</a></div>
+      <div class="overline">Кадри · від вимоги пакета до коду посади в ЕСОЗ</div>
       <div class="header-nav-row">
         <div class="nav-row-1">
           <a class="brand-lockup" href="../index.html" aria-label="На головну — Портал">
@@ -37,11 +34,9 @@
           <nav class="section-switch" aria-label="Розділи сайту"></nav>
         </div>
       </div>
-      <h1>Кадровий ланцюжок<span class="h1-src">Спільний вхід · усі чотири кадрові реєстри в одній схемі</span></h1>
-      <p>Головний вхід кадрового контуру — від пакета ПМГ-2026 крізь усі чотири
-         реєстри. Введіть назву спеціальності, посади, характеристики чи код
-         НСЗУ — або оберіть пакет. Схема покаже, що з цього випливає в решті реєстрів:
-         за чим ліцензія, яку посаду вводити у штатний розпис, чи є на неї
+      <h1>Кадри<span class="h1-src">Одне поле · вимога пакета → спеціальність → посада → характеристика → код</span></h1>
+      <p>Уведіть посаду, спеціальність, код НСЗУ або оберіть пакет — схема покаже весь шлях:
+         за якою спеціальністю ліцензія, яку посаду вводити у штатний розпис, чи є на неї
          кваліфікаційна характеристика і чим кодувати працівника в ЕСОЗ.
          Під кожним вікном стоїть акт, який цю ланку встановлює; червоне
          під вікном — скільки позицій до наступної ланки не доходить.</p>
@@ -54,8 +49,16 @@
         <label for="kdSearch">Спеціальність, посада, характеристика або код</label>
         <input id="kdSearch" type="search" autocomplete="off" role="combobox"
                aria-expanded="false" aria-controls="kdSuggest"
-               placeholder="Напр.: Кардіологія · Лікар-анестезіолог · Сестра медична · P37">
+               placeholder="Напр.: Кардіологія · Лікар-анестезіолог · медсестра · P37 · пакет 3">
         <ul class="kd-suggest" id="kdSuggest" role="listbox" hidden></ul>
+        <div class="kd-examples">
+          <span>Приклади:</span>
+          <button type="button" class="kd-ex" data-kdq="Лікар-кардіолог">посада</button>
+          <button type="button" class="kd-ex" data-kdq="Кардіологія">спеціальність</button>
+          <button type="button" class="kd-ex" data-kdq="P37">код НСЗУ</button>
+          <button type="button" class="kd-ex" data-kdq="пакет 3">пакет</button>
+          <button type="button" class="kd-ex" data-kdq="терапевт">слово</button>
+        </div>
       </div>
       <label class="kd-field kd-pkgfield">
         <span>або пакет ПМГ-2026</span>
@@ -70,6 +73,14 @@
     </section>
 
     <section class="kd-detail" id="kdDetail" hidden></section>
+
+    <nav class="kd-more" aria-label="Повні кадрові довідники">
+      <span>Глибше:</span>
+      <a href="specialnosti.html">Спеціальності та посади — Додаток 7 і наказ № 1065</a>
+      <a href="posady.html">Характеристики ДКХП-78 і коди посад</a>
+      <a href="../pakety/index.html">Пакети ПМГ-2026</a>
+      <a href="../koduvannia/koder.html">Кодер</a>
+    </nav>
   </main>
 
   <footer class="site-footer">
@@ -96,6 +107,8 @@
   </footer>
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
-  <script src="kadry.js?v=20261119a" defer></script>
+  <script src="../pmg-search-norm.js?v=1" defer></script>
+  <script src="../pmg-code-search.js?v=20261120a" defer></script>
+  <script src="kadry.js?v=20261120a" defer></script>
 </body>
 </html>

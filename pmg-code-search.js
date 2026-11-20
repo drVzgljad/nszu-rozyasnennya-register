@@ -18,6 +18,8 @@
  *
  * PMG_FIND.search(list, raw, opts) → { items: [{e, score, via}], note }
  *     list — масив записів; opts.text(e) — нормалізована назва (типово e._t);
+ *     opts.scope — сфера словника: групи з полем scope («kadry» — посади й спеціальності)
+ *              працюють лише в пошуку з тією самою сферою, групи без scope — у пошуку кодів;
  *     via  — пояснення для результатів зі словника («рак → злоякісне новоутворення»);
  *     note — рядок для користувача, коли спрацював щабель 3 або 4.
  * PMG_FIND.ready() → Promise, що завершується, коли словник завантажено (або не вдалося —
@@ -130,7 +132,7 @@
     for (const grp of (dict && dict.groups) || []) {
       const keys = (grp.q || []).map((p) => words(norm(p)).map(stem)).filter((k) => k.length);
       const to = (grp.to || []).map((p) => norm(p)).filter(Boolean);
-      if (keys.length && to.length) SYN.push({ keys, to, q: grp.q });
+      if (keys.length && to.length) SYN.push({ keys, to, q: grp.q, scope: grp.scope || '' });
     }
   }
 
@@ -144,7 +146,7 @@
   function ready() {
     if (synPromise) return synPromise;
     if (!g.fetch || !BASE) return (synPromise = Promise.resolve());
-    synPromise = g.fetch(BASE + 'data/search_synonyms.json?v=20261119a')
+    synPromise = g.fetch(BASE + 'data/search_synonyms.json?v=20261120a')
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { if (d) setSynonyms(d); })
       .catch(() => {});
@@ -152,10 +154,11 @@
   }
 
   /** Варіанти запиту зі словника: [{text, via}] */
-  function variants(tokens) {
+  function variants(tokens, scope) {
     const out = [];
     const stems = tokens.map((t) => t.s);
     for (const grp of SYN) {
+      if (grp.scope !== (scope || '')) continue;
       for (let ki = 0; ki < grp.keys.length; ki++) {
         const key = grp.keys[ki];
         // слова ключа мають стояти в запиті поспіль
@@ -200,6 +203,7 @@
     const getText = (opts && opts.text) || ((e) => e._t);
     const filter = opts && opts.filter;
     const strict = !!(opts && opts.strict);       // лише щаблі 1–2: для перевірки словника
+    const scope = (opts && opts.scope) || '';
     const q = norm(String(raw || '').trim()).replace(/\s+/g, ' ');
     if (!q) return { items: [], note: '' };
 
@@ -217,7 +221,7 @@
 
     const tokens = makeTokens(q);
     const vias = [];
-    for (const v of (strict ? [] : variants(tokens))) {
+    for (const v of (strict ? [] : variants(tokens, scope))) {
       const found = runVariant(list, getText, v.text, filter);
       // перше формулювання групи — найточніше, тому йде вище за наступні
       if (found.length) { push(found, 0.5 - 0.04 * Math.min(v.rank, 5), v.via); vias.push(v.via); }
@@ -236,7 +240,7 @@
       if (dead.length && alive.length >= dead.length) {
         const q2 = alive.map((t) => t.t).join(' ');
         push(runVariant(list, getText, q2, filter), 0.3, '');
-        for (const v of variants(alive)) {
+        for (const v of variants(alive, scope)) {
           const found = runVariant(list, getText, v.text, filter);
           if (found.length) push(found, 0.2, v.via);
         }

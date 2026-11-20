@@ -1,5 +1,6 @@
 /* ============================================================
-   Кадровий ланцюжок пакета — проба візуалізації.
+   «Кадри» — єдиний вхід кадрового контуру (з 20.11.2026; до того — проба
+   «Кадровий ланцюжок»).
 
    Питання, на яке відповідає сторінка: якщо взяти ОДНУ річ — пакет,
    спеціальність, посаду, характеристику чи код — що з неї випливає в усіх
@@ -10,6 +11,11 @@
    (які посади, характеристики, коди), від коду — ліворуч (яка характеристика,
    посада, спеціальність), від посади — в обидва. Тому «якір» може стояти в
    будь-якій колонці, і саме він підсвічений на схемі.
+
+   Пошук — спільний модуль порталу (pmg-code-search.js, сфера словника «kadry»):
+   слова в будь-якому відмінку й порядку, побутові назви («медсестра», «логопед»).
+   Якщо запит підходить кільком назвам, сторінка показує перелік на вибір, а не
+   бере першу-ліпшу.
 
    Дані: data/kadry/graph.json — повний граф. Тут він доречний: сторінка ходить
    усіма п'ятьма типами вузлів і всіма відношеннями, тож зрізами вийшло б
@@ -48,10 +54,17 @@
         buildSearch();
         fillPicker();
         wireSearch();
+        wireChoices();
+        if (window.PMG_FIND) PMG_FIND.ready();
         const q = new URLSearchParams(location.search);
         const pkg = q.get("package"), node = q.get("id"), text = q.get("q");
         if (node && N.has(node)) setAnchor({ kind: "node", id: node });
-        else if (text) { $("#kdSearch").value = text; pickBest(text); }
+        else if (text) {
+          // спершу словник побутових назв: з ним «логопед» — це не лише код НСЗУ, а й посада
+          $("#kdSearch").value = text;
+          const go = () => pickBest(text);
+          if (window.PMG_FIND) PMG_FIND.ready().then(go); else go();
+        }
         else {
           const sel = $("#kdPkg");
           sel.value = pkg && [...sel.options].some((o) => o.value === pkg)
@@ -90,26 +103,41 @@
   };
 
   function buildSearch() {
+    const norm = (t) => (window.PMG_SEARCH ? PMG_SEARCH.text(t) : t.toLowerCase());
     SEARCH = G.nodes
       .filter((n) => LAYERS.includes(n.type))
-      .map((n) => ({ id: n.id, type: n.type, name: n.name, low: n.name.toLowerCase(),
+      .map((n) => ({ id: n.id, type: n.type, name: n.name, low: n.name.toLowerCase(), _t: norm(n.name),
                      code: n.type === "code" ? n.id.split(":")[1].toLowerCase() : "" }));
   }
 
-  /** Кандидати за підрядком. Спершу ті, у кого запит на початку назви —
-   *  інакше «сестра» видає спершу «Головна медична сестра», а не «Сестра
-   *  медична». Код НСЗУ шукається і як «P37», і як «p 37». */
-  function suggest(q) {
+  /** Код НСЗУ шукається і як «P37», і як «p 37», і з кириличною «Р». */
+  const asCode = (s) => (window.PMG_SEARCH ? PMG_SEARCH.code(s) : s.replace(/\s+/g, "")).toLowerCase();
+
+  /** Кандидати. Спершу збіг за підрядком, і серед них ті, у кого запит на
+   *  початку назви — інакше «сестра» видає спершу «Головна медична сестра», а
+   *  не «Сестра медична». Далі — те, що знайшов спільний пошук порталу: слова в
+   *  іншому відмінку чи порядку («кардіолога») і побутові назви зі словника
+   *  («медсестра» → «сестра медична»). */
+  function find(q) {
     const s = q.toLowerCase().trim().replace(/\s+/g, " ");
-    if (s.length < 2) return [];
-    const code = s.replace(/\s+/g, "");
+    if (s.length < 2) return { items: [], note: "" };
+    const code = asCode(s);
     const hit = SEARCH.filter((x) => x.low.includes(s) || (x.code && x.code === code));
-    hit.sort((a, b) => {
-      const ai = a.low.startsWith(s) ? 0 : 1, bi = b.low.startsWith(s) ? 0 : 1;
-      return ai - bi || a.name.length - b.name.length;
-    });
-    return hit.slice(0, 12);
+    // запит як окреме слово назви («терапевт» у «Лікар-терапевт») важить більше, ніж шматок
+    // слова («Ерготерапевт»); далі — запит на початку назви, далі коротші назви
+    const rank = (x) => (x.low.split(/[^0-9a-zа-яґєії']+/).includes(s) ? 0 : x.low.startsWith(s) ? 1 : 2);
+    hit.sort((a, b) => rank(a) - rank(b) || a.name.length - b.name.length);
+    let note = "";
+    if (window.PMG_FIND) {
+      const r = PMG_FIND.search(SEARCH, q, { scope: "kadry" });
+      const have = new Set(hit);
+      const extra = r.items.filter((x) => !have.has(x.e))
+        .sort((a, b) => b.score - a.score || a.e.name.length - b.e.name.length).map((x) => x.e);
+      if (extra.length) { hit.push(...extra); note = r.note || ""; }
+    }
+    return { items: hit, note };
   }
+  const suggest = (q) => find(q).items.slice(0, 12);
 
   function wireSearch() {
     const inp = $("#kdSearch"), list = $("#kdSuggest");
@@ -148,18 +176,71 @@
     inp.addEventListener("blur", () => setTimeout(close, 120));
   }
 
-  /** Вставили назву цілком і натиснули Enter — беремо найкращий збіг. */
+  /** Яку з однойменних позицій брати якорем: посада зв'язана з усіма ланками. */
+  const TYPE_RANK = { post: 0, spec: 1, dkhp: 2, code: 3 };
+
+  /** Увели запит і натиснули Enter. Точна назва чи код — одразу ланцюжок.
+   *  Кілька різних назв — перелік на вибір: мовчки брати найкоротшу означало б
+   *  на «терапевт» показати терапевта мови і мовлення. */
   function pickBest(text) {
-    const hits = suggest(text);
-    if (!hits.length) {
-      $("#kdFigure").innerHTML =
-        `<p class="kd-error">За запитом «${esc(text)}» нічого не знайдено —
-         ні спеціальності, ні посади, ні характеристики, ні коду.</p>`;
-      $("#kdSummary").innerHTML = ""; $("#kdDetail").hidden = true;
+    const raw = String(text || "").trim();
+    const pk = raw.match(/^пакет\s*№?\s*(\d{1,2})$/i);
+    if (pk && G.packages[pk[1]]) {
+      $("#kdSearch").value = ""; $("#kdPkg").value = pk[1];
+      setAnchor({ kind: "pkg", id: pk[1] });
       return;
     }
-    $("#kdSearch").value = hits[0].name; $("#kdPkg").value = "";
-    setAnchor({ kind: "node", id: hits[0].id });
+    const { items, note } = find(raw);
+    const blank = () => { anchor = null; current = null; $("#kdSummary").innerHTML = ""; $("#kdDetail").hidden = true; };
+    if (!items.length) {
+      blank();
+      $("#kdFigure").innerHTML =
+        `<p class="kd-error">За запитом «${esc(raw)}» нічого не знайдено —
+         ні спеціальності, ні посади, ні характеристики, ні коду.</p>`;
+      return;
+    }
+    const low = raw.toLowerCase().replace(/\s+/g, " "), code = asCode(low);
+    const exact = items.filter((x) => x.low === low || (x.code && x.code === code))
+      .sort((a, b) => TYPE_RANK[a.type] - TYPE_RANK[b.type]);
+    const names = new Map();                 // назва → позиції з цією назвою в різних реєстрах
+    items.forEach((x) => { const k = x.low; if (!names.has(k)) names.set(k, []); names.get(k).push(x); });
+    // точна назва чи код — одразу ланцюжок; але якщо словник підказує ще й іншу назву
+    // («логопед» — це і код НСЗУ, і посада «Терапевт мови і мовлення»), даємо вибрати
+    if ((exact.length && !note) || names.size === 1) {
+      const x = exact[0] || items.slice().sort((a, b) => TYPE_RANK[a.type] - TYPE_RANK[b.type])[0];
+      $("#kdSearch").value = x.name; $("#kdPkg").value = "";
+      setAnchor({ kind: "node", id: x.id });
+      return;
+    }
+    blank();
+    const CAP = 40;
+    const rows = [...names.values()].slice(0, CAP).map((list) => {
+      const best = list.slice().sort((a, b) => TYPE_RANK[a.type] - TYPE_RANK[b.type])[0];
+      const kinds = [...new Set(list.map((x) => (x.type === "code" ? "код НСЗУ " + x.id.split(":")[1] : TYPE_WORD[x.type])))];
+      return `<button type="button" class="kd-choice" data-pick="${esc(best.id)}">
+        <b>${esc(best.name)}</b><span>${esc(kinds.join(" · "))}</span></button>`;
+    }).join("");
+    $("#kdFigure").innerHTML = `<div class="kd-choices">
+      <p class="kd-choices-h">За запитом «${esc(raw)}» знайдено ${nf(names.size)} — оберіть, з чого будувати ланцюжок${
+        names.size > CAP ? ` (показано перші ${CAP}; уточніть запит)` : ""}:</p>
+      ${note ? `<p class="kd-hint">${esc(note)}</p>` : ""}${rows}</div>`;
+  }
+
+  /** Перелік на вибір і приклади під полем — кліки ловимо один раз, на документі. */
+  function wireChoices() {
+    document.addEventListener("click", (e) => {
+      const t = e.target && e.target.closest ? e.target : null;
+      if (!t) return;
+      const pick = t.closest("[data-pick]");
+      if (pick && N.has(pick.dataset.pick)) {
+        const n = N.get(pick.dataset.pick);
+        $("#kdSearch").value = n.name; $("#kdPkg").value = "";
+        setAnchor({ kind: "node", id: n.id });
+        return;
+      }
+      const ex = t.closest("[data-kdq]");
+      if (ex) { $("#kdSearch").value = ex.dataset.kdq; pickBest(ex.dataset.kdq); }
+    });
   }
 
   function openBox(key) {
@@ -171,6 +252,13 @@
 
   function setAnchor(a, keepOpen) {
     anchor = a;
+    // адресу оновлюємо, щоб посиланням можна було поділитися
+    try {
+      const u = new URL(location.href);
+      ["q", "id", "package"].forEach((k) => u.searchParams.delete(k));
+      if (a && a.id) u.searchParams.set(a.kind === "pkg" ? "package" : "id", a.id);
+      history.replaceState(null, "", u);
+    } catch (e) { /* без історії — не біда */ }
     // Розкриті секції лишаються розкритими: людина щойно їх відкрила, і
     // згортати все під ногами через перехід — втратити місце.
     if (!keepOpen) { /* набір openSet зберігаємо навмисно */ }

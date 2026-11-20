@@ -46,6 +46,7 @@
           { name: "Номенклатура (НК 031)", icon: "🧾", path: "classifiers/nk031.html", role: "guest" },
           { name: "Табелі оснащення", icon: "📋", path: "classifiers/tabel.html", role: "guest" },
           { name: "Обладнання у вимогах", icon: "🩻", path: "classifiers/obladnannia.html", role: "guest" },
+          { name: "Кадри", icon: "🧑‍⚕️", path: "classifiers/kadry.html", role: "guest" },
           { name: "Посади (ДКХП-78)", icon: "👥", path: "classifiers/posady.html", role: "guest" },
           { name: "Таблиця співставлення", icon: "🔗", path: "mapping/index.html", role: "guest" },
         ],
