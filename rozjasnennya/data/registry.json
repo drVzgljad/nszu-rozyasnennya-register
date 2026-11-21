@@ -1,10 +1,10 @@
 {
-  "generated": "2026-11-19T07:17:17.379598+00:00",
-  "archive_fetched_at": "2026-11-19T07:17:16.791750+00:00",
+  "generated": "2026-11-21T09:00:01.041033+00:00",
+  "archive_fetched_at": "2026-11-21T08:59:58.036178+00:00",
   "archive_source": "https://nszu.gov.ua/arxiv-dokumentiv?groups[2][attributes][]=36",
-  "archive_records": 189,
-  "total": 197,
-  "from_archive": 185,
+  "archive_records": 191,
+  "total": 199,
+  "from_archive": 187,
   "external": 12,
   "duplicate_files": 4,
   "records": [
@@ -4684,6 +4684,51 @@
         "unreadable": 0
       },
       "content_changed_at": "2026-11-08"
+    },
+    {
+      "id": 327,
+      "url": "https://backend.nszu.gov.ua/documents/7012/file",
+      "local_name": "nszu_doc_7012.pdf",
+      "archive_title": "Роз'яснення щодо обліку використання обладнання в ЕМЗ",
+      "extension": "pdf",
+      "storage_date": null,
+      "first_seen": "2026-11-21",
+      "stage": "extracted",
+      "sha256": "b5e8f6592e6e8c3319838d4a2e1571a827ed7a53dd8d8ea418ecc57197f748ce",
+      "size": 138689,
+      "engine": "pdf-text",
+      "stats": {
+        "blocks": 55,
+        "body_blocks": 43,
+        "sentences": 54,
+        "chars": 11771,
+        "tables": 0,
+        "table_rows": 0,
+        "unreadable": 0
+      }
+    },
+    {
+      "id": 328,
+      "url": "https://backend.nszu.gov.ua/documents/7011/file",
+      "local_name": "nszu_doc_7011.pdf",
+      "archive_title": "Роз'яснення щодо обліку використання медичних виробів в ЕСОЗ",
+      "extension": "pdf",
+      "storage_date": null,
+      "first_seen": "2026-11-21",
+      "stage": "extracted",
+      "sha256": "1587e0de310b92f1dd980a748d50cb8b93902d46683dba90f4f197530e3fb761",
+      "size": 136756,
+      "engine": "pdf-text",
+      "stats": {
+        "blocks": 53,
+        "body_blocks": 41,
+        "sentences": 54,
+        "chars": 10905,
+        "tables": 0,
+        "table_rows": 0,
+        "unreadable": 0
+      }
     }
-  ]
+  ],
+  "docs_built_at": "2026-11-21T09:00:04.767422+00:00"
 }

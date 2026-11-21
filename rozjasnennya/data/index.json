@@ -1,10 +1,10 @@
 {
- "generated": "2026-11-19T07:17:24.423105+00:00",
- "total": 197,
- "archive_records": 189,
+ "generated": "2026-11-21T09:00:11.613630+00:00",
+ "total": 199,
+ "archive_records": 191,
  "duplicate_files": 4,
- "with_real_date": 136,
- "content_pending": 4,
+ "with_real_date": 138,
+ "content_pending": 6,
  "packageNames": {
   "3": "ХІРУРГІЧНІ ОПЕРАЦІЇ ДОРОСЛИМ ТА ДІТЯМ У СТАЦІОНАРНИХ УМОВАХ",
   "4": "СТАЦІОНАРНА ДОПОМОГА ДОРОСЛИМ ТА ДІТЯМ БЕЗ ПРОВЕДЕННЯ ХІРУРГІЧНИХ ОПЕРАЦІЙ",
@@ -545,7 +545,7 @@
     "unreadable": 0
    },
    "codes": {
-    "esoz": 133,
+    "esoz": 134,
     "loinc": 4,
     "package": 1
    },
@@ -8385,7 +8385,7 @@
    },
    "codes": {
     "achi": 2,
-    "esoz": 396,
+    "esoz": 398,
     "loinc": 6
    },
    "packages": [
@@ -8960,6 +8960,78 @@
    "packages": [
     "53"
    ]
+  },
+  {
+   "id": 327,
+   "title": "Роз'яснення щодо обліку використання обладнання в ЕМЗ",
+   "subject": "Роз'яснення щодо обліку використання обладнання в ЕМЗ",
+   "summary": "",
+   "kind": null,
+   "number": "26688/10-15-26",
+   "date": "2026-11-18",
+   "signer": "Гусак Наталія Борисівна",
+   "effective_from": null,
+   "applies_to_years": [],
+   "topics": [],
+   "is_attachment": false,
+   "touches_coding": false,
+   "engine": "pdf-text",
+   "ocr": false,
+   "url": "https://backend.nszu.gov.ua/documents/7012/file",
+   "extension": "pdf",
+   "storage_date": null,
+   "archive_title": "Роз'яснення щодо обліку використання обладнання в ЕМЗ",
+   "archive_aliases": [],
+   "external": false,
+   "origin": null,
+   "quality": null,
+   "stats": {
+    "blocks": 55,
+    "body_blocks": 43,
+    "sentences": 54,
+    "chars": 11771,
+    "tables": 0,
+    "table_rows": 0,
+    "unreadable": 0
+   },
+   "codes": {},
+   "packages": []
+  },
+  {
+   "id": 328,
+   "title": "Роз'яснення щодо обліку використання медичних виробів в ЕСОЗ",
+   "subject": "Роз'яснення щодо обліку використання медичних виробів в ЕСОЗ",
+   "summary": "",
+   "kind": null,
+   "number": "26663/10-15-26",
+   "date": "2026-11-17",
+   "signer": "Гусак Наталія Борисівна",
+   "effective_from": null,
+   "applies_to_years": [],
+   "topics": [],
+   "is_attachment": false,
+   "touches_coding": false,
+   "engine": "pdf-text",
+   "ocr": false,
+   "url": "https://backend.nszu.gov.ua/documents/7011/file",
+   "extension": "pdf",
+   "storage_date": null,
+   "archive_title": "Роз'яснення щодо обліку використання медичних виробів в ЕСОЗ",
+   "archive_aliases": [],
+   "external": false,
+   "origin": null,
+   "quality": null,
+   "stats": {
+    "blocks": 53,
+    "body_blocks": 41,
+    "sentences": 54,
+    "chars": 10905,
+    "tables": 0,
+    "table_rows": 0,
+    "unreadable": 0
+   },
+   "codes": {},
+   "packages": []
   }
  ]
 }
