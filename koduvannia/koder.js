@@ -245,7 +245,12 @@
       else if (RE_ACHI.test(c)) iv.push(c);
       else other.push(p);
     }
-    if (!other.length && (dx.length || iv.length)) return { kind: 'case', dx, iv };
+    if (!other.length && (dx.length || iv.length)) {
+      // «K12», «K11», «E62» — і рубрика НК 025, і ДСГ. Рубрика без четвертого знака в групування не йде
+      // (у dx.json її немає), тож людина, найпевніше, шукає групу (23.11.2026).
+      if (dx.length === 1 && !iv.length && GROUP.has(dx[0]) && !DX[dx[0]]) return { kind: 'drg', code: dx[0] };
+      return { kind: 'case', dx, iv };
+    }
     if (parts.length === 1) {
       const c = PMG_SEARCH.code(parts[0]);
       if (RE_ESOZ.test(c) && ESOZM.has(c)) return { kind: 'esoz', code: c };
@@ -814,6 +819,7 @@
         { src: exGroup ? 'точно, за правилами групування' : 'попередньо, за Таблицею співставлення' });
       html += level('drg', groups.length ? drgRows(groups) +
           (others.length ? `<details class="kr-fold"><summary>Інші групи, можливі за Таблицею співставлення: ${others.length}</summary>${drgRows(others)}</details>` : '')
+        : !DX[dx] && N25.has(dx) ? `<p class="kr-none">${esc(dx)} — рубрика: групу визначає повний код діагнозу. ${rubricKids(dx)}</p>`
         : '<p class="kr-none">Цей діагноз не веде до жодної групи з вагою в постанові.</p>',
         { src: 'постанова № 1808, додатки 1 і 2' });
       html += level('service', serviceRows(groups, BY_ICD[dx]), { src: 'Таблиця співставлення, таблиця 1' });
@@ -849,13 +855,24 @@
       <div class="kr-chips">${rows}</div>`;
   }
 
+  // повні коди діагнозу під рубрикою НК 025 (K12 → K12.0, K12.1…) — кнопками
+  function rubricKids(code) {
+    const kids = Object.keys(DX).filter((c) => c.startsWith(code + '.')).sort();
+    if (!kids.length) return '';
+    const CAP = 12;
+    return 'Повні коди діагнозу: ' + kids.slice(0, CAP).map((c) => chip(c, c, (N25.get(c) || {}).n)).join(' ') +
+      (kids.length > CAP ? ` і ще ${nf(kids.length - CAP)}` : '');
+  }
+
   function renderDrg(p) {
     const g = GROUP.get(p.code);
     const same = CORE.groups.filter((x) => x.root === g.root && inGrid(x));
     const dxs = Object.keys(DX).filter((c) => dxGroups(c).some((x) => x.root === g.root));
     const ivs = Object.keys(IV).filter((c) => (IV[c][1] || []).some((i) => CORE.groups[i].root === g.root));
-    const amb = N25.has(p.code) ? `<p class="kr-fine">${esc(p.code)} — це ще й код діагнозу «${esc(N25.get(p.code).n)}».
-      ${chip('показати діагноз ' + p.code, p.code)}</p>` : '';
+    const amb = !N25.has(p.code) ? ''
+      : DX[p.code] ? `<p class="kr-fine">${esc(p.code)} — це ще й код діагнозу «${esc(N25.get(p.code).n)}».
+      ${chip('показати діагноз ' + p.code, p.code)}</p>`
+      : `<p class="kr-fine">${esc(p.code)} — це ще й рубрика НК 025 «${esc(N25.get(p.code).n)}». ${rubricKids(p.code)}</p>`;
     let html = '';
     html += level('dx', dxs.length ? codeList(dxs, N25, 'Діагнозів, що ведуть у групу як основні')
       : '<p class="kr-none">Жоден діагноз не веде в групу напряму — вона визначається втручанням.</p>', { src: 'Таблиця співставлення' });
