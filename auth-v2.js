@@ -128,7 +128,7 @@ async function openGlobalSearch() {
   try {
     if (!globalSearchModule) {
       // Шлях відносно МОДУЛЯ auth-v2.js (обидва лежать у корені), а не сторінки
-      globalSearchModule = await import('./global-search.js?v=20261120a');
+      globalSearchModule = await import('./global-search.js?v=20261123a');
     }
     globalSearchModule.open(getPathPrefix());
   } catch (err) {

@@ -151,7 +151,7 @@
   function ready() {
     if (synPromise) return synPromise;
     if (!g.fetch || !BASE) return (synPromise = Promise.resolve());
-    synPromise = g.fetch(BASE + 'data/search_synonyms.json?v=20261120b')
+    synPromise = g.fetch(BASE + 'data/search_synonyms.json?v=20261123a')
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { if (d) setSynonyms(d); })
       .catch(() => {});

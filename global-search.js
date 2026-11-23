@@ -83,7 +83,7 @@ function loadShared(prefix) {
       document.head.appendChild(s);
     });
     sharedPromise = add('pmg-search-norm.js?v=1')
-      .then(() => add('pmg-code-search.js?v=20261120c'))
+      .then(() => add('pmg-code-search.js?v=20261123a'))
       .then(() => (W.PMG_FIND ? W.PMG_FIND.ready() : null))
       .catch(() => {});
   }
