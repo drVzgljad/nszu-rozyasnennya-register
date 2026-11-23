@@ -170,3 +170,9 @@
 @media (max-width: 640px) {
   .kr-condgrid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* підказка під полем: ДСГ і ОДК — зі словом перед кодом (23.11.2026) */
+.kr-tip { margin: 10px 0 0; padding: 8px 12px; font-size: 13.5px; line-height: 1.45; color: var(--kr-ink, inherit);
+  background: var(--warning-bg, #fff8e1); border-left: 3px solid var(--warning-border, #f0b429); border-radius: 6px; }
+.kr-tip code { font-size: 13px; padding: 0 4px; border-radius: 4px; background: rgba(127,127,127,.15); }
+.kr-textmode .kr-tip { display: none; }
