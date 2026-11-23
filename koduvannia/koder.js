@@ -1139,7 +1139,7 @@
   // ── керування ────────────────────────────────────────────────────────
   function run() {
     if (!CORE) return;
-    const raw = $('krQ').value;
+    const raw = PMG_SEARCH.dash ? PMG_SEARCH.dash($('krQ').value) : $('krQ').value;
     const p = parse(raw);
     let html = '', status = '';
     const url = new URL(location.href);

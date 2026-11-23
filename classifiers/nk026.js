@@ -289,7 +289,7 @@
   }
 
   function runSearch() {
-    const raw = el.search.value.trim();
+    const raw = (PMG_SEARCH.dash ? PMG_SEARCH.dash(el.search.value) : el.search.value).trim();
     const filtering = el.onlyPmg.checked || el.only377.checked;
     if (!raw && !filtering) {
       el.results.hidden = true; el.batchCopy.hidden = true; lastBatchFound = []; lastShown = [];

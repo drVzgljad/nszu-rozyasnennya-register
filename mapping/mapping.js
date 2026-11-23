@@ -293,7 +293,7 @@
     p.pending = false;
     if (p.mode === "odk") { runOdkSearch(p); return; }
 
-    const raw = p.els.search.value.trim();
+    const raw = (PMG_SEARCH.dash ? PMG_SEARCH.dash(p.els.search.value) : p.els.search.value).trim();
     const q = PMG_SEARCH.text(raw);
     const codeQ = PMG_SEARCH.code(raw);
     const pkg = p.els.pkg.value;
@@ -322,7 +322,7 @@
   }
 
   function runOdkSearch(p) {
-    const raw = p.els.search.value.trim();
+    const raw = (PMG_SEARCH.dash ? PMG_SEARCH.dash(p.els.search.value) : p.els.search.value).trim();
     const q = PMG_SEARCH.text(raw);
     const codeQ = PMG_SEARCH.code(raw);
     const rubric = isRubric(codeQ);

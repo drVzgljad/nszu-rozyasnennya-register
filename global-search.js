@@ -82,7 +82,7 @@ function loadShared(prefix) {
       s.src = prefix + src; s.onload = resolve; s.onerror = resolve;
       document.head.appendChild(s);
     });
-    sharedPromise = add('pmg-search-norm.js?v=1')
+    sharedPromise = add('pmg-search-norm.js?v=20261123b')
       .then(() => add('pmg-code-search.js?v=20261123a'))
       .then(() => (W.PMG_FIND ? W.PMG_FIND.ready() : null))
       .catch(() => {});
@@ -97,8 +97,11 @@ const RE_ACHI = /^\d{5}-\d{2}$/;
 /** Запит схожий на код — перший рядок веде одразу туди, де цей код розкривається.
  *  Індекс Ctrl+K кодів нижче рубрики не тримає (це ще 30 тисяч рядків), та й не мусить:
  *  за виглядом коду видно, куди з ним іти. Рядок: [9, заголовок, підпис, '', адреса]. */
+// Дефіси-двійники («‑» з docx, «–», «−») → «-», щоб скопійований код упізнавався (як PMG_SEARCH.dash).
+const dashNorm = (s) => String(s || '').replace(/[‐-―−﹘﹣－]/g, '-');
+
 export function quickJumps(query) {
-  const text = String(query || '').trim();
+  const text = dashNorm(query).trim();
   if (text.length < 2) return [];
   const out = [];
   const go = (page, q, title, sub) => out.push([9, title, sub, '', `${page}?q=${encodeURIComponent(q)}`]);
@@ -156,7 +159,7 @@ export function wordJumps(query) {
 const entryText = (e) => e._t || (e._t = W.PMG_SEARCH.text(`${e[1]} ${e[2]} ${e[3]}`));
 
 function search(query) {
-  const q = normalize(query);
+  const q = normalize(dashNorm(query));
   if (q.length < 2) return [];
   const tokens = q.split(' ');
   const scored = [];

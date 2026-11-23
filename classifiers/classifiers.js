@@ -270,7 +270,7 @@
   }
 
   function runSearch() {
-    const raw = el.search.value.trim();
+    const raw = (PMG_SEARCH.dash ? PMG_SEARCH.dash(el.search.value) : el.search.value).trim();
     const onlyPmg = el.onlyPmg.checked;
     const lvl = el.level.value ? +el.level.value : 0;
     const active = raw.length >= 1 || onlyPmg || lvl;

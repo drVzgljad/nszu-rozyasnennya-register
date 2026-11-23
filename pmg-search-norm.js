@@ -21,6 +21,9 @@
  *   позицію збігу можна було перенести на оригінал для підсвічування.
  * PMG_SEARCH.code(s) — для кодів: верхній регістр, без пробілів, кирилиця →
  *   латиниця, сім цифр → ACHI з дефісом (3680901 → 36809-01).
+ * PMG_SEARCH.dash(s) — нерозривний та інші дефіси-двійники → «-» (символ на символ).
+ *   Робиться і в text(), і в code(); розділи, що шукають код регулярним виразом
+ *   у сирому вводі, пропускають ввід через dash() до розбору.
  */
 (function (g) {
   'use strict';
@@ -31,18 +34,25 @@
   const CYR2LAT = { 'А': 'A', 'В': 'B', 'С': 'C', 'Е': 'E', 'Н': 'H', 'І': 'I', 'К': 'K',
                     'М': 'M', 'О': 'O', 'Р': 'P', 'Т': 'T', 'Х': 'X', 'У': 'Y' };
 
+  // Дефіси-двійники: нерозривний «‑» (U+2011) ставлять генератори docx у кодах (30511‑09), Word
+  // автозаміною дає «–», «−» буває з PDF. Скопійований із записки код інакше не впізнається (23.11.2026).
+  const DASH = /[‐-―−﹘﹣－]/g;
+  function dash(s) {
+    return String(s == null ? '' : s).replace(DASH, '-');
+  }
+
   function text(s) {
-    return String(s == null ? '' : s).toLowerCase()
+    return dash(s).toLowerCase()
       .replace(APOS, "'")
       .replace(/[aceiopxyk]/g, (ch) => LAT2CYR[ch]);
   }
 
   function code(s) {
-    let t = String(s == null ? '' : s).toUpperCase().replace(/\s+/g, '')
+    let t = dash(s).toUpperCase().replace(/\s+/g, '')
       .replace(/[АВСЕНІКМОРТХУ]/g, (ch) => CYR2LAT[ch]);
     if (/^\d{7}$/.test(t)) t = t.slice(0, 5) + '-' + t.slice(5);
     return t;
   }
 
-  g.PMG_SEARCH = { text, code };
+  g.PMG_SEARCH = { text, code, dash };
 })(window);
