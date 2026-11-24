@@ -14,6 +14,12 @@
  * - На своїх дверях видно, хто стукає, з кнопками «Впустити» / «Не зараз».
  * - Без таблиці voice_knocks двері видно, свої відчиняються, а чужі пишуть, що стук ще не ввімкнено.
  * - Демо без логіна: index.html?demo=1 (стук «впускає» вигаданий колега).
+ * - «Конференц-хол» (24.11.2026, на прохання користувача): подвійні двері під рядом відділів — спільна
+ *   кімната всього департаменту. Це ТА САМА кімната 'voice:all' (голос «Чату департаменту», RLS
+ *   migration_2026-11-03b_voice_room_all.sql): нових таблиць і каналів немає. Стуку немає — заходять усі.
+ *   Клік відкриває голосове вікно з наміром { room: 'all' }; браузер не дав вікна — «Чат департаменту».
+ *   Хто зараз у залі — з присутності каналу, яку вже дивиться auth-v2.js (подія 'pmg:dept-voice'):
+ *   другий канал 'voice:all' з того самого клієнта закрив би перший. Чи ви в залі — каже голосове вікно.
  * Стилі — home-doors.css (власний шар змінних --hd-*, темна тема під :root.dark-theme).
  */
 
@@ -26,10 +32,13 @@ const DEPTS = [
   ['розрахунок вартості медичних послуг', 'Розрахунок вартості'],
   ['робота з електронними медичними даними', 'Електронні медичні дані']
 ];
-import { openVoiceWindow, voiceWin } from './voice/link.js?v=20261119a';
+import { openVoiceWindow, voiceWin, onVoiceWin } from './voice/link.js?v=20261119a';
 
 const LEAD = ['admin', 'director', 'deputy_director'];
 const ROOM_URL = 'spravy/index.html';
+const HALL_URL = 'zviazok/index.html';  // запасний шлях у кімнату департаменту, якщо браузер не дав вікна
+const HALL_TOPIC = 'voice:all';
+const HALL_SHOW = 6;                     // стільки облич у залі показуємо, решта — «+N»
 const WAIT_MAX = 30 * 60e3;          // стук старший за 30 хв кімната вже не показує
 const MISSING = /relation .* does not exist|could not find the table|PGRST205|42P01/i;
 
@@ -47,6 +56,9 @@ const d = {
   chOut: {},          // Realtime: відповідь на мій стук (dept → channel)
   timers: {},
   knocking: new Set(), // двері, у які саме зараз стукаємо (анімація)
+  hall: [],           // хто в конференц-холі: [{ uid, name, muted }]
+  hallMine: false,    // я в залі (голосове вікно в кімнаті департаменту)
+  offWin: null,       // відписка від стану голосового вікна
   mounted: false
 };
 
@@ -64,6 +76,8 @@ export async function showHomeDoors(opts) {
   if (d.demo) {
     d.me = { id: 'demo', name: 'Демо-користувач', role: 'expert', dept: DEPTS[1][0] };
     d.knocks = [{ id: 'dk1', name: 'Олена Приклад', from_dept: DEPTS[4][0] }];
+    d.hall = [{ uid: 'h1', name: 'Петро Зразок', muted: false }, { uid: 'h2', name: 'Ірина Вигадана', muted: true },
+      { uid: 'h3', name: 'Марта Довгопрізвищенко-Приклад', muted: true }];
     return render();
   }
   d.sb = opts.sb;
@@ -71,6 +85,9 @@ export async function showHomeDoors(opts) {
   if (!d.mounted || !p || p.role === 'guest') return;
   const dept = DEPTS.some(([n]) => n === p.Section) ? p.Section : '';
   d.me = { id: opts.userId, name: p.full_name || 'Колега', role: p.role || '', dept };
+  d.hall = window.__pmgDeptVoice?.people || [];
+  window.addEventListener('pmg:dept-voice', onHall);
+  d.offWin = onVoiceWin(onWin);
   render();
   watchMyDoor();
   window.addEventListener('pagehide', onLeave);
@@ -85,7 +102,10 @@ export function hideHomeDoors() {
   }
   Object.values(d.timers).forEach(clearTimeout);
   window.removeEventListener('pagehide', onLeave);
-  Object.assign(d, { chMine: null, chOut: {}, timers: {}, door: {}, knocks: [], mounted: false, noKnock: false });
+  window.removeEventListener('pmg:dept-voice', onHall);
+  d.offWin?.();
+  Object.assign(d, { chMine: null, chOut: {}, timers: {}, door: {}, knocks: [], mounted: false, noKnock: false,
+    hall: [], hallMine: false, offWin: null });
 }
 
 /* ───────────────────────── кімнати ───────────────────────── */
@@ -232,12 +252,84 @@ function enter(dept) {
   setTimeout(() => go(p), 650);
 }
 
+/* ───────────────────────── конференц-хол ───────────────────────── */
+
+function onHall(e) {
+  d.hall = e.detail?.people || [];
+  renderHall();
+}
+
+function onWin(st) {
+  const mine = !!(st?.inRoom && st.topic === HALL_TOPIC);
+  if (mine === d.hallMine) return;
+  d.hallMine = mine;
+  renderHall();
+}
+
+/** Зайти в зал: вікно — одразу, ще в кліку (інакше браузер його заблокує). */
+function enterHall() {
+  const el = d.el?.querySelector('.hd-hall-door');
+  if (el) { el.classList.remove('is-open'); void el.offsetWidth; el.classList.add('is-open'); setTimeout(() => el.classList.remove('is-open'), 2000); }
+  if (d.demo) return setTimeout(() => render('Конференц-хол: тут відкрилася б кімната департаменту'), 700);
+  if (openVoiceWindow({ room: 'all' })) return;
+  setTimeout(() => { location.href = new URL(HALL_URL, location.href).href; }, 650);
+}
+
+const initials = (name) => (name || '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';
+
+function hallWho() {
+  const n = d.hall.length;
+  if (!n) return `<span class="hd-hall-empty">${d.hallMine ? 'Ви в залі' : 'Порожньо — зайдіть першим, колеги побачать'}</span>`;
+  const faces = d.hall.slice(0, HALL_SHOW).map((p) => `<li class="hd-face${p.muted ? ' is-muted' : ''}" title="${esc(p.name)}${p.muted ? ' · мікрофон вимкнено' : ''}">
+      <span class="hd-ava" aria-hidden="true">${esc(initials(p.name))}</span><span class="hd-face-name">${esc(p.name)}</span></li>`).join('');
+  const more = n > HALL_SHOW ? `<li class="hd-face is-more">+${n - HALL_SHOW}</li>` : '';
+  return `<ul class="hd-faces" aria-label="Зараз у конференц-холі: ${n}">${faces}${more}</ul>`;
+}
+
+function hallCount() {
+  const n = d.hall.length;
+  return n ? `У залі: ${n}${d.hallMine ? ' · ви тут' : ''}` : (d.hallMine ? 'Ви тут' : 'Порожньо');
+}
+
+const hallBubble = () => (d.hallMine ? 'Ви тут' : d.hall.length ? 'Заходьте' : 'Відкрито');
+
+/** Оновити лише «хто в залі» — двері не перемальовуємо, щоб не обірвати анімацію. */
+function renderHall() {
+  const box = d.el?.querySelector('.hd-hall');
+  if (!box) return;
+  box.classList.toggle('is-live', d.hall.length > 0);
+  box.classList.toggle('is-mine', d.hallMine);
+  box.querySelector('.hd-hall-who').innerHTML = hallWho();
+  box.querySelector('.hd-hall-count').textContent = hallCount();
+  box.querySelector('.hd-bubble').textContent = hallBubble();
+}
+
+function hallHtml() {
+  const tip = 'Конференц-хол — кімната всього департаменту: заходять усі, без стуку';
+  return `<div class="hd-hall${d.hall.length ? ' is-live' : ''}${d.hallMine ? ' is-mine' : ''}">
+      <button type="button" class="hd-door hd-hall-door" data-act="hall" title="${esc(tip)}" aria-label="${esc(tip)}">
+        <span class="hd-scene" aria-hidden="true">
+          <span class="hd-room"></span>
+          <span class="hd-leaf is-l"><span class="hd-panel"></span><span class="hd-panel"></span><span class="hd-handle"></span></span>
+          <span class="hd-leaf is-r"><span class="hd-panel"></span><span class="hd-panel"></span><span class="hd-handle"></span></span>
+          <span class="hd-spill"></span>
+        </span>
+        <span class="hd-bubble" aria-hidden="true">${esc(hallBubble())}</span>
+      </button>
+      <div class="hd-hall-info">
+        <div class="hd-hall-top"><b class="hd-hall-name">Конференц-хол</b><span class="hd-hall-count">${esc(hallCount())}</span></div>
+        <div class="hd-hall-who">${hallWho()}</div>
+      </div>
+    </div>`;
+}
+
 /* ───────────────────────── розмітка ───────────────────────── */
 
 async function onClick(e) {
   const b = e.target.closest('[data-act]');
   if (!b) return;
   const { act, dept, id } = b.dataset;
+  if (act === 'hall') return enterHall();
   if (act === 'door') {
     // Впустили за стуком — двері відчинені: клік відкриває голосове вікно
     const st = d.door[dept];
@@ -308,6 +400,7 @@ function render(note = '') {
       <span class="hd-hint">${esc(hint)}${d.demo ? ' · демо' : ''}</span>
     </div>
     <div class="hd-row">${doors}</div>
+    ${hallHtml()}
     ${knocks}${stateNote}${note ? `<p class="hd-note">${esc(note)}</p>` : ''}`;
   d.el.hidden = false;
 }

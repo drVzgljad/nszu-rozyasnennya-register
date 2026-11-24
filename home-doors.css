@@ -367,3 +367,104 @@
   .hd { --hd-w: 54px; --hd-h: 80px; width: auto; margin: 0 10px 12px; padding: 10px 10px 10px; border-radius: 16px; }
   .hd-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 6px; padding: 16px 4px 6px; }
 }
+
+/* ═══ Конференц-хол (24.11.2026): подвійні двері в кімнату департаменту (voice:all) і хто в залі ═══
+   Стуку немає — двері для всіх. Лиштва ширша, дві стулки розходяться назовні. Присутні — кружечки з ініціалами. */
+:root {
+  --hd-hall-hi: #8f9fb3;
+  --hd-hall: #5e6f86;
+  --hd-hall-lo: #3e4c60;
+  --hd-live: #22a06b;
+  --hd-live-soft: rgba(34, 160, 107, 0.12);
+  --hd-ava-bg: #e6eef5;
+  --hd-ava-ink: #1f3347;
+}
+:root.dark-theme {
+  --hd-hall-hi: #6d7e94;
+  --hd-hall: #4c5b70;
+  --hd-hall-lo: #313d4e;
+  --hd-live: #3fbf86;
+  --hd-live-soft: rgba(63, 191, 134, 0.14);
+  --hd-ava-bg: #2a3848;
+  --hd-ava-ink: #e8eef5;
+}
+.hd-hall {
+  display: flex; align-items: flex-end; gap: 12px;
+  margin-top: 8px; padding: 14px 10px 8px;
+  border-radius: 14px;
+  background: var(--hd-wall);
+  min-width: 0;
+}
+.hd-hall-door { flex: 0 0 auto; width: auto; }
+.hd-hall-door .hd-scene { width: calc(var(--hd-w) * 1.7); display: flex; gap: 0; }
+.hd-hall-door .hd-leaf {
+  flex: 1 1 50%; min-width: 0;
+  grid-template-columns: 1fr; grid-template-rows: 1.35fr 1fr;
+  padding: 6px 4px 9px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, .04) 0 1px, transparent 1px 6px),
+    linear-gradient(180deg, var(--hd-hall-hi), var(--hd-hall) 40%, var(--hd-hall-lo));
+}
+.hd-hall-door .hd-leaf.is-l { transform-origin: left center; border-radius: 3px 0 0 0; }
+.hd-hall-door .hd-leaf.is-r { transform-origin: right center; border-radius: 0 3px 0 0; }
+.hd-hall-door .hd-leaf.is-l .hd-handle { right: 2px; }
+.hd-hall-door .hd-leaf.is-r .hd-handle { right: auto; left: 2px; }
+.hd-hall-door .hd-leaf.is-r .hd-handle::after { right: auto; left: 1px; transform-origin: left center; }
+.hd-hall-door .hd-bubble { top: -12px; }
+/* У залі хтось є — з-під дверей світло, у кімнаті горить */
+.hd-hall.is-live .hd-hall-door .hd-spill { opacity: .55; transform: translateX(-50%) scaleX(.7); }
+.hd-hall.is-live .hd-hall-door .hd-room { filter: brightness(.7); }
+
+@media (hover: hover) {
+  .hd-hall-door:hover .hd-scene, .hd-hall-door:focus-visible .hd-scene { transform: translateY(-2px) scale(1.12) !important; }
+  .hd-hall-door:hover .hd-leaf.is-l, .hd-hall-door:focus-visible .hd-leaf.is-l { transform: rotateY(-42deg); }
+  .hd-hall-door:hover .hd-leaf.is-r, .hd-hall-door:focus-visible .hd-leaf.is-r { transform: rotateY(42deg); }
+  .hd-hall-door:hover .hd-room, .hd-hall-door:focus-visible .hd-room { filter: brightness(1); }
+  .hd-hall-door:hover .hd-spill, .hd-hall-door:focus-visible .hd-spill { opacity: .8; transform: translateX(-50%) scaleX(.9); }
+  .hd-hall-door:hover .hd-handle::after { transform: none; }
+}
+.hd-hall-door.is-open .hd-scene { transform: translateY(-3px) scale(1.2); box-shadow: var(--hd-lift); }
+.hd-hall-door.is-open .hd-leaf.is-l { transform: rotateY(-105deg); }
+.hd-hall-door.is-open .hd-leaf.is-r { transform: rotateY(105deg); }
+.hd-hall-door.is-open .hd-room { filter: brightness(1.1); }
+.hd-hall-door.is-open .hd-spill { opacity: 1; transform: translateX(-50%) scaleX(1.1); }
+.hd-hall-door.is-open .hd-bubble, .hd-hall.is-mine .hd-hall-door .hd-bubble { opacity: 1; transform: translate(-50%, -4px) scale(1); background: var(--hd-ok); color: #fff; }
+
+.hd-hall-info { flex: 1 1 auto; min-width: 0; padding-bottom: 2px; }
+.hd-hall-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin-bottom: 6px; }
+.hd-hall-name { font-size: 13px; font-weight: 800; color: var(--hd-ink); }
+.hd-hall-count { font-size: 11.5px; font-weight: 700; color: var(--hd-muted); }
+.hd-hall.is-live .hd-hall-count { color: var(--hd-live); }
+.hd-hall.is-live .hd-hall-count::before {
+  content: ''; display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%;
+  background: var(--hd-live); vertical-align: 1px; animation: hd-badge 1.6s ease-in-out infinite;
+}
+.hd-hall-empty { font-size: 12px; color: var(--hd-muted); }
+.hd-faces { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 5px 6px; min-width: 0; }
+.hd-face {
+  display: inline-flex; align-items: center; gap: 5px; max-width: 100%; min-width: 0;
+  padding: 2px 8px 2px 2px; border: 1px solid var(--hd-line); border-radius: 999px;
+  background: var(--hd-plate-bg); font-size: 11.5px; color: var(--hd-ink);
+  animation: hd-in .3s ease both;
+}
+.hd-ava {
+  flex: 0 0 auto; width: 20px; height: 20px; border-radius: 50%;
+  display: inline-grid; place-items: center;
+  background: var(--hd-ava-bg); color: var(--hd-ava-ink); font-size: 9.5px; font-weight: 800;
+  box-shadow: 0 0 0 2px var(--hd-live);
+}
+.hd-face.is-muted .hd-ava { box-shadow: 0 0 0 2px var(--hd-line); }
+.hd-face-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hd-face.is-more { padding: 2px 8px; font-weight: 800; color: var(--hd-muted); }
+
+/* Ліва колонка залогіненого десктопа: вужче — лише ім'я, без прізвища, не ламається */
+@media (min-width: 1181px) and (min-height: 600px) {
+  body.home-logged-in .hd-hall { gap: 10px; padding: 12px 8px 6px; margin-top: 6px; }
+  body.home-logged-in .hd-hall-name { font-size: 12px; }
+  body.home-logged-in .hd-face { font-size: 10.5px; }
+  body.home-logged-in .hd-face-name { max-width: 9em; }
+}
+@media (max-width: 980px) {
+  .hd-hall { padding: 16px 8px 8px; gap: 10px; }
+  .hd-face-name { max-width: 10em; }
+}

@@ -1770,6 +1770,7 @@ function watchDeptVoice() {
   if (deptVoiceChannel) { sb.removeChannel(deptVoiceChannel); deptVoiceChannel = null; }
   deptVoiceFor = uid;
   setDeptVoiceGlow(0);
+  if (window.__pmgDeptVoice) shareDeptVoice([]);
   const path = window.location.pathname.toLowerCase();
   if (!uid || path.includes('/zviazok/') || path.includes('/spravy/')) return;
   const ch = sb.channel('voice:all', { config: { private: true } });
@@ -1777,9 +1778,21 @@ function watchDeptVoice() {
   ch.on('presence', { event: 'sync' }, () => {
     if (ch !== deptVoiceChannel) return;
     // Одна людина з двома вкладками — один учасник
-    const uids = new Set(Object.values(ch.presenceState() || {}).map((a) => a?.[a.length - 1]?.uid).filter(Boolean));
-    setDeptVoiceGlow(uids.size);
+    const people = new Map();
+    Object.values(ch.presenceState() || {}).forEach((a) => {
+      const m = a?.[a.length - 1];
+      if (m?.uid && !people.has(m.uid)) people.set(m.uid, { uid: m.uid, name: m.name || 'Колега', muted: !!m.muted });
+    });
+    setDeptVoiceGlow(people.size);
+    shareDeptVoice([...people.values()]);
   }).subscribe();
+}
+
+/* Хто зараз у кімнаті департаменту — для «Конференц-холу» на головній (home-doors.js):
+   той самий канал, другого не відкриваємо (закрив би цей). Подія 'pmg:dept-voice' + window.__pmgDeptVoice. */
+function shareDeptVoice(people) {
+  window.__pmgDeptVoice = { people, at: Date.now() };
+  window.dispatchEvent(new CustomEvent('pmg:dept-voice', { detail: window.__pmgDeptVoice }));
 }
 
 function setDeptVoiceGlow(n) {
