@@ -12,7 +12,9 @@
  * немає — localStorage.
  */
 
-const ALERTS_URL = 'https://pmg-alerts.doktorvzgljad.workers.dev/';
+import { moonPhase } from './home-moon.js?v=20261124a';
+
+const ALERTS_URL ='https://pmg-alerts.doktorvzgljad.workers.dev/';
 const OUTAGE_URL = 'https://raw.githubusercontent.com/Baskerville42/outage-data-ua/main/data/';
 const MAP_URL = 'assets/ua-oblasts.json';
 const TZ = 'Europe/Kyiv';
@@ -368,6 +370,21 @@ function wxMood(code, isDay) {
 }
 const WIND = ['пн', 'пн-сх', 'сх', 'пд-сх', 'пд', 'пд-зх', 'зх', 'пн-зх'];
 
+/* Фаза Місяця — рядок під прогнозом. Рахує home-moon.js локально, без API. */
+function moonHtml() {
+  const m = moonPhase();
+  const day = (d) => d.toLocaleDateString('uk-UA', { timeZone: TZ });
+  const at = m.next.date, today = new Date();
+  const when = day(at) === day(today) ? `сьогодні о ${hhmm(at)}`
+    : day(at) === day(new Date(today.getTime() + 864e5)) ? `завтра о ${hhmm(at)}`
+    : at.toLocaleDateString('uk-UA', { timeZone: TZ, day: 'numeric', month: 'long' });
+  const full = `${at.toLocaleDateString('uk-UA', { timeZone: TZ, day: 'numeric', month: 'long', year: 'numeric' })}, ${hhmm(at)}`;
+  return `<div class="hl-moon" title="${esc(`${m.name}: освітлено ${m.illum}% диска, ${Math.floor(m.age)}-а доба від молодика. Наступна ${m.next.name} — ${full} (Київ)`)}">
+      <span class="hl-moon-ic" aria-hidden="true">${m.icon}</span>
+      <span class="hl-moon-tx"><b>${esc(m.name)}</b> · освітлено ${m.illum}% · ${m.name.toLowerCase() === m.next.name ? 'точна мить' : esc(m.next.name)} ${esc(when)}</span>
+    </div>`;
+}
+
 async function loadWeather() {
   const [, , lat, lon] = PLACES[place.oblast];
   const box = $(root, '[data-f="wx"]');
@@ -384,7 +401,7 @@ async function loadWeather() {
     renderWeather();
   } catch (e) {
     console.warn('home-live: погода', e);
-    if (!state.weather) box.innerHTML = '<div class="hl-muted">Прогноз зараз недоступний — спробую ще раз за кілька хвилин.</div>';
+    if (!state.weather) box.innerHTML = `<div class="hl-muted">Прогноз зараз недоступний — спробую ще раз за кілька хвилин.</div>${moonHtml()}`;
   }
 }
 function renderWeather() {
@@ -416,6 +433,7 @@ function renderWeather() {
       </div>`).join('')}
     </div>
     <div class="hl-wx-day">Сьогодні: <b>${t(d.temperature_2m_min[0])} … ${t(d.temperature_2m_max[0])}</b>${d.precipitation_probability_max[0] >= 20 ? ` · ймовірність опадів ${d.precipitation_probability_max[0]}%` : ' · без опадів'} · завтра ${t(d.temperature_2m_min[1])} … ${t(d.temperature_2m_max[1])}</div>
+    ${moonHtml()}
     <div class="hl-src">Open-Meteo · оновлено ${c.time.slice(11, 16)}</div>`;
   const rise = d.sunrise[0].slice(11, 16), set = d.sunset[0].slice(11, 16);
   const len = (new Date(d.sunset[0]) - new Date(d.sunrise[0])) / 60000;
