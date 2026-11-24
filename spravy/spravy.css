@@ -536,6 +536,9 @@
 .sp-answer-btn:hover { filter: brightness(1.08); }
 .sp-answer.is-on { background: var(--sp-ok-bg); color: var(--sp-ok-ink); }
 .sp-answer.is-on .sp-btn { font-size: 12px; padding: 5px 9px; }
+/* ✅ Виконано — співвиконавці: нашу СЗ надано головному, нашу частину закрито (24.11.2026) */
+.sp-codone-btn { background: var(--sp-ok-ink); border-color: var(--sp-ok-ink); }
+.sp-badges .sp-codone-mini { background: var(--sp-ok-bg); color: var(--sp-ok-ink); font-weight: 700; }
 .sp-orig { font-style: normal; font-weight: 600; color: var(--sp-hot-ink); }
 .sp-step {
   font: inherit;

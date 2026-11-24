@@ -337,6 +337,8 @@ function daysLeft(iso) {
  * Колонка «СЗ надано» лишається — там видно, чию відповідь ми чекаємо (⏳).
  */
 const isClosed = (c) => c.stage === 'done' || c.stage === 'sz_sent';
+/** ✅ Виконано: ми співвиконавці, нашу СЗ (фрагмент відповіді) надано головному — наша частина закрита (24.11.2026). */
+const isCoDone = (c) => c?.our_role === 'co' && isClosed(c);
 
 /**
  * «☑ Опрацьовано сьогодні» (вимога користувача 10.11.2026): власна позначка в цьому браузері, діє лише
@@ -522,11 +524,12 @@ function rebuildRoute(c, old) {
 const hasRoute = (c) => kindOf(c) === 'askod' && !isNoteCase(c) && c.reply_kind !== 'info';
 /**
  * Етап за маршрутом (вимога користувача 10.11.2026): «📤 відправлено на підпис» — «На підписі»;
- * «🖋 підписано» — «Закрито» (наша СЗ головному виконавцю як співвиконавців — «СЗ надано»).
+ * «🖋 підписано» — «Закрито» (наша СЗ головному виконавцю як співвиконавців — теж «Закрито» з «✅ Виконано»).
  * «Закрито» / «СЗ надано» змінюємо, лише якщо туди привів сам маршрут (зняли позначку підпису).
  */
 function routeStage(c, r, prev) {
-  const signedTo = c.our_role === 'co' ? 'sz_sent' : 'done';
+  // ✅ Співвиконавці: підписана СЗ головному — наш фрагмент відповіді, нашу частину виконано (24.11.2026, ПІ-489-26)
+  const signedTo = 'done';
   const wasSigned = !!(prev && prev.sign && prev.sign.ok);
   const open = ['new', 'work', 'review', 'signing'].includes(c.stage) || (wasSigned && ['done', 'sz_sent'].includes(c.stage));
   if (!open) return null;
@@ -1648,8 +1651,8 @@ function nextStage(c) {
   const co = c.our_role === 'co';
   return {
     new: 'work',
-    work: co ? 'sz_sent' : 'review',
-    review: co ? 'sz_sent' : 'signing',
+    work: co ? 'done' : 'review',
+    review: co ? 'done' : 'signing',
     signing: 'done',
     sz_sent: 'done'
   }[c.stage] || null;
@@ -1678,6 +1681,7 @@ function cardHTML(c) {
     signedHTML(c),
     reviewHTML(c),
     routeMiniHTML(c),
+    isCoDone(c) ? '<span class="sp-codone-mini" title="Ми співвиконавці: нашу службову надано головному виконавцю — нашу частину виконано">✅ виконано</span>' : '',
     isNoteCase(c) && c.our_role !== 'answer' ? `<span class="sp-note" title="${esc(NOTE_TIP(c))}">📌 врахувати</span>` : '',
     c.our_role ? `<span class="sp-role sp-role-${c.our_role}" title="${esc(ROLE_LABEL[c.our_role] + (c.lead_unit ? ' · головний: ' + c.lead_unit : ''))}">${ROLE_SHORT[c.our_role]}</span>` : '',
     k === 'askod' ? `<span class="sp-kind">${KIND_SHORT[c.reply_kind] || ''}</span>` : `<span class="sp-kind sp-kind-${k}" title="${CASE_KINDS[k].label}">${CASE_KINDS[k].icon} ${CASE_KINDS[k].short}</span>`,
@@ -1784,7 +1788,7 @@ function fieldsHTML(c) {
   </div>
   <datalist id="spLeadUnits">${LEAD_UNITS.map((u) => `<option value="${esc(u)}">`).join('')}</datalist>
   ${projectBlockHTML(c)}`;
-  return `${answerBarHTML(c)}
+  return `${answerBarHTML(c)}${coDoneBarHTML(c)}
   <div class="sp-lead">
     <label class="sp-f sp-lead-unit"><span>Головний виконавець (департамент / управління / відділ)</span>
       <input data-f="lead_unit" list="spLeadUnits" value="${esc(c.lead_unit)}" placeholder="Хто відповідає за документ у цілому"></label>
@@ -1841,6 +1845,26 @@ function answerBarHTML(c) {
   return `<div class="sp-answer">
     <button type="button" class="sp-btn sp-answer-btn" data-answer="on" title="Службова — відповідь на нашу записку: позначити й закрити">↩ ВІДПОВІДЬ</button>
     <span class="sp-answer-txt">службова надійшла у відповідь на нашу записку — інформацію опрацьовано та враховано; справа одразу закриється</span>
+  </div>`;
+}
+
+/**
+ * ✅ ВИКОНАНО — ми співвиконавці: наша службова головному виконавцю — це лише наш фрагмент його відповіді, і її
+ * надання закриває нашу частину (24.11.2026, користувач щодо ПІ-489-26: «службова … просто наш фрагмент відповіді і
+ * ця дія закриває нашу частину цього проекту. Зроби цю логіку для подальших проектів»). Підпис СЗ у маршруті,
+ * «далі →» і «📤 Відправлено» ведуть одразу в «Закрито»; зв'язок «⏳ чекаємо» не створюється.
+ */
+function coDoneBarHTML(c) {
+  if (c.our_role !== 'co' || kindOf(c) !== 'askod') return '';
+  const out = state.events.filter((e) => e.kind === 'outgoing').slice(-1)[0];
+  const no = out?.doc_no || (c.project_no && !isProjectNo(c.project_no) ? c.project_no : '');
+  if (isClosed(c)) return `<div class="sp-answer sp-codone is-on">
+    <span class="sp-answer-txt">✅ <b>ВИКОНАНО</b> — нашу службову${no ? ' № ' + esc(no) : ''} (фрагмент відповіді) надано головному виконавцю${c.lead_unit ? ' — ' + esc(c.lead_unit) : ''}; нашу частину закрито</span>
+    <button type="button" class="sp-btn sp-btn-ghost" data-codone="off" title="Зняти позначку й повернути справу в роботу">зняти позначку</button>
+  </div>`;
+  return `<div class="sp-answer sp-codone">
+    <button type="button" class="sp-btn sp-answer-btn sp-codone-btn" data-codone="on" title="Нашу службову головному виконавцю надано: позначити «Виконано» й закрити">✅ Виконано</button>
+    <span class="sp-answer-txt">ми співвиконавці: щойно нашу службову головному виконавцю надано, нашу частину виконано — справа закриється</span>
   </div>`;
 }
 
@@ -2408,7 +2432,9 @@ const ACTIONS = {
           counterpart: fd.get('addressee').trim() || null, about: fd.get('note').trim() || null, counterpart_case_id: lead?.id || null });
       }
       if (fd.get('move') && !KEEPS_OPEN.includes(kind)) {
-        const patch = { stage: kind === 'sz_work' ? 'sz_sent' : 'done' };
+        // ✅ Співвиконавці: наша СЗ головному — фрагмент його відповіді, нашу частину виконано → одразу «Закрито»
+        const co = state.cases.find((x) => x.id === id)?.our_role === 'co';
+        const patch = { stage: kind === 'sz_work' && !co ? 'sz_sent' : 'done' };
         state.skipAutoLink = !fd.get('wait');
         if (kind === 'letter' && no) Object.assign(patch, { out_no: no, out_date: fd.get('date') || null });
         await saveCase(id, patch);
@@ -2673,6 +2699,8 @@ async function autoLinkSzSent(c) {
   // Вхідна службова: наша СЗ — кінцева відповідь, чекати нема на кого (10.11.2026: зв'язок «⏳» на власний
   // відділ після «СЗ надано» на 10-12/749-26)
   if (isSzIn(c)) return;
+  // ✅ Співвиконавці: наша СЗ — фрагмент відповіді головного виконавця, нашу частину виконано, відповіді не чекаємо
+  if (c.our_role === 'co') return;
   if (DEMO) {
     if (state.demoLinks.some((l) => l.case_id === c.id && l.direction === 'out')) return;
   } else {
@@ -3398,6 +3426,17 @@ function wireStatic() {
         ? { our_role: 'answer', stage: 'done', route: null, change_note: '↩ ВІДПОВІДЬ — інформацію опрацьовано та враховано' }
         : { our_role: null, stage: 'work', change_note: 'Позначку «ВІДПОВІДЬ» знято — службова знову в роботі' };
       ans.disabled = true;
+      saveCase(id, patch).then(() => openCase(id, true));
+      return;
+    }
+    // ✅ Виконано (співвиконавці): позначити — «Закрито»; зняти — назад у «Готуємо»
+    const cd = e.target.closest('[data-codone]');
+    if (cd && state.openId) {
+      const id = state.openId;
+      const patch = cd.dataset.codone === 'on'
+        ? { stage: 'done', change_note: '✅ Виконано — нашу службову (фрагмент відповіді) надано головному виконавцю, нашу частину закрито' }
+        : { stage: 'work', change_note: 'Позначку «Виконано» знято — справа знову в роботі' };
+      cd.disabled = true;
       saveCase(id, patch).then(() => openCase(id, true));
       return;
     }
