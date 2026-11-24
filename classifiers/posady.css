@@ -189,3 +189,20 @@
    цій сторінці не потрібно. Пастка: --accent-soft у темній темі дорівнює
    --surface, тож як підсвітку поверх картки його брати не можна — див.
    наведення на .po-fold > summary. */
+
+/* ── Вбудований режим (?embed=1): лише картка, у вікні поверх «Кадрів» ── */
+.po-embed body { background: var(--surface); }
+.po-embed .classifiers-hero,
+.po-embed .mobile-tabs,
+.po-embed .nk-browser,
+.po-embed .nk-about,
+.po-embed .site-footer,
+.po-embed .back-to-top { display: none !important; }
+.po-embed .nk-layout { display: block; max-width: none; margin: 0; padding: 0; }
+.po-embed .nk-layout .nk-reader {
+  display: block; border: 0; border-radius: 0; box-shadow: none;
+  padding: 16px 18px 28px; min-height: 0;
+}
+@media (max-width: 600px) {
+  .po-embed .nk-layout .nk-reader { padding: 12px 12px 24px; }
+}

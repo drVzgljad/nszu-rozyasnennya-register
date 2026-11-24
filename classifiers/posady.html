@@ -11,9 +11,26 @@
   <title>НавігаторПМГ26 | Посади · ДКХП-78 і коди НСЗУ</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
   <link rel="stylesheet" href="classifiers.css?v=20261112a">
-  <link rel="stylesheet" href="posady.css?v=20260818b">
+  <link rel="stylesheet" href="posady.css?v=20261124a">
   <link rel="stylesheet" href="../auth-v2.css?v=20261119a">
-  <script type="module" src="../auth-v2.js?v=20261123b"></script>
+  <!-- Вбудований режим (?embed=1, з 24.11.2026): картка характеристики у вікні поверх «Кадрів».
+       Без шапки, меню й auth-шару: інакше у вікні вдруге інжектились би таббар, сповіщення й звук
+       доручень. Тему беремо з того самого сховища, що й auth-v2.js. Посилання з картки відкриваються
+       новою вкладкою, щоб робота в «Кадрах» не губилась. -->
+  <script>
+    (function () {
+      var embed = /[?&]embed=1(&|$)/.test(location.search), d = document.documentElement;
+      window.PO_EMBED = embed;
+      if (!embed) return;
+      d.classList.add("po-embed");
+      try { if (localStorage.getItem("portal-theme") === "dark") d.classList.add("dark-theme"); } catch (e) {}
+      addEventListener("storage", function (e) {
+        if (e.key === "portal-theme") d.classList.toggle("dark-theme", e.newValue === "dark");
+      });
+      var b = document.createElement("base"); b.target = "_blank"; document.head.appendChild(b);
+    })();
+  </script>
+  <script type="module">if (!window.PO_EMBED) import("../auth-v2.js?v=20261123b");</script>
 </head>
 <body id="top">
   <header class="hero classifiers-hero">

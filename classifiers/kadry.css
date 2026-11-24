@@ -267,3 +267,52 @@
   .kd-picker { flex-direction: column; align-items: stretch; }
   .kd-figure { padding: 10px; }
 }
+
+/* ── Характеристика ДКХП у вікні поверх «Кадрів» (з 24.11.2026) ────────── */
+.kd-dkhp-sum { text-decoration: none; display: inline-block; }
+.kd-li-dkhp { display: flex; gap: 6px; align-items: stretch; }
+.kd-li-dkhp > .kd-item { flex: 1 1 auto; min-width: 0; }
+.kd-dkhp-open {
+  flex: 0 0 auto; display: flex; align-items: center; justify-content: center;
+  min-width: 5.2rem; padding: 6px 10px; border-radius: 9px; white-space: nowrap;
+  font-size: .8rem; font-weight: 700; text-decoration: none;
+  color: var(--accent-dark); background: var(--accent-soft); border: 1px solid var(--line);
+}
+.kd-dkhp-open:hover { border-color: var(--accent); }
+.kd-dkhp-open:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+html.kd-dlg-on { overflow: hidden; }   /* сторінка під вікном не прокручується */
+.kd-dlg {
+  width: min(920px, calc(100vw - 32px)); height: min(88vh, 1100px);
+  max-width: none; max-height: none; padding: 0; overflow: hidden;
+  border: 1px solid var(--line); border-radius: 14px;
+  background: var(--surface); color: var(--ink); box-shadow: var(--shadow);
+}
+.kd-dlg[open] { display: flex; flex-direction: column; }
+.kd-dlg::backdrop { background: rgba(15, 25, 40, .55); }
+.kd-dlg-bar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+  padding: 10px 12px 10px 16px; border-bottom: 1px solid var(--line); background: var(--soft);
+}
+.kd-dlg-t { flex: 1 1 18rem; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.kd-dlg-t b { font-size: .98rem; line-height: 1.3; }
+.kd-dlg-t span { font-size: .76rem; color: var(--ink); opacity: .75; }
+.kd-dlg-btn {
+  font: inherit; font-size: .8rem; font-weight: 700; cursor: pointer; white-space: nowrap;
+  text-decoration: none; color: var(--accent-dark); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px;
+}
+.kd-dlg-btn:hover { border-color: var(--accent); }
+.kd-dlg-x { color: var(--ink); }
+.kd-dlg-frame { flex: 1 1 auto; width: 100%; min-height: 0; border: 0; background: var(--surface); }
+
+@media (max-width: 980px) {
+  /* на телефоні й планшеті — на весь екран, кнопки лишаються під пальцем */
+  .kd-dlg {
+    width: 100vw; height: 100dvh; max-width: 100vw; max-height: 100dvh;
+    margin: 0; border-radius: 0; border: 0;
+  }
+  .kd-dlg-bar { padding: 8px 10px; }
+  .kd-dlg-t { flex-basis: 100%; }
+  .kd-dlg-btn { flex: 1 1 0; text-align: center; padding: 8px 10px; }
+}

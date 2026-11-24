@@ -441,7 +441,9 @@
         liveStatus(t) ? " · " + esc(liveStatus(t)) : ""}</div>
       ${pk.size ? `<div class="kd-sum-ok">трапляється у ${nf(pk.size)} ${
         plural(pk.size, "пакеті", "пакетах", "пакетах")} ПМГ-2026</div>`
-      : '<div class="kd-sum-kind">жоден пакет ПМГ-2026 цього не вимагає</div>'}`;
+      : '<div class="kd-sum-kind">жоден пакет ПМГ-2026 цього не вимагає</div>'}
+      ${n.type === "dkhp" ? `<a class="kd-checklist kd-dkhp-sum" href="${esc(dkhpHref(n.id))}"
+          data-dkhp="${esc(n.id)}">📖 Текст характеристики${n.page ? " · с. " + esc(n.page) + " Довідника" : ""}</a>` : ""}`;
   }
 
   /** Чекліст вимог обраного пакета — текстом у буфер. Інструмент
@@ -746,11 +748,80 @@
         ${sub ? `<span class="kd-r-sub">${esc(trim(sub, 220))}</span>` : ""}`;
     }
 
-    return `<li>
+    return `<li${key === "dkhp" ? ' class="kd-li-dkhp"' : ""}>
       <button type="button" class="kd-item${gone ? " gone" : ""}${here ? " here" : ""}"
               data-goto="${esc(id)}" ${here ? 'aria-current="true"' : ""}>${body}</button>
+      ${key === "dkhp" ? dkhpOpenHTML(id, n) : ""}
     </li>`;
   }
+
+  /* ── Характеристика ДКХП у вікні поверх «Кадрів» ───────────────────────
+     Рядок характеристики переставляє ланцюжок на цю ланку — це навігація
+     схемою. Сам текст Довідника живе на сторінці «Характеристики ДКХП-78»
+     (posady.html), і перехід туди губив зібраний у «Кадрах» ланцюжок. Тому
+     текст відкривається окремим вікном: та сама сторінка в режимі ?embed=1
+     (лише картка). Звичайне посилання лишається посиланням — Ctrl+клік,
+     середня кнопка й «відкрити в новій вкладці» працюють як завжди. */
+  const dkhpHref = (id, embed) =>
+    "posady.html?id=" + encodeURIComponent(id) + (embed ? "&embed=1" : "");
+
+  function dkhpOpenHTML(id, n) {
+    return `<a class="kd-dkhp-open" href="${esc(dkhpHref(id))}" data-dkhp="${esc(id)}"
+        title="Відкрити кваліфікаційну характеристику у вікні">📖 ${
+        n.page ? "с.&nbsp;" + esc(n.page) : "Текст"}</a>`;
+  }
+
+  let dlg = null;
+  function dkhpDialog() {
+    if (dlg) return dlg;
+    dlg = document.createElement("dialog");
+    dlg.className = "kd-dlg";
+    dlg.setAttribute("aria-labelledby", "kdDlgTitle");
+    dlg.innerHTML = `
+      <div class="kd-dlg-bar">
+        <div class="kd-dlg-t">
+          <b id="kdDlgTitle"></b>
+          <span id="kdDlgSub"></span>
+        </div>
+        <a class="kd-dlg-btn" id="kdDlgFull" target="_blank" rel="noopener">↗ Відкрити повністю</a>
+        <button type="button" class="kd-dlg-btn kd-dlg-x" id="kdDlgClose" aria-label="Закрити">✕ Закрити</button>
+      </div>
+      <iframe class="kd-dlg-frame" id="kdDlgFrame" title="Кваліфікаційна характеристика"></iframe>`;
+    document.body.appendChild(dlg);
+    const close = () => dlg.close();
+    $("#kdDlgClose", dlg).addEventListener("click", close);
+    // клік по затемненню (поза рамкою) — теж закрити
+    dlg.addEventListener("click", (e) => { if (e.target === dlg) close(); });
+    dlg.addEventListener("close", () => {
+      document.documentElement.classList.remove("kd-dlg-on");
+      $("#kdDlgFrame", dlg).src = "about:blank";
+    });
+    return dlg;
+  }
+
+  function openDkhp(id) {
+    const n = N.get(id);
+    if (!n) return;
+    const d = dkhpDialog();
+    $("#kdDlgTitle", d).textContent = n.name || id;
+    $("#kdDlgSub", d).textContent = ["ДКХП-78", n.page ? "с. " + n.page + " Довідника" : "", n.sub || n.section]
+      .filter(Boolean).join(" · ");
+    $("#kdDlgFull", d).href = dkhpHref(id);
+    $("#kdDlgFrame", d).src = dkhpHref(id, true);
+    document.documentElement.classList.add("kd-dlg-on");
+    if (typeof d.showModal === "function") d.showModal();
+    else { location.href = dkhpHref(id); return; } // старий браузер без <dialog>
+    $("#kdDlgClose", d).focus();
+  }
+
+  // Один слухач на всю сторінку: кнопки з'являються й зникають з кожним перемальовуванням.
+  document.addEventListener("click", (e) => {
+    const a = e.target.closest && e.target.closest("a[data-dkhp]");
+    if (!a || e.button !== 0 || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    e.stopPropagation();
+    openDkhp(a.dataset.dkhp);
+  });
 
   function partLabel(k) { return ((G.labels || {}).part || {})[k] || k || ""; }
 
