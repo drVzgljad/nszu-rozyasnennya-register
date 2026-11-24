@@ -344,7 +344,7 @@ function readerDec(pkg) {
     return "<p>Клінічні стандарти для цього пакета не визначено.</p>";
   }
   const pkgLinks = packageState.decLinks[pkg.number] || {};
-  const relatedDocs = packageState.decDocuments.filter(doc => linkedCategories.includes(doc.category));
+  const relatedDocs = packageState.decDocuments.filter(doc => (doc.categories || [doc.category]).some((c) => linkedCategories.includes(c)));
   if (!relatedDocs.length) {
     return "<p>У пов'язаних категоріях ДЕЦ немає зареєстрованих документів.</p>";
   }
@@ -576,36 +576,12 @@ async function initPackages() {
   // однопотоковий тестовий сервер їх рвав.
   loadPackageNews();
 
-  // Гібридне завантаження документів ДЕЦ
-  let loadedFromSupabase = false;
+  // Документи ДЕЦ — лише локальний реєстр (dec/build_dec.py); таблиця dec_documents у Supabase не ведеться
   try {
-    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-    const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
-    const sb = (window.__pmgSb || (window.__pmgSb = createClient(SUPABASE_URL, SUPABASE_KEY)));
-    
-    if (sb) {
-      const { data: dbData, error } = await sb.from('dec_documents').select('*');
-      if (!error && dbData && dbData.length > 0) {
-        packageState.decDocuments = dbData;
-        loadedFromSupabase = true;
-        console.log("Loaded DEC documents for packages from Supabase!");
-      }
-    }
-  } catch (dbErr) {
-    console.warn("Supabase fetch for packages skipped or failed, falling back to local JSON:", dbErr);
-  }
-
-  if (!loadedFromSupabase) {
-    try {
-      const decDocsResponse = await fetch("../data/dec_documents.json");
-      if (decDocsResponse) {
-        packageState.decDocuments = (await decDocsResponse.json()).documents || [];
-        console.log("Loaded DEC documents for packages from local JSON.");
-      }
-    } catch(e) {
-      console.warn("Failed to load local dec documents", e);
-    }
+    const decDocsResponse = await fetch("../data/dec_documents.json");
+    if (decDocsResponse.ok) packageState.decDocuments = (await decDocsResponse.json()).documents || [];
+  } catch (e) {
+    console.warn("Failed to load local dec documents", e);
   }
   const params = new URLSearchParams(location.search);
   byId("packageSearch").value = params.get("q") || "";

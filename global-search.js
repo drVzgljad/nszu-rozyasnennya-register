@@ -22,11 +22,12 @@ const GROUPS = [
   { type: 5, label: 'Класифікатор НК 026', icon: '🔬' },
   { type: 6, label: 'Таблиця співставлення', icon: '🔗' },
   { type: 7, label: 'Спеціальності та посади', icon: '🪪' },
+  { type: 11, label: 'Стандарти та настанови ДЕЦ МОЗ', icon: '🏥' },
   { type: 0, label: "Роз'яснення НСЗУ", icon: '📄' },
   { type: 3, label: 'Договори ЗОЗ', icon: '🏥' },
   { type: 10, label: 'Шукати в довідниках', icon: '🧭' },
 ];
-const GROUP_ORDER = { 1: 0, 2: 1, 8: 2, 6: 3, 4: 4, 5: 5, 7: 6, 0: 7, 3: 8 };
+const GROUP_ORDER = { 1: 0, 2: 1, 8: 2, 6: 3, 4: 4, 5: 5, 7: 6, 11: 7, 0: 8, 3: 9 };
 const PER_GROUP = 7;
 
 function buildUrl(entry, prefix) {
@@ -47,6 +48,8 @@ function buildUrl(entry, prefix) {
     case 8: return `${prefix}regulatory/index.html#doc/${encodeURIComponent(link)}`;
     // Швидкий перехід і двері в довідники: link — готова адреса від кореня порталу
     case 9: case 10: return `${prefix}${link}`;
+    // Категорія реєстру ДЕЦ: link — назва категорії
+    case 11: return `${prefix}dec/index.html?category=${encodeURIComponent(link)}`;
   }
 }
 
@@ -133,7 +136,10 @@ export function quickJumps(query) {
     return out;
   }
   const c = parts[0] || '';
-  if (RE_ICD.test(c)) koder(c, `${c} — діагноз: ОДК, групи, послуги, сума`, 'Кодер · НК 025');
+  if (RE_ICD.test(c)) {
+    koder(c, `${c} — діагноз: ОДК, групи, послуги, сума`, 'Кодер · НК 025');
+    go('dec/index.html', c, `${c} — стандарти й настанови ДЕЦ`, 'ДЕЦ МОЗ · документи, у яких є ця рубрика МКХ-10');
+  }
   if (RE_ACHI.test(c)) koder(c, `${c} — втручання: групи, послуги, пакети`, 'Кодер · НК 026');
   if (/^\d{1,7}-\d$/.test(c)) koder(c, `${c} — лабораторний код LOINC`, 'Кодер · послуги пакета 9, для яких він потрібен');
   if (/^[A-Z]\d{5}$/.test(c)) koder(c, `${c} — код послуги ЕСОЗ`, 'Кодер · як послугу обліковують у пакеті 9');
@@ -153,6 +159,7 @@ export function wordJumps(query) {
     [10, `«${text}» у Кодері`, 'діагнози, втручання, групи, послуги ЕСОЗ, лабораторні коди', '', `koduvannia/koder.html?q=${q}`],
     [10, `«${text}» у Кадрах`, 'посади, спеціальності, коди посад', '', `classifiers/kadry.html?q=${q}`],
     [10, `«${text}» в Обладнанні`, 'вироби з вимог пакетів, НК 024, НК 031, табелі', '', `classifiers/obladnannia.html?q=${q}`],
+    [10, `«${text}» у стандартах ДЕЦ`, 'стандарти медичної допомоги, клінічні настанови, протоколи', '', `dec/index.html?q=${q}`],
   ];
 }
 
@@ -180,10 +187,10 @@ function search(query) {
   }
   scored.sort((a, b) => b.score - a.score || GROUP_ORDER[a.entry[0]] - GROUP_ORDER[b.entry[0]]);
   // Спільний пошук порталу: те, чого підрядок не знайшов, — інший відмінок, порядок слів, словник.
-  // Три сфери словника: коди, кадри, обладнання. Ці рядки йдуть після точних збігів.
+  // Чотири сфери словника: коди, кадри, обладнання, ДЕЦ. Ці рядки йдуть після точних збігів.
   if (W.PMG_FIND && W.PMG_SEARCH) {
     const have = new Set(scored.map((s) => s.entry));
-    for (const scope of ['', 'kadry', 'equipment']) {
+    for (const scope of ['', 'kadry', 'equipment', 'dec']) {
       for (const e of W.PMG_FIND.extra(state.entries, query, have, { text: entryText, scope }).items) {
         have.add(e);
         scored.push({ entry: e, score: -1 });

@@ -644,7 +644,8 @@
       ["🧮", "Наказ № 377", `../algorithms/index.html?q=${code}`],
       ["📦", "Пакети ПМГ-2026", `../pakety/index.html?q=${code}`],
       ["📜", "Постанова 1808", `../postanova/index.html?q=${code}`],
-      ["🏥", "Стандарти ДЕЦ МОЗ", `../dec/index.html?q=${name}`],
+      // ДЕЦ шукає за кодом МКХ-10 з документів ДЕЦ; назва рубрики НК 025 там майже ніколи не збігається
+      ["🏥", "Стандарти ДЕЦ МОЗ", `../dec/index.html?q=${/^[A-Z]\d{2}/.test(e.c) ? code : name}`],
       ["📄", "Роз'яснення НСЗУ", `../rozjasnennya.html?q=${code}`],
     ];
     return `<div class="reader-block">

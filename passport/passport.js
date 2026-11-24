@@ -464,7 +464,7 @@ function renderHeaderAndMetrics() {
     pkg.related_document_ids.includes(doc.id) || groupCodes.includes(doc.package)
   );
   const linkedCategories = getLinkedCategoriesForPackage(pkg.number);
-  const decDocs = passportState.decDocuments.filter(doc => linkedCategories.includes(doc.category));
+  const decDocs = passportState.decDocuments.filter(doc => (doc.categories || [doc.category]).some((c) => linkedCategories.includes(c)));
   el("tabCountExplanations").textContent = linkedDocs.length;
   el("tabCountDec").textContent = decDocs.length;
 }
@@ -3194,7 +3194,7 @@ function renderDecDocuments() {
 
   const pkgLinks = passportState.decLinks[pkg.number] || {};
   const linkedCategories = getLinkedCategoriesForPackage(pkg.number);
-  const decDocs = passportState.decDocuments.filter(doc => linkedCategories.includes(doc.category));
+  const decDocs = passportState.decDocuments.filter(doc => (doc.categories || [doc.category]).some((c) => linkedCategories.includes(c)));
 
   if (decDocs.length === 0) {
     container.innerHTML = `<div class="no-results">Пов'язаних галузевих стандартів чи клінічних протоколів МОЗ України для цього пакета не знайдено.</div>`;
@@ -3585,7 +3585,7 @@ function exportPassportToExcel() {
   ];
   const pkgLinks = passportState.decLinks[pkg.number] || {};
   const linkedCategories = getLinkedCategoriesForPackage(pkg.number);
-  const decDocs = passportState.decDocuments.filter(doc => linkedCategories.includes(doc.category));
+  const decDocs = passportState.decDocuments.filter(doc => (doc.categories || [doc.category]).some((c) => linkedCategories.includes(c)));
   
   decDocs.forEach(doc => {
     let stage = "Не визначено";
