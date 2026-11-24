@@ -154,6 +154,8 @@ async function undecide(edge) {
 
 /* ── стан чинності з графа ─────────────────────────────────── */
 function docState(id) {
+  // проєкт без реєстрації (позаархівний документ) — не чинний за визначенням
+  if (state.index?.documents?.some((d) => d.id === id && d.draft)) return "проєкт";
   if (!state.graph) return "чинне";
   const incoming = state.graph.edges
     .filter((e) => e.to === id && (e.relation === "скасовує" || e.relation === "доповнює"))

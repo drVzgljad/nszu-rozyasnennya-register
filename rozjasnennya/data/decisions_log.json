@@ -1,6 +1,27 @@
 {
  "pulls": [
   {
+   "at": "2026-11-24T15:21:28.000009+00:00",
+   "total": 0,
+   "confirmed": 0,
+   "rejected": 0,
+   "changed": 0
+  },
+  {
+   "at": "2026-11-24T15:20:48.321830+00:00",
+   "total": 0,
+   "confirmed": 0,
+   "rejected": 0,
+   "changed": 0
+  },
+  {
+   "at": "2026-11-24T15:16:16.270744+00:00",
+   "total": 0,
+   "confirmed": 0,
+   "rejected": 0,
+   "changed": 0
+  },
+  {
    "at": "2026-11-24T07:25:03.462015+00:00",
    "total": 0,
    "confirmed": 0,
@@ -254,27 +275,6 @@
   },
   {
    "at": "2026-10-13T05:23:59.862380+00:00",
-   "total": 0,
-   "confirmed": 0,
-   "rejected": 0,
-   "changed": 0
-  },
-  {
-   "at": "2026-10-11T06:32:39.051815+00:00",
-   "total": 0,
-   "confirmed": 0,
-   "rejected": 0,
-   "changed": 0
-  },
-  {
-   "at": "2026-10-10T18:29:45.382917+00:00",
-   "total": 0,
-   "confirmed": 0,
-   "rejected": 0,
-   "changed": 0
-  },
-  {
-   "at": "2026-10-06T05:48:32.741618+00:00",
    "total": 0,
    "confirmed": 0,
    "rejected": 0,
