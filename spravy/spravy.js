@@ -1974,7 +1974,10 @@ function renderRoute(c) {
   const steps = r.steps.map((s, i) => node('s' + i, 'погоджує', s.who, s.ok, `data-rt="step" data-i="${i}"`,
     `<button type="button" class="sp-rt-del" data-rt-del="${i}" title="Прибрати ланку" aria-label="Прибрати ланку ${esc(s.who)}">✕</button>` +
     (n > 1 ? `<span class="sp-rt-mvs">${i > 0 ? mv(i, -1, s) : '<span></span>'}${i < n - 1 ? mv(i, 1, s) : '<span></span>'}</span>` : ''))).join('<li class="sp-rt-arrow" aria-hidden="true">→</li>');
-  box.innerHTML = `<div class="sp-rt-head"><b>🧭 Маршрут</b>
+  // Є проміжна відповідь — підписуємо тут лише ОСТАТОЧНУ; проміжна має свій маршрут у «📑» (ПІ-495, 24.11.2026)
+  const hasInterim = !!state.interim[c.id] || (state.events || []).some((e) => e.kind === 'outgoing' && e.doc_kind === 'interim');
+  box.innerHTML = `<div class="sp-rt-head"><b>🧭 Маршрут${hasInterim ? ' остаточної відповіді' : ''}</b>
+      ${hasInterim ? '<span class="sp-muted">проміжна відповідь (продовження) — своїм маршрутом у блоці «📑» нижче</span>' : ''}
       <label class="sp-rt-sel">підписує <select data-rt-signer>${signerOptions(r.sign.who).map((s) => `<option${s === r.sign.who ? ' selected' : ''}>${esc(s)}</option>`).join('')}</select></label>
       <label class="sp-rt-sel">+ ланка <select data-rt-add><option value="">—</option>${approverGroups().map(([g, list]) => `<optgroup label="${esc(g)}">${list.map((s) => `<option>${esc(s)}</option>`).join('')}</optgroup>`).join('')}<option value="*">Інше…</option></select></label>
       ${c.route ? '' : '<span class="sp-muted">типовий маршрут — збережеться після першої позначки</span>'}
