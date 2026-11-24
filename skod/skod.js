@@ -1792,10 +1792,22 @@ function renderDepartmentWideDetails(logs, container) {
   `;
 }
 
+// Canvas не розуміє var(--…): токени теми читаємо з :root у момент малювання,
+// тому після перемикання .dark-theme (MutationObserver нижче) графіки беруть нові кольори.
+function themeToken(name, fallback) {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v || fallback;
+}
+
 function getChartColors(isDark) {
   return {
-    textColor: isDark ? '#e2e8f0' : '#1e293b',
-    gridColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
+    textColor: themeToken('--ink', isDark ? '#e2e8f0' : '#1e293b'),
+    mutedColor: themeToken('--muted', isDark ? '#a8b3c2' : '#5b6675'),
+    gridColor: themeToken('--line', isDark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(0, 0, 0, 0.1)'),
+    surface: themeToken('--surface', isDark ? '#1e293b' : '#ffffff'),
+    accent: themeToken('--accent', isDark ? '#6aa8dc' : '#2f6b9e'),
+    accentSoft: themeToken('--accent-soft', isDark ? '#22384d' : '#e3eef7'),
+    font: getComputedStyle(document.body).fontFamily || 'system-ui, sans-serif',
     branches: {
       askod: '#3b82f6',
       department: '#10b981',
@@ -1871,7 +1883,7 @@ function drawDashboardCharts(logs, level, isDark) {
             position: 'bottom',
             labels: {
               color: colors.textColor,
-              font: { family: 'var(--p-text)', size: 12 }
+              font: { family: colors.font, size: 12 }
             }
           },
           tooltip: {
@@ -1912,6 +1924,45 @@ function drawDashboardCharts(logs, level, isDark) {
   });
   const timelineData = Object.values(dailyScores);
 
+  const timelineDates = Object.keys(dailyScores);
+  const isWeekendDate = d => { const w = new Date(d + 'T12:00:00').getDay(); return w === 0 || w === 6; };
+  const fmtScore = v => v.toLocaleString('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  // Медіана — за днями з оцінкою: середнє перекошують поодинокі «важкі» дні.
+  const scoredDays = timelineData.filter(v => v > 0).sort((a, b) => a - b);
+  let timelineMedian = null;
+  if (scoredDays.length) {
+    const mid = Math.floor(scoredDays.length / 2);
+    timelineMedian = scoredDays.length % 2 ? scoredDays[mid] : (scoredDays[mid - 1] + scoredDays[mid]) / 2;
+  }
+  const timelineTitle = document.getElementById('chartTimeline')?.closest('.skod-chart-card')?.querySelector('.skod-chart-card-title');
+  if (timelineTitle) {
+    timelineTitle.innerHTML = 'Динаміка оцінки за днями' + (timelineMedian !== null
+      ? ` <span class="skod-chart-card-note">медіана ${fmtScore(timelineMedian)} бала/день · днів з оцінкою: ${scoredDays.length}</span>`
+      : '');
+  }
+
+  // Пунктир медіани поверх стовпців; підпис — тим самим приглушеним чорнилом, що й осі.
+  const medianLinePlugin = {
+    id: 'skodMedianLine',
+    afterDatasetsDraw(chart) {
+      if (timelineMedian === null) return;
+      const { ctx, chartArea, scales } = chart;
+      const y = scales.y.getPixelForValue(timelineMedian);
+      if (y < chartArea.top || y > chartArea.bottom) return;
+      ctx.save();
+      ctx.strokeStyle = colors.textColor;
+      ctx.globalAlpha = 0.7;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      ctx.moveTo(chartArea.left, y);
+      ctx.lineTo(chartArea.right, y);
+      ctx.stroke();
+      ctx.restore();
+    }
+  };
+
   const ctxTimeline = document.getElementById('chartTimeline')?.getContext('2d');
   if (ctxTimeline) {
     chartInstances.timeline = new Chart(ctxTimeline, {
@@ -1920,10 +1971,15 @@ function drawDashboardCharts(logs, level, isDark) {
         labels: timelineLabels,
         datasets: [{
           data: timelineData,
-          backgroundColor: isDark ? 'rgba(74, 143, 199, 0.65)' : 'rgba(74, 143, 199, 0.85)',
-          borderColor: 'var(--accent)',
-          borderWidth: 1,
-          borderRadius: 4
+          // Робочі дні — акцент теми, вихідні — приглушені: їх видно, але око не чіпляється.
+          backgroundColor: timelineDates.map(d => isWeekendDate(d) ? colors.mutedColor : colors.accent),
+          hoverBackgroundColor: colors.textColor,
+          borderWidth: 0,
+          borderRadius: { topLeft: 4, topRight: 4 },
+          borderSkipped: 'bottom',
+          maxBarThickness: 28,
+          categoryPercentage: 0.85,
+          barPercentage: 0.9
         }]
       },
       options: {
@@ -1932,31 +1988,58 @@ function drawDashboardCharts(logs, level, isDark) {
         plugins: {
           legend: { display: false },
           tooltip: {
+            backgroundColor: colors.surface,
+            titleColor: colors.textColor,
+            bodyColor: colors.textColor,
+            borderColor: colors.gridColor,
+            borderWidth: 1,
+            padding: 10,
+            displayColors: false,
+            titleFont: { family: colors.font, size: 12, weight: '600' },
+            bodyFont: { family: colors.font, size: 12 },
             callbacks: {
-              label: function(context) {
-                return ` ${context.raw.toFixed(2)} балів`;
+              title: items => {
+                const d = timelineDates[items[0].dataIndex];
+                return new Date(d + 'T12:00:00').toLocaleDateString('uk-UA', { weekday: 'short', day: '2-digit', month: 'long' });
+              },
+              label: context => {
+                const v = context.raw;
+                const lines = [` ${fmtScore(v)} бала`];
+                if (timelineMedian !== null && v > 0) {
+                  const diff = v - timelineMedian;
+                  lines.push(` ${diff >= 0 ? '+' : '−'}${fmtScore(Math.abs(diff))} до медіани`);
+                }
+                return lines;
               }
             }
           }
         },
         scales: {
           x: {
-            grid: { color: colors.gridColor },
+            grid: { display: false },
+            border: { color: colors.gridColor },
             ticks: {
-              color: colors.textColor,
-              font: { family: 'var(--p-text)', size: 11 }
+              color: colors.mutedColor,
+              font: { family: colors.font, size: 11 },
+              maxRotation: 0,
+              autoSkip: true,
+              autoSkipPadding: 8
             }
           },
           y: {
             grid: { color: colors.gridColor },
+            border: { display: false },
             ticks: {
-              color: colors.textColor,
-              font: { family: 'var(--p-text)', size: 11 }
+              color: colors.mutedColor,
+              font: { family: colors.font, size: 11 },
+              maxTicksLimit: 6,
+              callback: v => Number(v).toLocaleString('uk-UA')
             },
-            suggestedMin: 0
+            beginAtZero: true
           }
         }
-      }
+      },
+      plugins: [medianLinePlugin]
     });
   }
 
@@ -2022,7 +2105,7 @@ function drawDashboardCharts(logs, level, isDark) {
             grid: { color: colors.gridColor },
             ticks: {
               color: colors.textColor,
-              font: { family: 'var(--p-text)', size: 11 }
+              font: { family: colors.font, size: 11 }
             },
             suggestedMin: 0
           },
@@ -2030,7 +2113,7 @@ function drawDashboardCharts(logs, level, isDark) {
             grid: { display: false },
             ticks: {
               color: colors.textColor,
-              font: { family: 'var(--p-text)', size: 11 }
+              font: { family: colors.font, size: 11 }
             }
           }
         }
@@ -2802,6 +2885,7 @@ function buildStatusLogRows(logs) {
 }
 
 function drawStatusCharts(logs, isDark) {
+  const colors = getChartColors(isDark);
   const counts = { office: 0, home: 0, sick: 0, vacation: 0, agreement: 0 };
   logs.forEach(log => {
     if (counts[log.status] !== undefined) counts[log.status]++;
@@ -2835,7 +2919,7 @@ function drawStatusCharts(logs, isDark) {
             position: 'right',
             labels: {
               color: isDark ? '#cbd5e1' : '#1e293b',
-              font: { family: 'var(--p-text)', weight: '600', size: 12 }
+              font: { family: colors.font, weight: '600', size: 12 }
             }
           }
         }
@@ -2910,7 +2994,7 @@ function drawStatusCharts(logs, isDark) {
             position: 'bottom',
             labels: {
               color: isDark ? '#cbd5e1' : '#1e293b',
-              font: { family: 'var(--p-text)', weight: '600', size: 12 }
+              font: { family: colors.font, weight: '600', size: 12 }
             }
           }
         }

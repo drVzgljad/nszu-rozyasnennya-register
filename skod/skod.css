@@ -388,6 +388,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.skod-chart-card-note {
+  font-family: var(--p-text, inherit);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--p-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .skod-chart-container {
