@@ -1,0 +1,58 @@
+/* Розділ «Стандарти та настанови ДЕЦ МОЗ» — власний шар змінних (AGENTS.md, розділ 4: темна тема). */
+:root {
+  --dec-pkg-bg: #f5faff;
+  --dec-pkg-border: #d5e5f3;
+  --dec-code-bg: #eef5fb;
+  --dec-old-bg: #fff4e0;
+  --dec-old-border: #f0c77a;
+  --dec-old-text: #8a5a00;
+}
+:root.dark-theme {
+  --dec-pkg-bg: #16222e;
+  --dec-pkg-border: #2c4256;
+  --dec-code-bg: #1b2b3a;
+  --dec-old-bg: #33270f;
+  --dec-old-border: #7a5a1c;
+  --dec-old-text: #f0c77a;
+}
+
+.dec-snapshot { font-size: 13px; opacity: .85; margin-top: 6px; }
+.dec-snapshot a { color: inherit; text-decoration: underline; }
+.dec-view-selector { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.dec-note { display: block; flex-basis: 100%; font-size: 12px; color: var(--muted); margin-top: 4px; }
+.results-summary { flex-wrap: wrap; }
+
+.dec-catalog { flex-direction: column; gap: 20px; margin-bottom: 24px; }
+.dec-dir-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 14px; }
+.dec-path-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); gap: 8px; }
+.dec-dir-head { margin: 0 0 12px; font-size: 15px; font-weight: 800; color: var(--accent-dark); border-bottom: 2px solid var(--line); padding-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.dec-dir-emoji { font-size: 28px; line-height: 1; }
+.dec-dir-title { font-weight: 800; font-size: 13.5px; line-height: 1.3; margin-top: 4px; flex-grow: 1; }
+.dec-dir-meta { font-size: 11px; color: var(--muted); display: flex; gap: 8px; margin-top: 4px; }
+.dec-path-main { flex-grow: 1; margin-right: 10px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.dec-path-name { font-weight: 700; }
+.dec-path-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px; }
+
+.tag.dec-old, .label.dec-old { background: var(--dec-old-bg); border-color: var(--dec-old-border); color: var(--dec-old-text); }
+.dec-warn { margin: 10px 0; padding: 9px 12px; border-radius: 10px; font-size: 13px;
+  background: var(--dec-old-bg); border: 1px solid var(--dec-old-border); color: var(--dec-old-text); }
+.dec-muted { font-size: 12.5px; color: var(--muted); margin: 6px 0; line-height: 1.45; }
+.dec-muted-box { font-size: 13px; color: var(--muted); padding: 10px; border: 1px dashed var(--line); border-radius: 10px; }
+
+.dec-codes { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin: 6px 0 10px; }
+.dec-codes > b { flex-basis: 100%; font-size: 12.5px; }
+.dec-codes > .dec-muted { flex-basis: 100%; }
+.dec-code { font: 600 12px/1 ui-monospace, Consolas, monospace; padding: 5px 7px; border-radius: 7px;
+  background: var(--dec-code-bg); border: 1px solid var(--dec-pkg-border); color: var(--accent-dark); text-decoration: none; }
+.dec-code:hover { border-color: var(--accent); }
+
+.dec-pkg { display: block; margin-bottom: 7px; padding: 11px 12px; border: 1px solid var(--dec-pkg-border); border-radius: 10px;
+  color: var(--ink); background: var(--dec-pkg-bg); text-decoration: none; font-size: 12.5px; line-height: 1.4; }
+.dec-pkg:hover { border-color: var(--accent); }
+.dec-pkg-note { display: block; margin-top: 4px; color: var(--muted); }
+.dec-pkg-why { display: block; margin-top: 4px; font-size: 11px; color: var(--accent-dark); overflow-wrap: anywhere; }
+
+/* Мобільний: звичайний список без вкладеної прокрутки, деталі — під ним */
+@media (max-width: 980px) {
+  #cards.cards { max-height: none; overflow: visible; }
+}

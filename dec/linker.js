@@ -110,14 +110,19 @@ async function loadData() {
       decLinksRes
     ] = await Promise.all([
       fetch("../data/dec_documents.json").then(r => r.json()).catch(() => ({ categories: [] })),
-      fetch("data/dec_document_codes.json").then(r => r.json()).catch(() => ({})),
+      fetch("data/package_dec_manual.json").then(r => r.json()).catch(() => ({ links: [] })),
       fetch("../mapping/data/by_package.json").then(r => r.json()).catch(() => ({})),
       fetch("../pakety/data/packages_2026.json").then(r => r.json()).catch(() => ({ packages: [] })),
       fetch("data/package_dec_links.json").then(r => r.json()).catch(() => ({}))
     ]);
 
     state.categories = decDocsRes.categories || [];
-    state.decDocumentCodes = decCodesRes;
+    // Коди МКХ-10 категорій — лише з документів ДЕЦ (build_dec.py ← extract_icd.py); тут не правляться
+    state.decDocumentCodes = {};
+    for (const [name, info] of Object.entries(decDocsRes.category_info || {})) {
+      state.decDocumentCodes[name] = { icd10: info.icd || [], achi: [], from: info.icd_from || "" };
+    }
+    state.manual = decCodesRes.links ? decCodesRes : { links: [] };
     state.packageCodes = pkgCodesRes;
     
     // Sort packages numerically by their package number
@@ -125,7 +130,7 @@ async function loadData() {
       return parseInt(a.number, 10) - parseInt(b.number, 10);
     });
 
-    // Standardize decLinks: convert any arrays of strings to objects { categoryName: { stage: "", note: "" } }
+    // Зібрані зв'язки (auto + manual) — лише для показу; зберігаються тільки ручні
     state.packageDecLinks = decLinksRes;
     for (const pkgNum in state.packageDecLinks) {
       if (Array.isArray(state.packageDecLinks[pkgNum])) {
@@ -200,7 +205,11 @@ function selectCategory(categoryName) {
   // Load codes
   const codes = state.decDocumentCodes[categoryName] || { icd10: [], achi: [] };
   el("icd10Codes").value = (codes.icd10 || []).join(", ");
-  el("achiCodes").value = (codes.achi || []).join(", ");
+  el("icd10Codes").readOnly = true;
+  el("icd10Codes").title = codes.from ? `З документа ДЕЦ ${codes.from}` : "У документах категорії кодів МКХ-10 не знайдено";
+  el("achiCodes").closest(".form-group").style.display = "none";
+  el("btnUpdateCodes").style.display = "none";
+  el("btnReindex").style.display = "none";
 
   renderPackagesGrid();
 }
@@ -257,11 +266,13 @@ function renderPackagesGrid() {
     // 2. Check if already linked manually/expertly
     const pkgLinks = state.packageDecLinks[pkgNum] || {};
     const isLinked = category in pkgLinks;
-    const linkMetadata = pkgLinks[category] || { stage: "", note: "" };
+    const linkMetadata = pkgLinks[category] || { stage: "", note: "", why: "" };
+    const isAuto = linkMetadata.source === "auto";
 
     // Create Row
     const row = document.createElement("div");
     row.className = `package-linker-row ${isLinked ? 'is-linked' : ''}`;
+    row.dataset.auto = isAuto ? "1" : "";
     row.id = `pkg-row-${pkgNum}`;
 
     // Checkbox column
@@ -319,8 +330,9 @@ function renderPackagesGrid() {
     const noteInput = document.createElement("input");
     noteInput.type = "text";
     noteInput.className = "form-control pkg-note-input";
-    noteInput.placeholder = "Додати експертний коментар...";
-    noteInput.value = linkMetadata.note || "";
+    noteInput.placeholder = "Підстава (обов'язково): пункт специфікації, постанови, код у Таблиці…";
+    noteInput.value = linkMetadata.why || "";
+    noteInput.title = isAuto ? "Автоматичний зв'язок за Таблицею співставлення" : "";
     noteInput.disabled = !isLinked;
     colNote.appendChild(noteInput);
 
@@ -370,61 +382,38 @@ async function saveLinksAndCodesToServer() {
   btn.textContent = "💾 Збереження...";
 
   try {
-    // 1. Rebuild the selected category links from UI inputs
-    const rows = document.querySelectorAll(".package-linker-row");
-    
-    rows.forEach(row => {
+    // 1. Ручні зв'язки цієї категорії збираються з рядків наново; автоматичні не зберігаються
+    const cat = state.selectedCategory;
+    const keep = state.manual.links.filter((m) => m.category !== cat);
+    const missingWhy = [];
+    document.querySelectorAll(".package-linker-row").forEach((row) => {
       const checkbox = row.querySelector(".pkg-link-checkbox");
       const pkgNum = checkbox.dataset.pkgNum;
-      const stageSelect = row.querySelector(".pkg-stage-select");
-      const noteInput = row.querySelector(".pkg-note-input");
-
-      if (!state.packageDecLinks[pkgNum]) {
-        state.packageDecLinks[pkgNum] = {};
-      }
-
-      if (checkbox.checked) {
-        state.packageDecLinks[pkgNum][state.selectedCategory] = {
-          stage: stageSelect.value,
-          note: noteInput.value.trim()
-        };
-      } else {
-        // Unlinked, so delete category key if exists
-        if (state.packageDecLinks[pkgNum]) {
-          delete state.packageDecLinks[pkgNum][state.selectedCategory];
-        }
+      const stage = row.querySelector(".pkg-stage-select").value;
+      const why = row.querySelector(".pkg-note-input").value.trim();
+      const auto = row.dataset.auto === "1";
+      const prev = state.manual.links.find((m) => m.category === cat && String(m.package) === String(pkgNum));
+      if (checkbox.checked && !auto) {
+        if (!why) { missingWhy.push(pkgNum); return; }
+        keep.push({ category: cat, package: pkgNum, stage, why, verified_by: (prev && prev.verified_by) || "" });
+      } else if (!checkbox.checked && auto) {
+        keep.push({ category: cat, package: pkgNum, remove: true, why: why || "знято вручну: збіг кодів не означає зв'язку" });
+      } else if (checkbox.checked && auto && prev && !prev.remove) {
+        keep.push(prev);
       }
     });
+    if (missingWhy.length) throw new Error(`Вкажіть підставу для пакетів: ${missingWhy.join(", ")}`);
+    state.manual.links = keep.sort((a, b) => a.category.localeCompare(b.category, "uk") || +a.package - +b.package);
 
-    // 2. Call server API to save package links
-    const saveLinksRes = await fetch("/api/save-data", {
+    // 2. Зберегти ручні зв'язки (лише локальний server.py); після — python tools/sources_build.py --only dec
+    const saveRes = await fetch("/api/save-data", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        filename: "package_dec_links.json",
-        data: state.packageDecLinks
-      })
+      body: JSON.stringify({ filename: "package_dec_manual.json", data: state.manual })
     });
+    if (!saveRes.ok) throw new Error(`Не вдалося зберегти: ${saveRes.statusText}`);
 
-    if (!saveLinksRes.ok) {
-      throw new Error(`Failed to save package links: ${saveLinksRes.statusText}`);
-    }
-
-    // 3. Call server API to save theme codes
-    const saveCodesRes = await fetch("/api/save-data", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        filename: "dec_document_codes.json",
-        data: state.decDocumentCodes
-      })
-    });
-
-    if (!saveCodesRes.ok) {
-      throw new Error(`Failed to save document codes: ${saveCodesRes.statusText}`);
-    }
-
-    showToast("💾 Зв'язки та коди успішно збережено на сервері!", 4000);
+    showToast("💾 Ручні зв'язки збережено. Перезберіть дані: python tools/sources_build.py --only dec", 6000);
 
   } catch (err) {
     console.error("Помилка збереження даних:", err);
@@ -494,11 +483,12 @@ function showToast(message, duration = 3000) {
 async function loadClassifiers() {
   try {
     const [icdRes, achiRes] = await Promise.all([
-      fetch("data/icd10_codes.json").then(r => r.json()),
-      fetch("data/achi_codes.json").then(r => r.json())
+      fetch("../classifiers/data/nk025_index.json").then(r => r.json()),
+      fetch("../classifiers/data/nk026_index.json").then(r => r.json())
     ]);
-    state.icd10Classifier = icdRes;
-    state.achiClassifier = achiRes;
+    // Єдине джерело кодів — індекси НК 025 / НК 026 (раніше тут були копії від 09.06.2026)
+    state.icd10Classifier = Object.fromEntries(icdRes.map((x) => [x.c, x.n]));
+    state.achiClassifier = Object.fromEntries(achiRes.map((x) => [x.c, x.n]));
     console.log("Національні класифікатори (МКХ-10-АМ та АКМІ) завантажено успішно.");
   } catch (err) {
     console.error("Помилка завантаження класифікаторів:", err);
