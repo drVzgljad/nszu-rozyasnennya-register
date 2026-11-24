@@ -316,3 +316,16 @@ html.kd-dlg-on { overflow: hidden; }   /* сторінка під вікном �
   .kd-dlg-t { flex-basis: 100%; }
   .kd-dlg-btn { flex: 1 1 0; text-align: center; padding: 8px 10px; }
 }
+
+/* ── Збіг із запитом у тексті вимоги (з 24.11.2026) ─────────────────────
+   Власний шар кольорів: --warning-bg уже зайнятий рядком «gone», і на ньому
+   жовта позначка зникла б. */
+:root { --kd-hit-bg: #ffe08a; --kd-hit-ink: #3d2c00; --kd-hit-line: #d49b00; }
+:root.dark-theme { --kd-hit-bg: #6b5210; --kd-hit-ink: #fff3c4; --kd-hit-line: #e0b440; }
+mark.kd-hit {
+  background: var(--kd-hit-bg); color: var(--kd-hit-ink);
+  font-weight: 700; border-radius: 3px; padding: 0 2px;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+.kd-item.hit { border-left: 3px solid var(--kd-hit-line); }
+.kd-val.hit .kd-val-n { font-weight: 500; }

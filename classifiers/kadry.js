@@ -248,7 +248,10 @@
     openSet.add(key);
     renderSections();
     const el = $(`.kd-sec[data-key="${key}"]`);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    // у вимогах ведемо одразу до першого збігу, а не до заголовка секції
+    const hit = el && $("mark.kd-hit", el);
+    if (hit) hit.scrollIntoView({ behavior: "smooth", block: "center" });
+    else if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
   function setAnchor(a, keepOpen) {
@@ -415,6 +418,7 @@
       $("#kdDetail").hidden = true; return;
     }
     current = walkFrom(anchor);
+    current.hitKeys = hitKeys(current);
     renderSummary(current);
     $("#kdFigure").innerHTML = figureHTML(current) + critNoteHTML(current);
     $("#kdFigure").querySelectorAll("[data-box]").forEach((b) =>
@@ -509,8 +513,9 @@
           : key === "spec" && n.sec ? `<span class="kd-sub">${esc(secLabel(n.sec))}</span>`
           : key === "atest" ? `<span class="kd-sub">${n.kind === "profile" ? "профіль роботи" : "спеціальність Номенклатури"}</span>`
           : key === "req" ? `<span class="kd-sub">пакет № ${esc(n.package)}</span>` : "";
-        return `<div class="kd-val"><span class="kd-val-n">${
-          esc(trim(n.name || id, 90))}</span>${extra}</div>`;
+        const sp = key === "req" ? hitSpans(id, n.name || id) : [];
+        return `<div class="kd-val${sp.length ? " hit" : ""}"><span class="kd-val-n">${
+          snippetHTML(n.name || id, sp, 90)}</span>${extra}</div>`;
       }).join("")}</div>`;
     }
     const sample = ids.slice(0, 2).map((id) => trim((N.get(id) || {}).name || id, 34));
@@ -712,7 +717,7 @@
             liveStatus(t) ? " · " + esc(liveStatus(t)) : ""}</span>
         </summary>
         ${ids.length
-          ? `<ul class="kd-list">${ids.map((id) => rowHTML(key, id, lostSet)).join("")}</ul>`
+          ? `<ul class="kd-list">${hitsFirst(key, ids).map((id) => rowHTML(key, id, lostSet)).join("")}</ul>`
           : `<p class="kd-empty">${esc(emptyWhy(key))}.</p>`}
         ${key === "atest" ? atestNoteHTML(w) : ""}
       </details>`;
@@ -727,6 +732,7 @@
     const here = anchor.kind === "node" && anchor.id === id;
     let body = "";
 
+    const reqHits = key === "req" ? hitSpans(id, n.raw || n.name || "") : [];
     if (key === "req") {
       body = `
         <span class="kd-r-head">
@@ -736,7 +742,7 @@
           ${n.tone && n.tone !== "ok"
             ? `<span class="kd-flag warn">${esc(toneWord(n.tone))}</span>` : ""}
         </span>
-        <span class="kd-r-raw">${esc(n.raw || n.name)}</span>
+        <span class="kd-r-raw">${markHTML(n.raw || n.name || "", reqHits)}</span>
         ${n.tone_why
           ? `<span class="kd-r-why">${esc(n.tone_why)}</span>`
           : n.tone && n.tone !== "ok" && G.tones && G.tones[n.tone]
@@ -769,10 +775,100 @@
     }
 
     return `<li${key === "dkhp" ? ' class="kd-li-dkhp"' : ""}>
-      <button type="button" class="kd-item${gone ? " gone" : ""}${here ? " here" : ""}"
+      <button type="button" class="kd-item${gone ? " gone" : ""}${here ? " here" : ""}${reqHits.length ? " hit" : ""}"
               data-goto="${esc(id)}" ${here ? 'aria-current="true"' : ""}>${body}</button>
       ${key === "dkhp" ? dkhpOpenHTML(id, n) : ""}
     </li>`;
+  }
+
+  /* ── Підсвічування в тексті вимоги того, що шукали ─────────────────────
+     Вимога пакета часто перелічує десятки посад через «та/або», і серед
+     них не видно ту, заради якої вимогу показано (24.11.2026: «лікар-терапевт
+     підлітковий» — третя з 80 у вимозі 9-01). Що підсвічувати, беремо не зі
+     слів запиту, а з того, ЧЕРЕЗ ЩО вимога потрапила в кадр: назви посад і
+     характеристик кадру і формулювання вимоги на ребрі req_dkhp (alt), — тож
+     «Сестра медична/брат медичний» знайдеться й тоді, коли посада в Переліку
+     записана як «Сестра медична (брат медичний)». Порівнюємо за ключем без
+     розділових знаків, рядки — через PMG_SEARCH.text (довжину він зберігає,
+     тож позиції збігу лягають на оригінал). */
+  const norm = (s) => (window.PMG_SEARCH ? PMG_SEARCH.text(s) : String(s || "").toLowerCase());
+  const hitKey = (s) => norm(s).replace(/[^a-zа-яіїєґ0-9]/g, "");
+  const LETTER = /[a-zа-яіїєґ0-9]/;
+
+  /** Ключі того, що в кадрі. Для входу з пакета чи вимоги — нічого: там
+   *  показують усі вимоги пакета, підсвічувати нема чого. */
+  function hitKeys(w) {
+    const keys = new Set();
+    if (!anchor || anchor.kind === "pkg" || w.anchorKey === "req") return keys;
+    const dk = new Set(w.dkhp);
+    w.post.concat(w.dkhp).forEach((id) => keys.add(hitKey((N.get(id) || {}).name)));
+    w.req.forEach((r) => out(r, "req_dkhp").forEach((e) => {
+      if (dk.has(e.to) && e.alt) keys.add(hitKey(e.alt));
+    }));
+    keys.delete("");
+    return keys;
+  }
+
+  /** Відрізки рядка, які треба виділити: [початок, кінець). Рядок ділимо на
+   *  формулювання вимоги (alts) — найдовші першими й без перекриттів, — і
+   *  виділяємо ті, чий ключ є серед ключів кадру. Тому «лікар-терапевт» не
+   *  засвітиться всередині «лікар-терапевт підлітковий». */
+  function hitSpans(reqId, str) {
+    const keys = current && current.hitKeys;
+    if (!keys || !keys.size || !str) return [];
+    const r = N.get(reqId) || {};
+    const s = norm(str);
+    const cand = new Set((r.alts || []).map((a) => String(a).trim()).filter(Boolean));
+    // назви з кадру — на випадок, коли формулювання вимоги в alts немає
+    current.post.concat(current.dkhp).forEach((id) => cand.add((N.get(id) || {}).name || ""));
+    out(reqId, "req_dkhp").forEach((e) => e.alt && cand.add(e.alt));
+    const taken = [], hits = [];
+    [...cand].filter((c) => c.length > 2)
+      .sort((a, b) => b.length - a.length)
+      .forEach((c) => {
+        const t = norm(c), mark = keys.has(hitKey(c));
+        for (let i = s.indexOf(t); i >= 0; i = s.indexOf(t, i + 1)) {
+          const j = i + t.length;
+          if (LETTER.test(s[i - 1] || "") || LETTER.test(s[j] || "")) continue;
+          if (taken.some(([a, b]) => i < b && j > a)) continue;
+          taken.push([i, j]);
+          if (mark) hits.push([i, j]);
+        }
+      });
+    return hits.sort((a, b) => a[0] - b[0]);
+  }
+
+  /** Вимоги зі збігом — нагору (порядок усередині зберігається). */
+  function hitsFirst(key, ids) {
+    if (key !== "req" || !current || !current.hitKeys || !current.hitKeys.size) return ids;
+    const has = (id) => hitSpans(id, (N.get(id) || {}).raw || (N.get(id) || {}).name || "").length > 0;
+    const yes = ids.filter(has);
+    return yes.concat(ids.filter((id) => !yes.includes(id)));
+  }
+
+  /** Рядок з <mark> на відрізках; решта екранується. */
+  function markHTML(str, spans) {
+    let html = "", at = 0;
+    spans.forEach(([a, b]) => {
+      html += esc(str.slice(at, a)) + "<mark class=\"kd-hit\">" + esc(str.slice(a, b)) + "</mark>";
+      at = b;
+    });
+    return html + esc(str.slice(at));
+  }
+
+  /** Для вікна схеми: шматок довкола першого збігу, а не перші 90 знаків —
+   *  інакше збіг на 400-му знаку у вікно не потрапляє взагалі. */
+  function snippetHTML(str, spans, max) {
+    if (!spans.length) return esc(trim(str, max));
+    const [a, b] = spans[0];
+    const room = Math.max(0, max - (b - a));
+    let from = Math.max(0, a - Math.floor(room / 3));
+    let to = Math.min(str.length, b + room - (a - from));
+    // різати по словах, а не посеред слова
+    if (from > 0) { const sp = str.indexOf(" ", from); if (sp >= 0 && sp < a) from = sp + 1; }
+    if (to < str.length) { const sp = str.lastIndexOf(" ", to); if (sp > b) to = sp; }
+    const inside = spans.filter(([x, y]) => x >= from && y <= to).map(([x, y]) => [x - from, y - from]);
+    return (from > 0 ? "…" : "") + markHTML(str.slice(from, to), inside) + (to < str.length ? "…" : "");
   }
 
   /* ── Характеристика ДКХП у вікні поверх «Кадрів» ───────────────────────
