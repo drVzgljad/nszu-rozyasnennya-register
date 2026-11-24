@@ -2021,8 +2021,32 @@ function normRoute(r) {
   return r;
 }
 
+/**
+ * Запобіжник (ПІ-495, 24.11.2026): лист про продовження строку підписали основним маршрутом справи, і підпис
+ * закрив усю справу, а вих. № проміжної потрапив у «№ проєкту відповіді». Якщо підписують основний маршрут, коли
+ * проміжна відповідь ще «готуємо» або службові-запити без відповіді, — перепитуємо, чи це справді остаточна.
+ */
+function signLooksInterim(c) {
+  const why = [];
+  if (state.interim[c.id]?.draft) why.push('проміжна відповідь ще «✍ готуємо»');
+  const open = (state.links || []).filter((l) => l.case_id === c.id && l.dir === 'out' && ['sz', 'sz_work'].includes(l.doc_kind)
+    && ['draft', 'waiting'].includes(l.status)).length;
+  if (open) why.push(`службові-запити без відповіді: ${open}`);
+  return why;
+}
+
 async function saveRoute(c, r, note) {
   normRoute(r);
+  const newlySigned = r.sign?.ok && !c.route?.sign?.ok;
+  const why = newlySigned ? signLooksInterim(c) : [];
+  if (why.length && !confirm('Підписано ОСТАТОЧНУ відповідь? Справу буде закрито.\n\n'
+    + 'Зараз: ' + why.join('; ') + '.\n\n'
+    + 'Якщо Голова підписав лист про продовження строку (проміжну відповідь), натисніть «Скасувати» і позначте підпис '
+    + 'у блоці «📑 Проміжна відповідь і запити» — там же вносять її вих. №.')) {
+    toast('Підпис не збережено — позначте його в блоці «📑 Проміжна відповідь і запити»');
+    if (state.openId === c.id) openCase(c.id, true);
+    return;
+  }
   const patch = { route: r };
   const st = routeStage(c, r, c.route);
   if (st && st !== c.stage) patch.stage = st;
