@@ -1682,3 +1682,20 @@ button.sp-rev-mini.is-todo:hover, button.sp-rev-mini.is-todo:focus-visible { out
 @media (prefers-reduced-motion: reduce) {
   .spv-btn.spv-join[data-act="join"] { animation: none; box-shadow: 0 0 0 3px rgba(var(--join-glow), .25), 0 0 10px rgba(var(--join-glow), .35); }
 }
+
+/* «🎙 Говорити» (мікрофон вимкнено) — червона кнопка з м'яким пульсом, щоб її було видно в рядку дій
+   (25.11.2026). Мікрофон увімкнено («Мікрофон увімк.») — звичайна зелена, без пульсу */
+.spv { --talk-glow: 200, 40, 40; --talk-bg: #b42323; --talk-bg-h: #c62d2d; }
+:root.dark-theme .spv { --talk-glow: 248, 113, 113; --talk-bg: #a12020; --talk-bg-h: #b52a2a; }
+.spv-btn[data-act="mic"]:not(.is-on), .spv-btn[data-act="wmic"]:not(.is-on) {
+  background: var(--talk-bg); border-color: rgba(var(--talk-glow), .9); color: #fff;
+  animation: spv-talk-glow 2.4s ease-in-out infinite;
+}
+.spv-btn[data-act="mic"]:not(.is-on):hover, .spv-btn[data-act="wmic"]:not(.is-on):hover { background: var(--talk-bg-h); }
+@keyframes spv-talk-glow {
+  0%, 100% { box-shadow: inset 0 0 4px rgba(255, 255, 255, .12), 0 0 0 0 rgba(var(--talk-glow), .35); }
+  50% { box-shadow: inset 0 0 12px rgba(255, 255, 255, .28), 0 0 0 5px rgba(var(--talk-glow), .16), 0 0 14px rgba(var(--talk-glow), .45); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spv-btn[data-act="mic"]:not(.is-on), .spv-btn[data-act="wmic"]:not(.is-on) { animation: none; box-shadow: 0 0 0 3px rgba(var(--talk-glow), .22); }
+}
