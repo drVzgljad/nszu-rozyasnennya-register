@@ -21,6 +21,7 @@ export const PILL_CSS = `
 .pill .room,.pill .talk{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pill .room{color:var(--muted)}
 .pill .talk{color:#86efac}
+.pill .talk.is-warn{color:#fcd34d}
 .pill button{flex:none;width:32px;height:32px;padding:0;border-radius:50%;border:1px solid var(--line);background:var(--btn);
   color:var(--ink);font:inherit;font-size:15px;line-height:1;cursor:pointer;display:inline-grid;place-items:center}
 .pill button:hover{border-color:var(--muted)}
@@ -48,12 +49,14 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 export function pillHTML(s, opts = {}) {
   const live = !!s.inRoom;
   const head = live ? 'В ефірі' : s.status === 'joining' || s.status === 'idle' ? 'Заходимо…' : s.status === 'error' ? 'Немає зв\'язку' : 'Не в ефірі';
-  const talk = s.speaking?.length ? `🗣 ${s.speaking.slice(0, 2).join(', ')}${s.speaking.length > 2 ? ` +${s.speaking.length - 2}` : ''}` : '';
+  const idle = s.idleWarn ? `🤫 Вимкнення за ${Math.floor((s.idleLeft || 0) / 60)}:${String((s.idleLeft || 0) % 60).padStart(2, '0')}` : '';
+  const talk = idle || (s.speaking?.length ? `🗣 ${s.speaking.slice(0, 2).join(', ')}${s.speaking.length > 2 ? ` +${s.speaking.length - 2}` : ''}` : '');
   const tip = `${s.label || ''}${s.people?.length ? ' — ' + s.people.join(', ') : ''}`;
   const micTip = s.deaf ? 'Звук вимкнено — увімкнути мікрофон і звук' : s.muted ? 'Мікрофон вимкнено — увімкнути' : 'Мікрофон увімкнено — вимкнути';
   return `<div class="pill${live ? ' is-live' : ''}${s.muted ? ' is-muted' : ''}" role="status">
     <span class="dot" aria-hidden="true"></span>
-    <span class="txt" title="${esc(tip)}"><b>${head}</b><span class="room">${esc(s.label || 'Голос')}${s.count ? ` · 👥 ${s.count}` : ''}</span>${talk ? `<span class="talk">${esc(talk)}</span>` : ''}</span>
+    <span class="txt" title="${esc(tip)}"><b>${head}</b><span class="room">${esc(s.label || 'Голос')}${s.count ? ` · 👥 ${s.count}` : ''}</span>${talk ? `<span class="talk${idle ? ' is-warn' : ''}"${idle ? ' title="Ви давно мовчите з увімкненим мікрофоном — його буде вимкнено. «Я тут» — лишити"' : ''}>${esc(talk)}</span>` : ''}</span>
+    ${idle ? '<button type="button" class="wake" data-pm="here" title="Я тут — мікрофон не вимикати">Я тут</button>' : ''}
     ${s.needGesture ? '<button type="button" class="wake" data-pm="wake" title="Браузер приглушив звук — натисніть, щоб чути колег">🔊 Чути</button>' : ''}
     <button type="button" class="mic" data-pm="mic" aria-pressed="${!s.muted}" title="${micTip}" aria-label="${micTip}">${s.muted ? MIC_OFF : MIC_ON}</button>
     ${s.canShare ? `<button type="button" class="scr${s.sharing ? ' is-on' : ''}" data-pm="screen" aria-pressed="${!!s.sharing}" title="${s.sharing ? 'Зупинити показ екрана' : 'Показати колегам свій екран, вікно чи вкладку'}" aria-label="${s.sharing ? 'Зупинити показ екрана' : 'Показати екран'}">${SCREEN}</button>` : ''}

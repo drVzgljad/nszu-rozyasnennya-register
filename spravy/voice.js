@@ -47,14 +47,14 @@
  *   окремому вікні (../voice/screen-win.js) — розгорнути, згорнути, на весь екран.
  */
 
-import { createVoice, netInfo } from '../zviazok/voice.js?v=20261125b';
+import { createVoice, netInfo } from '../zviazok/voice.js?v=20261125c';
 import { greetFor, playClip, CHIME } from '../zviazok/greet.js?v=20261117a';
 import { openMicPicker } from '../zviazok/mic-picker.js?v=20261106a';
 import { createMeeting } from '../zviazok/meeting.js?v=20261103a';
 import { createStage } from '../zviazok/stage.js?v=20261125b';
 import { createScreenWin } from '../voice/screen-win.js?v=20261125b';
 import { openVoiceWindow, voiceWin, onVoiceWin, sendVoiceCmd, focusVoiceWindow, voiceWinRef, BUS, HEARTBEAT } from '../voice/link.js?v=20261125d';
-import { createPip } from '../voice/pip.js?v=20261125c';
+import { createPip } from '../voice/pip.js?v=20261125e';
 
 const MANY = 10;               // з такої кількості попереджаємо: пряма схема важчає
 const LS_OFF = 'spravy-voice-off';
@@ -138,6 +138,13 @@ export function initVoice(opts) {
   v.home = v.dept;
   v.root.hidden = false;
   v.root.addEventListener('click', onClick);
+  // Галочка «не вимикати мікрофон автоматично» (25.11.2026)
+  v.root.addEventListener('change', (e) => {
+    const c = e.target.closest?.('input[data-keep]');
+    if (!c || !v.eng) return;
+    v.eng.setKeepMic(c.checked);
+    v.toast(c.checked ? 'Мікрофон не вимикатиметься сам, навіть якщо довго мовчите' : 'Після 5 хвилин тиші мікрофон вимикатиметься сам (за 3 хвилини попередимо)');
+  });
   setupInviteDrop();
   if (v.demo) return demo();
   const host = document.createElement('section');
@@ -993,6 +1000,8 @@ function hostState() {
     people: (s?.members || []).map((m) => (m.me ? `${m.name || 'ви'} (ви)` : m.name || 'Без імені')),
     speaking: hostSpeaking(),
     needGesture: !!s?.needGesture,
+    idleWarn: !!s?.idleWarn,
+    idleLeft: s?.idleLeft || 0,
     tet: v.tet ? 'дорадча' : '',
     tetAsk: v.tetAsk?.from_id || '',
     pip: !!v.pip?.isOpen,
@@ -1058,6 +1067,8 @@ async function pipAct(cmd) {
     v.root?.scrollIntoView({ block: 'center', behavior: 'smooth' });
   } else if (cmd === 'leave') {
     await leaveVoice();
+  } else if (cmd === 'here') {
+    v.eng.stillHere();
   }
   publishHost(true);
 }
@@ -1192,6 +1203,7 @@ async function onClick(e) {
   const b = e.target.closest('button[data-act]');
   if (!b) return;
   const act = b.dataset.act;
+  if (act === 'stillhere') { v.eng?.stillHere(); return; }
   if (act === 'micpick') return openMicPicker(v.demo ? null : v.eng, { toast: v.toast });
   if (act === 'visit') { v.showDepts = !v.showDepts; return render(); }
   if (v.demo && ['knock', 'unvisit'].includes(act)) return v.toast('У демо стук не працює');
@@ -1282,6 +1294,7 @@ function render() {
   const btns = tabOnly ? (w || s.status === 'live' || v.ask ? winBtns : '') : s.inRoom && s.status === 'live' && voiceOn
     ? `<button type="button" class="spv-btn${s.muted ? '' : ' is-on'}" data-act="mic" aria-pressed="${!s.muted}"
          title="${s.muted ? 'Увімкнути мікрофон — вас почують' : 'Вимкнути мікрофон'}">${s.muted ? '🎙 Говорити' : '🎙 Мікрофон увімк.'}</button>
+       ${!s.muted ? `<label class="spv-keep" title="Зазвичай після 5 хвилин тиші мікрофон вимикається сам (за 3 хвилини до того — попередження)"><input type="checkbox" data-keep${s.keepMic ? ' checked' : ''}> не вимикати сам</label>` : ''}
        <button type="button" class="spv-btn spv-icon${s.deaf ? ' is-off' : ''}" data-act="deaf" aria-pressed="${s.deaf}"
          title="${s.deaf ? 'Увімкнути звук' : 'Вимкнути звук (і мікрофон)'}">${s.deaf ? '🔕' : '🎧'}</button>
        <button type="button" class="spv-btn spv-icon${s.micSilent ? ' is-off' : ''}" data-act="micpick" title="Обрати мікрофон і перевірити, чи він вас чує">⚙</button>
@@ -1302,11 +1315,23 @@ function render() {
     ${s.recording ? `<p class="spv-recbar">🔴 Іде запис наради · ${s.recording.me ? 'записуєте ви' : 'увімкнув(-ла) ' + esc(s.recording.name)} · з ${new Date(s.recording.since).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}</p>` : ''}
     ${note ? `<p class="spv-note${s.status === 'error' || (s.inRoom && s.micSilent) ? ' is-bad' : ''}">${esc(note)}</p>` : ''}
     ${s.needGesture ? '<button type="button" class="spv-btn spv-sound" data-act="sound">🔊 Натисніть, щоб чути колег</button>' : ''}
+    ${idleHTML(s, voiceOn)}
     ${knocksHTML()}
     ${tetHTML()}
     ${presenterHTML(s, w)}
     <div class="spv-actions">${screenBtnHTML(s, w)}${btns}${visitBtnsHTML(s)}</div>
     ${v.showDepts ? deptsHTML() : ''}</div>`;
+}
+
+/** Довго мовчите з увімкненим мікрофоном — попередження з відліком (рушій вимкне мікрофон сам). */
+const mmss = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+function idleHTML(s, voiceOn) {
+  if (!s.idleWarn || !voiceOn) return '';
+  return `<ul class="spv-knocks"><li class="spv-knock spv-idle" role="alert">
+      <span>🤫 Ви давно мовчите, а мікрофон увімкнено — вимкнемо його за <b>${mmss(s.idleLeft || 0)}</b></span>
+      <button type="button" class="spv-btn is-on" data-act="stillhere">Я тут, лишити</button>
+      <label class="spv-keep"><input type="checkbox" data-keep${s.keepMic ? ' checked' : ''}> не вимикати автоматично</label>
+    </li></ul>`;
 }
 
 /** «Показати екран» — окрема кнопка, від голосу не залежить (25.11.2026). */

@@ -82,6 +82,14 @@ const ISSUE_GAP = 5 * 60000;    // одна й та сама проблема з
 const MIC_LS = 'pmg-voice-mic';
 const SILENT_MS = 8000;
 const SILENT_LEVEL = 0.0008;
+
+/* Довга тиша з увімкненим мікрофоном (25.11.2026): «якщо довго тиша — попередження про включений мікрофон,
+   а потім через 3 хвилини відключай; і відразу галочку "не відключати"». Мовчите IDLE_WARN — попередження
+   з відліком (панель і значок «В ефірі»), ще 3 хвилини — мікрофон вимикається сам. Будь-яке слово, «Я тут»
+   (stillHere) чи галочка (setKeepMic, пам'ятає браузер) це скасовують. */
+const IDLE_WARN = 2 * 60e3;
+const IDLE_OFF = IDLE_WARN + 3 * 60e3;
+const KEEP_LS = 'pmg-voice-keepmic';
 const lsGet = (k) => { try { return localStorage.getItem(k) || ''; } catch (_) { return ''; } };
 const lsSet = (k, val) => { try { val ? localStorage.setItem(k, val) : localStorage.removeItem(k); } catch (_) { /* приватне вікно */ } };
 
@@ -121,6 +129,10 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
     micSince: 0,           // скільки мікрофон уже слухаємо (лише поки AudioContext працює)
     micHeard: false,       // з увімкнення був хоч якийсь звук
     micSilent: false,      // увімкнений, але нічого не передає
+    lastVoice: 0,          // коли востаннє чули наш голос (довга тиша — попередження й вимкнення)
+    idleWarn: false,       // попереджаємо: мовчите з увімкненим мікрофоном
+    idleLeft: 0,           // скільки секунд до автоматичного вимкнення
+    keepMic: lsGet(KEEP_LS) === '1',   // «не вимикати мікрофон автоматично»
     muted: true,
     deaf: false,
     micBeforeDeaf: false,
@@ -154,6 +166,9 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
       muted: v.muted,
       deaf: v.deaf,
       micSilent: v.micSilent,
+      idleWarn: v.idleWarn,
+      idleLeft: v.idleWarn ? v.idleLeft : 0,
+      keepMic: v.keepMic,
       micLabel: v.mic?.label || '',
       needGesture: v.needGesture,
       inRoom: v.inRoom,
@@ -754,6 +769,8 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
     }
     if (muted) stopMic();
     v.muted = muted;
+    v.lastVoice = Date.now();
+    v.idleWarn = false;
     // Заговорив без звуку — звук повертаємо: говорити й не чути відповіді безглуздо
     if (!muted && v.deaf) { v.micBeforeDeaf = false; hear(true); }
     await Promise.all([...v.peers.values()].map((p) => p.sender?.replaceTrack(v.mic).catch(() => {})));
@@ -974,6 +991,32 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
       document.querySelectorAll(`[data-vk="${key}"]`).forEach((el) => el.classList.toggle('is-speaking', on));
     });
     checkSilence(150);
+    checkIdle();
+  }
+
+  /** Довга тиша з увімкненим мікрофоном: попередження, далі — вимикаємо (якщо не стоїть «не вимикати»). */
+  function checkIdle() {
+    const now = Date.now();
+    const quiet = () => { if (v.idleWarn) { v.idleWarn = false; emit(); } v.lastVoice = now; };
+    if (!v.mic || v.muted || !v.inRoom || v.keepMic) return quiet();
+    const an = v.meters.get('me');
+    // «Приспаний» AudioContext дає нулі — тишею це не рахуємо
+    if (!an || v.ctx?.state !== 'running' || !v.lastVoice) return quiet();
+    if (level(an) > SPEAK_LEVEL) return quiet();
+    const idle = now - v.lastVoice;
+    if (idle >= IDLE_OFF) {
+      v.idleWarn = false;
+      setMuted(true);
+      toast('🔇 Мікрофон вимкнено: ви мовчали понад 5 хвилин. Увімкнути — кнопкою мікрофона', true);
+      return;
+    }
+    if (idle < IDLE_WARN) return;
+    const left = Math.ceil((IDLE_OFF - idle) / 1000);
+    if (!v.idleWarn) {
+      v.idleWarn = true;
+      toast('🤫 Ви давно мовчите, а мікрофон увімкнено — за 3 хвилини вимкнемо його');
+    }
+    if (left !== v.idleLeft) { v.idleLeft = left; emit(); }
   }
 
   /**
@@ -1069,6 +1112,10 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
     stopRecording,
     get recording() { return !!v.rec; },
     unlock,
+    /** «Я тут» — скинути відлік тиші. */
+    stillHere: () => { v.lastVoice = Date.now(); v.idleWarn = false; emit(); },
+    /** Галочка «не вимикати мікрофон автоматично» (пам'ятає браузер). */
+    setKeepMic: (on) => { v.keepMic = !!on; lsSet(KEEP_LS, on ? '1' : ''); v.lastVoice = Date.now(); v.idleWarn = false; emit(); },
     get topic() { return v.topic; },
     get state() { return snapshot(); },
     // Для перевірок (два екземпляри на одній сторінці): з'єднання й лічильники байтів

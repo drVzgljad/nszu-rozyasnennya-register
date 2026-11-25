@@ -1650,3 +1650,7 @@ button.sp-rev-mini.is-todo:hover, button.sp-rev-mini.is-todo:focus-visible { out
 .spv-ava { width: 24px; height: 24px; font-size: 10.5px; }
 .spv-actions { gap: 5px; }
 .spc { margin: -4px 0 10px; }
+/* «Не вимикати сам» біля мікрофона і попередження про довгу тишу (25.11.2026) */
+.spv-keep { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.spv-keep input { margin: 0; accent-color: var(--accent); }
+.spv-idle { border-left-color: #d97706; background: color-mix(in srgb, #f59e0b 12%, var(--surface)); color: var(--ink); }
