@@ -1665,3 +1665,20 @@ button.sp-rev-mini.is-todo:hover, button.sp-rev-mini.is-todo:focus-visible { out
 .spv-ava { width: 22px; height: 22px; font-size: 10px; }
 .spv-room-ico { width: 26px; height: 26px; border-radius: 8px; font-size: 14px; }
 .spv-room .spv-tet-in { padding: 3px 9px; }
+
+/* «🎙 Увійти в кімнату» — точка входу (25.11.2026): баклажанна кнопка з м'яким світлом, що повільно пульсує
+   (той самий тон, що й кнопки сцени доповідача, zviazok/stage.js) */
+.spv { --join-glow: 108, 52, 96; --join-bg: #6c3460; --join-bg-h: #7d3f70; }
+:root.dark-theme .spv { --join-glow: 192, 120, 176; --join-bg: #7a3d6d; --join-bg-h: #8d4a7f; }
+.spv-btn.spv-join[data-act="join"] {
+  background: var(--join-bg); border-color: rgba(var(--join-glow), .9); color: #fff;
+  padding-inline: 14px; animation: spv-join-glow 2.6s ease-in-out infinite;
+}
+.spv-btn.spv-join[data-act="join"]:hover { background: var(--join-bg-h); }
+@keyframes spv-join-glow {
+  0%, 100% { box-shadow: inset 0 0 4px rgba(255, 255, 255, .12), 0 0 0 0 rgba(var(--join-glow), .35); }
+  50% { box-shadow: inset 0 0 12px rgba(255, 255, 255, .28), 0 0 0 5px rgba(var(--join-glow), .18), 0 0 14px rgba(var(--join-glow), .45); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spv-btn.spv-join[data-act="join"] { animation: none; box-shadow: 0 0 0 3px rgba(var(--join-glow), .25), 0 0 10px rgba(var(--join-glow), .35); }
+}
