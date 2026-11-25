@@ -1817,3 +1817,9 @@ button.sp-rev-mini.is-todo:hover, button.sp-rev-mini.is-todo:focus-visible { out
 .spv-room-drop { flex: 0 0 auto; }
 .spv-room-foot { margin-top: auto; }
 @media (max-width: 700px) { .spv-rooms:not(.is-single) { grid-template-columns: minmax(0, 1fr); } }
+/* Герої розходяться на всю картку: рівні комірки на всю ширину, ряди — рівномірно по висоті */
+.spv-room > .spv-people:has(> .is-hero) {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); justify-items: center;
+  align-content: space-evenly; gap: 8px 6px;
+}
+@media (max-width: 700px) { .spv-room > .spv-people:has(> .is-hero) { grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); } }
