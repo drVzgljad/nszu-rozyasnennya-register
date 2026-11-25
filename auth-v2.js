@@ -1945,9 +1945,9 @@ function onVoiceInvite(p) {
     close();
     if (!yes) return;
     if (p.tet) {
-      const t = JSON.stringify({ from_id: p.from_id, from_name: p.from_name || '' });
+      const t = JSON.stringify({ from_id: p.from_id, from_name: p.from_name || '', dept: p.dept || '' });
       if (openVoiceWindow({ tet: t })) return;
-      if (window.__pmgVoice?.acceptTet) return window.__pmgVoice.acceptTet({ from_id: p.from_id, from_name: p.from_name || '' });
+      if (window.__pmgVoice?.acceptTet) return window.__pmgVoice.acceptTet({ from_id: p.from_id, from_name: p.from_name || '', dept: p.dept || '' });
       location.href = '/spravy/?tet=' + encodeURIComponent(t);
       return;
     }

@@ -1010,6 +1010,9 @@
 .spv-room.is-off .spv-room-drop { opacity: .75; }
 .spv.is-dragging .spv-room[data-tetzone] .spv-room-drop { border-color: var(--room-ink); color: var(--room-ink); }
 .spv-room[data-tetzone].is-over { border-color: var(--room-ink); background: color-mix(in srgb, var(--room-line) 35%, var(--room-bg)); }
+.spv-room[data-droproom].is-over { border-color: var(--room-ink); background: color-mix(in srgb, var(--room-line) 35%, var(--room-bg)); }
+.spv.is-dragging .spv-room { border-style: dashed; }
+.spv-person.is-lifted { opacity: .4; }
 .spv-room[data-tetzone].is-over .spv-room-drop { border-style: solid; border-color: var(--room-ink); color: var(--room-ink); }
 .spv-person.is-draggable { cursor: grab; }
 .spv-person.is-draggable:active { cursor: grabbing; }
