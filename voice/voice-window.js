@@ -19,7 +19,7 @@
  * - Компактне міні-вікно поверх усіх вікон (учасники, хто говорить, мікрофон, вийти) — ./pip.js.
  */
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { initVoice } from '../spravy/voice.js?v=20261125a';
+import { initVoice } from '../spravy/voice.js?v=20261125b';
 import { BUS, HEARTBEAT } from './link.js?v=20261119a';
 import { createPip } from './pip.js?v=20261119c';
 

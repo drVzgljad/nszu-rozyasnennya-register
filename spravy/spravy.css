@@ -832,6 +832,9 @@
   --spv-on-ink: #1f6b43;
   --spv-off-bg: #fde4e4;
   --spv-off-ink: #a11d1d;
+  --spv-tet-bg: #f1edfb;
+  --spv-tet-line: #b9a8e6;
+  --spv-tet-ink: #4b3a8a;
 }
 :root.dark-theme {
   --spv-bg: #16202f;
@@ -844,6 +847,9 @@
   --spv-on-ink: #86efac;
   --spv-off-bg: #3f1416;
   --spv-off-ink: #fca5a5;
+  --spv-tet-bg: #221c38;
+  --spv-tet-line: #6d5bb3;
+  --spv-tet-ink: #c9bdf5;
 }
 
 .spv {
@@ -951,6 +957,25 @@
 .spv-visit-hint { flex-basis: 100%; font-size: 13px; color: var(--muted); }
 /* Сюди перетягують ім'я зі списку «в мережі» — покликати в кімнату */
 .spv.is-drop { outline: 3px dashed var(--spv-live); outline-offset: 2px; }
+
+/* 🤝 Дорадча кімната (25.11.2026): зона, куди начальник перетягує колегу; у розмові — з ким і «назад» */
+.spv-tet {
+  flex: 1 1 100%; display: flex; align-items: center; gap: 10px; min-width: 0;
+  padding: 8px 10px; border: 1px solid var(--spv-tet-line); border-radius: 12px;
+  background: var(--spv-tet-bg); color: var(--spv-tet-ink); font-size: 14px;
+}
+.spv-tet-zone { border-style: dashed; border-width: 2px; transition: background .15s, border-color .15s, transform .15s; }
+.spv-tet-zone.is-off { opacity: .7; }
+.spv.is-dragging .spv-tet-zone { border-color: var(--spv-tet-ink); }
+.spv-tet-zone.is-over { border-style: solid; border-color: var(--spv-tet-ink); background: color-mix(in srgb, var(--spv-tet-line) 30%, var(--spv-tet-bg)); transform: scale(1.01); }
+.spv-tet-ico { flex: none; font-size: 22px; line-height: 1; }
+.spv-tet-text { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.spv-tet-text small { font-size: 12.5px; opacity: .85; }
+.spv-tet .spv-btn { flex: none; }
+.spv-person.is-draggable { cursor: grab; }
+.spv-person.is-draggable:active { cursor: grabbing; }
+@media (prefers-reduced-motion: reduce) { .spv-tet-zone { transition: none; } .spv-tet-zone.is-over { transform: none; } }
+@media (max-width: 560px) { .spv-tet { flex-wrap: wrap; } }
 
 .spv-actions {
   display: flex;

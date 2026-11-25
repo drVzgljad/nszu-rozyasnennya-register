@@ -39,10 +39,11 @@
  *   керують вікном (../voice/link.js). Вкладка сама в ефір більше не йде. Браузер не дав відкрити вікно —
  *   запасний шлях v.local: голос у вкладці, як до 19.11. Намір (двері, запрошення, стук, кімната
  *   департаменту) іде у вікно параметрами адреси або командою 'intent' — applyIntent().
- * - 🤝 Дорадча кімната (25.11.2026): начальник (manager і вище) біля імені колеги в кімнаті натискає 🤝 —
- *   колега отримує «Зайти / Не зараз» (повідомлення кімнати рушія, say/onMsg), і обоє переходять у канал
- *   1:1 'voice:dm:<uuid>:<uuid>' — туди за RLS заходять лише ці двоє (migration_2026-11-25_voice_tet.sql).
- *   «← До відділу» — назад; співрозмовник вийшов чи так і не зайшов — повертаємось самі.
+ * - 🤝 Дорадча кімната (25.11.2026): під списком учасників — зона «Дорадча кімната». Начальник (manager і
+ *   вище) перетягує в неї колегу з кімнати відділу чи зі списку «в мережі» (або тисне 🤝 біля імені) і сам
+ *   переходить туди чекати; колега отримує «Зайти / Ні». Канал — 1:1 'voice:dm:<uuid>:<uuid>', за RLS лише
+ *   двоє (migration_2026-11-25_voice_tet.sql). «← До відділу» — назад; відмова, вихід співрозмовника чи
+ *   «ніхто не прийшов» за TET_WAIT повертають самі.
  * - Показ екрана з вкладки (25.11.2026): у вкладці «Справ» і кабінету знову є 🖥 — команда йде у вікно, а
  *   там браузер вимагає клік: вікно просить «🖥 Обрати, що показати». Екран спікера відкривається в
  *   окремому вікні (../voice/screen-win.js) — розгорнути, згорнути, на весь екран.
@@ -63,7 +64,7 @@ const LOCK = 'pmg-voice-holder';   // замок «ця вкладка трим�
 const BC = 'pmg-voice-tabs';       // канал між вкладками: «віддай голос»
 const LEAD = ['admin', 'director', 'deputy_director'];   // заходять у будь-яку кімнату без стуку
 const BOSS = ['manager', ...LEAD];                        // кличуть колегу в дорадчу кімнату (тет-а-тет)
-const TET_WAIT = 60e3;                                    // скільки чекаємо відповіді й співрозмовника
+const TET_WAIT = 90e3;                                    // скільки чекаємо співрозмовника в дорадчій (як запрошення в auth-v2)
 const cap = (t) => (t ? t[0].toUpperCase() + t.slice(1) : '');
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -111,7 +112,8 @@ const v = {
   // Дорадча кімната (25.11.2026)
   tet: null,           // { uid, name, topic, since, met, alone } — ми в розмові віч-на-віч
   tetAsk: null,        // { from_id, from_name, at } — нас кличуть
-  tetWait: null,       // { uid, name, at } — ми кличемо, чекаємо відповіді
+  dragging: false,     // начальник тягне колегу: панель не перемальовуємо, щоб не зірвати перетягування
+  dirty: false,        // перемалювати, щойно перетягування скінчиться
   askShare: false,     // показ попросили з вкладки — потрібен клік у вікні
   scr: null            // окреме вікно екрана спікера (../voice/screen-win.js)
 };
@@ -148,12 +150,17 @@ export function initVoice(opts) {
   watchKnocks();
   window.addEventListener('pmg:voice-invite-reply', (e) => {
     const r = e.detail || {};
+    if (r.tet) {
+      if (r.ok) v.toast(`🤝 ${r.name || 'Колега'} заходить у дорадчу кімнату`);
+      else tetDeclined({ uid: r.from || r.uid, name: r.name });
+      return;
+    }
     v.toast(r.ok ? `🎙 ${r.name || 'Колега'} заходить у кімнату` : `${r.name || 'Колега'} зараз не може`, !r.ok);
   });
   // Намір з адреси: запрошення («Зайти»), «Двері відділів» на головній, кімната департаменту
   const qs = new URLSearchParams(location.search);
   const intent = {};
-  ['room', 'mic', 'door', 'door_dept', 'voice_invite', 'knock'].forEach((k) => { if (qs.get(k)) intent[k] = qs.get(k); });
+  ['room', 'mic', 'door', 'door_dept', 'voice_invite', 'knock', 'tet'].forEach((k) => { if (qs.get(k)) intent[k] = qs.get(k); });
   if (Object.keys(intent).length) {
     const u = new URL(location.href);
     Object.keys(intent).forEach((k) => u.searchParams.delete(k));
@@ -162,7 +169,10 @@ export function initVoice(opts) {
   if (v.win) { winStart(intent); return api(); }
 
   // Вкладка розділу: голос — у голосовому вікні; тут видно, хто в кімнаті, і кнопки для вікна
-  window.__pmgVoice = { acceptInvite: (p) => { v.local = true; return acceptInvite(p); } };
+  window.__pmgVoice = {
+    acceptInvite: (p) => { v.local = true; return acceptInvite(p); },
+    acceptTet: (p) => { v.local = true; return applyIntent({ tet: JSON.stringify(p) }); }
+  };
   if (Object.keys(intent).length) { v.ask = intent; lsSet(LS_OFF, null); }
   onVoiceWin((w) => {
     // Вікно вже живе — намір із адреси (двері, запрошення) передаємо йому без кліку
@@ -305,6 +315,7 @@ async function applyIntent(p = {}) {
   if (p.tet_call) return callTet(parse(p.tet_call));
   if (p.tet) { const a = parse(p.tet); if (a?.from_id) await enterTet(a.from_id, a.from_name); return; }
   if (p.tet_no) { v.tetAsk = null; return render(); }
+  if (p.tet_declined) return tetDeclined(parse(p.tet_declined));
   // Будь-який інший намір виводить із дорадчої кімнати
   if (v.tet) { v.tet = null; await openRoom(); }
   // Кімната ще не відкрита (щойно відкрите вікно) — спершу своя; гостювання й департамент відкриють свою самі
@@ -412,19 +423,48 @@ function wasInvited(k) {
 /** Панель голосу приймає ім'я, перетягнуте зі списку «в мережі». */
 function setupInviteDrop() {
   const has = (e) => [...(e.dataTransfer?.types || [])].includes('application/x-pmg-user');
+  const zone = (e) => e.target.closest?.('[data-tetzone]');
+  // Начальник тягне колегу з кімнати відділу (рядок учасника) — у зону «Дорадча кімната»
+  v.root.addEventListener('dragstart', (e) => {
+    const li = e.target.closest?.('li[data-drag-uid]');
+    if (!li) return;
+    e.dataTransfer.setData('application/x-pmg-user', JSON.stringify({ id: li.dataset.dragUid, name: li.dataset.dragName, room: 1 }));
+    e.dataTransfer.effectAllowed = 'copyMove';
+    v.dragging = true;
+    v.root.classList.add('is-dragging');
+  });
+  v.root.addEventListener('dragend', () => {
+    v.dragging = false;
+    v.root.classList.remove('is-dragging', 'is-drop');
+    if (v.dirty) render();
+  });
   v.root.addEventListener('dragover', (e) => {
     if (!has(e)) return;
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
-    v.root.classList.add('is-drop');
+    const z = zone(e);
+    e.dataTransfer.dropEffect = z ? 'move' : 'copy';
+    v.root.querySelectorAll('[data-tetzone]').forEach((el) => el.classList.toggle('is-over', el === z));
+    v.root.classList.toggle('is-drop', !z && !v.dragging);
   });
-  v.root.addEventListener('dragleave', (e) => { if (!v.root.contains(e.relatedTarget)) v.root.classList.remove('is-drop'); });
+  v.root.addEventListener('dragleave', (e) => {
+    if (!v.root.contains(e.relatedTarget)) {
+      v.root.classList.remove('is-drop');
+      v.root.querySelectorAll('[data-tetzone]').forEach((el) => el.classList.remove('is-over'));
+    }
+  });
   v.root.addEventListener('drop', (e) => {
-    v.root.classList.remove('is-drop');
+    v.root.classList.remove('is-drop', 'is-dragging');
+    const z = zone(e);
+    v.root.querySelectorAll('[data-tetzone]').forEach((el) => el.classList.remove('is-over'));
+    v.dragging = false;
     const raw = e.dataTransfer.getData('application/x-pmg-user');
     if (!raw) return;
     e.preventDefault();
-    try { invite(JSON.parse(raw)); } catch (_) { /* не наш формат */ }
+    let u = null;
+    try { u = JSON.parse(raw); } catch (_) { return; }   // не наш формат
+    if (z) callTet({ uid: u.id, name: u.name });
+    else if (!u.room) invite(u);                         // свій же рядок кинули мимо зони — нічого
+    if (v.dirty) render();
   });
 }
 
@@ -605,18 +645,26 @@ async function joinRoom() {
 
 /* ───────────────────────── дорадча кімната (тет-а-тет, 25.11.2026) ───────────────────────── */
 
+/**
+ * Начальник перетягує колегу в зону «🤝 Дорадча кімната» (або 🤝 біля імені) — і сам одразу переходить
+ * туди чекати. Колега отримує «Зайти / Ні»: з вкладки порталу запрошення йде через «в мережі»
+ * (auth-v2.js, дійде на будь-яку сторінку), з голосового вікна — повідомленням кімнати відділу.
+ * Відмова повертає начальника назад; ніхто не зайшов за TET_WAIT — теж.
+ */
+
 /** Канал 1:1 — той самий, що в дзвінку «Чату департаменту» (voiceTopic): лише двоє за RLS. */
 const tetTopic = (a, b) => { const [x, y] = [a, b].sort(); return `voice:dm:${x}:${y}`; };
-const canCallTet = () => (v.demo || BOSS.includes(v.role)) && !v.tet;
+const isBoss = () => v.demo || BOSS.includes(v.role);
+const canCallTet = () => isBoss() && !v.tet && !voiceWin()?.tet;
 const canTet = (m) => !m.me && !!m.uid && m.uid !== v.me?.id && canCallTet() && (v.demo || holds() || !!voiceWin());
 
-/** Повідомлення кімнати (рушій, broadcast 'room'): запрошення, відповідь, скасування. */
+/** Повідомлення кімнати (рушій, broadcast 'room'): запрошення, відмова. */
 function onRoomMsg(p) {
   if (!p || !v.me || p.to !== v.me.id) return;
   if (p.t === 'tet') {
     if (!holds() && !voiceWin()) return;      // нас немає в кімнаті — кликати нікуди
-    if (v.tet) {
-      if (holds()) v.eng.say({ t: 'tet-reply', to: p.from_id, from_id: v.me.id, from_name: v.name, ok: false, busy: true });
+    if (v.tet || voiceWin()?.tet) {
+      v.eng.say({ t: 'tet-reply', to: p.from_id, from_id: v.me.id, from_name: v.name, ok: false, busy: true });
       return;
     }
     const at = Date.now();
@@ -627,60 +675,58 @@ function onRoomMsg(p) {
     }
     setTimeout(() => { if (v.tetAsk?.at === at) { v.tetAsk = null; render(); } }, TET_WAIT);
     render();
-  } else if (p.t === 'tet-cancel') {
-    if (v.tetAsk?.from_id === p.from_id) { v.tetAsk = null; render(); }
-  } else if (p.t === 'tet-reply' && holds()) {
-    if (!v.tetWait || v.tetWait.uid !== p.from_id) return;
-    const who = v.tetWait.name;
-    v.tetWait = null;
-    if (p.ok) enterTet(p.from_id, p.from_name || who);
-    else { v.toast(p.busy ? `${who} зараз в іншій розмові віч-на-віч` : `${who}: «не зараз»`, true); render(); }
+  } else if (p.t === 'tet-reply' && !p.ok) {
+    tetDeclined({ uid: p.from_id, name: p.from_name, busy: p.busy });
   }
 }
 
-/** Начальник кличе колегу в дорадчу кімнату. У вкладці — команда голосовому вікну. */
+/**
+ * Колега відмовився. Начальник уже в дорадчій (голос у вікні), а відмова прийшла туди, де він ще чує
+ * кімнату відділу, — у вкладку (рушій «лише дивлюся» чи «в мережі»). Вкладка передає її вікну.
+ */
+function tetDeclined(d) {
+  if (!d?.uid) return;
+  if (!holds()) { if (voiceWin()?.tet) sendVoiceCmd('intent', { tet_declined: JSON.stringify(d) }); return; }
+  if (!v.tet || v.tet.uid !== d.uid || v.tet.met) return;
+  leaveTet(d.busy ? `${d.name || 'Колега'} зараз в іншій розмові віч-на-віч` : `${d.name || 'Колега'}: «не зараз»`, true);
+}
+
+/** Покликати колегу в дорадчу кімнату й самому перейти туди чекати. */
 async function callTet(u) {
-  if (!u?.uid || !canCallTet()) return;
-  if (v.demo) return v.toast(`У демо не кличемо. Тут ${u.name || 'колега'} отримав(-ла) б «Зайти / Не зараз», і ви б удвох перейшли в дорадчу кімнату`);
-  if (!holds()) { sendVoiceCmd('intent', { tet_call: JSON.stringify(u) }); return; }
-  if (v.tetWait) await cancelTet();
-  const at = Date.now();
-  v.tetWait = { uid: u.uid, name: u.name || 'Колега', at };
-  await v.eng.say({ t: 'tet', to: u.uid, from_id: v.me.id, from_name: v.name });
-  v.toast(`🤝 Кличемо ${v.tetWait.name} в дорадчу кімнату — чекаємо відповіді`);
-  setTimeout(() => {
-    if (v.tetWait?.at !== at) return;
-    v.toast(`${v.tetWait.name} не відповів(-ла) — спробуйте ще раз`, true);
-    cancelTet();
-  }, TET_WAIT);
-  render();
+  if (!u?.uid || u.uid === v.me?.id || !canCallTet()) return;
+  const name = u.name || 'Колега';
+  if (v.demo) return v.toast(`У демо не кличемо. Тут ${name} отримав(-ла) б «Зайти / Ні», а ви перейшли б у дорадчу кімнату чекати`);
+  if (!holds()) {
+    if (!voiceWin()) return v.toast('Спершу увійдіть у кімнату відділу («🎙 Увійти в кімнату») — тоді колегу можна покликати в дорадчу', true);
+    // Запрошення — через «в мережі»: дійде, на якій би сторінці порталу колега не був
+    window.dispatchEvent(new CustomEvent('pmg:voice-invite-send',
+      { detail: { to: u.uid, from_id: v.me.id, from_name: v.name, dept: v.dept, tet: 1 } }));
+    sendVoiceCmd('intent', { tet_call: JSON.stringify({ uid: u.uid, name, sent: 1 }) });
+    v.toast(`🤝 Покликали ${name} у дорадчу кімнату — чекаємо там`);
+    return;
+  }
+  // Голосове вікно: «в мережі» тут немає — кличемо повідомленням кімнати відділу (поки ще в ній)
+  if (!u.sent) await v.eng.say({ t: 'tet', to: u.uid, from_id: v.me.id, from_name: v.name });
+  if (!u.sent) v.toast(`🤝 Покликали ${name} у дорадчу кімнату — чекаємо там`);
+  await enterTet(u.uid, name);
 }
 
-async function cancelTet() {
-  const w = v.tetWait;
-  v.tetWait = null;
-  if (w && !v.demo) await v.eng.say({ t: 'tet-cancel', to: w.uid, from_id: v.me.id });
-  render();
-}
-
-/** «Зайти» / «Не зараз». Відповідь іде каналом кімнати відділу (у вкладці — її ж рушієм), далі — у вікно. */
+/** «Зайти» / «Не зараз» на запрошення в панелі. Відмова — каналом кімнати відділу. */
 async function answerTet(ok) {
   const a = v.tetAsk;
   v.tetAsk = null;
   if (!a || v.demo) return render();
-  await v.eng.say({ t: 'tet-reply', to: a.from_id, from_id: v.me.id, from_name: v.name, ok });
+  if (!ok) { await v.eng.say({ t: 'tet-reply', to: a.from_id, from_id: v.me.id, from_name: v.name, ok: false }); return render(); }
   if (!holds()) {
-    sendVoiceCmd('intent', ok ? { tet: JSON.stringify(a) } : { tet_no: '1' });
-    if (ok) focusVoiceWindow();
+    sendVoiceCmd('intent', { tet: JSON.stringify(a) });
+    focusVoiceWindow();
     return render();
   }
-  if (ok) await enterTet(a.from_id, a.from_name);
-  else render();
+  await enterTet(a.from_id, a.from_name);
 }
 
 async function enterTet(uid, name) {
   v.tetAsk = null;
-  v.tetWait = null;
   if (v.visit) await endVisit(false);
   v.tet = { uid, name: name || 'Колега', topic: tetTopic(v.me.id, uid), since: Date.now(), met: false, alone: 0 };
   await openRoom();
@@ -688,7 +734,7 @@ async function enterTet(uid, name) {
   render();
 }
 
-/** Назад у кімнату відділу (кнопка або сам: співрозмовник вийшов чи не зайшов). */
+/** Назад у кімнату відділу (кнопка або сам: співрозмовник вийшов, відмовився чи не зайшов). */
 async function leaveTet(msg, bad) {
   if (!v.tet) return;
   v.tet = null;
@@ -715,22 +761,40 @@ function watchTet(s) {
   setTimeout(() => { if (v.tet === t && t.alone) leaveTet(`${t.name} вийшов(-ла) з дорадчої кімнати — повертаємось у кімнату відділу`); }, 4000);
 }
 
-/** Запрошення на тет-а-тет: нас кличуть / ми кличемо. */
+/** Запрошення на тет-а-тет у панелі (нас кличуть). */
 function tetHTML() {
-  if (v.tetAsk) {
-    return `<ul class="spv-knocks"><li class="spv-knock">
+  if (!v.tetAsk) return '';
+  return `<ul class="spv-knocks"><li class="spv-knock">
       <span>🤝 <b>${esc(v.tetAsk.from_name)}</b> кличе вас у дорадчу кімнату — поговорити віч-на-віч</span>
       <button type="button" class="spv-btn is-on" data-act="tetok">Зайти</button>
       <button type="button" class="spv-btn spv-ghost" data-act="tetno">Не зараз</button>
     </li></ul>`;
+}
+
+/**
+ * Зона «🤝 Дорадча кімната» під списком учасників. Начальнику — куди перетягнути колегу; у розмові — з ким
+ * і «← До відділу». Колегам без ролі начальника зону не показуємо (кликати можна лише їх самих).
+ */
+function tetZoneHTML(w) {
+  if (v.noDept && !v.tet) return '';
+  const back = (act) => `<button type="button" class="spv-btn" data-act="${act}" title="Вийти з дорадчої кімнати в кімнату відділу">← До відділу</button>`;
+  if (v.tet) {
+    const wait = !v.tet.met;
+    return `<div class="spv-tet is-in"><span class="spv-tet-ico" aria-hidden="true">🤝</span>
+      <span class="spv-tet-text"><b>Дорадча кімната</b> · ${wait ? `чекаємо на ${esc(v.tet.name)}…` : `ви з ${esc(v.tet.name)}`}<br>
+      <small>Чуєте лише ви двоє — колеги у відділі вас не чують.</small></span>${back('tetback')}</div>`;
   }
-  if (v.tetWait) {
-    return `<ul class="spv-knocks"><li class="spv-knock">
-      <span>🤝 Кличемо <b>${esc(v.tetWait.name)}</b> у дорадчу кімнату — чекаємо відповіді</span>
-      <button type="button" class="spv-btn spv-ghost" data-act="tetcancel">Скасувати</button>
-    </li></ul>`;
+  if (w?.tet) {
+    return `<div class="spv-tet is-in"><span class="spv-tet-ico" aria-hidden="true">🤝</span>
+      <span class="spv-tet-text"><b>Дорадча кімната</b> · ви з ${esc(w.tet)}<br><small>Голос — у голосовому вікні. Колеги у відділі вас не чують.</small></span>${back('wback')}</div>`;
   }
-  return '';
+  if (!isBoss()) return '';
+  const ready = v.demo || holds() || !!w;
+  return `<div class="spv-tet spv-tet-zone${ready ? '' : ' is-off'}" data-tetzone aria-label="Дорадча кімната: перетягніть сюди колегу">
+      <span class="spv-tet-ico" aria-hidden="true">🤝</span>
+      <span class="spv-tet-text"><b>Дорадча кімната</b><br><small>${ready
+        ? 'Перетягніть сюди колегу з кімнати відділу або зі списку «в мережі» — поговорите віч-на-віч, інші не чутимуть.'
+        : 'Увійдіть у кімнату відділу — тоді сюди можна перетягнути колегу для розмови віч-на-віч.'}</small></span></div>`;
 }
 
 /** Вкладка: хто показує екран (відео — у голосовому вікні) і кнопка «Дивитися» в окремому вікні. */
@@ -763,7 +827,6 @@ async function onClick(e) {
   // Дорадча кімната
   if (act === 'tet') return callTet({ uid: b.dataset.uid, name: b.dataset.name });
   if (act === 'tetok' || act === 'tetno') return answerTet(act === 'tetok');
-  if (act === 'tetcancel') return cancelTet();
   if (act === 'tetback') return leaveTet();
   if (v.demo) return demoAct(act);
   // Голос у голосовому вікні — кнопки панелі вкладки керують ним
@@ -802,6 +865,8 @@ const STATE_HINT = { ok: 'на зв\'язку', wait: 'з\'єднуємо…', b
 
 function render() {
   if (!v.root) return;
+  if (v.dragging) { v.dirty = true; return; }
+  v.dirty = false;
   const s = v.vs || { status: 'idle', members: [], inRoom: false, muted: true, deaf: false };
   // Вкладка без голосу: «я» в кімнаті — це голосове вікно (інший ключ, той самий uid)
   const tabOnly = !v.win && !v.local && !v.demo;
@@ -817,7 +882,8 @@ function render() {
     const ni = netInfo(m);
     const flags = [`${m.deaf ? 'звук вимкнено' : m.muted ? 'мікрофон вимкнено' : 'мікрофон увімкнено'}${!m.me && STATE_HINT[st] ? ' · ' + STATE_HINT[st] : ''}`, ni.tip].filter(Boolean).join(' · ');
     // data-vk — за ним рушій підсвічує того, хто говорить
-    return `<li class="${cls}" data-vk="${esc(m.key)}" title="${esc(m.name)}${m.me ? ' (ви)' : ''} — ${esc(flags)}">
+    const drag = canTet(m) ? ` draggable="true" data-drag-uid="${esc(m.uid)}" data-drag-name="${esc(m.name || '')}"` : '';
+    return `<li class="${cls}${drag ? ' is-draggable' : ''}"${drag} data-vk="${esc(m.key)}" title="${esc(m.name)}${m.me ? ' (ви)' : ''} — ${esc(flags)}">
       <span class="spv-ava" aria-hidden="true">${esc(initials(m.name))}</span>
       <span class="spv-name">${esc(m.name || 'Без імені')}${m.me ? ' <i>(ви)</i>' : ''}</span>
       ${m.deaf ? '<span class="spv-flag" aria-label="звук вимкнено">🔕</span>' : m.muted ? '<span class="spv-flag" aria-label="мікрофон вимкнено">🔇</span>' : '<span class="spv-flag" aria-label="мікрофон увімкнено">🎙</span>'}
@@ -834,7 +900,7 @@ function render() {
   else if (v.visit?.status === 'wait') note = `🚪 Стукаємо до відділу «${cap(v.visit.dept)}» — чекаємо, поки хтось пустить.`;
   else if (w && v.follow) note = `🚪 Ви в гостях: голос в окремому вікні («⧉ Вікно голосу»). Нижче — хто зараз у цій кімнаті.`;
   else if (w) note = w.inRoom ? `🎙 Ви в ефірі — голос в окремому вікні («${w.label || 'кімната'}»). Ходіть порталом, закривайте вкладки — розмова триває.` : 'Голосове вікно відкрито — заходимо в кімнату…';
-  else if (tabOnly && v.ask) note = v.ask.voice_invite ? '🎙 Вас кличуть у голосову кімнату — натисніть «Зайти».' : '🚪 Двері відчинено — натисніть «Зайти».';
+  else if (tabOnly && v.ask) note = v.ask.tet ? '🤝 Вас кличуть у дорадчу кімнату — натисніть «Зайти».' : v.ask.voice_invite ? '🎙 Вас кличуть у голосову кімнату — натисніть «Зайти».' : '🚪 Двері відчинено — натисніть «Зайти».';
   else if (v.elsewhere && !tabOnly) note = `Голос відкрито в іншій вкладці порталу («Справи» чи кабінет). Тут видно, хто в кімнаті${list.length ? `: ${list.length}` : ''}.`;
   else if (s.status === 'joining' || s.status === 'idle') note = 'Заходимо в кімнату…';
   else if (s.status === 'error') note = s.error;
@@ -842,9 +908,8 @@ function render() {
   else if (s.inRoom && !others) note = 'Поки що ви тут самі.';
   else if (!s.inRoom) note = `Ви не в кімнаті. Зараз тут: ${list.length}.`;
   if (s.status === 'live' && list.length >= MANY) note = `У кімнаті ${list.length} — пряма схема може не витягнути, звук може рватися.`;
-  if (v.tet && s.status === 'live' && !others) note = v.tet.met ? `${v.tet.name} вийшов(-ла) — повертаємось у кімнату відділу…` : `🤝 Чекаємо, поки ${v.tet.name} зайде в дорадчу кімнату…`;
-  else if (v.tet && s.status === 'live') note = '🤝 Дорадча кімната: чуєте лише ви двоє. Колеги у відділі вас не чують.';
-  if (w?.tet) note = `🤝 Ви в дорадчій кімнаті з ${w.tet} — голос в окремому вікні. Колеги у відділі вас не чують.`;
+  if (v.tet && s.status === 'live') note = others ? '' : v.tet.met ? `${v.tet.name} вийшов(-ла) — повертаємось у кімнату відділу…` : `Покликали ${v.tet.name} — чекаємо до півтори хвилини.`;
+  if (w?.tet) note = '';
   if (v.askShare && !s.sharing && holds()) note = '🖥 Браузер починає показ лише з кліку в цьому вікні — натисніть «Обрати, що показати».';
   if (s.inRoom && s.micSilent) note = '⚠ Ваш мікрофон нічого не передає — колеги вас не чують. Оберіть інший кнопкою «⚙».';
 
@@ -853,7 +918,6 @@ function render() {
          title="${w.muted ? 'Увімкнути мікрофон у голосовому вікні' : 'Вимкнути мікрофон'}">${w.muted ? '🎙 Говорити' : '🎙 Мікрофон увімк.'}</button>
        ${w?.inRoom && s.canShare ? '<button type="button" class="spv-btn spv-icon" data-act="wscreen" title="Показати колегам свій екран або вікно (підтвердите в голосовому вікні)">🖥</button>' : ''}
        <button type="button" class="spv-btn spv-ghost" data-act="wfocus" title="Показати голосове вікно поверх інших">⧉ Вікно голосу</button>
-       ${w?.tet ? '<button type="button" class="spv-btn" data-act="wback" title="Вийти з дорадчої кімнати в кімнату відділу">← До відділу</button>' : ''}
        <button type="button" class="spv-btn spv-ghost" data-act="wleave" title="Вийти з кімнати й закрити голосове вікно">Вийти</button>`
     : `<button type="button" class="spv-btn spv-join" data-act="join"
          title="Голос відкриється в окремому вікні: розмова не обірветься, поки ви ходите порталом чи іншими сайтами">${v.ask ? '🎙 Зайти' : '🎙 Увійти в кімнату'}</button>`;
@@ -886,6 +950,7 @@ function render() {
       <span class="spv-count">${list.length ? `${list.length} ${plural(list.length)}` : ''}</span>
     </div>
     <ul class="spv-people" aria-label="Хто в кімнаті">${people}</ul>
+    ${tetZoneHTML(w)}
     ${s.recording ? `<p class="spv-recbar">🔴 Іде запис наради · ${s.recording.me ? 'записуєте ви' : 'увімкнув(-ла) ' + esc(s.recording.name)} · з ${new Date(s.recording.since).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}</p>` : ''}
     ${note ? `<p class="spv-note${s.status === 'error' || (s.inRoom && s.micSilent) ? ' is-bad' : ''}">${esc(note)}</p>` : ''}
     ${s.needGesture ? '<button type="button" class="spv-btn spv-sound" data-act="sound">🔊 Натисніть, щоб чути колег</button>' : ''}
@@ -917,7 +982,7 @@ function visitBtnsHTML(s) {
   if (!v.demo && v.noKnock && !LEAD.includes(v.role)) return '';
   if (!v.home || v.home === ALL || !v.depts?.length || v.elsewhere) return '';
   if (!v.demo && !v.win && !v.local) return '';   // гостювання — у голосовому вікні (там голос)
-  if (v.tet) return '<button type="button" class="spv-btn" data-act="tetback" title="Вийти з дорадчої кімнати в кімнату відділу">← До відділу</button>';
+  if (v.tet) return '';   // «← До відділу» — у зоні дорадчої кімнати
   // Вікно перейшло в кімнату департаменту — шлях назад до свого відділу
   if (v.dept === ALL) return '<button type="button" class="spv-btn" data-act="home" title="Перейти в голосову кімнату свого відділу">← До свого відділу</button>';
   if (v.visit?.status === 'wait') return '<button type="button" class="spv-btn spv-ghost" data-act="unvisit">Скасувати стук</button>';

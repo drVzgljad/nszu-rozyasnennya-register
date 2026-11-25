@@ -1917,7 +1917,7 @@ window.addEventListener('pmg:voice-invite-send', (e) => {
 
 function voiceInviteReply(p, ok) {
   globalPresenceChannel?.send({ type: 'broadcast', event: 'voice-invite-reply',
-    payload: { to: p.from_id, ok, name: (user?.user_metadata?.full_name || user?.email || ''), dept: p.dept } });
+    payload: { to: p.from_id, ok, name: (user?.user_metadata?.full_name || user?.email || ''), dept: p.dept, tet: p.tet ? 1 : 0, from: user?.id } });
 }
 
 function onVoiceInvite(p) {
@@ -1928,7 +1928,11 @@ function onVoiceInvite(p) {
   box.className = 'pmg-voice-invite';
   box.setAttribute('role', 'alertdialog');
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  box.innerHTML = `<p>🎙 <b>${esc(p.from_name || 'Колега')}</b> кличе вас у голосову кімнату відділу «${esc(p.dept || '')}»</p>
+  // Дорадча кімната (25.11.2026): начальник кличе поговорити віч-на-віч (spravy/voice.js, канал 1:1)
+  box.innerHTML = p.tet
+    ? `<p>🤝 <b>${esc(p.from_name || 'Керівник')}</b> кличе вас у дорадчу кімнату — поговорити віч-на-віч</p>
+    <div><button type="button" data-v="yes">Зайти</button><button type="button" data-v="no">Не зараз</button></div>`
+    : `<p>🎙 <b>${esc(p.from_name || 'Колега')}</b> кличе вас у голосову кімнату відділу «${esc(p.dept || '')}»</p>
     <div><button type="button" data-v="yes">Зайти</button><button type="button" data-v="no">Ні</button></div>`;
   document.body.append(box);
   const close = () => { box.remove(); clearTimeout(t); };
@@ -1940,6 +1944,13 @@ function onVoiceInvite(p) {
     voiceInviteReply(p, yes);
     close();
     if (!yes) return;
+    if (p.tet) {
+      const t = JSON.stringify({ from_id: p.from_id, from_name: p.from_name || '' });
+      if (openVoiceWindow({ tet: t })) return;
+      if (window.__pmgVoice?.acceptTet) return window.__pmgVoice.acceptTet({ from_id: p.from_id, from_name: p.from_name || '' });
+      location.href = '/spravy/?tet=' + encodeURIComponent(t);
+      return;
+    }
     // Голос — у голосовому вікні (відкривається ще в кліку); браузер не дав — як раніше
     if (openVoiceWindow({ voice_invite: JSON.stringify({ dept: p.dept, from_id: p.from_id }) })) return;
     if (window.__pmgVoice?.acceptInvite) return window.__pmgVoice.acceptInvite(p);
