@@ -803,6 +803,7 @@ function bootDemo() {
         route: { exec: d(-1), steps: [{ who: 'Начальник відділу', ok: d(0) }], sign: { who: 'Директор департаменту', ok: null } } }));
   }
   countLinks(state.demoLinks, new Set(state.cases.map((c) => c.id)));
+  setTitle(DEPARTMENTS[1]);
   $('spDeptName').textContent = 'Демо-режим: картки вигадані, нічого не зберігається в базі';
   if (state.kind === 'szin') loadOurSz();
   render();
@@ -815,6 +816,22 @@ function bootDemo() {
     reload: async () => { render(); if (state.openId) openCase(state.openId, true); } });
 }
 
+/** Назва відділу в родовому відмінку — для заголовка «Офіс відділу …» (25.11.2026: «одна надпис»). */
+const DEPT_GEN = {
+  'стратегічного розвитку програми медичних гарантій': 'стратегічного розвитку програми медичних гарантій',
+  'наукова та клінічна експертиза': 'наукової та клінічної експертизи',
+  'розвиток програми реімбурсації': 'розвитку програми реімбурсації',
+  'взаємодія з надавачами медичних послуг': 'взаємодії з надавачами медичних послуг',
+  'розрахунок вартості медичних послуг': 'розрахунку вартості медичних послуг',
+  'робота з електронними медичними даними': 'роботи з електронними медичними даними'
+};
+function setTitle(dept) {
+  const t = dept ? `Офіс відділу ${DEPT_GEN[dept] || dept}` : 'Офіс відділу';
+  $('spTitle').textContent = t;
+  document.title = `НавігаторПМГ26 | ${t}`;
+  if (!DEMO) $('spDeptName').textContent = '';     // назва відділу — уже в заголовку
+}
+
 function showNotice(text) {
   $('spBoard').innerHTML = `<div class="sp-notice">${esc(text)}</div>`;
   $('spBoard').classList.add('is-empty');
@@ -822,13 +839,13 @@ function showNotice(text) {
 
 function setupDeptPicker() {
   const sel = $('spDept');
-  $('spDeptName').textContent = state.dept ? `Відділ ${state.dept}` : '';
+  setTitle(state.dept);
   if (!state.canPickDept) { sel.hidden = true; return; }
   sel.innerHTML = DEPARTMENTS.map((d) => `<option value="${esc(d)}"${d === state.dept ? ' selected' : ''}>${esc(d)}</option>`).join('');
   sel.hidden = false;
   sel.addEventListener('change', async () => {
     state.dept = sel.value;
-    $('spDeptName').textContent = `Відділ ${state.dept}`;
+    setTitle(state.dept);
     setVoiceDept(roomTarget());
     setRoomChatDept(roomTarget());
     await loadPeople();

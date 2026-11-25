@@ -115,22 +115,15 @@
 .sp-hero .stat { min-width: 86px; padding: 8px 12px; border-radius: 12px; }
 .sp-hero .stat strong { font-size: 21px; }
 .sp-hero .stat span { font-size: 11.5px; }
-/* Плитки стану — праворуч від заголовка, урівень із ним, а не окремим рядком нижче.
-   .hero-copy розчиняємо (display: contents), щоб шапка з навігацією лишилася на всю
-   ширину, а заголовок, опис і плитки стали поруч в одній сітці */
-@media (min-width: 1100px) {
-  .sp-hero {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    column-gap: 32px;
-    align-items: center;
-    padding-bottom: 16px;
-  }
-  .sp-hero .hero-copy { display: contents; }
-  .sp-hero .overline, .sp-hero .header-nav-row { grid-column: 1 / -1; }
-  .sp-hero h1, .sp-hero .sp-sub, .sp-hero .sp-dept { grid-column: 1; }
-  .sp-hero .stats { grid-column: 2; grid-row: 3 / span 3; align-self: center; }
-}
+/* Шапка «Офісу відділу» по центру (25.11.2026): рядок розділів (Головна…) посередині, під ним заголовок,
+   опис і плитки стану — теж по центру. Бренд і кнопки входу лишаються на своїх місцях угорі */
+.sp-hero { flex-direction: column; align-items: center; text-align: center; }
+.sp-hero .hero-copy { display: flex; flex-direction: column; align-items: center; flex: none; width: 100%; max-width: none; }
+.sp-hero .header-nav-row { align-self: stretch; text-align: left; }
+.sp-hero .nav-row-2 { justify-content: center; }
+.sp-hero h1, .sp-hero .sp-sub, .sp-hero .sp-dept { max-width: 900px; text-align: center; }
+.sp-hero .overline { align-self: flex-start; }
+.sp-hero .stats { justify-content: center; flex-wrap: wrap; }
 .sp-hero .stat { text-align: center; }
 .sp-sub { max-width: 70ch; }
 .sp-dept { margin: 6px 0 0; font-weight: 700; color: var(--accent-dark); }
