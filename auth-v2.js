@@ -1,6 +1,6 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 // Голосове вікно (19.11.2026): бейдж «в ефірі» на кожній сторінці й вхід у голос без обриву під час переходів
-import { onVoiceWin, sendVoiceCmd, openVoiceWindow, focusVoiceWindow } from './voice/link.js?v=20261119a';
+import { onVoiceWin, sendVoiceCmd, openVoiceWindow, focusVoiceWindow } from './voice/link.js?v=20261125a';
 
 // Run theme initialization immediately to prevent flash of white screen
 (function() {
@@ -1966,7 +1966,8 @@ function onVoiceInvite(p) {
    Кнопки й посилання «Голос департаменту» (…zviazok/…?voice=1) теж відкривають голосове вікно. */
 function onAirBadge(w) {
   let el = document.getElementById('pmg-onair');
-  if (!w || !w.inRoom) { el?.remove(); return; }
+  // Значок уже висить поверх усіх вікон (voice/pip.js) — другий на сторінці не потрібен
+  if (!w || !w.inRoom || w.pip) { el?.remove(); return; }
   if (!el) {
     el = document.createElement('div');
     el.id = 'pmg-onair';

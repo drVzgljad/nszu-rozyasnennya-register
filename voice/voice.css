@@ -37,6 +37,15 @@ body {
   font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
+/* Значок «В ефірі» (25.11.2026, pill.js): у компактному режимі вікно — лише він */
+.vw-pill { margin: -10px -12px 10px; }
+.vw-pill .pill { border-radius: 0; }
+body.is-compact { padding: 0; background: #111827; }
+body.is-compact .vw-pill { margin: 0; }
+body.is-compact .vw-more { display: none; }
+.vw-tip { margin: 0; padding: 4px 12px 6px; background: #111827; color: #9ca3af; font-size: 12px; }
+.vw-tip[hidden] { display: none; }
+
 .vw-head {
   display: flex;
   align-items: center;

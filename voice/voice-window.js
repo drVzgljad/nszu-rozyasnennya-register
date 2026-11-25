@@ -9,19 +9,24 @@
  * що його відкрила), обгортку порталу в iframe (ламає навігацію, сторонні сайти в iframe не йдуть,
  * а закриття вкладки однаково рве розмову), фоновий воркер (WebRTC і мікрофона там немає).
  *
- * - Панель — та сама, що в «Справах» (../spravy/voice.js, режим win): стук і гості, «Вивести»,
- *   вибір мікрофона, показ екрана, нарада із записом, привітання. Нових кімнат немає.
+ * З 25.11.2026 вікно за замовчуванням — лише значок «В ефірі» (./pill.js) у лівому нижньому куті
+ * («мені не дуже подобається вікно голосового чату, лишив би тільки маленьке, щоб було поверх усіх вікон»).
+ * - Перший будь-який клік у вікні закріплює значок поверх усіх вікон і програм (./pip.js; браузер
+ *   відкриває таке вікно лише на клік у сторінці, що тримає голос). Після цього голосове вікно можна згорнути.
+ * - ⤢ — повна панель (та сама, що в «Справах», ../spravy/voice.js, режим win: учасники, стук і гості,
+ *   дорадча кімната, показ екрана, нарада, мікрофон). Розгортається й сама, коли щось вимагає дії
+ *   (кличуть у дорадчу, стукають, показ треба підтвердити кліком, немає зв'язку), і з вкладок (⧉).
  * - Намір — з адреси: ?room=all [&mic=1] (кімната департаменту), ?door=…, ?door_dept=…, ?voice_invite=…,
- *   ?knock=<відділ>; без параметрів — кімната свого відділу. Відкрите вікно отримує намір командою 'intent'.
- * - Команди вкладок (25.11.2026): 'screen' — почати показ (браузер вимагає клік тут, панель попросить),
- *   'screenwin' — відкрити екран спікера в окремому вікні (../voice/screen-win.js).
+ *   ?knock=<відділ>, ?tet=…; без параметрів — кімната свого відділу. Відкрите вікно отримує намір командою 'intent'.
+ * - Команди вкладок: 'mic', 'deaf', 'leave', 'focus' (показати й розгорнути), 'intent', 'screen' — почати
+ *   показ (браузер вимагає клік тут, панель попросить), 'screenwin' — екран спікера в окремому вікні.
  * - Вийшли з кімнати — вікно закривається. Закрили вікно — вийшли (рушій сам виходить на pagehide).
- * - Компактне міні-вікно поверх усіх вікон (учасники, хто говорить, мікрофон, вийти) — ./pip.js.
  */
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { initVoice } from '../spravy/voice.js?v=20261125b';
-import { BUS, HEARTBEAT } from './link.js?v=20261119a';
-import { createPip } from './pip.js?v=20261119c';
+import { initVoice } from '../spravy/voice.js?v=20261125c';
+import { BUS, HEARTBEAT, COMPACT } from './link.js?v=20261125a';
+import { createPip } from './pip.js?v=20261125a';
+import { PILL_CSS, pillHTML } from './pill.js?v=20261125a';
 
 const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
@@ -35,14 +40,23 @@ const DEPARTMENTS = [
   'розрахунок вартості медичних послуг',
   'робота з електронними медичними даними'
 ];
+const FULL = { w: 440, h: 700 };   // повна панель (внутрішній розмір)
 
 const $ = (id) => document.getElementById(id);
 const bc = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(BUS) : null;
 let api = null;
 let pip = null;
 let speaking = [];
-let speakingKeys = new Set();
 let closed = false;
+let mode = 'compact';     // 'compact' — лише значок; 'full' — повна панель
+let pipByUser = false;    // людина сама закрила значок поверх усіх — більше не відкриваємо його самі
+let needed = false;       // панель уже розгортали через «щось вимагає дії»
+
+{
+  const st = document.createElement('style');
+  st.textContent = PILL_CSS;
+  document.head.append(st);
+}
 
 function toast(text, bad) {
   let t = document.getElementById('spToast');
@@ -64,9 +78,48 @@ function message(html) {
   const m = $('vwMsg');
   m.innerHTML = html;
   m.hidden = false;
+  setMode('full');
 }
 
-/** Що бачать вкладки порталу й маркер. */
+/* ───────── розмір вікна: значок або повна панель ───────── */
+
+function place(w, h, corner) {
+  // resizeTo задає зовнішній розмір — додаємо рамку й заголовок вікна
+  const dw = Math.max(0, window.outerWidth - window.innerWidth);
+  const dh = Math.max(0, window.outerHeight - window.innerHeight);
+  const s = window.screen;
+  const ax = s.availLeft || 0, ay = s.availTop || 0, aw = s.availWidth || 1280, ah = s.availHeight || 800;
+  const ow = Math.min(w + dw, aw), oh = Math.min(h + dh, ah);
+  try {
+    window.resizeTo(ow, oh);
+    if (corner) window.moveTo(ax + 16, ay + ah - oh - 16);
+    else if (window.screenY + oh > ay + ah) window.moveTo(window.screenX, Math.max(ay, ay + ah - oh - 16));
+  } catch (_) { /* вікно відкрили не скриптом — розмір міняти не можна */ }
+}
+
+function setMode(next) {
+  if (next === mode) return;
+  mode = next;
+  document.body.classList.toggle('is-compact', mode === 'compact');
+  if (mode === 'full') place(FULL.w, FULL.h, false);
+  else place(COMPACT.w, COMPACT.h, true);
+  tip();
+}
+
+/** Підказка під значком у компактному вікні. */
+function tip() {
+  const el = $('vwTip');
+  if (!el) return;
+  let t = '';
+  if (pip?.isOpen) t = '📌 Значок — поверх усіх вікон. Це вікно можна згорнути (—): розмова триває.';
+  else if (pip?.supported) t = '📌 Клацніть тут будь-де — значок стане поверх усіх вікон.';
+  else t = 'Значок «В ефірі» видно й на кожній сторінці порталу.';
+  el.textContent = t;
+  el.hidden = mode !== 'compact';
+}
+
+/* ───────── стан для вкладок, значка й бейджа ───────── */
+
 function state() {
   const s = api?.state;
   const inRoom = !!(s && s.inRoom && s.status === 'live');
@@ -80,27 +133,31 @@ function state() {
     muted: s ? !!s.muted : true,
     deaf: !!s?.deaf,
     count: s?.members?.length || 0,
-    // Хто в кімнаті — для бейджа й маркера («де я і хто там»)
+    // Хто в кімнаті — для бейджа й значка («де я і хто там»)
     people: (s?.members || []).map((m) => (m.me ? `${m.name || 'ви'} (ви)` : m.name || 'Без імені')),
-    // Для міні-вікна поверх усіх: кружечки учасників
-    members: (s?.members || []).map((m) => ({ name: m.name || (m.me ? 'ви' : 'Без імені'), me: !!m.me, muted: !!m.muted, sp: speakingKeys.has(m.key) })),
     speaking,
     needGesture: !!s?.needGesture,
     tet: api?.tet || '',          // з ким дорадча кімната (25.11.2026)
-    tetAsk: api?.tetAsk || ''     // хто кличе на тет-а-тет (вкладка знімає своє запрошення, коли тут відповіли)
+    tetAsk: api?.tetAsk || '',    // хто кличе на тет-а-тет (вкладка знімає своє запрошення, коли тут відповіли)
+    pip: !!pip?.isOpen            // значок висить поверх усіх вікон — бейдж на сторінках порталу не потрібен
   };
 }
 
 let lastSent = '';
+let lastPill = '';
 function publish(force = false) {
   const st = state();
+  // Щось вимагає дії в панелі — розгортаємо її (один раз на кожну нову потребу)
+  const need = !!api?.needs;
+  if (need && !needed) setMode('full');
+  needed = need;
+  const pill = pillHTML(st, { pin: !!(pip?.supported && !pip.isOpen && st.inRoom) });
+  if (pill !== lastPill) { lastPill = pill; $('vwPill').innerHTML = pill; }
   const key = JSON.stringify(st);
   if (!force && key === lastSent) return;
   lastSent = key;
   bc?.postMessage({ type: 'state', ...st });
   pip?.update();
-  $('vwDot').classList.toggle('is-live', st.inRoom);
-  $('vwRoom').textContent = st.label;
   document.title = `${st.inRoom ? (st.muted ? '🔇' : '🔴') + ' В ефірі' : '🎙 Голос'} · ${st.label}`;
 }
 
@@ -110,8 +167,28 @@ function readSpeaking() {
   if (!s) return;
   const keys = new Set([...document.querySelectorAll('#spVoice [data-vk].is-speaking')].map((el) => el.dataset.vk));
   const names = (s.members || []).filter((m) => keys.has(m.key)).map((m) => (m.me ? 'ви' : (m.name || '').split(/\s+/).slice(0, 2).join(' ')));
-  speakingKeys = keys;
   if (names.join('|') !== speaking.join('|')) { speaking = names; publish(); }
+}
+
+/** Кнопки значка (тут і поверх усіх вікон). */
+async function act(cmd) {
+  if (!api) return;
+  api.unlock();
+  if (cmd === 'mic') {
+    // Звук вимкнено — «мікрофон» повертає і звук, і мікрофон (як просили: швидко ввімкнути голос)
+    if (api.state?.deaf) await api.toggleDeaf();
+    else await api.toggleMic();
+  } else if (cmd === 'panel') {
+    try { window.focus(); } catch (_) { /* браузер не дав */ }
+    setMode(mode === 'full' && document.hasFocus() ? 'compact' : 'full');
+  } else if (cmd === 'pin') {
+    pipByUser = false;
+    await pip?.open();
+  } else if (cmd === 'leave') {
+    try { window.focus(); } catch (_) { /* браузер не дав */ }
+    await leave();
+  }
+  publish(true);
 }
 
 async function onCmd(m) {
@@ -119,10 +196,10 @@ async function onCmd(m) {
   if (m.cmd === 'mic') await api.toggleMic();
   else if (m.cmd === 'deaf') await api.toggleDeaf();
   else if (m.cmd === 'leave') await leave();
-  else if (m.cmd === 'focus') { try { window.focus(); } catch (_) { /* браузер не дав */ } pip?.update(); }
+  else if (m.cmd === 'focus') { try { window.focus(); } catch (_) { /* браузер не дав */ } setMode('full'); pip?.update(); }
   else if (m.cmd === 'intent') await api.intent(m.params || {});
-  else if (m.cmd === 'screen') await api.share();          // 🖥 у вкладці (25.11.2026)
-  else if (m.cmd === 'screenwin') api.openScreen();        // «⧉ Дивитися» у вкладці
+  else if (m.cmd === 'screen') { setMode('full'); await api.share(); }   // 🖥 у вкладці (25.11.2026)
+  else if (m.cmd === 'screenwin') api.openScreen();                     // «⧉ Дивитися» у вкладці
   publish(true);
 }
 
@@ -131,7 +208,7 @@ async function leave() {
   if (ok === false) return;
 }
 
-/** Вийшли з кімнати (тут, у маркері чи з вкладки) — вікно закривається. */
+/** Вийшли з кімнати (тут, у значку чи з вкладки) — вікно закривається. */
 function onLeave() {
   closed = true;
   publish(true);
@@ -139,7 +216,7 @@ function onLeave() {
   window.close();
   // Вікно відкрили не скриптом (набрали адресу) — закрити себе браузер не дасть
   setTimeout(() => {
-    $('spVoice').hidden = true;
+    $('vwMore').hidden = true;
     message('Ви вийшли з кімнати. Це вікно можна закрити.<br><button type="button" class="spv-btn spv-join" id="vwAgain">🎙 Зайти знову</button>');
     $('vwAgain')?.addEventListener('click', () => location.reload());
   }, 300);
@@ -153,10 +230,11 @@ function onLost() {
   pip?.close();
   toast('Голос перейшов у вкладку порталу');
   setTimeout(() => window.close(), 800);
-  setTimeout(() => { $('spVoice').hidden = true; message('Голос перейшов у вкладку порталу. Це вікно можна закрити.'); }, 1200);
+  setTimeout(() => { $('vwMore').hidden = true; message('Голос перейшов у вкладку порталу. Це вікно можна закрити.'); }, 1200);
 }
 
 async function start() {
+  document.body.classList.add('is-compact');
   if (!window.RTCPeerConnection) return message('Цей браузер не вміє голосових кімнат. Спробуйте Chrome, Edge або Firefox.');
   const sb = window.__pmgSb || (window.__pmgSb = createClient(SUPABASE_URL, SUPABASE_KEY));
   const { data: { session } } = await sb.auth.getSession();
@@ -183,29 +261,27 @@ async function start() {
   setInterval(readSpeaking, 250);
   window.addEventListener('pagehide', () => { closed = true; bc?.postMessage({ type: 'state', alive: false }); });
 
-  // Міні-вікно поверх усіх вікон
+  // Значок поверх усіх вікон
   pip = createPip({
     getState: state,
-    act: async (cmd) => {
-      api.unlock();
-      if (cmd === 'mic') await api.toggleMic();
-      else if (cmd === 'deaf') await api.toggleDeaf();
-      else if (cmd === 'leave') { window.focus(); await leave(); }
-      else if (cmd === 'focus') { try { window.focus(); } catch (_) { /* браузер не дав */ } }
-      publish(true);
-    },
+    act,
     onToggle: (on) => {
-      $('vwPin').classList.toggle('is-on', on);
-      $('vwPin').textContent = on ? '📌 Міні-вікно відкрито' : '📌 Міні-вікно поверх усіх';
+      if (!on && !closed) pipByUser = true;   // закрили значок самі — не нав'язуємо його знову
+      tip();
+      publish(true);
     }
   });
-  const pin = $('vwPin');
-  if (pip.supported) {
-    pin.hidden = false;
-    pin.addEventListener('click', () => (pip.isOpen ? pip.close() : pip.open()));
-  } else {
-    $('vwHint').textContent += ' Маркер «в ефірі» видно на кожній сторінці порталу (у цьому браузері поверх усіх програм він не вміє).';
-  }
+  // Перший будь-який клік у вікні закріплює значок поверх усіх (браузер дозволяє лише на клік)
+  document.addEventListener('pointerdown', (e) => {
+    if (!pip.supported || pip.isOpen || pipByUser || closed || !state().inRoom) return;
+    if (e.target.closest?.('[data-pm="leave"], [data-pm="pin"]')) return;
+    pip.open();
+  }, true);
+  $('vwPill').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-pm]');
+    if (b) act(b.dataset.pm);
+  });
+  tip();
   publish(true);
 }
 

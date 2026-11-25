@@ -55,7 +55,7 @@ import { openMicPicker } from '../zviazok/mic-picker.js?v=20261106a';
 import { createMeeting } from '../zviazok/meeting.js?v=20261103a';
 import { createStage } from '../zviazok/stage.js?v=20261125a';
 import { createScreenWin } from '../voice/screen-win.js?v=20261125a';
-import { openVoiceWindow, voiceWin, onVoiceWin, sendVoiceCmd, focusVoiceWindow } from '../voice/link.js?v=20261119a';
+import { openVoiceWindow, voiceWin, onVoiceWin, sendVoiceCmd, focusVoiceWindow } from '../voice/link.js?v=20261125a';
 
 const MANY = 10;               // з такої кількості попереджаємо: пряма схема важчає
 const LS_OFF = 'spravy-voice-off';
@@ -273,6 +273,8 @@ function api() {
       if (!v.scr.open()) v.toast('Браузер не дав відкрити вікно саме — натисніть «⧉ Окреме вікно» над екраном колеги', true);
     },
     get tet() { return v.tet ? v.tet.name : ''; },
+    /** Щось у панелі вимагає дії — голосове вікно розгортає її зі значка (25.11.2026). */
+    get needs() { return !!(v.tetAsk || v.askShare || v.knocks.length || v.vs?.status === 'error' || (v.tet && !v.tet.met)); },
     get tetAsk() { return v.tetAsk?.from_id || ''; }
   };
 }

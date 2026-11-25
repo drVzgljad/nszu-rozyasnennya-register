@@ -19,7 +19,13 @@ export const WIN_NAME = 'pmg-voice';
 export const BUS = 'pmg-voice-win';
 export const HEARTBEAT = 3000;
 const DEAD = 8000;
-const FEATURES = 'popup,width=420,height=660';
+// З 25.11.2026 вікно відкривається значком «В ефірі» в лівому нижньому куті; ⤢ розгортає повну панель
+export const COMPACT = { w: 380, h: 84 };
+function features() {
+  const s = window.screen || {};
+  const ax = s.availLeft || 0, ay = s.availTop || 0, ah = s.availHeight || 800;
+  return `popup,width=${COMPACT.w},height=${COMPACT.h},left=${ax + 16},top=${Math.max(ay, ay + ah - COMPACT.h - 70)}`;
+}
 
 let last = null;          // останній стан вікна або null
 let ref = null;           // вікно, яке відкрила ЦЯ вкладка (щоб показати його поверх)
@@ -55,8 +61,8 @@ export function sendVoiceCmd(cmd, params = {}) {
 
 /** Показати голосове вікно поверх інших (якщо його відкрила ця вкладка — напряму, інакше просимо саме вікно). */
 export function focusVoiceWindow() {
-  if (ref && !ref.closed) { try { ref.focus(); return; } catch (_) { /* інший origin — неможливо */ } }
-  sendVoiceCmd('focus');
+  if (ref && !ref.closed) { try { ref.focus(); } catch (_) { /* інший origin — неможливо */ } }
+  sendVoiceCmd('focus');   // вікно розгортає повну панель (з 25.11.2026 воно зазвичай лише значок)
 }
 
 /**
@@ -68,7 +74,7 @@ export function openVoiceWindow(params = {}) {
   const u = new URL('/voice/', location.origin);
   Object.entries(params).forEach(([k, val]) => { if (val != null && val !== '') u.searchParams.set(k, typeof val === 'string' ? val : JSON.stringify(val)); });
   let w = null;
-  try { w = window.open(u.href, WIN_NAME, FEATURES); } catch (_) { w = null; }
+  try { w = window.open(u.href, WIN_NAME, features()); } catch (_) { w = null; }
   if (!w) return null;
   ref = w;
   return 'opened';

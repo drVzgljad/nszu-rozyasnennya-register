@@ -33,7 +33,7 @@
 
 import { createVoice, MANY, netInfo } from './voice.js?v=20261125a';
 // Голосове вікно (19.11.2026): голос живе там, щоб розмова не рвалась під час переходів порталом
-import { openVoiceWindow, voiceWin, onVoiceWin, sendVoiceCmd, focusVoiceWindow } from '../voice/link.js?v=20261119a';
+import { openVoiceWindow, voiceWin, onVoiceWin, sendVoiceCmd, focusVoiceWindow } from '../voice/link.js?v=20261125a';
 import { openMicPicker } from './mic-picker.js?v=20261106a';
 import { createMeeting } from './meeting.js?v=20261103a';
 import { createStage } from './stage.js?v=20261125a';
