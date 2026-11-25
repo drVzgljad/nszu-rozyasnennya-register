@@ -10,19 +10,20 @@
     // Тема — та сама, що на порталі (auth-v2.js тут не підключаємо: вікну не потрібні шапка й меню)
     try { if (localStorage.getItem('portal-theme') === 'dark') document.documentElement.classList.add('dark-theme'); } catch (_) {}
   </script>
-  <link rel="stylesheet" href="../spravy/spravy.css?v=20261124a">
-  <link rel="stylesheet" href="voice.css?v=20261119a">
+  <link rel="stylesheet" href="../spravy/spravy.css?v=20261125a">
+  <link rel="stylesheet" href="voice.css?v=20261125a">
 </head>
 <body>
   <!-- Голосове вікно (19.11.2026): голос живе тут, тож перехід між сторінками порталу,
        закриття вкладок і сторонні сайти розмову не рвуть. Логіка — voice-window.js. -->
-  <header class="vw-head">
-    <span class="vw-title"><span class="vw-dot" id="vwDot" aria-hidden="true"></span><b id="vwRoom">Голос</b></span>
-    <button type="button" class="vw-pin" id="vwPin" hidden title="Компактне вікно голосу поверх усіх програм: учасники, хто говорить, мікрофон, вийти">📌 Міні-вікно поверх усіх</button>
-  </header>
-  <p class="vw-hint" id="vwHint">Це вікно тримає розмову. Ходіть порталом і іншими сайтами, закривайте вкладки: голос не обірветься. Закриєте це вікно — вийдете з кімнати.</p>
-  <section class="spv" id="spVoice" aria-label="Голосова кімната" hidden></section>
+  <!-- З 25.11.2026 за замовчуванням — лише значок «В ефірі» (pill.js); ⤢ — повна панель -->
+  <div class="vw-pill" id="vwPill"></div>
+  <p class="vw-tip" id="vwTip" hidden></p>
+  <div class="vw-more" id="vwMore">
+    <p class="vw-hint" id="vwHint">Це вікно тримає розмову. Ходіть порталом і іншими сайтами, закривайте вкладки: голос не обірветься. Закриєте це вікно — вийдете з кімнати. ⤢ на значку — згорнути панель.</p>
+    <section class="spv" id="spVoice" aria-label="Голосова кімната" hidden></section>
+  </div>
   <p class="vw-msg" id="vwMsg" hidden></p>
-  <script type="module" src="voice-window.js?v=20261125a"></script>
+  <script type="module" src="voice-window.js?v=20261125c"></script>
 </body>
 </html>
