@@ -47,7 +47,7 @@
  *   окремому вікні (../voice/screen-win.js) — розгорнути, згорнути, на весь екран.
  */
 
-import { createVoice, netInfo } from '../zviazok/voice.js?v=20261125d';
+import { createVoice, netInfo } from '../zviazok/voice.js?v=20261125e';
 import { greetFor, playClip, CHIME } from '../zviazok/greet.js?v=20261117a';
 import { openMicPicker } from '../zviazok/mic-picker.js?v=20261106a';
 import { createMeeting } from '../zviazok/meeting.js?v=20261103a';
@@ -65,6 +65,24 @@ const LEAD = ['admin', 'director', 'deputy_director'];   // заходять у 
 const BOSS = ['manager', ...LEAD];                        // кличуть колегу в дорадчу кімнату (тет-а-тет)
 const TET_WAIT = 90e3;                                    // скільки чекаємо співрозмовника в дорадчій (як запрошення в auth-v2)
 const cap = (t) => (t ? t[0].toUpperCase() + t.slice(1) : '');
+
+/* Герої (25.11.2026): «Звичайний» вигляд — кружечки з ініціалами, «Просунутий» — 3D-герої з Blender
+   (tools/heroes, спрайт 4 кадри: рот закритий · трохи · широко · очі заплющені). Героя обирає кожен сам —
+   стать і вигляд за іменем не вгадуємо; вибір іде колегам через присутність кімнати (рушій, meta.hero). */
+const HEROES = [
+  { id: 'base', name: 'Медик' },
+  { id: 'chub', name: 'Чубчик з кавою' },
+  { id: 'boss', name: 'Строга з текою' },
+  { id: 'tail', name: 'Хвостик з гарнітурою' },
+  { id: 'bob', name: 'Каре з блокнотом' }
+];
+const HERO_V = '20261125a';
+const heroUrl = (id) => new URL(`../voice/heroes/${HEROES.some((h) => h.id === id) ? id : 'base'}.webp?v=${HERO_V}`, import.meta.url).href;
+const VIEW_LS = 'pmg-voice-view';            // 'hero' — просунутий вигляд; пам'ятає браузер кожного
+const lsRead = (k) => { try { return localStorage.getItem(k) || ''; } catch (_) { return ''; } };
+const lsWrite = (k, val) => { try { val ? localStorage.setItem(k, val) : localStorage.removeItem(k); } catch (_) { /* приватне вікно */ } };
+const heroView = () => lsRead(VIEW_LS) === 'hero';
+const myHero = () => lsRead('pmg-voice-hero');
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const initials = (name) => (name || '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';
@@ -110,6 +128,8 @@ const v = {
   follow: '',          // вкладка: назва кімнати, куди пішло вікно (у гостях), — показуємо її
   // Дорадча кімната (25.11.2026)
   tet: null,           // { topic, dept, since } — ми в дорадчій кімнаті відділу
+  heroSeen: new Set(), // кого вже показали героєм (вистрибує лише той, хто щойно зайшов)
+  heroPick: false,
   peek: [],            // хто в другій кімнаті (офіс чи дорадча) — присутність без власного запису
   peekCh: null,
   peekTopic: '',
@@ -734,7 +754,7 @@ async function peekRoom(topic) {
 }
 
 /** Учасники другої кімнати — у вигляді, який розуміє personHTML. */
-const peekMembers = () => v.peek.map((m, i) => ({ key: 'pk' + i, uid: m.uid, name: m.name, muted: m.muted, deaf: m.deaf, dev: m.dev, me: m.uid === v.me?.id, peek: true }));
+const peekMembers = () => v.peek.map((m, i) => ({ key: 'pk' + i, uid: m.uid, name: m.name, muted: m.muted, deaf: m.deaf, dev: m.dev, hero: m.hero || '', me: m.uid === v.me?.id, peek: true }));
 
 /** Повідомлення кімнати (рушій, broadcast 'room'): запрошення зі старого голосового вікна, відмова. */
 function onRoomMsg(p) {
@@ -890,10 +910,40 @@ function dragAttr(m, w, from) {
   return ` draggable="true" data-drag-uid="${esc(m.uid || v.me?.id || 'me')}" data-drag-name="${esc(m.name || '')}" data-drag-from="${from}"${mine ? ' data-drag-self="1"' : ''}`;
 }
 
+/** Герой учасника: спрайт + власний ритм кліпання (від uid, щоб усі не кліпали разом). */
+function heroHTML(m) {
+  const seed = [...String(m.uid || m.key || m.name || '')].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 997, 7);
+  const id = (m.me ? (myHero() || m.hero) : m.hero) || (v.demo ? HEROES[seed % HEROES.length].id : '');   // у демо — різні герої для наочності
+  const isNew = !v.heroSeen.has(m.key);
+  v.heroSeen.add(m.key);
+  return `<span class="spv-hero${isNew ? ' is-new' : ''}" aria-hidden="true" style="--hero:url('${heroUrl(id)}');--blink:${(4 + (seed % 40) / 10).toFixed(1)}s;--blink-d:${-(seed % 50) / 10}s">
+      <i class="spv-hero-blink"></i>${m.sharing ? '<i class="spv-hero-badge">🖥</i>' : ''}</span>`;
+}
+
+/** Перемикач вигляду кімнати й вибір свого героя. */
+function viewBarHTML() {
+  const hero = heroView();
+  const mine = myHero();
+  const pick = hero && v.heroPick ? `<div class="spv-heropick" role="listbox" aria-label="Оберіть свого героя">
+      ${HEROES.map((h) => `<button type="button" class="spv-heropick-i${(mine || 'base') === h.id ? ' is-on' : ''}" data-act="hero" data-hero="${h.id}" role="option" aria-selected="${(mine || 'base') === h.id}" title="${esc(h.name)}">
+        <span class="spv-hero is-still" style="--hero:url('${heroUrl(h.id)}')"></span><small>${esc(h.name)}</small></button>`).join('')}
+    </div>` : '';
+  return `<div class="spv-viewbar">
+      <div class="spv-seg" role="group" aria-label="Вигляд кімнати">
+        <button type="button" data-act="view" data-view="plain" aria-pressed="${!hero}" title="Кружечки з ініціалами">Звичайний</button>
+        <button type="button" data-act="view" data-view="hero" aria-pressed="${hero}" title="3D-герої: дихають, говорять, кліпають">Просунутий</button>
+      </div>
+      ${hero ? `<button type="button" class="spv-btn spv-ghost spv-myhero" data-act="heropick" aria-expanded="${!!v.heroPick}" title="Оберіть, яким героєм вас бачать колеги">🧩 Мій герой</button>` : ''}
+    </div>${pick}`;
+}
+
 /** Кружечок учасника (і в кімнаті, де ми, і в тій, куди підглядаємо). */
 function personHTML(m, s, w, from) {
   const st = m.viaWin || m.peek ? 'ok' : m.state;
-  const cls = ['spv-person', m.me && 'is-me', m.muted && 'is-muted', m.deaf && 'is-deaf', st === 'bad' && 'is-bad', st === 'wait' && 'is-wait'].filter(Boolean).join(' ');
+  const hero = heroView();
+  const sleepy = hero && m.me && s.idleWarn;
+  const cls = ['spv-person', m.me && 'is-me', m.muted && 'is-muted', m.deaf && 'is-deaf', st === 'bad' && 'is-bad', st === 'wait' && 'is-wait',
+    hero && 'is-hero', sleepy && 'is-sleepy', hero && m.sharing && 'is-sharing'].filter(Boolean).join(' ');
   const ni = netInfo(m);
   const flags = [`${m.deaf ? 'звук вимкнено' : m.muted ? 'мікрофон вимкнено' : 'мікрофон увімкнено'}${!m.me && !m.peek && STATE_HINT[st] ? ' · ' + STATE_HINT[st] : ''}`, ni.tip].filter(Boolean).join(' · ');
   const drag = dragAttr(m, w, from);
@@ -901,7 +951,7 @@ function personHTML(m, s, w, from) {
     ? `<button type="button" class="spv-kick" data-act="tet" data-uid="${esc(m.uid)}" data-name="${esc(m.name || '')}" title="Покликати ${esc(m.name || 'колегу')} у дорадчу кімнату">🤝</button>` : '';
   // data-vk — за ним рушій підсвічує того, хто говорить
   return `<li class="${cls}${drag ? ' is-draggable' : ''}"${drag} data-vk="${esc(m.key)}" title="${esc(m.name)}${m.me ? ' (ви)' : ''} — ${esc(flags)}${drag ? ' · можна перетягнути' : ''}">
-      <span class="spv-ava" aria-hidden="true">${esc(initials(m.name))}</span>
+      ${hero ? heroHTML(m) : `<span class="spv-ava" aria-hidden="true">${esc(initials(m.name))}</span>`}
       <span class="spv-name">${esc(m.name || 'Без імені')}${m.me ? ' <i>(ви)</i>' : ''}</span>
       ${m.deaf ? '<span class="spv-flag" aria-label="звук вимкнено">🔕</span>' : m.muted ? '<span class="spv-flag" aria-label="мікрофон вимкнено">🔇</span>' : '<span class="spv-flag" aria-label="мікрофон увімкнено">🎙</span>'}
       ${ni.dev ? `<span class="spv-flag" aria-label="${esc(ni.devTip)}">${ni.dev}</span>` : ''}
@@ -1043,6 +1093,7 @@ function setupHost() {
     else if (m.cmd === 'intent') await applyIntent(m.params || {});
     else if (m.cmd === 'screen') { if (v.vs?.sharing) await v.eng.toggleShare(); }
     else if (m.cmd === 'screenwin') v.scr.open();
+    else if (m.cmd === 'hero') { v.eng.setHero?.(m.params?.id || ''); render(); }
     publishHost(true);
   };
   setInterval(() => publishHost(true), HEARTBEAT);
@@ -1218,6 +1269,17 @@ async function onClick(e) {
   if (act === 'tetok' || act === 'tetno') return answerTet(act === 'tetok');
   if (act === 'tetback') return goOffice();
   if (act === 'tetsolo') return goTet();
+  if (act === 'view') { lsWrite(VIEW_LS, b.dataset.view === 'hero' ? 'hero' : ''); if (b.dataset.view !== 'hero') v.heroPick = false; return render(); }
+  if (act === 'heropick') { v.heroPick = !v.heroPick; return render(); }
+  if (act === 'hero') {
+    const id = b.dataset.hero;
+    lsWrite('pmg-voice-hero', id);
+    v.eng?.setHero?.(id);                   // рушій перешле колегам (присутність)
+    if (!holds() && voiceWin()) sendVoiceCmd('hero', { id });
+    v.heroPick = false;
+    v.toast(`🧩 Ваш герой — «${HEROES.find((h) => h.id === id)?.name || ''}». Колеги побачать його в просунутому вигляді`);
+    return render();
+  }
   if (v.demo) return demoAct(act);
   // Голос у голосовому вікні — кнопки панелі вкладки керують ним
   if (act === 'wmic') return sendVoiceCmd('mic');
@@ -1314,6 +1376,7 @@ function render() {
   // щоразу починалася б спочатку — «нервово смикалась» (25.11.2026)
   v.root.style.setProperty('--pulse-t', (performance.now() / 1000).toFixed(2));
   v.root.innerHTML = `<div class="spv-main">
+    ${viewBarHTML()}
     ${roomsHTML(s, w, list)}
     ${s.recording ? `<p class="spv-recbar">🔴 Іде запис наради · ${s.recording.me ? 'записуєте ви' : 'увімкнув(-ла) ' + esc(s.recording.name)} · з ${new Date(s.recording.since).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}</p>` : ''}
     ${note ? `<p class="spv-note${s.status === 'error' || (s.inRoom && s.micSilent) ? ' is-bad' : ''}">${esc(note)}</p>` : ''}

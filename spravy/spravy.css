@@ -1732,3 +1732,79 @@ button.sp-rev-mini.is-todo:hover, button.sp-rev-mini.is-todo:focus-visible { out
   0%, 100% { background-color: color-mix(in srgb, rgb(var(--share-glow)) 6%, var(--surface)); box-shadow: 0 0 0 0 rgba(var(--share-glow), 0); }
   50% { background-color: color-mix(in srgb, rgb(var(--share-glow)) 22%, var(--surface)); box-shadow: 0 0 0 4px rgba(var(--share-glow), .25), 0 0 14px 2px rgba(var(--share-glow), .45); }
 }
+
+/* ── Просунутий вигляд кімнати: 3D-герої (25.11.2026) ─────────────────────────────────────────────
+   Спрайт героя — 4 кадри в ряд (рот закритий · трохи · широко · очі заплющені), voice/heroes/*.webp.
+   Рот керує рушій: data-lvl на <li> (0/1/2) раз на 150 мс. Дихання прив'язане до годинника (--pulse-t),
+   як пульс кнопок, — перемальовування панелі його не збиває. */
+.spv-viewbar { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex: 1 1 100%; min-width: 0; }
+.spv-seg { display: inline-flex; padding: 2px; border-radius: 9px; background: var(--soft); border: 1px solid var(--line); }
+.spv-seg button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 7px; cursor: pointer; }
+.spv-seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+.spv-seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.spv-myhero { min-height: 26px; padding: 3px 9px; }
+
+.spv-person.is-hero {
+  display: inline-flex; flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center;
+  gap: 1px 4px; width: 96px; max-width: none; padding: 4px 4px 6px; border-radius: 14px; text-align: center;
+}
+.spv-person.is-hero .spv-name { flex: 1 1 100%; font-size: 12px; font-weight: 600; }
+.spv-person.is-hero .spv-name i { font-weight: 400; }
+.spv-hero {
+  position: relative; flex: 0 0 100%; display: block; width: 76px; height: 76px; margin: 0 auto;
+  background: var(--hero) 0 0 / 400% 100% no-repeat;
+  transform-origin: 50% 90%;
+  animation: spv-breathe 3.6s ease-in-out infinite;
+  animation-delay: calc(var(--pulse-t, 0) * -1s);
+}
+.spv-hero::before {                         /* м'яка тінь під ногами */
+  content: ''; position: absolute; left: 22%; right: 22%; bottom: 1px; height: 7px; z-index: -1;
+  border-radius: 50%; background: radial-gradient(closest-side, rgba(0, 0, 0, 0.22), transparent);
+}
+.spv-person.is-hero[data-lvl="1"] .spv-hero { background-position: 33.333% 0; }
+.spv-person.is-hero[data-lvl="2"] .spv-hero { background-position: 66.667% 0; }
+.spv-hero-blink {
+  position: absolute; inset: 0; background: var(--hero) 100% 0 / 400% 100% no-repeat; opacity: 0;
+  animation: spv-blink var(--blink, 5s) step-end infinite; animation-delay: var(--blink-d, 0s);
+}
+.spv-person.is-speaking .spv-hero-blink { animation: none; opacity: 0; }
+.spv-person.is-speaking .spv-hero {
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--spv-speak) 70%, transparent));
+  animation: spv-talkbob 0.42s ease-in-out infinite alternate;
+}
+.spv-person.is-hero.is-speaking { border-color: var(--spv-speak); }
+.spv-person.is-deaf .spv-hero { opacity: 0.7; }
+.spv-hero.is-new { animation: spv-pop 0.7s cubic-bezier(0.3, 1.6, 0.5, 1) both, spv-breathe 3.6s ease-in-out 0.7s infinite; }
+.spv-person.is-sleepy .spv-hero-blink { animation: none; opacity: 1; }
+.spv-person.is-sleepy .spv-hero::after {
+  content: 'z'; position: absolute; top: 4px; right: 6px; font: 800 14px/1 system-ui, sans-serif; color: var(--muted);
+  animation: spv-zzz 2.2s ease-out infinite;
+}
+.spv-hero-badge {
+  position: absolute; right: 2px; bottom: 6px; display: grid; place-items: center; width: 22px; height: 22px;
+  border-radius: 50%; background: #2563eb; color: #fff; font-size: 11px; font-style: normal;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 10px rgba(37, 99, 235, 0.6);
+}
+.spv-hero.is-still { animation: none; flex: none; width: 56px; height: 56px; }
+
+.spv-heropick { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; flex: 1 1 100%; }
+.spv-heropick-i {
+  display: grid; justify-items: center; gap: 2px; width: 92px; padding: 4px 4px 6px; border-radius: 12px; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); color: var(--ink); font: inherit;
+}
+.spv-heropick-i small { font-size: 11px; line-height: 1.2; }
+.spv-heropick-i:hover { border-color: var(--accent); }
+.spv-heropick-i.is-on { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent); }
+
+@keyframes spv-breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.012, 1.035); } }
+@keyframes spv-talkbob { from { transform: translateY(0) scale(1, 1); } to { transform: translateY(-2px) scale(1.01, 1.025); } }
+@keyframes spv-pop { 0% { transform: translateY(14px) scale(0.6); opacity: 0; } 60% { opacity: 1; } 100% { transform: none; opacity: 1; } }
+@keyframes spv-blink { 0% { opacity: 0; } 96% { opacity: 1; } 99% { opacity: 0; } }
+@keyframes spv-zzz { 0% { transform: translate(0, 4px) scale(0.6); opacity: 0; } 30% { opacity: 1; } 100% { transform: translate(8px, -14px) scale(1.2); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .spv-hero, .spv-hero.is-new, .spv-person.is-speaking .spv-hero, .spv-person.is-sleepy .spv-hero::after { animation: none; }
+}
+@media (max-width: 700px) {
+  .spv-person.is-hero { width: 84px; }
+  .spv-hero { width: 66px; height: 66px; }
+}

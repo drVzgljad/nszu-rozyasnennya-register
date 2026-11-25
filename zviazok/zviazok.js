@@ -31,7 +31,7 @@
  * ?mode=popup — плаваюче вікно.
  */
 
-import { createVoice, MANY, netInfo } from './voice.js?v=20261125d';
+import { createVoice, MANY, netInfo } from './voice.js?v=20261125e';
 // Голосове вікно (19.11.2026): голос живе там, щоб розмова не рвалась під час переходів порталом
 import { openVoiceWindow, voiceWin, onVoiceWin, sendVoiceCmd, focusVoiceWindow } from '../voice/link.js?v=20261125d';
 import { openMicPicker } from './mic-picker.js?v=20261106a';

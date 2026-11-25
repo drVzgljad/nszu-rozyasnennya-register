@@ -90,6 +90,7 @@ const SILENT_LEVEL = 0.0008;
 const IDLE_WARN = 2 * 60e3;
 const IDLE_OFF = IDLE_WARN + 3 * 60e3;
 const KEEP_LS = 'pmg-voice-keepmic';
+const HERO_LS = 'pmg-voice-hero';   // герой (просунутий вигляд кімнати) — обирає кожен сам, іде в присутність
 const lsGet = (k) => { try { return localStorage.getItem(k) || ''; } catch (_) { return ''; } };
 const lsSet = (k, val) => { try { val ? localStorage.setItem(k, val) : localStorage.removeItem(k); } catch (_) { /* приватне вікно */ } };
 
@@ -447,7 +448,7 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
   }
 
   const meta = () => ({ uid: me?.id, name, muted: v.muted, deaf: v.deaf, dev: DEVICE, caps: ['screen'], sharing: v.shareSince, rec: v.rec?.since || 0,
-    hi: v.hi, lead: ALWAYS.includes(role) ? 1 : 0 });
+    hi: v.hi, lead: ALWAYS.includes(role) ? 1 : 0, hero: lsGet(HERO_LS) });
 
   function onSync(ch) {
     if (ch !== v.ch) return;
@@ -988,9 +989,15 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
   /** Раз на 150 мс підсвічуємо того, хто говорить, — без перемальовування. */
   function tick() {
     v.meters.forEach((an, k) => {
-      const on = level(an) > SPEAK_LEVEL && !(k === 'me' && v.muted);
+      const l = level(an);
+      const on = l > SPEAK_LEVEL && !(k === 'me' && v.muted);
       const key = k === 'me' ? v.key : k;
-      document.querySelectorAll(`[data-vk="${key}"]`).forEach((el) => el.classList.toggle('is-speaking', on));
+      // data-lvl — розкриття рота героя: 0 закритий, 1 трохи, 2 широко (чергуємо, щоб рот «балакав»)
+      const lvl = !on ? '0' : (v.flap = !v.flap) ? '1' : l > SPEAK_LEVEL * 3 ? '2' : '0';
+      document.querySelectorAll(`[data-vk="${key}"]`).forEach((el) => {
+        el.classList.toggle('is-speaking', on);
+        if (el.dataset.lvl !== lvl) el.dataset.lvl = lvl;
+      });
     });
     checkSilence(150);
     checkIdle();
@@ -1145,6 +1152,9 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
     stillHere: () => { v.lastVoice = Date.now(); v.idleWarn = false; emit(); },
     /** Галочка «не вимикати мікрофон автоматично» (пам'ятає браузер). */
     setKeepMic: (on) => { v.keepMic = !!on; lsSet(KEEP_LS, on ? '1' : ''); v.lastVoice = Date.now(); v.idleWarn = false; emit(); },
+    /** Обраний герой: пам'ятає браузер, колеги бачать його через присутність кімнати. */
+    get hero() { return lsGet(HERO_LS); },
+    setHero: (id) => { lsSet(HERO_LS, id || ''); retrack(); emit(); },
     get topic() { return v.topic; },
     get state() { return snapshot(); },
     // Для перевірок (два екземпляри на одній сторінці): з'єднання й лічильники байтів
