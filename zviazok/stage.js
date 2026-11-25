@@ -34,6 +34,17 @@ const CSS = `
 .pmg-stage-wait[hidden] { display: none; }
 .pmg-stage-self { padding: 10px 12px; font-size: 13px; color: var(--muted); }
 .pmg-stage-self[hidden] { display: none; }
+/* Кнопки сцени доповідача (25.11.2026): м'яке баклажанне світло зсередини, повільно пульсує — щоб їх помітили */
+.pmg-stage { --glow: 108, 52, 96; --glow-ink: #6c3460; }
+:root.dark-theme .pmg-stage { --glow: 192, 120, 176; --glow-ink: #e3b6d6; }
+.pmg-stage-btn.is-glow { color: var(--glow-ink); border-color: rgba(var(--glow), .55);
+  box-shadow: inset 0 0 6px rgba(var(--glow), .30); animation: pmg-glow 2.6s ease-in-out infinite; }
+.pmg-stage-btn.is-glow:hover { border-color: rgba(var(--glow), .9); }
+@keyframes pmg-glow {
+  0%, 100% { box-shadow: inset 0 0 5px rgba(var(--glow), .22); background: color-mix(in srgb, rgb(var(--glow)) 6%, var(--soft)); }
+  50% { box-shadow: inset 0 0 14px rgba(var(--glow), .55); background: color-mix(in srgb, rgb(var(--glow)) 16%, var(--soft)); }
+}
+@media (prefers-reduced-motion: reduce) { .pmg-stage-btn.is-glow { animation: none; box-shadow: inset 0 0 10px rgba(var(--glow), .4); } }
 `;
 
 let styled = false;
@@ -52,9 +63,9 @@ export function createStage(host, { onStop = () => {}, onPop = null } = {}) {
     <div class="pmg-stage-head">
       <span class="pmg-stage-dot" aria-hidden="true"></span>
       <strong></strong>
-      <button type="button" class="pmg-stage-btn" data-st="pop" title="Відкрити екран спікера в окремому вікні: можна розгорнути, згорнути, на весь екран" hidden>⧉ Окреме вікно</button>
-      <button type="button" class="pmg-stage-btn" data-st="full" title="На весь екран">⛶ На весь екран</button>
-      <button type="button" class="pmg-stage-btn" data-st="fold" aria-expanded="true">Згорнути</button>
+      <button type="button" class="pmg-stage-btn is-glow" data-st="pop" title="Відкрити екран спікера в окремому вікні: можна розгорнути, згорнути, на весь екран" hidden>⧉ Окреме вікно</button>
+      <button type="button" class="pmg-stage-btn is-glow" data-st="full" title="На весь екран">⛶ На весь екран</button>
+      <button type="button" class="pmg-stage-btn is-glow" data-st="fold" aria-expanded="true">Згорнути</button>
       <button type="button" class="pmg-stage-btn is-stop" data-st="stop">⏹ Зупинити показ</button>
     </div>
     <div class="pmg-stage-body">
