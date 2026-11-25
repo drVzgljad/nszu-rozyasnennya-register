@@ -36,6 +36,11 @@
  * зайвий трек і зламала б собі звук. Показує одна людина: хто почав пізніше (sharing —
  * час початку), той і показує, попередній показ зупиняється сам. Під документи:
  * contentHint 'detail', до 15 кадрів/с, до 1,5 Мбіт/с.
+ * Почати показ браузер дозволяє лише в кліку в ЦЬОМУ вікні: команда з іншої вкладки (BroadcastChannel)
+ * дає відповідь 'gesture' — панель тоді просить натиснути кнопку тут (25.11.2026).
+ *
+ * Повідомлення кімнати (25.11.2026): say(payload) — broadcast 'room' усім у каналі (і тим, хто «лише
+ * дивиться»), приходить в onMsg(payload). Ним «Справи» кличуть колегу в дорадчу кімнату (тет-а-тет).
  */
 
 import { greetFor, firstEntryToday, today, playClip, preloadChime, CHIME, ALWAYS } from './greet.js?v=20261117a';
@@ -98,7 +103,7 @@ export function netInfo(m) {
 
 const GREET_AGAIN = 10 * 60e3;   // керівництво вітаємо на ім'я не частіше
 
-export function createVoice({ sb, me, name, role = '', toast = () => {}, onChange = () => {} }) {
+export function createVoice({ sb, me, name, role = '', toast = () => {}, onChange = () => {}, onMsg = () => {} }) {
   const v = {
     hi: '',            // мій вхід сьогодні перший — дата (іде в присутність, кімната вітає на ім'я)
     greeted: new Map(), // кого вже вітали на ім'я: uid → час (керівництво — не частіше ніж раз на 10 хв)
@@ -337,6 +342,10 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
         if (who) toast(`${who} — вийшов(-ла) з кімнати`);
       })
       .on('broadcast', { event: 'sig' }, ({ payload }) => onSignal(payload))
+      .on('broadcast', { event: 'room' }, ({ payload }) => {
+        if (ch !== v.ch) return;
+        try { onMsg(payload || {}); } catch (e) { console.warn('[voice] onMsg', e); }
+      })
       .subscribe(async (status, err) => {
         if (ch !== v.ch) return;
         if (status === 'SUBSCRIBED') {
@@ -850,8 +859,10 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
     } catch (_) { /* браузер не дав змінити параметри — піде з типовими */ }
   }
 
+  /** Повертає 'ok' | 'gesture' (потрібен клік у цьому вікні) | '' (не вийшло або людина передумала). */
   async function startShare() {
-    if (!v.ch || !v.inRoom || v.status !== 'live' || v.screen) return;
+    if (!v.ch || !v.inRoom || v.status !== 'live' || v.screen) return '';
+    if (navigator.userActivation && !navigator.userActivation.isActive && canShare()) return 'gesture';
     if (!canShare()) {
       toast('Цей браузер не вміє показувати екран. Покажіть з комп\'ютера — Chrome або Edge.', true);
       return;
@@ -859,9 +870,9 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
     let s;
     try {
       s = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 10, max: SCREEN_FPS } }, audio: false });
-    } catch (_) { return; }               // людина передумала у вікні вибору
+    } catch (e) { return e?.name === 'InvalidStateError' ? 'gesture' : ''; }   // людина передумала у вікні вибору
     const t = s.getVideoTracks()[0];
-    if (!t) return;
+    if (!t) return '';
     try { t.contentHint = 'detail'; } catch (_) { /* старий браузер */ }
     t.onended = () => stopShare();      // «Припинити показ» у панелі браузера
     v.screen = t;
@@ -870,6 +881,7 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
     const viewers = v.members.size - 1;
     if (viewers >= 8) toast(`Екран бачать ${viewers} людей — з одного комп'ютера показ може гальмувати.`);
     retrack();
+    return 'ok';
   }
 
   /** quiet — без оновлення присутності (вихід із кімнати, перемикання). */
@@ -1041,7 +1053,9 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
     mics,
     setMic,
     toggleDeaf: () => setDeaf(!v.deaf),
-    toggleShare: () => (v.screen ? stopShare() : startShare()),
+    toggleShare: async () => { if (v.screen) { stopShare(); return 'off'; } return startShare(); },
+    /** Повідомлення всім у каналі кімнати (broadcast 'room'); проміс — коли сервер прийняв. */
+    say: (payload) => (v.ch ? v.ch.send({ type: 'broadcast', event: 'room', payload: { ...payload, from_key: v.key } }) : Promise.resolve('closed')),
     startRecording,
     stopRecording,
     get recording() { return !!v.rec; },

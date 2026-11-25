@@ -10,6 +10,8 @@
  * інакше картинка блимала б на кожному перемальовуванні панелі. Свій показ не
  * дзеркалимо (тунель із вікон) — лише напис і «Зупинити показ». Стилі — тут же:
  * компонент самодостатній, кольори — з ролей теми порталу (--surface, --line…).
+ *
+ * onPop (25.11.2026) — кнопка «⧉ Окреме вікно»: екран спікера у своєму вікні (../voice/screen-win.js).
  */
 
 const CSS = `
@@ -36,7 +38,7 @@ const CSS = `
 
 let styled = false;
 
-export function createStage(host, { onStop = () => {} } = {}) {
+export function createStage(host, { onStop = () => {}, onPop = null } = {}) {
   if (!styled) {
     const st = document.createElement('style');
     st.textContent = CSS;
@@ -50,6 +52,7 @@ export function createStage(host, { onStop = () => {} } = {}) {
     <div class="pmg-stage-head">
       <span class="pmg-stage-dot" aria-hidden="true"></span>
       <strong></strong>
+      <button type="button" class="pmg-stage-btn" data-st="pop" title="Відкрити екран спікера в окремому вікні: можна розгорнути, згорнути, на весь екран" hidden>⧉ Окреме вікно</button>
       <button type="button" class="pmg-stage-btn" data-st="full" title="На весь екран">⛶ На весь екран</button>
       <button type="button" class="pmg-stage-btn" data-st="fold" aria-expanded="true">Згорнути</button>
       <button type="button" class="pmg-stage-btn is-stop" data-st="stop">⏹ Зупинити показ</button>
@@ -68,6 +71,7 @@ export function createStage(host, { onStop = () => {} } = {}) {
     const b = e.target.closest('[data-st]');
     if (!b) return;
     if (b.dataset.st === 'stop') onStop();
+    if (b.dataset.st === 'pop') onPop?.();
     if (b.dataset.st === 'full') (video.requestFullscreen || video.webkitRequestFullscreen)?.call(video);
     if (b.dataset.st === 'fold') {
       folded = !folded;
@@ -85,6 +89,7 @@ export function createStage(host, { onStop = () => {} } = {}) {
     if (!pr) return;
     q('strong').textContent = pr.me ? '🖥 Ви показуєте екран' : `🖥 ${pr.name || 'Колега'} показує екран`;
     q('[data-st="stop"]').hidden = !pr.me;
+    q('[data-st="pop"]').hidden = pr.me || !onPop;
     q('[data-st="full"]').hidden = pr.me || folded;
     q('[data-st="fold"]').hidden = pr.me;
     q('.pmg-stage-self').hidden = !pr.me;

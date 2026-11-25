@@ -13,11 +13,13 @@
  *   вибір мікрофона, показ екрана, нарада із записом, привітання. Нових кімнат немає.
  * - Намір — з адреси: ?room=all [&mic=1] (кімната департаменту), ?door=…, ?door_dept=…, ?voice_invite=…,
  *   ?knock=<відділ>; без параметрів — кімната свого відділу. Відкрите вікно отримує намір командою 'intent'.
+ * - Команди вкладок (25.11.2026): 'screen' — почати показ (браузер вимагає клік тут, панель попросить),
+ *   'screenwin' — відкрити екран спікера в окремому вікні (../voice/screen-win.js).
  * - Вийшли з кімнати — вікно закривається. Закрили вікно — вийшли (рушій сам виходить на pagehide).
  * - Компактне міні-вікно поверх усіх вікон (учасники, хто говорить, мікрофон, вийти) — ./pip.js.
  */
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { initVoice } from '../spravy/voice.js?v=20261119b';
+import { initVoice } from '../spravy/voice.js?v=20261125a';
 import { BUS, HEARTBEAT } from './link.js?v=20261119a';
 import { createPip } from './pip.js?v=20261119c';
 
@@ -83,7 +85,9 @@ function state() {
     // Для міні-вікна поверх усіх: кружечки учасників
     members: (s?.members || []).map((m) => ({ name: m.name || (m.me ? 'ви' : 'Без імені'), me: !!m.me, muted: !!m.muted, sp: speakingKeys.has(m.key) })),
     speaking,
-    needGesture: !!s?.needGesture
+    needGesture: !!s?.needGesture,
+    tet: api?.tet || '',          // з ким дорадча кімната (25.11.2026)
+    tetAsk: api?.tetAsk || ''     // хто кличе на тет-а-тет (вкладка знімає своє запрошення, коли тут відповіли)
   };
 }
 
@@ -117,6 +121,8 @@ async function onCmd(m) {
   else if (m.cmd === 'leave') await leave();
   else if (m.cmd === 'focus') { try { window.focus(); } catch (_) { /* браузер не дав */ } pip?.update(); }
   else if (m.cmd === 'intent') await api.intent(m.params || {});
+  else if (m.cmd === 'screen') await api.share();          // 🖥 у вкладці (25.11.2026)
+  else if (m.cmd === 'screenwin') api.openScreen();        // «⧉ Дивитися» у вкладці
   publish(true);
 }
 

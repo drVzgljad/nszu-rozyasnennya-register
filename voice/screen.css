@@ -1,0 +1,67 @@
+/* Вікно показу екрана (25.11.2026). Завжди темне: так зображення документа читається краще,
+   а вікно не сліпить поверх робочого столу. Шари кольорів — свої, тема порталу тут не потрібна. */
+:root {
+  --sc-bg: #0b0f17;
+  --sc-bar: #111827;
+  --sc-ink: #e5e7eb;
+  --sc-muted: #9ca3af;
+  --sc-line: #273244;
+  --sc-btn: #1f2937;
+  --sc-accent: #38bdf8;
+  --sc-live: #ef4444;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; }
+body {
+  display: flex;
+  flex-direction: column;
+  background: var(--sc-bg);
+  color: var(--sc-ink);
+  font: 14px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.sc-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--sc-bar);
+  border-bottom: 1px solid var(--sc-line);
+}
+.sc-title { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.sc-title b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sc-dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--sc-live); animation: sc-pulse 1.6s ease-in-out infinite; }
+@keyframes sc-pulse { 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .sc-dot { animation: none; } }
+.sc-tools { display: inline-flex; gap: 6px; flex: none; }
+.sc-btn {
+  padding: 5px 10px;
+  border: 1px solid var(--sc-line);
+  border-radius: 8px;
+  background: var(--sc-btn);
+  color: var(--sc-ink);
+  font: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.sc-btn:hover { border-color: var(--sc-accent); }
+.sc-btn.is-main { border-color: var(--sc-accent); color: var(--sc-accent); }
+.sc-btn[hidden] { display: none; }
+
+.sc-stage { position: relative; flex: 1 1 auto; min-height: 0; display: grid; place-items: center; }
+.sc-stage video { width: 100%; height: 100%; object-fit: contain; background: var(--sc-bg); cursor: zoom-in; }
+.sc-msg { position: absolute; margin: 0; padding: 10px 14px; border-radius: 10px; background: rgba(17, 24, 39, 0.85); color: var(--sc-muted); }
+.sc-msg[hidden] { display: none; }
+
+/* Маленьке вікно в кутку: лише назва й «Розгорнути» */
+body.is-mini .sc-bar { padding: 4px 6px; }
+body.is-mini .sc-btn { padding: 3px 7px; font-size: 12px; }
+body.is-mini [data-sc="mini"], body.is-mini [data-sc="full"] { display: none; }
+
+/* На весь екран: смуга ховається, з'являється, коли миша вгорі */
+:fullscreen .sc-bar, body.is-full .sc-bar { position: fixed; inset: 0 0 auto; z-index: 2; opacity: 0; transition: opacity 0.2s; }
+body.is-full .sc-bar:hover { opacity: 1; }
+body.is-full .sc-stage video { cursor: zoom-out; }

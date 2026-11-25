@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>🖥 Показ екрана · НавігаторПМГ26</title>
+  <link rel="icon" href="/assets/icon-192.png">
+  <link rel="stylesheet" href="screen.css?v=20261125a">
+</head>
+<body>
+  <!-- Екран спікера в окремому вікні (25.11.2026). Відкриває його голосове вікно (screen-win.js) і
+       саме віддає сюди відео. Логіка — screen.js. -->
+  <header class="sc-bar" id="scBar">
+    <span class="sc-title"><span class="sc-dot" aria-hidden="true"></span><b id="scWho">Показ екрана</b></span>
+    <span class="sc-tools">
+      <button type="button" class="sc-btn" data-sc="mini" title="Згорнути в маленьке вікно в кутку екрана">▁ Згорнути</button>
+      <button type="button" class="sc-btn" data-sc="normal" title="Звичайний розмір вікна" hidden>▭ Звичайне</button>
+      <button type="button" class="sc-btn" data-sc="max" title="Розгорнути вікно на весь робочий стіл">▢ Розгорнути</button>
+      <button type="button" class="sc-btn is-main" data-sc="full" title="На весь екран (F або подвійний клік; вихід — Esc)">⛶ На весь екран</button>
+    </span>
+  </header>
+  <main class="sc-stage" id="scStage">
+    <video id="scVideo" autoplay playsinline muted></video>
+    <p class="sc-msg" id="scMsg">Чекаємо на зображення…</p>
+  </main>
+  <script src="screen.js?v=20261125a"></script>
+</body>
+</html>
