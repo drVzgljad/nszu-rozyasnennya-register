@@ -1647,3 +1647,21 @@ button.sp-rev-mini.is-todo:hover, button.sp-rev-mini.is-todo:focus-visible { out
 .spv-keep { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); cursor: pointer; white-space: nowrap; }
 .spv-keep input { margin: 0; accent-color: var(--accent); }
 .spv-idle { border-left-color: #d97706; background: color-mix(in srgb, #f59e0b 12%, var(--surface)); color: var(--ink); }
+
+/* Компактні кнопки й значки голосового блоку (25.11.2026: «зроби іконки в голосовому чаті більш компактні»).
+   Однакова висота 28 px, кнопки-іконки — квадратні, дрібніші значки й кружечки учасників */
+.spv-btn { font-size: 12.5px; padding: 4px 10px; min-height: 28px; border-radius: 8px; line-height: 1.2; }
+.spv-icon { padding: 4px; min-width: 28px; display: inline-grid; place-items: center; font-size: 14px; }
+.spv-actions { gap: 4px; align-items: center; }
+.spv-share { gap: 4px; }
+.spv-svg { width: 15px; height: 15px; }
+.spv-actions .spv-share { margin-right: 6px; }
+.rec-dot { width: 8px; height: 8px; margin-right: 4px; }
+.spv-keep { font-size: 11.5px; }
+.spv-flag { font-size: 11px; }
+.spv-ping { font-size: 10.5px; }
+.spv-kick { padding: 0 5px; font-size: 11px; line-height: 18px; border-radius: 6px; }
+.spv-person { gap: 4px; padding: 2px 7px 2px 2px; }
+.spv-ava { width: 22px; height: 22px; font-size: 10px; }
+.spv-room-ico { width: 26px; height: 26px; border-radius: 8px; font-size: 14px; }
+.spv-room .spv-tet-in { padding: 3px 9px; }
