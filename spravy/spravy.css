@@ -971,6 +971,9 @@
 /* «Показати екран» — зрозуміла кнопка з іконкою монітора й підписом (25.11.2026) */
 .spv-share { display: inline-flex; align-items: center; gap: 6px; }
 .spv-svg { width: 17px; height: 17px; flex: none; display: block; }
+/* Показ екрана — окрема дія: стоїть осторонь від кнопок голосу, синім тоном */
+.spv-actions .spv-share { margin-right: 10px; border-color: color-mix(in srgb, var(--accent) 55%, transparent); color: var(--accent-dark, var(--accent)); }
+.spv-actions .spv-share.is-on { background: var(--accent); border-color: var(--accent); color: #fff; }
 
 /* Дві кімнати поруч (25.11.2026): «🎙 Голосовий офіс відділу» і «🤝 Дорадча кімната» — картки одного
    вигляду й однієї ваги, кожна у своєму відтінку (офіс — зелений, дорадча — бузковий) */

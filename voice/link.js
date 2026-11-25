@@ -19,6 +19,7 @@ export const WIN_NAME = 'pmg-voice';
 export const BUS = 'pmg-voice-win';
 export const HEARTBEAT = 3000;
 const DEAD = 8000;
+const ALLOW_WINDOW = false;   // окреме голосове вікно /voice/ (до 25.11.2026); лишається для тих, у кого воно вже відкрите
 // З 25.11.2026 вікно відкривається значком «В ефірі» в лівому нижньому куті; ⤢ розгортає повну панель
 export const COMPACT = { w: 380, h: 66 };
 function features() {
@@ -74,6 +75,9 @@ export function focusVoiceWindow() {
  */
 export function openVoiceWindow(params = {}) {
   if (last) { sendVoiceCmd('intent', params); focusVoiceWindow(); return 'sent'; }
+  // З 25.11.2026 окреме голосове вікно не відкриваємо: голос живе у вкладці «Справ» чи кабінету, а значок
+  // «В ефірі» — поверх усіх вікон (spravy/voice.js). Хто кликав — іде за своїм запасним шляхом у «Справи».
+  if (!ALLOW_WINDOW) return null;
   const u = new URL('/voice/', location.origin);
   Object.entries(params).forEach(([k, val]) => { if (val != null && val !== '') u.searchParams.set(k, typeof val === 'string' ? val : JSON.stringify(val)); });
   let w = null;

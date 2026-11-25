@@ -54,8 +54,9 @@ import { greetFor, playClip, CHIME } from '../zviazok/greet.js?v=20261117a';
 import { openMicPicker } from '../zviazok/mic-picker.js?v=20261106a';
 import { createMeeting } from '../zviazok/meeting.js?v=20261103a';
 import { createStage } from '../zviazok/stage.js?v=20261125a';
-import { createScreenWin } from '../voice/screen-win.js?v=20261125a';
-import { openVoiceWindow, voiceWin, onVoiceWin, sendVoiceCmd, focusVoiceWindow, voiceWinRef } from '../voice/link.js?v=20261125c';
+import { createScreenWin } from '../voice/screen-win.js?v=20261125b';
+import { openVoiceWindow, voiceWin, onVoiceWin, sendVoiceCmd, focusVoiceWindow, voiceWinRef, BUS, HEARTBEAT } from '../voice/link.js?v=20261125d';
+import { createPip } from '../voice/pip.js?v=20261125c';
 
 const MANY = 10;               // з такої кількості попереджаємо: пряма схема важчає
 const LS_OFF = 'spravy-voice-off';
@@ -114,7 +115,14 @@ const v = {
   tetAsk: null,        // { from_id, from_name, at } — нас кличуть
   dragging: false,     // начальник тягне колегу: панель не перемальовуємо, щоб не зірвати перетягування
   dirty: false,        // перемалювати, щойно перетягування скінчиться
-  scr: null            // окреме вікно екрана спікера (../voice/screen-win.js)
+  scr: null,          // окреме вікно екрана спікера (../voice/screen-win.js)
+  // Голос у вкладці (25.11.2026): значок поверх усіх вікон і зв'язок з іншими вкладками
+  mode: '',            // '' · 'voice' — у голосі · 'screen' — лише показую екран · 'watch' — лише дивлюся екран
+  pip: null,           // значок «В ефірі» поверх усіх вікон (../voice/pip.js)
+  bus: null,           // BroadcastChannel ../voice/link.js: ця вкладка — «голос» для інших вкладок
+  watch: null,         // { since, saw } — дивимось чужий екран без голосу
+  scrStarting: false,  // показ саме починається (ще не live) — не виходити з кімнати
+  seenPresenter: ''    // про чий показ уже підказали
 };
 
 const holds = () => v.win || v.local;   // ця панель тримає голос (вікно або вкладка на запасному шляху)
@@ -138,7 +146,10 @@ export function initVoice(opts) {
   v.eng = createVoice({ sb: v.sb, me: v.me, name: v.name, role: v.role, toast: v.toast, onMsg: onRoomMsg, onChange: (s) => {
     v.vs = s;
     watchTet(s);
+    watchSilent(s);
+    notePresenter(s);
     render();
+    publishHost();
     // Вкладка «лише дивиться»: відео тут немає (воно в голосовому вікні) — сцену не показуємо
     v.stage.update(holds() ? s : null);
     v.scr.update(holds() ? s.presenter : null);
@@ -166,13 +177,15 @@ export function initVoice(opts) {
   }
   if (v.win) { winStart(intent); return api(); }
 
-  // Вкладка розділу: голос — у голосовому вікні; тут видно, хто в кімнаті, і кнопки для вікна
+  // Вкладка розділу: голос живе тут (з 25.11.2026), значок «В ефірі» — поверх усіх вікон
+  setupHost();
   window.__pmgVoice = {
-    acceptInvite: (p) => { v.local = true; return acceptInvite(p); },
-    acceptTet: (p) => { v.local = true; return applyIntent({ tet: JSON.stringify(p) }); }
+    acceptInvite: (p) => { startPip(); v.local = true; v.mode = 'voice'; return acceptInvite(p); },
+    acceptTet: (p) => { startPip(); v.local = true; v.mode = 'voice'; return applyIntent({ tet: JSON.stringify(p) }); }
   };
   if (Object.keys(intent).length) { v.ask = intent; lsSet(LS_OFF, null); }
   onVoiceWin((w) => {
+    if (holds()) return render();      // це наш же стан (ця вкладка — голос), а не чуже вікно
     // Вікно вже живе — намір із адреси (двері, запрошення) передаємо йому без кліку
     if (w && v.ask) { sendVoiceCmd('intent', v.ask); v.ask = null; }
     // Відповіли на тет-а-тет у самому вікні — і тут знімаємо запрошення
@@ -207,7 +220,7 @@ function queueForLock(steal = false) {
     openRoom();
   })).catch(() => { /* замок забрала інша вкладка або заявку скасовано */ }).finally(() => {
     if (ac && ac.signal.aborted) return;       // скасовано заради «Перенести сюди» в цій же вкладці
-    if (v.holder) { v.holder = false; v.elsewhere = true; v.local = false; openRoom(); }
+    if (v.holder) { v.holder = false; v.elsewhere = true; v.local = false; v.mode = ''; publishHost(true); openRoom(); }
     queueForLock();                            // знову в чергу: закриється вкладка з голосом — замок наш, але в ефір не йдемо
   });
 }
@@ -221,6 +234,8 @@ async function giveAway() {
   v.holder = false;
   v.elsewhere = true;
   v.local = false;
+  v.mode = '';
+  publishHost(true);
   await openRoom();
   const r = v.release; v.release = null; if (r) r();
 }
@@ -349,10 +364,16 @@ async function applyIntent(p = {}) {
 function requestVoice(p = {}) {
   lsSet(LS_OFF, null);
   v.ask = null;
-  if (openVoiceWindow(p)) return render();
+  // Голос уже тримає інша вкладка (чи старе голосове вікно) — намір їй
+  if (!holds() && voiceWin()) { sendVoiceCmd('intent', p); return render(); }
+  startPip();                       // ще в кліку: значок «В ефірі» поверх усіх вікон
+  const silent = v.mode === 'screen' || v.mode === 'watch';
   v.local = true;
-  v.toast('Браузер не дав відкрити голосове вікно — голос у цій вкладці. Дозвольте спливні вікна для порталу, і розмова не обриватиметься під час переходів', true);
+  v.mode = 'voice';
+  v.watch = null;
+  if (silent && v.eng.state?.deaf) v.eng.toggleDeaf();   // з показу без голосу — повертаємо звук
   applyIntent(p);
+  publishHost(true);
 }
 
 /** «Перенести голос сюди»: просимо вкладку з голосом піти й забираємо замок. */
@@ -634,7 +655,7 @@ async function openRoom() {
 /** Зайти в кімнату (кнопка «Увійти»). */
 async function joinRoom() {
   if (v.demo) return v.vs.inRoom ? null : demoAct('join');
-  if (!v.win && !v.local) return requestVoice(v.ask || (v.dept === ALL ? { room: 'all' } : {}));
+  if (!v.win && v.mode !== 'voice') return requestVoice(v.ask || (v.dept === ALL ? { room: 'all' } : {}));
   if (v.elsewhere) { lsSet(LS_OFF, null); return takeOver(); }
   lsSet(LS_OFF, null);
   v.eng.unlock();
@@ -814,7 +835,15 @@ function roomCardHTML(s, w, list, people) {
 /** Вкладка: хто показує екран (відео — у голосовому вікні) і кнопка «Дивитися» в окремому вікні. */
 function presenterHTML(s, w) {
   const pr = s.presenter;
-  if (!pr || !w) return '';
+  if (!pr) return '';
+  if (!w) {
+    if (pr.me) return '';
+    const inside = holds() && s.inRoom;
+    return `<ul class="spv-knocks"><li class="spv-knock">
+      <span>🖥 <b>${esc(pr.name || 'Колега')}</b> показує екран</span>
+      <button type="button" class="spv-btn is-on" data-act="watch" title="Екран колеги в окремому вікні: розгорнути, згорнути, на весь екран${inside ? '' : '. Голос не вмикається'}">⧉ ${inside ? 'Окреме вікно' : 'Дивитися'}</button>
+    </li></ul>`;
+  }
   const uid = (s.members || []).find((m) => m.key === pr.key)?.uid;
   if (uid && uid === v.me?.id) return '<p class="spv-note">🖥 Ви показуєте екран (з голосового вікна). Зупинити — кнопкою 🖥 у голосовому вікні.</p>';
   return `<ul class="spv-knocks"><li class="spv-knock">
@@ -850,6 +879,240 @@ async function shareFromTab() {
   v.toast('🖥 Колеги бачать ваш екран. Показ іде з цієї вкладки — не закривайте її; зупинити — тією ж кнопкою');
 }
 
+/* ───────────────────────── голос у вкладці + значок поверх усіх вікон (25.11.2026) ───────────────────────── */
+
+/**
+ * Користувач: «а може значок «В ефірі» відразу закріплюватись поверх вікон? і знову не іконка акуратна,
+ * а некрасиве вікно висить». Значок поверх усіх програм (Document PiP) браузер відкриває лише в кліку тієї
+ * сторінки, що тримає голос. Тож голос тепер живе у вкладці «Справ» (чи кабінету): клік «Увійти» — і в тому
+ * ж кліку з'являється значок. Окремого голосового вікна з рамкою браузера більше немає. Ціна, погоджена з
+ * власником: цю вкладку тримати відкритою (піти з неї — портал попередить).
+ *
+ * Вкладка з голосом сама каже іншим вкладкам порталу, що вона в ефірі (той самий канал, що й голосове вікно:
+ * ../voice/link.js — стан і команди), тож бейдж «В ефірі» й кнопки в інших вкладках працюють, як раніше.
+ *
+ * Режими вкладки (v.mode): 'voice' — у голосі; 'screen' — лише показує екран (без голосу: мікрофон і звук
+ * вимкнено); 'watch' — лише дивиться чужий екран. Показ екрана — окрема кнопка, від голосу не залежить.
+ */
+
+function hostSpeaking() {
+  const s = v.vs;
+  if (!s || !v.root) return [];
+  const keys = new Set([...v.root.querySelectorAll('[data-vk].is-speaking')].map((el) => el.dataset.vk));
+  return (s.members || []).filter((m) => keys.has(m.key)).map((m) => (m.me ? 'ви' : (m.name || '').split(/\s+/).slice(0, 2).join(' ')));
+}
+
+/** Стан для значка поверх усіх вікон і для інших вкладок (як у ../voice/voice-window.js). */
+function hostState() {
+  const s = v.vs;
+  const inRoom = !!(s && s.inRoom && s.status === 'live');
+  return {
+    alive: v.mode === 'voice',
+    host: 'tab',
+    inRoom,
+    status: s?.status || 'idle',
+    label: roomTitle(),
+    topic: s?.topic || '',
+    dept: v.dept,
+    muted: s ? !!s.muted : true,
+    deaf: !!s?.deaf,
+    count: s?.members?.length || 0,
+    people: (s?.members || []).map((m) => (m.me ? `${m.name || 'ви'} (ви)` : m.name || 'Без імені')),
+    speaking: hostSpeaking(),
+    needGesture: !!s?.needGesture,
+    tet: v.tet ? v.tet.name : '',
+    tetAsk: v.tetAsk?.from_id || '',
+    pip: !!v.pip?.isOpen,
+    sharing: !!s?.sharing,
+    canShare: false              // показ екрана — окрема кнопка, на значку його немає
+  };
+}
+
+let hostLast = '';
+function publishHost(force = false) {
+  if (!v.bus) return;
+  if (v.mode !== 'voice') {
+    if (hostLast !== 'off') { hostLast = 'off'; v.bus.postMessage({ type: 'state', alive: false }); }
+    v.pip?.close();
+    return;
+  }
+  const st = hostState();
+  const key = JSON.stringify(st);
+  v.pip?.update();
+  if (!force && key === hostLast) return;
+  hostLast = key;
+  v.bus.postMessage({ type: 'state', ...st });
+}
+
+/** Вкладка тримає голос: слухаємо команди інших вкладок (бейдж «В ефірі», кнопки «Справ», двері на головній). */
+function setupHost() {
+  if (v.bus || !window.BroadcastChannel) return;
+  v.bus = new BroadcastChannel(BUS);
+  v.bus.onmessage = async (e) => {
+    const m = e.data;
+    if (v.mode !== 'voice') return;
+    if (m?.type === 'ask') return publishHost(true);
+    if (m?.type !== 'cmd') return;
+    v.eng.unlock();
+    if (m.cmd === 'mic') await v.eng.toggleMic();
+    else if (m.cmd === 'deaf') await v.eng.toggleDeaf();
+    else if (m.cmd === 'leave') await leaveVoice();
+    else if (m.cmd === 'focus') { try { window.focus(); } catch (_) { /* браузер не дав */ } }
+    else if (m.cmd === 'intent') await applyIntent(m.params || {});
+    else if (m.cmd === 'screen') { if (v.vs?.sharing) await v.eng.toggleShare(); }
+    else if (m.cmd === 'screenwin') v.scr.open();
+    publishHost(true);
+  };
+  setInterval(() => publishHost(true), HEARTBEAT);
+  setInterval(() => { if (v.mode === 'voice') publishHost(); }, 300);   // хто говорить — на значок
+  window.addEventListener('pagehide', () => v.bus?.postMessage({ type: 'state', alive: false }));
+  // Піти з вкладки, яка тримає голос чи показ, — розмова обірветься: браузер перепитає
+  window.addEventListener('beforeunload', (e) => {
+    if (!v.local || !v.mode || !v.vs?.inRoom) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
+}
+
+/** Кнопки значка поверх усіх вікон. */
+async function pipAct(cmd) {
+  v.eng.unlock();
+  if (cmd === 'mic') {
+    if (v.vs?.deaf) await v.eng.toggleDeaf();     // звук вимкнено — повертаємо і звук, і мікрофон
+    else await v.eng.toggleMic();
+  } else if (cmd === 'panel') {
+    try { window.focus(); } catch (_) { /* браузер не дав */ }
+    v.root?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  } else if (cmd === 'leave') {
+    await leaveVoice();
+  }
+  publishHost(true);
+}
+
+/** Значок поверх усіх вікон — ВИКЛИКАТИ СИНХРОННО В КЛІКУ (вимога браузера). */
+function startPip() {
+  if (!v.pip) v.pip = createPip({ getState: hostState, act: pipAct, onToggle: () => publishHost(true) });
+  if (v.pip.supported && !v.pip.isOpen) v.pip.open();
+}
+
+/** Вийти з голосу у вкладці: нарада зберігається, значок зникає, вкладка — «лише дивлюся». */
+async function leaveVoice() {
+  if (v.meet?.active) {
+    if (!confirm('Іде запис наради. Завершити нараду й зберегти запис?')) return;
+    await v.meet.finish();
+  }
+  if (v.tet) v.tet = null;
+  if (v.vs?.sharing) await v.eng.toggleShare();
+  lsSet(LS_OFF, '1');
+  v.mode = '';
+  v.local = false;
+  publishHost(true);
+  await openRoom();
+  await v.eng.exit();
+  render();
+}
+
+/* ───────────────────────── показ екрана — окремо від голосу (25.11.2026) ───────────────────────── */
+
+const waitFor = async (ok, ms) => { const end = Date.now() + ms; while (!ok() && Date.now() < end) await new Promise((r) => setTimeout(r, 120)); return ok(); };
+
+/**
+ * Зайти в кімнату без голосу (показ чи перегляд екрана): мікрофон і звук вимкнено. Кімната та сама —
+ * відео ходить тими самими з'єднаннями, тож нових каналів і міграцій немає.
+ */
+async function joinSilent(mode) {
+  if (v.elsewhere) { takeOver(); await waitFor(() => v.holder, 3000); }
+  v.local = true;
+  v.mode = mode;
+  lsSet(LS_OFF, null);
+  await openRoom();
+  if (v.eng.state && !v.eng.state.inRoom) await v.eng.enter();
+  await waitFor(() => v.eng.state?.status === 'live' && v.eng.state?.inRoom, 10000);
+  if (v.eng.state?.inRoom && !v.eng.state.deaf) await v.eng.toggleDeaf();
+  return !!v.eng.state?.inRoom;
+}
+
+/** Показ скінчився, перегляд закрито — виходимо з кімнати (якщо були там лише заради екрана). */
+async function leaveSilent() {
+  if (v.mode !== 'screen' && v.mode !== 'watch') return;
+  v.mode = '';
+  v.local = false;
+  v.watch = null;
+  await openRoom();
+  await v.eng.exit();
+  render();
+}
+
+/** «Показати екран» / «Зупинити показ». Екран захоплює ця вкладка у своєму кліку. */
+async function shareScreen() {
+  if (v.vs?.sharing) {
+    await v.eng.toggleShare();
+    if (v.mode === 'screen') await leaveSilent();
+    return render();
+  }
+  if (!holds() && voiceWin()) return v.toast('Ви в голосі в іншій вкладці порталу — почніть показ там', true);
+  let s;
+  try {
+    s = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 10, max: 15 } }, audio: false });
+  } catch (_) { return; }                                   // людина передумала у вікні вибору
+  const t = s.getVideoTracks()[0];
+  if (!t) return;
+  v.scrStarting = true;
+  try {
+    if (!holds() || !v.vs?.inRoom) {
+      if (!(await joinSilent('screen'))) {
+        t.stop();
+        await leaveSilent();
+        return v.toast('Не вдалося зайти в кімнату відділу — спробуйте ще раз', true);
+      }
+    }
+    const r = await v.eng.shareTrack(t);
+    if (r !== 'ok') {
+      try { t.stop(); } catch (_) { /* уже */ }
+      if (v.mode === 'screen') await leaveSilent();
+      return v.toast('Не вдалося почати показ — спробуйте ще раз', true);
+    }
+    v.toast(v.mode === 'screen'
+      ? '🖥 Колеги у відділі бачать ваш екран. Голос вимкнено. Зупинити — «Зупинити показ»'
+      : '🖥 Колеги бачать ваш екран. Зупинити — «Зупинити показ»');
+  } finally {
+    v.scrStarting = false;
+    render();
+  }
+}
+
+/** «Дивитися» чужий екран: вікно — одразу, в кліку (інакше браузер заблокує), далі заходимо без голосу. */
+async function watchScreen() {
+  if (holds() && v.vs?.inRoom) { v.scr.open(true); return; }
+  if (!holds() && voiceWin()) { focusVoiceWindow(); return sendVoiceCmd('screenwin'); }
+  v.scr.open(true);
+  v.watch = { since: Date.now(), saw: false };
+  if (!(await joinSilent('watch'))) {
+    v.scr.close();
+    await leaveSilent();
+    v.toast('Не вдалося підключитися до показу — спробуйте ще раз', true);
+  }
+}
+
+/** Режими без голосу закінчуються самі: показ зупинили в панелі браузера, показ колеги скінчився, вікно закрили. */
+function watchSilent(s) {
+  if (s.status !== 'live' || !s.inRoom) return;
+  if (v.mode === 'screen' && !s.sharing && !v.scrStarting) { leaveSilent(); return; }
+  if (v.mode !== 'watch' || !v.watch) return;
+  if (s.presenter && !s.presenter.me) v.watch.saw = true;
+  const gone = v.watch.saw && !s.presenter;
+  const closed = !v.scr.isOpen && Date.now() - v.watch.since > 4000;
+  if (gone || closed) leaveSilent();
+}
+
+/** Колега почав показ, а ми не в кімнаті — підказка (рушій сам тостить лише тим, хто в кімнаті). */
+function notePresenter(s) {
+  const k = s.presenter && !s.presenter.me ? s.presenter.key : '';
+  if (k === v.seenPresenter) return;
+  v.seenPresenter = k;
+  if (k && !s.inRoom && !v.demo) v.toast(`🖥 ${s.presenter.name || 'Колега'} показує екран — «Дивитися» в панелі голосу`);
+}
+
 /* ───────────────────────── панель ───────────────────────── */
 
 async function onClick(e) {
@@ -876,6 +1139,8 @@ async function onClick(e) {
   if (act === 'wfocus') return focusVoiceWindow();
   if (act === 'wback') return sendVoiceCmd('intent', {});
   if (act === 'wscreen') return shareFromTab();
+  if (act === 'share') return shareScreen();
+  if (act === 'watch') return watchScreen();
   if (act === 'wscreenwin') { focusVoiceWindow(); return sendVoiceCmd('screenwin'); }
   if (act === 'leave' && v.win) return leaveWin();
   v.eng.unlock();
@@ -885,6 +1150,7 @@ async function onClick(e) {
   else if (act === 'meet') { await v.meet.start({ topic: v.eng.topic, label: roomTitle() }); render(); }
   else if (act === 'meetend') { await v.meet.finish(); render(); }
   else if (act === 'leave' && v.tet && !v.win) await leaveTet();
+  else if (act === 'leave' && !v.win) await leaveVoice();
   else if (act === 'leave') {
     // Ви записуєте нараду — вихід її завершує (інакше запис пропаде)
     if (v.meet.active) {
@@ -907,6 +1173,7 @@ function render() {
   const s = v.vs || { status: 'idle', members: [], inRoom: false, muted: true, deaf: false };
   // Вкладка без голосу: «я» в кімнаті — це голосове вікно (інший ключ, той самий uid)
   const tabOnly = !v.win && !v.local && !v.demo;
+  const voiceOn = v.win || v.demo || (v.local && v.mode === 'voice');   // у голосі (а не лише показ / перегляд екрана)
   const w = tabOnly ? voiceWin() : null;
   const list = s.members.map((m) => (!m.me && tabOnly && m.uid && m.uid === v.me?.id ? { ...m, me: true, viaWin: true } : m))
     .sort((a, b) => (a.me ? -1 : b.me ? 1 : (a.name || '').localeCompare(b.name || '', 'uk')));
@@ -936,7 +1203,7 @@ function render() {
   if (v.noDept) note = 'У профілі не вказано відділ. Голос усього департаменту — у «Чаті департаменту» (посилання вгорі).';
   else if (v.visit?.status === 'wait') note = `🚪 Стукаємо до відділу «${cap(v.visit.dept)}» — чекаємо, поки хтось пустить.`;
   else if (w && v.follow) note = `🚪 Ви в гостях: голос в окремому вікні («⧉ Вікно голосу»). Нижче — хто зараз у цій кімнаті.`;
-  else if (w) note = w.inRoom ? `🎙 Ви в ефірі — голос в окремому вікні («${w.label || 'кімната'}»). Ходіть порталом, закривайте вкладки — розмова триває.` : 'Голосове вікно відкрито — заходимо в кімнату…';
+  else if (w) note = !w.inRoom ? 'Заходимо в кімнату…' : w.host === 'tab' ? `🎙 Ви в ефірі в іншій вкладці порталу («${w.label || 'кімната'}»). Тут видно, хто в кімнаті.` : `🎙 Ви в ефірі — голос в окремому вікні («${w.label || 'кімната'}»).`;
   else if (tabOnly && v.ask) note = v.ask.tet ? '🤝 Вас кличуть у дорадчу кімнату — натисніть «Зайти».' : v.ask.voice_invite ? '🎙 Вас кличуть у голосову кімнату — натисніть «Зайти».' : '🚪 Двері відчинено — натисніть «Зайти».';
   else if (v.elsewhere && !tabOnly) note = `Голос відкрито в іншій вкладці порталу («Справи» чи кабінет). Тут видно, хто в кімнаті${list.length ? `: ${list.length}` : ''}.`;
   else if (s.status === 'joining' || s.status === 'idle') note = 'Заходимо в кімнату…';
@@ -947,18 +1214,18 @@ function render() {
   if (s.status === 'live' && list.length >= MANY) note = `У кімнаті ${list.length} — пряма схема може не витягнути, звук може рватися.`;
   if (v.tet && s.status === 'live') note = others ? '' : v.tet.met ? `${v.tet.name} вийшов(-ла) — повертаємось у голосовий офіс відділу…` : `Покликали ${v.tet.name} — чекаємо до півтори хвилини.`;
   if (w?.tet) note = '';
-  if (s.inRoom && s.micSilent) note = '⚠ Ваш мікрофон нічого не передає — колеги вас не чують. Оберіть інший кнопкою «⚙».';
+  if (v.mode === 'screen' && s.sharing) note = '🖥 Ви показуєте екран без голосу: колеги бачать екран, мікрофон і звук вимкнено.';
+  if (v.mode === 'watch') note = '🖥 Дивитеся екран колеги в окремому вікні — без голосу.';
+  if (s.inRoom && s.micSilent && voiceOn) note = '⚠ Ваш мікрофон нічого не передає — колеги вас не чують. Оберіть інший кнопкою «⚙».';
 
   const winBtns = w
     ? `<button type="button" class="spv-btn${w.muted ? '' : ' is-on'}" data-act="wmic" aria-pressed="${!w.muted}"
          title="${w.muted ? 'Увімкнути мікрофон у голосовому вікні' : 'Вимкнути мікрофон'}">${w.muted ? '🎙 Говорити' : '🎙 Мікрофон увімк.'}</button>
-       ${w?.inRoom && s.canShare ? `<button type="button" class="spv-btn spv-share${w.sharing ? ' is-on' : ''}" data-act="wscreen" aria-pressed="${!!w.sharing}"
-         title="${w.sharing ? 'Зупинити показ екрана' : 'Показати колегам свій екран, вікно чи вкладку'}"><svg class="spv-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 21h8M12 17v4M12 13.5V8M9.5 10.5 12 8l2.5 2.5"/></svg>${w.sharing ? 'Зупинити показ' : 'Показати екран'}</button>` : ''}
-       <button type="button" class="spv-btn spv-ghost" data-act="wfocus" title="Показати голосове вікно поверх інших">⧉ Вікно голосу</button>
+       ${w?.host === 'tab' ? '' : '<button type="button" class="spv-btn spv-ghost" data-act="wfocus" title="Показати голосове вікно поверх інших">⧉ Вікно голосу</button>'}
        <button type="button" class="spv-btn spv-ghost" data-act="wleave" title="Вийти з кімнати й закрити голосове вікно">Вийти</button>`
     : `<button type="button" class="spv-btn spv-join" data-act="join"
-         title="Голос відкриється в окремому вікні: розмова не обірветься, поки ви ходите порталом чи іншими сайтами">${v.ask ? '🎙 Зайти' : '🎙 Увійти в кімнату'}</button>`;
-  const btns = tabOnly ? (w || s.status === 'live' || v.ask ? winBtns : '') : s.inRoom && s.status === 'live'
+         title="Голос у цій вкладці, значок «В ефірі» — поверх усіх вікон. Вкладку тримайте відкритою">${v.ask ? '🎙 Зайти' : '🎙 Увійти в кімнату'}</button>`;
+  const btns = tabOnly ? (w || s.status === 'live' || v.ask ? winBtns : '') : s.inRoom && s.status === 'live' && voiceOn
     ? `<button type="button" class="spv-btn${s.muted ? '' : ' is-on'}" data-act="mic" aria-pressed="${!s.muted}"
          title="${s.muted ? 'Увімкнути мікрофон — вас почують' : 'Вимкнути мікрофон'}">${s.muted ? '🎙 Говорити' : '🎙 Мікрофон увімк.'}</button>
        <button type="button" class="spv-btn spv-icon${s.deaf ? ' is-off' : ''}" data-act="deaf" aria-pressed="${s.deaf}"
@@ -966,8 +1233,6 @@ function render() {
        <button type="button" class="spv-btn spv-icon${s.micSilent ? ' is-off' : ''}" data-act="micpick" title="Обрати мікрофон і перевірити, чи він вас чує">⚙</button>
        ${v.demo ? `<button type="button" class="spv-btn spv-ghost" data-act="greetdemo" title="Демо: колега заходить у голосову кімнату вперше за день — привітання на ім'я">▶ Перший вхід</button>
        <button type="button" class="spv-btn spv-ghost" data-act="chimedemo" title="Демо: колега заходить удруге за день — мелодійний дзвінок">▶ Повторний вхід</button>` : ''}
-       ${s.canShare ? `<button type="button" class="spv-btn spv-share${s.sharing ? ' is-on' : ''}" data-act="screen" aria-pressed="${!!s.sharing}"
-         title="${s.sharing ? 'Зупинити показ екрана' : 'Показати колегам свій екран, вікно чи вкладку'}"><svg class="spv-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 21h8M12 17v4M12 13.5V8M9.5 10.5 12 8l2.5 2.5"/></svg>${s.sharing ? 'Зупинити показ' : 'Показати екран'}</button>` : ''}
        ${s.canRecord && !(s.recording && !s.recording.me) ? (s.recording?.me
          ? '<button type="button" class="spv-btn spv-rec is-on" data-act="meetend" aria-pressed="true" title="Іде запис. Натисніть, щоб зупинити й зберегти нараду — протокол підготує Claude"><i class="rec-dot" aria-hidden="true"></i>Кінець наради</button>'
          : '<button type="button" class="spv-btn spv-rec" data-act="meet" aria-pressed="false" title="Почати нараду: увімкнеться запис, усіх у кімнаті буде попереджено"><i class="rec-dot" aria-hidden="true"></i>Нарада</button>') : ''}
@@ -975,7 +1240,7 @@ function render() {
     : s.status === 'live'
       ? (v.elsewhere
         ? '<button type="button" class="spv-btn spv-join" data-act="join" title="Голос перейде сюди, а в іншій вкладці стане «лише дивлюся»">🎧 Перенести голос сюди</button>'
-        : '<button type="button" class="spv-btn spv-join" data-act="join">Увійти в кімнату</button>')
+        : '<button type="button" class="spv-btn spv-join" data-act="join" title="Голос у цій вкладці, значок «В ефірі» — поверх усіх вікон. Вкладку тримайте відкритою">🎙 Увійти в кімнату</button>')
       : '';
 
   const tetCard = tetZoneHTML(w);
@@ -986,9 +1251,18 @@ function render() {
     ${s.needGesture ? '<button type="button" class="spv-btn spv-sound" data-act="sound">🔊 Натисніть, щоб чути колег</button>' : ''}
     ${knocksHTML()}
     ${tetHTML()}
-    ${tabOnly ? presenterHTML(s, w) : ''}
-    <div class="spv-actions">${btns}${visitBtnsHTML(s)}</div>
+    ${presenterHTML(s, w)}
+    <div class="spv-actions">${screenBtnHTML(s, w)}${btns}${visitBtnsHTML(s)}</div>
     ${v.showDepts ? deptsHTML() : ''}</div>`;
+}
+
+/** «Показати екран» — окрема кнопка, від голосу не залежить (25.11.2026). */
+function screenBtnHTML(s, w) {
+  if (v.noDept || !(s.canShare || v.demo)) return '';
+  const on = !!s.sharing || !!w?.sharing;
+  const act = !holds() && w ? 'wscreen' : 'share';
+  return `<button type="button" class="spv-btn spv-share${on ? ' is-on' : ''}" data-act="${act}" aria-pressed="${on}"
+    title="${on ? 'Зупинити показ екрана' : 'Показати колегам у відділі свій екран, вікно чи вкладку — голос вмикати не треба'}"><svg class="spv-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 21h8M12 17v4M12 13.5V8M9.5 10.5 12 8l2.5 2.5"/></svg>${on ? 'Зупинити показ' : 'Показати екран'}</button>`;
 }
 
 /** Гість нашої кімнати, впущений за стуком: вивести може будь-хто з відділу (не з чужої кімнати). */

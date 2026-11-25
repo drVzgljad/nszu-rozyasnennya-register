@@ -23,17 +23,22 @@ export function createScreenWin() {
 
   const alive = () => !!(w && !w.closed);
 
+  let shown = false;       // вікну вже віддали зображення: лише тоді «немає» означає «показ завершено»
   function push() {
     if (!alive()) return;
-    try { w.pmgShow?.(cur ? { name: cur.name, stream: cur.stream } : null); } catch (_) { /* вікно ще вантажиться */ }
+    if (!cur && !shown) return;          // відкрили до зображення («Дивитися») — хай чекає
+    try { w.pmgShow?.(cur ? { name: cur.name, stream: cur.stream } : null); shown = !!cur; } catch (_) { /* вікно ще вантажиться */ }
   }
 
   // Сторінка вікна, завантажившись, просить потік сама (до того pmgShow у ній ще немає)
   window.__pmgScreen = { ready(cw) { if (cw === w) push(); } };
 
-  /** Відкрити (або показати поверх) вікно екрана. З кліку — завжди; без кліку — якщо браузер дасть. */
-  function open() {
-    if (!cur) return false;
+  /**
+   * Відкрити (або показати поверх) вікно екрана. З кліку — завжди; без кліку — якщо браузер дасть.
+   * force — відкрити ще до зображення («Дивитися»: вікно лише в кліку, а з'єднання встановиться за мить).
+   */
+  function open(force = false) {
+    if (!cur && !force) return false;
     if (alive()) { try { w.focus(); } catch (_) { /* браузер не дав */ } push(); return true; }
     const sw = screen.availWidth || 1280;
     const sh = screen.availHeight || 800;
@@ -45,6 +50,7 @@ export function createScreenWin() {
     try { nw = window.open('/voice/screen.html', NAME, `popup,width=${width},height=${height},left=${left},top=${top}`); } catch (_) { nw = null; }
     if (!nw) { blocked = true; return false; }
     w = nw;
+    shown = false;
     blocked = false;
     return true;
   }
