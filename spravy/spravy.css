@@ -968,6 +968,10 @@
 /* Сюди перетягують ім'я зі списку «в мережі» — покликати в кімнату */
 .spv.is-drop { outline: 3px dashed var(--spv-live); outline-offset: 2px; }
 
+/* «Показати екран» — зрозуміла кнопка з іконкою монітора й підписом (25.11.2026) */
+.spv-share { display: inline-flex; align-items: center; gap: 6px; }
+.spv-svg { width: 17px; height: 17px; flex: none; display: block; }
+
 /* Дві кімнати поруч (25.11.2026): «🎙 Голосовий офіс відділу» і «🤝 Дорадча кімната» — картки одного
    вигляду й однієї ваги, кожна у своєму відтінку (офіс — зелений, дорадча — бузковий) */
 .spv-rooms { flex: 1 1 100%; display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 10px; min-width: 0; }

@@ -1,6 +1,6 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 // Голосове вікно (19.11.2026): бейдж «в ефірі» на кожній сторінці й вхід у голос без обриву під час переходів
-import { onVoiceWin, sendVoiceCmd, openVoiceWindow, focusVoiceWindow } from './voice/link.js?v=20261125b';
+import { onVoiceWin, sendVoiceCmd, openVoiceWindow, focusVoiceWindow } from './voice/link.js?v=20261125c';
 
 // Run theme initialization immediately to prevent flash of white screen
 (function() {

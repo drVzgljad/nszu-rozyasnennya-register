@@ -49,13 +49,13 @@
  *   окремому вікні (../voice/screen-win.js) — розгорнути, згорнути, на весь екран.
  */
 
-import { createVoice, netInfo } from '../zviazok/voice.js?v=20261125a';
+import { createVoice, netInfo } from '../zviazok/voice.js?v=20261125b';
 import { greetFor, playClip, CHIME } from '../zviazok/greet.js?v=20261117a';
 import { openMicPicker } from '../zviazok/mic-picker.js?v=20261106a';
 import { createMeeting } from '../zviazok/meeting.js?v=20261103a';
 import { createStage } from '../zviazok/stage.js?v=20261125a';
 import { createScreenWin } from '../voice/screen-win.js?v=20261125a';
-import { openVoiceWindow, voiceWin, onVoiceWin, sendVoiceCmd, focusVoiceWindow } from '../voice/link.js?v=20261125b';
+import { openVoiceWindow, voiceWin, onVoiceWin, sendVoiceCmd, focusVoiceWindow, voiceWinRef } from '../voice/link.js?v=20261125c';
 
 const MANY = 10;               // з такої кількості попереджаємо: пряма схема важчає
 const LS_OFF = 'spravy-voice-off';
@@ -114,7 +114,6 @@ const v = {
   tetAsk: null,        // { from_id, from_name, at } — нас кличуть
   dragging: false,     // начальник тягне колегу: панель не перемальовуємо, щоб не зірвати перетягування
   dirty: false,        // перемалювати, щойно перетягування скінчиться
-  askShare: false,     // показ попросили з вкладки — потрібен клік у вікні
   scr: null            // окреме вікно екрана спікера (../voice/screen-win.js)
 };
 
@@ -138,7 +137,6 @@ export function initVoice(opts) {
   v.stage = createStage(host, { onStop: () => v.eng.toggleShare(), onPop: () => v.scr.open() });
   v.eng = createVoice({ sb: v.sb, me: v.me, name: v.name, role: v.role, toast: v.toast, onMsg: onRoomMsg, onChange: (s) => {
     v.vs = s;
-    if (s.sharing) v.askShare = false;
     watchTet(s);
     render();
     // Вкладка «лише дивиться»: відео тут немає (воно в голосовому вікні) — сцену не показуємо
@@ -259,22 +257,20 @@ function api() {
     leave: () => leaveWin(),
     intent: (p) => applyIntent(p || {}),
     unlock: () => v.eng.unlock(),
-    // Показ екрана, попрошений із вкладки: без кліку тут браузер не почне — просимо натиснути
+    // Показ екрана з кнопки значка (клік тут чи на значку поверх усіх вікон) або зупинка з вкладки
     share: async () => {
       const r = await v.eng.toggleShare();
-      if (r === 'gesture') {
-        v.askShare = true;
-        render();
-        try { window.focus(); } catch (_) { /* браузер не дав */ }
-        v.toast('Натисніть «🖥 Обрати, що показати» у цьому вікні — інакше браузер не почне показ');
-      }
+      if (r === 'gesture') v.toast('Почати показ можна кнопкою екрана на значку «В ефірі» або у вкладці «Справ»', true);
+      return r;
     },
+    // Вкладка «Справ» сама захопила екран у своєму кліку й віддає доріжку сюди (25.11.2026)
+    shareTrack: (t) => v.eng.shareTrack(t),
     openScreen: () => {
       if (!v.scr.open()) v.toast('Браузер не дав відкрити вікно саме — натисніть «⧉ Окреме вікно» над екраном колеги', true);
     },
     get tet() { return v.tet ? v.tet.name : ''; },
     /** Щось у панелі вимагає дії — голосове вікно розгортає її зі значка (25.11.2026). */
-    get needs() { return !!(v.tetAsk || v.askShare || v.knocks.length || v.vs?.status === 'error' || (v.tet && !v.tet.met)); },
+    get needs() { return !!(v.tetAsk || v.knocks.length || v.vs?.status === 'error' || (v.tet && !v.tet.met)); },
     get tetAsk() { return v.tetAsk?.from_id || ''; }
   };
 }
@@ -827,6 +823,33 @@ function presenterHTML(s, w) {
     </li></ul>`;
 }
 
+/**
+ * «Показати екран» у вкладці «Справ» (25.11.2026: «зроби це окремою дією, без вікна, яке вискакує»).
+ * Браузер дозволяє почати показ лише в кліку тієї сторінки, що питає, — тож екран захоплює сама вкладка
+ * й віддає доріжку голосовому вікну, яке вона відкрила (link.js voiceWinRef). Показ живе, поки жива ця
+ * вкладка. Вікно відкрила інша вкладка — почати можна кнопкою екрана на значку «В ефірі».
+ */
+async function shareFromTab() {
+  const w = voiceWin();
+  if (w?.sharing) return sendVoiceCmd('screen');            // зупинити
+  const win = voiceWinRef();
+  if (!win || typeof win.__pmgVoiceShare !== 'function') {
+    return v.toast('Почніть показ кнопкою екрана на значку «В ефірі» — голосове вікно відкрила інша вкладка', true);
+  }
+  let s;
+  try {
+    s = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 10, max: 15 } }, audio: false });
+  } catch (_) { return; }                                   // людина передумала у вікні вибору
+  const t = s.getVideoTracks()[0];
+  let r = '';
+  try { r = await win.__pmgVoiceShare(t); } catch (_) { r = ''; }
+  if (r !== 'ok') {
+    try { t.stop(); } catch (_) { /* уже */ }
+    return v.toast('Не вдалося почати показ звідси — натисніть кнопку екрана на значку «В ефірі»', true);
+  }
+  v.toast('🖥 Колеги бачать ваш екран. Показ іде з цієї вкладки — не закривайте її; зупинити — тією ж кнопкою');
+}
+
 /* ───────────────────────── панель ───────────────────────── */
 
 async function onClick(e) {
@@ -852,17 +875,13 @@ async function onClick(e) {
   if (act === 'wleave') return sendVoiceCmd('leave');
   if (act === 'wfocus') return focusVoiceWindow();
   if (act === 'wback') return sendVoiceCmd('intent', {});
-  if (act === 'wscreen') {
-    focusVoiceWindow();
-    sendVoiceCmd('screen');
-    return v.toast('Оберіть у голосовому вікні, що показати колегам');
-  }
+  if (act === 'wscreen') return shareFromTab();
   if (act === 'wscreenwin') { focusVoiceWindow(); return sendVoiceCmd('screenwin'); }
   if (act === 'leave' && v.win) return leaveWin();
   v.eng.unlock();
   if (act === 'mic') await v.eng.toggleMic();
   else if (act === 'deaf') await v.eng.toggleDeaf();
-  else if (act === 'screen') { v.askShare = false; await v.eng.toggleShare(); render(); }
+  else if (act === 'screen') { await v.eng.toggleShare(); render(); }
   else if (act === 'meet') { await v.meet.start({ topic: v.eng.topic, label: roomTitle() }); render(); }
   else if (act === 'meetend') { await v.meet.finish(); render(); }
   else if (act === 'leave' && v.tet && !v.win) await leaveTet();
@@ -928,13 +947,13 @@ function render() {
   if (s.status === 'live' && list.length >= MANY) note = `У кімнаті ${list.length} — пряма схема може не витягнути, звук може рватися.`;
   if (v.tet && s.status === 'live') note = others ? '' : v.tet.met ? `${v.tet.name} вийшов(-ла) — повертаємось у голосовий офіс відділу…` : `Покликали ${v.tet.name} — чекаємо до півтори хвилини.`;
   if (w?.tet) note = '';
-  if (v.askShare && !s.sharing && holds()) note = '🖥 Браузер починає показ лише з кліку в цьому вікні — натисніть «Обрати, що показати».';
   if (s.inRoom && s.micSilent) note = '⚠ Ваш мікрофон нічого не передає — колеги вас не чують. Оберіть інший кнопкою «⚙».';
 
   const winBtns = w
     ? `<button type="button" class="spv-btn${w.muted ? '' : ' is-on'}" data-act="wmic" aria-pressed="${!w.muted}"
          title="${w.muted ? 'Увімкнути мікрофон у голосовому вікні' : 'Вимкнути мікрофон'}">${w.muted ? '🎙 Говорити' : '🎙 Мікрофон увімк.'}</button>
-       ${w?.inRoom && s.canShare ? '<button type="button" class="spv-btn spv-icon" data-act="wscreen" title="Показати колегам свій екран або вікно (підтвердите в голосовому вікні)">🖥</button>' : ''}
+       ${w?.inRoom && s.canShare ? `<button type="button" class="spv-btn spv-share${w.sharing ? ' is-on' : ''}" data-act="wscreen" aria-pressed="${!!w.sharing}"
+         title="${w.sharing ? 'Зупинити показ екрана' : 'Показати колегам свій екран, вікно чи вкладку'}"><svg class="spv-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 21h8M12 17v4M12 13.5V8M9.5 10.5 12 8l2.5 2.5"/></svg>${w.sharing ? 'Зупинити показ' : 'Показати екран'}</button>` : ''}
        <button type="button" class="spv-btn spv-ghost" data-act="wfocus" title="Показати голосове вікно поверх інших">⧉ Вікно голосу</button>
        <button type="button" class="spv-btn spv-ghost" data-act="wleave" title="Вийти з кімнати й закрити голосове вікно">Вийти</button>`
     : `<button type="button" class="spv-btn spv-join" data-act="join"
@@ -947,10 +966,8 @@ function render() {
        <button type="button" class="spv-btn spv-icon${s.micSilent ? ' is-off' : ''}" data-act="micpick" title="Обрати мікрофон і перевірити, чи він вас чує">⚙</button>
        ${v.demo ? `<button type="button" class="spv-btn spv-ghost" data-act="greetdemo" title="Демо: колега заходить у голосову кімнату вперше за день — привітання на ім'я">▶ Перший вхід</button>
        <button type="button" class="spv-btn spv-ghost" data-act="chimedemo" title="Демо: колега заходить удруге за день — мелодійний дзвінок">▶ Повторний вхід</button>` : ''}
-       ${s.canShare ? (v.askShare && !s.sharing
-         ? '<button type="button" class="spv-btn spv-join" data-act="screen" title="Відкриється вибір: увесь екран, вікно чи вкладка">🖥 Обрати, що показати</button>'
-         : `<button type="button" class="spv-btn spv-icon${s.sharing ? ' is-on' : ''}" data-act="screen" aria-pressed="${!!s.sharing}"
-         title="${s.sharing ? 'Зупинити показ екрана' : 'Показати колегам свій екран або вікно'}">🖥</button>`) : ''}
+       ${s.canShare ? `<button type="button" class="spv-btn spv-share${s.sharing ? ' is-on' : ''}" data-act="screen" aria-pressed="${!!s.sharing}"
+         title="${s.sharing ? 'Зупинити показ екрана' : 'Показати колегам свій екран, вікно чи вкладку'}"><svg class="spv-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 21h8M12 17v4M12 13.5V8M9.5 10.5 12 8l2.5 2.5"/></svg>${s.sharing ? 'Зупинити показ' : 'Показати екран'}</button>` : ''}
        ${s.canRecord && !(s.recording && !s.recording.me) ? (s.recording?.me
          ? '<button type="button" class="spv-btn spv-rec is-on" data-act="meetend" aria-pressed="true" title="Іде запис. Натисніть, щоб зупинити й зберегти нараду — протокол підготує Claude"><i class="rec-dot" aria-hidden="true"></i>Кінець наради</button>'
          : '<button type="button" class="spv-btn spv-rec" data-act="meet" aria-pressed="false" title="Почати нараду: увімкнеться запис, усіх у кімнаті буде попереджено"><i class="rec-dot" aria-hidden="true"></i>Нарада</button>') : ''}

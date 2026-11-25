@@ -45,6 +45,9 @@ if (bc) {
   setInterval(() => { if (last && Date.now() - last.at > DEAD) { last = null; notify(); } }, 2000);
 }
 
+/** Голосове вікно, яке відкрила ЦЯ сторінка (щоб віддати йому захоплений екран), або null. */
+export const voiceWinRef = () => (ref && !ref.closed ? ref : null);
+
 /** Стан голосового вікна: { inRoom, status, label, topic, dept, muted, deaf, count, speaking[] } або null. */
 export const voiceWin = () => last;
 

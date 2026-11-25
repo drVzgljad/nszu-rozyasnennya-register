@@ -871,8 +871,16 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
     try {
       s = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 10, max: SCREEN_FPS } }, audio: false });
     } catch (e) { return e?.name === 'InvalidStateError' ? 'gesture' : ''; }   // людина передумала у вікні вибору
-    const t = s.getVideoTracks()[0];
-    if (!t) return '';
+    return useScreen(s.getVideoTracks()[0]);
+  }
+
+  /**
+   * Показати вже захоплену доріжку екрана (25.11.2026). Захопити може й вкладка порталу — у своєму кліку,
+   * без голосового вікна, — і віддати доріжку сюди (shareTrack). Показ живе, поки жива та вкладка.
+   */
+  async function useScreen(t) {
+    if (!t || !v.ch || !v.inRoom || v.status !== 'live') { try { t?.stop(); } catch (_) { /* уже */ } return ''; }
+    if (v.screen) stopShare(true);
     try { t.contentHint = 'detail'; } catch (_) { /* старий браузер */ }
     t.onended = () => stopShare();      // «Припинити показ» у панелі браузера
     v.screen = t;
@@ -1054,6 +1062,7 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
     setMic,
     toggleDeaf: () => setDeaf(!v.deaf),
     toggleShare: async () => { if (v.screen) { stopShare(); return 'off'; } return startShare(); },
+    shareTrack: (t) => useScreen(t),
     /** Повідомлення всім у каналі кімнати (broadcast 'room'); проміс — коли сервер прийняв. */
     say: (payload) => (v.ch ? v.ch.send({ type: 'broadcast', event: 'room', payload: { ...payload, from_key: v.key } }) : Promise.resolve('closed')),
     startRecording,

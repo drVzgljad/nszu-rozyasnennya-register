@@ -23,10 +23,10 @@
  * - Вийшли з кімнати — вікно закривається. Закрили вікно — вийшли (рушій сам виходить на pagehide).
  */
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { initVoice } from '../spravy/voice.js?v=20261125d';
-import { BUS, HEARTBEAT, COMPACT } from './link.js?v=20261125b';
-import { createPip } from './pip.js?v=20261125b';
-import { PILL_CSS, pillHTML } from './pill.js?v=20261125b';
+import { initVoice } from '../spravy/voice.js?v=20261125e';
+import { BUS, HEARTBEAT, COMPACT } from './link.js?v=20261125c';
+import { createPip } from './pip.js?v=20261125c';
+import { PILL_CSS, pillHTML } from './pill.js?v=20261125c';
 
 const SUPABASE_URL = 'https://qdqtkvyvhtjgxpxnvblk.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_YXDm02hDBzLQmsUuVnZ_Og_IxQ60VCz';
@@ -139,7 +139,9 @@ function state() {
     needGesture: !!s?.needGesture,
     tet: api?.tet || '',          // з ким дорадча кімната (25.11.2026)
     tetAsk: api?.tetAsk || '',    // хто кличе на тет-а-тет (вкладка знімає своє запрошення, коли тут відповіли)
-    pip: !!pip?.isOpen            // значок висить поверх усіх вікон — бейдж на сторінках порталу не потрібен
+    pip: !!pip?.isOpen,           // значок висить поверх усіх вікон — бейдж на сторінках порталу не потрібен
+    sharing: !!s?.sharing,        // я показую екран (кнопка у вкладці стає «Зупинити показ»)
+    canShare: !!(s?.canShare && s?.inRoom)
   };
 }
 
@@ -151,7 +153,11 @@ function publish(force = false) {
   const need = !!api?.needs;
   if (need && !needed) setMode('full');
   needed = need;
-  const pill = pillHTML(st, { pin: !!(pip?.supported && !pip.isOpen && st.inRoom) });
+  // Вікно щойно відкрилось: одна велика кнопка «Закріпити» — після неї лишається лише значок поверх усіх вікон
+  const pinFirst = !!(pip?.supported && !pip.isOpen && !pipByUser && st.inRoom && mode === 'compact');
+  const pill = pinFirst
+    ? '<button type="button" class="vw-pinbig" data-pm="pin" title="Значок «В ефірі» висітиме поверх усіх вікон і програм; це вікно потім можна згорнути">📌 Закріпити значок «В ефірі» поверх усіх вікон</button>'
+    : pillHTML(st, { pin: !!(pip?.supported && !pip.isOpen && st.inRoom) });
   if (pill !== lastPill) { lastPill = pill; $('vwPill').innerHTML = pill; }
   const key = JSON.stringify(st);
   if (!force && key === lastSent) return;
@@ -181,6 +187,8 @@ async function act(cmd) {
   } else if (cmd === 'panel') {
     try { window.focus(); } catch (_) { /* браузер не дав */ }
     setMode(mode === 'full' && document.hasFocus() ? 'compact' : 'full');
+  } else if (cmd === 'screen') {
+    await api.share();
   } else if (cmd === 'pin') {
     pipByUser = false;
     await pip?.open();
@@ -198,7 +206,7 @@ async function onCmd(m) {
   else if (m.cmd === 'leave') await leave();
   else if (m.cmd === 'focus') { try { window.focus(); } catch (_) { /* браузер не дав */ } setMode('full'); pip?.update(); }
   else if (m.cmd === 'intent') await api.intent(m.params || {});
-  else if (m.cmd === 'screen') { setMode('full'); await api.share(); }   // 🖥 у вкладці (25.11.2026)
+  else if (m.cmd === 'screen') await api.share();                       // зупинити показ із вкладки
   else if (m.cmd === 'screenwin') api.openScreen();                     // «⧉ Дивитися» у вкладці
   publish(true);
 }
@@ -277,6 +285,8 @@ async function start() {
     if (e.target.closest?.('[data-pm="leave"], [data-pm="pin"]')) return;
     pip.open();
   }, true);
+  // Вкладка, що відкрила вікно, захоплює екран у своєму кліку й віддає доріжку сюди
+  window.__pmgVoiceShare = (t) => api.shareTrack(t);
   $('vwPill').addEventListener('click', (e) => {
     const b = e.target.closest('button[data-pm]');
     if (b) act(b.dataset.pm);

@@ -9,7 +9,7 @@
  * згорнути. Де Chrome дозволяє автоматичний PiP для дзвінків (mediaSession 'enterpictureinpicture'),
  * значок вискакує й сам. Де Document PiP немає (Firefox, телефони) — бейдж на сторінках порталу.
  */
-import { PILL_CSS, pillHTML } from './pill.js?v=20261125b';
+import { PILL_CSS, pillHTML } from './pill.js?v=20261125c';
 
 const W = 340;
 const H = 60;

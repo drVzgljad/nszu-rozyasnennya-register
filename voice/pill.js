@@ -5,7 +5,7 @@
  *
  * Той самий вигляд, що й бейдж на сторінках порталу (auth-v2.js, .pmg-onair): темна «пігулка»,
  * червона точка, кімната, хто говорить, мікрофон, повна панель, вийти.
- * Кнопки мають data-pm: 'mic' | 'panel' | 'leave' | 'wake' | 'pin'. Обробляє той, хто вставив.
+ * Кнопки мають data-pm: 'mic' | 'screen' | 'panel' | 'leave' | 'wake' | 'pin'. Обробляє той, хто вставив.
  */
 
 export const PILL_CSS = `
@@ -29,12 +29,15 @@ export const PILL_CSS = `
 .pill.is-muted button.mic{background:#450a0a;border-color:var(--live);color:#fecaca}
 .pill button.wake{width:auto;padding:0 10px;border-radius:16px;background:#14532d;border-color:var(--on);font-size:12.5px}
 .pill button.pin{border-color:#38bdf8;color:#7dd3fc}
+.pill button.scr.is-on{background:#0c4a6e;border-color:#38bdf8;color:#e0f2fe}
 .pill svg{width:18px;height:18px;display:block}
 @media (prefers-reduced-motion:reduce){.pill.is-live .dot{animation:none}}
 `;
 
 const MIC_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
 const MIC_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 9.5V6a3 3 0 0 0-5.7-1.3M9 9v2a3 3 0 0 0 4.6 2.5M5 11a7 7 0 0 0 11.4 5.4M19 11a7 7 0 0 1-.6 2.8M12 18v3M3 3l18 18"/></svg>';
+
+const SCREEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M8 21h8M12 17v4M12 13.5V8M9.5 10.5 12 8l2.5 2.5"/></svg>';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -53,6 +56,7 @@ export function pillHTML(s, opts = {}) {
     <span class="txt" title="${esc(tip)}"><b>${head}</b><span class="room">${esc(s.label || 'Голос')}${s.count ? ` · 👥 ${s.count}` : ''}</span>${talk ? `<span class="talk">${esc(talk)}</span>` : ''}</span>
     ${s.needGesture ? '<button type="button" class="wake" data-pm="wake" title="Браузер приглушив звук — натисніть, щоб чути колег">🔊 Чути</button>' : ''}
     <button type="button" class="mic" data-pm="mic" aria-pressed="${!s.muted}" title="${micTip}" aria-label="${micTip}">${s.muted ? MIC_OFF : MIC_ON}</button>
+    ${s.canShare ? `<button type="button" class="scr${s.sharing ? ' is-on' : ''}" data-pm="screen" aria-pressed="${!!s.sharing}" title="${s.sharing ? 'Зупинити показ екрана' : 'Показати колегам свій екран, вікно чи вкладку'}" aria-label="${s.sharing ? 'Зупинити показ екрана' : 'Показати екран'}">${SCREEN}</button>` : ''}
     ${opts.pin ? '<button type="button" class="pin" data-pm="pin" title="Закріпити значок поверх усіх вікон і програм (або клацніть будь-де тут). Після цього це вікно можна згорнути — розмова триває">📌</button>' : ''}
     <button type="button" data-pm="panel" title="Повна панель: хто в кімнаті, екран, дорадча кімната, нарада" aria-label="Повна панель">⤢</button>
     <button type="button" data-pm="leave" title="Вийти з голосової кімнати" aria-label="Вийти">✕</button>
