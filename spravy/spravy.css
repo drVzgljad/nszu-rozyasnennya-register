@@ -1808,3 +1808,12 @@ button.sp-rev-mini.is-todo:hover, button.sp-rev-mini.is-todo:focus-visible { out
   .spv-person.is-hero { width: 84px; }
   .spv-hero { width: 66px; height: 66px; }
 }
+
+/* Офіс і дорадча — рівні картки (25.11.2026): однакова ширина й рамка, низ дорадчої (смуга перетягування,
+   «Зайти») притиснутий до краю — нижні краї обох карток на одній лінії */
+.spv-rooms:not(.is-single) { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+.spv-room.is-live { box-shadow: 0 6px 18px color-mix(in srgb, var(--room-ink) 12%, transparent); }
+.spv-room > .spv-people { flex: 1 1 auto; align-content: flex-start; }
+.spv-room-drop { flex: 0 0 auto; }
+.spv-room-foot { margin-top: auto; }
+@media (max-width: 700px) { .spv-rooms:not(.is-single) { grid-template-columns: minmax(0, 1fr); } }

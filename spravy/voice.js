@@ -47,9 +47,9 @@
  *   окремому вікні (../voice/screen-win.js) — розгорнути, згорнути, на весь екран.
  */
 
-import { createVoice, netInfo } from '../zviazok/voice.js?v=20261125e';
+import { createVoice, netInfo } from '../zviazok/voice.js?v=20261125f';
 import { greetFor, playClip, CHIME } from '../zviazok/greet.js?v=20261117a';
-import { openMicPicker } from '../zviazok/mic-picker.js?v=20261106a';
+import { openMicPicker } from '../zviazok/mic-picker.js?v=20261125a';
 import { createMeeting } from '../zviazok/meeting.js?v=20261103a';
 import { createStage } from '../zviazok/stage.js?v=20261125b';
 import { createScreenWin } from '../voice/screen-win.js?v=20261125b';

@@ -30,6 +30,7 @@ const CSS = `
 .pmg-micpick .mp-state{font-size:.84rem;min-height:1.2em}
 .pmg-micpick .mp-state.is-bad{color:var(--warning-text,#9a5b00)}
 .pmg-micpick .mp-state.is-ok{color:#2e9d5b}
+.pmg-micpick .mp-level{border-style:dashed}
 .pmg-micpick .mp-btns{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 .pmg-micpick button{font:inherit;font-size:.9rem;padding:8px 14px;border-radius:10px;border:1px solid var(--line,#d6dbe1);background:var(--surface,#fff);color:inherit;cursor:pointer}
 .pmg-micpick button.mp-main{background:var(--accent,#1f6fd1);border-color:var(--accent,#1f6fd1);color:#fff}
@@ -47,6 +48,17 @@ function niceLabel(d, i) {
 }
 
 let open = null;   // одне вікно на сторінку
+
+// Вирівнювання гучності колег (25.11.2026) — той самий ключ, що в рушії voice.js
+const LEVEL_LS = 'pmg-voice-level';
+const levelOn = (eng) => {
+  if (typeof eng?.leveling === 'boolean') return eng.leveling;
+  try { return localStorage.getItem(LEVEL_LS) !== '0'; } catch (_) { return true; }
+};
+function setLevel(eng, on) {
+  if (eng?.setLeveling) return eng.setLeveling(on);
+  try { on ? localStorage.removeItem(LEVEL_LS) : localStorage.setItem(LEVEL_LS, '0'); } catch (_) { /* приватне вікно */ }
+}
 
 export async function openMicPicker(eng, { toast = () => {} } = {}) {
   if (open) return;
@@ -145,6 +157,8 @@ export async function openMicPicker(eng, { toast = () => {} } = {}) {
       <div class="mp-meter" aria-hidden="true"><i></i></div>
       <p class="mp-state" role="status"></p>
       <p>У Teams вас чують, а тут ні? Оберіть той самий пристрій, що в Teams: часто це «пристрій зв'язку».</p>
+      <label class="mp-level"><input type="checkbox" data-level${levelOn(eng) ? ' checked' : ''}>
+        <span>🔊 Вирівнювати гучність колег<small>тихих підсилює, гучних притишує — усі звучать однаково. Ваш мікрофон браузер вирівнює сам</small></span></label>
       <div class="mp-btns">
         <button type="button" data-mp="cancel">Скасувати</button>
         <button type="submit" class="mp-main" data-mp="ok">Готово</button>
@@ -169,6 +183,10 @@ export async function openMicPicker(eng, { toast = () => {} } = {}) {
   function onDevices() { stopTest(); render(); }
 
   dlg.addEventListener('change', (e) => {
+    if (e.target.matches?.('[data-level]')) {
+      setLevel(eng, e.target.checked);
+      return toast(e.target.checked ? '🔊 Гучність колег вирівнюється автоматично' : 'Вирівнювання вимкнено: колеги звучать так, як їх передає мікрофон');
+    }
     if (e.target.name !== 'mic') return;
     st.pick = e.target.value;
     test(st.pick);

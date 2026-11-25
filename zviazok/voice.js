@@ -19,6 +19,13 @@
  * хто заходить, і передає в присутності (поле hi = дата); керівництву (поле lead) — привітання на кожен
  * вхід, не частіше ніж раз на 10 хв. Вихід — як і раніше, дві ноти вниз.
  *
+ * Вирівнювання гучності (25.11.2026): голос кожного колеги йде через власний підсилювач (Web Audio):
+ * рушій міряє, наскільки голосно людина говорить, і плавно підтягує тихих та притишує гучних до
+ * одного рівня (×0,5…×4), а компресор зрізає раптові вигуки. Вмикається галочкою у вікні
+ * «Мікрофон» (localStorage 'pmg-voice-level', за замовчуванням увімкнено). Поки AudioContext
+ * «спить» (браузер ще не бачив кліку), звук іде звичайним шляхом — без вирівнювання, але не зникає.
+ * Свій мікрофон браузер вирівнює сам (autoGainControl).
+ *
  * Модуль нічого не малює сам: стан віддає в onChange, а «хто говорить»
  * підсвічує на будь-якому елементі з data-vk="<ключ учасника>".
  *
@@ -90,6 +97,9 @@ const SILENT_LEVEL = 0.0008;
 const IDLE_WARN = 2 * 60e3;
 const IDLE_OFF = IDLE_WARN + 3 * 60e3;
 const KEEP_LS = 'pmg-voice-keepmic';
+const LEVEL_LS = 'pmg-voice-level';   // '0' — вирівнювання гучності колег вимкнено
+const LEVEL_TARGET = 0.09;            // рівень мовлення (RMS), до якого підтягуємо кожного
+const LEVEL_MIN = 0.5, LEVEL_MAX = 4;
 const HERO_LS = 'pmg-voice-hero';   // герой (просунутий вигляд кімнати) — обирає кожен сам, іде в присутність
 const lsGet = (k) => { try { return localStorage.getItem(k) || ''; } catch (_) { return ''; } };
 const lsSet = (k, val) => { try { val ? localStorage.setItem(k, val) : localStorage.removeItem(k); } catch (_) { /* приватне вікно */ } };
@@ -134,6 +144,8 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
     idleWarn: false,       // попереджаємо: мовчите з увімкненим мікрофоном
     idleLeft: 0,           // скільки секунд до автоматичного вимкнення
     keepMic: lsGet(KEEP_LS) === '1',   // «не вимикати мікрофон автоматично»
+    leveling: lsGet(LEVEL_LS) !== '0', // вирівнювати гучність колег
+    out: null,                         // спільний вихід підсилювачів (Web Audio)
     muted: true,
     deaf: false,
     micBeforeDeaf: false,
@@ -170,6 +182,7 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
       idleWarn: v.idleWarn,
       idleLeft: v.idleWarn ? v.idleLeft : 0,
       keepMic: v.keepMic,
+      leveling: v.leveling,
       micLabel: v.mic?.label || '',
       needGesture: v.needGesture,
       inRoom: v.inRoom,
@@ -559,6 +572,7 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
       audio.srcObject = new MediaStream([e.track]);
       playAudio(audio);
       addMeter(k, audio.srcObject);
+      levelPeer(p);
       if (v.rec) recAttach(k, audio.srcObject);
     };
     pc.onconnectionstatechange = () => {
@@ -612,6 +626,7 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
     if (sayBye) send(k, { type: 'bye' });
     recDetach(k);
     try { p.pc.close(); } catch (_) { /* уже закрито */ }
+    unlevel(p);
     if (p.audio) { p.audio.srcObject = null; p.audio.remove(); }
     v.meters.delete(k);
     v.peers.delete(k);
@@ -925,7 +940,8 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
 
   function hear(on) {
     v.deaf = !on;
-    v.peers.forEach((p) => { if (p.audio) p.audio.muted = !on; });
+    v.peers.forEach((p) => { if (p.audio) p.audio.muted = !on || !!p.lv; });
+    if (v.out) v.out.gain.value = on ? 1 : 0;
   }
 
   /** «Вимкнути звук» глушить і мікрофон, «Увімкнути» повертає його, як було (як у Discord). */
@@ -953,7 +969,7 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
   }
 
   function unlock() {
-    if (v.ctx?.state === 'suspended') v.ctx.resume().catch(() => {});
+    if (v.ctx?.state === 'suspended') v.ctx.resume().then(levelAll).catch(() => {});
     if (!v.needGesture) return;
     v.needGesture = false;
     v.peers.forEach((p) => p.audio?.srcObject && playAudio(p.audio));
@@ -965,8 +981,81 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
       v.ctx = new AC();
+      v.ctx.onstatechange = levelAll;   // «заснув» — граємо через елемент, «прокинувся» — знову вирівнюємо
     }
     return v.ctx;
+  }
+
+  /* ───────── вирівнювання гучності колег ───────── */
+
+  /**
+   * Голос колеги: потік → підсилювач → компресор → спільний вихід. Елемент <audio> лишається
+   * підключеним, але приглушеним: без нього Chrome не віддає звук віддаленого потоку в Web Audio.
+   * Поки контекст не працює — граємо через сам елемент, щоб не лишити людину без звуку.
+   */
+  function levelPeer(p) {
+    const ctx = v.ctx;
+    const want = v.leveling && ctx?.state === 'running' && p.audio?.srcObject?.getAudioTracks().length;
+    if (!want) return unlevel(p);
+    if (p.lv?.stream === p.audio.srcObject) return;
+    unlevel(p);
+    if (!v.out) {
+      v.out = ctx.createGain();
+      v.out.gain.value = v.deaf ? 0 : 1;
+      v.out.connect(ctx.destination);
+    }
+    try {
+      const src = ctx.createMediaStreamSource(p.audio.srcObject);
+      const gain = ctx.createGain();
+      gain.gain.value = p.lvGain || 1;
+      const comp = ctx.createDynamicsCompressor();
+      comp.threshold.value = -20;
+      comp.knee.value = 12;
+      comp.ratio.value = 4;
+      comp.attack.value = 0.005;
+      comp.release.value = 0.25;
+      src.connect(gain).connect(comp).connect(v.out);
+      p.lv = { stream: p.audio.srcObject, src, gain, comp };
+      p.audio.muted = true;
+    } catch (e) {
+      issue('level_fail', { err: e?.name || '' });
+      unlevel(p);
+    }
+  }
+
+  function unlevel(p) {
+    if (p.lv) {
+      try { p.lv.src.disconnect(); p.lv.comp.disconnect(); } catch (_) { /* уже відключено */ }
+      p.lv = null;
+    }
+    if (p.audio) p.audio.muted = v.deaf;
+  }
+
+  function levelAll() { v.peers.forEach(levelPeer); }
+
+  /** Раз на такт: хто зараз говорить — підправляємо його підсилення до спільного рівня. */
+  function adjustLevel(p, l) {
+    if (!p.lv || l < SPEAK_LEVEL * 0.4) return;                        // нижчий поріг: тихого теж треба почути, щоб підсилити
+    p.lvSpeech = p.lvSpeech ? p.lvSpeech * 0.92 + l * 0.08 : l;     // середній рівень мовлення людини
+    const g = Math.min(LEVEL_MAX, Math.max(LEVEL_MIN, LEVEL_TARGET / p.lvSpeech));
+    p.lvGain = g;
+    p.lv.gain.gain.setTargetAtTime(g, v.ctx.currentTime, 0.6);
+  }
+
+  // Галочку зняли/поставили в іншій вкладці (голосове вікно) — підхоплюємо
+  window.addEventListener('storage', (e) => {
+    if (e.key !== LEVEL_LS) return;
+    v.leveling = e.newValue !== '0';
+    levelAll();
+    emit();
+  });
+
+  function setLeveling(on) {
+    v.leveling = !!on;
+    lsSet(LEVEL_LS, on ? '' : '0');
+    if (on) unlock();
+    levelAll();
+    emit();
   }
 
   function addMeter(k, stream) {
@@ -990,6 +1079,7 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
   function tick() {
     v.meters.forEach((an, k) => {
       const l = level(an);
+      if (k !== 'me') { const p = v.peers.get(k); if (p) adjustLevel(p, l); }
       const on = l > SPEAK_LEVEL && !(k === 'me' && v.muted);
       const key = k === 'me' ? v.key : k;
       // data-lvl — розкриття рота героя: 0 закритий, 1 трохи, 2 широко (чергуємо, щоб рот «балакав»)
@@ -1151,6 +1241,9 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
     /** «Я тут» — скинути відлік тиші. */
     stillHere: () => { v.lastVoice = Date.now(); v.idleWarn = false; emit(); },
     /** Галочка «не вимикати мікрофон автоматично» (пам'ятає браузер). */
+    /** Вирівнювання гучності колег (пам'ятає браузер; інші вкладки підхоплюють через 'storage'). */
+    get leveling() { return v.leveling; },
+    setLeveling,
     setKeepMic: (on) => { v.keepMic = !!on; lsSet(KEEP_LS, on ? '1' : ''); v.lastVoice = Date.now(); v.idleWarn = false; emit(); },
     /** Обраний герой: пам'ятає браузер, колеги бачать його через присутність кімнати. */
     get hero() { return lsGet(HERO_LS); },
