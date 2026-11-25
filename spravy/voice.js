@@ -677,7 +677,10 @@ const tetTopic = (a, b) => { const [x, y] = [a, b].sort(); return `voice:dm:${x}
 // З 25.11.2026 (пізніше): заходити в дорадчу самому й кликати туди колегу може кожен — колега однаково
 // погоджується «Зайти / Не зараз». Кликати можна з офісу або сидячи в дорадчій самому (v.tet.solo).
 const isBoss = () => true;
-const canCallTet = () => (!v.tet || v.tet.solo) && !voiceWin()?.tet;
+// Чужий «голос» (інша вкладка чи старе вікно). Вкладка, що сама тримає голос, чує в link.js власний стан —
+// його за чужий не рахуємо (так 25.11 перетягування в дорадчу мовчки не працювало, коли ви там самі)
+const otherWin = () => (holds() ? null : voiceWin());
+const canCallTet = () => (!v.tet || v.tet.solo) && !otherWin()?.tet;
 const canTet = (m) => !m.me && !!m.uid && m.uid !== v.me?.id && canCallTet();   // не в голосі — callTet зайде сам
 
 /** Повідомлення кімнати (рушій, broadcast 'room'): запрошення, відмова. */
@@ -685,7 +688,7 @@ function onRoomMsg(p) {
   if (!p || !v.me || p.to !== v.me.id) return;
   if (p.t === 'tet') {
     if (!holds() && !voiceWin()) return;      // нас немає в кімнаті — кликати нікуди
-    if (v.tet || voiceWin()?.tet) {
+    if (v.tet || otherWin()?.tet) {
       v.eng.say({ t: 'tet-reply', to: p.from_id, from_id: v.me.id, from_name: v.name, ok: false, busy: true });
       return;
     }
