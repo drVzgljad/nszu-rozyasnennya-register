@@ -1672,7 +1672,7 @@ button.sp-rev-mini.is-todo:hover, button.sp-rev-mini.is-todo:focus-visible { out
 :root.dark-theme .spv { --join-glow: 192, 120, 176; --join-bg: #7a3d6d; --join-bg-h: #8d4a7f; }
 .spv-btn.spv-join[data-act="join"] {
   background: var(--join-bg); border-color: rgba(var(--join-glow), .9); color: #fff;
-  padding-inline: 14px; animation: spv-join-glow 2.6s ease-in-out infinite;
+  padding-inline: 14px; animation: spv-join-glow 3s ease-in-out infinite; animation-delay: calc(var(--pulse-t, 0) * -1s);
 }
 .spv-btn.spv-join[data-act="join"]:hover { background: var(--join-bg-h); }
 @keyframes spv-join-glow {
@@ -1689,13 +1689,28 @@ button.sp-rev-mini.is-todo:hover, button.sp-rev-mini.is-todo:focus-visible { out
 :root.dark-theme .spv { --talk-glow: 248, 113, 113; --talk-bg: #a12020; --talk-bg-h: #b52a2a; }
 .spv-btn[data-act="mic"]:not(.is-on), .spv-btn[data-act="wmic"]:not(.is-on) {
   background: var(--talk-bg); border-color: rgba(var(--talk-glow), .9); color: #fff;
-  animation: spv-talk-glow 2.4s ease-in-out infinite;
+  animation: spv-talk-glow 3s ease-in-out infinite; animation-delay: calc(var(--pulse-t, 0) * -1s);
 }
 .spv-btn[data-act="mic"]:not(.is-on):hover, .spv-btn[data-act="wmic"]:not(.is-on):hover { background: var(--talk-bg-h); }
 @keyframes spv-talk-glow {
-  0%, 100% { box-shadow: inset 0 0 4px rgba(255, 255, 255, .12), 0 0 0 0 rgba(var(--talk-glow), .35); }
-  50% { box-shadow: inset 0 0 12px rgba(255, 255, 255, .28), 0 0 0 5px rgba(var(--talk-glow), .16), 0 0 14px rgba(var(--talk-glow), .45); }
+  0%, 100% { box-shadow: inset 0 0 4px rgba(255, 255, 255, .10), 0 0 4px rgba(var(--talk-glow), .20); }
+  50% { box-shadow: inset 0 0 9px rgba(255, 255, 255, .22), 0 0 12px rgba(var(--talk-glow), .40); }
 }
 @media (prefers-reduced-motion: reduce) {
   .spv-btn[data-act="mic"]:not(.is-on), .spv-btn[data-act="wmic"]:not(.is-on) { animation: none; box-shadow: 0 0 0 3px rgba(var(--talk-glow), .22); }
 }
+
+/* «Показати екран» — синя кнопка з м'яким пульсом (25.11.2026); під час показу — суцільна синя, без пульсу.
+   Ритм — той самий годинник, що й у «Говорити» та «Увійти в кімнату» (--pulse-t із spravy/voice.js) */
+.spv { --share-glow: 47, 107, 158; }
+:root.dark-theme .spv { --share-glow: 56, 189, 248; }
+.spv-actions .spv-share:not(.is-on) {
+  border-color: rgba(var(--share-glow), .75); color: rgb(var(--share-glow));
+  background: color-mix(in srgb, rgb(var(--share-glow)) 8%, var(--surface));
+  animation: spv-share-glow 3s ease-in-out infinite; animation-delay: calc(var(--pulse-t, 0) * -1s);
+}
+@keyframes spv-share-glow {
+  0%, 100% { box-shadow: inset 0 0 3px rgba(var(--share-glow), .15), 0 0 3px rgba(var(--share-glow), .15); }
+  50% { box-shadow: inset 0 0 9px rgba(var(--share-glow), .35), 0 0 12px rgba(var(--share-glow), .40); }
+}
+@media (prefers-reduced-motion: reduce) { .spv-actions .spv-share:not(.is-on) { animation: none; box-shadow: 0 0 6px rgba(var(--share-glow), .3); } }

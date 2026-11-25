@@ -1310,6 +1310,9 @@ function render() {
         : '<button type="button" class="spv-btn spv-join" data-act="join" title="Голос у цій вкладці, значок «В ефірі» — поверх усіх вікон. Вкладку тримайте відкритою">🎙 Увійти в кімнату</button>')
       : '';
 
+  // Пульс кнопок прив'язано до годинника: панель перемальовується що кілька секунд, і без цього анімація
+  // щоразу починалася б спочатку — «нервово смикалась» (25.11.2026)
+  v.root.style.setProperty('--pulse-t', (performance.now() / 1000).toFixed(2));
   v.root.innerHTML = `<div class="spv-main">
     ${roomsHTML(s, w, list)}
     ${s.recording ? `<p class="spv-recbar">🔴 Іде запис наради · ${s.recording.me ? 'записуєте ви' : 'увімкнув(-ла) ' + esc(s.recording.name)} · з ${new Date(s.recording.since).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}</p>` : ''}
