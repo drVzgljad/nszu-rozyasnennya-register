@@ -203,7 +203,7 @@ function applyAccess() {
     } else {
       chatBtn.style.display = '';
       chatBtn.classList.remove('is-locked');
-      chatBtn.innerHTML = `📋 Справи відділу`;
+      chatBtn.innerHTML = `📋 Офіс відділу`;
       chatBtn.onclick = null;
     }
   }
@@ -566,7 +566,7 @@ function applyAccess() {
       { text: '🗒️ Робочий блокнот', path: 'bloknot/index.html', role: 'expert' },
       // Дошка справ відділу: вхідне АСКОД → чернетка vN → зауваження → на підписі →
       // вих. №. Заведено 02.11.2026; дані — Supabase dept_cases під RLS.
-      { text: '📋 Справи відділу', path: 'spravy/index.html', role: 'expert' },
+      { text: '📋 Офіс відділу', path: 'spravy/index.html', role: 'expert' },
       {
         text: '🧭 СКО-Д', items: [
           { text: 'Внесення роботи', path: 'cabinet/index.html', role: 'expert' },
@@ -1164,7 +1164,7 @@ function inject() {
     const topChatBtn = document.createElement('a');
     topChatBtn.id = 'auth-chat-btn';
     topChatBtn.className = 'auth-chat-btn';
-    topChatBtn.textContent = 'Справи відділу';
+    topChatBtn.textContent = 'Офіс відділу';
     container.appendChild(topChatBtn);
 
     // Standalone Personal Cabinet button in top nav
@@ -2847,7 +2847,7 @@ function buildMobileTabbar(prefix, hasAccess, isActive) {
   // Повний список розділів для шторки «Ще»
   const moreSections = [
     { icon: '🗺️', label: 'Карта порталу', path: 'map/index.html' },
-    { icon: '📋', label: 'Справи відділу', path: 'spravy/index.html', role: 'expert' },
+    { icon: '📋', label: 'Офіс відділу', path: 'spravy/index.html', role: 'expert' },
     { icon: '📄', label: 'Роз\'яснення', path: 'rozjasnennya/index.html' },
     { icon: '💡', label: 'AI-пошук', path: 'rozjasnennya_semantic.html' },
     { icon: '📦', label: 'Пакети 2026', path: 'pakety/index.html' },

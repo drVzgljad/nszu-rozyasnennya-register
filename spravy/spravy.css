@@ -105,7 +105,16 @@
   --sp-merge-ink: #fdba74;
 }
 
-.sp-hero h1 { margin-bottom: 6px; }
+.sp-hero h1 { margin-bottom: 4px; }
+/* «Офіс відділу» (25.11.2026): шапка компактна — менший заголовок, опис в один рядок, дрібніші плитки */
+.sp-hero { padding-top: 22px; padding-bottom: 16px; gap: 16px; }
+.sp-hero .overline { margin-bottom: 6px; }
+.sp-hero h1 { font-size: clamp(26px, 2.6vw, 34px); }
+.sp-hero .sp-sub { font-size: 14.5px; line-height: 1.4; }
+.sp-hero .stats { gap: 8px; }
+.sp-hero .stat { min-width: 86px; padding: 8px 12px; border-radius: 12px; }
+.sp-hero .stat strong { font-size: 21px; }
+.sp-hero .stat span { font-size: 11.5px; }
 /* Плитки стану — праворуч від заголовка, урівень із ним, а не окремим рядком нижче.
    .hero-copy розчиняємо (display: contents), щоб шапка з навігацією лишилася на всю
    ширину, а заголовок, опис і плитки стали поруч в одній сітці */
@@ -115,7 +124,7 @@
     grid-template-columns: minmax(0, 1fr) auto;
     column-gap: 32px;
     align-items: center;
-    padding-bottom: 26px;
+    padding-bottom: 16px;
   }
   .sp-hero .hero-copy { display: contents; }
   .sp-hero .overline, .sp-hero .header-nav-row { grid-column: 1 / -1; }
@@ -1623,3 +1632,21 @@ button.sp-rev-mini.is-todo:hover, button.sp-rev-mini.is-todo:focus-visible { out
 .sp-lr-line { margin-top: 6px; font-size: 12px; color: var(--sp-wait-ink); background: var(--sp-wait-bg); padding: 4px 8px; border-radius: 8px; overflow-wrap: anywhere; }
 .sp-badges .sp-interim.is-draft { background: var(--sp-wait-bg); color: var(--sp-wait-ink); }
 @media (max-width: 640px) { .sp-doc-st { margin-left: 0; flex-basis: 100%; } }
+
+/* «Офіс відділу» (25.11.2026): голосовий блок охайніший і щільніший — менші відступи, картки й кружечки */
+.sp-layout { padding-top: 12px; }
+.spv-scope { justify-content: flex-end; margin-bottom: 4px; }
+.spv { margin-bottom: 10px; padding: 8px 10px; border-radius: 12px; }
+.spv-main { gap: 6px 10px; }
+.spv-rooms { gap: 8px; }
+.spv-room { gap: 6px; padding: 8px 10px; border-radius: 12px; }
+.spv-room-head { gap: 8px; }
+.spv-room-ico { width: 30px; height: 30px; border-radius: 9px; font-size: 16px; }
+.spv-room-title b { font-size: 14px; }
+.spv-room-title small { font-size: 12px; }
+.spv-room-drop { min-height: 34px; padding: 6px 8px; font-size: 12px; }
+.spv-people { gap: 4px; }
+.spv-person { padding: 2px 8px 2px 2px; font-size: 12.5px; }
+.spv-ava { width: 24px; height: 24px; font-size: 10.5px; }
+.spv-actions { gap: 5px; }
+.spc { margin: -4px 0 10px; }

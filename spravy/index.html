@@ -8,11 +8,11 @@
   <link rel="apple-touch-icon" href="/assets/icon-180.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>НавігаторПМГ26 | Справи відділу</title>
+  <title>НавігаторПМГ26 | Офіс відділу</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="spravy.css?v=20261125f">
+  <link rel="stylesheet" href="spravy.css?v=20261125g">
   <link rel="stylesheet" href="../auth-v2.css?v=20261119a">
-  <script type="module" src="../auth-v2.js?v=20261125f"></script>
+  <script type="module" src="../auth-v2.js?v=20261125g"></script>
 </head>
 <!-- Розділ закритий: справи відділу. Оверлей «Доступ обмежено» вставляє сам
      auth-v2.js. Самі справи — у Supabase під RLS (свій відділ + керівництво),
@@ -37,9 +37,8 @@
           <nav class="section-switch" aria-label="Розділи сайту"></nav>
         </div>
       </div>
-      <h1>Справи відділу</h1>
-      <p class="sp-sub">Усі доручення відділу на одній дошці: від вхідного з АСКОД до
-        вих. № — хто виконує, яка версія, що сказали керівники і як це враховано.</p>
+      <h1>Офіс відділу</h1>
+      <p class="sp-sub">Голос, чат і справи відділу: від вхідного з АСКОД до вих. №.</p>
       <p class="sp-dept" id="spDeptName"></p>
     </div>
     <div class="stats" aria-label="Стан справ">
@@ -55,7 +54,6 @@
     <!-- Голосова кімната відділу (voice.js): заходимо одразу, мікрофон вимкнений -->
     <!-- Тут лише кімната відділу; кімната департаменту — у «Чаті департаменту» (одні двері на кімнату) -->
     <div class="spv-scope" id="spScope" hidden>
-      <span class="spv-scope-here">🎧 Кімната відділу</span>
       <a class="spv-scope-link" href="../zviazok/index.html?voice=1" title="Голос і стрічка всього департаменту — у «Чаті департаменту»">🎙 Кімната департаменту →</a>
     </div>
     <section class="spv" id="spVoice" aria-label="Голосова кімната відділу" hidden></section>
@@ -327,6 +325,6 @@
 
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
   <script src="../pmg-askod-journal.js?v=20261119a" defer></script>
-  <script type="module" src="spravy.js?v=20261125k"></script>
+  <script type="module" src="spravy.js?v=20261125l"></script>
 </body>
 </html>

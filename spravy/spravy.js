@@ -625,7 +625,7 @@ function showVersion() {
   const cssLink = [...document.querySelectorAll('link[rel="stylesheet"]')].find((l) => /spravy\.css/.test(l.href));
   const css = cssLink ? new URL(cssLink.href).searchParams.get('v') || '—' : '—';
   const fmt = (v) => (/^\d{8}[a-z]*$/.test(v) ? `${v.slice(6, 8)}.${v.slice(4, 6)}.${v.slice(0, 4)}${v.slice(8) ? ' · ' + v.slice(8) : ''}` : v);
-  el.textContent = `Справи відділу · версія ${fmt(js)}${css !== js ? ` (стилі ${fmt(css)})` : ''}${DEMO ? ' · демо' : ''}`;
+  el.textContent = `Офіс відділу · версія ${fmt(js)}${css !== js ? ` (стилі ${fmt(css)})` : ''}${DEMO ? ' · демо' : ''}`;
   el.title = `spravy.js?v=${js} · spravy.css?v=${css}`;
 }
 showVersion();
@@ -642,7 +642,7 @@ async function boot() {
 
   const { data: p } = await state.sb.from('profiles').select('*').eq('id', state.me.id).single();
   state.profile = p || {};
-  if (state.profile.role === 'guest') return showNotice('Справи відділу доступні лише співробітникам департаменту.');
+  if (state.profile.role === 'guest') return showNotice('Офіс відділу доступний лише співробітникам департаменту.');
   state.canPickDept = LEADERSHIP.includes(state.profile.role) || state.profile.is_clerk === true;
   state.dept = state.profile.Section || '';
   if (!state.dept || !DEPARTMENTS.includes(state.dept)) {
