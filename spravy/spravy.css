@@ -832,9 +832,14 @@
   --spv-on-ink: #1f6b43;
   --spv-off-bg: #fde4e4;
   --spv-off-ink: #a11d1d;
-  --spv-tet-bg: #f1edfb;
-  --spv-tet-line: #b9a8e6;
+  --spv-office-bg: #f1faf5;
+  --spv-office-line: #bfe3cd;
+  --spv-office-ink: #1f6b43;
+  --spv-office-ico: #d5f0e0;
+  --spv-tet-bg: #f6f3fd;
+  --spv-tet-line: #d4c9f1;
   --spv-tet-ink: #4b3a8a;
+  --spv-tet-ico: #e7e0fa;
 }
 :root.dark-theme {
   --spv-bg: #16202f;
@@ -847,9 +852,14 @@
   --spv-on-ink: #86efac;
   --spv-off-bg: #3f1416;
   --spv-off-ink: #fca5a5;
-  --spv-tet-bg: #221c38;
-  --spv-tet-line: #6d5bb3;
+  --spv-office-bg: #0f2419;
+  --spv-office-line: #285640;
+  --spv-office-ink: #86efac;
+  --spv-office-ico: #173a28;
+  --spv-tet-bg: #1d1830;
+  --spv-tet-line: #4d4180;
   --spv-tet-ink: #c9bdf5;
+  --spv-tet-ico: #2c2550;
 }
 
 .spv {
@@ -958,24 +968,44 @@
 /* Сюди перетягують ім'я зі списку «в мережі» — покликати в кімнату */
 .spv.is-drop { outline: 3px dashed var(--spv-live); outline-offset: 2px; }
 
-/* 🤝 Дорадча кімната (25.11.2026): зона, куди начальник перетягує колегу; у розмові — з ким і «назад» */
-.spv-tet {
-  flex: 1 1 100%; display: flex; align-items: center; gap: 10px; min-width: 0;
-  padding: 8px 10px; border: 1px solid var(--spv-tet-line); border-radius: 12px;
-  background: var(--spv-tet-bg); color: var(--spv-tet-ink); font-size: 14px;
+/* Дві кімнати поруч (25.11.2026): «🎙 Голосовий офіс відділу» і «🤝 Дорадча кімната» — картки одного
+   вигляду й однієї ваги, кожна у своєму відтінку (офіс — зелений, дорадча — бузковий) */
+.spv-rooms { flex: 1 1 100%; display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 10px; min-width: 0; }
+.spv-rooms.is-single { grid-template-columns: minmax(0, 1fr); }
+.spv-room {
+  --room-bg: var(--spv-office-bg); --room-line: var(--spv-office-line); --room-ink: var(--spv-office-ink); --room-ico: var(--spv-office-ico);
+  display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 10px 12px;
+  border: 1px solid var(--room-line); border-radius: 14px; background: var(--room-bg);
+  transition: border-color .15s, box-shadow .15s, background .15s;
 }
-.spv-tet-zone { border-style: dashed; border-width: 2px; transition: background .15s, border-color .15s, transform .15s; }
-.spv-tet-zone.is-off { opacity: .7; }
-.spv.is-dragging .spv-tet-zone { border-color: var(--spv-tet-ink); }
-.spv-tet-zone.is-over { border-style: solid; border-color: var(--spv-tet-ink); background: color-mix(in srgb, var(--spv-tet-line) 30%, var(--spv-tet-bg)); transform: scale(1.01); }
-.spv-tet-ico { flex: none; font-size: 22px; line-height: 1; }
-.spv-tet-text { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
-.spv-tet-text small { font-size: 12.5px; opacity: .85; }
-.spv-tet .spv-btn { flex: none; }
+.spv-room.is-tet { --room-bg: var(--spv-tet-bg); --room-line: var(--spv-tet-line); --room-ink: var(--spv-tet-ink); --room-ico: var(--spv-tet-ico); }
+.spv-room.is-live { box-shadow: 0 0 0 1px var(--room-line), 0 6px 18px color-mix(in srgb, var(--room-ink) 10%, transparent); }
+.spv-room-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.spv-room-ico {
+  flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px;
+  background: var(--room-ico); font-size: 18px; line-height: 1;
+}
+.spv-room-title { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; }
+.spv-room-title b { color: var(--room-ink); font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.spv-room-title small { color: var(--muted); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.spv-live-txt { color: var(--spv-live); font-weight: 700; }
+.spv-room .spv-people:empty { display: none; }
+.spv-room-hint { margin: 0; font-size: 13px; color: var(--muted); }
+.spv-room-foot { display: flex; justify-content: flex-end; }
+/* Куди перетягнути колегу: тонка пунктирна площина всередині картки, яскравіша під час перетягування */
+.spv-room-drop {
+  margin: 0; flex: 1 1 auto; display: grid; place-items: center; min-height: 46px; padding: 8px 10px; text-align: center;
+  border: 1.5px dashed color-mix(in srgb, var(--room-line) 80%, transparent); border-radius: 10px;
+  color: var(--muted); font-size: 12.5px;
+}
+.spv-room.is-off .spv-room-drop { opacity: .75; }
+.spv.is-dragging .spv-room[data-tetzone] .spv-room-drop { border-color: var(--room-ink); color: var(--room-ink); }
+.spv-room[data-tetzone].is-over { border-color: var(--room-ink); background: color-mix(in srgb, var(--room-line) 35%, var(--room-bg)); }
+.spv-room[data-tetzone].is-over .spv-room-drop { border-style: solid; border-color: var(--room-ink); color: var(--room-ink); }
 .spv-person.is-draggable { cursor: grab; }
 .spv-person.is-draggable:active { cursor: grabbing; }
-@media (prefers-reduced-motion: reduce) { .spv-tet-zone { transition: none; } .spv-tet-zone.is-over { transform: none; } }
-@media (max-width: 560px) { .spv-tet { flex-wrap: wrap; } }
+@media (prefers-reduced-motion: reduce) { .spv-room { transition: none; } }
+@media (max-width: 700px) { .spv-rooms { grid-template-columns: minmax(0, 1fr); } }
 
 .spv-actions {
   display: flex;

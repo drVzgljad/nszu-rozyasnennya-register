@@ -53,7 +53,7 @@ export function pillHTML(s, opts = {}) {
     <span class="txt" title="${esc(tip)}"><b>${head}</b><span class="room">${esc(s.label || 'Голос')}${s.count ? ` · 👥 ${s.count}` : ''}</span>${talk ? `<span class="talk">${esc(talk)}</span>` : ''}</span>
     ${s.needGesture ? '<button type="button" class="wake" data-pm="wake" title="Браузер приглушив звук — натисніть, щоб чути колег">🔊 Чути</button>' : ''}
     <button type="button" class="mic" data-pm="mic" aria-pressed="${!s.muted}" title="${micTip}" aria-label="${micTip}">${s.muted ? MIC_OFF : MIC_ON}</button>
-    ${opts.pin ? '<button type="button" class="pin" data-pm="pin" title="Закріпити значок поверх усіх вікон і програм">📌</button>' : ''}
+    ${opts.pin ? '<button type="button" class="pin" data-pm="pin" title="Закріпити значок поверх усіх вікон і програм (або клацніть будь-де тут). Після цього це вікно можна згорнути — розмова триває">📌</button>' : ''}
     <button type="button" data-pm="panel" title="Повна панель: хто в кімнаті, екран, дорадча кімната, нарада" aria-label="Повна панель">⤢</button>
     <button type="button" data-pm="leave" title="Вийти з голосової кімнати" aria-label="Вийти">✕</button>
   </div>`;

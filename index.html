@@ -27,7 +27,7 @@
   <link rel="stylesheet" href="auth-v2.css?v=20261119a">
   <link rel="stylesheet" href="home-live.css?v=20261124a">
   <link rel="stylesheet" href="home-doors.css?v=20261124a">
-  <script type="module" src="auth-v2.js?v=20261125b"></script>
+  <script type="module" src="auth-v2.js?v=20261125c"></script>
   <style>
     /* Знак проєкту в шапці. Правила тримаємо тут, а не в спільному portal.css:
        правка спільного файлу потягла б за собою бамп мітки на всіх сторінках */
@@ -671,7 +671,7 @@
           </span>
         </a>
         <div class="top-row-1-right">
-          <!-- auth-v2.js?v=20261125b inject point -->
+          <!-- auth-v2.js?v=20261125c inject point -->
           <nav class="section-switch top-auth" aria-label="Авторизація"></nav>
         </div>
       </div>
@@ -886,7 +886,7 @@
   import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
   import { renderBirthdayStrip } from './birthdays.js?v=20260903a';
   import { showHomeLive, hideHomeLive } from './home-live.js?v=20261124a';
-  import { showHomeDoors, hideHomeDoors } from './home-doors.js?v=20261125a';
+  import { showHomeDoors, hideHomeDoors } from './home-doors.js?v=20261125b';
   // Демо дверей без логіна (перевірка вигляду й стуку): index.html?demo=1
   const DOORS_DEMO = new URLSearchParams(location.search).has('demo');
   const hideDoors = () => (DOORS_DEMO ? showHomeDoors({ demo: true }) : hideHomeDoors());

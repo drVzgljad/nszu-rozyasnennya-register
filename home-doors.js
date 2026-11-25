@@ -32,7 +32,7 @@ const DEPTS = [
   ['розрахунок вартості медичних послуг', 'Розрахунок вартості'],
   ['робота з електронними медичними даними', 'Електронні медичні дані']
 ];
-import { openVoiceWindow, voiceWin, onVoiceWin } from './voice/link.js?v=20261125a';
+import { openVoiceWindow, voiceWin, onVoiceWin } from './voice/link.js?v=20261125b';
 
 const LEAD = ['admin', 'director', 'deputy_director'];
 const ROOM_URL = 'spravy/index.html';

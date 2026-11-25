@@ -20,7 +20,7 @@ export const BUS = 'pmg-voice-win';
 export const HEARTBEAT = 3000;
 const DEAD = 8000;
 // З 25.11.2026 вікно відкривається значком «В ефірі» в лівому нижньому куті; ⤢ розгортає повну панель
-export const COMPACT = { w: 380, h: 84 };
+export const COMPACT = { w: 380, h: 66 };
 function features() {
   const s = window.screen || {};
   const ax = s.availLeft || 0, ay = s.availTop || 0, ah = s.availHeight || 800;

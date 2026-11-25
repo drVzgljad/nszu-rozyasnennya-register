@@ -55,7 +55,7 @@ import { openMicPicker } from '../zviazok/mic-picker.js?v=20261106a';
 import { createMeeting } from '../zviazok/meeting.js?v=20261103a';
 import { createStage } from '../zviazok/stage.js?v=20261125a';
 import { createScreenWin } from '../voice/screen-win.js?v=20261125a';
-import { openVoiceWindow, voiceWin, onVoiceWin, sendVoiceCmd, focusVoiceWindow } from '../voice/link.js?v=20261125a';
+import { openVoiceWindow, voiceWin, onVoiceWin, sendVoiceCmd, focusVoiceWindow } from '../voice/link.js?v=20261125b';
 
 const MANY = 10;               // з такої кількості попереджаємо: пряма схема важчає
 const LS_OFF = 'spravy-voice-off';
@@ -623,7 +623,7 @@ async function topicFor(dept) {
 }
 
 const roomTitle = () => (v.tet ? `🤝 Дорадча: ${v.tet.name}` : '') || v.follow || (v.dept === ALL ? 'Кімната департаменту'
-  : v.visit?.status === 'in' ? `В гостях: ${cap(v.dept)}` : 'Кімната відділу');
+  : v.visit?.status === 'in' ? `В гостях: ${cap(v.dept)}` : 'Голосовий офіс відділу');
 
 async function openRoom() {
   if (v.tet) { v.noDept = false; await v.eng.join(v.tet.topic, roomTitle(), { listen: false }); return; }
@@ -774,29 +774,45 @@ function tetHTML() {
 }
 
 /**
- * Зона «🤝 Дорадча кімната» під списком учасників. Начальнику — куди перетягнути колегу; у розмові — з ким
- * і «← До відділу». Колегам без ролі начальника зону не показуємо (кликати можна лише їх самих).
+ * Картка «🤝 Дорадча кімната» поруч із карткою голосового офісу (25.11.2026: «красиво виділимо
+ * голосовий офіс відділу і дорадчу кімнату, а то в очі кидається лише дорадча»). Начальнику — куди
+ * перетягнути колегу; з вкладки, поки голосове вікно в дорадчій, — з ким і «← До відділу».
+ * Колегам без ролі начальника картку не показуємо. Коли сама панель у дорадчій (v.tet), окремої картки
+ * немає — тоді дорадча і є головна картка (roomCardHTML).
  */
 function tetZoneHTML(w) {
-  if (v.noDept && !v.tet) return '';
-  const back = (act) => `<button type="button" class="spv-btn" data-act="${act}" title="Вийти з дорадчої кімнати в кімнату відділу">← До відділу</button>`;
-  if (v.tet) {
-    const wait = !v.tet.met;
-    return `<div class="spv-tet is-in"><span class="spv-tet-ico" aria-hidden="true">🤝</span>
-      <span class="spv-tet-text"><b>Дорадча кімната</b> · ${wait ? `чекаємо на ${esc(v.tet.name)}…` : `ви з ${esc(v.tet.name)}`}<br>
-      <small>Чуєте лише ви двоє — колеги у відділі вас не чують.</small></span>${back('tetback')}</div>`;
-  }
+  if (v.noDept || v.tet) return '';
+  const head = (sub) => `<header class="spv-room-head"><span class="spv-room-ico" aria-hidden="true">🤝</span>
+      <span class="spv-room-title"><b>Дорадча кімната</b><small>${sub}</small></span></header>`;
   if (w?.tet) {
-    return `<div class="spv-tet is-in"><span class="spv-tet-ico" aria-hidden="true">🤝</span>
-      <span class="spv-tet-text"><b>Дорадча кімната</b> · ви з ${esc(w.tet)}<br><small>Голос — у голосовому вікні. Колеги у відділі вас не чують.</small></span>${back('wback')}</div>`;
+    return `<section class="spv-room is-tet is-busy">${head(`Ви з ${esc(w.tet)} · голос у голосовому вікні`)}
+      <p class="spv-room-hint">Колеги у відділі вас не чують.</p>
+      <div class="spv-room-foot"><button type="button" class="spv-btn" data-act="wback" title="Вийти з дорадчої кімнати в голосовий офіс відділу">← До відділу</button></div></section>`;
   }
   if (!isBoss()) return '';
   const ready = v.demo || holds() || !!w;
-  return `<div class="spv-tet spv-tet-zone${ready ? '' : ' is-off'}" data-tetzone aria-label="Дорадча кімната: перетягніть сюди колегу">
-      <span class="spv-tet-ico" aria-hidden="true">🤝</span>
-      <span class="spv-tet-text"><b>Дорадча кімната</b><br><small>${ready
-        ? 'Перетягніть сюди колегу з кімнати відділу або зі списку «в мережі» — поговорите віч-на-віч, інші не чутимуть.'
-        : 'Увійдіть у кімнату відділу — тоді сюди можна перетягнути колегу для розмови віч-на-віч.'}</small></span></div>`;
+  return `<section class="spv-room is-tet${ready ? '' : ' is-off'}" data-tetzone aria-label="Дорадча кімната: перетягніть сюди колегу">
+      ${head('Розмова віч-на-віч')}
+      <p class="spv-room-drop">${ready
+        ? 'Перетягніть сюди колегу з офісу чи зі списку «в мережі»'
+        : 'Увійдіть в офіс — тоді сюди можна перетягнути колегу'}</p></section>`;
+}
+
+/** Головна картка: голосовий офіс відділу (або дорадча, коли панель у ній, або гостьова кімната). */
+function roomCardHTML(s, w, list, people) {
+  const live = (s.status === 'live' && s.inRoom) || !!w?.inRoom;
+  const tet = !!v.tet;
+  const title = tet ? 'Дорадча кімната' : roomTitle();
+  const sub = tet
+    ? `${v.tet.met ? 'Ви з ' + esc(v.tet.name) : 'Чекаємо на ' + esc(v.tet.name) + '…'} · колеги у відділі вас не чують`
+    : `${list.length ? `${list.length} ${plural(list.length)}` : 'Поки нікого'}${live ? ' · <span class="spv-live-txt">в ефірі</span>' : ''}`;
+  return `<section class="spv-room ${tet ? 'is-tet is-busy' : 'is-office'}${live ? ' is-live' : ''}">
+      <header class="spv-room-head"><span class="spv-room-ico" aria-hidden="true">${tet ? '🤝' : '🎙'}</span>
+        <span class="spv-room-title"><b>${esc(title)}</b><small>${sub}</small></span>
+        <span class="spv-dot${live ? ' is-live' : ''}" aria-hidden="true"></span></header>
+      <ul class="spv-people" aria-label="Хто в кімнаті">${people}</ul>
+      ${tet ? '<div class="spv-room-foot"><button type="button" class="spv-btn" data-act="tetback" title="Вийти з дорадчої кімнати в голосовий офіс відділу">← До відділу</button></div>' : ''}
+    </section>`;
 }
 
 /** Вкладка: хто показує екран (відео — у голосовому вікні) і кнопка «Дивитися» в окремому вікні. */
@@ -910,7 +926,7 @@ function render() {
   else if (s.inRoom && !others) note = 'Поки що ви тут самі.';
   else if (!s.inRoom) note = `Ви не в кімнаті. Зараз тут: ${list.length}.`;
   if (s.status === 'live' && list.length >= MANY) note = `У кімнаті ${list.length} — пряма схема може не витягнути, звук може рватися.`;
-  if (v.tet && s.status === 'live') note = others ? '' : v.tet.met ? `${v.tet.name} вийшов(-ла) — повертаємось у кімнату відділу…` : `Покликали ${v.tet.name} — чекаємо до півтори хвилини.`;
+  if (v.tet && s.status === 'live') note = others ? '' : v.tet.met ? `${v.tet.name} вийшов(-ла) — повертаємось у голосовий офіс відділу…` : `Покликали ${v.tet.name} — чекаємо до півтори хвилини.`;
   if (w?.tet) note = '';
   if (v.askShare && !s.sharing && holds()) note = '🖥 Браузер починає показ лише з кліку в цьому вікні — натисніть «Обрати, що показати».';
   if (s.inRoom && s.micSilent) note = '⚠ Ваш мікрофон нічого не передає — колеги вас не чують. Оберіть інший кнопкою «⚙».';
@@ -945,14 +961,9 @@ function render() {
         : '<button type="button" class="spv-btn spv-join" data-act="join">Увійти в кімнату</button>')
       : '';
 
+  const tetCard = tetZoneHTML(w);
   v.root.innerHTML = `<div class="spv-main">
-    <div class="spv-head">
-      <span class="spv-dot ${(s.status === 'live' && s.inRoom) || w?.inRoom ? 'is-live' : ''}" aria-hidden="true"></span>
-      <strong>${esc(roomTitle())}</strong>
-      <span class="spv-count">${list.length ? `${list.length} ${plural(list.length)}` : ''}</span>
-    </div>
-    <ul class="spv-people" aria-label="Хто в кімнаті">${people}</ul>
-    ${tetZoneHTML(w)}
+    <div class="spv-rooms${tetCard ? '' : ' is-single'}">${roomCardHTML(s, w, list, people)}${tetCard}</div>
     ${s.recording ? `<p class="spv-recbar">🔴 Іде запис наради · ${s.recording.me ? 'записуєте ви' : 'увімкнув(-ла) ' + esc(s.recording.name)} · з ${new Date(s.recording.since).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}</p>` : ''}
     ${note ? `<p class="spv-note${s.status === 'error' || (s.inRoom && s.micSilent) ? ' is-bad' : ''}">${esc(note)}</p>` : ''}
     ${s.needGesture ? '<button type="button" class="spv-btn spv-sound" data-act="sound">🔊 Натисніть, щоб чути колег</button>' : ''}
