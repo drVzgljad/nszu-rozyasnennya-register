@@ -768,7 +768,9 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
       }
     }
     if (muted) stopMic();
+    const was = v.muted;
     v.muted = muted;
+    if (was !== muted && !quiet) micClick(!muted);   // коротке «тік»: угору — увімкнули, униз — вимкнули
     v.lastVoice = Date.now();
     v.idleWarn = false;
     // Заговорив без звуку — звук повертаємо: говорити й не чути відповіді безглуздо
@@ -1063,6 +1065,33 @@ export function createVoice({ sb, me, name, role = '', toast = () => {}, onChang
       return;
     }
     chime(true);
+  }
+
+  /**
+   * Коротке «тік» на мікрофон (25.11.2026: «на клік "Говорити" коротенький звук і на обратну дію теж»):
+   * увімкнули — дві дуже короткі ноти вгору, вимкнули — вниз. Тихо (0,12), ~0,12 с, чути лише вам.
+   */
+  function micClick(on) {
+    const ctx = audioCtx();
+    if (!ctx || v.deaf) return;
+    const play = () => {
+      const t = ctx.currentTime;
+      (on ? [880, 1320] : [1320, 880]).forEach((f, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        const s = t + i * 0.06;
+        o.type = 'sine';
+        o.frequency.setValueAtTime(f, s);
+        g.gain.setValueAtTime(0.0001, s);
+        g.gain.exponentialRampToValueAtTime(0.12, s + 0.008);
+        g.gain.exponentialRampToValueAtTime(0.0001, s + 0.06);
+        o.connect(g).connect(ctx.destination);
+        o.start(s);
+        o.stop(s + 0.07);
+      });
+    };
+    if (ctx.state === 'running') play();
+    else ctx.resume().then(play).catch(() => {});
   }
 
   /** Дві ноти, як дверний дзвінок (вгору — вхід, униз — вихід). Для входу — запасний варіант. */
