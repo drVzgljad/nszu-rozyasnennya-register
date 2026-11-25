@@ -1714,3 +1714,21 @@ button.sp-rev-mini.is-todo:hover, button.sp-rev-mini.is-todo:focus-visible { out
   50% { box-shadow: inset 0 0 9px rgba(var(--share-glow), .35), 0 0 12px rgba(var(--share-glow), .40); }
 }
 @media (prefers-reduced-motion: reduce) { .spv-actions .spv-share:not(.is-on) { animation: none; box-shadow: 0 0 6px rgba(var(--share-glow), .3); } }
+
+/* Пульс виразніший (25.11.2026: «пульс не візуалізується»): попередні тіні були надто тонкі — пік і спад
+   майже не відрізнялися. Тепер кнопка помітно світлішає і навколо розходиться кольорове кільце.
+   Ці @keyframes пізніші за однойменні вище — діють вони. Ритм — той самий годинник (--pulse-t) */
+.spv { --talk-bg-hi: #e14b4b; --join-bg-hi: #9a4f8a; }
+:root.dark-theme .spv { --talk-bg-hi: #d94545; --join-bg-hi: #a35a93; }
+@keyframes spv-talk-glow {
+  0%, 100% { background-color: var(--talk-bg); box-shadow: 0 0 0 0 rgba(var(--talk-glow), 0); }
+  50% { background-color: var(--talk-bg-hi); box-shadow: 0 0 0 4px rgba(var(--talk-glow), .28), 0 0 16px 2px rgba(var(--talk-glow), .55); }
+}
+@keyframes spv-join-glow {
+  0%, 100% { background-color: var(--join-bg); box-shadow: 0 0 0 0 rgba(var(--join-glow), 0); }
+  50% { background-color: var(--join-bg-hi); box-shadow: 0 0 0 4px rgba(var(--join-glow), .30), 0 0 16px 2px rgba(var(--join-glow), .55); }
+}
+@keyframes spv-share-glow {
+  0%, 100% { background-color: color-mix(in srgb, rgb(var(--share-glow)) 6%, var(--surface)); box-shadow: 0 0 0 0 rgba(var(--share-glow), 0); }
+  50% { background-color: color-mix(in srgb, rgb(var(--share-glow)) 22%, var(--surface)); box-shadow: 0 0 0 4px rgba(var(--share-glow), .25), 0 0 14px 2px rgba(var(--share-glow), .45); }
+}
