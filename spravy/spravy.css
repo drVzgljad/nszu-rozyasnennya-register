@@ -999,6 +999,8 @@
 .spv-room .spv-people:empty { display: none; }
 .spv-room-hint { margin: 0; font-size: 13px; color: var(--muted); }
 .spv-room-foot { display: flex; justify-content: flex-end; }
+.spv-room .spv-tet-in { border-color: var(--room-line); color: var(--room-ink); font-weight: 700; }
+.spv-room .spv-tet-in:hover { border-color: var(--room-ink); }
 /* Куди перетягнути колегу: тонка пунктирна площина всередині картки, яскравіша під час перетягування */
 .spv-room-drop {
   margin: 0; flex: 1 1 auto; display: grid; place-items: center; min-height: 46px; padding: 8px 10px; text-align: center;

@@ -23,7 +23,7 @@
  * - Вийшли з кімнати — вікно закривається. Закрили вікно — вийшли (рушій сам виходить на pagehide).
  */
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { initVoice } from '../spravy/voice.js?v=20261125g';
+import { initVoice } from '../spravy/voice.js?v=20261125h';
 import { BUS, HEARTBEAT, COMPACT } from './link.js?v=20261125d';
 import { createPip } from './pip.js?v=20261125c';
 import { PILL_CSS, pillHTML } from './pill.js?v=20261125c';
