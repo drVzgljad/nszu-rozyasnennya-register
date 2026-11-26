@@ -151,7 +151,7 @@ function summaryHTML(p, last) {
     </div>
     <p class="sp-muted sp-jr-note">На дошку йдуть документи за ${A.DAYS} днів або зі строком, що минув не більш як тиждень тому, без «до відома»: ${cases.length}, з них уже на дошці ${onBoard}${onBoard - upd.length > 0 ? ` (без змін ${onBoard - upd.length})` : ''}.
       Етап, виконавця, суть і нюанси журнал не змінює.${joined ? ` 🧩 У приєднаних справах — ${joined}: оновляться їхні резолюції, строки й стан, об'єднання лишиться.` : ''} «Резолюцію закрито» — ваша справа з АСКОД, якої в журналі більше немає: її позначено, а не закрито.</p>
-    ${block('Нові справи', ins, (o) => row(o.in_no), ins.length <= 8)}
+    ${block('Нові справи', ins, (o) => row(o.in_no, o.row.stage === 'done' ? '📌 лише до опрацювання — одразу в «Закрито»' : ''), ins.length <= 8)}
     ${block('Оновиться', upd, (o) => row(o.in_no, what(o)), false)}
     ${block('Зникли з журналу', gone, (o) => row(o.in_no), false)}
     ${block('Повернулися в журнал', back, (o) => row(o.in_no, `стан: ${esc(o.patch.askod_state || '—')}`), false)}

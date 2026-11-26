@@ -298,6 +298,25 @@
     return 'letter';
   }
 
+  // «Лише до опрацювання» (погоджено з користувачем 26.11.2026) — див. PROCESS_RE / ANSWER_RE у spravy_sync.py:
+  // відповіді лист не потребує, нова справа заводиться одразу в «Закрито»; важливе користувач принесе сам.
+  var PROCESS_RE = /опрацюван|опрацювати|врахуван|ознайомлен|до відома/;
+  var ANSWER_RE = /відповід|виконанн|інформуван|надати|надання|пункт|питання|прошу/;
+
+  /** Документ лише до опрацювання: кожна резолюція з текстом — PROCESS_RE без ANSWER_RE, жодна не робить
+   *  нас головним виконавцем і не має строку, документ — не запит на ПІ. Порожній текст не враховується. */
+  function process_only(no, recs) {
+    if (pyStr(or(no, '')).startsWith('ПІ-')) return false;
+    var texts = [];
+    for (var i = 0; i < recs.length; i++) {
+      var r = recs[i];
+      if (get(r, 'Гол.вик-ць') === 'Так' || as_date(get(r, 'Строк'))) return false;
+      var t = (clean(get(r, 'Текст резолюції')) || '').toLowerCase();
+      if (t) texts.push(t);
+    }
+    return texts.length > 0 && texts.every(function (t) { return PROCESS_RE.test(t) && !ANSWER_RE.test(t); });
+  }
+
   /** Наша роль за резолюціями: головні / співвиконавці / до відома (або невідомо). */
   function our_role(recs) {
     if (recs.some(function (r) { return get(r, 'Гол.вик-ць') === 'Так'; })) return 'lead';
@@ -387,7 +406,9 @@
       reply_kind: kinds.length === 1 && kinds[0] === 'info' ? 'info' : (notInfo.length ? notInfo[0] : 'letter'),
       our_role: our_role(recs),
       // ПІБ у журналі — «Прізвище Ім'я»; у профілі порталу — «Ім'я Прізвище». Зводимо за словами.
-      _executor_words: (clean(get(first, 'Виконавець')) || '').split(' ').filter(Boolean)
+      _executor_words: (clean(get(first, 'Виконавець')) || '').split(' ').filter(Boolean),
+      // лише до опрацювання → нова справа одразу в «Закрито» (заведену не чіпаємо)
+      _process_only: process_only(no, recs)
     };
   }
 
@@ -497,6 +518,7 @@
       } else {
         var row = {};
         Object.keys(c).forEach(function (k) { if (k[0] !== '_') row[k] = c[k]; });
+        if (c._process_only) row.stage = 'done';     // лише до опрацювання — одразу в «Закрито»
         var p = person(c._executor_words);
         row.department = dept;
         row.source = 'askod';
@@ -542,7 +564,7 @@
   var api = {
     DAYS: DAYS, ASKOD_NOTE: ASKOD_NOTE, GONE: GONE,
     readJournal: readJournal, readSheet: readSheet, pick: pick, plan: plan,
-    journal_case: journal_case, our_role: our_role, reply_kind: reply_kind, owns: owns,
+    journal_case: journal_case, process_only: process_only, our_role: our_role, reply_kind: reply_kind, owns: owns,
     clean: clean, as_date: as_date
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

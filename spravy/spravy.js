@@ -28,7 +28,7 @@
 import { initVoice, setVoiceDept } from './voice.js?v=20261126a';
 import { initRoomChat, setRoomChatDept } from './room-chat.js?v=20261104a';
 // Свій журнал АСКОД (xlsx) — кнопка «📥 Журнал АСКОД»; розбір — ../pmg-askod-journal.js
-import { initAskodUpload } from './askod-upload.js?v=20261119a';
+import { initAskodUpload } from './askod-upload.js?v=20261126a';
 // Контролька департаменту (xlsx) — кнопка «🎯 Контролька»: позначка «На контролі» (migration_2026-11-09_case_control.sql)
 import { initControlUpload } from './control-upload.js?v=20261109a';
 
@@ -2366,7 +2366,8 @@ function f37dDefaultAct(c) {
   const k = kindOf(c);
   if (k === 'event') return c.stage === 'new' ? 'other' : 'meeting';
   if (k !== 'askod') return c.stage === 'done' ? 'noted' : 'other';
-  if (c.stage === 'done') return isNoteCase(c) ? 'noted' : (isSzReply(c) ? 'sz_sent' : 'sent');
+  // закрита без вих. № справа «лише до опрацювання» (журнал АСКОД закриває її сам, pmg-askod-journal.js) — теж «опрацьовано»
+  if (c.stage === 'done') return isNoteCase(c) || (!c.out_no && /опрацюван|опрацювати|ознайомлен/i.test(c.resolution || '')) ? 'noted' : (isSzReply(c) ? 'sz_sent' : 'sent');
   const last = state.events.filter((e) => e.kind === 'outgoing' && !isDraftEv(e)).slice(-1)[0];
   if (last && KEEPS_OPEN.includes(last.doc_kind) && ['new', 'work'].includes(c.stage)) return last.doc_kind === 'interim' ? 'interim' : 'request';
   return { review: 'review', signing: 'signing', sz_sent: 'sz_sent' }[c.stage] || (isSzReply(c) || c.our_role === 'co' ? 'sz' : 'draft');
