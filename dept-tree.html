@@ -190,7 +190,7 @@
           shortTitle: "Реімбурсація",
           color: "reimbursement",
           manager: "",
-          specialists: ["Михайло Фортельний", "Сергій Гончаренко"]
+          specialists: ["Сергій Гончаренко"]
         },
         {
           id: "clinical",
@@ -225,8 +225,7 @@
       profileIdsByName: new Map(),
       profileIdsByKey: new Map(),
       profileNamesById: new Map(),
-      onlineIds: new Set(),
-      presenceChannel: null
+      onlineIds: new Set()
     };
 
     const $ = (selector) => document.querySelector(selector);
@@ -486,7 +485,11 @@
       const onlineIds = new Set();
       Object.values(presenceState || {}).forEach((presences) => {
         (presences || []).forEach((presence) => {
-          if (presence?.user_id) onlineIds.add(presence.user_id);
+          if (!presence?.user_id) return;
+          onlineIds.add(presence.user_id);
+          // Ім'я з присутності — запасне зіставлення, якщо профілі ще не прочиталися
+          const key = presence.user_name && nameKey(String(presence.user_name).trim());
+          if (key && !state.profileIdsByKey.has(key)) state.profileIdsByKey.set(key, presence.user_id);
         });
       });
       state.onlineIds = onlineIds;
@@ -511,32 +514,14 @@
       }
     }
 
+    // Присутність бере з глобального каналу 'chat_room', який веде auth-v2.js
+    // (подія pmg:presence + window.__pmgPresence). Власного каналу тут не відкриваємо:
+    // клієнт Supabase спільний (window.__pmgSb), і другий 'chat_room' з того самого
+    // клієнта ламав перший — лампочки гасли в усіх (так само полагоджено в zviazok/).
     async function setupPresence() {
+      window.addEventListener("pmg:presence", (e) => updateOnlineState(e.detail));
       await loadProfileIds();
-
-      state.presenceChannel = sb.channel("chat_room", {
-        config: { presence: { key: `dept-tree-${crypto.randomUUID()}` } }
-      });
-
-      state.presenceChannel
-        .on("presence", { event: "sync" }, () => {
-          updateOnlineState(state.presenceChannel.presenceState());
-        })
-        .subscribe(async (status) => {
-          if (status !== "SUBSCRIBED") return;
-          try {
-            const { data: { user } } = await sb.auth.getUser();
-            if (user) {
-              await state.presenceChannel.track({
-                user_id: user.id,
-                user_name: user.user_metadata?.full_name || user.user_metadata?.name || user.email,
-                online_at: new Date().toISOString()
-              });
-            }
-          } catch (error) {
-            console.warn("Не вдалося позначити поточну присутність:", error);
-          }
-        });
+      if (window.__pmgPresence) updateOnlineState(window.__pmgPresence);
     }
 
     function openPersonDialog(person) {
