@@ -76,9 +76,10 @@ const HEROES = [
   { id: 'tail', name: 'Хвостик з гарнітурою' },
   { id: 'bob', name: 'Каре з блокнотом' },
   { id: 'curly', name: 'Кучерява брюнетка' },
-  { id: 'blond', name: 'Блондинка в окулярах' }
+  { id: 'blond', name: 'Блондинка в окулярах' },
+  { id: 'sunny', name: 'Блондинка-каре' }
 ];
-const HERO_V = '20261125b';
+const HERO_V = '20261126a';
 const heroUrl = (id) => new URL(`../voice/heroes/${HEROES.some((h) => h.id === id) ? id : 'base'}.webp?v=${HERO_V}`, import.meta.url).href;
 const VIEW_LS = 'pmg-voice-view';            // 'hero' — просунутий вигляд; пам'ятає браузер кожного
 const lsRead = (k) => { try { return localStorage.getItem(k) || ''; } catch (_) { return ''; } };
