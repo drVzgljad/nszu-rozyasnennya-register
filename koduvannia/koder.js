@@ -146,7 +146,15 @@
     amb: { url: '../algorithms/data/ambulatory_9.json', prep: indexAmb },
     loinc: { url: '../classifiers/data/loinc/loinc_pmg.json', prep: indexLoinc },
     docs: { url: '../rozjasnennya/data/index.json', prep: (d) => new Map((d.documents || []).map((x) => [x.id, x.title || ''])) },
+    // «Доступні ліки»: МНН, форми й групи пункту 194 Порядку (postanova/build_reimbursement.py)
+    reimb: { url: '../postanova/data/reimbursement_2026.json', prep: indexReimb },
   };
+
+  function indexReimb(d) {
+    d.list = (d.items || []).map((e, i) => Object.assign(e, { c: String(i),
+      _t: PMG_SEARCH.text(`${e.inn} ${e.en} ${e.group}`) }));
+    return d;
+  }
 
   function need(...keys) {
     let ready = true;
@@ -191,8 +199,15 @@
       get('../algorithms/data/rehab_182.json').catch(() => null),
       get('../algorithms/data/algorithms_377.json').catch(() => null),
       get('../rozjasnennya/data/codes_index.json').catch(() => null),
-    ]).then(([r182, a377, roz]) => {
-      const n = { r182: new Map(), a377: new Map(), roz: (roz && roz.index) || {}, wording: [] };
+      // стандарти ДЕЦ: коди МКХ-10 з паспорта документа (dec/extract_icd.py) → категорія реєстру ДЕЦ
+      get('../dec/data/dec_icd.json').catch(() => null),
+    ]).then(([r182, a377, roz, dec]) => {
+      const n = { r182: new Map(), a377: new Map(), roz: (roz && roz.index) || {}, wording: [], dec: [] };
+      if (dec && dec.categories) {
+        for (const [cat, info] of Object.entries(dec.categories)) {
+          if ((info.codes || []).length) n.dec.push({ cat, codes: info.codes, from: info.from || '' });
+        }
+      }
       if (r182) {
         n.wording = r182.wordings || [];
         for (const x of r182.records || []) n.r182.set(x.code, x);
@@ -222,6 +237,7 @@
       return ODKN.has(num) ? { kind: 'odk', num } : { kind: 'unknown', what: `ОДК ${m[1]}` };
     }
     if ((m = text.match(/^пакет\s*№?\s*(\d{1,2})$/i))) return { kind: 'package', num: m[1] };
+    if ((m = text.match(/^(?:ліки|мнн|реімбурсація|доступні ліки)\s*[:·]?\s*(.{2,60})$/i))) return { kind: 'drug', name: m[1].trim() };
     if ((m = text.match(/^(?:посада|есоз|esoz)\s*[:·]?\s*(\S+)$/i))) {
       const c = PMG_SEARCH.code(m[1]);
       return ESOZM.has(c) ? { kind: 'esoz', code: c } : { kind: 'unknown', what: `Код ЕСОЗ ${m[1]}` };
@@ -1073,6 +1089,58 @@
     return html;
   }
 
+  /* Картка ліків: чи реімбурсується МНН за розділом III Порядку, у якій групі й формі.
+     Торговельну назву («Депакін») переводить на МНН словник (сфера «liky»). Відповідь лише
+     з тексту Порядку: з якими діагнозами виписується рецепт — налаштування ЕСОЗ, їх тут немає. */
+  const P194 = '../postanova/index.html?node=part-iii&paragraph=part-iii-p194&q=';
+  const P195 = '../postanova/index.html?node=part-iii&paragraph=part-iii-p195&q=';
+
+  function drugHits(name) {
+    const R = LAZY.reimb.data;
+    if (!R) return [];
+    const r = PMG_FIND.search(R.list, name, { scope: 'liky', noDrop: true });
+    r.items.sort((a, b) => b.score - a.score);
+    return r;
+  }
+
+  function renderDrug(p) {
+    const settled = need('reimb');
+    const R = LAZY.reimb.data;
+    const src = R ? `пункт 194 розділу III Порядку · редакція ${R.edition || ''}` : 'розділ III Порядку';
+    if (!settled) return side('Ліки · «Доступні ліки»', src, '<p class="kr-fine">Завантажую перелік…</p>', true);
+    if (!R) return side('Ліки · «Доступні ліки»', src, '<p class="kr-err">Перелік не завантажився. Оновіть сторінку.</p>', true);
+    const absent = PMG_FIND.groupsFor(p.name, 'liky').filter((g) => g.absent);
+    const r = drugHits(p.name);
+    // найкращий збіг і всі рядки тієї самої МНН (одна МНН буває в кількох групах)
+    const best = r.items && r.items[0] ? r.items[0].e.inn : '';
+    const rows = best ? R.list.filter((e) => e.inn === best) : [];
+    let html = '';
+    if (absent.length && !rows.length) {
+      const g = absent[0];
+      html = `<div class="kr-row"><span class="kr-c">${esc(g.to[0])}</span><span class="kr-t">${tag('у розділі III Порядку немає', 'kr-warn')}
+        ${esc(g.why)}.</span></div>
+        <p class="kr-fine">За програмою «Доступні ліки» реімбурсуються лише МНН і форми, наведені в розділі III Порядку (п. 5 розділу I).
+          У стаціонарі лікарські засоби, необхідні для надання послуги, забезпечує заклад (п. 10 розділу I).</p>`;
+    } else if (!rows.length) {
+      html = `<p class="kr-none">«${esc(p.name)}» серед МНН розділу III Порядку не знайдено. Перевірте назву: торговельну назву
+        Кодер знає лише тоді, коли її занесено до словника пошуку.</p>`;
+    } else {
+      const e0 = rows[0];
+      const via = r.items[0].via ? `<p class="kr-fine">${esc(r.items[0].via)}</p>` : (r.note ? `<p class="kr-fine">${esc(r.note)}</p>` : '');
+      html = via + `<div class="kr-row"><span class="kr-c">МНН</span><span class="kr-t"><b>${esc(e0.inn)}</b> (${esc(e0.en)})
+          ${tag('реімбурсується')}</span></div>` +
+        rows.map((e) => `<div class="kr-row"><span class="kr-c">пп. ${esc(e.subpoint)}</span><span class="kr-t">
+          ${e.group ? esc(e.group) : esc(R.subpoints[String(e.subpoint)] || '')}
+          <span class="kr-fine">· ${esc(e.form)}${e.atc ? ' · АТХ ' + esc(e.atc) : ''}${e.dose ? ' · ' + esc(e.dose) : ''}</span>
+          ${e.conditions ? tag('додаткові умови — пункт 195', 'kr-warn') : ''}</span></div>`).join('') +
+        `<p class="kr-fine">Рецепт виписує лікар; з якими діагнозами (кодами НК 025) він виписується за кожною групою,
+          визначають налаштування ЕСОЗ на підставі наказу МОЗ № 360 — у Кодері їх немає.</p>` +
+        more(P194 + encodeURIComponent(e0.inn), 'текст пункту 194') +
+        (rows.some((e) => e.conditions) ? more(P195 + encodeURIComponent(e0.inn), 'додаткові умови — пункт 195') : '');
+    }
+    return side('Ліки · «Доступні ліки»', src, html, true);
+  }
+
   function renderWords(p) {
     const blocks = [];
     let notes = [];
@@ -1092,6 +1160,30 @@
     one('Втручання · НК 026', NK026.filter((e) => RE_ACHI.test(e.c)), N26, (e) => e.c, (e) => e.n);
     one('Групи · ДСГ', CORE.groups.filter((g) => inGrid(g) && !g.sfx), GROUP, (g) => 'ДСГ ' + g.c, (g) => g.t);
     one('Послуги й посади · ЕСОЗ', ESOZ, ESOZM, (e) => (e.k === 'position' ? 'посада ' + e.c : e.c), (e) => e.n);
+    // ліки за «Доступними ліками»: торговельна назва → МНН через словник; рядок — МНН і група
+    if (!isText(p.text)) {
+      need('reimb');
+      const R = LAZY.reimb.data;
+      const absent = PMG_FIND.groupsFor(p.text, 'liky').filter((g) => g.absent);
+      if (R) {
+        const r = PMG_FIND.search(R.list, p.text, { scope: 'liky', noDrop: true });
+        if (r.items.length) {
+          if (r.note) notes.push(r.note);
+          r.items.sort((a, b) => b.score - a.score);
+          const seen = new Set();
+          const uniq = r.items.filter((x) => (seen.has(x.e.inn + '|' + x.e.group) ? false : seen.add(x.e.inn + '|' + x.e.group)));
+          blocks.push(`<section class="kr-found"><h2>Ліки · «Доступні ліки» <span class="kr-src">${nf(uniq.length)}</span></h2>` +
+            uniq.slice(0, 12).map((x) => `<button type="button" class="kr-hit" data-q="${esc('ліки ' + x.e.inn)}">
+              <span class="kr-c">пп. ${esc(x.e.subpoint)}</span><span class="kr-t">${esc(x.e.inn)} <span class="kr-fine">· ${esc(x.e.group || x.e.form)}</span></span></button>`).join('') +
+            (uniq.length > 12 ? `<p class="kr-fine">Показано 12 з ${nf(uniq.length)}.</p>` : '') + '</section>');
+        }
+      }
+      if (absent.length) {
+        blocks.push(`<section class="kr-found"><h2>Ліки · «Доступні ліки»</h2>` + absent.map((g) =>
+          `<button type="button" class="kr-hit" data-q="${esc('ліки ' + g.q[0])}"><span class="kr-c">—</span>
+            <span class="kr-t">${esc(g.to[0])}: у розділі III Порядку немає</span></button>`).join('') + '</section>');
+      }
+    }
     // LOINC: лише коди з документів НСЗУ; увесь довідник (109 тис.) — на власній сторінці
     need('loinc');
     const L = LAZY.loinc.data;
@@ -1123,6 +1215,8 @@
         пишіть словами.</p>
       <p>Код послуги чи посади ЕСОЗ і лабораторний код LOINC теж можна: Кодер покаже, як послугу обліковують
         у пакеті 9, якими кодами спостережень записують результат і де про це писала НСЗУ.</p>
+      <p>Назва ліків — МНН чи торговельна («ліки Депакін», «метформін»): Кодер скаже, чи реімбурсується засіб
+        за програмою «Доступні ліки», у якій групі й формі, і відкриє пункт 194 Порядку.</p>
       <p>Можна вставити й абзац або цілий текст листа: Кодер знайде в ньому всі коди й покаже, яких немає
         в класифікаторах, які набрано кирилицею чи обірвано. Текст лишається у вашому браузері.</p>
     </div>`;
@@ -1148,6 +1242,19 @@
         const kind = RE_ACHI.test(c) ? 'achi' : 'icd';
         const docs = (n.roz[kind] || {})[c];
         if (docs && docs.length) out.push(`${esc(c)} · згадано в роз'ясненнях НСЗУ: ${nf(docs.length)} ${more('../rozjasnennya/index.html?doc=' + docs[0].d, 'відкрити перше')}`);
+        // Стандарти ДЕЦ: категорія, у паспорті документа якої є цей код або його рубрика.
+        // Ті самі правила збігу, що на сторінці ДЕЦ (dec/app.js): K50 охоплює K50.9, і навпаки.
+        if (kind === 'icd') {
+          // ключ категорії в dec_icd.json — латинський слаг, тож підписуємо документом, з якого
+          // взято коди («Протокол ГС 2023-1742»), а ведемо на сторінку ДЕЦ за самим кодом
+          const hit = n.dec.filter((d) => d.codes.some((x) => x === c || c.startsWith(x + '.') || x.startsWith(c + '.')));
+          if (hit.length) {
+            const docs = [...new Set(hit.map((d) => d.from).filter(Boolean))];
+            out.push(`${esc(c)} · стандарти ДЕЦ МОЗ: ${nf(hit.length)} ${hit.length === 1 ? 'категорія' : 'категорій'}` +
+              (docs.length ? ` (${esc(docs.slice(0, 3).join('; '))}${docs.length > 3 ? '…' : ''})` : '') +
+              ` ${more('../dec/index.html?q=' + encodeURIComponent(c), 'відкрити в реєстрі ДЕЦ')}`);
+          }
+        }
       }
       box.innerHTML = out.length ? '<p class="kr-fine">Примітки до коду:</p><ul>' + out.map((x) => `<li>${x}</li>`).join('') + '</ul>' : '';
     });
@@ -1193,6 +1300,7 @@
     else if (p.kind === 'package') html = renderPackage(p);
     else if (p.kind === 'esoz') html = renderEsoz(p);
     else if (p.kind === 'loinc') html = renderLoinc(p);
+    else if (p.kind === 'drug') html = renderDrug(p);
     else if (p.kind === 'text') {
       html = renderText(p);
       status = `Перевірено текст: кодів — ${nf(p.scan.items.length)}, з вадою — ${nf(p.scan.items.filter((x) => x.flags.length).length)}.`;

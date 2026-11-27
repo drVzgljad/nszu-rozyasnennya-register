@@ -10,9 +10,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>НавігаторПМГ26 | Постанова і Порядок № 1808</title>
   <link rel="stylesheet" href="../styles.css?v=20260808b">
-  <link rel="stylesheet" href="resolution.css?v=20260821a">
+  <link rel="stylesheet" href="resolution.css?v=20261127a">
   <link rel="stylesheet" href="../auth-v2.css?v=20261119a">
-  <script type="module" src="../auth-v2.js?v=20261125g"></script>
+  <script type="module" src="../auth-v2.js?v=20261127a"></script>
 </head>
 <body id="top">
   <header class="hero resolution-hero">
@@ -117,6 +117,7 @@
           <span>Пошук у постанові та Порядку</span>
           <input id="resolutionSearch" type="search" placeholder="Наприклад: 8735, коефіцієнт, паліативна, до 1 липня..." autocomplete="off">
         </label>
+        <p class="search-note" id="resolutionSearchNote" hidden></p>
         <div class="type-filters" id="typeFilters" aria-label="Типи норм"></div>
         <div class="results-summary">
           <span id="resolutionCount"></span>
@@ -141,6 +142,9 @@
   <a class="back-to-top" href="#top" aria-label="Повернутися на початок сторінки">↑ Верх</a>
   <!-- вивантаження додатків у Excel — спільний модуль, підключати ДО resolution.js -->
   <script src="../pmg-xlsx.js?v=2" defer></script>
-  <script src="resolution.js?v=20260821c" defer></script>
+  <!-- спільний пошук порталу: інша форма слова, словник, розкладка, схоже написання -->
+  <script src="../pmg-search-norm.js?v=20261127a" defer></script>
+  <script src="../pmg-code-search.js?v=20261127a" defer></script>
+  <script src="resolution.js?v=20261127a" defer></script>
 </body>
 </html>

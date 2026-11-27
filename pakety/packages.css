@@ -384,3 +384,7 @@ mark { padding: 0 2px; border-radius: 3px; color: inherit; background: #ffe69a; 
   vertical-align: 1px;
   cursor: help;
 }
+
+/* Пошук переписав запит (інша форма, словник, розкладка, опечатка) — кажемо, як саме */
+.search-note { margin: 6px 0 0; font-size: 13px; line-height: 1.4; color: var(--muted); }
+.requirement-text .loinc-link { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }

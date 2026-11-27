@@ -23,15 +23,83 @@ function escapeHtml(value) {
     .replace(/"/g, "&quot;");
 }
 
+// Підсвітка: query — рядок запиту як є; підсвічуємо кожне слово, яким справді шукали
+// (після переписування: «карбамазепін» → «карбомазепін»). Порівняння — у нормалізованому
+// тексті, що зберігає довжину рядка (PMG_SEARCH.text), тож позиції лягають на оригінал.
 function highlight(value, query) {
-  const escaped = escapeHtml(value);
-  if (!query) return escaped;
-  const safe = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return escaped.replace(new RegExp(`(${safe})`, "gi"), "<mark>$1</mark>");
+  const raw = String(value || "");
+  const terms = query ? searchTerms() : [];
+  if (!terms.length) return escapeHtml(raw);
+  const low = window.PMG_SEARCH ? PMG_SEARCH.text(raw) : raw.toLowerCase();
+  const marks = [];
+  for (const term of terms) {
+    if (!term) continue;
+    for (let at = low.indexOf(term); at >= 0; at = low.indexOf(term, at + term.length)) marks.push([at, at + term.length]);
+  }
+  if (!marks.length) return escapeHtml(raw);
+  marks.sort((a, b) => a[0] - b[0]);
+  let out = "", pos = 0;
+  for (const [from, to] of marks) {
+    if (from < pos) continue;
+    out += escapeHtml(raw.slice(pos, from)) + "<mark>" + escapeHtml(raw.slice(from, to)) + "</mark>";
+    pos = to;
+  }
+  return out + escapeHtml(raw.slice(pos));
 }
 
 function queryText() {
   return byId("packageSearch").value.trim().toLowerCase();
+}
+
+/* Пошук у пакетах — спільний модуль порталу (з 27.11.2026). Розділ шукає підрядком, як і раніше,
+   але спершу запит проходить PMG_FIND.rewrite: інша форма слова, словник, не та розкладка,
+   схоже написання. Так «карбамазепін» знаходить «карбомазепіну» (опечатка в самій специфікації),
+   а «трансглутаміназа» — «трансглутамінази». Що саме змінено, сторінка каже під полем пошуку. */
+const searchCache = { raw: null, terms: [], note: "" };
+let packageVocab = null;
+
+const norm = (s) => (window.PMG_SEARCH ? PMG_SEARCH.text(s) : String(s || "").toLowerCase()).replace(/\s+/g, " ");
+
+function sectionText(section) {
+  if (section._t === undefined) section._t = norm(`${section.source_heading} ${section.items.map(itemSearchText).join(" ")}`);
+  return section._t;
+}
+
+function searchTerms() {
+  const raw = queryText();
+  if (searchCache.raw === raw) return searchCache.terms;
+  searchCache.raw = raw;
+  searchCache.note = "";
+  const q = norm(raw).trim();
+  if (!q) { searchCache.terms = []; return searchCache.terms; }
+  const packages = packageState.data ? packageState.data.packages : [];
+  const phraseFound = packages.some((pkg) => allSections(pkg).some(({ section }) => sectionText(section).includes(q)));
+  if (phraseFound || !window.PMG_FIND || !packages.length) {
+    searchCache.terms = phraseFound ? [q] : q.split(" ");
+    return searchCache.terms;
+  }
+  if (!packageVocab) {
+    packageVocab = PMG_FIND.vocabulary(packages.flatMap((pkg) => allSections(pkg).map(({ section }) => sectionText(section))));
+  }
+  const r = PMG_FIND.rewrite(raw, packageVocab, { scopes: ["", "equipment"] });
+  searchCache.terms = r.query.split(" ").filter(Boolean);
+  searchCache.note = r.note;
+  return searchCache.terms;
+}
+
+function sectionMatches(section) {
+  const terms = searchTerms();
+  if (!terms.length) return true;
+  const text = sectionText(section);
+  return terms.every((term) => text.includes(term));
+}
+
+function renderSearchNote() {
+  const box = byId("packageSearchNote");
+  if (!box) return;
+  const note = queryText() ? searchCache.note : "";
+  box.hidden = !note;
+  box.textContent = note ? `Шукаю інакше — ${note}` : "";
 }
 
 // Пошук «У назвах пакетів»: номер + назва (для пілотів — і коротка назва)
@@ -95,7 +163,11 @@ function renderRequirementItem(item, query, link) {
   const text = itemText(item);
   // Підсвітку пошуку віддаємо як форматер: інакше <mark> ліг би всередину
   // href і посилання на паспорт розсипалося б.
-  const body = link
+  // Додаток 3 пакета 9: код спостереження LOINC окремим рядком → паспорт коду в довіднику LOINC
+  const loinc = /^\d{1,7}-\d$/.test(text.trim());
+  const body = loinc
+    ? `<a class="loinc-link" href="../classifiers/loinc.html?code=${encodeURIComponent(text.trim())}" title="Паспорт коду в довіднику LOINC">${highlight(text, query)}</a>`
+    : link
     ? window.SpecLinks.render(text, link.pkg, (chunk) => highlight(chunk, query), link.kind)
     : highlight(text, query);
   return `<div class="requirement-item level-${level}">
@@ -118,11 +190,16 @@ function allSections(pkg) {
   return pkg.units.flatMap((unit) => unit.sections.map((section) => ({ unit, section })));
 }
 
+// Назва пакета теж шукається в режимі «Скрізь» (раніше — через pkg.search_text, де вона є)
+function sectionMatchesTitle(pkg) {
+  const terms = searchTerms();
+  const title = norm(packageTitleText(pkg));
+  return terms.length > 0 && terms.every((term) => title.includes(term));
+}
+
 function firstMatch(pkg, query) {
   if (!query) return allSections(pkg)[0];
-  return allSections(pkg).find(({ section }) =>
-    `${section.source_heading} ${section.items.map(itemSearchText).join(" ")}`.toLowerCase().includes(query)
-  ) || allSections(pkg)[0];
+  return allSections(pkg).find(({ section }) => sectionMatches(section)) || allSections(pkg)[0];
 }
 
 const pkgKey = (pkg) => (pkg ? pkg.key || pkg.number : "");
@@ -179,9 +256,11 @@ function applyPackageFilters() {
   const query = queryText();
   const titleOnly = packageState.scope === "title";
   packageState.visible = packageState.data.packages.filter((pkg) =>
-    (!query || (titleOnly ? packageTitleText(pkg) : pkg.search_text).includes(query)) &&
+    (!query || (titleOnly ? packageTitleText(pkg).includes(query)
+      : sectionMatchesTitle(pkg) || allSections(pkg).some(({ section }) => sectionMatches(section)))) &&
     (!packageState.tag || pkg.tags.includes(packageState.tag))
   );
+  renderSearchNote();
   byId("packageCount").textContent = `Знайдено: ${packageState.visible.length} з ${packageState.data.packages.length}`;
   if (!packageState.visible.some((pkg) => pkgKey(pkg) === pkgKey(packageState.selected))) {
     selectPackage(packageState.visible[0] || null);
@@ -195,6 +274,21 @@ function applyPackageFilters() {
   renderOutline();
   renderReader();
   updateUrl();
+  scrollToFirstMark();
+}
+
+// У довгому розділі (Додаток 1 пакета 9 — 508 рядків) знайдений рядок лишався б далеко внизу.
+// Прокручуємо до першого збігу, коли людина перестала набирати.
+let markTimer = 0;
+function scrollToFirstMark() {
+  clearTimeout(markTimer);
+  if (!queryText()) return;
+  markTimer = setTimeout(() => {
+    const mark = byId("packageReader").querySelector(".requirement-list mark");
+    if (!mark) return;
+    const r = mark.getBoundingClientRect();
+    if (r.top < 0 || r.bottom > window.innerHeight) mark.scrollIntoView({ block: "center" });
+  }, 700);
 }
 
 function renderCards() {
@@ -602,6 +696,12 @@ async function initPackages() {
     applyPackageFilters();
   });
   applyPackageFilters();
+  // словник спільного пошуку приїжджає окремо: після нього той самий запит може знайти більше
+  if (window.PMG_FIND) PMG_FIND.ready().then(() => {
+    searchCache.raw = null;
+    packageVocab = null;
+    if (queryText()) applyPackageFilters();
+  });
   fetch("../postanova/data/resolution_1808.json")
     .then((response) => response.json())
     .then((payload) => {

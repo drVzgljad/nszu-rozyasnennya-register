@@ -37,8 +37,44 @@ function highlight(value, query) {
   return escaped.replace(new RegExp(`(${safe})`, "gi"), "<mark>$1</mark>");
 }
 
-function queryText() {
+/* Запит, яким шукаємо. З 27.11.2026 він проходить спільний пошук порталу (PMG_FIND.rewrite):
+   якщо слів запиту в тексті постанови немає, сторінка шукає іншою формою слова, за словником
+   (торговельна назва → МНН: «Депакін» → «вальпроєва кислота»), з іншою розкладкою чи схожим
+   написанням («карбамазепин» → «карбамазепін») — і каже під полем, що змінила. */
+const rewriteCache = { raw: null, query: "", note: "" };
+let resolutionVocab = null;
+
+function rawQuery() {
   return byId("resolutionSearch").value.trim();
+}
+
+function queryText() {
+  const raw = rawQuery();
+  if (rewriteCache.raw === raw) return rewriteCache.query;
+  rewriteCache.raw = raw;
+  rewriteCache.query = raw;
+  rewriteCache.note = "";
+  if (!raw || !window.PMG_FIND || !window.PMG_SEARCH || !resolutionState.nodes.length) return raw;
+  if (!resolutionVocab) {
+    resolutionVocab = PMG_FIND.vocabulary(resolutionState.nodes.map((node) => PMG_SEARCH.text([
+      node.title, node.text, ...node.items.map((item) => item.text),
+      ...appendixRows(node).map((row) => row.searchText),
+    ].join(" "))));
+  }
+  const r = PMG_FIND.rewrite(raw, resolutionVocab, { scopes: ["liky", ""] });
+  if (r.changes.length) {
+    rewriteCache.query = r.query;
+    rewriteCache.note = r.note;
+  }
+  return rewriteCache.query;
+}
+
+function renderSearchNote() {
+  const box = byId("resolutionSearchNote");
+  if (!box) return;
+  const note = rawQuery() ? rewriteCache.note : "";
+  box.hidden = !note;
+  box.textContent = note ? `Шукаю інакше — ${note}` : "";
 }
 
 const codeLookalikes = {
@@ -111,7 +147,7 @@ function updateUrl() {
   if (resolutionState.selected) params.set("node", resolutionState.selected.id);
   if (resolutionState.selectedParagraph) params.set("paragraph", resolutionState.selectedParagraph);
   if (resolutionState.packageNumber) params.set("package", resolutionState.packageNumber);
-  const query = queryText();
+  const query = rawQuery();          // в адресу — те, що ввели, а не переписаний запит
   if (query) params.set("q", query);
   if (resolutionState.type) params.set("type", resolutionState.type);
   history.replaceState(null, "", `${location.pathname}?${params}`);
@@ -298,6 +334,7 @@ function applyFilters() {
     (!resolutionState.amendOnly || resolutionState.amendNodeSet.has(node.id))
   );
   byId("resolutionCount").textContent = `Знайдено: ${resolutionState.visible.length} з ${resolutionState.nodes.length}`;
+  renderSearchNote();
   if (!resolutionState.visible.some((node) => node.id === resolutionState.selected?.id)) {
     selectNode(resolutionState.visible[0] || null);
   } else if (query && resolutionState.selected) {
@@ -753,6 +790,8 @@ async function initResolution() {
     applyFilters();
   });
   applyFilters();
+  // словник спільного пошуку (торговельні назви ліків тощо) приїжджає окремо
+  if (window.PMG_FIND) PMG_FIND.ready().then(() => { rewriteCache.raw = null; if (rawQuery()) applyFilters(); });
   // Полегшений індекс (0,7 МБ замість 2,7): тут з документа потрібні лише
   // id, title і package. Якщо індекс ще не зібрано — беремо повний файл.
   fetch("../data/documents_index.json")

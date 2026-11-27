@@ -381,3 +381,6 @@ del.amend-del, .amend-was del, .amend-legend .amend-del { background: rgba(239, 
 .amend-banner-row .amend-title { flex-basis: 100%; font-size: 12px; color: #8a7040; }
 :root.dark-theme .amend-banner-row strong { color: #fbbf24; }
 :root.dark-theme .amend-banner-row .amend-title { color: #cbb26a; }
+
+/* Пошук переписав запит (інша форма, словник, розкладка, опечатка) — кажемо, як саме */
+.search-note { margin: 6px 0 0; font-size: 13px; line-height: 1.4; color: var(--muted); }

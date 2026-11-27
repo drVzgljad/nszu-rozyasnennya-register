@@ -85,8 +85,8 @@ function loadShared(prefix) {
       s.src = prefix + src; s.onload = resolve; s.onerror = resolve;
       document.head.appendChild(s);
     });
-    sharedPromise = add('pmg-search-norm.js?v=20261123b')
-      .then(() => add('pmg-code-search.js?v=20261123a'))
+    sharedPromise = add('pmg-search-norm.js?v=20261127a')
+      .then(() => add('pmg-code-search.js?v=20261127a'))
       .then(() => (W.PMG_FIND ? W.PMG_FIND.ready() : null))
       .catch(() => {});
   }
@@ -122,6 +122,10 @@ export function quickJumps(query) {
     go('classifiers/kadry.html', 'пакет ' + m[1], `Пакет ${m[1]}: кадрові вимоги`, 'Кадри · вимога → спеціальність → посада → код');
     go('classifiers/obladnannia.html', 'пакет ' + m[1], `Пакет ${m[1]}: обладнання за специфікацією`, 'Обладнання');
     koder('пакет ' + m[1], `Пакет ${m[1]}: послуги Таблиці співставлення`, 'Кодер');
+    return out;
+  }
+  if ((m = text.match(/^(?:ліки|мнн|реімбурсація)\s*[:·]?\s*(.{2,60})$/i))) {
+    koder('ліки ' + m[1], `${m[1]}: чи реімбурсується за «Доступними ліками»`, 'Кодер · МНН, група й форма за пунктом 194 Порядку');
     return out;
   }
   if ((m = text.match(/^табель\s*№?\s*(\d{2,4})$/i))) {
@@ -160,6 +164,10 @@ export function wordJumps(query) {
     [10, `«${text}» у Кадрах`, 'посади, спеціальності, коди посад', '', `classifiers/kadry.html?q=${q}`],
     [10, `«${text}» в Обладнанні`, 'вироби з вимог пакетів, НК 024, НК 031, табелі', '', `classifiers/obladnannia.html?q=${q}`],
     [10, `«${text}» у стандартах ДЕЦ`, 'стандарти медичної допомоги, клінічні настанови, протоколи', '', `dec/index.html?q=${q}`],
+    // назва ліків — одне-два слова; торговельну назву переводить на МНН словник (сфера «liky»)
+    ...(text.split(/\s+/).length <= 2
+      ? [[10, `«${text}» у «Доступних ліках»`, 'чи реімбурсується, група й форма за пунктом 194 Порядку', '', `koduvannia/koder.html?q=${encodeURIComponent('ліки ' + text)}`]]
+      : []),
   ];
 }
 
