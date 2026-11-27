@@ -324,7 +324,8 @@ function ratesInfo() {
   const meta = cmp.meta || {};
   const src = (meta.sources && meta.sources["2026"]) || {};
   const edition = parseDate(src.edition);
-  const verified = new Set((meta.note || "").match(/\d{3,4}/g) || []);
+  // Лише номери після «№»: голий \d{3,4} ловив і рік («до зміни № 2026»)
+  const verified = new Set([...(meta.note || "").matchAll(/№\s*(\d{3,4})/g)].map((m) => m[1]));
   if (src.basis) verified.add(String(src.basis).split("-")[0]);
   const fresh = ((ds && ds.amendments) || []).filter((a) => {
     const nm = String(a.doc_id || "").split("-")[0];
@@ -393,7 +394,12 @@ function sources() {
       affects: "Територіальна інтенсивність (на населення)", fix: "23_обсяги_демографія/build_demography.py" },
     { id: "rates", title: "Ставки й коефіцієнти (постанова 1808)", slice: rates.slice, date: rates.date,
       state: byMonths(rates.date), affects: "Умови", fix: "звірити зміни → postanova/build_comparison.py", note: rates.note },
-    { id: "spec", title: "Специфікації пакетів", slice: dmy(spec), date: spec, state: byMonths(spec),
+    // Специфікація — нормативний текст, а не вивантажка: з часом вона не старіє, застаріває лише з
+    // новою редакцією. Тому лампочка — не за віком (інакше «Умови» червоніли в усіх пакетах через
+    // пів року після затвердження), а дата — це дата редакції (27.11.2026).
+    { id: "spec", title: "Специфікації пакетів", slice: `редакція від ${dmy(spec)}`, date: spec, state: spec ? "ok" : "na",
+      ageText: spec ? "за редакцією" : "—",
+      note: "Стан — за редакцією, не за віком: специфікація змінюється лише новою редакцією НСЗУ. Чи вийшла новіша, автоматично не перевіряється — звіряти при кожній зміні постанови.",
       affects: "Умови: поріг входу, анатомія", fix: "перезібрати pakety/data/packages_2026.json" },
     { id: "geo", title: "Межі громад і координати", slice: "HDX (реформа 2020) + GeoNames", date: null,
       ageText: "довідник", state: "ok", affects: "карта, сходи", fix: "—",

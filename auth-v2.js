@@ -3143,6 +3143,43 @@ if (document.readyState === 'loading') {
 
 document.addEventListener('DOMContentLoaded', init);
 
+// ── Версія порталу внизу кожної сторінки (27.11.2026) ──
+// version.json у корені деплою пише хук pre-commit у D:\rpe-pmg (tools/stamp_version.py):
+// дата й час кожного деплою. Порівнюємо дві копії: ту, що віддав service worker разом
+// із рештою закешованих файлів («що ви бачите»), і свіжу з сервера повз кеш (мітка
+// Date.now() — sw.js isCacheBusted). Різняться — пропонуємо оновити кеш.
+async function mountVersionLine() {
+  if (document.getElementById('pmg-version-line')) return;
+  // адреса від самого модуля (він у корені), а не від сторінки — працює на будь-якій глибині
+  const vurl = new URL('./version.json', import.meta.url).href;
+  const get = (url, opts) => fetch(url, opts).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  const [seen, fresh] = await Promise.all([
+    // no-cache: повз HTTP-кеш браузера (GitHub max-age=600), але service worker віддасть свою копію —
+    // саме вона й показує, з яким набором збережених файлів відкрито сторінку
+    get(vurl, { cache: 'no-cache' }),
+    get(`${vurl}?fresh=${Date.now()}`, { cache: 'no-store' }),
+  ]);
+  const v = seen || fresh;
+  if (!v || !v.label) return;
+  const line = document.createElement('div');
+  line.id = 'pmg-version-line';
+  line.style.cssText = 'text-align:center;font-size:12px;line-height:1.5;padding:8px 16px 14px;color:inherit;opacity:.78;';
+  const stale = fresh && seen && fresh.built !== seen.built;
+  line.innerHTML = stale
+    ? `Версія порталу від ${v.label} · <b style="color:var(--warning-text,#8a5a00)">на сервері новіша — від ${fresh.label}</b> ` +
+      `<button type="button" style="font:inherit;font-size:12px;margin-left:6px;padding:2px 10px;border-radius:8px;border:1px solid var(--line,#d7e3ea);background:var(--surface,#fff);color:inherit;cursor:pointer">Оновити</button>`
+    : `Версія порталу від ${v.label}${fresh ? ' · ✓ остання' : ' · сервер недоступний, показано збережену'}`;
+  line.title = 'Дата й час останнього оновлення порталу (деплою). Якщо на сервері новіша — кнопка «Оновити» скидає збережені копії файлів.';
+  line.querySelector('button')?.addEventListener('click', async () => {
+    try { for (const k of await caches.keys()) await caches.delete(k); } catch (e) { /* без Cache Storage */ }
+    location.reload();
+  });
+  const footer = document.querySelector('footer');
+  if (footer) footer.appendChild(line); else document.body.appendChild(line);
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountVersionLine);
+else mountVersionLine();
+
 // ── Стежка навігації (плаваючий навігатор пройдених сторінок) ──
 // Шлях розв'язується відносно auth-v2.js (корінь сайту), тож працює
 // з будь-якої вкладеної сторінки. Помилка завантаження не критична.
