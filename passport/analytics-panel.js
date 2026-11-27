@@ -407,6 +407,17 @@ function sources() {
         note: `Вигрузка від ${cm.export}; ${cm.rows_used} із ${cm.rows} рядків (неповний місяць викинуто). ` +
           "Область — за місцем закладу. Лише агрегати по країні й областях; менше трьох закладів — показники якості приховано." };
     })()] : []),
+    // Обласні аналітичні звіти НСЗУ (regional.js) — вік від дати випуску, бо НСЗУ замінює файли
+    // на місці приблизно раз на місяць; «треба оновити» = вийшов новіший випуск, а ми його не взяли.
+    ...(() => {
+      const rm = window.PkgRegional && window.PkgRegional.meta ? window.PkgRegional.meta() : null;
+      return [{ id: "regional", title: "Аналітичні звіти НСЗУ (обласні)", date: rm ? rm.date : null,
+        state: rm ? byMonths(rm.date) : "na", slice: rm ? `випуск від ${rm.formed}` : "—",
+        ageText: rm ? null : "вантажиться",
+        affects: "Звіт НСЗУ: обсяги 2024–2026, кадрові невідповідності, ДСГ одного дня, маршрут, пологи",
+        fix: "свіжий випуск через Chrome → tools/nszu_regional_build.py → tools/sources_build.py --only passport_regional",
+        note: rm ? "Публічні обласні звіти НСЗУ; на сайт ідуть лише агрегати по країні й областях." : "" }];
+    })(),
     { id: "pvol", title: "Послуги по закладах (Supabase)", date: pvEnd,
       slice: A.pvol && A.pvol.period ? `${A.pvol.period.from} — ${A.pvol.period.to}` : "—",
       ageText: canSeeZoz() ? (A.pvol ? null : "за пакетом немає") : "лише після входу",
@@ -2241,6 +2252,8 @@ function draw() {
   safe(renderPay, list);
   safe(renderCompl, list);
   safe(renderCases);
+  // Звіт НСЗУ (regional.js) іде за тим самим зрізом
+  if (window.PkgRegional) safe(window.PkgRegional.draw);
   safe(renderMoney, list, st);
   safe(renderWork, list, st);
   safe(renderAccess);
@@ -2394,6 +2407,7 @@ function wire() {
 
 window.AnalyticsPanel = {
   render, onVolumes, onProviderVolumes, onMapScope, openZoz, closeZoz, setScope,
+  redraw: () => draw(),
   get state() { return A; },
 };
 })();

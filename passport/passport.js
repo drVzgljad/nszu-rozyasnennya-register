@@ -339,6 +339,8 @@ function selectPackage(pkgNum) {
   // Панель «Як працює пакет» (analytics-panel.js) — верхній рівень вкладки;
   // її дані (panel.json, ставки постанови) вантажаться асинхронно
   if (window.AnalyticsPanel) window.AnalyticsPanel.render(pkgNum);
+  // Звіт НСЗУ щодо стану реалізації ПМГ (regional.js) — картка в тій самій панелі
+  if (window.PkgRegional) window.PkgRegional.render(pkgNum);
   // Приладова панель у шапці: горить лише відхилення (signals.js, alerts.json)
   if (window.PkgSignals) window.PkgSignals.render(pkgNum);
   renderAnatomy();
