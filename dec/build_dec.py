@@ -237,7 +237,18 @@ def main():
     cat_info = {}
     for c in categories:
         ic = icd.get(c["slug"]) or {}
-        codes = [x for x in ic.get("codes", []) if x in nk025 or re.fullmatch(r"[A-Z]\d{2}", x)]
+        # Підрубрику, якої немає в індексі НК 025, зводимо до найближчого наявного рівня:
+        # F05.12 → F05.1, E84.0 → E84. Раніше такий код відкидався, і муковісцидоз, ХХН V на
+        # діалізі й ХЗДП лишались без кодів і без зв'язку з пакетами.
+        codes = []
+        for x in ic.get("codes", []):
+            while x and x not in nk025 and not re.fullmatch(r"[A-Z]\d{2}", x):
+                x = x[:-1].rstrip(".") if "." in x else None
+            if x and x not in codes:
+                codes.append(x)
+        for f in ic.get("fixes", []):
+            hf.note("typo", f"{ic.get('from', '')}, паспорт: код МКХ-10", f["was"], f["now"],
+                    "крапка між літерою й цифрами коду")
         cat_info[c["name"]] = {
             "slug": c["slug"], "url": c["url"], "updated": c["updated"],
             "direction": dir_of.get(c["name"], ""),

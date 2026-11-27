@@ -45,6 +45,8 @@ RE_MKH = re.compile(
     r"|(?:Шифр|Код(?:и|ів)?)[^\n.]{0,60}?(?:МКХ|МКБ|НК\s*025|ICD[- ]?10|Міжнародн\w+\s+(?:статистичн\w+\s+)?класифікац\w+\s+хвороб)",
     re.I)
 TR = str.maketrans(CYR, LAT)
+# Крапка між літерою й цифрами коду: «D.86.» → D86 (лише якщо такий код є в НК 025)
+RE_DOT_TYPO = re.compile(rf"(?<![A-Za-zА-Яа-яІіЇїЄєҐґ0-9.])({L})\.(\d{{2}})(?![\d])")
 
 
 def text_of(pdf):
@@ -91,6 +93,7 @@ def main():
             if len(windows) >= 3:
                 break
         codes = []
+        fixes = []
         quote = ""
         for w in windows:
             # Обрізаємо вікно на наступному великому розділі паспорта
@@ -99,7 +102,9 @@ def main():
             if cut:
                 w = w[: 40 + cut.start()]
             # Коди інших класифікацій (ICPC-2: R80 «грип») стоять поруч і схожі на МКХ — відрізаємо
-            icpc = re.search(r"ICPC|МКПМД|Міжнародн\w+ класифікац\w+ первинн", w[20:])
+            # ... і коди Єдиного класифікатора попередніх діагнозів для бригад ЕМД (A80, A88.5 «шок»)
+            icpc = re.search(r"ICPC|МКПМД|Міжнародн\w+ класифікац\w+ первинн|Єдин\w+ класифікатор|"
+                             r"класифікатор\w* попередніх діагнозів", w[20:])
             if icpc:
                 w = w[: 20 + icpc.start()]
             # Коди йдуть переліком одразу за заголовком; після переліку — текст. Перерва понад
@@ -110,6 +115,13 @@ def main():
                     w = w[: last + 10]
                     break
                 last = mm.end()
+            # Помилка набору в паспорті: «D.86.» замість «D86» (саркоїдоз, УКПМД 2014-634).
+            # Виправлення не мовчазне: «було → стало» йде в журнал правок (errata_dec.json).
+            for mm in RE_DOT_TYPO.finditer(w):
+                fixed = (mm.group(1) + mm.group(2)).translate(TR)
+                if fixed in nk025 and not any(f["was"] == mm.group(0) for f in fixes):
+                    fixes.append({"was": mm.group(0), "now": fixed})
+            w = RE_DOT_TYPO.sub(lambda mm: mm.group(1) + mm.group(2), w)
             found = []
             for a, b in RE_RANGE.findall(w):
                 found += expand(a.replace(" ", ""), b.replace(" ", ""))
@@ -131,6 +143,8 @@ def main():
             continue
         out[slug] = {"codes": uniq[:120], "from": f"{p['type']} {p['number']}".strip(), "doc": p["url"],
                      "quote": quote[:300]}
+        if fixes:
+            out[slug]["fixes"] = fixes
     OUT.write_text(json.dumps({"about": __doc__.split("\n")[0], "categories": dict(sorted(out.items()))},
                               ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"Коди МКХ-10 знайдено для {len(out)} категорій з {len(picks)}; без кодів — {len(none)}")
