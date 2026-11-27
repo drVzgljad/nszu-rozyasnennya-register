@@ -55,7 +55,10 @@ function fresh(date) {
 /* ── Дані ──────────────────────────────────────────────────────────── */
 function load() {
   if (S.loading) return S.loading;
-  S.loading = fetch("data/alerts.json", { cache: "no-cache" })
+  // ?t=Date.now() — повз service worker: він віддає збережену копію, а новий воркер не бере
+  // керування, доки відкриті вкладки порталу, тож після перезбирання сигнали показувались
+  // старими («пораховано на реєстрі від 15.09…»). 27.11.2026
+  S.loading = fetch(`data/alerts.json?t=${Date.now()}`, { cache: "no-cache" })
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null)
     .then((d) => {

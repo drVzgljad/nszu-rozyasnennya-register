@@ -61,7 +61,8 @@
   /* ── Завантаження ─────────────────────────────────────────────── */
   function loadIndex() {
     if (!R.idxP) {
-      R.idxP = fetch("data/regional/index.json", { cache: "no-cache" })
+      // ?t= — повз кеш service worker'а: індекс малий, а від нього залежить, який випуск вантажити
+      R.idxP = fetch(`data/regional/index.json?t=${Date.now()}`, { cache: "no-cache" })
         .then((r) => (r.ok ? r.json() : null)).catch(() => null)
         .then((d) => {
           R.idx = d;
